@@ -1,4 +1,23 @@
 definitions:
+  controller.putSpecBody:
+    properties:
+      engines:
+        items:
+          $ref: '#/definitions/entity.Engine'
+        type: array
+    type: object
+  controller.queryOutput:
+    properties:
+      output:
+        type: string
+    type: object
+  controller.queryRequest:
+    properties:
+      engine:
+        type: string
+      sql:
+        type: string
+    type: object
   entity.Engine:
     properties:
       env:
@@ -39,25 +58,6 @@ definitions:
       node:
         type: string
     type: object
-  modules.putSpecBody:
-    properties:
-      engines:
-        items:
-          $ref: '#/definitions/entity.Engine'
-        type: array
-    type: object
-  modules.queryOutput:
-    properties:
-      output:
-        type: string
-    type: object
-  modules.queryRequest:
-    properties:
-      engine:
-        type: string
-      sql:
-        type: string
-    type: object
 info:
   contact: {}
   description: 'Master REST API: frontends read node state here; the master'
@@ -70,22 +70,6 @@ paths:
         "200":
           description: process is alive
       summary: Liveness probe
-  /openapi.json:
-    get:
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-      summary: This OpenAPI spec (json)
-  /openapi.yaml:
-    get:
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-      summary: This OpenAPI spec (yaml)
   /readyz:
     get:
       responses:
@@ -111,12 +95,12 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/modules.queryRequest'
+          $ref: '#/definitions/controller.queryRequest'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/modules.queryOutput'
+            $ref: '#/definitions/controller.queryOutput'
         "400":
           description: Bad Request
           schema:
@@ -180,7 +164,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/modules.putSpecBody'
+          $ref: '#/definitions/controller.putSpecBody'
       responses:
         "204":
           description: accepted and published

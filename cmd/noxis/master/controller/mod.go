@@ -1,8 +1,7 @@
-// Package modules splits the REST API per feature. Each feature registers
-// its routes on the shared mux; adding one is a new file, not a new switch.
-// Handlers are plain (w, r) funcs annotated with swag comments — `make
-// swagger` regenerates doc/swagger.yaml|json from them.
-package modules
+// Package controller holds the REST handlers, one per method, annotated with
+// swag comments (`make swagger` regenerates doc/swagger.yaml|json). Route
+// wiring lives in cmd/noxis/master/routes.go.
+package controller
 
 import (
 	"context"
@@ -15,7 +14,7 @@ import (
 	rpc "noxis/internal/services/grpc"
 )
 
-// Deps is everything a feature module needs from the master.
+// Deps is everything a handler needs from the master.
 type Deps struct {
 	Ctrl *rpc.Server
 	Repo *repository.SQLite
@@ -31,19 +30,9 @@ func WithDeps(next http.Handler, d Deps) http.Handler {
 	})
 }
 
-// From returns the module deps for the request.
+// From returns the request's Deps.
 func From(r *http.Request) Deps {
 	return r.Context().Value(ctxKey{}).(Deps)
-}
-
-// Register mounts every feature module.
-func Register(mux *http.ServeMux, d Deps) {
-	registerHealth(mux, d)
-	registerStatus(mux, d)
-	registerSpec(mux, d)
-	registerQuery(mux, d)
-	registerNodes(mux, d)
-	registerDocs(mux, d)
 }
 
 func writeJSON(w http.ResponseWriter, code int, v any) {

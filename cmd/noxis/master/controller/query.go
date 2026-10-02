@@ -1,4 +1,4 @@
-package modules
+package controller
 
 import (
 	"encoding/json"
@@ -14,11 +14,6 @@ type queryOutput struct {
 	Output string `json:"output"`
 }
 
-// registerQuery wires the query feature route.
-func registerQuery(mux *http.ServeMux, _ Deps) {
-	mux.HandleFunc("POST /v1/nodes/{node}/query", postQuery)
-}
-
 // @Summary Run a query against an engine on the node (SQL engines)
 // @Param node path string true "slave node id"
 // @Param body body queryRequest true "engine and SQL"
@@ -26,7 +21,7 @@ func registerQuery(mux *http.ServeMux, _ Deps) {
 // @Failure 400 {object} map[string]string
 // @Failure 503 {object} map[string]string "node not connected"
 // @Router /v1/nodes/{node}/query [post]
-func postQuery(w http.ResponseWriter, r *http.Request) {
+func PostQuery(w http.ResponseWriter, r *http.Request) {
 	var body queryRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeErr(w, err)

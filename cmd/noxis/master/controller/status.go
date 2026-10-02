@@ -1,4 +1,4 @@
-package modules
+package controller
 
 import (
 	"net/http"
@@ -6,16 +6,11 @@ import (
 	"noxis/internal/entity"
 )
 
-// registerStatus wires the status feature route.
-func registerStatus(mux *http.ServeMux, _ Deps) {
-	mux.HandleFunc("GET /v1/status", getStatus)
-}
-
 // @Summary Node statuses (reported runtime merged with registered nodes)
 // @Success 200 {object} object{nodes=[]entity.NodeStatus} "status of every node"
 // @Failure 400 {object} map[string]string
 // @Router /v1/status [get]
-func getStatus(w http.ResponseWriter, r *http.Request) {
+func GetStatus(w http.ResponseWriter, r *http.Request) {
 	d := From(r)
 	rows, err := d.Ctrl.Statuses(r.Context())
 	if err != nil {

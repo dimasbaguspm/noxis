@@ -13,9 +13,10 @@ build:
 test:
 	go test ./...
 
-swagger:  ## regenerate doc/swagger.yaml|json from handler annotations
+swagger:  ## regenerate doc/swagger.yaml|json from handler annotations (Postman artifact)
 	go install github.com/swaggo/swag/cmd/swag@latest
 	swag init -g cmd/noxis/master/routes.go --output ./doc
+	rm -f doc/docs.go  # generated runtime is unused; spec files are the artifact
 
 db:   ## create the dev sqlite store under docker/
 	@mkdir -p docker

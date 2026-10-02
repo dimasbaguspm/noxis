@@ -1,4 +1,4 @@
-package modules
+package controller
 
 import (
 	"encoding/json"
@@ -13,18 +13,12 @@ type putSpecBody struct {
 	Engines []entity.Engine `json:"engines"`
 }
 
-// registerSpec wires the spec feature routes.
-func registerSpec(mux *http.ServeMux, _ Deps) {
-	mux.HandleFunc("GET /v1/nodes/{node}/spec", getNodeSpec)
-	mux.HandleFunc("PUT /v1/nodes/{node}/spec", putNodeSpec)
-}
-
 // @Summary Read a node's desired engines
 // @Param node path string true "slave node id"
 // @Success 200 {object} entity.Spec
 // @Failure 400 {object} map[string]string
 // @Router /v1/nodes/{node}/spec [get]
-func getNodeSpec(w http.ResponseWriter, r *http.Request) {
+func GetNodeSpec(w http.ResponseWriter, r *http.Request) {
 	spec, err := From(r).Ctrl.NodeSpec(r.Context(), r.PathValue("node"))
 	if err != nil {
 		writeErr(w, err)
@@ -39,7 +33,7 @@ func getNodeSpec(w http.ResponseWriter, r *http.Request) {
 // @Success 204 "accepted and published"
 // @Failure 400 {object} map[string]string
 // @Router /v1/nodes/{node}/spec [put]
-func putNodeSpec(w http.ResponseWriter, r *http.Request) {
+func PutNodeSpec(w http.ResponseWriter, r *http.Request) {
 	var body putSpecBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeErr(w, err)

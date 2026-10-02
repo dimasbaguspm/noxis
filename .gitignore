@@ -2,3 +2,5 @@ bin/
 *.db
 *.db-journal
 docker/db.sqlite
+
+doc/docs.go

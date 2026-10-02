@@ -11,15 +11,23 @@ import (
 	"log/slog"
 	"net/http"
 
-	"noxis/cmd/noxis/master/modules"
+	"noxis/cmd/noxis/master/controller"
 	"noxis/internal/repository"
 	rpc "noxis/internal/services/grpc"
 )
 
-// newHandler assembles the REST API from feature modules + middleware.
+// newHandler wires every route to its controller handler, then middleware.
 func newHandler(ctrl *rpc.Server, repo *repository.SQLite, log *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
-	d := modules.Deps{Ctrl: ctrl, Repo: repo, Log: log}
-	modules.Register(mux, d)
-	return withMiddleware(modules.WithDeps(mux, d), log)
+	d := controller.Deps{Ctrl: ctrl, Repo: repo, Log: log}
+
+	mux.HandleFunc("GET /healthz", controller.GetHealthz)
+	mux.HandleFunc("GET /readyz", controller.GetReadyz)
+	mux.HandleFunc("GET /v1/status", controller.GetStatus)
+	mux.HandleFunc("GET /v1/nodes/{node}/spec", controller.GetNodeSpec)
+	mux.HandleFunc("PUT /v1/nodes/{node}/spec", controller.PutNodeSpec)
+	mux.HandleFunc("POST /v1/nodes/{node}/query", controller.PostQuery)
+	mux.HandleFunc("POST /v1/nodes/{node}/register", controller.PostRegister)
+
+	return withMiddleware(controller.WithDeps(mux, d), log)
 }

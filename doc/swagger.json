@@ -17,32 +17,6 @@
                 }
             }
         },
-        "/openapi.json": {
-            "get": {
-                "summary": "This OpenAPI spec (json)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/openapi.yaml": {
-            "get": {
-                "summary": "This OpenAPI spec (yaml)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
         "/readyz": {
             "get": {
                 "summary": "Readiness probe (sqlite ping)",
@@ -79,7 +53,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/modules.queryRequest"
+                            "$ref": "#/definitions/controller.queryRequest"
                         }
                     }
                 ],
@@ -87,7 +61,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/modules.queryOutput"
+                            "$ref": "#/definitions/controller.queryOutput"
                         }
                     },
                     "400": {
@@ -185,7 +159,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/modules.putSpecBody"
+                            "$ref": "#/definitions/controller.putSpecBody"
                         }
                     }
                 ],
@@ -237,6 +211,36 @@
         }
     },
     "definitions": {
+        "controller.putSpecBody": {
+            "type": "object",
+            "properties": {
+                "engines": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/entity.Engine"
+                    }
+                }
+            }
+        },
+        "controller.queryOutput": {
+            "type": "object",
+            "properties": {
+                "output": {
+                    "type": "string"
+                }
+            }
+        },
+        "controller.queryRequest": {
+            "type": "object",
+            "properties": {
+                "engine": {
+                    "type": "string"
+                },
+                "sql": {
+                    "type": "string"
+                }
+            }
+        },
         "entity.Engine": {
             "type": "object",
             "properties": {
@@ -293,36 +297,6 @@
                     }
                 },
                 "node": {
-                    "type": "string"
-                }
-            }
-        },
-        "modules.putSpecBody": {
-            "type": "object",
-            "properties": {
-                "engines": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/entity.Engine"
-                    }
-                }
-            }
-        },
-        "modules.queryOutput": {
-            "type": "object",
-            "properties": {
-                "output": {
-                    "type": "string"
-                }
-            }
-        },
-        "modules.queryRequest": {
-            "type": "object",
-            "properties": {
-                "engine": {
-                    "type": "string"
-                },
-                "sql": {
                     "type": "string"
                 }
             }
