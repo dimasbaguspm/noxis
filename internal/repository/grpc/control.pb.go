@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        v5.29.3
-// source: internal/core/control.proto
+// source: internal/repository/grpc/control.proto
 
-package core
+package rpc
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -31,7 +31,7 @@ type NodeId struct {
 
 func (x *NodeId) Reset() {
 	*x = NodeId{}
-	mi := &file_internal_core_control_proto_msgTypes[0]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *NodeId) String() string {
 func (*NodeId) ProtoMessage() {}
 
 func (x *NodeId) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_control_proto_msgTypes[0]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +56,7 @@ func (x *NodeId) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NodeId.ProtoReflect.Descriptor instead.
 func (*NodeId) Descriptor() ([]byte, []int) {
-	return file_internal_core_control_proto_rawDescGZIP(), []int{0}
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *NodeId) GetId() string {
@@ -79,7 +79,7 @@ type EngineSpec struct {
 
 func (x *EngineSpec) Reset() {
 	*x = EngineSpec{}
-	mi := &file_internal_core_control_proto_msgTypes[1]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -91,7 +91,7 @@ func (x *EngineSpec) String() string {
 func (*EngineSpec) ProtoMessage() {}
 
 func (x *EngineSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_control_proto_msgTypes[1]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -104,7 +104,7 @@ func (x *EngineSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EngineSpec.ProtoReflect.Descriptor instead.
 func (*EngineSpec) Descriptor() ([]byte, []int) {
-	return file_internal_core_control_proto_rawDescGZIP(), []int{1}
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *EngineSpec) GetName() string {
@@ -152,7 +152,7 @@ type DesiredSpec struct {
 
 func (x *DesiredSpec) Reset() {
 	*x = DesiredSpec{}
-	mi := &file_internal_core_control_proto_msgTypes[2]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -164,7 +164,7 @@ func (x *DesiredSpec) String() string {
 func (*DesiredSpec) ProtoMessage() {}
 
 func (x *DesiredSpec) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_control_proto_msgTypes[2]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -177,7 +177,7 @@ func (x *DesiredSpec) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DesiredSpec.ProtoReflect.Descriptor instead.
 func (*DesiredSpec) Descriptor() ([]byte, []int) {
-	return file_internal_core_control_proto_rawDescGZIP(), []int{2}
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *DesiredSpec) GetEngines() []*EngineSpec {
@@ -204,7 +204,7 @@ type SetDesiredStateRequest struct {
 
 func (x *SetDesiredStateRequest) Reset() {
 	*x = SetDesiredStateRequest{}
-	mi := &file_internal_core_control_proto_msgTypes[3]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -216,7 +216,7 @@ func (x *SetDesiredStateRequest) String() string {
 func (*SetDesiredStateRequest) ProtoMessage() {}
 
 func (x *SetDesiredStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_control_proto_msgTypes[3]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -229,7 +229,7 @@ func (x *SetDesiredStateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetDesiredStateRequest.ProtoReflect.Descriptor instead.
 func (*SetDesiredStateRequest) Descriptor() ([]byte, []int) {
-	return file_internal_core_control_proto_rawDescGZIP(), []int{3}
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *SetDesiredStateRequest) GetNode() string {
@@ -255,7 +255,7 @@ type WatchRequest struct {
 
 func (x *WatchRequest) Reset() {
 	*x = WatchRequest{}
-	mi := &file_internal_core_control_proto_msgTypes[4]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -267,7 +267,7 @@ func (x *WatchRequest) String() string {
 func (*WatchRequest) ProtoMessage() {}
 
 func (x *WatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_control_proto_msgTypes[4]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -280,7 +280,7 @@ func (x *WatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchRequest.ProtoReflect.Descriptor instead.
 func (*WatchRequest) Descriptor() ([]byte, []int) {
-	return file_internal_core_control_proto_rawDescGZIP(), []int{4}
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *WatchRequest) GetNode() string {
@@ -302,7 +302,7 @@ type Status struct {
 
 func (x *Status) Reset() {
 	*x = Status{}
-	mi := &file_internal_core_control_proto_msgTypes[5]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -314,7 +314,7 @@ func (x *Status) String() string {
 func (*Status) ProtoMessage() {}
 
 func (x *Status) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_control_proto_msgTypes[5]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -327,7 +327,7 @@ func (x *Status) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Status.ProtoReflect.Descriptor instead.
 func (*Status) Descriptor() ([]byte, []int) {
-	return file_internal_core_control_proto_rawDescGZIP(), []int{5}
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Status) GetNode() string {
@@ -367,7 +367,7 @@ type StatusList struct {
 
 func (x *StatusList) Reset() {
 	*x = StatusList{}
-	mi := &file_internal_core_control_proto_msgTypes[6]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -379,7 +379,7 @@ func (x *StatusList) String() string {
 func (*StatusList) ProtoMessage() {}
 
 func (x *StatusList) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_control_proto_msgTypes[6]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -392,7 +392,7 @@ func (x *StatusList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StatusList.ProtoReflect.Descriptor instead.
 func (*StatusList) Descriptor() ([]byte, []int) {
-	return file_internal_core_control_proto_rawDescGZIP(), []int{6}
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *StatusList) GetStatuses() []*Status {
@@ -410,7 +410,7 @@ type Empty struct {
 
 func (x *Empty) Reset() {
 	*x = Empty{}
-	mi := &file_internal_core_control_proto_msgTypes[7]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -422,7 +422,7 @@ func (x *Empty) String() string {
 func (*Empty) ProtoMessage() {}
 
 func (x *Empty) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_core_control_proto_msgTypes[7]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -435,14 +435,14 @@ func (x *Empty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Empty.ProtoReflect.Descriptor instead.
 func (*Empty) Descriptor() ([]byte, []int) {
-	return file_internal_core_control_proto_rawDescGZIP(), []int{7}
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{7}
 }
 
-var File_internal_core_control_proto protoreflect.FileDescriptor
+var File_internal_repository_grpc_control_proto protoreflect.FileDescriptor
 
-const file_internal_core_control_proto_rawDesc = "" +
+const file_internal_repository_grpc_control_proto_rawDesc = "" +
 	"\n" +
-	"\x1binternal/core/control.proto\x12\bnoxis.v1\"\x18\n" +
+	"&internal/repository/grpc/control.proto\x12\bnoxis.v1\"\x18\n" +
 	"\x06NodeId\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\xa8\x02\n" +
 	"\n" +
@@ -483,22 +483,22 @@ const file_internal_core_control_proto_rawDesc = "" +
 	"\x0fSetDesiredState\x12 .noxis.v1.SetDesiredStateRequest\x1a\x0f.noxis.v1.Empty\x121\n" +
 	"\fReportStatus\x12\x10.noxis.v1.Status\x1a\x0f.noxis.v1.Empty\x123\n" +
 	"\n" +
-	"ListStatus\x12\x0f.noxis.v1.Empty\x1a\x14.noxis.v1.StatusListB\x1aZ\x18noxis/internal/core;coreb\x06proto3"
+	"ListStatus\x12\x0f.noxis.v1.Empty\x1a\x14.noxis.v1.StatusListB$Z\"noxis/internal/repository/grpc;rpcb\x06proto3"
 
 var (
-	file_internal_core_control_proto_rawDescOnce sync.Once
-	file_internal_core_control_proto_rawDescData []byte
+	file_internal_repository_grpc_control_proto_rawDescOnce sync.Once
+	file_internal_repository_grpc_control_proto_rawDescData []byte
 )
 
-func file_internal_core_control_proto_rawDescGZIP() []byte {
-	file_internal_core_control_proto_rawDescOnce.Do(func() {
-		file_internal_core_control_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_core_control_proto_rawDesc), len(file_internal_core_control_proto_rawDesc)))
+func file_internal_repository_grpc_control_proto_rawDescGZIP() []byte {
+	file_internal_repository_grpc_control_proto_rawDescOnce.Do(func() {
+		file_internal_repository_grpc_control_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_repository_grpc_control_proto_rawDesc), len(file_internal_repository_grpc_control_proto_rawDesc)))
 	})
-	return file_internal_core_control_proto_rawDescData
+	return file_internal_repository_grpc_control_proto_rawDescData
 }
 
-var file_internal_core_control_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
-var file_internal_core_control_proto_goTypes = []any{
+var file_internal_repository_grpc_control_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_internal_repository_grpc_control_proto_goTypes = []any{
 	(*NodeId)(nil),                 // 0: noxis.v1.NodeId
 	(*EngineSpec)(nil),             // 1: noxis.v1.EngineSpec
 	(*DesiredSpec)(nil),            // 2: noxis.v1.DesiredSpec
@@ -510,7 +510,7 @@ var file_internal_core_control_proto_goTypes = []any{
 	nil,                            // 8: noxis.v1.EngineSpec.PortsEntry
 	nil,                            // 9: noxis.v1.EngineSpec.EnvEntry
 }
-var file_internal_core_control_proto_depIdxs = []int32{
+var file_internal_repository_grpc_control_proto_depIdxs = []int32{
 	8,  // 0: noxis.v1.EngineSpec.ports:type_name -> noxis.v1.EngineSpec.PortsEntry
 	9,  // 1: noxis.v1.EngineSpec.env:type_name -> noxis.v1.EngineSpec.EnvEntry
 	1,  // 2: noxis.v1.DesiredSpec.engines:type_name -> noxis.v1.EngineSpec
@@ -533,26 +533,26 @@ var file_internal_core_control_proto_depIdxs = []int32{
 	0,  // [0:5] is the sub-list for field type_name
 }
 
-func init() { file_internal_core_control_proto_init() }
-func file_internal_core_control_proto_init() {
-	if File_internal_core_control_proto != nil {
+func init() { file_internal_repository_grpc_control_proto_init() }
+func file_internal_repository_grpc_control_proto_init() {
+	if File_internal_repository_grpc_control_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_core_control_proto_rawDesc), len(file_internal_core_control_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_repository_grpc_control_proto_rawDesc), len(file_internal_repository_grpc_control_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_internal_core_control_proto_goTypes,
-		DependencyIndexes: file_internal_core_control_proto_depIdxs,
-		MessageInfos:      file_internal_core_control_proto_msgTypes,
+		GoTypes:           file_internal_repository_grpc_control_proto_goTypes,
+		DependencyIndexes: file_internal_repository_grpc_control_proto_depIdxs,
+		MessageInfos:      file_internal_repository_grpc_control_proto_msgTypes,
 	}.Build()
-	File_internal_core_control_proto = out.File
-	file_internal_core_control_proto_goTypes = nil
-	file_internal_core_control_proto_depIdxs = nil
+	File_internal_repository_grpc_control_proto = out.File
+	file_internal_repository_grpc_control_proto_goTypes = nil
+	file_internal_repository_grpc_control_proto_depIdxs = nil
 }

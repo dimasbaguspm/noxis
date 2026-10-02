@@ -21,6 +21,8 @@ export NOXIS_MASTER=master-host:9000 NOXIS_NODE=zeus
 
 # from anywhere with NOXIS_MASTER set
 ./noxis assign zeus redis@7 mongo@8        # declarative desired state
+./noxis assign zeus redis@7:6380           # custom host port (container side stays default)
+./noxis assign zeus redis@7:6380 redis@7:6381   # same type twice, auto-suffixed names
 ./noxis assign zeus redis@8                # version bump -> slave recreates
 ./noxis status                             # reported runtime state per node
 ./noxis sync zeus                          # manual reconcile (fallback)
@@ -42,14 +44,17 @@ Missing variables fail loudly per command. No secret defaults.
 ## Layout
 
 ```
-cmd/noxis/          bootstrap: env -> config struct -> logger -> commands
-internal/common/    config (env struct), logging (slog JSON + OTEL)
-internal/entity/    domain models
-internal/interfaces/   seams (SpecRepository, StatusRepository)
-internal/repository/   sqlite implementations
-internal/core/      control.proto, gRPC server + converters
-internal/features/  doorman: engine registry + docker reconciler
+cmd/noxis/               bootstrap in main.go, commands/ one file per verb
+internal/common/logging  slog JSON + OTEL; logs carry trace_id/span_id from ctx
+internal/entity/         domain models + Config (env struct) + App container
+internal/interfaces/     seams (SpecRepository, StatusRepository)
+internal/repository/     sqlite impls + grpc/ (control.proto, server, client)
+internal/features/doorman/reconcile.go    diff/apply decisions
+internal/features/doorman/runtimes/       docker driver + per-engine recipes
 ```
+
+Containers drift-recreate on any desired-state change (version, port, env),
+compared via a `noxis.desired` label stamped at creation — no inspect parsing.
 
 ## Dev
 

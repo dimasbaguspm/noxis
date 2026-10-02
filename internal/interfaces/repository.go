@@ -16,8 +16,8 @@ type SpecRepository interface {
 	Set(ctx context.Context, spec *entity.Spec) error
 	// Subscribe returns a coalescing channel: a tick means "spec changed, re-read".
 	// The channel is owned by the caller until Unsubscribe.
-	Subscribe(node string) chan struct{}
-	Unsubscribe(node string, ch chan struct{})
+	Subscribe(ctx context.Context, node string) chan struct{}
+	Unsubscribe(ctx context.Context, node string, ch chan struct{})
 }
 
 // StatusRepository keeps the last reported runtime state per node.

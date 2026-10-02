@@ -7,8 +7,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"noxis/internal/common/config"
+	"noxis/cmd/noxis/commands"
 	"noxis/internal/common/logging"
+	"noxis/internal/entity"
 )
 
 // main is the only place wiring happens: env -> config struct -> logger ->
@@ -17,7 +18,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	cfg := config.Load()
+	cfg := entity.LoadConfig()
 	log, shutdown, err := logging.New(cfg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "logging:", err)
@@ -27,8 +28,8 @@ func main() {
 		_ = shutdown(ctx)
 	}()
 
-	if err := NewRootCmd(&App{Cfg: cfg, Log: log}).ExecuteContext(ctx); err != nil {
-		log.Error("command failed", "error", err)
+	if err := commands.NewRootCmd(&entity.App{Cfg: cfg, Log: log}).ExecuteContext(ctx); err != nil {
+		log.ErrorContext(ctx, "command failed", "error", err)
 		os.Exit(1)
 	}
 }

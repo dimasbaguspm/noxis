@@ -54,11 +54,11 @@ func (r *SQLite) Set(ctx context.Context, spec *entity.Spec) error {
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-	r.Notify(spec.Node)
+	r.Notify(ctx, spec.Node)
 	return nil
 }
 
-func (r *SQLite) Subscribe(node string) chan struct{} {
+func (r *SQLite) Subscribe(_ context.Context, node string) chan struct{} {
 	ch := make(chan struct{}, 1)
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -69,7 +69,7 @@ func (r *SQLite) Subscribe(node string) chan struct{} {
 	return ch
 }
 
-func (r *SQLite) Unsubscribe(node string, ch chan struct{}) {
+func (r *SQLite) Unsubscribe(_ context.Context, node string, ch chan struct{}) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if m := r.sub[node]; m != nil {

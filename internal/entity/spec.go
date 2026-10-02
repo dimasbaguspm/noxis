@@ -19,6 +19,6 @@ type StoredSpec struct {
 
 // Spec is one node's assignment, in and out of the store.
 type Spec struct {
-	Node   string
+	Node    string
 	Engines []Engine
 }

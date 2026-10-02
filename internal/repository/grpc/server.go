@@ -1,4 +1,4 @@
-package core
+package rpc
 
 import (
 	"context"
@@ -42,10 +42,11 @@ func (s *Server) SetDesiredState(ctx context.Context, req *SetDesiredStateReques
 // Watch pushes the current spec immediately, then every subsequent change to
 // that node's slice. The stream is the slave's only channel to the master.
 func (s *Server) Watch(req *WatchRequest, stream grpc.ServerStreamingServer[DesiredSpec]) error {
-	ch := s.specs.Subscribe(req.Node)
-	defer s.specs.Unsubscribe(req.Node, ch)
+	streamCtx := stream.Context()
+	ch := s.specs.Subscribe(streamCtx, req.Node)
+	defer s.specs.Unsubscribe(streamCtx, req.Node, ch)
 	send := func() error {
-		spec, err := s.specs.Get(context.Background(), req.Node)
+		spec, err := s.specs.Get(streamCtx, req.Node)
 		if err != nil {
 			return err
 		}
@@ -58,10 +59,10 @@ func (s *Server) Watch(req *WatchRequest, stream grpc.ServerStreamingServer[Desi
 		select {
 		case <-ch:
 			if err := send(); err != nil {
-				slog.Warn("watch send failed", "node", req.Node, "error", err)
+				slog.WarnContext(streamCtx, "watch send failed", "node", req.Node, "error", err)
 				return err
 			}
-		case <-stream.Context().Done():
+		case <-streamCtx.Done():
 			return nil
 		}
 	}

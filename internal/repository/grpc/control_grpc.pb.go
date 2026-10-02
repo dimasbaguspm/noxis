@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v5.29.3
-// source: internal/core/control.proto
+// source: internal/repository/grpc/control.proto
 
-package core
+package rpc
 
 import (
 	context "context"
@@ -281,5 +281,5 @@ var Control_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "internal/core/control.proto",
+	Metadata: "internal/repository/grpc/control.proto",
 }

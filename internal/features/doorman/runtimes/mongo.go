@@ -1,4 +1,4 @@
-package doorman
+package runtimes
 
 func init() {
 	// Runs without auth by default; add MONGO_INITDB_ROOT_USERNAME/PASSWORD

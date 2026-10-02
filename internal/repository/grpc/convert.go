@@ -1,4 +1,4 @@
-package core
+package rpc
 
 import "noxis/internal/entity"
 

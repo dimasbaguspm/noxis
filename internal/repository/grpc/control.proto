@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package noxis.v1;
 
-option go_package = "noxis/internal/core;core";
+option go_package = "noxis/internal/repository/grpc;rpc";
 
 // NodeId identifies a machine running a noxis slave.
 message NodeId {

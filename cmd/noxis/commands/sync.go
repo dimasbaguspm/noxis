@@ -1,35 +1,36 @@
-package main
+package commands
 
 import (
 	"fmt"
 
 	"github.com/spf13/cobra"
 
-	"noxis/internal/common/config"
-	"noxis/internal/core"
+	"noxis/internal/entity"
 	"noxis/internal/features/doorman"
+	rpc "noxis/internal/repository/grpc"
 )
 
-func newSyncCmd(app *App) *cobra.Command {
+func newSyncCmd(app *entity.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "sync NODE",
 		Short: "Manually reconcile a node against its desired state (fallback)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.Cfg.Require(config.EnvMaster); err != nil {
+			ctx := cmd.Context()
+			if err := app.Cfg.Require(entity.EnvMaster); err != nil {
 				return err
 			}
 			node := args[0]
-			conn, err := app.dial(cmd.Context())
+			conn, err := dial(ctx, app)
 			if err != nil {
 				return err
 			}
 			defer conn.Close()
-			spec, err := core.NewControlClient(conn).GetDesiredState(cmd.Context(), &core.NodeId{Id: node})
+			spec, err := rpc.NewControlClient(conn).GetDesiredState(ctx, &rpc.NodeId{Id: node})
 			if err != nil {
 				return err
 			}
-			detail, err := doorman.NewReconciler(node).Reconcile(cmd.Context(), core.SpecFromProto(spec).Engines)
+			detail, err := doorman.NewReconciler(node).Reconcile(ctx, rpc.SpecFromProto(spec).Engines)
 			if err != nil {
 				return err
 			}

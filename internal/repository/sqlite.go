@@ -4,6 +4,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"sync"
@@ -51,7 +52,7 @@ CREATE TABLE IF NOT EXISTS changelog (
 func (r *SQLite) Close() error { return r.db.Close() }
 
 // Notify wakes all watchers of a node, coalescing bursts into one tick.
-func (r *SQLite) Notify(node string) {
+func (r *SQLite) Notify(ctx context.Context, node string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for ch := range r.sub[node] {

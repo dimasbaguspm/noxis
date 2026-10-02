@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"fmt"
@@ -6,24 +6,25 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"noxis/internal/common/config"
-	"noxis/internal/core"
+	"noxis/internal/entity"
+	rpc "noxis/internal/repository/grpc"
 )
 
-func newStatusCmd(app *App) *cobra.Command {
+func newStatusCmd(app *entity.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "status [NODE]",
 		Short: "Show reported status of all nodes (or one)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := app.Cfg.Require(config.EnvMaster); err != nil {
+			ctx := cmd.Context()
+			if err := app.Cfg.Require(entity.EnvMaster); err != nil {
 				return err
 			}
-			conn, err := app.dial(cmd.Context())
+			conn, err := dial(ctx, app)
 			if err != nil {
 				return err
 			}
 			defer conn.Close()
-			list, err := core.NewControlClient(conn).ListStatus(cmd.Context(), &core.Empty{})
+			list, err := rpc.NewControlClient(conn).ListStatus(ctx, &rpc.Empty{})
 			if err != nil {
 				return err
 			}

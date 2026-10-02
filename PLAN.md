@@ -15,16 +15,19 @@ Personal multi-machine infra control plane. Go, single binary, role from CLI fla
 ## Shape
 
 ```
-cmd/noxis           bootstrap: env -> config struct -> logger -> commands (wired once)
-internal/common/    config (single env struct, no defaults), logging (slog JSON + OTEL)
-internal/entity/    domain models
-internal/interfaces/   seams (SpecRepository, StatusRepository)
-internal/repository/   sqlite implementations
-internal/core/      control.proto, gRPC server + proto<->entity converters, client
-internal/features/  applications on the core
-  doorman/          engine registry + docker reconciler (desc, sql, mongo, redis, elastic)
-  ucm/              versioned config store on the changelog (next)
+cmd/noxis/              bootstrap in main.go; commands/ one file per verb
+internal/common/logging slog JSON + OTEL; logs carry trace_id/span_id from ctx
+internal/entity/        domain models + Config (env struct, go-validator) + App
+internal/interfaces/    seams (SpecRepository, StatusRepository)
+internal/repository/    sqlite impls + grpc/ (control.proto, server, client)
+internal/features/doorman/reconcile.go   diff/apply decisions
+internal/features/doorman/runtimes/      docker driver + per-engine recipes
+internal/features/ucm/                  versioned config store on the changelog (next)
 ```
+
+Engines nest under doorman, not beside it: elasticsearch is not a feature,
+it's a Doorman-managed engine. Every function takes ctx first; logs
+re-emit trace/span ids from the context so log-trace-metric share identity.
 
 Storage decision: sqlite holds only the assignment record (what should run),
 the status echo (what slaves report running), and the changelog (audit/oplog).
