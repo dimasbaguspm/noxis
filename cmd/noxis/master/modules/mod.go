@@ -1,8 +1,11 @@
 // Package modules splits the REST API per feature. Each feature registers
 // its routes on the shared mux; adding one is a new file, not a new switch.
+// Handlers are plain (w, r) funcs annotated with swag comments — `make
+// swagger` regenerates doc/swagger.yaml|json from them.
 package modules
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -17,6 +20,20 @@ type Deps struct {
 	Ctrl *rpc.Server
 	Repo *repository.SQLite
 	Log  *slog.Logger
+}
+
+type ctxKey struct{}
+
+// WithDeps carries Deps per request; handlers retrieve them via From.
+func WithDeps(next http.Handler, d Deps) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKey{}, d)))
+	})
+}
+
+// From returns the module deps for the request.
+func From(r *http.Request) Deps {
+	return r.Context().Value(ctxKey{}).(Deps)
 }
 
 // Register mounts every feature module.

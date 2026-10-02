@@ -1,6 +1,6 @@
 PATH := $(HOME)/.local/bin:$(HOME)/go/bin:$(PATH)
 
-.PHONY: proto build test db dev down
+.PHONY: proto build test swagger db dev down
 
 proto:
 	protoc --go_out=. --go_opt=paths=source_relative \
@@ -12,6 +12,10 @@ build:
 
 test:
 	go test ./...
+
+swagger:  ## regenerate doc/swagger.yaml|json from handler annotations
+	go install github.com/swaggo/swag/cmd/swag@latest
+	swag init -g cmd/noxis/master/routes.go --output ./doc
 
 db:   ## create the dev sqlite store under docker/
 	@mkdir -p docker
