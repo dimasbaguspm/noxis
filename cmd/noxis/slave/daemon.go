@@ -57,8 +57,9 @@ func slaveLoop(ctx context.Context, base *slog.Logger, id *reposlave.Identity) e
 	log := base.With("node", id.ID, "broker", id.Broker)
 	addrs := strings.Split(id.Broker, ",")
 
+	topics := kafka.Topics{Prefix: id.TopicPrefix}
 	cons, err := kafka.Consume(ctx, addrs, "noxis."+id.ID, false,
-		kafka.SpecTopic(id.ID), kafka.ReqTopic(id.ID))
+		topics.Spec(id.ID), topics.Req(id.ID))
 	if err != nil {
 		return err
 	}
@@ -69,14 +70,14 @@ func slaveLoop(ctx context.Context, base *slog.Logger, id *reposlave.Identity) e
 		return err
 	}
 	defer producer.Close()
-	if err := producer.EnsureTopic(ctx, kafka.TopicStatus); err != nil {
+	if err := producer.EnsureTopic(ctx, topics.Status()); err != nil {
 		return err
 	}
 
 	recCh := make(chan kafka.Record)
 	go feed(ctx, cons, recCh)
 
-	publishStatus(ctx, producer, id.ID, "up", "slave online")
+	publishStatus(ctx, producer, topics, id.ID, "up", "slave online")
 	ticker := time.NewTicker(heartbeatInterval)
 	defer ticker.Stop()
 	log.InfoContext(ctx, "slave consuming")
@@ -88,13 +89,13 @@ func slaveLoop(ctx context.Context, base *slog.Logger, id *reposlave.Identity) e
 				return nil
 			}
 			switch rec.Topic {
-			case kafka.SpecTopic(id.ID):
-				ackSpec(ctx, log, producer, id.ID, rec.Value)
-			case kafka.ReqTopic(id.ID):
-				answerQuery(ctx, log, producer, id.ID, rec)
+			case topics.Spec(id.ID):
+				ackSpec(ctx, log, producer, topics, id.ID, rec.Value)
+			case topics.Req(id.ID):
+				answerQuery(ctx, log, producer, topics, id.ID, rec)
 			}
 		case <-ticker.C:
-			publishStatus(ctx, producer, id.ID, "up", "slave online")
+			publishStatus(ctx, producer, topics, id.ID, "up", "slave online")
 		case <-ctx.Done():
 			return nil
 		}
@@ -123,31 +124,31 @@ func feed(ctx context.Context, cons *kafka.Broker, out chan<- kafka.Record) {
 // ackSpec acknowledges a desired-state push. Runtime convergence (the old
 // doorman engine manager) is paused for the single-machine trial — the spec
 // event round-trip itself is what matters now.
-func ackSpec(ctx context.Context, log *slog.Logger, producer *kafka.Broker, node string, body []byte) {
+func ackSpec(ctx context.Context, log *slog.Logger, producer *kafka.Broker, topics kafka.Topics, node string, body []byte) {
 	var spec entity.Spec
 	if err := json.Unmarshal(body, &spec); err != nil {
 		log.WarnContext(ctx, "bad spec event", "error", err)
 		return
 	}
 	detail := fmt.Sprintf("spec accepted (%d engine(s))", len(spec.Engines))
-	publishStatus(ctx, producer, node, "ok", detail)
+	publishStatus(ctx, producer, topics, node, "ok", detail)
 	log.InfoContext(ctx, "spec accepted", "engines", len(spec.Engines))
 }
 
-func publishStatus(ctx context.Context, producer *kafka.Broker, node, state, detail string) {
+func publishStatus(ctx context.Context, producer *kafka.Broker, topics kafka.Topics, node, state, detail string) {
 	body, err := json.Marshal(entity.NodeStatus{
 		Node: node, State: state, Detail: detail, TS: time.Now().Unix(),
 	})
 	if err != nil {
 		return
 	}
-	_ = producer.PublishSync(ctx, kafka.TopicStatus, node, body)
+	_ = producer.PublishSync(ctx, topics.Status(), node, body)
 }
 
 // answerQuery replies keyed by the request id (master correlates). No engine
 // runtime is installed yet (doorman removed); queries answer with a clear
 // error so the transport round-trip still validates.
-func answerQuery(ctx context.Context, log *slog.Logger, producer *kafka.Broker, node string, rec kafka.Record) {
+func answerQuery(ctx context.Context, log *slog.Logger, producer *kafka.Broker, topics kafka.Topics, node string, rec kafka.Record) {
 	var req queryReq
 	if err := json.Unmarshal(rec.Value, &req); err != nil {
 		return
@@ -157,7 +158,7 @@ func answerQuery(ctx context.Context, log *slog.Logger, producer *kafka.Broker, 
 	if err != nil {
 		return
 	}
-	if err := producer.PublishSync(ctx, kafka.ResTopic(node), rec.Key, body); err != nil {
+	if err := producer.PublishSync(ctx, topics.Res(node), rec.Key, body); err != nil {
 		log.WarnContext(ctx, "publish query answer", "error", err)
 	}
 }

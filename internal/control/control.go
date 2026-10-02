@@ -29,19 +29,20 @@ const (
 // ponytail: master restart loses specs/status until the slave's next heartbeat;
 // if that ever matters, replay the spec topics on startup.
 type Control struct {
-	nodes interfaces.NodeRepository
-	k     *kafka.Broker
-	log   *slog.Logger
-	addrs []string
+	nodes  interfaces.NodeRepository
+	topics kafka.Topics
+	k      *kafka.Broker
+	log    *slog.Logger
+	addrs  []string
 
 	mu     sync.Mutex
 	specs  map[string]entity.Spec
 	status map[string]entity.NodeStatus
 }
 
-func New(nodes interfaces.NodeRepository, k *kafka.Broker, log *slog.Logger, addrs []string) *Control {
+func New(nodes interfaces.NodeRepository, topics kafka.Topics, k *kafka.Broker, log *slog.Logger, addrs []string) *Control {
 	return &Control{
-		nodes: nodes, k: k, log: log, addrs: addrs,
+		nodes: nodes, topics: topics, k: k, log: log, addrs: addrs,
 		specs: map[string]entity.Spec{}, status: map[string]entity.NodeStatus{},
 	}
 }
@@ -59,14 +60,14 @@ func (c *Control) Spec(ctx context.Context, node string) (*entity.Spec, error) {
 // SetSpec remembers the assignment then publishes it to the node's topic.
 // A crash between the two self-heals: the next publish carries the full spec.
 func (c *Control) SetSpec(ctx context.Context, spec *entity.Spec) error {
-	if err := c.k.EnsureTopic(ctx, kafka.SpecTopic(spec.Node)); err != nil {
+	if err := c.k.EnsureTopic(ctx, c.topics.Spec(spec.Node)); err != nil {
 		return err
 	}
 	body, err := json.Marshal(spec)
 	if err != nil {
 		return err
 	}
-	if err := c.k.PublishSync(ctx, kafka.SpecTopic(spec.Node), spec.Node, body); err != nil {
+	if err := c.k.PublishSync(ctx, c.topics.Spec(spec.Node), spec.Node, body); err != nil {
 		return err
 	}
 	c.mu.Lock()
@@ -103,10 +104,10 @@ func (c *Control) Statuses(ctx context.Context) ([]entity.NodeStatus, error) {
 
 // RunStatusConsumer drains the status topic into memory until ctx is done.
 func (c *Control) RunStatusConsumer(ctx context.Context) error {
-	if err := c.k.EnsureTopic(ctx, kafka.TopicStatus); err != nil {
+	if err := c.k.EnsureTopic(ctx, c.topics.Status()); err != nil {
 		return err
 	}
-	cons, err := kafka.Consume(ctx, c.addrs, "", true, kafka.TopicStatus)
+	cons, err := kafka.Consume(ctx, c.addrs, "", true, c.topics.Status())
 	if err != nil {
 		return err
 	}
@@ -151,21 +152,21 @@ func (c *Control) Query(ctx context.Context, node, engine, sql string) (string, 
 	if err != nil {
 		return "", err
 	}
-	if err := c.k.EnsureTopic(ctx, kafka.ReqTopic(node)); err != nil {
+	if err := c.k.EnsureTopic(ctx, c.topics.Req(node)); err != nil {
 		return "", err
 	}
-	if err := c.k.EnsureTopic(ctx, kafka.ResTopic(node)); err != nil {
+	if err := c.k.EnsureTopic(ctx, c.topics.Res(node)); err != nil {
 		return "", err
 	}
 	req, err := json.Marshal(queryReq{Engine: engine, SQL: sql})
 	if err != nil {
 		return "", err
 	}
-	if err := c.k.PublishSync(ctx, kafka.ReqTopic(node), qid, req); err != nil {
+	if err := c.k.PublishSync(ctx, c.topics.Req(node), qid, req); err != nil {
 		return "", err
 	}
 
-	cons, err := kafka.Consume(ctx, c.addrs, "", true, kafka.ResTopic(node))
+	cons, err := kafka.Consume(ctx, c.addrs, "", true, c.topics.Res(node))
 	if err != nil {
 		return "", err
 	}

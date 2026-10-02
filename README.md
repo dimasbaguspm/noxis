@@ -53,7 +53,8 @@ CORS is open for dev frontends.
 | Variable | Needed by | Meaning |
 |---|---|---|
 | `NOXIS_MASTER` | register | REST base URL of the master |
-| `NOXIS_BROKER` | master, register | Kafka broker address (master keeps a copy in identity) |
+| `NOXIS_BROKER` | master, register | Kafka broker address (kept in identity) |
+| `NOXIS_TOPIC_PREFIX` | master, register | Kafka topic prefix, e.g. `noxis.` (kept in identity) |
 | `NOXIS_LISTEN` | master | REST listen address |
 | `NOXIS_DB` | master | sqlite path |
 | `NOXIS_OTEL_COLLECTOR` | all (optional) | OTLP endpoint, enables trace+metric export |

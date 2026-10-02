@@ -16,7 +16,7 @@ import (
 
 // Run blocks serving REST until ctx is done or a dependency fails.
 func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
-	if err := cfg.Require(entity.EnvListen, entity.EnvDB, entity.EnvBroker); err != nil {
+	if err := cfg.Require(entity.EnvListen, entity.EnvDB, entity.EnvBroker, entity.EnvTopicPrefix); err != nil {
 		return err
 	}
 	store, err := sqlite.Open(cfg.DB)
@@ -30,7 +30,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
 		return err
 	}
 	defer k.Close()
-	ctrl := control.New(store, k, log, strings.Split(cfg.Broker, ","))
+	ctrl := control.New(store, kafka.Topics{Prefix: cfg.TopicPrefix}, k, log, strings.Split(cfg.Broker, ","))
 
 	go func() {
 		if err := ctrl.RunStatusConsumer(ctx); err != nil {

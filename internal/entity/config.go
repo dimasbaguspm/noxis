@@ -13,6 +13,7 @@ import (
 const (
 	EnvMaster        = "NOXIS_MASTER"         // REST base URL of the master: CLI/frontend
 	EnvBroker        = "NOXIS_BROKER"         // Kafka broker address: master + register
+	EnvTopicPrefix   = "NOXIS_TOPIC_PREFIX"   // Kafka topic prefix: master + register
 	EnvListen        = "NOXIS_LISTEN"         // REST listen addr: master
 	EnvDB            = "NOXIS_DB"             // sqlite path: master
 	EnvOTELCollector = "NOXIS_OTEL_COLLECTOR" // OTLP endpoint (optional)
@@ -23,6 +24,7 @@ const (
 type Config struct {
 	Master        string `validate:"required"`
 	Broker        string `validate:"required"`
+	TopicPrefix   string `validate:"required"`
 	Listen        string `validate:"required"`
 	DB            string `validate:"required"`
 	OTELCollector string
@@ -36,6 +38,7 @@ func LoadConfig() Config {
 	return Config{
 		Master:        os.Getenv(EnvMaster),
 		Broker:        os.Getenv(EnvBroker),
+		TopicPrefix:   os.Getenv(EnvTopicPrefix),
 		Listen:        os.Getenv(EnvListen),
 		DB:            os.Getenv(EnvDB),
 		OTELCollector: os.Getenv(EnvOTELCollector),
@@ -60,6 +63,8 @@ func fieldOf(c Config, env string) string {
 		return c.Master
 	case EnvBroker:
 		return c.Broker
+	case EnvTopicPrefix:
+		return c.TopicPrefix
 	case EnvListen:
 		return c.Listen
 	case EnvDB:
@@ -75,6 +80,8 @@ func fieldOf(c Config, env string) string {
 func (c Config) String() string {
 	return strings.Join([]string{
 		EnvMaster + "=" + c.Master,
+		EnvBroker + "=" + c.Broker,
+		EnvTopicPrefix + "=" + c.TopicPrefix,
 		EnvListen + "=" + c.Listen,
 		EnvDB + "=" + c.DB,
 		EnvOTELCollector + "=" + c.OTELCollector,

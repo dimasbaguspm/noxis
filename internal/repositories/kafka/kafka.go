@@ -18,18 +18,16 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-// Topic naming and defaults.
-const (
-	TopicStatus = "noxis.status"
-	specPrefix  = "noxis.specs."
-	reqPrefix   = "noxis.query.req."
-	resPrefix   = "noxis.query.res."
-	retries     = 5
-)
+// Topics names events by prefix (NOXIS_TOPIC_PREFIX), so independent
+// environments can share one broker without colliding.
+type Topics struct{ Prefix string }
 
-func SpecTopic(node string) string { return specPrefix + node }
-func ReqTopic(node string) string  { return reqPrefix + node }
-func ResTopic(node string) string  { return resPrefix + node }
+func (t Topics) Status() string          { return t.Prefix + "status" }
+func (t Topics) Spec(node string) string { return t.Prefix + "specs." + node }
+func (t Topics) Req(node string) string  { return t.Prefix + "query.req." + node }
+func (t Topics) Res(node string) string  { return t.Prefix + "query.res." + node }
+
+const retries = 5
 
 // Broker wraps a franz-go client for producing and consuming events.
 type Broker struct {

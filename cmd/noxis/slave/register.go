@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"noxis/internal/entity"
-	"noxis/internal/repositories/http"
+	"noxis/internal/repositories/master"
 	reposlave "noxis/internal/repositories/slave"
 )
 
@@ -20,19 +20,18 @@ func NewRegisterCmd(log *slog.Logger, cfg entity.Config) *cobra.Command {
 		Short: "Register this machine as a slave node with the master",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := cfg.Require(entity.EnvMaster, entity.EnvBroker); err != nil {
+			if err := cfg.Require(entity.EnvMaster, entity.EnvBroker, entity.EnvTopicPrefix); err != nil {
 				return err
 			}
 			name := args[0]
-			if err := http.NewClient(cfg.Master).Do(cmd.Context(),
-				"POST", "/v1/nodes/"+name+"/register", nil, nil); err != nil {
+			if err := master.NewClient(cfg.Master).RegisterNode(cmd.Context(), name); err != nil {
 				return fmt.Errorf("register with master: %w", err)
 			}
-			if err := reposlave.Save(reposlave.Identity{ID: name, Broker: cfg.Broker}); err != nil {
+			if err := reposlave.Save(reposlave.Identity{ID: name, Broker: cfg.Broker, TopicPrefix: cfg.TopicPrefix}); err != nil {
 				return err
 			}
 			log.InfoContext(cmd.Context(), "slave registered",
-				"id", name, "broker", cfg.Broker, "identity", reposlave.Path())
+				"id", name, "broker", cfg.Broker, "topic_prefix", cfg.TopicPrefix, "identity", reposlave.Path())
 			return nil
 		},
 	}

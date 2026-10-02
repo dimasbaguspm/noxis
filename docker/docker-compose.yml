@@ -37,6 +37,7 @@ services:
       NOXIS_LISTEN: ":9000"
       NOXIS_DB: /data/noxis.db
       NOXIS_BROKER: kafka:9092
+      NOXIS_TOPIC_PREFIX: "noxis."
       NOXIS_OTEL_NAME: noxis-master
     ports:
       - "9000:9000"
@@ -63,6 +64,7 @@ services:
       NOXIS_SLAVE_NAME: zeus
       NOXIS_MASTER: http://master:9000
       NOXIS_BROKER: kafka:9092
+      NOXIS_TOPIC_PREFIX: "noxis."
       NOXIS_OTEL_NAME: noxis-zeus
     volumes:
       - noxis-identity:/root/.config

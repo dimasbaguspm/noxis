@@ -4,7 +4,7 @@ Personal multi-machine infra control plane. Go, single binary, role from CLI fla
 
 ## Locked decisions (don't revisit without a reason)
 
-1. **Transport:** master exposes a REST API (frontend/CLI); events flow over Kafka (apache/kafka + franz-go). Master publishes desired-state to per-node topics; slaves consume via durable groups (restart resumes from last offset — no reconnect/replay loops). Queries are request/reply over per-node topics keyed by request id. Topics auto-created on demand (EnsureTopic). Broker is interchangeable via NOXIS_BROKER.
+1. **Transport:** master exposes a REST API (frontend/CLI); events flow over Kafka (apache/kafka + franz-go). Master publishes desired-state to per-node topics; slaves consume via durable groups (restart resumes from last offset — no reconnect/replay loops). Queries are request/reply over per-node topics keyed by request id. Topics named by NOXIS_TOPIC_PREFIX (independent environments share one broker), auto-created on demand (EnsureTopic). Broker is interchangeable via NOXIS_BROKER.
 2. **Topology:** 1 master (durable desired-state + CLI) → N slaves (local reconcilers over Docker).
 3. **Consensus:** none. Manual `--promote` failover. Raft only if auto-failover becomes real need.
 4. **Storage on master:** SQLite. No database to manage your database manager.
@@ -23,9 +23,10 @@ cmd/noxis/
 internal/control/        master ops: registry repo + Kafka produce/consume/query
 internal/repositories/   grouped by service:
   sqlite/                slave registry only (id, name, ip, registered_at)
-  kafka/                 franz-go transport + EnsureTopic
-  slave/                 identity file
-  http/                  shared master REST client (standard headers)
+  kafka/                 franz-go transport + EnsureTopic + Topics (env prefix)
+  master/                typed methods for the master REST API
+  slave/                 identity file (id, broker, topic prefix)
+internal/common/         shared infra: http (standard headers), logging
 internal/entity/         domain models + Config (env struct, go-validator)
 internal/interfaces/     seams (NodeRepository)
 internal/features/…     future features (doorman paused: engine management returns later)
