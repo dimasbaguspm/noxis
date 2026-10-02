@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package noxis.v1;
+
+option go_package = "noxis/internal/core;core";
+
+// NodeId identifies a machine running a noxis slave.
+message NodeId {
+  string id = 1;
+}
+
+message EngineSpec {
+  string name = 1;    // instance name, unique per node
+  string type = 2;    // postgres|mysql|mariadb|mongo|redis|elastic
+  string version = 3; // image tag, e.g. "16"
+  map<string, string> ports = 4; // host -> container, overrides engine default
+  map<string, string> env = 5;   // overrides engine defaults
+}
+
+message DesiredSpec {
+  repeated EngineSpec engines = 1;
+  int64 updated_at = 2; // unix seconds on the master
+}
+
+message SetDesiredStateRequest {
+  string node = 1;
+  DesiredSpec spec = 2;
+}
+
+message WatchRequest {
+  string node = 1;
+}
+
+message Status {
+  string node = 1;
+  string state = 2;   // ok | error | reconciling
+  string detail = 3;  // human-readable
+  int64 ts = 4;
+}
+
+message StatusList {
+  repeated Status statuses = 1;
+}
+
+message Empty {}
+
+// Control is the master->slave contract. Slaves only ever see their own node's
+// slice of desired state. Push happens over Watch; GetDesiredState is the
+// manual-sync fallback.
+service Control {
+  rpc Watch(WatchRequest) returns (stream DesiredSpec);
+  rpc GetDesiredState(NodeId) returns (DesiredSpec);
+  rpc SetDesiredState(SetDesiredStateRequest) returns (Empty);
+  rpc ReportStatus(Status) returns (Empty);
+  rpc ListStatus(Empty) returns (StatusList);
+}

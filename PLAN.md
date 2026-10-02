@@ -1,0 +1,52 @@
+# noxis — plan v1
+
+Personal multi-machine infra control plane. Go, single binary, role from CLI flag.
+
+## Locked decisions (don't revisit without a reason)
+
+1. **Transport:** gRPC server-streaming push. Slave opens a `Watch` stream, master pushes on change and replays the full spec on (re)connect. `GetDesiredState` kept as manual `sync` fallback. No Kafka, no Redis, no broker.
+2. **Topology:** 1 master (durable desired-state + CLI) → N slaves (local reconcilers over Docker).
+3. **Consensus:** none. Manual `--promote` failover. Raft only if auto-failover becomes real need.
+4. **Storage on master:** SQLite. No database to manage your database manager.
+5. **Engines:** containers, pinned images, one machine may run many (Docker separation). Engine = one small interface, `sqlEngine` base covers pg/mysql/maria, `mongoEngine` separate.
+6. **Backup before any version bump. Manual apply per node. Auto-apply deferred.**
+7. Replication payload = desired-state spec, never DB data. Managed DBs stay local to their node.
+
+## Shape
+
+```
+cmd/noxis          CLI entry, role flag: master | slave
+internal/core      gRPC server/client, Watch stream + reconnect loop, status registry
+internal/store     SQLite: desired state / config versions / change log
+internal/features/ applications the binary speaks (each thin, on core)
+  doorman/         control plane for DB engines
+    engine.go      Engine interface + registry (all engines ship in-binary, no plugin system)
+    docker.go      docker driver: create/start/stop/rm/inspect
+    sql.go         one base: postgres, mysql, mariadb
+    mongo.go / redis.go / elastic.go   one file per engine, register + done
+  ucm/             versioned config store on the change log
+```
+
+Engines nest under doorman, not beside it: elasticsearch is not a feature, it's a Doorman-managed engine.
+
+## Phases
+
+- [x] 0 Scaffold — `noxis master` / `slave` / `assign` / `status` / `sync` CLI
+- [x] 1 Core transport — Watch stream push + replay on reconnect, GetDesiredState fallback, ReportStatus. Verified: master death → slaves survive, engines keep running → restart → reconnected + converged
+- [x] 2 Doorman engines — postgres/mysql/mariadb/mongo/redis/elastic descriptors + docker driver (CLI shell-out, node-labeled isolation)
+- [x] 3 Desired-state converge — assign → push → slave start/upgrade/remove; node-scoped listing stops cross-node theft on shared docker hosts; port conflicts surface as clear per-node errors
+- [ ] 4 UCM — versioned config entities, `get/set/history` verbs, oplog replication to slaves
+- [ ] 5 Ops — backup-before-upgrade, `apply --node X` manual gate, `--promote`, systemd units for agents
+- [ ] 6 Polish (only if needed) | mTLS, web UI
+
+Known ceilings (ponytail): proto supports `ports`/`env` overrides but CLI `assign` doesn't set them yet; containers recreate on image change only — env/port edits need manual `docker rm -f` + `sync`.
+
+## Non-goals
+
+- Multi-DC, multi-master, auto-failover, audit webhooks, Kubernetes. Never / when a real trigger appears.
+
+## Risks
+
+- **Data loss on upgrade** — mitigated by phase 5 backup gate, never skipped.
+- **Scope creep** — this stays a handful of packages; each new service = thin layer on core, not a new framework.
+- **Two-node raft temptation** — reject; 2-node consensus is ceremony, manual promote wins.
