@@ -41,7 +41,9 @@ func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
 	log.InfoContext(ctx, "rest api serving", "addr", cfg.Listen, "broker", cfg.Broker)
 	srv := &http.Server{Addr: cfg.Listen, Handler: newHandler(ctrl, log)}
 	errCh := make(chan error, 1)
-	go func() { errCh <- srv.ListenAndServe() }()
+	go func() {
+		errCh <- srv.ListenAndServe()
+	}()
 	select {
 	case err := <-errCh:
 		return err

@@ -37,7 +37,8 @@ func New(cfg entity.Config) (*slog.Logger, Shutdown, error) {
 	slog.SetDefault(logger)
 
 	if cfg.OTELCollector == "" {
-		return logger, func(context.Context) error { return nil }, nil
+		noop := func(context.Context) error { return nil }
+		return logger, noop, nil
 	}
 
 	ctx := context.Background()
