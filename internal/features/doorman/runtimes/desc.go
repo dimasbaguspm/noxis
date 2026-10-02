@@ -10,6 +10,9 @@ import (
 	"noxis/internal/entity"
 )
 
+// namePrefix scopes engine containers to noxis on a shared docker host.
+const namePrefix = "noxis-"
+
 // desc is a stateless recipe for one engine type. Docker flattens every
 // engine into "a container + ports + env", so this is all the abstraction
 // amounts to.
@@ -59,7 +62,7 @@ func ImageOf(e entity.Engine) (string, bool) {
 // ContainerName names a node's engine container; the node prefix keeps
 // sibling slaves from colliding on one docker host.
 func ContainerName(node, engine string) string {
-	return fmt.Sprintf("noxis-%s-%s", node, engine)
+	return fmt.Sprintf("%s%s-%s", namePrefix, node, engine)
 }
 
 // DesiredLabel stamps the exact shape (version + merged ports/env) as a
@@ -71,10 +74,11 @@ func DesiredLabel(e entity.Engine) (string, error) {
 		return "", fmt.Errorf("unknown engine type %q", e.Type)
 	}
 	b, err := json.Marshal(struct {
+		Type    string            `json:"t"`
 		Version string            `json:"v"`
 		Ports   map[string]string `json:"p"`
 		Env     map[string]string `json:"e"`
-	}{e.Version, mergedPorts(e, d), mergedEnv(e, d)})
+	}{e.Type, e.Version, mergedPorts(e, d), mergedEnv(e, d)})
 	if err != nil {
 		return "", err
 	}

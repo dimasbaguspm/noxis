@@ -10,6 +10,37 @@ import (
 	"noxis/internal/entity"
 )
 
+// docker contract constants: labels, name prefix, exec client recipes.
+const (
+	LabelManaged = "noxis=true"     // marks every container doorman owns
+	LabelNode    = "noxis.node="    // node scoping (shared docker hosts)
+	LabelDesired = "noxis.desired=" // stamped shape: version/type/ports/env
+	InspectFmt   = "{{.Name}}\t{{.State.Status}}\t{{index .Config.Labels \"noxis.desired\"}}"
+)
+
+// sqlClient describes how to run a read query inside an engine container.
+type sqlClient struct {
+	bin   string   // client binary inside the image
+	pwEnv string   // env var the client reads its password from
+	pwVar string   // env var the engine was created with
+	pre   []string // fixed args (user/db)
+	flags []string // output shape: tab-separated raw tuples
+}
+
+const (
+	psqlUser = "-U"
+	psqlDB   = "-d"
+)
+
+var sqlClients = map[string]sqlClient{
+	"postgres": {bin: "psql", pwEnv: "PGPASSWORD", pwVar: "POSTGRES_PASSWORD",
+		pre: []string{psqlUser, "postgres", psqlDB, "postgres"}, flags: []string{"-A", "-t"}},
+	"mysql": {bin: "mysql", pwEnv: "MYSQL_PWD", pwVar: "MYSQL_ROOT_PASSWORD",
+		flags: []string{"-N"}},
+	"mariadb": {bin: "mariadb", pwEnv: "MYSQL_PWD", pwVar: "MARIADB_ROOT_PASSWORD",
+		flags: []string{"-N"}},
+}
+
 // Exec shells out to the docker CLI: zero SDK dependency, every action
 // readable as a docker command, and swappable in tests.
 var Exec = func(_ context.Context, args ...string) (string, error) {
@@ -33,8 +64,8 @@ type Observed struct {
 // labels as a raw slice in current docker).
 func List(ctx context.Context, node string) (map[string]Observed, error) {
 	ids, err := Exec(ctx, "ps", "-aq",
-		"--filter", "label=noxis=true",
-		"--filter", "label=noxis.node="+node)
+		"--filter", "label="+LabelManaged,
+		"--filter", "label="+LabelNode+node)
 	if err != nil {
 		return nil, err
 	}
@@ -42,9 +73,9 @@ func List(ctx context.Context, node string) (map[string]Observed, error) {
 	if strings.TrimSpace(ids) == "" {
 		return found, nil
 	}
-	out, err := Exec(ctx, append([]string{"inspect",
-		"--format", "{{.Name}}\t{{.State.Status}}\t{{index .Config.Labels \"noxis.desired\"}}"},
-		strings.Fields(ids)...)...)
+	args := []string{"inspect", "--format", InspectFmt}
+	args = append(args, strings.Fields(ids)...)
+	out, err := Exec(ctx, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +97,8 @@ func Run(ctx context.Context, node string, e entity.Engine) error {
 	}
 	args := []string{"run", "-d",
 		"--name", ContainerName(node, e.Name),
-		"--label", "noxis=true",
-		"--label", "noxis.node=" + node,
+		"--label", LabelManaged,
+		"--label", LabelNode + node,
 		"--restart", "unless-stopped",
 	}
 	for host, container := range mergedPorts(e, d) {
@@ -80,7 +111,7 @@ func Run(ctx context.Context, node string, e entity.Engine) error {
 	if err != nil {
 		return err
 	}
-	args = append(args, "--label", "noxis.desired="+desired)
+	args = append(args, "--label", LabelDesired+desired)
 	args = append(args, d.image(e.Version))
 	_, err = Exec(ctx, args...)
 	return err
@@ -94,6 +125,32 @@ func Remove(ctx context.Context, name string) error {
 func Start(ctx context.Context, name string) error {
 	_, err := Exec(ctx, "start", name)
 	return err
+}
+
+// ExecSQL runs a read query inside the engine's container via its SQL client.
+// Credentials come from the same merged env the container was created with —
+// no secrets are stored anywhere else. Only SQL engines are wired today.
+func ExecSQL(ctx context.Context, container string, e entity.Engine, sql string) (string, error) {
+	d, ok := Lookup(e.Type)
+	if !ok {
+		return "", fmt.Errorf("unknown engine type %q", e.Type)
+	}
+	client, ok := sqlClients[e.Type]
+	if !ok {
+		return "", fmt.Errorf("query not supported for %s yet (SQL engines only)", e.Type)
+	}
+	// IP family note: default hostname resolution targets localhost in the
+	// container; DNS names from the engine's own network are inherited.
+	args := []string{"exec", "-e", client.pwEnv + "=" + mergedEnv(e, d)[client.pwVar], container}
+	args = append(args, client.bin)
+	args = append(args, client.pre...)
+	args = append(args, client.flags...)
+	args = append(args, "-c", sql)
+	out, err := Exec(ctx, args...)
+	if err != nil {
+		return "", err
+	}
+	return out, nil
 }
 
 func sortedEnv(env map[string]string) [][2]string {

@@ -26,6 +26,7 @@ export NOXIS_MASTER=master-host:9000 NOXIS_NODE=zeus
 ./noxis assign zeus redis@8                # version bump -> slave recreates
 ./noxis status                             # reported runtime state per node
 ./noxis sync zeus                          # manual reconcile (fallback)
+./noxis query zeus postgres "SELECT 1"     # read query, routed over the watch stream (SQL engines)
 ```
 
 ## Configuration (env only, no defaults)

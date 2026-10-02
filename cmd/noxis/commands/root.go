@@ -19,6 +19,7 @@ func NewRootCmd(app *entity.App) *cobra.Command {
 		newAssignCmd(app),
 		newStatusCmd(app),
 		newSyncCmd(app),
+		newQueryCmd(app),
 	)
 	return root
 }

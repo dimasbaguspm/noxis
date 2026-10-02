@@ -24,21 +24,24 @@ const (
 	Control_SetDesiredState_FullMethodName = "/noxis.v1.Control/SetDesiredState"
 	Control_ReportStatus_FullMethodName    = "/noxis.v1.Control/ReportStatus"
 	Control_ListStatus_FullMethodName      = "/noxis.v1.Control/ListStatus"
+	Control_Query_FullMethodName           = "/noxis.v1.Control/Query"
 )
 
 // ControlClient is the client API for Control service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// Control is the master->slave contract. Slaves only ever see their own node's
-// slice of desired state. Push happens over Watch; GetDesiredState is the
-// manual-sync fallback.
+// Control is the master's public contract: slaves watch their own slice of
+// desired state over a bidirectional stream (replayed in full on reconnect),
+// and any client can run queries that route over that stream to the node that
+// owns the engine.
 type ControlClient interface {
-	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DesiredSpec], error)
+	Watch(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamMsg, StreamMsg], error)
 	GetDesiredState(ctx context.Context, in *NodeId, opts ...grpc.CallOption) (*DesiredSpec, error)
 	SetDesiredState(ctx context.Context, in *SetDesiredStateRequest, opts ...grpc.CallOption) (*Empty, error)
 	ReportStatus(ctx context.Context, in *Status, opts ...grpc.CallOption) (*Empty, error)
 	ListStatus(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*StatusList, error)
+	Query(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (*QueryResult, error)
 }
 
 type controlClient struct {
@@ -49,24 +52,18 @@ func NewControlClient(cc grpc.ClientConnInterface) ControlClient {
 	return &controlClient{cc}
 }
 
-func (c *controlClient) Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DesiredSpec], error) {
+func (c *controlClient) Watch(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamMsg, StreamMsg], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &Control_ServiceDesc.Streams[0], Control_Watch_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[WatchRequest, DesiredSpec]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
+	x := &grpc.GenericClientStream[StreamMsg, StreamMsg]{ClientStream: stream}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type Control_WatchClient = grpc.ServerStreamingClient[DesiredSpec]
+type Control_WatchClient = grpc.BidiStreamingClient[StreamMsg, StreamMsg]
 
 func (c *controlClient) GetDesiredState(ctx context.Context, in *NodeId, opts ...grpc.CallOption) (*DesiredSpec, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -108,19 +105,31 @@ func (c *controlClient) ListStatus(ctx context.Context, in *Empty, opts ...grpc.
 	return out, nil
 }
 
+func (c *controlClient) Query(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (*QueryResult, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(QueryResult)
+	err := c.cc.Invoke(ctx, Control_Query_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ControlServer is the server API for Control service.
 // All implementations must embed UnimplementedControlServer
 // for forward compatibility.
 //
-// Control is the master->slave contract. Slaves only ever see their own node's
-// slice of desired state. Push happens over Watch; GetDesiredState is the
-// manual-sync fallback.
+// Control is the master's public contract: slaves watch their own slice of
+// desired state over a bidirectional stream (replayed in full on reconnect),
+// and any client can run queries that route over that stream to the node that
+// owns the engine.
 type ControlServer interface {
-	Watch(*WatchRequest, grpc.ServerStreamingServer[DesiredSpec]) error
+	Watch(grpc.BidiStreamingServer[StreamMsg, StreamMsg]) error
 	GetDesiredState(context.Context, *NodeId) (*DesiredSpec, error)
 	SetDesiredState(context.Context, *SetDesiredStateRequest) (*Empty, error)
 	ReportStatus(context.Context, *Status) (*Empty, error)
 	ListStatus(context.Context, *Empty) (*StatusList, error)
+	Query(context.Context, *QueryRequest) (*QueryResult, error)
 	mustEmbedUnimplementedControlServer()
 }
 
@@ -131,7 +140,7 @@ type ControlServer interface {
 // pointer dereference when methods are called.
 type UnimplementedControlServer struct{}
 
-func (UnimplementedControlServer) Watch(*WatchRequest, grpc.ServerStreamingServer[DesiredSpec]) error {
+func (UnimplementedControlServer) Watch(grpc.BidiStreamingServer[StreamMsg, StreamMsg]) error {
 	return status.Error(codes.Unimplemented, "method Watch not implemented")
 }
 func (UnimplementedControlServer) GetDesiredState(context.Context, *NodeId) (*DesiredSpec, error) {
@@ -145,6 +154,9 @@ func (UnimplementedControlServer) ReportStatus(context.Context, *Status) (*Empty
 }
 func (UnimplementedControlServer) ListStatus(context.Context, *Empty) (*StatusList, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListStatus not implemented")
+}
+func (UnimplementedControlServer) Query(context.Context, *QueryRequest) (*QueryResult, error) {
+	return nil, status.Error(codes.Unimplemented, "method Query not implemented")
 }
 func (UnimplementedControlServer) mustEmbedUnimplementedControlServer() {}
 func (UnimplementedControlServer) testEmbeddedByValue()                 {}
@@ -168,15 +180,11 @@ func RegisterControlServer(s grpc.ServiceRegistrar, srv ControlServer) {
 }
 
 func _Control_Watch_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(WatchRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(ControlServer).Watch(m, &grpc.GenericServerStream[WatchRequest, DesiredSpec]{ServerStream: stream})
+	return srv.(ControlServer).Watch(&grpc.GenericServerStream[StreamMsg, StreamMsg]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type Control_WatchServer = grpc.ServerStreamingServer[DesiredSpec]
+type Control_WatchServer = grpc.BidiStreamingServer[StreamMsg, StreamMsg]
 
 func _Control_GetDesiredState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(NodeId)
@@ -250,6 +258,24 @@ func _Control_ListStatus_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Control_Query_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ControlServer).Query(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Control_Query_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ControlServer).Query(ctx, req.(*QueryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Control_ServiceDesc is the grpc.ServiceDesc for Control service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -273,12 +299,17 @@ var Control_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ListStatus",
 			Handler:    _Control_ListStatus_Handler,
 		},
+		{
+			MethodName: "Query",
+			Handler:    _Control_Query_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Watch",
 			Handler:       _Control_Watch_Handler,
 			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "internal/repository/grpc/control.proto",

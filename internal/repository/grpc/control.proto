@@ -27,13 +27,40 @@ message SetDesiredStateRequest {
   DesiredSpec spec = 2;
 }
 
+// StreamMsg rides the bidirectional Watch stream. The slave identifies with
+// its node on hello; the master pushes DesiredSpec changes and routes
+// QueryRequests to the owning stream; the slave answers with QueryResult.
+message StreamMsg {
+  string node = 1;
+  oneof payload {
+    DesiredSpec spec = 2;
+    QueryRequest query = 3;
+    QueryResult result = 4;
+  }
+}
+
+// QueryRequest is both the public API and the stream payload. id correlates
+// the answer on the shared stream (master-issued, echoed by the slave).
+message QueryRequest {
+  int64 id = 1;
+  string node = 2;
+  string engine = 3; // engine instance name on the node
+  string sql = 4;
+}
+
+message QueryResult {
+  int64 id = 1;
+  string output = 2; // raw client output (tab-separated tuples)
+  string error = 3;
+}
+
 message WatchRequest {
   string node = 1;
 }
 
 message Status {
   string node = 1;
-  string state = 2;   // ok | error | reconciling
+  string state = 2;   // ok | error
   string detail = 3;  // human-readable
   int64 ts = 4;
 }
@@ -44,13 +71,15 @@ message StatusList {
 
 message Empty {}
 
-// Control is the master->slave contract. Slaves only ever see their own node's
-// slice of desired state. Push happens over Watch; GetDesiredState is the
-// manual-sync fallback.
+// Control is the master's public contract: slaves watch their own slice of
+// desired state over a bidirectional stream (replayed in full on reconnect),
+// and any client can run queries that route over that stream to the node that
+// owns the engine.
 service Control {
-  rpc Watch(WatchRequest) returns (stream DesiredSpec);
+  rpc Watch(stream StreamMsg) returns (stream StreamMsg);
   rpc GetDesiredState(NodeId) returns (DesiredSpec);
   rpc SetDesiredState(SetDesiredStateRequest) returns (Empty);
   rpc ReportStatus(Status) returns (Empty);
   rpc ListStatus(Empty) returns (StatusList);
+  rpc Query(QueryRequest) returns (QueryResult);
 }

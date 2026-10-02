@@ -25,6 +25,14 @@ import (
 	"noxis/internal/entity"
 )
 
+// Defaults and log attribute keys.
+const (
+	serviceFallback = "noxis"
+	// attribute keys stay consistent across log/trace/metric
+	attrCollector = "collector"
+	attrService   = "service"
+)
+
 // Shutdown flushes telemetry; call on process exit.
 type Shutdown func(context.Context) error
 
@@ -38,7 +46,7 @@ func New(cfg entity.Config) (*slog.Logger, Shutdown, error) {
 	}
 
 	ctx := context.Background()
-	service := firstNonEmpty(cfg.OTELName, "noxis")
+	service := firstNonEmpty(cfg.OTELName, serviceFallback)
 	res := resource.NewWithAttributes(
 		semconv.SchemaURL,
 		semconv.ServiceName(service),
@@ -58,7 +66,7 @@ func New(cfg entity.Config) (*slog.Logger, Shutdown, error) {
 	mp := metric.NewMeterProvider(metric.WithReader(metric.NewPeriodicReader(metricExp)), metric.WithResource(res))
 	otel.SetMeterProvider(mp)
 
-	logger.InfoContext(ctx, "telemetry connected", "collector", cfg.OTELCollector, "service", service)
+	logger.InfoContext(ctx, "telemetry connected", attrCollector, cfg.OTELCollector, attrService, service)
 	return logger, func(ctx context.Context) error {
 		if err := tp.Shutdown(ctx); err != nil {
 			return err

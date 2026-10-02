@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"time"
@@ -13,7 +14,18 @@ import (
 
 	"noxis/internal/entity"
 	"noxis/internal/features/doorman"
+	"noxis/internal/features/doorman/runtimes"
 	rpc "noxis/internal/repository/grpc"
+)
+
+// status words and backoff policy.
+const (
+	stateOK         = "ok"
+	stateError      = "error"
+	detailSync      = "in sync"
+	detailDead      = "disconnected: "
+	maxBackoffShift = 5 // backoff = 2^n s, 32s ceiling
+	reconcileMetric = "noxis.reconcile.total"
 )
 
 func newSlaveCmd(app *entity.App) *cobra.Command {
@@ -29,9 +41,10 @@ func newSlaveCmd(app *entity.App) *cobra.Command {
 	}
 }
 
-// slaveLoop keeps one Watch stream open, reconciling on every push. On
-// disconnect it backs off and reconnects; the master replays the full spec on
-// (re)open, so no change is ever missed.
+// slaveLoop keeps one bidirectional Watch stream open. The master pushes
+// spec changes one way and routes queries the other; both flow over the same
+// river. On disconnect it backs off and reconnects; the master replays the
+// full spec on (re)open, so no change is ever missed.
 func slaveLoop(ctx context.Context, app *entity.App, node string) error {
 	counter := newReconcileCounter()
 	for attempt := 0; ; attempt++ {
@@ -39,9 +52,9 @@ func slaveLoop(ctx context.Context, app *entity.App, node string) error {
 			if ctx.Err() != nil {
 				return nil
 			}
-			backoff := time.Duration(1<<min(attempt, 5)) * time.Second
+			backoff := time.Duration(1<<min(attempt, maxBackoffShift)) * time.Second
 			app.Log.WarnContext(ctx, "watch failed",
-				"error", err, "retry_in", backoff.String())
+				slog.String("error", err.Error()), slog.Duration("retry_in", backoff))
 			select {
 			case <-time.After(backoff):
 			case <-ctx.Done():
@@ -58,45 +71,81 @@ func watchOnce(ctx context.Context, app *entity.App, node string, counter metric
 	}
 	defer conn.Close()
 	client := rpc.NewControlClient(conn)
-	stream, err := client.Watch(ctx, &rpc.WatchRequest{Node: node})
+	stream, err := client.Watch(ctx)
 	if err != nil {
+		return err
+	}
+	if err := stream.Send(&rpc.StreamMsg{Node: node}); err != nil { // hello: bind the stream
 		return err
 	}
 	app.Log.InfoContext(ctx, "watch connected",
 		slog.String("node", node), slog.String("master", app.Cfg.Master))
+
 	reconciler := doorman.NewReconciler(node)
+	var engines []entity.Engine // last desired slice, for query resolution
+
 	for {
-		spec, err := stream.Recv()
+		msg, err := stream.Recv()
 		if err == io.EOF {
 			return nil
 		}
 		if err != nil {
 			_, _ = client.ReportStatus(ctx, &rpc.Status{
-				Node: node, State: "error", Detail: "disconnected: " + err.Error(),
+				Node: node, State: stateError, Detail: detailDead + err.Error(),
 			})
 			return err
 		}
-		detail, err := reconciler.Reconcile(ctx, rpc.SpecFromProto(spec).Engines)
-		state := "ok"
-		if err != nil {
-			state = "error"
-			app.Log.ErrorContext(ctx, "reconcile failed",
-				slog.String("node", node), slog.String("error", err.Error()))
-			_, _ = client.ReportStatus(ctx, &rpc.Status{Node: node, State: state, Detail: err.Error()})
-			continue
+
+		switch p := msg.Payload.(type) {
+		case *rpc.StreamMsg_Spec:
+			engines = rpc.SpecFromProto(p.Spec).Engines
+			detail, err := reconciler.Reconcile(ctx, engines)
+			state := stateOK
+			if err != nil {
+				state = stateError
+				app.Log.ErrorContext(ctx, "reconcile failed",
+					slog.String("node", node), slog.String("error", err.Error()))
+				_, _ = client.ReportStatus(ctx, &rpc.Status{Node: node, State: state, Detail: err.Error()})
+				continue
+			}
+			if detail == "" {
+				detail = detailSync
+			}
+			_, _ = client.ReportStatus(ctx, &rpc.Status{Node: node, State: state, Detail: detail})
+			counter.Add(ctx, 1, metric.WithAttributes(attribute.String("node", node)))
+			app.Log.InfoContext(ctx, "reconciled",
+				slog.String("node", node), slog.String("change", detail))
+
+		case *rpc.StreamMsg_Query:
+			res := executeQuery(ctx, node, engines, p.Query)
+			if err := stream.Send(&rpc.StreamMsg{
+				Node: node, Payload: &rpc.StreamMsg_Result{Result: res},
+			}); err != nil {
+				return err
+			}
 		}
-		if detail == "" {
-			detail = "in sync"
-		}
-		_, _ = client.ReportStatus(ctx, &rpc.Status{Node: node, State: state, Detail: detail})
-		counter.Add(ctx, 1, metric.WithAttributes(attribute.String("node", node)))
-		app.Log.InfoContext(ctx, "reconciled",
-			slog.String("node", node), slog.String("change", detail))
 	}
 }
 
+// executeQuery runs a read query in the engine's container. The engine must
+// be in the node's last desired slice — queries only touch engines this node
+// owns, via the same credentials the container was created with.
+func executeQuery(ctx context.Context, node string, engines []entity.Engine, q *rpc.QueryRequest) *rpc.QueryResult {
+	for _, e := range engines {
+		if e.Name != q.Engine {
+			continue
+		}
+		out, err := runtimes.ExecSQL(ctx, runtimes.ContainerName(node, e.Name), e, q.Sql)
+		if err != nil {
+			return &rpc.QueryResult{Id: q.Id, Error: err.Error()}
+		}
+		return &rpc.QueryResult{Id: q.Id, Output: out}
+	}
+	return &rpc.QueryResult{Id: q.Id, Error: errors.New("no engine named " + q.Engine + " on this node").Error()}
+}
+
 func newReconcileCounter() metric.Int64Counter {
-	c, _ := otel.Meter("noxis").Int64Counter("noxis.reconcile.total",
+	c, _ := otel.Meter("noxis").Int64Counter(reconcileMetric,
 		metric.WithDescription("reconciliations performed per node"))
 	return c
 }

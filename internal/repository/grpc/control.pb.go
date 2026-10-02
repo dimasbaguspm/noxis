@@ -246,6 +246,245 @@ func (x *SetDesiredStateRequest) GetSpec() *DesiredSpec {
 	return nil
 }
 
+// StreamMsg rides the bidirectional Watch stream. The slave identifies with
+// its node on hello; the master pushes DesiredSpec changes and routes
+// QueryRequests to the owning stream; the slave answers with QueryResult.
+type StreamMsg struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Node  string                 `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
+	// Types that are valid to be assigned to Payload:
+	//
+	//	*StreamMsg_Spec
+	//	*StreamMsg_Query
+	//	*StreamMsg_Result
+	Payload       isStreamMsg_Payload `protobuf_oneof:"payload"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamMsg) Reset() {
+	*x = StreamMsg{}
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamMsg) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamMsg) ProtoMessage() {}
+
+func (x *StreamMsg) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamMsg.ProtoReflect.Descriptor instead.
+func (*StreamMsg) Descriptor() ([]byte, []int) {
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *StreamMsg) GetNode() string {
+	if x != nil {
+		return x.Node
+	}
+	return ""
+}
+
+func (x *StreamMsg) GetPayload() isStreamMsg_Payload {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+func (x *StreamMsg) GetSpec() *DesiredSpec {
+	if x != nil {
+		if x, ok := x.Payload.(*StreamMsg_Spec); ok {
+			return x.Spec
+		}
+	}
+	return nil
+}
+
+func (x *StreamMsg) GetQuery() *QueryRequest {
+	if x != nil {
+		if x, ok := x.Payload.(*StreamMsg_Query); ok {
+			return x.Query
+		}
+	}
+	return nil
+}
+
+func (x *StreamMsg) GetResult() *QueryResult {
+	if x != nil {
+		if x, ok := x.Payload.(*StreamMsg_Result); ok {
+			return x.Result
+		}
+	}
+	return nil
+}
+
+type isStreamMsg_Payload interface {
+	isStreamMsg_Payload()
+}
+
+type StreamMsg_Spec struct {
+	Spec *DesiredSpec `protobuf:"bytes,2,opt,name=spec,proto3,oneof"`
+}
+
+type StreamMsg_Query struct {
+	Query *QueryRequest `protobuf:"bytes,3,opt,name=query,proto3,oneof"`
+}
+
+type StreamMsg_Result struct {
+	Result *QueryResult `protobuf:"bytes,4,opt,name=result,proto3,oneof"`
+}
+
+func (*StreamMsg_Spec) isStreamMsg_Payload() {}
+
+func (*StreamMsg_Query) isStreamMsg_Payload() {}
+
+func (*StreamMsg_Result) isStreamMsg_Payload() {}
+
+// QueryRequest is both the public API and the stream payload. id correlates
+// the answer on the shared stream (master-issued, echoed by the slave).
+type QueryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Node          string                 `protobuf:"bytes,2,opt,name=node,proto3" json:"node,omitempty"`
+	Engine        string                 `protobuf:"bytes,3,opt,name=engine,proto3" json:"engine,omitempty"` // engine instance name on the node
+	Sql           string                 `protobuf:"bytes,4,opt,name=sql,proto3" json:"sql,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueryRequest) Reset() {
+	*x = QueryRequest{}
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryRequest) ProtoMessage() {}
+
+func (x *QueryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueryRequest.ProtoReflect.Descriptor instead.
+func (*QueryRequest) Descriptor() ([]byte, []int) {
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *QueryRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *QueryRequest) GetNode() string {
+	if x != nil {
+		return x.Node
+	}
+	return ""
+}
+
+func (x *QueryRequest) GetEngine() string {
+	if x != nil {
+		return x.Engine
+	}
+	return ""
+}
+
+func (x *QueryRequest) GetSql() string {
+	if x != nil {
+		return x.Sql
+	}
+	return ""
+}
+
+type QueryResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Output        string                 `protobuf:"bytes,2,opt,name=output,proto3" json:"output,omitempty"` // raw client output (tab-separated tuples)
+	Error         string                 `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueryResult) Reset() {
+	*x = QueryResult{}
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueryResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryResult) ProtoMessage() {}
+
+func (x *QueryResult) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueryResult.ProtoReflect.Descriptor instead.
+func (*QueryResult) Descriptor() ([]byte, []int) {
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *QueryResult) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *QueryResult) GetOutput() string {
+	if x != nil {
+		return x.Output
+	}
+	return ""
+}
+
+func (x *QueryResult) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
 type WatchRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Node          string                 `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
@@ -255,7 +494,7 @@ type WatchRequest struct {
 
 func (x *WatchRequest) Reset() {
 	*x = WatchRequest{}
-	mi := &file_internal_repository_grpc_control_proto_msgTypes[4]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -267,7 +506,7 @@ func (x *WatchRequest) String() string {
 func (*WatchRequest) ProtoMessage() {}
 
 func (x *WatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_repository_grpc_control_proto_msgTypes[4]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -280,7 +519,7 @@ func (x *WatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchRequest.ProtoReflect.Descriptor instead.
 func (*WatchRequest) Descriptor() ([]byte, []int) {
-	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{4}
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *WatchRequest) GetNode() string {
@@ -293,7 +532,7 @@ func (x *WatchRequest) GetNode() string {
 type Status struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Node          string                 `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
-	State         string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`   // ok | error | reconciling
+	State         string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`   // ok | error
 	Detail        string                 `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"` // human-readable
 	Ts            int64                  `protobuf:"varint,4,opt,name=ts,proto3" json:"ts,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -302,7 +541,7 @@ type Status struct {
 
 func (x *Status) Reset() {
 	*x = Status{}
-	mi := &file_internal_repository_grpc_control_proto_msgTypes[5]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -314,7 +553,7 @@ func (x *Status) String() string {
 func (*Status) ProtoMessage() {}
 
 func (x *Status) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_repository_grpc_control_proto_msgTypes[5]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -327,7 +566,7 @@ func (x *Status) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Status.ProtoReflect.Descriptor instead.
 func (*Status) Descriptor() ([]byte, []int) {
-	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{5}
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Status) GetNode() string {
@@ -367,7 +606,7 @@ type StatusList struct {
 
 func (x *StatusList) Reset() {
 	*x = StatusList{}
-	mi := &file_internal_repository_grpc_control_proto_msgTypes[6]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -379,7 +618,7 @@ func (x *StatusList) String() string {
 func (*StatusList) ProtoMessage() {}
 
 func (x *StatusList) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_repository_grpc_control_proto_msgTypes[6]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -392,7 +631,7 @@ func (x *StatusList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StatusList.ProtoReflect.Descriptor instead.
 func (*StatusList) Descriptor() ([]byte, []int) {
-	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{6}
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *StatusList) GetStatuses() []*Status {
@@ -410,7 +649,7 @@ type Empty struct {
 
 func (x *Empty) Reset() {
 	*x = Empty{}
-	mi := &file_internal_repository_grpc_control_proto_msgTypes[7]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -422,7 +661,7 @@ func (x *Empty) String() string {
 func (*Empty) ProtoMessage() {}
 
 func (x *Empty) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_repository_grpc_control_proto_msgTypes[7]
+	mi := &file_internal_repository_grpc_control_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -435,7 +674,7 @@ func (x *Empty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Empty.ProtoReflect.Descriptor instead.
 func (*Empty) Descriptor() ([]byte, []int) {
-	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{7}
+	return file_internal_repository_grpc_control_proto_rawDescGZIP(), []int{10}
 }
 
 var File_internal_repository_grpc_control_proto protoreflect.FileDescriptor
@@ -465,7 +704,22 @@ const file_internal_repository_grpc_control_proto_rawDesc = "" +
 	"updated_at\x18\x02 \x01(\x03R\tupdatedAt\"W\n" +
 	"\x16SetDesiredStateRequest\x12\x12\n" +
 	"\x04node\x18\x01 \x01(\tR\x04node\x12)\n" +
-	"\x04spec\x18\x02 \x01(\v2\x15.noxis.v1.DesiredSpecR\x04spec\"\"\n" +
+	"\x04spec\x18\x02 \x01(\v2\x15.noxis.v1.DesiredSpecR\x04spec\"\xb8\x01\n" +
+	"\tStreamMsg\x12\x12\n" +
+	"\x04node\x18\x01 \x01(\tR\x04node\x12+\n" +
+	"\x04spec\x18\x02 \x01(\v2\x15.noxis.v1.DesiredSpecH\x00R\x04spec\x12.\n" +
+	"\x05query\x18\x03 \x01(\v2\x16.noxis.v1.QueryRequestH\x00R\x05query\x12/\n" +
+	"\x06result\x18\x04 \x01(\v2\x15.noxis.v1.QueryResultH\x00R\x06resultB\t\n" +
+	"\apayload\"\\\n" +
+	"\fQueryRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
+	"\x04node\x18\x02 \x01(\tR\x04node\x12\x16\n" +
+	"\x06engine\x18\x03 \x01(\tR\x06engine\x12\x10\n" +
+	"\x03sql\x18\x04 \x01(\tR\x03sql\"K\n" +
+	"\vQueryResult\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x16\n" +
+	"\x06output\x18\x02 \x01(\tR\x06output\x12\x14\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\"\"\n" +
 	"\fWatchRequest\x12\x12\n" +
 	"\x04node\x18\x01 \x01(\tR\x04node\"Z\n" +
 	"\x06Status\x12\x12\n" +
@@ -476,14 +730,15 @@ const file_internal_repository_grpc_control_proto_rawDesc = "" +
 	"\n" +
 	"StatusList\x12,\n" +
 	"\bstatuses\x18\x01 \x03(\v2\x10.noxis.v1.StatusR\bstatuses\"\a\n" +
-	"\x05Empty2\xad\x02\n" +
-	"\aControl\x128\n" +
-	"\x05Watch\x12\x16.noxis.v1.WatchRequest\x1a\x15.noxis.v1.DesiredSpec0\x01\x12:\n" +
+	"\x05Empty2\xe2\x02\n" +
+	"\aControl\x125\n" +
+	"\x05Watch\x12\x13.noxis.v1.StreamMsg\x1a\x13.noxis.v1.StreamMsg(\x010\x01\x12:\n" +
 	"\x0fGetDesiredState\x12\x10.noxis.v1.NodeId\x1a\x15.noxis.v1.DesiredSpec\x12D\n" +
 	"\x0fSetDesiredState\x12 .noxis.v1.SetDesiredStateRequest\x1a\x0f.noxis.v1.Empty\x121\n" +
 	"\fReportStatus\x12\x10.noxis.v1.Status\x1a\x0f.noxis.v1.Empty\x123\n" +
 	"\n" +
-	"ListStatus\x12\x0f.noxis.v1.Empty\x1a\x14.noxis.v1.StatusListB$Z\"noxis/internal/repository/grpc;rpcb\x06proto3"
+	"ListStatus\x12\x0f.noxis.v1.Empty\x1a\x14.noxis.v1.StatusList\x126\n" +
+	"\x05Query\x12\x16.noxis.v1.QueryRequest\x1a\x15.noxis.v1.QueryResultB$Z\"noxis/internal/repository/grpc;rpcb\x06proto3"
 
 var (
 	file_internal_repository_grpc_control_proto_rawDescOnce sync.Once
@@ -497,40 +752,48 @@ func file_internal_repository_grpc_control_proto_rawDescGZIP() []byte {
 	return file_internal_repository_grpc_control_proto_rawDescData
 }
 
-var file_internal_repository_grpc_control_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_internal_repository_grpc_control_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_internal_repository_grpc_control_proto_goTypes = []any{
 	(*NodeId)(nil),                 // 0: noxis.v1.NodeId
 	(*EngineSpec)(nil),             // 1: noxis.v1.EngineSpec
 	(*DesiredSpec)(nil),            // 2: noxis.v1.DesiredSpec
 	(*SetDesiredStateRequest)(nil), // 3: noxis.v1.SetDesiredStateRequest
-	(*WatchRequest)(nil),           // 4: noxis.v1.WatchRequest
-	(*Status)(nil),                 // 5: noxis.v1.Status
-	(*StatusList)(nil),             // 6: noxis.v1.StatusList
-	(*Empty)(nil),                  // 7: noxis.v1.Empty
-	nil,                            // 8: noxis.v1.EngineSpec.PortsEntry
-	nil,                            // 9: noxis.v1.EngineSpec.EnvEntry
+	(*StreamMsg)(nil),              // 4: noxis.v1.StreamMsg
+	(*QueryRequest)(nil),           // 5: noxis.v1.QueryRequest
+	(*QueryResult)(nil),            // 6: noxis.v1.QueryResult
+	(*WatchRequest)(nil),           // 7: noxis.v1.WatchRequest
+	(*Status)(nil),                 // 8: noxis.v1.Status
+	(*StatusList)(nil),             // 9: noxis.v1.StatusList
+	(*Empty)(nil),                  // 10: noxis.v1.Empty
+	nil,                            // 11: noxis.v1.EngineSpec.PortsEntry
+	nil,                            // 12: noxis.v1.EngineSpec.EnvEntry
 }
 var file_internal_repository_grpc_control_proto_depIdxs = []int32{
-	8,  // 0: noxis.v1.EngineSpec.ports:type_name -> noxis.v1.EngineSpec.PortsEntry
-	9,  // 1: noxis.v1.EngineSpec.env:type_name -> noxis.v1.EngineSpec.EnvEntry
+	11, // 0: noxis.v1.EngineSpec.ports:type_name -> noxis.v1.EngineSpec.PortsEntry
+	12, // 1: noxis.v1.EngineSpec.env:type_name -> noxis.v1.EngineSpec.EnvEntry
 	1,  // 2: noxis.v1.DesiredSpec.engines:type_name -> noxis.v1.EngineSpec
 	2,  // 3: noxis.v1.SetDesiredStateRequest.spec:type_name -> noxis.v1.DesiredSpec
-	5,  // 4: noxis.v1.StatusList.statuses:type_name -> noxis.v1.Status
-	4,  // 5: noxis.v1.Control.Watch:input_type -> noxis.v1.WatchRequest
-	0,  // 6: noxis.v1.Control.GetDesiredState:input_type -> noxis.v1.NodeId
-	3,  // 7: noxis.v1.Control.SetDesiredState:input_type -> noxis.v1.SetDesiredStateRequest
-	5,  // 8: noxis.v1.Control.ReportStatus:input_type -> noxis.v1.Status
-	7,  // 9: noxis.v1.Control.ListStatus:input_type -> noxis.v1.Empty
-	2,  // 10: noxis.v1.Control.Watch:output_type -> noxis.v1.DesiredSpec
-	2,  // 11: noxis.v1.Control.GetDesiredState:output_type -> noxis.v1.DesiredSpec
-	7,  // 12: noxis.v1.Control.SetDesiredState:output_type -> noxis.v1.Empty
-	7,  // 13: noxis.v1.Control.ReportStatus:output_type -> noxis.v1.Empty
-	6,  // 14: noxis.v1.Control.ListStatus:output_type -> noxis.v1.StatusList
-	10, // [10:15] is the sub-list for method output_type
-	5,  // [5:10] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	2,  // 4: noxis.v1.StreamMsg.spec:type_name -> noxis.v1.DesiredSpec
+	5,  // 5: noxis.v1.StreamMsg.query:type_name -> noxis.v1.QueryRequest
+	6,  // 6: noxis.v1.StreamMsg.result:type_name -> noxis.v1.QueryResult
+	8,  // 7: noxis.v1.StatusList.statuses:type_name -> noxis.v1.Status
+	4,  // 8: noxis.v1.Control.Watch:input_type -> noxis.v1.StreamMsg
+	0,  // 9: noxis.v1.Control.GetDesiredState:input_type -> noxis.v1.NodeId
+	3,  // 10: noxis.v1.Control.SetDesiredState:input_type -> noxis.v1.SetDesiredStateRequest
+	8,  // 11: noxis.v1.Control.ReportStatus:input_type -> noxis.v1.Status
+	10, // 12: noxis.v1.Control.ListStatus:input_type -> noxis.v1.Empty
+	5,  // 13: noxis.v1.Control.Query:input_type -> noxis.v1.QueryRequest
+	4,  // 14: noxis.v1.Control.Watch:output_type -> noxis.v1.StreamMsg
+	2,  // 15: noxis.v1.Control.GetDesiredState:output_type -> noxis.v1.DesiredSpec
+	10, // 16: noxis.v1.Control.SetDesiredState:output_type -> noxis.v1.Empty
+	10, // 17: noxis.v1.Control.ReportStatus:output_type -> noxis.v1.Empty
+	9,  // 18: noxis.v1.Control.ListStatus:output_type -> noxis.v1.StatusList
+	6,  // 19: noxis.v1.Control.Query:output_type -> noxis.v1.QueryResult
+	14, // [14:20] is the sub-list for method output_type
+	8,  // [8:14] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_internal_repository_grpc_control_proto_init() }
@@ -538,13 +801,18 @@ func file_internal_repository_grpc_control_proto_init() {
 	if File_internal_repository_grpc_control_proto != nil {
 		return
 	}
+	file_internal_repository_grpc_control_proto_msgTypes[4].OneofWrappers = []any{
+		(*StreamMsg_Spec)(nil),
+		(*StreamMsg_Query)(nil),
+		(*StreamMsg_Result)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_repository_grpc_control_proto_rawDesc), len(file_internal_repository_grpc_control_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

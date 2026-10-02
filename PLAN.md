@@ -39,7 +39,8 @@ reconcile — no duplicated state, no double-apply by design.
 - [x] 0 Scaffold — `noxis master` / `slave` / `assign` / `status` / `sync` CLI
 - [x] 1 Core transport — Watch stream push + replay on reconnect, GetDesiredState fallback, ReportStatus. Verified: master death → slaves survive, engines keep running → restart → reconnected + converged
 - [x] 2 Doorman engines — postgres/mysql/mariadb/mongo/redis/elastic descriptors + docker driver (CLI shell-out, node-labeled isolation)
-- [x] 3 Desired-state converge — assign → push → slave start/upgrade/remove; node-scoped listing stops cross-node theft on shared docker hosts; port conflicts surface as clear per-node errors
+- [x] 3 Desired-state converge — assign → push → slave start/upgrade/remove; node-scoped listing stops cross-node theft on shared docker hosts; port conflicts surface as clear per-node errors; custom host ports `TYPE@VER:HOSTPORT`; config drift (version/port/env) recreates via the stamped `noxis.desired` label
+- [x] 3.5 Read queries — `query NODE ENGINE "SQL"` routes over the bidirectional Watch stream (no slave listeners, no addr registration); slave executes via the engine's own SQL client with its creation credentials; SQL engines only
 - [ ] 4 UCM — versioned config entities, `get/set/history` verbs, oplog replication to slaves
 - [ ] 5 Ops — backup-before-upgrade, `apply --node X` manual gate, `--promote`, systemd units for agents
 - [ ] 6 Polish (only if needed) | mTLS, web UI
