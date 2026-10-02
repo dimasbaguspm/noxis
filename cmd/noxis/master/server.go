@@ -1,5 +1,5 @@
 // Package master is the master daemon: REST API for frontends, events over
-// Redpanda to slave workers.
+// Kafka to slave workers.
 package master
 
 import (
@@ -10,8 +10,8 @@ import (
 
 	"noxis/internal/control"
 	"noxis/internal/entity"
-	"noxis/internal/events"
-	"noxis/internal/services"
+	"noxis/internal/repositories/kafka"
+	"noxis/internal/repositories/sqlite"
 )
 
 // Run blocks serving REST until ctx is done or a dependency fails.
@@ -19,18 +19,18 @@ func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
 	if err := cfg.Require(entity.EnvListen, entity.EnvDB, entity.EnvBroker); err != nil {
 		return err
 	}
-	svc, err := services.OpenSQLite(cfg.DB)
+	store, err := sqlite.Open(cfg.DB)
 	if err != nil {
 		return err
 	}
-	defer svc.DB.Close()
+	defer store.Close()
 
-	k, err := events.Produce(ctx, strings.Split(cfg.Broker, ","))
+	k, err := kafka.Produce(ctx, strings.Split(cfg.Broker, ","))
 	if err != nil {
 		return err
 	}
 	defer k.Close()
-	ctrl := control.New(svc.DB, k, log, strings.Split(cfg.Broker, ","))
+	ctrl := control.New(store, k, log, strings.Split(cfg.Broker, ","))
 
 	go func() {
 		if err := ctrl.RunStatusConsumer(ctx); err != nil {

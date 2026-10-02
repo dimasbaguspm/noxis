@@ -1,5 +1,6 @@
-// Package control is the master's operations core: repositories + broker.
-// REST handlers (cmd/noxis/master/controller) call it; slaves never do.
+// Package control is the master's operations core: registry repo + Kafka
+// broker + memory state. REST handlers (cmd/noxis/master/controller) call it;
+// slaves never do.
 package control
 
 import (
@@ -9,66 +10,103 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"sync"
 	"time"
 
 	"noxis/internal/entity"
-	"noxis/internal/events"
-	"noxis/internal/repository"
+	"noxis/internal/interfaces"
+	"noxis/internal/repositories/kafka"
 )
 
-const queryTimeout = 30 * time.Second
+const (
+	queryTimeout       = 30 * time.Second
+	statusOfflineAfter = 30 * time.Second // no heartbeat in this window => offline
+)
 
-// Control owns the master's data + event sides.
+// Control owns the master's data + event sides. Desired specs and reported
+// statuses live in memory; the sqlite store holds only the slave registry.
+//
+// ponytail: master restart loses specs/status until the slave's next heartbeat;
+// if that ever matters, replay the spec topics on startup.
 type Control struct {
-	repo  *repository.SQLite
-	k     *events.Broker
+	nodes interfaces.NodeRepository
+	k     *kafka.Broker
 	log   *slog.Logger
 	addrs []string
+
+	mu     sync.Mutex
+	specs  map[string]entity.Spec
+	status map[string]entity.NodeStatus
 }
 
-func New(repo *repository.SQLite, k *events.Broker, log *slog.Logger, addrs []string) *Control {
-	return &Control{repo: repo, k: k, log: log, addrs: addrs}
+func New(nodes interfaces.NodeRepository, k *kafka.Broker, log *slog.Logger, addrs []string) *Control {
+	return &Control{
+		nodes: nodes, k: k, log: log, addrs: addrs,
+		specs: map[string]entity.Spec{}, status: map[string]entity.NodeStatus{},
+	}
 }
 
 func (c *Control) Spec(ctx context.Context, node string) (*entity.Spec, error) {
-	return c.repo.Get(ctx, node)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	s, ok := c.specs[node]
+	if !ok {
+		return nil, errors.New("no spec assigned to node " + node)
+	}
+	return &s, nil
 }
 
-// SetSpec persists the assignment then publishes it to the node's topic.
+// SetSpec remembers the assignment then publishes it to the node's topic.
 // A crash between the two self-heals: the next publish carries the full spec.
 func (c *Control) SetSpec(ctx context.Context, spec *entity.Spec) error {
-	if err := c.repo.Set(ctx, spec); err != nil {
-		return err
-	}
-	if err := c.k.EnsureTopic(ctx, events.SpecTopic(spec.Node)); err != nil {
+	if err := c.k.EnsureTopic(ctx, kafka.SpecTopic(spec.Node)); err != nil {
 		return err
 	}
 	body, err := json.Marshal(spec)
 	if err != nil {
 		return err
 	}
-	return c.k.PublishSync(ctx, events.SpecTopic(spec.Node), spec.Node, body)
-}
-
-func (c *Control) RegisterNode(ctx context.Context, id string) error {
-	return c.repo.Register(ctx, id)
-}
-
-// Registered returns the registered node ids (for status merge).
-func (c *Control) Registered(ctx context.Context) ([]string, error) {
-	return c.repo.ListIDs(ctx)
-}
-
-func (c *Control) Statuses(ctx context.Context) ([]entity.NodeStatus, error) {
-	return c.repo.List(ctx)
-}
-
-// RunStatusConsumer drains the status topic into the repo until ctx is done.
-func (c *Control) RunStatusConsumer(ctx context.Context) error {
-	if err := c.k.EnsureTopic(ctx, events.TopicStatus); err != nil {
+	if err := c.k.PublishSync(ctx, kafka.SpecTopic(spec.Node), spec.Node, body); err != nil {
 		return err
 	}
-	cons, err := events.Consume(ctx, c.addrs, "", true, events.TopicStatus)
+	c.mu.Lock()
+	c.specs[spec.Node] = *spec
+	c.mu.Unlock()
+	return nil
+}
+
+func (c *Control) RegisterNode(ctx context.Context, id, name, ip string) error {
+	return c.nodes.Register(ctx, id, name, ip)
+}
+
+// Statuses merges the registered registry with live heartbeats: registered
+// nodes with a stale (or missing) heartbeat read as offline.
+func (c *Control) Statuses(ctx context.Context) ([]entity.NodeStatus, error) {
+	slaves, err := c.nodes.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	now := time.Now().Unix()
+	out := make([]entity.NodeStatus, 0, len(slaves))
+	for _, s := range slaves {
+		st, ok := c.status[s.ID]
+		if !ok || now-st.TS > int64(statusOfflineAfter.Seconds()) {
+			out = append(out, entity.NodeStatus{Node: s.ID, State: "offline"})
+			continue
+		}
+		out = append(out, st)
+	}
+	return out, nil
+}
+
+// RunStatusConsumer drains the status topic into memory until ctx is done.
+func (c *Control) RunStatusConsumer(ctx context.Context) error {
+	if err := c.k.EnsureTopic(ctx, kafka.TopicStatus); err != nil {
+		return err
+	}
+	cons, err := kafka.Consume(ctx, c.addrs, "", true, kafka.TopicStatus)
 	if err != nil {
 		return err
 	}
@@ -87,9 +125,9 @@ func (c *Control) RunStatusConsumer(ctx context.Context) error {
 			c.log.WarnContext(ctx, "bad status event", "node", rec.Key, "error", err)
 			continue
 		}
-		if err := c.repo.Report(ctx, st); err != nil {
-			c.log.WarnContext(ctx, "report status failed", "error", err)
-		}
+		c.mu.Lock()
+		c.status[st.Node] = st
+		c.mu.Unlock()
 	}
 }
 
@@ -113,21 +151,21 @@ func (c *Control) Query(ctx context.Context, node, engine, sql string) (string, 
 	if err != nil {
 		return "", err
 	}
-	if err := c.k.EnsureTopic(ctx, events.ReqTopic(node)); err != nil {
+	if err := c.k.EnsureTopic(ctx, kafka.ReqTopic(node)); err != nil {
 		return "", err
 	}
-	if err := c.k.EnsureTopic(ctx, events.ResTopic(node)); err != nil {
+	if err := c.k.EnsureTopic(ctx, kafka.ResTopic(node)); err != nil {
 		return "", err
 	}
 	req, err := json.Marshal(queryReq{Engine: engine, SQL: sql})
 	if err != nil {
 		return "", err
 	}
-	if err := c.k.PublishSync(ctx, events.ReqTopic(node), qid, req); err != nil {
+	if err := c.k.PublishSync(ctx, kafka.ReqTopic(node), qid, req); err != nil {
 		return "", err
 	}
 
-	cons, err := events.Consume(ctx, c.addrs, "", true, events.ResTopic(node))
+	cons, err := kafka.Consume(ctx, c.addrs, "", true, kafka.ResTopic(node))
 	if err != nil {
 		return "", err
 	}

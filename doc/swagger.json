@@ -202,7 +202,7 @@
         },
         "/v1/status": {
             "get": {
-                "summary": "Node statuses (reported runtime merged with registered nodes)",
+                "summary": "Node statuses (registry merged with live heartbeats)",
                 "responses": {
                     "200": {
                         "description": "status of every node",
@@ -307,7 +307,7 @@
                         "type": "string"
                     },
                     "state": {
-                        "description": "ok | error",
+                        "description": "ok | error | up | offline",
                         "type": "string"
                     },
                     "ts": {

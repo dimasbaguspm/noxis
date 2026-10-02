@@ -1,8 +1,9 @@
-// Package events is the Redpanda transport: the broker replaces the old
-// gRPC Watch stream. Master publishes desired-state events; slaves consume
-// their own topics via a durable consumer group (offsets survive restarts,
-// so no reconnect/replay loop is needed).
-package events
+// Package kafka is the event transport (franz-go). Master publishes
+// desired-state events; slaves consume their own topics via a durable
+// consumer group (offsets survive restarts, so no reconnect/replay loop is
+// needed). Broker-agnostic over the Kafka protocol — swap the compose broker
+// image and nothing else changes.
+package kafka
 
 import (
 	"context"

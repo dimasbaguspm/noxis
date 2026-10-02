@@ -1,6 +1,7 @@
-// Package slave is the worker daemon. `register slave` captures the node
-// identity once; `run slave` reads it and needs no env at all.
-package slave
+// Package identity reads and writes the slave's identity file. `register`
+// bakes it once; `run slave` needs zero env afterwards (no config is that
+// robust).
+package identity
 
 import (
 	"encoding/json"
@@ -12,7 +13,7 @@ import (
 
 type Identity struct {
 	ID     string `json:"id"`
-	Broker string `json:"broker"` // Redpanda address
+	Broker string `json:"broker"` // Kafka broker address(es)
 }
 
 // Path is the identity file location (per-user config dir).

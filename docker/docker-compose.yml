@@ -65,7 +65,6 @@ services:
       NOXIS_BROKER: kafka:9092
       NOXIS_OTEL_NAME: noxis-zeus
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - noxis-identity:/root/.config
     depends_on:
       master:

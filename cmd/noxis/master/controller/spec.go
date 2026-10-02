@@ -2,11 +2,9 @@ package controller
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"noxis/internal/entity"
-	"noxis/internal/features/doorman/runtimes"
 )
 
 type putSpecBody struct {
@@ -39,13 +37,7 @@ func PutNodeSpec(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, err)
 		return
 	}
-	for _, e := range body.Engines {
-		if _, ok := runtimes.Lookup(e.Type); !ok {
-			writeErr(w, errors.New("unknown engine type "+e.Type))
-			return
-		}
-	}
-	// publishes to the node's stream; the slave converges on its next push.
+	// publishes to the node's topic; the slave acks on its next heartbeat.
 	if err := From(r).Ctrl.SetSpec(r.Context(), &entity.Spec{
 		Node: r.PathValue("node"), Engines: body.Engines,
 	}); err != nil {

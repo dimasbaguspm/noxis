@@ -12,7 +12,7 @@ import (
 // Env is read exactly once, here; nothing else talks to the environment.
 const (
 	EnvMaster        = "NOXIS_MASTER"         // REST base URL of the master: CLI/frontend
-	EnvBroker        = "NOXIS_BROKER"         // Redpanda address: master + register
+	EnvBroker        = "NOXIS_BROKER"         // Kafka broker address: master + register
 	EnvListen        = "NOXIS_LISTEN"         // REST listen addr: master
 	EnvDB            = "NOXIS_DB"             // sqlite path: master
 	EnvOTELCollector = "NOXIS_OTEL_COLLECTOR" // OTLP endpoint (optional)

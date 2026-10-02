@@ -3,7 +3,7 @@
 // @title       noxis control plane API
 // @version     0.1.0
 // @description Master REST API: frontends read node state here; the master
-// publishes desired-state events to slave workers over Redpanda (not part of
+// publishes desired-state events to slave workers over Kafka (not part of
 // this API).
 package master
 

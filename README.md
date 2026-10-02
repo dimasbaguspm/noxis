@@ -2,10 +2,11 @@
 
 Personal multi-machine infra control plane. One Go binary: a **master** exposes a
 REST API and publishes desired-state events to **slave** workers over Kafka
-(apache/kafka + franz-go), which converge their node's slice by managing Docker
-containers (postgres, mysql, mariadb, mongo, redis, elasticsearch). Consumers
-use durable groups, so a restarted worker resumes from its last offset — no
-reconnect/replay loops. The CLI is one-shot only: register once, run daemons.
+(apache/kafka + franz-go). Consumers use durable groups, so a restarted
+worker resumes from its last offset — no reconnect/replay loops. The engine
+manager (doorman) is paused for the single-machine homelab trial: slaves
+currently register, consume their topics, ack specs and heartbeat status —
+no Docker dependency. The CLI is one-shot only: register once, run daemons.
 
 ## Quickstart
 

@@ -3,12 +3,12 @@ package slave
 import (
 	"fmt"
 	"log/slog"
-	"net/http"
-	"time"
 
 	"github.com/spf13/cobra"
 
 	"noxis/internal/entity"
+	"noxis/internal/repositories/http"
+	reposlave "noxis/internal/repositories/slave"
 )
 
 // NewRegisterCmd is `noxis register slave <name>`: one-shot. It registers the
@@ -24,27 +24,15 @@ func NewRegisterCmd(log *slog.Logger, cfg entity.Config) *cobra.Command {
 				return err
 			}
 			name := args[0]
-
-			req, err := http.NewRequestWithContext(cmd.Context(),
-				http.MethodPost, cfg.Master+"/v1/nodes/"+name+"/register", nil)
-			if err != nil {
-				return err
-			}
-			client := &http.Client{Timeout: 10 * time.Second}
-			resp, err := client.Do(req)
-			if err != nil {
+			if err := http.NewClient(cfg.Master).Do(cmd.Context(),
+				"POST", "/v1/nodes/"+name+"/register", nil, nil); err != nil {
 				return fmt.Errorf("register with master: %w", err)
 			}
-			resp.Body.Close()
-			if resp.StatusCode >= 400 {
-				return fmt.Errorf("register with master: %s", resp.Status)
-			}
-
-			if err := Save(Identity{ID: name, Broker: cfg.Broker}); err != nil {
+			if err := reposlave.Save(reposlave.Identity{ID: name, Broker: cfg.Broker}); err != nil {
 				return err
 			}
 			log.InfoContext(cmd.Context(), "slave registered",
-				"id", name, "broker", cfg.Broker, "identity", Path())
+				"id", name, "broker", cfg.Broker, "identity", reposlave.Path())
 			return nil
 		},
 	}
