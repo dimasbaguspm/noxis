@@ -1,24 +1,20 @@
-// Package entity is the domain model. Persistent form lives here with yaml
-// tags; the wire form lives in internal/core (proto). Converters at the core
-// boundary map between the two — the domain never sees proto.
+// Package entity is the shared data model across store, wire and REST.
 package entity
 
-// Engine is one desired containerized engine on a node.
 type Engine struct {
-	Name    string            `yaml:"name"`
-	Type    string            `yaml:"type"`
-	Version string            `yaml:"version"`
-	Ports   map[string]string `yaml:"ports,omitempty"` // host -> container, overrides default
-	Env     map[string]string `yaml:"env,omitempty"`   // overrides defaults
+	Name    string            `json:"name" yaml:"name"`
+	Type    string            `json:"type" yaml:"type"`
+	Version string            `json:"version" yaml:"version"`
+	Ports   map[string]string `json:"ports,omitempty" yaml:"ports,omitempty"`
+	Env     map[string]string `json:"env,omitempty" yaml:"env,omitempty"`
 }
 
-// StoredSpec is what the master persists per node: the assignment record.
-type StoredSpec struct {
-	Engines []Engine `yaml:"engines"`
-}
-
-// Spec is one node's assignment, in and out of the store.
 type Spec struct {
-	Node    string
-	Engines []Engine
+	Node    string   `json:"node" yaml:"-"`
+	Engines []Engine `json:"engines" yaml:"engines"`
+}
+
+// StoredSpec is the persisted form (the yaml body in sqlite).
+type StoredSpec struct {
+	Engines []Engine `json:"engines" yaml:"engines"`
 }

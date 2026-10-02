@@ -14,54 +14,8 @@ import (
 	"noxis/internal/repository"
 )
 
-// bufconn runs the real gRPC stack over an in-memory pipe: no listener, no
-// ports, fast. Regression guard for the node-propagation bug: SetDesiredState
-// must persist under the request's node so Watch/Get find it back.
-func TestSetDesiredStateRoundTrip(t *testing.T) {
-	repo, err := repository.OpenSQLite(filepath.Join(t.TempDir(), "test.db"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer repo.Close()
-
-	lis := bufconn.Listen(1 << 20)
-	srv := grpc.NewServer()
-	RegisterControlServer(srv, NewServer(repo, repo))
-	go srv.Serve(lis)
-	defer srv.Stop()
-
-	conn := bufconnConn(t, lis)
-	defer conn.Close()
-	client := NewControlClient(conn)
-
-	spec := &entity.Spec{Node: "themis", Engines: []entity.Engine{
-		{Name: "redis", Type: "redis", Version: "7"},
-	}}
-	if _, err := client.SetDesiredState(context.Background(),
-		&SetDesiredStateRequest{Node: "themis", Spec: SpecToProto(spec)}); err != nil {
-		t.Fatalf("SetDesiredState: %v", err)
-	}
-
-	got, err := client.GetDesiredState(context.Background(), &NodeId{Id: "themis"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got.Engines) != 1 || got.Engines[0].Type != "redis" {
-		t.Fatalf("GetDesiredState = %+v, want 1 redis engine", got)
-	}
-
-	// Default must not contaminate: another node has no spec.
-	other, err := client.GetDesiredState(context.Background(), &NodeId{Id: "other"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(other.Engines) != 0 {
-		t.Fatalf("other node got engines: %+v", other.Engines)
-	}
-}
-
-// TestQueryRoundTrip drives the full path: master Query RPC -> routed over a
-// slave's live Watch stream -> slave answers -> caller gets the result.
+// TestQueryRoundTrip: RouteQuery -> slave's Watch stream -> answer comes
+// back. Regression for stream routing.
 func TestQueryRoundTrip(t *testing.T) {
 	repo, err := repository.OpenSQLite(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -71,63 +25,97 @@ func TestQueryRoundTrip(t *testing.T) {
 
 	lis := bufconn.Listen(1 << 20)
 	srv := grpc.NewServer()
-	RegisterControlServer(srv, NewServer(repo, repo))
+	ctrl := NewServer(repo, repo)
+	RegisterControlServer(srv, ctrl)
 	go srv.Serve(lis)
 	defer srv.Stop()
 
-	// slave side: open Watch, say hello, get the initial spec push
-	slaveConn := bufconnConn(t, lis)
-	defer slaveConn.Close()
-	watch, err := NewControlClient(slaveConn).Watch(context.Background())
+	// slave side: open Watch, hello, get the spec snapshot
+	wconn := bufconnConn(t, lis)
+	defer wconn.Close()
+	watch, err := NewControlClient(wconn).Watch(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := watch.Send(&StreamMsg{Node: "themis"}); err != nil {
 		t.Fatal(err)
 	}
-	msg, err := watch.Recv()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if msg.GetSpec() == nil {
-		t.Fatalf("expected spec snapshot on connect, got %T", msg.Payload)
+	if msg, err := watch.Recv(); err != nil || msg.GetSpec() == nil {
+		t.Fatalf("expected spec snapshot, got %v %v", msg, err)
 	}
 
-	// caller side: query must travel the stream and come back
-	queryRes := make(chan *QueryResult, 1)
-	queryErr := make(chan error, 1)
+	// caller routes a query (plain method, what REST invokes)
+	done := make(chan struct{})
+	var got string
+	var qerr error
 	go func() {
-		caller := bufconnConn(t, lis)
-		defer caller.Close()
-		res, err := NewControlClient(caller).Query(context.Background(),
-			&QueryRequest{Node: "themis", Engine: "pg", Sql: "SELECT 1"})
-		if err != nil {
-			queryErr <- err
-			return
-		}
-		queryRes <- res
+		got, qerr = ctrl.RouteQuery(context.Background(), "themis", "pg", "SELECT 1")
+		close(done)
 	}()
 
-	// slave answers the routed query
-	msg, err = watch.Recv()
+	// slave answers on the stream
+	msg, err := watch.Recv()
 	if err != nil {
 		t.Fatal(err)
 	}
 	q := msg.GetQuery()
 	if q == nil || q.Sql != "SELECT 1" {
-		t.Fatalf("expected routed query, got %T", msg.Payload)
+		t.Fatalf("expected routed query, got %+v", msg.Payload)
 	}
-	if err := watch.Send(&StreamMsg{Payload: &StreamMsg_Result{Result: &QueryResult{Id: q.Id, Output: "42"}}}); err != nil {
+	if err := watch.Send(&StreamMsg{Payload: &StreamMsg_Result{
+		Result: &QueryResult{Id: q.Id, Output: "42"},
+	}}); err != nil {
 		t.Fatal(err)
 	}
 
-	select {
-	case res := <-queryRes:
-		if res.Output != "42" {
-			t.Fatalf("output = %q, want 42", res.Output)
-		}
-	case err := <-queryErr:
+	<-done
+	if qerr != nil {
+		t.Fatal(qerr)
+	}
+	if got != "42" {
+		t.Fatalf("got %q, want 42", got)
+	}
+}
+
+// TestSpecPublish: SetNodeSpec notifies the stream, slave receives the new spec.
+func TestSpecPublish(t *testing.T) {
+	repo, err := repository.OpenSQLite(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
 		t.Fatal(err)
+	}
+	defer repo.Close()
+
+	lis := bufconn.Listen(1 << 20)
+	srv := grpc.NewServer()
+	ctrl := NewServer(repo, repo)
+	RegisterControlServer(srv, ctrl)
+	go srv.Serve(lis)
+	defer srv.Stop()
+
+	wconn := bufconnConn(t, lis)
+	defer wconn.Close()
+	watch, err := NewControlClient(wconn).Watch(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = watch.Send(&StreamMsg{Node: "themis"})
+	if _, err := watch.Recv(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ctrl.SetNodeSpec(context.Background(), &entity.Spec{
+		Node: "themis", Engines: []entity.Engine{{Name: "redis", Type: "redis", Version: "7"}},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	msg, err := watch.Recv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec := msg.GetSpec()
+	if spec == nil || len(spec.Engines) != 1 || spec.Engines[0].Version != "7" {
+		t.Fatalf("published spec = %+v", spec)
 	}
 }
 

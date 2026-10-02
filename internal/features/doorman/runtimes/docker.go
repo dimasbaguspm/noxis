@@ -57,11 +57,8 @@ type Observed struct {
 	Desired string // the noxis.desired label: what this container was created to be
 }
 
-// List returns this node's noxis-managed containers keyed by container name.
-// Node-scoped by label: on a shared docker host one slave never touches
-// another's containers. Names come from `docker ps`; labels come from
-// `docker inspect`, whose Config.Labels is a real map (ps --format exposes
-// labels as a raw slice in current docker).
+// List returns this node's containers keyed by name. Node-scoped by label;
+// inspect (not ps) because ps --format exposes labels as a raw slice.
 func List(ctx context.Context, node string) (map[string]Observed, error) {
 	ids, err := Exec(ctx, "ps", "-aq",
 		"--filter", "label="+LabelManaged,
@@ -88,8 +85,7 @@ func List(ctx context.Context, node string) (map[string]Observed, error) {
 	return found, nil
 }
 
-// Run creates and starts an engine container, stamping the exact desired
-// shape into noxis.desired so later reconciles detect drift label-only.
+// Run creates the container, stamping its exact shape into noxis.desired.
 func Run(ctx context.Context, node string, e entity.Engine) error {
 	d, ok := Lookup(e.Type)
 	if !ok {
@@ -127,9 +123,8 @@ func Start(ctx context.Context, name string) error {
 	return err
 }
 
-// ExecSQL runs a read query inside the engine's container via its SQL client.
-// Credentials come from the same merged env the container was created with —
-// no secrets are stored anywhere else. Only SQL engines are wired today.
+// ExecSQL runs a query in the container via its SQL client; credentials come
+// from the same merged env the container was created with.
 func ExecSQL(ctx context.Context, container string, e entity.Engine, sql string) (string, error) {
 	d, ok := Lookup(e.Type)
 	if !ok {

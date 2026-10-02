@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"context"
 	"net"
+	"net/http"
 
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -10,15 +12,16 @@ import (
 	"noxis/internal/entity"
 	"noxis/internal/repository"
 	rpc "noxis/internal/repository/grpc"
+	"noxis/internal/repository/rest"
 )
 
 func newMasterCmd(app *entity.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "master",
-		Short: "Run as master (durable desired state + control plane)",
+		Short: "Run as master (REST API + internal slave transport)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
-			if err := app.Cfg.Require(entity.EnvListen, entity.EnvDB); err != nil {
+			if err := app.Cfg.Require(entity.EnvListen, entity.EnvGRPC, entity.EnvDB); err != nil {
 				return err
 			}
 			repo, err := repository.OpenSQLite(app.Cfg.DB)
@@ -27,25 +30,36 @@ func newMasterCmd(app *entity.App) *cobra.Command {
 			}
 			defer repo.Close()
 
-			lis, err := net.Listen("tcp", app.Cfg.Listen)
-			if err != nil {
-				return err
-			}
-			srv := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
-			rpc.RegisterControlServer(srv, rpc.NewServer(repo, repo))
+			ctrl := rpc.NewServer(repo, repo)
+			errs := make(chan error, 2)
+			go serveREST(ctx, app, ctrl, errs)
+			go serveGRPC(ctx, app, ctrl, errs)
 
-			app.Log.InfoContext(ctx, "master serving",
-				"listen", app.Cfg.Listen, "db", app.Cfg.DB)
-			serveErr := make(chan error, 1)
-			go func() { serveErr <- srv.Serve(lis) }()
 			select {
-			case err := <-serveErr:
+			case err := <-errs:
 				return err
 			case <-ctx.Done():
-				srv.Stop() // immediate: long-lived Watch streams stall graceful drains
 				app.Log.InfoContext(ctx, "master stopped")
 				return nil
 			}
 		},
 	}
+}
+
+func serveGRPC(ctx context.Context, app *entity.App, ctrl *rpc.Server, errs chan<- error) {
+	lis, err := net.Listen("tcp", app.Cfg.GRPC)
+	if err != nil {
+		errs <- err
+		return
+	}
+	srv := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
+	rpc.RegisterControlServer(srv, ctrl)
+	app.Log.InfoContext(ctx, "grpc transport serving", "addr", app.Cfg.GRPC)
+	errs <- srv.Serve(lis)
+}
+
+func serveREST(ctx context.Context, app *entity.App, ctrl *rpc.Server, errs chan<- error) {
+	app.Log.InfoContext(ctx, "rest api serving", "addr", app.Cfg.Listen)
+	srv := &http.Server{Addr: app.Cfg.Listen, Handler: rest.New(ctrl)}
+	errs <- srv.ListenAndServe()
 }

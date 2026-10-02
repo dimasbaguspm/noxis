@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"time"
@@ -33,7 +34,7 @@ func newSlaveCmd(app *entity.App) *cobra.Command {
 		Use:   "slave",
 		Short: "Run as slave (local reconciler for this node)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if err := app.Cfg.Require(entity.EnvMaster, entity.EnvNode); err != nil {
+			if err := app.Cfg.Require(entity.EnvGRPC, entity.EnvNode); err != nil {
 				return err
 			}
 			return slaveLoop(cmd.Context(), app, app.Cfg.Node)
@@ -41,10 +42,8 @@ func newSlaveCmd(app *entity.App) *cobra.Command {
 	}
 }
 
-// slaveLoop keeps one bidirectional Watch stream open. The master pushes
-// spec changes one way and routes queries the other; both flow over the same
-// river. On disconnect it backs off and reconnects; the master replays the
-// full spec on (re)open, so no change is ever missed.
+// slaveLoop keeps the bidirectional stream alive; the master replays the full
+// spec on every (re)connect, so no change is ever missed.
 func slaveLoop(ctx context.Context, app *entity.App, node string) error {
 	counter := newReconcileCounter()
 	for attempt := 0; ; attempt++ {
@@ -65,21 +64,21 @@ func slaveLoop(ctx context.Context, app *entity.App, node string) error {
 }
 
 func watchOnce(ctx context.Context, app *entity.App, node string, counter metric.Int64Counter) error {
-	conn, err := dial(ctx, app)
+	conn, err := dial(ctx, app.Cfg.GRPC)
 	if err != nil {
-		return err
+		return fmt.Errorf("dial: %w", err)
 	}
 	defer conn.Close()
 	client := rpc.NewControlClient(conn)
 	stream, err := client.Watch(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("watch rpc: %w", err)
 	}
 	if err := stream.Send(&rpc.StreamMsg{Node: node}); err != nil { // hello: bind the stream
-		return err
+		return fmt.Errorf("hello: %w", err)
 	}
 	app.Log.InfoContext(ctx, "watch connected",
-		slog.String("node", node), slog.String("master", app.Cfg.Master))
+		slog.String("node", node), slog.String("master", app.Cfg.GRPC))
 
 	reconciler := doorman.NewReconciler(node)
 	var engines []entity.Engine // last desired slice, for query resolution

@@ -1,61 +1,73 @@
 # noxis
 
-Personal multi-machine infra control plane. One Go binary; a master keeps
-durable desired state, slaves converge their node's slice of it by managing
-Docker containers (postgres, mysql, mariadb, mongo, redis, elasticsearch).
-
-Transport is gRPC server-streaming: each slave opens a `Watch` stream to the
-master, the master pushes changes and replays the full spec on (re)connect.
-No brokers, no Kafka/Redis/RabbitMQ, no consensus — failover is manual.
+Personal multi-machine infra control plane. One Go binary: a **master** exposes a
+REST API and publishes desired-state events to **slave** workers, which converge
+their node's slice by managing Docker containers (postgres, mysql, mariadb,
+mongo, redis, elasticsearch). Slave workers receive events over one internal
+bidirectional gRPC stream per node — no brokers, no consensus.
 
 ## Quickstart
 
 ```bash
-# master machine
-export NOXIS_LISTEN=:9000 NOXIS_DB=./noxis.db
+# master (REST API + internal transport)
+export NOXIS_LISTEN=:9000 NOXIS_GRPC=:9100 NOXIS_DB=./noxis.db
 ./noxis master
 
-# slave machine
-export NOXIS_MASTER=master-host:9000 NOXIS_NODE=zeus
+# slave worker
+export NOXIS_GRPC=master-host:9100 NOXIS_NODE=zeus
 ./noxis slave
 
-# from anywhere with NOXIS_MASTER set
-./noxis assign zeus redis@7 mongo@8        # declarative desired state
-./noxis assign zeus redis@7:6380           # custom host port (container side stays default)
-./noxis assign zeus redis@7:6380 redis@7:6381   # same type twice, auto-suffixed names
-./noxis assign zeus redis@8                # version bump -> slave recreates
-./noxis status                             # reported runtime state per node
-./noxis sync zeus                          # manual reconcile (fallback)
-./noxis query zeus postgres "SELECT 1"     # read query, routed over the watch stream (SQL engines)
+# CLI hits the REST API
+export NOXIS_MASTER=http://master-host:9000
+./noxis assign zeus redis@7:6380 mongo@8      # custom host port, multi-engine
+./noxis assign zeus redis@8                   # version bump -> worker recreates
+./noxis status
+./noxis query zeus postgres "SELECT 1"        # SQL read, routed over the stream
+./noxis sync zeus                             # manual reconcile (fallback)
 ```
+
+## REST API (frontend-facing)
+
+| Method | Path | Body | Result |
+|---|---|---|---|
+| GET | `/v1/status` | — | `{nodes:[{node,state,detail,ts}]}` |
+| GET | `/v1/nodes/{node}` | — | `{node,engines:[...]}` |
+| PUT | `/v1/nodes/{node}` | `{engines:[{name,type,version,ports,env}]}` | 204, publishes to the node's stream |
+| POST | `/v1/nodes/{node}/query` | `{engine,sql}` | `{output}` |
+
+```bash
+curl -X PUT localhost:9000/v1/nodes/zeus \
+  -d '{"engines":[{"name":"postgres","type":"postgres","version":"16-alpine"}]}'
+curl -X POST localhost:9000/v1/nodes/zeus/query \
+  -d '{"engine":"postgres","sql":"SELECT 1"}'
+```
+
+CORS is open for dev frontends.
 
 ## Configuration (env only, no defaults)
 
 | Variable | Needed by | Meaning |
 |---|---|---|
-| `NOXIS_MASTER` | slave, assign, status, sync | master address |
+| `NOXIS_MASTER` | CLI/frontend | REST base URL of the master |
+| `NOXIS_GRPC` | slave, master | internal master↔slave transport address |
 | `NOXIS_NODE` | slave | this node's id |
-| `NOXIS_LISTEN` | master | master listen address |
+| `NOXIS_LISTEN` | master | REST listen address |
 | `NOXIS_DB` | master | sqlite path |
 | `NOXIS_OTEL_COLLECTOR` | all (optional) | OTLP endpoint, enables trace+metric export |
 | `NOXIS_OTEL_NAME` | all (optional) | service name reported to OTEL |
 
-Missing variables fail loudly per command. No secret defaults.
+Missing variables fail loudly per command.
 
 ## Layout
 
 ```
-cmd/noxis/               bootstrap in main.go, commands/ one file per verb
-internal/common/logging  slog JSON + OTEL; logs carry trace_id/span_id from ctx
-internal/entity/         domain models + Config (env struct) + App container
+cmd/noxis/               bootstrap (main.go) + commands/ one file per verb
+internal/entity/         domain models, Config (env struct), App
 internal/interfaces/     seams (SpecRepository, StatusRepository)
-internal/repository/     sqlite impls + grpc/ (control.proto, server, client)
-internal/features/doorman/reconcile.go    diff/apply decisions
-internal/features/doorman/runtimes/       docker driver + per-engine recipes
+internal/repository/     sqlite impls + grpc/ (slave transport) + rest/ (public API)
+internal/features/doorman/   reconcile.go (decisions) + runtimes/ (docker + engines)
+internal/common/logging  slog JSON + OTEL; logs carry trace_id/span_id from ctx
 ```
-
-Containers drift-recreate on any desired-state change (version, port, env),
-compared via a `noxis.desired` label stamped at creation — no inspect parsing.
 
 ## Dev
 

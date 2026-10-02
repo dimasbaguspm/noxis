@@ -1,6 +1,4 @@
-// Package repository implements the interfaces.SpecRepository and
-// StatusRepository over SQLite (pure-Go modernc driver, cgo-free for
-// cross-compilation). One connection: sqlite serializes writes anyway.
+// Package repository persists specs/status over SQLite (modernc, cgo-free).
 package repository
 
 import (

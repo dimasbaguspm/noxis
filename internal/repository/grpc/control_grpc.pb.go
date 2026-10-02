@@ -19,29 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Control_Watch_FullMethodName           = "/noxis.v1.Control/Watch"
-	Control_GetDesiredState_FullMethodName = "/noxis.v1.Control/GetDesiredState"
-	Control_SetDesiredState_FullMethodName = "/noxis.v1.Control/SetDesiredState"
-	Control_ReportStatus_FullMethodName    = "/noxis.v1.Control/ReportStatus"
-	Control_ListStatus_FullMethodName      = "/noxis.v1.Control/ListStatus"
-	Control_Query_FullMethodName           = "/noxis.v1.Control/Query"
+	Control_Watch_FullMethodName        = "/noxis.v1.Control/Watch"
+	Control_ReportStatus_FullMethodName = "/noxis.v1.Control/ReportStatus"
 )
 
 // ControlClient is the client API for Control service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-//
-// Control is the master's public contract: slaves watch their own slice of
-// desired state over a bidirectional stream (replayed in full on reconnect),
-// and any client can run queries that route over that stream to the node that
-// owns the engine.
 type ControlClient interface {
 	Watch(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamMsg, StreamMsg], error)
-	GetDesiredState(ctx context.Context, in *NodeId, opts ...grpc.CallOption) (*DesiredSpec, error)
-	SetDesiredState(ctx context.Context, in *SetDesiredStateRequest, opts ...grpc.CallOption) (*Empty, error)
 	ReportStatus(ctx context.Context, in *Status, opts ...grpc.CallOption) (*Empty, error)
-	ListStatus(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*StatusList, error)
-	Query(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (*QueryResult, error)
 }
 
 type controlClient struct {
@@ -65,26 +52,6 @@ func (c *controlClient) Watch(ctx context.Context, opts ...grpc.CallOption) (grp
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Control_WatchClient = grpc.BidiStreamingClient[StreamMsg, StreamMsg]
 
-func (c *controlClient) GetDesiredState(ctx context.Context, in *NodeId, opts ...grpc.CallOption) (*DesiredSpec, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DesiredSpec)
-	err := c.cc.Invoke(ctx, Control_GetDesiredState_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *controlClient) SetDesiredState(ctx context.Context, in *SetDesiredStateRequest, opts ...grpc.CallOption) (*Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, Control_SetDesiredState_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *controlClient) ReportStatus(ctx context.Context, in *Status, opts ...grpc.CallOption) (*Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
@@ -95,41 +62,12 @@ func (c *controlClient) ReportStatus(ctx context.Context, in *Status, opts ...gr
 	return out, nil
 }
 
-func (c *controlClient) ListStatus(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*StatusList, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(StatusList)
-	err := c.cc.Invoke(ctx, Control_ListStatus_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *controlClient) Query(ctx context.Context, in *QueryRequest, opts ...grpc.CallOption) (*QueryResult, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(QueryResult)
-	err := c.cc.Invoke(ctx, Control_Query_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // ControlServer is the server API for Control service.
 // All implementations must embed UnimplementedControlServer
 // for forward compatibility.
-//
-// Control is the master's public contract: slaves watch their own slice of
-// desired state over a bidirectional stream (replayed in full on reconnect),
-// and any client can run queries that route over that stream to the node that
-// owns the engine.
 type ControlServer interface {
 	Watch(grpc.BidiStreamingServer[StreamMsg, StreamMsg]) error
-	GetDesiredState(context.Context, *NodeId) (*DesiredSpec, error)
-	SetDesiredState(context.Context, *SetDesiredStateRequest) (*Empty, error)
 	ReportStatus(context.Context, *Status) (*Empty, error)
-	ListStatus(context.Context, *Empty) (*StatusList, error)
-	Query(context.Context, *QueryRequest) (*QueryResult, error)
 	mustEmbedUnimplementedControlServer()
 }
 
@@ -143,20 +81,8 @@ type UnimplementedControlServer struct{}
 func (UnimplementedControlServer) Watch(grpc.BidiStreamingServer[StreamMsg, StreamMsg]) error {
 	return status.Error(codes.Unimplemented, "method Watch not implemented")
 }
-func (UnimplementedControlServer) GetDesiredState(context.Context, *NodeId) (*DesiredSpec, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetDesiredState not implemented")
-}
-func (UnimplementedControlServer) SetDesiredState(context.Context, *SetDesiredStateRequest) (*Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method SetDesiredState not implemented")
-}
 func (UnimplementedControlServer) ReportStatus(context.Context, *Status) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReportStatus not implemented")
-}
-func (UnimplementedControlServer) ListStatus(context.Context, *Empty) (*StatusList, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListStatus not implemented")
-}
-func (UnimplementedControlServer) Query(context.Context, *QueryRequest) (*QueryResult, error) {
-	return nil, status.Error(codes.Unimplemented, "method Query not implemented")
 }
 func (UnimplementedControlServer) mustEmbedUnimplementedControlServer() {}
 func (UnimplementedControlServer) testEmbeddedByValue()                 {}
@@ -186,42 +112,6 @@ func _Control_Watch_Handler(srv interface{}, stream grpc.ServerStream) error {
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type Control_WatchServer = grpc.BidiStreamingServer[StreamMsg, StreamMsg]
 
-func _Control_GetDesiredState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NodeId)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ControlServer).GetDesiredState(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Control_GetDesiredState_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ControlServer).GetDesiredState(ctx, req.(*NodeId))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Control_SetDesiredState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetDesiredStateRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ControlServer).SetDesiredState(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Control_SetDesiredState_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ControlServer).SetDesiredState(ctx, req.(*SetDesiredStateRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Control_ReportStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Status)
 	if err := dec(in); err != nil {
@@ -240,42 +130,6 @@ func _Control_ReportStatus_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Control_ListStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ControlServer).ListStatus(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Control_ListStatus_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ControlServer).ListStatus(ctx, req.(*Empty))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Control_Query_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ControlServer).Query(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Control_Query_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ControlServer).Query(ctx, req.(*QueryRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // Control_ServiceDesc is the grpc.ServiceDesc for Control service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -284,24 +138,8 @@ var Control_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ControlServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetDesiredState",
-			Handler:    _Control_GetDesiredState_Handler,
-		},
-		{
-			MethodName: "SetDesiredState",
-			Handler:    _Control_SetDesiredState_Handler,
-		},
-		{
 			MethodName: "ReportStatus",
 			Handler:    _Control_ReportStatus_Handler,
-		},
-		{
-			MethodName: "ListStatus",
-			Handler:    _Control_ListStatus_Handler,
-		},
-		{
-			MethodName: "Query",
-			Handler:    _Control_Query_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

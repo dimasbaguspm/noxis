@@ -7,25 +7,27 @@ import (
 	"github.com/spf13/cobra"
 
 	"noxis/internal/entity"
-	rpc "noxis/internal/repository/grpc"
 )
+
+type statusList struct {
+	Nodes []struct {
+		Node   string `json:"node"`
+		State  string `json:"state"`
+		Detail string `json:"detail"`
+		Ts     int64  `json:"ts"`
+	} `json:"nodes"`
+}
 
 func newStatusCmd(app *entity.App) *cobra.Command {
 	return &cobra.Command{
 		Use:   "status [NODE]",
 		Short: "Show reported status of all nodes (or one)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := cmd.Context()
 			if err := app.Cfg.Require(entity.EnvMaster); err != nil {
 				return err
 			}
-			conn, err := dial(ctx, app)
-			if err != nil {
-				return err
-			}
-			defer conn.Close()
-			list, err := rpc.NewControlClient(conn).ListStatus(ctx, &rpc.Empty{})
-			if err != nil {
+			var list statusList
+			if err := doJSON(cmd.Context(), app, "GET", "/status", nil, &list); err != nil {
 				return err
 			}
 			filter := ""
@@ -33,7 +35,7 @@ func newStatusCmd(app *entity.App) *cobra.Command {
 				filter = args[0]
 			}
 			fmt.Printf("%-10s %-8s %-12s %s\n", "NODE", "STATE", "LAST SEEN", "DETAIL")
-			for _, s := range list.Statuses {
+			for _, s := range list.Nodes {
 				if filter != "" && s.Node != filter {
 					continue
 				}

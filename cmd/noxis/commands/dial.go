@@ -5,11 +5,10 @@ import (
 
 	"google.golang.org/grpc"
 
-	"noxis/internal/entity"
 	rpc "noxis/internal/repository/grpc"
 )
 
-// dial connects to the master configured via NOXIS_MASTER.
-func dial(ctx context.Context, app *entity.App) (*grpc.ClientConn, error) {
-	return rpc.Dial(ctx, app.Cfg.Master)
+// dial connects to the master's internal gRPC transport (NOXIS_GRPC).
+func dial(ctx context.Context, addr string) (*grpc.ClientConn, error) {
+	return rpc.Dial(ctx, addr)
 }

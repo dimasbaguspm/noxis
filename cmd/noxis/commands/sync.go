@@ -7,7 +7,6 @@ import (
 
 	"noxis/internal/entity"
 	"noxis/internal/features/doorman"
-	rpc "noxis/internal/repository/grpc"
 )
 
 func newSyncCmd(app *entity.App) *cobra.Command {
@@ -16,21 +15,17 @@ func newSyncCmd(app *entity.App) *cobra.Command {
 		Short: "Manually reconcile a node against its desired state (fallback)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := cmd.Context()
 			if err := app.Cfg.Require(entity.EnvMaster); err != nil {
 				return err
 			}
 			node := args[0]
-			conn, err := dial(ctx, app)
-			if err != nil {
+			var spec struct {
+				Engines []entity.Engine `json:"engines"`
+			}
+			if err := doJSON(cmd.Context(), app, "GET", "/nodes/"+node, nil, &spec); err != nil {
 				return err
 			}
-			defer conn.Close()
-			spec, err := rpc.NewControlClient(conn).GetDesiredState(ctx, &rpc.NodeId{Id: node})
-			if err != nil {
-				return err
-			}
-			detail, err := doorman.NewReconciler(node).Reconcile(ctx, rpc.SpecFromProto(spec).Engines)
+			detail, err := doorman.NewReconciler(node).Reconcile(cmd.Context(), spec.Engines)
 			if err != nil {
 				return err
 			}

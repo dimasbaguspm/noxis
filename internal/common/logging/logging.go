@@ -1,10 +1,5 @@
-// Package logging builds the process log sink and, when an OTEL collector is
-// configured, real OTLP trace + metric pipelines with a service resource.
-//
-// Every handler is context-aware: log records emitted from a context carrying
-// an active span get trace_id/span_id attributes, so logs, traces and metrics
-// share one identity. Call sites must use the *Context variants
-// (slog.InfoContext, app.Log.InfoContext, ...) — the ctx is the carrier.
+// Package logging wires slog + OTLP; ctx-aware handlers stamp trace_id/span_id
+// into records so logs, traces and metrics share one identity.
 package logging
 
 import (

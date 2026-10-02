@@ -1,6 +1,4 @@
-// Package doorman manages database engines as pinned containers on the node
-// it runs on. All brains live on the master; a doorman instance is a dumb
-// executor that converges its node's slice of desired state.
+// Package doorman converges a node's slice of desired state against docker.
 package doorman
 
 import (
@@ -13,18 +11,15 @@ import (
 	"noxis/internal/features/doorman/runtimes"
 )
 
-// Reconciler converges a node's slice of desired state against the actual
-// runtime (docker ps). Actual state is read fresh every time — no cached
-// copy, so a spec push and a manual sync can never double-apply: the diff is
-// against the machine, not against our own bookkeeping.
+// Reconciler diffs desired state against the live docker runtime — no caches,
+// so push + manual sync can never double-apply.
 type Reconciler struct {
 	Node string
 }
 
 func NewReconciler(node string) *Reconciler { return &Reconciler{Node: node} }
 
-// Reconcile diffs desired engines against running containers and applies.
-// Returns a human-readable summary of what changed.
+// Reconcile applies the diff and returns a human-readable summary.
 func (r *Reconciler) Reconcile(ctx context.Context, engines []entity.Engine) (string, error) {
 	desired := map[string]entity.Engine{}
 	for _, e := range engines {

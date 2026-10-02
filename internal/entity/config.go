@@ -9,21 +9,21 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-// Env var names. Env is read exactly once, here; nothing else in the
-// codebase talks to the environment.
+// Env is read exactly once, here; nothing else talks to the environment.
 const (
-	EnvMaster        = "NOXIS_MASTER"         // master address: slave/assign/status/sync
+	EnvMaster        = "NOXIS_MASTER"         // REST base URL of the master: CLI/frontend
+	EnvGRPC          = "NOXIS_GRPC"           // internal transport addr: slave + master
 	EnvNode          = "NOXIS_NODE"           // this node's id: slave
-	EnvListen        = "NOXIS_LISTEN"         // master listen addr: master
+	EnvListen        = "NOXIS_LISTEN"         // REST listen addr: master
 	EnvDB            = "NOXIS_DB"             // sqlite path: master
 	EnvOTELCollector = "NOXIS_OTEL_COLLECTOR" // OTLP endpoint (optional)
 	EnvOTELName      = "NOXIS_OTEL_NAME"      // service name reported to OTEL (optional)
 )
 
-// Config is the process environment as a struct. No defaults: every field a
-// command needs must be present or Require fails listing the gaps.
+// Config is the process environment as a struct; no defaults.
 type Config struct {
 	Master        string `validate:"required"`
+	GRPC          string `validate:"required"`
 	Node          string `validate:"required"`
 	Listen        string `validate:"required"`
 	DB            string `validate:"required"`
@@ -37,6 +37,7 @@ var validate = validator.New()
 func LoadConfig() Config {
 	return Config{
 		Master:        os.Getenv(EnvMaster),
+		GRPC:          os.Getenv(EnvGRPC),
 		Node:          os.Getenv(EnvNode),
 		Listen:        os.Getenv(EnvListen),
 		DB:            os.Getenv(EnvDB),
@@ -45,9 +46,7 @@ func LoadConfig() Config {
 	}
 }
 
-// Require validates the subset of fields a command needs and aggregates all
-// missing variables into one error. Validation rules live in the struct tags;
-// this is the per-command slice of them.
+// Require aggregates the missing variables a command needs, via struct tags.
 func (c Config) Require(envs ...string) error {
 	var errs []error
 	for _, env := range envs {
@@ -62,6 +61,8 @@ func fieldOf(c Config, env string) string {
 	switch env {
 	case EnvMaster:
 		return c.Master
+	case EnvGRPC:
+		return c.GRPC
 	case EnvNode:
 		return c.Node
 	case EnvListen:

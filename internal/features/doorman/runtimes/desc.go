@@ -1,6 +1,4 @@
-// Package runtimes holds everything that touches the machine: the docker
-// driver and per-engine recipes. doorman's reconciler only decides; this
-// package executes against the real runtime.
+// Package runtimes executes against the machine: docker driver + engine recipes.
 package runtimes
 
 import (
@@ -13,10 +11,7 @@ import (
 // namePrefix scopes engine containers to noxis on a shared docker host.
 const namePrefix = "noxis-"
 
-// desc is a stateless recipe for one engine type. Docker flattens every
-// engine into "a container + ports + env", so this is all the abstraction
-// amounts to.
-//
+// desc is one engine type's recipe: image, default ports, default env.
 // ponytail: Backup/Restore/Healthcheck arrive with the Phase 5 backup gate.
 type desc struct {
 	Type  string            // canonical type name

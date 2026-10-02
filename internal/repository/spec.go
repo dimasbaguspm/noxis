@@ -11,10 +11,6 @@ import (
 	"noxis/internal/entity"
 )
 
-// SpecRepository: Get/Set/Subscribe over the specs + changelog tables.
-// Set appends to the changelog (the audit/oplog seed for UCM) and wakes
-// watchers — the push trigger.
-
 func (r *SQLite) Get(ctx context.Context, node string) (*entity.Spec, error) {
 	var body string
 	err := r.db.QueryRowContext(ctx, `SELECT body FROM specs WHERE node=?`, node).Scan(&body)

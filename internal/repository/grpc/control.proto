@@ -4,32 +4,21 @@ package noxis.v1;
 
 option go_package = "noxis/internal/repository/grpc;rpc";
 
-// NodeId identifies a machine running a noxis slave.
-message NodeId {
-  string id = 1;
-}
-
+// Internal master<->slave transport only. The public API is REST
+// (internal/repository/rest); this exists to push spec events to slave
+// workers and receive status/query answers back over one bidirectional river.
 message EngineSpec {
-  string name = 1;    // instance name, unique per node
-  string type = 2;    // postgres|mysql|mariadb|mongo|redis|elastic
-  string version = 3; // image tag, e.g. "16"
-  map<string, string> ports = 4; // host -> container, overrides engine default
-  map<string, string> env = 5;   // overrides engine defaults
+  string name = 1;
+  string type = 2;
+  string version = 3;
+  map<string, string> ports = 4;
+  map<string, string> env = 5;
 }
 
 message DesiredSpec {
   repeated EngineSpec engines = 1;
-  int64 updated_at = 2; // unix seconds on the master
 }
 
-message SetDesiredStateRequest {
-  string node = 1;
-  DesiredSpec spec = 2;
-}
-
-// StreamMsg rides the bidirectional Watch stream. The slave identifies with
-// its node on hello; the master pushes DesiredSpec changes and routes
-// QueryRequests to the owning stream; the slave answers with QueryResult.
 message StreamMsg {
   string node = 1;
   oneof payload {
@@ -39,47 +28,28 @@ message StreamMsg {
   }
 }
 
-// QueryRequest is both the public API and the stream payload. id correlates
-// the answer on the shared stream (master-issued, echoed by the slave).
 message QueryRequest {
   int64 id = 1;
-  string node = 2;
-  string engine = 3; // engine instance name on the node
-  string sql = 4;
+  string engine = 2;
+  string sql = 3;
 }
 
 message QueryResult {
   int64 id = 1;
-  string output = 2; // raw client output (tab-separated tuples)
+  string output = 2;
   string error = 3;
-}
-
-message WatchRequest {
-  string node = 1;
 }
 
 message Status {
   string node = 1;
-  string state = 2;   // ok | error
-  string detail = 3;  // human-readable
+  string state = 2;
+  string detail = 3;
   int64 ts = 4;
-}
-
-message StatusList {
-  repeated Status statuses = 1;
 }
 
 message Empty {}
 
-// Control is the master's public contract: slaves watch their own slice of
-// desired state over a bidirectional stream (replayed in full on reconnect),
-// and any client can run queries that route over that stream to the node that
-// owns the engine.
 service Control {
   rpc Watch(stream StreamMsg) returns (stream StreamMsg);
-  rpc GetDesiredState(NodeId) returns (DesiredSpec);
-  rpc SetDesiredState(SetDesiredStateRequest) returns (Empty);
   rpc ReportStatus(Status) returns (Empty);
-  rpc ListStatus(Empty) returns (StatusList);
-  rpc Query(QueryRequest) returns (QueryResult);
 }
