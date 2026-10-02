@@ -38,7 +38,7 @@ func (c *Client) Query(ctx context.Context, node, engine, sql string) (string, e
 	var out struct {
 		Output string `json:"output"`
 	}
-	if err := c.hc.Do(ctx, "POST", "/v1/nodes/"+node+"/query",
+	if err := c.hc.Do(ctx, "POST", "/v1/nodes/"+node+"/doorman/query",
 		map[string]any{"engine": engine, "sql": sql}, &out); err != nil {
 		return "", err
 	}

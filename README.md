@@ -37,7 +37,7 @@ Routes are per-feature modules under `/v1/nodes/{nodeId}/{feature}/*` plus healt
 | GET | `/v1/status` | `{nodes:[{node,state,detail,ts}]}` (reported + registered) |
 | GET | `/v1/nodes/{node}/spec` | `{node,engines:[...]}` |
 | PUT | `/v1/nodes/{node}/spec` | 204, publishes to the node's stream |
-| POST | `/v1/nodes/{node}/query` | `{output}` |
+| POST | `/v1/nodes/{node}/doorman/query` | `{output}` |
 | POST | `/v1/nodes/{node}/register` | 204, registers a slave node |
 
 ```bash

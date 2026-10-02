@@ -17,7 +17,7 @@
                 }
             }
         },
-        "/v1/nodes/{node}/query": {
+        "/v1/nodes/{node}/doorman/query": {
             "post": {
                 "summary": "Run a query against an engine on the node (SQL engines)",
                 "parameters": [

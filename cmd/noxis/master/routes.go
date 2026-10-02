@@ -23,7 +23,7 @@ func newHandler(ctrl *control.Control, log *slog.Logger) http.Handler {
 	mux.HandleFunc("GET /v1/status", controller.GetStatus)
 	mux.HandleFunc("GET /v1/nodes/{node}/spec", controller.GetNodeSpec)
 	mux.HandleFunc("PUT /v1/nodes/{node}/spec", controller.PutNodeSpec)
-	mux.HandleFunc("POST /v1/nodes/{node}/query", controller.PostQuery)
+	mux.HandleFunc("POST /v1/nodes/{node}/doorman/query", controller.PostQuery)
 	mux.HandleFunc("POST /v1/nodes/{node}/register", controller.PostRegister)
 
 	return withMiddleware(controller.WithDeps(mux, controller.Deps{Ctrl: ctrl, Log: log}), log)

@@ -20,7 +20,7 @@ type queryOutput struct {
 // @Success 200 {object} queryOutput
 // @Failure 400 {object} map[string]string
 // @Failure 503 {object} map[string]string "node not connected"
-// @Router /v1/nodes/{node}/query [post]
+// @Router /v1/nodes/{node}/doorman/query [post]
 func PostQuery(w http.ResponseWriter, r *http.Request) {
 	var body queryRequest
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
