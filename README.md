@@ -1,21 +1,21 @@
 # noxis
 
 Personal multi-machine infra control plane. One Go binary: a **master** exposes a
-REST API and publishes desired-state events to **slave** workers, which converge
-their node's slice by managing Docker containers (postgres, mysql, mariadb,
-mongo, redis, elasticsearch). Workers receive events over one internal
-bidirectional gRPC stream per node — no brokers, no consensus. The CLI is
-one-shot only: register once, run daemons, check status.
+REST API and publishes desired-state events to **slave** workers over Kafka
+(apache/kafka + franz-go), which converge their node's slice by managing Docker
+containers (postgres, mysql, mariadb, mongo, redis, elasticsearch). Consumers
+use durable groups, so a restarted worker resumes from its last offset — no
+reconnect/replay loops. The CLI is one-shot only: register once, run daemons.
 
 ## Quickstart
 
 ```bash
 # master daemon
-export NOXIS_LISTEN=:9000 NOXIS_GRPC=:9100 NOXIS_DB=./noxis.db
+export NOXIS_LISTEN=:9000 NOXIS_BROKER=localhost:9092 NOXIS_DB=./noxis.db
 noxis run master
 
 # on each machine: register the identity once (writes ~/.config/noxis/identity.json)
-export NOXIS_MASTER=http://master-host:9000 NOXIS_GRPC=master-host:9100
+export NOXIS_MASTER=http://master-host:9000 NOXIS_BROKER=localhost:9092
 noxis register slave zeus
 
 # run the daemon — reads the identity, needs NO env
@@ -32,7 +32,7 @@ Routes are per-feature modules under `/v1/nodes/{nodeId}/{feature}/*` plus healt
 
 | Method | Path | Result |
 |---|---|---|
-| GET | `/healthz` `/readyz` | liveness / readiness (sqlite ping) |
+| GET | `/healthz` | liveness |
 | GET | `/v1/status` | `{nodes:[{node,state,detail,ts}]}` (reported + registered) |
 | GET | `/v1/nodes/{node}/spec` | `{node,engines:[...]}` |
 | PUT | `/v1/nodes/{node}/spec` | 204, publishes to the node's stream |
@@ -51,8 +51,8 @@ CORS is open for dev frontends.
 
 | Variable | Needed by | Meaning |
 |---|---|---|
-| `NOXIS_MASTER` | status, register | REST base URL of the master |
-| `NOXIS_GRPC` | register, master | internal master↔slave transport address |
+| `NOXIS_MASTER` | register | REST base URL of the master |
+| `NOXIS_BROKER` | master, register | Kafka broker address (master keeps a copy in identity) |
 | `NOXIS_LISTEN` | master | REST listen address |
 | `NOXIS_DB` | master | sqlite path |
 | `NOXIS_OTEL_COLLECTOR` | all (optional) | OTLP endpoint, enables trace+metric export |

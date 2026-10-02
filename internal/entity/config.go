@@ -12,7 +12,7 @@ import (
 // Env is read exactly once, here; nothing else talks to the environment.
 const (
 	EnvMaster        = "NOXIS_MASTER"         // REST base URL of the master: CLI/frontend
-	EnvGRPC          = "NOXIS_GRPC"           // internal transport addr: slave + master
+	EnvBroker        = "NOXIS_BROKER"         // Redpanda address: master + register
 	EnvListen        = "NOXIS_LISTEN"         // REST listen addr: master
 	EnvDB            = "NOXIS_DB"             // sqlite path: master
 	EnvOTELCollector = "NOXIS_OTEL_COLLECTOR" // OTLP endpoint (optional)
@@ -22,7 +22,7 @@ const (
 // Config is the process environment as a struct; no defaults.
 type Config struct {
 	Master        string `validate:"required"`
-	GRPC          string `validate:"required"`
+	Broker        string `validate:"required"`
 	Listen        string `validate:"required"`
 	DB            string `validate:"required"`
 	OTELCollector string
@@ -35,7 +35,7 @@ var validate = validator.New()
 func LoadConfig() Config {
 	return Config{
 		Master:        os.Getenv(EnvMaster),
-		GRPC:          os.Getenv(EnvGRPC),
+		Broker:        os.Getenv(EnvBroker),
 		Listen:        os.Getenv(EnvListen),
 		DB:            os.Getenv(EnvDB),
 		OTELCollector: os.Getenv(EnvOTELCollector),
@@ -58,8 +58,8 @@ func fieldOf(c Config, env string) string {
 	switch env {
 	case EnvMaster:
 		return c.Master
-	case EnvGRPC:
-		return c.GRPC
+	case EnvBroker:
+		return c.Broker
 	case EnvListen:
 		return c.Listen
 	case EnvDB:

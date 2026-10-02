@@ -11,8 +11,8 @@ import (
 )
 
 type Identity struct {
-	ID   string `json:"id"`
-	GRPC string `json:"grpc"` // master's internal transport addr
+	ID     string `json:"id"`
+	Broker string `json:"broker"` // Redpanda address
 }
 
 // Path is the identity file location (per-user config dir).
@@ -33,7 +33,7 @@ func Load() (*Identity, error) {
 	if err := json.Unmarshal(raw, &id); err != nil {
 		return nil, fmt.Errorf("parse identity: %w", err)
 	}
-	if id.ID == "" || id.GRPC == "" {
+	if id.ID == "" || id.Broker == "" {
 		return nil, errors.New("identity is incomplete")
 	}
 	return &id, nil

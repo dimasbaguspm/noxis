@@ -27,7 +27,7 @@ func PostQuery(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, err)
 		return
 	}
-	out, err := From(r).Ctrl.RouteQuery(r.Context(), r.PathValue("node"), body.Engine, body.SQL)
+	out, err := From(r).Ctrl.Query(r.Context(), r.PathValue("node"), body.Engine, body.SQL)
 	if err != nil {
 		writeErr(w, err)
 		return

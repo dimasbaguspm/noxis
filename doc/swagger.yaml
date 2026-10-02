@@ -1,197 +1,210 @@
-definitions:
-  controller.putSpecBody:
-    properties:
-      engines:
-        items:
-          $ref: '#/definitions/entity.Engine'
-        type: array
-    type: object
-  controller.queryOutput:
-    properties:
-      output:
-        type: string
-    type: object
-  controller.queryRequest:
-    properties:
-      engine:
-        type: string
-      sql:
-        type: string
-    type: object
-  entity.Engine:
-    properties:
-      env:
-        additionalProperties:
-          type: string
-        type: object
-      name:
-        type: string
-      ports:
-        additionalProperties:
-          type: string
-        type: object
-      type:
-        type: string
-      version:
-        type: string
-    type: object
-  entity.NodeStatus:
-    properties:
-      detail:
-        type: string
-      node:
-        type: string
-      state:
-        description: ok | error
-        type: string
-      ts:
-        description: unix seconds
-        format: int64
-        type: integer
-    type: object
-  entity.Spec:
-    properties:
-      engines:
-        items:
-          $ref: '#/definitions/entity.Engine'
-        type: array
-      node:
-        type: string
-    type: object
+openapi: 3.0.0
 info:
-  contact: {}
-  description: 'Master REST API: frontends read node state here; the master'
+  description: "Master REST API: frontends read node state here; the master"
   title: noxis control plane API
+  contact: {}
   version: 0.1.0
 paths:
   /healthz:
     get:
+      summary: Liveness probe
       responses:
         "200":
           description: process is alive
-      summary: Liveness probe
-  /readyz:
-    get:
-      responses:
-        "200":
-          description: store is reachable
-        "503":
-          description: Service Unavailable
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Readiness probe (sqlite ping)
-  /v1/nodes/{node}/query:
+  "/v1/nodes/{node}/query":
     post:
+      summary: Run a query against an engine on the node (SQL engines)
       parameters:
-      - description: slave node id
-        in: path
-        name: node
+        - description: slave node id
+          name: node
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/controller.queryRequest"
+        description: engine and SQL
         required: true
-        type: string
-      - description: engine and SQL
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/controller.queryRequest'
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/controller.queryOutput'
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/controller.queryOutput"
         "400":
           description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
         "503":
           description: node not connected
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Run a query against an engine on the node (SQL engines)
-  /v1/nodes/{node}/register:
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/nodes/{node}/register":
     post:
+      summary: Register a slave node (one-shot)
       parameters:
-      - description: slave node id
-        in: path
-        name: node
-        required: true
-        type: string
+        - description: slave node id
+          name: node
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         "204":
           description: registered
         "400":
           description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Register a slave node (one-shot)
-  /v1/nodes/{node}/spec:
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/nodes/{node}/spec":
     get:
+      summary: Read a node's desired engines
       parameters:
-      - description: slave node id
-        in: path
-        name: node
-        required: true
-        type: string
+        - description: slave node id
+          name: node
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/entity.Spec'
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.Spec"
         "400":
           description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Read a node's desired engines
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
     put:
+      summary: Set a node's desired engines (publishes the event to the slave)
       parameters:
-      - description: slave node id
-        in: path
-        name: node
+        - description: slave node id
+          name: node
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/controller.putSpecBody"
+        description: desired engines
         required: true
-        type: string
-      - description: desired engines
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/controller.putSpecBody'
       responses:
         "204":
           description: accepted and published
         "400":
           description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Set a node's desired engines (publishes the event to the slave)
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
   /v1/status:
     get:
+      summary: Node statuses (reported runtime merged with registered nodes)
       responses:
         "200":
           description: status of every node
-          schema:
-            properties:
-              nodes:
-                items:
-                  $ref: '#/definitions/entity.NodeStatus'
-                type: array
-            type: object
+          content:
+            "*/*":
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/entity.NodeStatus"
         "400":
           description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Node statuses (reported runtime merged with registered nodes)
-swagger: "2.0"
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+components:
+  schemas:
+    controller.putSpecBody:
+      type: object
+      properties:
+        engines:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.Engine"
+    controller.queryOutput:
+      type: object
+      properties:
+        output:
+          type: string
+    controller.queryRequest:
+      type: object
+      properties:
+        engine:
+          type: string
+        sql:
+          type: string
+    entity.Engine:
+      type: object
+      properties:
+        env:
+          type: object
+          additionalProperties:
+            type: string
+        name:
+          type: string
+        ports:
+          type: object
+          additionalProperties:
+            type: string
+        type:
+          type: string
+        version:
+          type: string
+    entity.NodeStatus:
+      type: object
+      properties:
+        detail:
+          type: string
+        node:
+          type: string
+        state:
+          description: ok | error
+          type: string
+        ts:
+          description: unix seconds
+          type: integer
+          format: int64
+    entity.Spec:
+      type: object
+      properties:
+        engines:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.Engine"
+        node:
+          type: string

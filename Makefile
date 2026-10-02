@@ -1,11 +1,6 @@
 PATH := $(HOME)/.local/bin:$(HOME)/go/bin:$(PATH)
 
-.PHONY: proto build test swagger db dev down
-
-proto:
-	protoc --go_out=. --go_opt=paths=source_relative \
-	       --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-	       internal/services/grpc/control.proto
+.PHONY: build test swagger db dev down
 
 build:
 	go build -o bin/noxis ./cmd/noxis
@@ -13,10 +8,15 @@ build:
 test:
 	go test ./...
 
-swagger:  ## regenerate doc/swagger.yaml|json from handler annotations (Postman artifact)
+swagger:  ## regenerate doc/swagger.yaml|json (OpenAPI 3) from handler annotations
 	go install github.com/swaggo/swag/cmd/swag@latest
 	swag init -g cmd/noxis/master/routes.go --output ./doc
-	rm -f doc/docs.go  # generated runtime is unused; spec files are the artifact
+	rm -f doc/docs.go
+	# swag emits Swagger 2.0; convert to OpenAPI 3 for Postman
+	npx --yes swagger2openapi -y doc/swagger.json -o doc/openapi3.yaml
+	npx --yes swagger2openapi doc/swagger.json -o doc/openapi3.json
+	mv doc/openapi3.yaml doc/swagger.yaml
+	mv doc/openapi3.json doc/swagger.json
 
 db:   ## create the dev sqlite store under docker/
 	@mkdir -p docker

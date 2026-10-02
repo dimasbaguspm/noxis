@@ -10,14 +10,12 @@ import (
 	"net/http"
 	"strings"
 
-	"noxis/internal/repository"
-	rpc "noxis/internal/services/grpc"
+	"noxis/internal/control"
 )
 
 // Deps is everything a handler needs from the master.
 type Deps struct {
-	Ctrl *rpc.Server
-	Repo *repository.SQLite
+	Ctrl *control.Control
 	Log  *slog.Logger
 }
 

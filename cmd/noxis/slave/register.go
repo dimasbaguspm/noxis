@@ -20,7 +20,7 @@ func NewRegisterCmd(log *slog.Logger, cfg entity.Config) *cobra.Command {
 		Short: "Register this machine as a slave node with the master",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := cfg.Require(entity.EnvMaster, entity.EnvGRPC); err != nil {
+			if err := cfg.Require(entity.EnvMaster, entity.EnvBroker); err != nil {
 				return err
 			}
 			name := args[0]
@@ -40,11 +40,11 @@ func NewRegisterCmd(log *slog.Logger, cfg entity.Config) *cobra.Command {
 				return fmt.Errorf("register with master: %s", resp.Status)
 			}
 
-			if err := Save(Identity{ID: name, GRPC: cfg.GRPC}); err != nil {
+			if err := Save(Identity{ID: name, Broker: cfg.Broker}); err != nil {
 				return err
 			}
 			log.InfoContext(cmd.Context(), "slave registered",
-				"id", name, "grpc", cfg.GRPC, "identity", Path())
+				"id", name, "broker", cfg.Broker, "identity", Path())
 			return nil
 		},
 	}

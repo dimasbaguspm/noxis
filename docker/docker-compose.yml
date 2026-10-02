@@ -1,9 +1,33 @@
-# Dev mode: one master + one slave worker. `make dev` builds and starts it.
-# The slave manages engines through the mounted docker socket and only starts
-# once the master reports ready at /readyz.
+# Dev mode: Kafka broker + master + one slave worker. `make dev` builds and
+# starts it. The slave consumes its spec/query topics from the broker and
+# manages engines through the mounted docker socket.
 name: noxis
 
 services:
+  kafka:
+    image: apache/kafka:3.9.0
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: controller,broker
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://localhost:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1 || exit 1"]
+      interval: 8s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
   master:
     build:
       context: ..
@@ -11,16 +35,18 @@ services:
     command: run master
     environment:
       NOXIS_LISTEN: ":9000"
-      NOXIS_GRPC: ":9100"
       NOXIS_DB: /data/noxis.db
+      NOXIS_BROKER: kafka:9092
       NOXIS_OTEL_NAME: noxis-master
     ports:
       - "9000:9000"
-      - "9100:9100"
     volumes:
       - ./db.sqlite:/data/noxis.db
+    depends_on:
+      kafka:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:9000/readyz"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:9000/healthz"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -32,11 +58,11 @@ services:
       context: ..
       dockerfile: Dockerfile
     entrypoint: ["/bin/sh", "-c"]
-    command: ["noxis register slave \"$$NOXIS_SLAVE_NAME\" && exec noxis run slave \"$$NOXIS_SLAVE_NAME\""]
+    command: ["until noxis register slave \"$$NOXIS_SLAVE_NAME\"; do sleep 2; done && exec noxis run slave \"$$NOXIS_SLAVE_NAME\""]
     environment:
       NOXIS_SLAVE_NAME: zeus
       NOXIS_MASTER: http://master:9000
-      NOXIS_GRPC: master:9100
+      NOXIS_BROKER: kafka:9092
       NOXIS_OTEL_NAME: noxis-zeus
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

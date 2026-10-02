@@ -21,7 +21,7 @@ func GetStatus(w http.ResponseWriter, r *http.Request) {
 	for _, s := range rows {
 		byNode[s.Node] = s
 	}
-	ids, err := d.Repo.ListIDs(r.Context())
+	ids, err := d.Ctrl.Registered(r.Context())
 	if err != nil {
 		writeErr(w, err)
 		return

@@ -2,10 +2,10 @@ package slave
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -14,20 +14,22 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"noxis/internal/entity"
+	"noxis/internal/events"
 	"noxis/internal/features/doorman"
 	"noxis/internal/features/doorman/runtimes"
-	"noxis/internal/services"
-	rpc "noxis/internal/services/grpc"
 )
 
-const (
-	stateOK         = "ok"
-	stateError      = "error"
-	detailSync      = "in sync"
-	detailDead      = "disconnected: "
-	maxBackoffShift = 5
-	reconcileMetric = "noxis.reconcile.total"
-)
+const reconcileMetric = "noxis.reconcile.total"
+
+type queryReq struct {
+	Engine string `json:"engine"`
+	SQL    string `json:"sql"`
+}
+
+type queryRes struct {
+	Output string `json:"output"`
+	Error  string `json:"error"`
+}
 
 // NewRunCmd is `noxis run slave <id>`: starts the worker daemon from the
 // identity file written by register. The id must match the identity.
@@ -49,95 +51,114 @@ func NewRunCmd(log *slog.Logger) *cobra.Command {
 	}
 }
 
-// slaveLoop keeps the bidirectional stream alive; the master replays the full
-// spec on every (re)connect, so no change is ever missed.
+// slaveLoop consumes this node's spec + query topics and acts. There is no
+// reconnect/backoff loop: the broker consumer is durable and reconnects
+// internally; a restart resumes from the last committed offset.
 func slaveLoop(ctx context.Context, base *slog.Logger, id *Identity) error {
-	log := base.With("node", id.ID, "grpc", id.GRPC)
+	log := base.With("node", id.ID, "broker", id.Broker)
+	cons, err := events.Consume(ctx, strings.Split(id.Broker, ","), "noxis."+id.ID, false,
+		events.SpecTopic(id.ID), events.ReqTopic(id.ID))
+	if err != nil {
+		return err
+	}
+	defer cons.Close()
+
+	producer, err := events.Produce(ctx, strings.Split(id.Broker, ","))
+	if err != nil {
+		return err
+	}
+	defer producer.Close()
+
+	reconciler := doorman.NewReconciler(id.ID)
 	counter := newReconcileCounter()
-	for attempt := 0; ; attempt++ {
-		if err := watchOnce(ctx, log, id, counter); err != nil {
+	var lastSpec entity.Spec // for query engine resolution
+	log.InfoContext(ctx, "slave consuming")
+
+	for {
+		rec, err := cons.Next(ctx)
+		if err != nil {
 			if ctx.Err() != nil {
 				return nil
 			}
-			backoff := time.Duration(1<<min(attempt, maxBackoffShift)) * time.Second
-			log.WarnContext(ctx, "watch failed", "error", err.Error(), "retry_in", backoff.String())
-			select {
-			case <-time.After(backoff):
-			case <-ctx.Done():
-				return nil
-			}
-		}
-	}
-}
-
-func watchOnce(ctx context.Context, log *slog.Logger, id *Identity, counter metric.Int64Counter) error {
-	conn, err := services.DialGRPC(ctx, id.GRPC)
-	if err != nil {
-		return fmt.Errorf("dial: %w", err)
-	}
-	defer conn.Close()
-	stream, err := rpc.NewControlClient(conn).Watch(ctx)
-	if err != nil {
-		return fmt.Errorf("watch rpc: %w", err)
-	}
-	if err := stream.Send(&rpc.StreamMsg{Node: id.ID}); err != nil {
-		return fmt.Errorf("hello: %w", err)
-	}
-	log.InfoContext(ctx, "watch connected")
-	client := rpc.NewControlClient(conn)
-	reconciler := doorman.NewReconciler(id.ID)
-	var engines []entity.Engine
-	for {
-		msg, err := stream.Recv()
-		if err == io.EOF {
-			return nil
-		}
-		if err != nil {
-			_, _ = client.ReportStatus(ctx, &rpc.Status{
-				Node: id.ID, State: stateError, Detail: detailDead + err.Error(),
-			})
-			return err
-		}
-		switch p := msg.Payload.(type) {
-		case *rpc.StreamMsg_Spec:
-			engines = rpc.SpecFromProto(p.Spec).Engines
-			detail, err := reconciler.Reconcile(ctx, engines)
-			state := stateOK
-			if err != nil {
-				state = stateError
-				log.ErrorContext(ctx, "reconcile failed", "error", err.Error())
-				_, _ = client.ReportStatus(ctx, &rpc.Status{Node: id.ID, State: state, Detail: err.Error()})
-				continue
-			}
-			if detail == "" {
-				detail = detailSync
-			}
-			_, _ = client.ReportStatus(ctx, &rpc.Status{Node: id.ID, State: state, Detail: detail})
-			counter.Add(ctx, 1, metric.WithAttributes(attribute.String("node", id.ID)))
-			log.InfoContext(ctx, "reconciled", "change", detail)
-		case *rpc.StreamMsg_Query:
-			res := executeQuery(ctx, id.ID, engines, p.Query)
-			if err := stream.Send(&rpc.StreamMsg{Node: id.ID, Payload: &rpc.StreamMsg_Result{Result: res}}); err != nil {
-				return err
-			}
-		}
-	}
-}
-
-// executeQuery runs a query in the engine's container, matched by name
-// against the node's last desired slice.
-func executeQuery(ctx context.Context, node string, engines []entity.Engine, q *rpc.QueryRequest) *rpc.QueryResult {
-	for _, e := range engines {
-		if e.Name != q.Engine {
+			cons.Log(log, err) // consumer reconnects internally
 			continue
 		}
-		out, err := runtimes.ExecSQL(ctx, runtimes.ContainerName(node, e.Name), e, q.Sql)
-		if err != nil {
-			return &rpc.QueryResult{Id: q.Id, Error: err.Error()}
+		switch rec.Topic {
+		case events.SpecTopic(id.ID):
+			lastSpec = reconcile(ctx, log, producer, id.ID, reconciler, counter, rec.Value)
+		case events.ReqTopic(id.ID):
+			answerQuery(ctx, log, producer, id.ID, lastSpec, rec)
 		}
-		return &rpc.QueryResult{Id: q.Id, Output: out}
 	}
-	return &rpc.QueryResult{Id: q.Id, Error: errors.New("no engine named " + q.Engine).Error()}
+}
+
+func reconcile(ctx context.Context, log *slog.Logger, producer *events.Broker, node string,
+	reconciler *doorman.Reconciler, counter metric.Int64Counter, body []byte) entity.Spec {
+	var spec entity.Spec
+	if err := json.Unmarshal(body, &spec); err != nil {
+		log.WarnContext(ctx, "bad spec event", "error", err)
+		return spec
+	}
+	detail, err := reconciler.Reconcile(ctx, spec.Engines)
+	state := "ok"
+	if err != nil {
+		state = "error"
+		log.ErrorContext(ctx, "reconcile failed", "error", err.Error())
+		detail = err.Error()
+	} else if detail == "" {
+		detail = "in sync"
+	}
+	publishStatus(ctx, producer, node, state, detail)
+	counter.Add(ctx, 1, metric.WithAttributes(attribute.String("node", node)))
+	log.InfoContext(ctx, "reconciled", "change", detail)
+	return spec
+}
+
+func publishStatus(ctx context.Context, producer *events.Broker, node, state, detail string) {
+	body, err := json.Marshal(entity.NodeStatus{
+		Node: node, State: state, Detail: detail, TS: time.Now().Unix(),
+	})
+	if err != nil {
+		return
+	}
+	if err := producer.EnsureTopic(ctx, events.TopicStatus); err != nil {
+		return
+	}
+	_ = producer.PublishSync(ctx, events.TopicStatus, node, body)
+}
+
+// answerQuery runs the SQL in the matching engine container and publishes the
+// reply keyed by the request id (master correlates). Engines resolve against
+// the last desired spec this node reconciled.
+func answerQuery(ctx context.Context, log *slog.Logger, producer *events.Broker, node string, spec entity.Spec, rec events.Record) {
+	var req queryReq
+	if err := json.Unmarshal(rec.Value, &req); err != nil {
+		return
+	}
+	res := queryRes{}
+	matched := false
+	for _, e := range spec.Engines {
+		if e.Name != req.Engine {
+			continue
+		}
+		matched = true
+		out, err := runtimes.ExecSQL(ctx, runtimes.ContainerName(node, e.Name), e, req.SQL)
+		if err != nil {
+			res.Error = err.Error()
+		} else {
+			res.Output = out
+		}
+	}
+	if !matched {
+		res.Error = "no engine named " + req.Engine + " on this node"
+	}
+	body, err := json.Marshal(res)
+	if err != nil {
+		return
+	}
+	if err := producer.PublishSync(ctx, events.ResTopic(node), rec.Key, body); err != nil {
+		log.WarnContext(ctx, "publish query answer", "error", err)
+	}
 }
 
 func newReconcileCounter() metric.Int64Counter {

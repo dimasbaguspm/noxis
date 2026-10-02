@@ -10,7 +10,7 @@ import "net/http"
 func PostRegister(w http.ResponseWriter, r *http.Request) {
 	d := From(r)
 	node := r.PathValue("node")
-	if err := d.Repo.Register(r.Context(), node); err != nil {
+	if err := d.Ctrl.RegisterNode(r.Context(), node); err != nil {
 		writeErr(w, err)
 		return
 	}

@@ -19,7 +19,7 @@ type putSpecBody struct {
 // @Failure 400 {object} map[string]string
 // @Router /v1/nodes/{node}/spec [get]
 func GetNodeSpec(w http.ResponseWriter, r *http.Request) {
-	spec, err := From(r).Ctrl.NodeSpec(r.Context(), r.PathValue("node"))
+	spec, err := From(r).Ctrl.Spec(r.Context(), r.PathValue("node"))
 	if err != nil {
 		writeErr(w, err)
 		return
@@ -46,7 +46,7 @@ func PutNodeSpec(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	// publishes to the node's stream; the slave converges on its next push.
-	if err := From(r).Ctrl.SetNodeSpec(r.Context(), &entity.Spec{
+	if err := From(r).Ctrl.SetSpec(r.Context(), &entity.Spec{
 		Node: r.PathValue("node"), Engines: body.Engines,
 	}); err != nil {
 		writeErr(w, err)
