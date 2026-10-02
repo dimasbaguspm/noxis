@@ -2,7 +2,7 @@
 # Slaves need the docker socket mounted so doorman can manage engines:
 #   docker run -d -v /var/run/docker.sock:/var/run/docker.sock \
 #     -e NOXIS_MASTER=... -e NOXIS_NODE=zeus noxis slave
-FROM golang:1.25-alpine AS build
+FROM golang:1.26-alpine AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
