@@ -67,6 +67,7 @@ services:
       NOXIS_TOPIC_PREFIX: "noxis."
       NOXIS_OTEL_NAME: noxis-zeus
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - noxis-identity:/root/.config
     depends_on:
       master:

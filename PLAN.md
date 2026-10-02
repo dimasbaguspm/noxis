@@ -29,7 +29,7 @@ internal/repositories/   grouped by service:
 internal/common/         shared infra: http (standard headers), logging
 internal/entity/         domain models + Config (env struct, go-validator)
 internal/interfaces/     seams (NodeRepository)
-internal/features/…     future features (doorman paused: engine management returns later)
+internal/features/doorman/   network isolation boundary (noxis-<node> bridge per node); engine containers return later
 docker/                  docker-compose.yml (Kafka + master + slave) + db.sqlite
 
 REST: controller package holds one annotated handler per method; routes.go
@@ -41,6 +41,11 @@ State: specs (desired) and statuses (reported) live in master memory + Kafka;
 sqlite holds only the slaves registry. Slaves heartbeat every 15s; master
 marks a node offline after 30s of silence. Master restart loses memory state
 until the next heartbeat/assign (ponytail: replay spec topics if it matters).
+
+Isolation: each slave owns a docker bridge network `noxis-<node>` (label
+noxis.network=<node>) — created on the first engine assignment, removed on an
+empty spec, diffed via docker network ls each event. Engine containers join
+it later; the boundary exists even when images are not pulled.
 ```
 
 CLI is one-shot: `run master`, `run slave <id>` (reads identity, zero env),

@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"noxis/internal/entity"
+	"noxis/internal/features/doorman"
 	"noxis/internal/repositories/kafka"
 	reposlave "noxis/internal/repositories/slave"
 )
@@ -74,6 +75,8 @@ func slaveLoop(ctx context.Context, base *slog.Logger, id *reposlave.Identity) e
 		return err
 	}
 
+	nets := doorman.NewNetworkManager(id.ID)
+
 	recCh := make(chan kafka.Record)
 	go feed(ctx, cons, recCh)
 
@@ -90,7 +93,7 @@ func slaveLoop(ctx context.Context, base *slog.Logger, id *reposlave.Identity) e
 			}
 			switch rec.Topic {
 			case topics.Spec(id.ID):
-				ackSpec(ctx, log, producer, topics, id.ID, rec.Value)
+				ackSpec(ctx, log, producer, topics, nets, id.ID, rec.Value)
 			case topics.Req(id.ID):
 				answerQuery(ctx, log, producer, topics, id.ID, rec)
 			}
@@ -124,15 +127,21 @@ func feed(ctx context.Context, cons *kafka.Broker, out chan<- kafka.Record) {
 // ackSpec acknowledges a desired-state push. Runtime convergence (the old
 // doorman engine manager) is paused for the single-machine trial — the spec
 // event round-trip itself is what matters now.
-func ackSpec(ctx context.Context, log *slog.Logger, producer *kafka.Broker, topics kafka.Topics, node string, body []byte) {
+func ackSpec(ctx context.Context, log *slog.Logger, producer *kafka.Broker, topics kafka.Topics, nets *doorman.NetworkManager, node string, body []byte) {
 	var spec entity.Spec
 	if err := json.Unmarshal(body, &spec); err != nil {
 		log.WarnContext(ctx, "bad spec event", "error", err)
 		return
 	}
-	detail := fmt.Sprintf("spec accepted (%d engine(s))", len(spec.Engines))
-	publishStatus(ctx, producer, topics, node, "ok", detail)
-	log.InfoContext(ctx, "spec accepted", "engines", len(spec.Engines))
+	detail, err := nets.Reconcile(ctx, spec.Engines)
+	state := "ok"
+	if err != nil {
+		state = "error"
+		log.ErrorContext(ctx, "network reconcile failed", "error", err.Error())
+		detail = "network error: " + err.Error()
+	}
+	publishStatus(ctx, producer, topics, node, state, detail)
+	log.InfoContext(ctx, "spec reconciled", "detail", detail)
 }
 
 func publishStatus(ctx context.Context, producer *kafka.Broker, topics kafka.Topics, node, state, detail string) {
