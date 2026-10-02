@@ -26,7 +26,8 @@ internal/repositories/   grouped by service:
   kafka/                 franz-go transport + EnsureTopic + Topics (env prefix)
   master/                typed methods for the master REST API
   slave/                 identity file (id, broker, topic prefix)
-  docker/                docker CLI wrapper: all docker commands, exact argv (networks + container lifecycle)
+  docker/                docker CLI wrapper: exact argv for networks, containers
+                        (run/inspect/status/start/stop/restart/kill/remove), images, volumes
 internal/common/         shared infra: http (standard headers), logging
 internal/entity/         domain models + Config (env struct, go-validator)
 internal/interfaces/     seams, one file per service: NodeRepository (sqlite), Docker (repositories/docker)
@@ -67,7 +68,10 @@ reconcile — no duplicated state, no double-apply by design.
 - [x] 1 Core transport — Watch stream push + replay on reconnect, GetDesiredState fallback, ReportStatus. Verified: master death → slaves survive, engines keep running → restart → reconnected + converged
 - [x] 2 Doorman engines — postgres/mysql/mariadb/mongo/redis/elastic descriptors + docker driver (CLI shell-out, node-labeled isolation)
 - [x] 3 Desired-state converge — assign → push → slave start/upgrade/remove; node-scoped listing stops cross-node theft on shared docker hosts; port conflicts surface as clear per-node errors; custom host ports `TYPE@VER:HOSTPORT`; config drift (version/port/env) recreates via the stamped `noxis.desired` label
-- [x] 3.5 Read queries (transport preserved; slave answers no-runtime error until engines return) (transport preserved; slave answers no-runtime error until engines return) — `query NODE ENGINE "SQL"` routes over the bidirectional Watch stream (no slave listeners, no addr registration); slave executes via the engine's own SQL client with its creation credentials; SQL engines only
+- [x] 3.5 Read queries (transport preserved; slave answers no-runtime error until engines return)
+- [x] 3.6 Docker repository: networks, container lifecycle, images, volumes behind interfaces.Docker
+- [x] 3.7 golangci-lint configured (`make lint`), zero issues; named constants for all domain strings
+      (resource prefixes, label keys, consumer-group prefix, version) (transport preserved; slave answers no-runtime error until engines return) — `query NODE ENGINE "SQL"` routes over the bidirectional Watch stream (no slave listeners, no addr registration); slave executes via the engine's own SQL client with its creation credentials; SQL engines only
 - [ ] 4 UCM — versioned config entities, `get/set/history` verbs, oplog replication to slaves
 - [ ] 5 Ops — backup-before-upgrade, `apply --node X` manual gate, `--promote`, systemd units for agents
 - [ ] 6 Polish (only if needed) | mTLS, web UI

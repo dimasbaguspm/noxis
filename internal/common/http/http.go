@@ -11,9 +11,11 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"noxis/internal/common/version"
 )
 
-const userAgent = "noxis/0.1.0"
+const userAgent = "noxis/" + version.Version
 
 type Client struct {
 	base string
@@ -49,7 +51,7 @@ func (c *Client) Do(ctx context.Context, method, path string, body, out any) err
 	if err != nil {
 		return fmt.Errorf("http: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= 400 {
 		var e struct {
 			Error string `json:"error"`

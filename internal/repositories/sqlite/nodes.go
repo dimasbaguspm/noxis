@@ -23,7 +23,7 @@ func (s *Store) List(ctx context.Context) ([]entity.Slave, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var out []entity.Slave
 	for rows.Next() {
 		var sl entity.Slave

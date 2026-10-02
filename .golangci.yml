@@ -1,0 +1,12 @@
+# golangci-lint v2 (run: make lint)
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell

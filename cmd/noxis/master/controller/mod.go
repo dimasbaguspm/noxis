@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"noxis/internal/control"
 )
@@ -40,9 +39,5 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 }
 
 func writeErr(w http.ResponseWriter, err error) {
-	code := http.StatusBadRequest
-	if strings.Contains(err.Error(), "not connected") {
-		code = http.StatusServiceUnavailable
-	}
-	writeJSON(w, code, map[string]string{"error": err.Error()})
+	writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 }

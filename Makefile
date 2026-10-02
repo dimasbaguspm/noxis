@@ -1,12 +1,16 @@
 PATH := $(HOME)/.local/bin:$(HOME)/go/bin:$(PATH)
 
-.PHONY: build test swagger db dev down
+.PHONY: build test lint swagger db dev down
 
 build:
 	go build -o bin/noxis ./cmd/noxis
 
 test:
 	go test ./...
+
+lint:  ## run golangci-lint (installs it on first use)
+	command -v golangci-lint >/dev/null 2>&1 || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	golangci-lint run ./...
 
 swagger:  ## regenerate doc/swagger.yaml|json (OpenAPI 3) from handler annotations
 	go install github.com/swaggo/swag/cmd/swag@latest

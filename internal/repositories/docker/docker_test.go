@@ -60,4 +60,69 @@ func TestContainerOps(t *testing.T) {
 	if got := calls[len(calls)-1]; got != "rm -f noxis-zeus-postgres" {
 		t.Fatalf("rm argv: %s", got)
 	}
+
+	// lifecycle verbs
+	table := []struct{ verb, arg, want string }{
+		{"ContainerStart", "noxis-zeus-postgres", "start noxis-zeus-postgres"},
+		{"ContainerStop", "noxis-zeus-postgres", "stop noxis-zeus-postgres"},
+		{"ContainerRestart", "noxis-zeus-postgres", "restart noxis-zeus-postgres"},
+		{"ContainerKill", "noxis-zeus-postgres", "kill noxis-zeus-postgres"},
+		{"ImagePull", "postgres:16-alpine", "pull postgres:16-alpine"},
+		{"ImageRemove", "postgres:16-alpine", "image rm postgres:16-alpine"},
+		{"VolumeCreate", "noxis-zeus-pgdata", "volume create noxis-zeus-pgdata"},
+		{"VolumeRemove", "noxis-zeus-pgdata", "volume rm noxis-zeus-pgdata"},
+	}
+	var cerr error
+	for _, tt := range table {
+		switch tt.verb {
+		case "ContainerStart":
+			cerr = c.ContainerStart(context.Background(), tt.arg)
+		case "ContainerStop":
+			cerr = c.ContainerStop(context.Background(), tt.arg)
+		case "ContainerRestart":
+			cerr = c.ContainerRestart(context.Background(), tt.arg)
+		case "ContainerKill":
+			cerr = c.ContainerKill(context.Background(), tt.arg)
+		case "ImagePull":
+			cerr = c.ImagePull(context.Background(), tt.arg)
+		case "ImageRemove":
+			cerr = c.ImageRemove(context.Background(), tt.arg)
+		case "VolumeCreate":
+			cerr = c.VolumeCreate(context.Background(), tt.arg)
+		case "VolumeRemove":
+			cerr = c.VolumeRemove(context.Background(), tt.arg)
+		}
+		if cerr != nil {
+			t.Fatalf("%s: %v", tt.verb, cerr)
+		}
+		if got := calls[len(calls)-1]; got != tt.want {
+			t.Fatalf("%s argv: %s", tt.verb, got)
+		}
+	}
+
+	// status / exists probes
+	calls = calls[:0]
+	out = "running"
+	if st, err := c.ContainerStatus(context.Background(), "noxis-zeus-postgres"); err != nil || st != "running" {
+		t.Fatalf("status: %q, %v", st, err)
+	}
+	if got := calls[len(calls)-1]; got != "inspect --format {{.State.Status}} noxis-zeus-postgres" {
+		t.Fatalf("status argv: %s", got)
+	}
+	errOut = "Error: No such image"
+	if ok, err := c.ImageExists(context.Background(), "ghost:1"); err != nil || ok {
+		t.Fatalf("image missing: %v, %v", ok, err)
+	}
+	errOut = ""
+	if ok, err := c.ImageExists(context.Background(), "postgres:16-alpine"); err != nil || !ok {
+		t.Fatalf("image present: %v, %v", ok, err)
+	}
+	out = "noxis-zeus-pgdata"
+	if ok, err := c.VolumeExists(context.Background(), "noxis-zeus-pgdata"); err != nil || !ok {
+		t.Fatalf("volume exists: %v, %v", ok, err)
+	}
+	out = ""
+	if ok, err := c.VolumeExists(context.Background(), "ghostvol"); err != nil || ok {
+		t.Fatalf("volume missing: %v, %v", ok, err)
+	}
 }

@@ -16,6 +16,17 @@ type Docker interface {
 	NetworkRemove(ctx context.Context, name string) error
 	ContainerList(ctx context.Context, label string) ([]string, error)
 	ContainerInspect(ctx context.Context, name string) (docker.Container, error)
+	ContainerStatus(ctx context.Context, name string) (string, error)
 	ContainerRun(ctx context.Context, opts docker.ContainerOptions) error
+	ContainerStart(ctx context.Context, name string) error
+	ContainerStop(ctx context.Context, name string) error
+	ContainerRestart(ctx context.Context, name string) error
+	ContainerKill(ctx context.Context, name string) error
 	ContainerRemove(ctx context.Context, name string) error
+	ImageExists(ctx context.Context, image string) (bool, error)
+	ImagePull(ctx context.Context, image string) error
+	ImageRemove(ctx context.Context, image string) error
+	VolumeExists(ctx context.Context, name string) (bool, error)
+	VolumeCreate(ctx context.Context, name string) error
+	VolumeRemove(ctx context.Context, name string) error
 }

@@ -18,7 +18,10 @@ import (
 	reposlave "noxis/internal/repositories/slave"
 )
 
-const heartbeatInterval = 15 * time.Second
+const (
+	heartbeatInterval   = 15 * time.Second
+	consumerGroupPrefix = "noxis." // distinct from topic prefix; stable groups keep offsets
+)
 
 type queryReq struct {
 	Engine string `json:"engine"`
@@ -59,7 +62,7 @@ func slaveLoop(ctx context.Context, base *slog.Logger, id *reposlave.Identity) e
 	addrs := strings.Split(id.Broker, ",")
 
 	topics := kafka.Topics{Prefix: id.TopicPrefix}
-	cons, err := kafka.Consume(ctx, addrs, "noxis."+id.ID, false,
+	cons, err := kafka.Consume(ctx, addrs, consumerGroupPrefix+id.ID, false,
 		topics.Spec(id.ID), topics.Req(id.ID))
 	if err != nil {
 		return err

@@ -13,6 +13,13 @@ import (
 	"noxis/internal/repositories/docker"
 )
 
+// Domain conventions for the node's isolation resources. Kept here, not in
+// the docker repository: the feature owns what things are named.
+const (
+	networkPrefix = "noxis-"        // docker resource name prefix (network, volume, container)
+	networkLabel  = "noxis.network" // label key pinning a resource to its node
+)
+
 // NetworkManager owns the node's docker bridge network (noxis-<node>), the
 // isolation boundary every engine container of this node joins.
 type NetworkManager struct {
@@ -24,9 +31,9 @@ func NewNetworkManager(node string) *NetworkManager {
 	return &NetworkManager{name: networkName(node), d: docker.New()}
 }
 
-func networkName(node string) string { return "noxis-" + node }
+func networkName(node string) string { return networkPrefix + node }
 
-func (m *NetworkManager) label() string { return "noxis.network=" + m.name }
+func (m *NetworkManager) label() string { return networkLabel + "=" + m.name }
 
 // Reconcile makes the network exist iff the spec assigns at least one engine.
 // Images need not be pulled yet — the network is the node's boundary and is

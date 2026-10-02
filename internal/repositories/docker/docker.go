@@ -58,6 +58,7 @@ type ContainerOptions struct {
 	Labels       map[string]string
 	Env          map[string]string
 	Ports        map[string]string // host:container, external key
+	Volumes      []string          // name:path entries
 	Network      string
 	NetworkAlias string
 }
@@ -115,9 +116,9 @@ func (c *Client) ContainerInspect(ctx context.Context, name string) (Container, 
 	return list[0], nil
 }
 
-// ContainerRun starts the engine detached. Map keys are sorted so the argv
-// stays deterministic. Existence/drift is the feature's call, not ours (we
-// always issue the run; docker errors on duplicates).
+// ContainerRun starts the engine detached. Map keys and volumes are sorted so
+// the argv stays deterministic. Existence/drift is the feature's call, not
+// ours (we always issue the run; docker errors on duplicates).
 func (c *Client) ContainerRun(ctx context.Context, o ContainerOptions) error {
 	args := []string{"run", "-d", "--name", o.Name}
 	for _, k := range sortedKeys(o.Labels) {
@@ -129,6 +130,9 @@ func (c *Client) ContainerRun(ctx context.Context, o ContainerOptions) error {
 	for _, k := range sortedKeys(o.Ports) {
 		args = append(args, "-p", o.Ports[k])
 	}
+	for _, v := range sortedStrings(o.Volumes) {
+		args = append(args, "-v", v)
+	}
 	if o.Network != "" {
 		args = append(args, "--network", o.Network)
 	}
@@ -137,6 +141,87 @@ func (c *Client) ContainerRun(ctx context.Context, o ContainerOptions) error {
 	}
 	args = append(args, o.Image)
 	_, err := c.run(ctx, args...)
+	return err
+}
+
+// ContainerStatus returns docker's own state word (running, exited, created,
+// restarting, dead...) or ErrNotFound.
+func (c *Client) ContainerStatus(ctx context.Context, name string) (string, error) {
+	out, err := c.run(ctx, "inspect", "--format", "{{.State.Status}}", name)
+	if err != nil {
+		if strings.Contains(string(out), "No such object") {
+			return "", ErrNotFound
+		}
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+
+// ContainerStart resumes a stopped container.
+func (c *Client) ContainerStart(ctx context.Context, name string) error {
+	_, err := c.run(ctx, "start", name)
+	return err
+}
+
+// ContainerStop halts gracefully.
+func (c *Client) ContainerStop(ctx context.Context, name string) error {
+	_, err := c.run(ctx, "stop", name)
+	return err
+}
+
+// ContainerRestart stops then starts.
+func (c *Client) ContainerRestart(ctx context.Context, name string) error {
+	_, err := c.run(ctx, "restart", name)
+	return err
+}
+
+// ContainerKill force-kills without removing.
+func (c *Client) ContainerKill(ctx context.Context, name string) error {
+	_, err := c.run(ctx, "kill", name)
+	return err
+}
+
+// ImageExists reports whether the image is present locally.
+func (c *Client) ImageExists(ctx context.Context, image string) (bool, error) {
+	out, err := c.run(ctx, "image", "inspect", image)
+	if err != nil {
+		if strings.Contains(string(out), "No such image") {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// ImagePull fetches the image.
+func (c *Client) ImagePull(ctx context.Context, image string) error {
+	_, err := c.run(ctx, "pull", image)
+	return err
+}
+
+// ImageRemove deletes a local image (cleanup path).
+func (c *Client) ImageRemove(ctx context.Context, image string) error {
+	_, err := c.run(ctx, "image", "rm", image)
+	return err
+}
+
+// VolumeExists reports whether the named volume exists (exact-name match).
+func (c *Client) VolumeExists(ctx context.Context, name string) (bool, error) {
+	out, err := c.run(ctx, "volume", "ls", "--format", "{{.Name}}", "--filter", "name=^"+name+"$")
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(string(out)) != "", nil
+}
+
+func (c *Client) VolumeCreate(ctx context.Context, name string) error {
+	_, err := c.run(ctx, "volume", "create", name)
+	return err
+}
+
+// VolumeRemove deletes the named volume (cleanup path).
+func (c *Client) VolumeRemove(ctx context.Context, name string) error {
+	_, err := c.run(ctx, "volume", "rm", name)
 	return err
 }
 
@@ -153,4 +238,10 @@ func sortedKeys(m map[string]string) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+func sortedStrings(s []string) []string {
+	out := append([]string(nil), s...)
+	sort.Strings(out)
+	return out
 }
