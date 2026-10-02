@@ -23,7 +23,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = store.Close() }()
+	defer store.Close()
 
 	k, err := kafka.Produce(ctx, strings.Split(cfg.Broker, ","))
 	if err != nil {

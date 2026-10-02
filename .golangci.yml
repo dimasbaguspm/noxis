@@ -10,3 +10,11 @@ linters:
     - staticcheck
     - unused
     - misspell
+  settings:
+    errcheck:
+      # Close() on these is deferrable and expected — lets us write
+      # `defer rows.Close()` instead of defer func() { _ = rows.Close() }()
+      exclude-functions:
+        - (io.Closer).Close
+        - (*database/sql.Rows).Close
+        - (*database/sql.DB).Close

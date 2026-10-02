@@ -51,7 +51,7 @@ func (c *Client) Do(ctx context.Context, method, path string, body, out any) err
 	if err != nil {
 		return fmt.Errorf("http: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 	if resp.StatusCode >= 400 {
 		var e struct {
 			Error string `json:"error"`
