@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"noxis/internal/control"
+	"noxis/cmd/noxis/control"
 	"noxis/internal/entity"
 	"noxis/internal/repositories/kafka"
 	"noxis/internal/repositories/sqlite"

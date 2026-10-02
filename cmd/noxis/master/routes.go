@@ -11,8 +11,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"noxis/cmd/noxis/control"
 	"noxis/cmd/noxis/master/controller"
-	"noxis/internal/control"
 )
 
 // newHandler wires every route to its controller handler, then middleware.

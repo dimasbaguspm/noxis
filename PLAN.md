@@ -53,9 +53,16 @@ empty spec. Instances join it (network alias = engine name) with a persistent
 volume (noxis-<node>-<engine>-data) and dev passwords in env (overridable via
 spec env). Restart recovery: master memory refetch via REST (identity.master).
 
+Capabilities (verified e2e): create instance (several per node), query
+(read+DML), alter/DDL, rollback dry-run, analyze; statement-kind guards
+(query rejects DDL, alter rejects reads, 400); engine update — same-major
+recreates the container and keeps the volume (data survives), major bump gets
+a fresh cluster backed by a major-split volume (old data preserved; migration
+is the operator's job).
+
 Ceilings/next: instance teardown when engines leave the spec (orphans linger);
-drift recreation on version change; true rollback from a DDL changelog (UCM);
-cluster/HA engines.
+true rollback from a DDL changelog (UCM); cluster/HA engines; standby/replica
+topologies.
 ```
 
 CLI is one-shot: `run master`, `run slave <id>` (reads identity, zero env),

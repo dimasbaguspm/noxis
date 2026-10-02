@@ -1,6 +1,7 @@
-// Package control is the master's operations core: registry repo + Kafka
-// broker + memory state. REST handlers (cmd/noxis/master/controller) call it;
-// slaves never do.
+// Package control is the master daemon's operations core: registry repo +
+// Kafka broker + memory state. Lives under cmd/noxis because it is command
+// scope — used by the master daemon (server) and its REST handlers
+// (controller), nothing in internal/ shares it. Slaves never touch it.
 package control
 
 import (

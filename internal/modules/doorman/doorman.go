@@ -27,31 +27,56 @@ func New(d interfaces.Docker) *Doorman {
 // InstanceName is the container name for a node's engine (noxis-<node>-<engine>).
 func InstanceName(node, engine string) string { return instancePrefix + node + "-" + engine }
 
-// VolumeName is the persistent volume backing an instance.
-func VolumeName(node, engine string) string {
-	return instancePrefix + node + "-" + engine + dataVolSuffix
+// VolumeName is the persistent volume backing an instance, split by major
+// version: same-major updates share the volume (data survives), a major bump
+// gets a fresh cluster (old volume preserved for manual migration).
+//
+// ponytail: cross-major data migration is real DB engineering, not a control
+// plane's job — fresh cluster on major bump is the honest default.
+func VolumeName(node, engine, version string) string {
+	return instancePrefix + node + "-" + engine + "-" + majorVersion(version) + dataVolSuffix
+}
+
+// majorVersion is the leading numeric segment ("16.6-alpine" -> "16").
+func majorVersion(version string) string {
+	if i := strings.IndexAny(version, ".-"); i > 0 {
+		version = version[:i]
+	} else if i == 0 {
+		return "0"
+	}
+	return version
 }
 
 // CreateInstance brings up (or confirms) the node's engine container: image
 // pulled if missing, data volume ensured, container run on the node's
-// network. Returns a detail string. Idempotent — an already-running instance
-// reports "in sync".
-//
-// ponytail: no drift comparison yet — version/port/env changes recreate only
-// when instance teardown happens; diff via desiredLabel when it matters.
+// network. Returns a detail string. Image drift (version change) recreates
+// the container — the data volume survives, so an engine update keeps its
+// data. Idempotent otherwise: same image reports "in sync".
 func (u *Doorman) CreateInstance(ctx context.Context, node, network string, eng entity.Engine) (string, error) {
 	desc, ok := lookupEngine(eng.Type)
 	if !ok {
 		return "", fmt.Errorf("unsupported engine %q (sql only: %s)", eng.Type, supportedEngines())
 	}
 	name := InstanceName(node, eng.Name)
-	if _, err := u.d.ContainerInspect(ctx, name); err == nil {
-		return "in sync", nil
+	image := desc.imageOf(eng.Version)
+	updated := false
+	if ct, err := u.d.ContainerInspect(ctx, name); err == nil {
+		if ct.Config.Image == image {
+			return "in sync", nil
+		}
+		// engine update: image changed — replace the container, keep the
+		// volume. Stop gracefully first: a force-killed DB leaves a stale
+		// pidfile that makes the new run exit immediately.
+		if err := u.d.ContainerStop(ctx, name); err != nil {
+			return "", err
+		}
+		if err := u.d.ContainerRemove(ctx, name); err != nil {
+			return "", err
+		}
+		updated = true
 	} else if !errors.Is(err, docker.ErrNotFound) {
 		return "", err
 	}
-
-	image := desc.imageOf(eng.Version)
 	ok, err := u.d.ImageExists(ctx, image)
 	if err != nil {
 		return "", err
@@ -62,7 +87,7 @@ func (u *Doorman) CreateInstance(ctx context.Context, node, network string, eng 
 		}
 	}
 
-	vol := VolumeName(node, eng.Name)
+	vol := VolumeName(node, eng.Name, engineVersion(eng, desc))
 	ok, err = u.d.VolumeExists(ctx, vol)
 	if err != nil {
 		return "", err
@@ -94,11 +119,36 @@ func (u *Doorman) CreateInstance(ctx context.Context, node, network string, eng 
 	}); err != nil {
 		return "", err
 	}
-	return "instance " + name + " created (" + image + ")", nil
+	verb := "created"
+	if updated {
+		verb = "updated"
+	}
+	return "instance " + name + " " + verb + " (" + image + ")", nil
 }
 
-// Query runs a read against the instance.
+// verifyKind rejects statements whose first keyword is not allowed.
+func verifyKind(sql, allowed string) error {
+	kind := firstKeyword(sql)
+	if !strings.Contains(" "+allowed+" ", " "+kind+" ") {
+		return fmt.Errorf("statement %q not allowed here (only: %s)", kind, allowed)
+	}
+	return nil
+}
+
+func firstKeyword(sql string) string {
+	trimmed := strings.TrimSpace(sql)
+	if i := strings.IndexAny(trimmed, " \t\r\n"); i >= 0 {
+		trimmed = trimmed[:i]
+	}
+	return strings.ToUpper(strings.Trim(trimmed, "(;"))
+}
+
+// Query runs statements against the instance — reads (SELECT/SHOW/EXPLAIN/…)
+// and DML (INSERT/UPDATE/DELETE/…) but never DDL (verified first).
 func (u *Doorman) Query(ctx context.Context, node string, eng entity.Engine, sql string) (string, error) {
+	if err := verifyKind(sql, kindBoth); err != nil {
+		return "", err
+	}
 	desc, ok := lookupEngine(eng.Type)
 	if !ok {
 		return "", fmt.Errorf("unsupported engine %q", eng.Type)
@@ -106,8 +156,12 @@ func (u *Doorman) Query(ctx context.Context, node string, eng entity.Engine, sql
 	return u.exec(ctx, node, eng, clientArgs(desc, sql))
 }
 
-// AlterTable applies a DDL statement (ALTER TABLE ...) to the instance.
+// AlterTable applies DDL statements (ALTER/CREATE/DROP/…) to the instance
+// — reads and DML are rejected (verified first).
 func (u *Doorman) AlterTable(ctx context.Context, node string, eng entity.Engine, sql string) (string, error) {
+	if err := verifyKind(sql, ddlKinds); err != nil {
+		return "", err
+	}
 	desc, ok := lookupEngine(eng.Type)
 	if !ok {
 		return "", fmt.Errorf("unsupported engine %q", eng.Type)
@@ -145,6 +199,8 @@ func (u *Doorman) exec(ctx context.Context, node string, eng entity.Engine, args
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", InstanceName(node, eng.Name), err)
 	}
+	// mysql/mariadb warn about -p on the command line; harmless, drop it
+	out = strings.ReplaceAll(out, "mysql: [Warning] Using a password on the command line interface can be insecure.\n", "")
 	return strings.TrimSpace(out), nil
 }
 

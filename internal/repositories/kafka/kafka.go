@@ -117,10 +117,12 @@ func (b *Broker) EnsureTopic(ctx context.Context, topic string) error {
 }
 
 // Consume opens a consumer. Grouped consumers persist offsets (durable
-// resume — committed offsets win, a fresh group starts at the end so no old
-// events replay). A standalone fromEnd consumer watches only new records;
-// a standalone non-fromEnd consumer scrolls from the start (reply matching
-// by key makes replay harmless).
+// resume — committed offsets win; a fresh group starts at the start, so a
+// brand-new slave replays its spec history and converges to the last one;
+// replayed request records are answered into the void, harmless). A
+// standalone fromEnd consumer watches only new records; a standalone
+// non-fromEnd consumer scrolls from the start (reply matching by key makes
+// replay harmless).
 func Consume(ctx context.Context, addrs []string, group string, fromEnd bool, topics ...string) (*Broker, error) {
 	opts := []kgo.Opt{
 		kgo.SeedBrokers(addrs...),
@@ -129,7 +131,7 @@ func Consume(ctx context.Context, addrs []string, group string, fromEnd bool, to
 	}
 	switch {
 	case group != "":
-		opts = append(opts, kgo.ConsumerGroup(group), kgo.ConsumeResetOffset(kgo.NewOffset().AtEnd()))
+		opts = append(opts, kgo.ConsumerGroup(group), kgo.ConsumeResetOffset(kgo.NewOffset().AtStart()))
 	case fromEnd:
 		opts = append(opts, kgo.ConsumeResetOffset(kgo.NewOffset().AtEnd()))
 	default:
