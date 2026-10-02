@@ -16,8 +16,8 @@ import (
 	"noxis/internal/entity"
 	"noxis/internal/features/doorman"
 	"noxis/internal/features/doorman/runtimes"
-	rpc "noxis/internal/repository/grpc"
 	"noxis/internal/services"
+	rpc "noxis/internal/services/grpc"
 )
 
 const (

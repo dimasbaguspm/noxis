@@ -13,8 +13,8 @@ import (
 
 	"noxis/internal/entity"
 	"noxis/internal/repository"
-	rpc "noxis/internal/repository/grpc"
 	"noxis/internal/services"
+	rpc "noxis/internal/services/grpc"
 )
 
 // Run blocks serving REST + gRPC until ctx is done or a listener fails.

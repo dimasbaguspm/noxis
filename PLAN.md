@@ -20,13 +20,16 @@ cmd/noxis/
   bootstrap.go       env -> config -> logging -> root CLI (run/register)
   master/            server.go + routes.go + controller.go + middleware.go
   slave/             daemon.go (worker loop) + register.go + identity.go
-internal/services/       connection container: sqlite open + ping, grpc dial
+internal/services/       connections: sqlite open+ping, grpc dial + grpc/ transport package
 internal/entity/         domain models + Config (env struct, go-validator)
 internal/interfaces/     seams (Spec/Status/Node repositories)
-internal/repository/     sqlite impls + grpc/ (internal slave transport)
+internal/repository/     sqlite data layer only (command/query)
 internal/features/doorman/   reconcile.go (decisions) + runtimes/ (docker + engines)
 internal/features/ucm/      versioned config store on the changelog (next)
 docker/                  docker-compose.yml (dev) + db.sqlite (dev store)
+
+REST routes are per-feature modules: /v1/nodes/{node}/{feature}/* + /healthz
+(liveness) and /readyz (sqlite ping, drives compose service_healthy).
 ```
 
 CLI is one-shot: `run master`, `run slave <id>` (reads identity, zero env),

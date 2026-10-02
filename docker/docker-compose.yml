@@ -1,5 +1,6 @@
 # Dev mode: one master + one slave worker. `make dev` builds and starts it.
-# The slave manages engines through the mounted docker socket.
+# The slave manages engines through the mounted docker socket and only starts
+# once the master reports ready at /readyz.
 name: noxis
 
 services:
@@ -17,13 +18,19 @@ services:
       - "9100:9100"
     volumes:
       - ./db.sqlite:/data/noxis.db
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9000/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 2s
     restart: unless-stopped
 
   slave:
     build:
       context: ..
       dockerfile: Dockerfile
-    command: sh -c 'until noxis register slave "$$NOXIS_SLAVE_NAME"; do sleep 2; done && exec noxis run slave "$$NOXIS_SLAVE_NAME"'
+    command: sh -c 'noxis register slave "$$NOXIS_SLAVE_NAME" && exec noxis run slave "$$NOXIS_SLAVE_NAME"'
     environment:
       NOXIS_SLAVE_NAME: zeus
       NOXIS_MASTER: http://master:9000
@@ -33,7 +40,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - noxis-identity:/root/.config
     depends_on:
-      - master
+      master:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

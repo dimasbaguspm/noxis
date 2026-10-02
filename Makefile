@@ -5,7 +5,7 @@ PATH := $(HOME)/.local/bin:$(HOME)/go/bin:$(PATH)
 proto:
 	protoc --go_out=. --go_opt=paths=source_relative \
 	       --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-	       internal/repository/grpc/control.proto
+	       internal/services/grpc/control.proto
 
 build:
 	go build -o bin/noxis ./cmd/noxis

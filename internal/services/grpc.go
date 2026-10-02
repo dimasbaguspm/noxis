@@ -5,7 +5,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	rpc "noxis/internal/repository/grpc"
+	rpc "noxis/internal/services/grpc"
 )
 
 // DialGRPC connects to the master's internal transport (used by the slave

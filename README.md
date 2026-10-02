@@ -28,16 +28,19 @@ make dev
 
 ## REST API (frontend-facing)
 
-| Method | Path | Body | Result |
-|---|---|---|---|
-| GET | `/v1/status` | — | `{nodes:[{node,state,detail,ts}]}` (reported + registered) |
-| GET | `/v1/nodes/{node}` | — | `{node,engines:[...]}` |
-| PUT | `/v1/nodes/{node}` | `{engines:[{name,type,version,ports,env}]}` | 204, publishes to the node's stream |
-| POST | `/v1/nodes/{node}/query` | `{engine,sql}` | `{output}` |
-| POST | `/v1/nodes/{node}/register` | — | 204, registers a slave node |
+Routes are per-feature modules under `/v1/nodes/{nodeId}/{feature}/*` plus health:
+
+| Method | Path | Result |
+|---|---|---|
+| GET | `/healthz` `/readyz` | liveness / readiness (sqlite ping) |
+| GET | `/v1/status` | `{nodes:[{node,state,detail,ts}]}` (reported + registered) |
+| GET | `/v1/nodes/{node}/spec` | `{node,engines:[...]}` |
+| PUT | `/v1/nodes/{node}/spec` | 204, publishes to the node's stream |
+| POST | `/v1/nodes/{node}/query` | `{output}` |
+| POST | `/v1/nodes/{node}/register` | 204, registers a slave node |
 
 ```bash
-curl -X PUT localhost:9000/v1/nodes/zeus \
+curl -X PUT localhost:9000/v1/nodes/zeus/spec \
   -d '{"engines":[{"name":"postgres","type":"postgres","version":"16-alpine"}]}'
 curl -X POST localhost:9000/v1/nodes/zeus/query -d '{"engine":"postgres","sql":"SELECT 1"}'
 ```
@@ -64,12 +67,13 @@ needs no environment. Missing variables fail loudly per command.
 cmd/noxis/
   main.go            thin entry
   bootstrap.go       env -> config -> logging -> root CLI (run/register)
-  master/            server.go (daemon), routes.go, controller.go, middleware.go
+  master/            server.go (daemon), routes.go, middleware.go
+    modules/         one file per feature: health, status, spec, query, nodes
   slave/             daemon.go (worker loop), register.go, identity.go
-internal/services/       connection container: sqlite open + ping, grpc dial
+internal/services/       connections: sqlite open+ping, grpc dial, grpc/ transport
 internal/entity/         domain models, Config (env struct)
 internal/interfaces/     seams (Spec/Status/Node repositories)
-internal/repository/     sqlite impls + grpc/ (internal slave transport)
+internal/repository/     sqlite data layer only (command/query)
 internal/features/doorman/   reconcile.go (decisions) + runtimes/ (docker + engines)
 internal/common/logging     slog JSON + OTEL; ctx-aware trace_id/span_id
 docker/               docker-compose.yml (dev stack) + db.sqlite (dev store)

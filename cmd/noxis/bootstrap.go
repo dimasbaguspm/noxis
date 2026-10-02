@@ -21,19 +21,33 @@ func Bootstrap() error {
 
 	cfg := entity.LoadConfig()
 	log, shutdown, err := logging.New(cfg)
+
 	if err != nil {
 		return err
 	}
-	defer func() { _ = shutdown(ctx) }()
 
-	run := &cobra.Command{Use: "run", Short: "Run a daemon", SilenceUsage: true}
+	defer func() {
+		_ = shutdown(ctx)
+	}()
+
+	run := &cobra.Command{
+		Use:          "run",
+		Short:        "Run a daemon",
+		SilenceUsage: true}
 	run.AddCommand(
-		&cobra.Command{Use: "master", Short: "Run the master daemon", RunE: func(cmd *cobra.Command, _ []string) error {
-			return master.Run(cmd.Context(), log, cfg)
-		}},
+		&cobra.Command{
+			Use:   "master",
+			Short: "Run the master daemon",
+			RunE: func(cmd *cobra.Command, _ []string) error {
+				return master.Run(cmd.Context(), log, cfg)
+			}},
 		slave.NewRunCmd(log),
 	)
-	reg := &cobra.Command{Use: "register", Short: "One-shot registration", SilenceUsage: true}
+
+	reg := &cobra.Command{
+		Use:          "register",
+		Short:        "One-shot registration",
+		SilenceUsage: true}
 	reg.AddCommand(slave.NewRegisterCmd(log, cfg))
 
 	root := &cobra.Command{
@@ -42,5 +56,6 @@ func Bootstrap() error {
 		SilenceUsage: true,
 	}
 	root.AddCommand(run, reg)
+
 	return root.ExecuteContext(ctx)
 }

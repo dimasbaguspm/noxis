@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package noxis.v1;
 
-option go_package = "noxis/internal/repository/grpc;rpc";
+option go_package = "noxis/internal/services/grpc;rpc";
 
 // Internal master<->slave transport only. The public API is REST
 // (internal/repository/rest); this exists to push spec events to slave
