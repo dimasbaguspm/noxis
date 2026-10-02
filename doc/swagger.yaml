@@ -1,0 +1,219 @@
+openapi: 3.0.3
+info:
+  title: noxis control plane API
+  description: >
+    Master REST API. Frontends and CLI read node state here; the master
+    publishes desired-state events to slave workers over an internal gRPC
+    transport (not part of this API).
+  version: 0.1.0
+paths:
+  /healthz:
+    get:
+      summary: Liveness probe
+      responses:
+        "200":
+          description: process is alive
+  /readyz:
+    get:
+      summary: Readiness probe (sqlite ping)
+      responses:
+        "200":
+          description: store is reachable
+        "503":
+          description: store check failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /openapi.yaml:
+    get:
+      summary: This OpenAPI spec
+      responses:
+        "200":
+          description: the spec itself
+          content:
+            application/yaml:
+              schema:
+                type: string
+  /v1/status:
+    get:
+      summary: Node statuses (reported runtime merged with registered nodes)
+      responses:
+        "200":
+          description: status of every node
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nodes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/NodeStatus"
+        "400":
+          description: invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/nodes/{node}/spec:
+    parameters:
+      - $ref: "#/components/parameters/Node"
+    get:
+      summary: Read a node's desired engines
+      responses:
+        "200":
+          description: the node's desired state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Spec"
+        "400":
+          description: invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      summary: Set a node's desired engines (publishes the event to the slave)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [engines]
+              properties:
+                engines:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Engine"
+      responses:
+        "204":
+          description: accepted and published
+        "400":
+          description: unknown engine type or bad body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/nodes/{node}/query:
+    parameters:
+      - $ref: "#/components/parameters/Node"
+    post:
+      summary: Run a query against an engine on the node (SQL engines)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueryRequest"
+      responses:
+        "200":
+          description: query output
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueryOutput"
+        "400":
+          description: invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: node not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /v1/nodes/{node}/register:
+    parameters:
+      - $ref: "#/components/parameters/Node"
+    post:
+      summary: Register a slave node (one-shot)
+      responses:
+        "204":
+          description: registered
+        "400":
+          description: invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  parameters:
+    Node:
+      name: node
+      in: path
+      required: true
+      schema:
+        type: string
+      description: slave node id
+  schemas:
+    Engine:
+      type: object
+      required: [name, type, version]
+      properties:
+        name:
+          type: string
+          description: instance name, unique per node (suffixed -2 for duplicates)
+        type:
+          type: string
+          description: postgres | mysql | mariadb | mongo | redis | elastic
+        version:
+          type: string
+          description: image tag, e.g. "16-alpine"
+        ports:
+          type: object
+          additionalProperties:
+            type: string
+          description: host -> container port overrides
+        env:
+          type: object
+          additionalProperties:
+            type: string
+          description: env overrides
+    Spec:
+      type: object
+      properties:
+        node:
+          type: string
+        engines:
+          type: array
+          items:
+            $ref: "#/components/schemas/Engine"
+    NodeStatus:
+      type: object
+      properties:
+        node:
+          type: string
+        state:
+          type: string
+          description: ok | error | offline
+        detail:
+          type: string
+        ts:
+          type: integer
+          format: int64
+          description: unix seconds, 0 when never reported
+    QueryRequest:
+      type: object
+      required: [engine, sql]
+      properties:
+        engine:
+          type: string
+          description: engine instance name on the node
+        sql:
+          type: string
+    QueryOutput:
+      type: object
+      properties:
+        output:
+          type: string
+          description: raw client output
+    Error:
+      type: object
+      properties:
+        error:
+          type: string

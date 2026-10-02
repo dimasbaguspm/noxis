@@ -26,6 +26,7 @@ func Register(mux *http.ServeMux, d Deps) {
 	registerSpec(mux, d)
 	registerQuery(mux, d)
 	registerNodes(mux, d)
+	registerDocs(mux, d)
 }
 
 func writeJSON(w http.ResponseWriter, code int, v any) {
