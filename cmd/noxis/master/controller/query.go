@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"noxis/internal/control"
+	"noxis/internal/modules/doorman"
 )
 
 // @Summary Run a doorman DB op (query | alter | rollback | analytics)
@@ -50,10 +51,10 @@ func PostAnalytics(w http.ResponseWriter, r *http.Request) {
 // doOp pins the op by route and dispatches the request to the node.
 func doOp(w http.ResponseWriter, r *http.Request) {
 	op := map[string]string{
-		"POST /v1/nodes/{node}/doorman/query":     "query",
-		"POST /v1/nodes/{node}/doorman/alter":     "alter",
-		"POST /v1/nodes/{node}/doorman/rollback":  "rollback",
-		"POST /v1/nodes/{node}/doorman/analytics": "analytics",
+		"POST /v1/nodes/{node}/doorman/query":     doorman.OpQuery,
+		"POST /v1/nodes/{node}/doorman/alter":     doorman.OpAlter,
+		"POST /v1/nodes/{node}/doorman/rollback":  doorman.OpRollback,
+		"POST /v1/nodes/{node}/doorman/analytics": doorman.OpAnalytics,
 	}[r.Pattern]
 	var req control.OpRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

@@ -1,0 +1,36 @@
+// Domain constants for doorman: resource naming, the wire contract ops, SQL
+// statement fragments, and the supported engine kinds. No bare strings in
+// module logic — everything that defines "what we do" lives here.
+package doorman
+
+const (
+	// Docker resource naming (node-scoped; volumes piggyback a suffix).
+	instancePrefix = "noxis-"
+	instanceLabel  = "noxis.engine"  // container label: the engine kind
+	nodeLabel      = "noxis.node"    // container label: the owning node
+	desiredLabel   = "noxis.desired" // container label: kind|version (drift compare)
+	dataVolSuffix  = "-data"
+
+	// Wire contract: op names crossing master REST <-> slave (control.Request
+	// and the slave's runOp switch both honor these).
+	OpQuery     = "query"
+	OpAlter     = "alter"
+	OpRollback  = "rollback"
+	OpAnalytics = "analytics"
+
+	// Client binary names; psql is the discriminator for the two CLI dialects.
+	clientPostgres = "psql"
+
+	// Client command fragments (postgres psql, mysql/mariadb -N -e).
+	clientFlag    = "-c"
+	mysqlEvalFlag = "-e"
+
+	// SQL statement fragments for the dry-run transaction wrapper.
+	stmtBegin    = "BEGIN;"
+	stmtRollback = "ROLLBACK;"
+
+	// Supported engine kinds (doorman is SQL-only by design).
+	EnginePostgres = "postgres"
+	EngineMariaDB  = "mariadb"
+	EngineMySQL    = "mysql"
+)

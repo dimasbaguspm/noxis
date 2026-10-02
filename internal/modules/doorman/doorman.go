@@ -4,18 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/repositories/docker"
-)
-
-// Entry points the module owns for resource naming.
-const (
-	instancePrefix = "noxis-"        // instance/volume name prefix (node-scoped)
-	instanceLabel  = "noxis.engine"  // label key marking a doorman-managed container
-	desiredLabel   = "noxis.desired" // label value for drift comparison
 )
 
 // Doorman executes the SQL responsibilities against the node's instances.
@@ -34,7 +28,9 @@ func New(d interfaces.Docker) *Doorman {
 func InstanceName(node, engine string) string { return instancePrefix + node + "-" + engine }
 
 // VolumeName is the persistent volume backing an instance.
-func VolumeName(node, engine string) string { return instancePrefix + node + "-" + engine + "-data" }
+func VolumeName(node, engine string) string {
+	return instancePrefix + node + "-" + engine + dataVolSuffix
+}
 
 // CreateInstance brings up (or confirms) the node's engine container: image
 // pulled if missing, data volume ensured, container run on the node's
@@ -46,7 +42,7 @@ func VolumeName(node, engine string) string { return instancePrefix + node + "-"
 func (u *Doorman) CreateInstance(ctx context.Context, node, network string, eng entity.Engine) (string, error) {
 	desc, ok := lookupEngine(eng.Type)
 	if !ok {
-		return "", fmt.Errorf("unsupported engine %q (sql only: postgres, mariadb, mysql)", eng.Type)
+		return "", fmt.Errorf("unsupported engine %q (sql only: %s)", eng.Type, supportedEngines())
 	}
 	name := InstanceName(node, eng.Name)
 	if _, err := u.d.ContainerInspect(ctx, name); err == nil {
@@ -87,7 +83,7 @@ func (u *Doorman) CreateInstance(ctx context.Context, node, network string, eng 
 		Image: image,
 		Labels: map[string]string{
 			instanceLabel: eng.Type,
-			"noxis.node":  node,
+			nodeLabel:     node,
 			desiredLabel:  eng.Type + "|" + engineVersion(eng, desc),
 		},
 		Env:          env,
@@ -155,27 +151,27 @@ func (u *Doorman) exec(ctx context.Context, node string, eng entity.Engine, args
 // clientArgs builds the engine CLI invocation for one statement.
 func clientArgs(desc sqlEngine, sql string) []string {
 	switch desc.client {
-	case "psql":
+	case clientPostgres:
 		// local socket auth is trust inside the official image
-		return []string{"psql", "-U", "postgres", "-t", "-A", "-c", sql}
+		return []string{clientPostgres, "-U", "postgres", "-t", "-A", clientFlag, sql}
 	default: // mariadb, mysql
 		return []string{desc.client, "-u", "root", "-p" + desc.env[desc.passwordEnv],
-			"-h", "127.0.0.1", "-N", "-e", sql}
+			"-h", "127.0.0.1", "-N", mysqlEvalFlag, sql}
 	}
 }
 
 // txRollback wraps the statement in BEGIN/ROLLBACK for a dry run.
 func txRollback(desc sqlEngine, sql string) []string {
-	if desc.client == "psql" {
-		return []string{"psql", "-U", "postgres", "-t", "-A",
-			"-c", "BEGIN;", "-c", sql, "-c", "ROLLBACK;"}
+	if desc.client == clientPostgres {
+		return []string{clientPostgres, "-U", "postgres", "-t", "-A",
+			clientFlag, stmtBegin, clientFlag, sql, clientFlag, stmtRollback}
 	}
 	return []string{desc.client, "-u", "root", "-p" + desc.env[desc.passwordEnv],
-		"-h", "127.0.0.1", "-N", "-e", "BEGIN; " + sql + "; ROLLBACK;"}
+		"-h", "127.0.0.1", "-N", mysqlEvalFlag, stmtBegin + " " + sql + " " + stmtRollback}
 }
 
 func analyzeStmt(typ, table string) string {
-	if typ == "postgres" {
+	if typ == EnginePostgres {
 		return "ANALYZE " + table
 	}
 	return "ANALYZE TABLE " + table
@@ -186,6 +182,16 @@ func engineVersion(eng entity.Engine, desc sqlEngine) string {
 		return eng.Version
 	}
 	return desc.version
+}
+
+// supportedEngines lists the engine kinds in the error message.
+func supportedEngines() string {
+	names := make([]string, 0, len(sqlEngines))
+	for kind := range sqlEngines {
+		names = append(names, kind)
+	}
+	sort.Strings(names)
+	return strings.Join(names, ", ")
 }
 
 // merged layers overrides onto defaults.

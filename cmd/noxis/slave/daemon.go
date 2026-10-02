@@ -220,13 +220,13 @@ func runOp(ctx context.Context, dm *doorman.Doorman, node string, req opReq, eng
 		err error
 	)
 	switch req.Op {
-	case "query":
+	case doorman.OpQuery:
 		out, err = dm.Query(ctx, node, eng, req.SQL)
-	case "alter":
+	case doorman.OpAlter:
 		out, err = dm.AlterTable(ctx, node, eng, req.SQL)
-	case "rollback":
+	case doorman.OpRollback:
 		out, err = dm.RollbackTable(ctx, node, eng, req.SQL)
-	case "analytics":
+	case doorman.OpAnalytics:
 		out, err = dm.AnalyzeTable(ctx, node, eng, req.Table)
 	default:
 		err = fmt.Errorf("unknown op %q", req.Op)

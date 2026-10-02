@@ -16,17 +16,17 @@ type sqlEngine struct {
 }
 
 var sqlEngines = map[string]sqlEngine{
-	"postgres": {
-		image: "postgres", version: "16-alpine", port: "5432", client: "psql",
+	EnginePostgres: {
+		image: "postgres", version: "16-alpine", port: "5432", client: clientPostgres,
 		passwordEnv: "POSTGRES_PASSWORD", dataDir: "/var/lib/postgresql/data",
 		env: map[string]string{"POSTGRES_PASSWORD": "noxis"},
 	},
-	"mariadb": {
+	EngineMariaDB: {
 		image: "mariadb", version: "11", port: "3306", client: "mariadb",
 		passwordEnv: "MARIADB_ROOT_PASSWORD", dataDir: "/var/lib/mysql",
 		env: map[string]string{"MARIADB_ROOT_PASSWORD": "noxis"},
 	},
-	"mysql": {
+	EngineMySQL: {
 		image: "mysql", version: "8", port: "3306", client: "mysql",
 		passwordEnv: "MYSQL_ROOT_PASSWORD", dataDir: "/var/lib/mysql",
 		env: map[string]string{"MYSQL_ROOT_PASSWORD": "noxis"},
