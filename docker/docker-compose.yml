@@ -1,0 +1,40 @@
+# Dev mode: one master + one slave worker. `make dev` builds and starts it.
+# The slave manages engines through the mounted docker socket.
+name: noxis
+
+services:
+  master:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    environment:
+      NOXIS_LISTEN: ":9000"
+      NOXIS_GRPC: ":9100"
+      NOXIS_DB: /data/noxis.db
+      NOXIS_OTEL_NAME: noxis-master
+    ports:
+      - "9000:9000"
+      - "9100:9100"
+    volumes:
+      - ./db.sqlite:/data/noxis.db
+    restart: unless-stopped
+
+  slave:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: sh -c 'until noxis register slave "$$NOXIS_SLAVE_NAME"; do sleep 2; done && exec noxis run slave "$$NOXIS_SLAVE_NAME"'
+    environment:
+      NOXIS_SLAVE_NAME: zeus
+      NOXIS_MASTER: http://master:9000
+      NOXIS_GRPC: master:9100
+      NOXIS_OTEL_NAME: noxis-zeus
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - noxis-identity:/root/.config
+    depends_on:
+      - master
+    restart: unless-stopped
+
+volumes:
+  noxis-identity:

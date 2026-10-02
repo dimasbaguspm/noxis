@@ -17,20 +17,20 @@ Personal multi-machine infra control plane. Go, single binary, role from CLI fla
 ```
 cmd/noxis/
   main.go            thin entry
-  bootstrap.go       env -> config -> logging -> app -> root CLI (run/register/status)
+  bootstrap.go       env -> config -> logging -> root CLI (run/register)
   master/            server.go + routes.go + controller.go + middleware.go
   slave/             daemon.go (worker loop) + register.go + identity.go
-internal/entity/         domain models + Config (env struct, go-validator) + App
+internal/services/       connection container: sqlite open + ping, grpc dial
+internal/entity/         domain models + Config (env struct, go-validator)
 internal/interfaces/     seams (Spec/Status/Node repositories)
 internal/repository/     sqlite impls + grpc/ (internal slave transport)
 internal/features/doorman/   reconcile.go (decisions) + runtimes/ (docker + engines)
 internal/features/ucm/      versioned config store on the changelog (next)
+docker/                  docker-compose.yml (dev) + db.sqlite (dev store)
 ```
 
 CLI is one-shot: `run master`, `run slave <id>` (reads identity, zero env),
-`register slave <name>` (identity + master registry), `status`. The master's
-REST API is the frontend surface; master registration/offline nodes merge
-into `/v1/status`.
+`register slave <name>` (identity + master registry). Everything else is REST.
 
 Engines nest under doorman, not beside it: elasticsearch is not a feature,
 it's a Doorman-managed engine. Every function takes ctx first; logs

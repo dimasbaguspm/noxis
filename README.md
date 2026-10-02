@@ -22,9 +22,8 @@ noxis register slave zeus
 # (run under systemd/pm2; it blocks in the foreground)
 noxis run slave zeus
 
-# status from anywhere
-export NOXIS_MASTER=http://master-host:9000
-noxis status
+# dev stack with docker compose (master + one slave worker)
+make dev
 ```
 
 ## REST API (frontend-facing)
@@ -64,21 +63,24 @@ needs no environment. Missing variables fail loudly per command.
 ```
 cmd/noxis/
   main.go            thin entry
-  bootstrap.go       env -> config -> logging -> app -> root CLI (run/register/status)
-  http.go            REST client for the CLI
-  master/            serve.go (daemon), routes.go, controller.go, middleware.go (CORS/log)
+  bootstrap.go       env -> config -> logging -> root CLI (run/register)
+  master/            server.go (daemon), routes.go, controller.go, middleware.go
   slave/             daemon.go (worker loop), register.go, identity.go
-internal/entity/         domain models, Config (env struct), App
+internal/services/       connection container: sqlite open + ping, grpc dial
+internal/entity/         domain models, Config (env struct)
 internal/interfaces/     seams (Spec/Status/Node repositories)
 internal/repository/     sqlite impls + grpc/ (internal slave transport)
 internal/features/doorman/   reconcile.go (decisions) + runtimes/ (docker + engines)
 internal/common/logging     slog JSON + OTEL; ctx-aware trace_id/span_id
+docker/               docker-compose.yml (dev stack) + db.sqlite (dev store)
 ```
 
 ## Dev
 
 ```bash
 make proto   # regenerate gRPC code after control.proto changes
-make build
 make test
+make build
+make dev     # docker compose: master + slave worker, stores sqlite under docker/db.sqlite
+make down
 ```

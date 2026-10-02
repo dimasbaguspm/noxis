@@ -1,9 +1,10 @@
-// Package master is the master daemon: REST API for frontends/CLI plus the
+// Package master is the master daemon: REST API for frontends plus the
 // internal gRPC transport to slave workers.
 package master
 
 import (
 	"context"
+	"log/slog"
 	"net"
 	"net/http"
 
@@ -13,47 +14,48 @@ import (
 	"noxis/internal/entity"
 	"noxis/internal/repository"
 	rpc "noxis/internal/repository/grpc"
+	"noxis/internal/services"
 )
 
-// Run blocks serving both listeners until ctx is done or a listener fails.
-func Run(ctx context.Context, app *entity.App) error {
-	if err := app.Cfg.Require(entity.EnvListen, entity.EnvGRPC, entity.EnvDB); err != nil {
+// Run blocks serving REST + gRPC until ctx is done or a listener fails.
+func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
+	if err := cfg.Require(entity.EnvListen, entity.EnvGRPC, entity.EnvDB); err != nil {
 		return err
 	}
-	repo, err := repository.OpenSQLite(app.Cfg.DB)
+	svc, err := services.OpenSQLite(cfg.DB)
 	if err != nil {
 		return err
 	}
-	defer repo.Close()
+	defer svc.DB.Close()
 
-	ctrl := rpc.NewServer(repo, repo)
+	ctrl := rpc.NewServer(svc.DB, svc.DB)
 	errs := make(chan error, 2)
-	go serveGRPC(ctx, app, ctrl, errs)
-	go serveREST(ctx, app, ctrl, repo, errs)
+	go serveGRPC(ctx, log, cfg, ctrl, errs)
+	go serveREST(ctx, log, cfg, ctrl, svc.DB, errs)
 
 	select {
 	case err := <-errs:
 		return err
 	case <-ctx.Done():
-		app.Log.InfoContext(ctx, "master stopped")
+		log.InfoContext(ctx, "master stopped")
 		return nil
 	}
 }
 
-func serveGRPC(ctx context.Context, app *entity.App, ctrl *rpc.Server, errs chan<- error) {
-	lis, err := net.Listen("tcp", app.Cfg.GRPC)
+func serveGRPC(ctx context.Context, log *slog.Logger, cfg entity.Config, ctrl *rpc.Server, errs chan<- error) {
+	lis, err := net.Listen("tcp", cfg.GRPC)
 	if err != nil {
 		errs <- err
 		return
 	}
 	srv := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
 	rpc.RegisterControlServer(srv, ctrl)
-	app.Log.InfoContext(ctx, "grpc transport serving", "addr", app.Cfg.GRPC)
+	log.InfoContext(ctx, "grpc transport serving", "addr", cfg.GRPC)
 	errs <- srv.Serve(lis)
 }
 
-func serveREST(ctx context.Context, app *entity.App, ctrl *rpc.Server, repo *repository.SQLite, errs chan<- error) {
-	app.Log.InfoContext(ctx, "rest api serving", "addr", app.Cfg.Listen)
-	srv := &http.Server{Addr: app.Cfg.Listen, Handler: newHandler(ctrl, repo, app.Log)}
+func serveREST(ctx context.Context, log *slog.Logger, cfg entity.Config, ctrl *rpc.Server, repo *repository.SQLite, errs chan<- error) {
+	log.InfoContext(ctx, "rest api serving", "addr", cfg.Listen)
+	srv := &http.Server{Addr: cfg.Listen, Handler: newHandler(ctrl, repo, log)}
 	errs <- srv.ListenAndServe()
 }

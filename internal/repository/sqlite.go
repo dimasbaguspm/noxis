@@ -64,3 +64,8 @@ func (r *SQLite) Notify(ctx context.Context, node string) {
 		}
 	}
 }
+
+// Ping verifies the store answers a database-level health check.
+func (r *SQLite) Ping(ctx context.Context) error {
+	return r.db.PingContext(ctx)
+}

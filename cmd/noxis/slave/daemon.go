@@ -17,6 +17,7 @@ import (
 	"noxis/internal/features/doorman"
 	"noxis/internal/features/doorman/runtimes"
 	rpc "noxis/internal/repository/grpc"
+	"noxis/internal/services"
 )
 
 const (
@@ -30,7 +31,7 @@ const (
 
 // NewRunCmd is `noxis run slave <id>`: starts the worker daemon from the
 // identity file written by register. The id must match the identity.
-func NewRunCmd(app *entity.App) *cobra.Command {
+func NewRunCmd(log *slog.Logger) *cobra.Command {
 	return &cobra.Command{
 		Use:   "slave [id]",
 		Short: "Run the slave worker daemon for this machine (needs registered identity)",
@@ -43,15 +44,15 @@ func NewRunCmd(app *entity.App) *cobra.Command {
 			if len(args) == 1 && args[0] != id.ID {
 				return fmt.Errorf("identity is %q, asked for %q", id.ID, args[0])
 			}
-			return slaveLoop(cmd.Context(), app, id)
+			return slaveLoop(cmd.Context(), log, id)
 		},
 	}
 }
 
 // slaveLoop keeps the bidirectional stream alive; the master replays the full
 // spec on every (re)connect, so no change is ever missed.
-func slaveLoop(ctx context.Context, app *entity.App, id *Identity) error {
-	log := app.Log.With("node", id.ID, "grpc", id.GRPC)
+func slaveLoop(ctx context.Context, base *slog.Logger, id *Identity) error {
+	log := base.With("node", id.ID, "grpc", id.GRPC)
 	counter := newReconcileCounter()
 	for attempt := 0; ; attempt++ {
 		if err := watchOnce(ctx, log, id, counter); err != nil {
@@ -70,7 +71,7 @@ func slaveLoop(ctx context.Context, app *entity.App, id *Identity) error {
 }
 
 func watchOnce(ctx context.Context, log *slog.Logger, id *Identity, counter metric.Int64Counter) error {
-	conn, err := rpc.Dial(ctx, id.GRPC)
+	conn, err := services.DialGRPC(ctx, id.GRPC)
 	if err != nil {
 		return fmt.Errorf("dial: %w", err)
 	}
