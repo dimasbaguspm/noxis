@@ -26,10 +26,10 @@ internal/repositories/   grouped by service:
   kafka/                 franz-go transport + EnsureTopic + Topics (env prefix)
   master/                typed methods for the master REST API
   slave/                 identity file (id, broker, topic prefix)
-  docker/                docker CLI wrapper: all docker commands, exact argv (network ops today)
+  docker/                docker CLI wrapper: all docker commands, exact argv (networks + container lifecycle)
 internal/common/         shared infra: http (standard headers), logging
 internal/entity/         domain models + Config (env struct, go-validator)
-internal/interfaces/     seams (NodeRepository)
+internal/interfaces/     seams, one file per service: NodeRepository (sqlite), Docker (repositories/docker)
 internal/features/doorman/   decisions only: network isolation boundary (noxis-<node> bridge per node); container decisions return later
 docker/                  docker-compose.yml (Kafka + master + slave) + db.sqlite
 

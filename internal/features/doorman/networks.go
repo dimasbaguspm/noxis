@@ -9,22 +9,15 @@ import (
 	"strconv"
 
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 	"noxis/internal/repositories/docker"
 )
-
-// Networks is the docker capability doorman needs; *docker.Client satisfies
-// it. Kept local — one implementation, swap-able in tests.
-type Networks interface {
-	NetworkExists(ctx context.Context, label string) (bool, error)
-	NetworkCreate(ctx context.Context, name string, labels ...string) error
-	NetworkRemove(ctx context.Context, name string) error
-}
 
 // NetworkManager owns the node's docker bridge network (noxis-<node>), the
 // isolation boundary every engine container of this node joins.
 type NetworkManager struct {
 	name string
-	d    Networks
+	d    interfaces.Docker
 }
 
 func NewNetworkManager(node string) *NetworkManager {
