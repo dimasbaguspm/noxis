@@ -2,13 +2,12 @@
 
 Personal multi-machine infra control plane. One Go binary: a **master** exposes a
 REST API and publishes desired-state events to **slave** workers over Kafka
-(apache/kafka + franz-go). Consumers use durable groups, so a restarted
-worker resumes from its last offset — no reconnect/replay loops. Engine
-containers are paused for the single-machine homelab trial; slaves do keep
-their **docker isolation boundary**: each node owns a `noxis-<node>` bridge
-network, created the moment a spec assigns any engine (no image pull
-required) and removed when the spec empties. The CLI is one-shot only:
-register once, run daemons.
+(apache/kafka + franz-go), plus a REST spec-refetch on slave start (durable
+offsets resume mid-stream, so a restart asks the master for its current spec
+— still zero-env, the master URL lives in identity). The slave runs SQL
+instances through the doorman module: postgres / mariadb / mysql containers on
+the node's `noxis-<node>` bridge network, queried via their native clients.
+The CLI is one-shot only: register once, run daemons.
 
 ## Quickstart
 
@@ -40,6 +39,9 @@ Routes are per-feature modules under `/v1/nodes/{nodeId}/{feature}/*` plus healt
 | GET | `/v1/nodes/{node}/spec` | `{node,engines:[...]}` |
 | PUT | `/v1/nodes/{node}/spec` | 204, publishes to the node's stream |
 | POST | `/v1/nodes/{node}/doorman/query` | `{output}` |
+| POST | `/v1/nodes/{node}/doorman/alter` | `{output}` (ALTER TABLE) |
+| POST | `/v1/nodes/{node}/doorman/rollback` | `{output}` (dry-run transaction) |
+| POST | `/v1/nodes/{node}/doorman/analytics` | `{output}` (ANALYZE) |
 | POST | `/v1/nodes/{node}/register` | 204, registers a slave node |
 
 ```bash

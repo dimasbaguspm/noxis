@@ -100,6 +100,22 @@ func TestContainerOps(t *testing.T) {
 		}
 	}
 
+	// exec
+	calls = calls[:0]
+	out = "1\n"
+	res, err := c.ContainerExec(context.Background(), "noxis-zeus-postgres", "psql", "-U", "postgres", "-c", "SELECT 1")
+	if err != nil || res != "1\n" {
+		t.Fatalf("exec: %q, %v", res, err)
+	}
+	if got := calls[len(calls)-1]; got != "exec noxis-zeus-postgres psql -U postgres -c SELECT 1" {
+		t.Fatalf("exec argv: %s", got)
+	}
+	errOut = "Error: No such container"
+	if _, err := c.ContainerExec(context.Background(), "gone", "true"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("exec missing: %v", err)
+	}
+	errOut = ""
+
 	// status / exists probes
 	calls = calls[:0]
 	out = "running"

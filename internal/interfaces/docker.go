@@ -18,6 +18,7 @@ type Docker interface {
 	ContainerInspect(ctx context.Context, name string) (docker.Container, error)
 	ContainerStatus(ctx context.Context, name string) (string, error)
 	ContainerRun(ctx context.Context, opts docker.ContainerOptions) error
+	ContainerExec(ctx context.Context, name string, args ...string) (string, error)
 	ContainerStart(ctx context.Context, name string) error
 	ContainerStop(ctx context.Context, name string) error
 	ContainerRestart(ctx context.Context, name string) error

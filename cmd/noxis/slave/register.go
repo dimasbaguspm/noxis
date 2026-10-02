@@ -27,11 +27,11 @@ func NewRegisterCmd(log *slog.Logger, cfg entity.Config) *cobra.Command {
 			if err := master.NewClient(cfg.Master).RegisterNode(cmd.Context(), name); err != nil {
 				return fmt.Errorf("register with master: %w", err)
 			}
-			if err := reposlave.Save(reposlave.Identity{ID: name, Broker: cfg.Broker, TopicPrefix: cfg.TopicPrefix}); err != nil {
+			if err := reposlave.Save(reposlave.Identity{ID: name, Broker: cfg.Broker, TopicPrefix: cfg.TopicPrefix, Master: cfg.Master}); err != nil {
 				return err
 			}
 			log.InfoContext(cmd.Context(), "slave registered",
-				"id", name, "broker", cfg.Broker, "topic_prefix", cfg.TopicPrefix, "identity", reposlave.Path())
+				"id", name, "broker", cfg.Broker, "topic_prefix", cfg.TopicPrefix, "master", cfg.Master, "identity", reposlave.Path())
 			return nil
 		},
 	}

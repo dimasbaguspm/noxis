@@ -132,22 +132,27 @@ func (c *Control) RunStatusConsumer(ctx context.Context) error {
 	}
 }
 
-type queryReq struct {
+// OpRequest is a doorman responsibility crossing to the slave over the
+// node's request topic.
+type OpRequest struct {
+	Op     string `json:"op"` // query | alter | rollback | analytics
 	Engine string `json:"engine"`
-	SQL    string `json:"sql"`
+	SQL    string `json:"sql,omitempty"`
+	Table  string `json:"table,omitempty"`
 }
 
-type queryRes struct {
+type opRes struct {
 	Output string `json:"output"`
 	Error  string `json:"error"`
 }
 
-// Query publishes a request to the node's topic and waits for the correlated
-// reply. One throwaway consumer per query keeps reply routing trivial.
+// Request publishes a doorman op to the node's topic and waits for the
+// correlated reply. One throwaway consumer per request keeps reply routing
+// trivial.
 //
-// ponytail: per-query consumer connection; fine at personal-infra query rates
-// — reuse a pool if queries ever become frequent.
-func (c *Control) Query(ctx context.Context, node, engine, sql string) (string, error) {
+// ponytail: per-request consumer connection; fine at personal-infra rates —
+// reuse a pool if requests ever become frequent.
+func (c *Control) Request(ctx context.Context, node string, req OpRequest) (string, error) {
 	qid, err := newID()
 	if err != nil {
 		return "", err
@@ -158,27 +163,30 @@ func (c *Control) Query(ctx context.Context, node, engine, sql string) (string, 
 	if err := c.k.EnsureTopic(ctx, c.topics.Res(node)); err != nil {
 		return "", err
 	}
-	req, err := json.Marshal(queryReq{Engine: engine, SQL: sql})
+	body, err := json.Marshal(req)
 	if err != nil {
 		return "", err
 	}
-	if err := c.k.PublishSync(ctx, c.topics.Req(node), qid, req); err != nil {
+	if err := c.k.PublishSync(ctx, c.topics.Req(node), qid, body); err != nil {
 		return "", err
 	}
 
-	cons, err := kafka.Consume(ctx, c.addrs, "", true, c.topics.Res(node))
+	// Scroll from the start of the topic so an answer published before this
+	// consumer subscribed is never missed; stale replies are keyed by other
+	// request ids and skipped. Subscribing first would also fix the race.
+	cons, err := kafka.Consume(ctx, c.addrs, "", false, c.topics.Res(node))
 	if err != nil {
 		return "", err
 	}
 	defer cons.Close()
 	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
 	defer cancel()
-	body, err := cons.WaitKey(ctx, qid)
+	reply, err := cons.WaitKey(ctx, qid)
 	if err != nil {
-		return "", errors.New("query timed out: node " + node + " did not answer")
+		return "", errors.New("request timed out: node " + node + " did not answer")
 	}
-	var res queryRes
-	if err := json.Unmarshal(body, &res); err != nil {
+	var res opRes
+	if err := json.Unmarshal(reply, &res); err != nil {
 		return "", err
 	}
 	if res.Error != "" {

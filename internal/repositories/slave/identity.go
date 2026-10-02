@@ -15,6 +15,7 @@ type Identity struct {
 	ID          string `json:"id"`
 	Broker      string `json:"broker"`       // Kafka broker address(es)
 	TopicPrefix string `json:"topic_prefix"` // Kafka topic prefix (NOXIS_TOPIC_PREFIX)
+	Master      string `json:"master"`       // REST base URL of the master (spec refetch on start)
 }
 
 // Path is the identity file location (per-user config dir).
@@ -35,7 +36,7 @@ func Load() (*Identity, error) {
 	if err := json.Unmarshal(raw, &id); err != nil {
 		return nil, fmt.Errorf("parse identity: %w", err)
 	}
-	if id.ID == "" || id.Broker == "" || id.TopicPrefix == "" {
+	if id.ID == "" || id.Broker == "" || id.TopicPrefix == "" || id.Master == "" {
 		return nil, errors.New("identity is incomplete")
 	}
 	return &id, nil

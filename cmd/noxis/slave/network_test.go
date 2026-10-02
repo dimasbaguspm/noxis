@@ -1,4 +1,4 @@
-package doorman
+package slave
 
 import (
 	"context"

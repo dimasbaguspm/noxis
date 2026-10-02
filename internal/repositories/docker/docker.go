@@ -157,6 +157,21 @@ func (c *Client) ContainerStatus(ctx context.Context, name string) (string, erro
 	return strings.TrimSpace(string(out)), nil
 }
 
+// ContainerExec runs a command inside the container and returns combined
+// output. A non-zero exit surfaces as the docker error (with stderr in the
+// message); a missing container is ErrNotFound.
+func (c *Client) ContainerExec(ctx context.Context, name string, args ...string) (string, error) {
+	execArgs := append([]string{"exec", name}, args...)
+	out, err := c.run(ctx, execArgs...)
+	if err != nil {
+		if strings.Contains(string(out), "No such container") {
+			return "", ErrNotFound
+		}
+		return string(out), err
+	}
+	return string(out), nil
+}
+
 // ContainerStart resumes a stopped container.
 func (c *Client) ContainerStart(ctx context.Context, name string) error {
 	_, err := c.run(ctx, "start", name)

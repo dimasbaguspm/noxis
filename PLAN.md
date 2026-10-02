@@ -29,6 +29,9 @@ internal/repositories/   grouped by service:
   docker/                docker CLI wrapper: exact argv for networks, containers
                         (run/inspect/status/start/stop/restart/kill/remove), images, volumes
 internal/common/         shared infra: http (standard headers), logging
+internal/modules/doorman/   SQL module (doorman): instance create (postgres/mariadb/mysql),
+                        query, alter, rollback (dry-run tx), analytics; engine descriptors
+                        and client argv live here; mechanics in repositories/docker
 internal/entity/         domain models + Config (env struct, go-validator)
 internal/interfaces/     seams, one file per service: NodeRepository (sqlite), Docker (repositories/docker)
 internal/features/doorman/   decisions only: network isolation boundary (noxis-<node> bridge per node); container decisions return later
@@ -46,8 +49,13 @@ until the next heartbeat/assign (ponytail: replay spec topics if it matters).
 
 Isolation: each slave owns a docker bridge network `noxis-<node>` (label
 noxis.network=<node>) — created on the first engine assignment, removed on an
-empty spec, diffed via docker network ls each event. Engine containers join
-it later; the boundary exists even when images are not pulled.
+empty spec. Instances join it (network alias = engine name) with a persistent
+volume (noxis-<node>-<engine>-data) and dev passwords in env (overridable via
+spec env). Restart recovery: master memory refetch via REST (identity.master).
+
+Ceilings/next: instance teardown when engines leave the spec (orphans linger);
+drift recreation on version change; true rollback from a DDL changelog (UCM);
+cluster/HA engines.
 ```
 
 CLI is one-shot: `run master`, `run slave <id>` (reads identity, zero env),

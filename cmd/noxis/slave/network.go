@@ -1,8 +1,8 @@
-// Package doorman manages the slave's engine runtime — currently only the
-// per-node docker network that bounds its engines. Engine containers, health
-// checks and backups rejoin this package later. Docker mechanics stay in
+// The slave's node isolation: a per-node docker bridge network
+// (noxis-<node>) that bounds the node's engine containers. This is worker
+// infrastructure, not a feature module — docker mechanics stay in
 // internal/repositories/docker; this layer only decides.
-package doorman
+package slave
 
 import (
 	"context"
@@ -13,15 +13,13 @@ import (
 	"noxis/internal/repositories/docker"
 )
 
-// Domain conventions for the node's isolation resources. Kept here, not in
-// the docker repository: the feature owns what things are named.
+// Domain conventions for the node's isolation resources, owned here.
 const (
-	networkPrefix = "noxis-"        // docker resource name prefix (network, volume, container)
-	networkLabel  = "noxis.network" // label key pinning a resource to its node
+	networkPrefix = "noxis-"        // docker resource name prefix
+	networkLabel  = "noxis.network" // label key pinning a network to its node
 )
 
-// NetworkManager owns the node's docker bridge network (noxis-<node>), the
-// isolation boundary every engine container of this node joins.
+// NetworkManager owns the node's docker bridge network (noxis-<node>).
 type NetworkManager struct {
 	name string
 	d    interfaces.Docker
@@ -34,6 +32,9 @@ func NewNetworkManager(node string) *NetworkManager {
 func networkName(node string) string { return networkPrefix + node }
 
 func (m *NetworkManager) label() string { return networkLabel + "=" + m.name }
+
+// NetworkName is the docker network name for this manager's node.
+func (m *NetworkManager) NetworkName() string { return m.name }
 
 // Reconcile makes the network exist iff the spec assigns at least one engine.
 // Images need not be pulled yet — the network is the node's boundary and is

@@ -11,9 +11,39 @@ paths:
       responses:
         "200":
           description: process is alive
-  "/v1/nodes/{node}/doorman/query":
+  "/v1/nodes/{node}/doorman/alter":
     post:
-      summary: Run a query against an engine on the node (SQL engines)
+      summary: Apply an ALTER TABLE on the node's engine
+      parameters:
+        - description: slave node id
+          name: node
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        $ref: "#/components/requestBodies/control.OpRequest"
+      responses:
+        "200":
+          description: result output
+          content:
+            "*/*":
+              schema:
+                type: object
+                properties:
+                  output:
+                    type: string
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/nodes/{node}/doorman/analytics":
+    post:
+      summary: Analyze a table (ANALYZE / ANALYZE TABLE)
       parameters:
         - description: slave node id
           name: node
@@ -25,16 +55,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/controller.queryRequest"
-        description: engine and SQL
+              $ref: "#/components/schemas/control.OpRequest"
+        description: engine and table
         required: true
       responses:
         "200":
-          description: OK
+          description: result output
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/controller.queryOutput"
+                type: object
+                properties:
+                  output:
+                    type: string
         "400":
           description: Bad Request
           content:
@@ -43,8 +76,65 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-        "503":
-          description: node not connected
+  "/v1/nodes/{node}/doorman/query":
+    post:
+      summary: Run a doorman DB op (query | alter | rollback | analytics)
+      parameters:
+        - description: slave node id
+          name: node
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/control.OpRequest"
+        description: op, engine, and sql/table
+        required: true
+      responses:
+        "200":
+          description: result output
+          content:
+            "*/*":
+              schema:
+                type: object
+                properties:
+                  output:
+                    type: string
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/nodes/{node}/doorman/rollback":
+    post:
+      summary: Dry-run a change inside a transaction that always rolls back
+      parameters:
+        - description: slave node id
+          name: node
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        $ref: "#/components/requestBodies/control.OpRequest"
+      responses:
+        "200":
+          description: result output
+          content:
+            "*/*":
+              schema:
+                type: object
+                properties:
+                  output:
+                    type: string
+        "400":
+          description: Bad Request
           content:
             "*/*":
               schema:
@@ -148,7 +238,27 @@ paths:
                 additionalProperties:
                   type: string
 components:
+  requestBodies:
+    control.OpRequest:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/control.OpRequest"
+      description: engine and SQL
+      required: true
   schemas:
+    control.OpRequest:
+      type: object
+      properties:
+        engine:
+          type: string
+        op:
+          description: query | alter | rollback | analytics
+          type: string
+        sql:
+          type: string
+        table:
+          type: string
     controller.putSpecBody:
       type: object
       properties:
@@ -156,18 +266,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/entity.Engine"
-    controller.queryOutput:
-      type: object
-      properties:
-        output:
-          type: string
-    controller.queryRequest:
-      type: object
-      properties:
-        engine:
-          type: string
-        sql:
-          type: string
     entity.Engine:
       type: object
       properties:

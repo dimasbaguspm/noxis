@@ -117,18 +117,23 @@ func (b *Broker) EnsureTopic(ctx context.Context, topic string) error {
 }
 
 // Consume opens a consumer. Grouped consumers persist offsets (durable
-// resume); fromEnd starts fresh (status observers, query replies).
+// resume — committed offsets win, a fresh group starts at the end so no old
+// events replay). A standalone fromEnd consumer watches only new records;
+// a standalone non-fromEnd consumer scrolls from the start (reply matching
+// by key makes replay harmless).
 func Consume(ctx context.Context, addrs []string, group string, fromEnd bool, topics ...string) (*Broker, error) {
 	opts := []kgo.Opt{
 		kgo.SeedBrokers(addrs...),
 		kgo.ConsumeTopics(topics...),
 		// default batch sizes are fine for control-plane payloads
 	}
-	if group != "" {
-		opts = append(opts, kgo.ConsumerGroup(group))
-	}
-	if fromEnd {
+	switch {
+	case group != "":
+		opts = append(opts, kgo.ConsumerGroup(group), kgo.ConsumeResetOffset(kgo.NewOffset().AtEnd()))
+	case fromEnd:
 		opts = append(opts, kgo.ConsumeResetOffset(kgo.NewOffset().AtEnd()))
+	default:
+		opts = append(opts, kgo.ConsumeResetOffset(kgo.NewOffset().AtStart()))
 	}
 	cl, err := kgo.NewClient(opts...)
 	if err != nil {
