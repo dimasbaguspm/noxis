@@ -1,4 +1,4 @@
-package commands
+package main
 
 import (
 	"bytes"
@@ -12,11 +12,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// baseURL and a 10s client: the CLI is a thin REST consumer of the master.
-const (
-	restTimeout = 10 * time.Second
-	prefixV1    = "/v1"
-)
+const restTimeout = 10 * time.Second
 
 // doJSON performs a REST call against the master and decodes the response.
 func doJSON(ctx context.Context, app *entity.App, method, path string, body, out any) error {
@@ -28,7 +24,7 @@ func doJSON(ctx context.Context, app *entity.App, method, path string, body, out
 		}
 		rd = bytes.NewReader(b)
 	}
-	req, err := http.NewRequestWithContext(ctx, method, app.Cfg.Master+prefixV1+path, rd)
+	req, err := http.NewRequestWithContext(ctx, method, app.Cfg.Master+"/v1"+path, rd)
 	if err != nil {
 		return err
 	}

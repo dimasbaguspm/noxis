@@ -25,3 +25,9 @@ type StatusRepository interface {
 	Report(ctx context.Context, s entity.NodeStatus) error
 	List(ctx context.Context) ([]entity.NodeStatus, error)
 }
+
+// NodeRepository is the master's registry of registered slave nodes.
+type NodeRepository interface {
+	Register(ctx context.Context, id string) error
+	ListIDs(ctx context.Context) ([]string, error)
+}

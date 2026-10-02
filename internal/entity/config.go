@@ -13,7 +13,6 @@ import (
 const (
 	EnvMaster        = "NOXIS_MASTER"         // REST base URL of the master: CLI/frontend
 	EnvGRPC          = "NOXIS_GRPC"           // internal transport addr: slave + master
-	EnvNode          = "NOXIS_NODE"           // this node's id: slave
 	EnvListen        = "NOXIS_LISTEN"         // REST listen addr: master
 	EnvDB            = "NOXIS_DB"             // sqlite path: master
 	EnvOTELCollector = "NOXIS_OTEL_COLLECTOR" // OTLP endpoint (optional)
@@ -24,7 +23,6 @@ const (
 type Config struct {
 	Master        string `validate:"required"`
 	GRPC          string `validate:"required"`
-	Node          string `validate:"required"`
 	Listen        string `validate:"required"`
 	DB            string `validate:"required"`
 	OTELCollector string
@@ -38,7 +36,6 @@ func LoadConfig() Config {
 	return Config{
 		Master:        os.Getenv(EnvMaster),
 		GRPC:          os.Getenv(EnvGRPC),
-		Node:          os.Getenv(EnvNode),
 		Listen:        os.Getenv(EnvListen),
 		DB:            os.Getenv(EnvDB),
 		OTELCollector: os.Getenv(EnvOTELCollector),
@@ -63,8 +60,6 @@ func fieldOf(c Config, env string) string {
 		return c.Master
 	case EnvGRPC:
 		return c.GRPC
-	case EnvNode:
-		return c.Node
 	case EnvListen:
 		return c.Listen
 	case EnvDB:
@@ -80,7 +75,6 @@ func fieldOf(c Config, env string) string {
 func (c Config) String() string {
 	return strings.Join([]string{
 		EnvMaster + "=" + c.Master,
-		EnvNode + "=" + c.Node,
 		EnvListen + "=" + c.Listen,
 		EnvDB + "=" + c.DB,
 		EnvOTELCollector + "=" + c.OTELCollector,

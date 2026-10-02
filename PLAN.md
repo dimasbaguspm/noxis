@@ -15,14 +15,22 @@ Personal multi-machine infra control plane. Go, single binary, role from CLI fla
 ## Shape
 
 ```
-cmd/noxis/              bootstrap in main.go; commands/ one file per verb (REST clients)
-internal/entity/        domain models + Config (env struct, go-validator) + App
-internal/interfaces/    seams (SpecRepository, StatusRepository)
-internal/repository/    sqlite impls + grpc/ (internal slave transport) + rest/ (public REST API)
-internal/features/doorman/reconcile.go   diff/apply decisions
-internal/features/doorman/runtimes/      docker driver + per-engine recipes
-internal/features/ucm/                  versioned config store on the changelog (next)
+cmd/noxis/
+  main.go            thin entry
+  bootstrap.go       env -> config -> logging -> app -> root CLI (run/register/status)
+  master/            server.go + routes.go + controller.go + middleware.go
+  slave/             daemon.go (worker loop) + register.go + identity.go
+internal/entity/         domain models + Config (env struct, go-validator) + App
+internal/interfaces/     seams (Spec/Status/Node repositories)
+internal/repository/     sqlite impls + grpc/ (internal slave transport)
+internal/features/doorman/   reconcile.go (decisions) + runtimes/ (docker + engines)
+internal/features/ucm/      versioned config store on the changelog (next)
 ```
+
+CLI is one-shot: `run master`, `run slave <id>` (reads identity, zero env),
+`register slave <name>` (identity + master registry), `status`. The master's
+REST API is the frontend surface; master registration/offline nodes merge
+into `/v1/status`.
 
 Engines nest under doorman, not beside it: elasticsearch is not a feature,
 it's a Doorman-managed engine. Every function takes ctx first; logs
