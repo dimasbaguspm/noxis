@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"noxis/internal/core"
+	"noxis/internal/entity"
 )
 
 // Reconciler converges a node's slice of desired state against the local
@@ -21,10 +21,12 @@ func ContainerName(node, engine string) string {
 	return fmt.Sprintf("noxis-%s-%s", node, engine)
 }
 
-// Reconcile diffs desired engines against running containers and applies.
-// Returns a human-readable summary of what changed.
-func (r *Reconciler) Reconcile(ctx context.Context, engines []*core.EngineSpec) (string, error) {
-	desired := map[string]*core.EngineSpec{}
+// Reconcile diffs desired engines against the actual runtime (docker ps) and
+// applies. Actual state is read fresh every time — no cached copy, so a spec
+// push and a manual sync can never double-apply: the diff is against the
+// machine, not against our own bookkeeping.
+func (r *Reconciler) Reconcile(ctx context.Context, engines []entity.Engine) (string, error) {
+	desired := map[string]entity.Engine{}
 	for _, e := range engines {
 		if _, ok := Lookup(e.Type); !ok {
 			return "", fmt.Errorf("unknown engine type %q", e.Type)
@@ -82,11 +84,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, engines []*core.EngineSpec) 
 
 func (r *Reconciler) nodeName() string { return r.Node }
 
-func (r *Reconciler) container(e *core.EngineSpec) string {
+func (r *Reconciler) container(e entity.Engine) string {
 	return ContainerName(r.Node, e.Name)
 }
 
-func runContainer(ctx context.Context, node string, e *core.EngineSpec) error {
+func runContainer(ctx context.Context, node string, e entity.Engine) error {
 	d, _ := Lookup(e.Type)
 	args := []string{"run", "-d",
 		"--name", ContainerName(node, e.Name),

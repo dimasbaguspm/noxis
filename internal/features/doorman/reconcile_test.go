@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"noxis/internal/core"
+	"noxis/internal/entity"
 )
 
 // Fake docker driver: an in-memory container table, recording every command.
@@ -61,7 +61,7 @@ func TestReconcile(t *testing.T) {
 	ctx := context.Background()
 
 	// 1. start two engines
-	detail, err := r.Reconcile(ctx, []*core.EngineSpec{
+	detail, err := r.Reconcile(ctx, []entity.Engine{
 		{Name: "redis", Type: "redis", Version: "7"},
 		{Name: "es", Type: "elastic", Version: "8"},
 	})
@@ -73,7 +73,7 @@ func TestReconcile(t *testing.T) {
 	}
 
 	// 2. no-op when in sync
-	std, err := r.Reconcile(ctx, []*core.EngineSpec{
+	std, err := r.Reconcile(ctx, []entity.Engine{
 		{Name: "redis", Type: "redis", Version: "7"},
 		{Name: "es", Type: "elastic", Version: "8"},
 	})
@@ -85,7 +85,7 @@ func TestReconcile(t *testing.T) {
 	}
 
 	// 3. version bump recreates
-	detail, err = r.Reconcile(ctx, []*core.EngineSpec{
+	detail, err = r.Reconcile(ctx, []entity.Engine{
 		{Name: "redis", Type: "redis", Version: "8"},
 		{Name: "es", Type: "elastic", Version: "8"},
 	})
@@ -97,7 +97,7 @@ func TestReconcile(t *testing.T) {
 	}
 
 	// 4. removed engine cleans up
-	detail, err = r.Reconcile(ctx, []*core.EngineSpec{
+	detail, err = r.Reconcile(ctx, []entity.Engine{
 		{Name: "redis", Type: "redis", Version: "8"},
 	})
 	if err != nil {
@@ -108,7 +108,7 @@ func TestReconcile(t *testing.T) {
 	}
 
 	// 5. unknown type is a clear error
-	if _, err := r.Reconcile(ctx, []*core.EngineSpec{{Name: "x", Type: "couchdb", Version: "4"}}); err == nil {
+	if _, err := r.Reconcile(ctx, []entity.Engine{{Name: "x", Type: "couchdb", Version: "4"}}); err == nil {
 		t.Fatal("expected error for unknown engine type")
 	}
 

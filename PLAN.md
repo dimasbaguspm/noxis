@@ -15,19 +15,21 @@ Personal multi-machine infra control plane. Go, single binary, role from CLI fla
 ## Shape
 
 ```
-cmd/noxis          CLI entry, role flag: master | slave
-internal/core      gRPC server/client, Watch stream + reconnect loop, status registry
-internal/store     SQLite: desired state / config versions / change log
-internal/features/ applications the binary speaks (each thin, on core)
-  doorman/         control plane for DB engines
-    engine.go      Engine interface + registry (all engines ship in-binary, no plugin system)
-    docker.go      docker driver: create/start/stop/rm/inspect
-    sql.go         one base: postgres, mysql, mariadb
-    mongo.go / redis.go / elastic.go   one file per engine, register + done
-  ucm/             versioned config store on the change log
+cmd/noxis           bootstrap: env -> config struct -> logger -> commands (wired once)
+internal/common/    config (single env struct, no defaults), logging (slog JSON + OTEL)
+internal/entity/    domain models
+internal/interfaces/   seams (SpecRepository, StatusRepository)
+internal/repository/   sqlite implementations
+internal/core/      control.proto, gRPC server + proto<->entity converters, client
+internal/features/  applications on the core
+  doorman/          engine registry + docker reconciler (desc, sql, mongo, redis, elastic)
+  ucm/              versioned config store on the changelog (next)
 ```
 
-Engines nest under doorman, not beside it: elasticsearch is not a feature, it's a Doorman-managed engine.
+Storage decision: sqlite holds only the assignment record (what should run),
+the status echo (what slaves report running), and the changelog (audit/oplog).
+Actual runtime lives on the machine (docker ps), read fresh on every
+reconcile — no duplicated state, no double-apply by design.
 
 ## Phases
 
