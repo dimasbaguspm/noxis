@@ -8,6 +8,7 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
+    command: run master
     environment:
       NOXIS_LISTEN: ":9000"
       NOXIS_GRPC: ":9100"
@@ -30,7 +31,8 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-    command: sh -c 'noxis register slave "$$NOXIS_SLAVE_NAME" && exec noxis run slave "$$NOXIS_SLAVE_NAME"'
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["noxis register slave \"$$NOXIS_SLAVE_NAME\" && exec noxis run slave \"$$NOXIS_SLAVE_NAME\""]
     environment:
       NOXIS_SLAVE_NAME: zeus
       NOXIS_MASTER: http://master:9000
