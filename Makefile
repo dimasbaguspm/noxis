@@ -1,6 +1,6 @@
 PATH := $(HOME)/.local/bin:$(HOME)/go/bin:$(PATH)
 
-.PHONY: build test lint swagger db dev down uat
+.PHONY: build test lint swagger dev down uat
 
 build:
 	go build -o bin/noxis ./cmd/noxis
@@ -26,11 +26,7 @@ swagger:  ## regenerate doc/swagger.yaml|json (OpenAPI 3) from handler annotatio
 	mv doc/openapi3.yaml doc/swagger.yaml
 	mv doc/openapi3.json doc/swagger.json
 
-db:   ## create the dev sqlite store under docker/
-	@mkdir -p docker
-	@test -f docker/db.sqlite || touch docker/db.sqlite
-
-dev: db  ## build + run the dev stack (docker compose)
+dev:  ## build + run the dev stack (docker compose; registry lives in the noxis-data volume)
 	docker compose -f docker/docker-compose.yml up --build
 
 down:  ## stop the dev stack and wipe its data (compose volumes, slave containers/volumes/network, registry) — start fresh later with make dev

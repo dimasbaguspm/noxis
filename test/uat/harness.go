@@ -44,7 +44,6 @@ var root = func() string {
 var (
 	stackFile = root + "/docker/docker-compose.yml"
 	masterURL = "http://localhost:9000"
-	dbFile    = root + "/docker/db.sqlite"
 
 	// engineLabel marks slave-created containers; compose down won't see
 	// them, so stackDown sweeps by label/prefix (see stackDown). nodeName is
@@ -65,18 +64,10 @@ type world struct {
 	out  string // last doorman-style op output
 }
 
-// stackUp seeds the registry file (an empty sqlite file is valid; the master
-// creates the schema), starts the compose stack, and waits for the master to
-// answer /healthz.
+// stackUp starts the compose stack (the registry lives in the named
+// noxis-data volume — nothing to seed) and waits for the master to answer
+// /healthz.
 func stackUp() error {
-	if _, err := os.Stat(dbFile); err != nil {
-		if !os.IsNotExist(err) {
-			return fmt.Errorf("stat %s: %w", dbFile, err)
-		}
-		if err := os.WriteFile(dbFile, nil, 0o644); err != nil {
-			return fmt.Errorf("seed %s: %w", dbFile, err)
-		}
-	}
 	out, err := exec.Command("docker", "compose", "-f", stackFile, "up", "-d", "--build").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("compose up: %w\n%s", err, out)
