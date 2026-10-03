@@ -4,6 +4,7 @@ export type Connection = components["schemas"]["entity.Connection"];
 export type Change = components["schemas"]["entity.Change"];
 export type ChangeCheck = components["schemas"]["entity.ChangeCheck"];
 export type Result = components["schemas"]["sql.Result"];
+export type Stats = components["schemas"]["sql.Stats"];
 
 export interface Column {
   name: string;
@@ -41,6 +42,9 @@ export const api = {
     remove: (name: string) => request<null>("DELETE", `/v1/connections/${name}`),
     test: (name: string) => request<{ status: string }>("POST", `/v1/connections/${name}/test`),
     schema: (name: string) => request<{ tables: Table[] }>("GET", `/v1/connections/${name}/schema`),
+    stats: (name: string) => request<Stats>("GET", `/v1/connections/${name}/stats`),
+    // the live view subscribes to this endpoint with an EventSource
+    statsStream: (name: string) => `/v1/connections/${name}/stats/stream`,
     rows: (name: string, schema: string, table: string, limit = 100) =>
       request<Result>(
         "GET",
@@ -59,6 +63,6 @@ export const api = {
     submit: (input: ChangeInput) => request<Change>("POST", "/v1/changes", input),
     approve: (id: string) => request<Change>("POST", `/v1/changes/${id}/approve`),
     apply: (id: string) => request<Change>("POST", `/v1/changes/${id}/apply`),
-    reject: (id: string) => request<null>("DELETE", `/v1/changes/${id}`),
+    reject: (id: string) => request<Change>("POST", `/v1/changes/${id}/reject`),
   },
 };

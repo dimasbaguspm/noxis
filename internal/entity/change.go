@@ -9,11 +9,17 @@ type Change struct {
 	Query      string        `json:"query" validate:"required"`
 	Rollback   string        `json:"rollback" validate:"required"`
 	Kind       string        `json:"kind"`   // dml | ddl
-	Status     string        `json:"status"` // validated | failed | approved | applied
+	Status     string        `json:"status"` // validated | unverified | failed | approved | applied | rejected
 	Checks     []ChangeCheck `json:"checks,omitempty"`
 	CreatedAt  int64         `json:"createdAt"`
 	ApprovedAt int64         `json:"approvedAt,omitempty"`
 	AppliedAt  int64         `json:"appliedAt,omitempty"`
+	RejectedAt int64         `json:"rejectedAt,omitempty"`
+	// measured on the dry run (estimates) and on apply (actuals)
+	EstDurationMs     int64 `json:"estDurationMs,omitempty"`
+	EstAffected       int64 `json:"estAffected,omitempty"`
+	AppliedAffected   int64 `json:"appliedAffected,omitempty"`
+	AppliedDurationMs int64 `json:"appliedDurationMs,omitempty"`
 }
 
 // ChangeCheck is one validation outcome.

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BadgeCheck, PlugZap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,8 +28,9 @@ const EMPTY: Connection = {
   database: "",
 };
 
-// ConnectionDialog adds (or edits) a connection. Editing omits the password
-// to keep the stored one.
+// ConnectionDialog adds (or edits) a connection. Nothing is kept unless the
+// instance answers: the probe runs first, and a failed probe removes the
+// registry entry it just wrote.
 export function ConnectionDialog({
   trigger = "New connection",
   initial,
@@ -39,18 +41,32 @@ export function ConnectionDialog({
   const { reload, setActive } = useApp();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Connection>(initial ?? EMPTY);
+  const [verified, setVerified] = useState(false);
 
-  const save = useAction(async () => {
+  const connect = useAction(async (close: boolean) => {
     const saved = await api.connections.save({ ...form, port: Number(form.port) || 5432 });
-    toast.success(`saved ${saved.name}`);
-    setOpen(false);
-    setForm(EMPTY);
+    const name = saved.name ?? "";
+    try {
+      await api.connections.test(name);
+    } catch (err) {
+      await api.connections.remove(name).catch(() => undefined);
+      await reload();
+      setVerified(false);
+      throw new Error(`connection refused — not saved: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    setVerified(true);
+    toast.success(`${name}: verified and saved`);
     await reload();
-    setActive(saved.name ?? "");
+    setActive(name);
+    if (close) {
+      setOpen(false);
+      setForm(EMPTY);
+    }
   });
 
   function update<K extends keyof Connection>(key: K, value: Connection[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setVerified(false);
   }
 
   return (
@@ -59,7 +75,9 @@ export function ConnectionDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Connection</DialogTitle>
-          <DialogDescription>Point noxis at a database that already exists.</DialogDescription>
+          <DialogDescription>
+            Point noxis at a database that already exists — it is verified before it is saved.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -70,8 +88,8 @@ export function ConnectionDialog({
               value={form.driver}
               onValueChange={(v) => {
                 const driver = String(v);
-                update("driver", driver);
-                update("port", driver === "mysql" ? 3306 : 5432);
+                setForm((prev) => ({ ...prev, driver, port: driver === "mysql" ? 3306 : 5432 }));
+                setVerified(false);
               }}
             >
               <SelectTrigger>
@@ -96,8 +114,16 @@ export function ConnectionDialog({
           <Field label="Database" value={form.database} onChange={(v) => update("database", v)} placeholder="app" />
         </div>
 
-        <DialogFooter>
-          <Button onClick={() => void save.run()} disabled={save.loading}>
+        <DialogFooter className="items-center gap-2">
+          {verified && (
+            <span className="mr-auto flex items-center gap-1 text-xs text-emerald-500">
+              <BadgeCheck className="size-3.5" /> verified
+            </span>
+          )}
+          <Button variant="outline" onClick={() => void connect.run(false)} disabled={connect.loading}>
+            <PlugZap /> Test
+          </Button>
+          <Button onClick={() => void connect.run(true)} disabled={connect.loading}>
             Save
           </Button>
         </DialogFooter>

@@ -12,6 +12,7 @@ type (
 	Result = sqlsvc.Result
 	Table  = sqlsvc.Table
 	Column = sqlsvc.Column
+	Stats  = sqlsvc.Stats
 )
 
 // SQLModule is the console's only route to a database.
@@ -27,6 +28,7 @@ type SQLModule interface {
 	Rows(ctx context.Context, c entity.Connection, schema, table string, limit int) (Result, error)
 	VerifyWrite(sqlText string) error
 	Kind(sqlText string) string
+	Stats(ctx context.Context, c entity.Connection) (Stats, error)
 }
 
 // Satisfier.

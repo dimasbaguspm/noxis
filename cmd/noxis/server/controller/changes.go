@@ -46,6 +46,7 @@ func (d Deps) submitChange(ctx context.Context, ch entity.Change) (out entity.Ch
 	switch {
 	case err == nil:
 		dry.OK, dry.Detail = true, res.Message
+		ch.EstDurationMs, ch.EstAffected = res.DurationMs, res.Affected
 	case errors.Is(err, sql.ErrUnverifiable):
 		ch.Status, dry.Error = constants.ChangeUnverified, err.Error()
 	default:
@@ -101,6 +102,7 @@ func (d Deps) apply(ctx context.Context, id string) (out entity.Change, err erro
 		return *ch, err
 	}
 	ch.Status, ch.AppliedAt = constants.ChangeApplied, time.Now().Unix()
+	ch.AppliedAffected, ch.AppliedDurationMs = res.Affected, res.DurationMs
 	ch.Checks = append(ch.Checks, entity.ChangeCheck{Target: "apply", OK: true, Detail: res.Message})
 	if err := d.Changes.SaveChange(ctx, *ch); err != nil {
 		return entity.Change{}, err
@@ -166,13 +168,32 @@ func ApplyChange(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// @Summary Reject (discard) a change
+// reject marks a change rejected — records are artifacts, never deleted, so
+// the review trail survives.
+func (d Deps) reject(ctx context.Context, id string) (out entity.Change, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
+	ch, err := d.Changes.GetChange(ctx, id)
+	if err != nil {
+		return entity.Change{}, err
+	}
+	if ch.Status == constants.ChangeApplied {
+		return *ch, fmt.Errorf("change already applied — it cannot be rejected")
+	}
+	ch.Status, ch.RejectedAt = constants.ChangeRejected, time.Now().Unix()
+	if err := d.Changes.SaveChange(ctx, *ch); err != nil {
+		return entity.Change{}, err
+	}
+	return *ch, nil
+}
+
+// @Summary Reject a change (kept as an artifact, never deleted)
 // @Param id path string true "change id"
-// @Success 204 "discarded"
+// @Success 200 {object} entity.Change
 // @Failure 400 {object} map[string]string
-// @Router /v1/changes/{id} [delete]
+// @Router /v1/changes/{id}/reject [post]
 func RejectChange(w http.ResponseWriter, r *http.Request) {
-	handleNoContent(w, r, func(ctx context.Context, d Deps) error {
-		return d.Changes.DeleteChange(ctx, r.PathValue("id"))
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
+		return d.reject(ctx, r.PathValue("id"))
 	})
 }

@@ -16,10 +16,12 @@ export function ResultTable({ result, title = "result" }: { result: Result | nul
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <p className="text-xs text-muted-foreground">
-          {result.message}
-          {rows.length > 0 && ` — ${rows.length} row(s)`}
-          {result.affected ? ` — ${result.affected} affected` : ""}
+        <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
+          <span>{result.message}</span>
+          <span>duration: {result.durationMs ?? 0} ms</span>
+          {(result.rowsReturned ?? 0) > 0 && <span>returned: {result.rowsReturned}</span>}
+          {(result.affected ?? 0) > 0 && <span>affected: {result.affected}</span>}
+          {(result.estimatedRows ?? 0) > 0 && <span>plan rows: ~{result.estimatedRows}</span>}
         </p>
         <span className="flex-1" />
         {columns.length > 0 && (

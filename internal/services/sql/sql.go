@@ -24,12 +24,16 @@ type DB struct{}
 
 func New() *DB { return &DB{} }
 
-// Result is one operation's outcome: a grid for reads, counts for writes.
+// Result is one operation's outcome: a grid for reads, counts and timings
+// for writes. EstimatedRows comes from EXPLAIN when the driver allows it.
 type Result struct {
-	Columns  []string   `json:"columns,omitempty"`
-	Rows     [][]string `json:"rows,omitempty"`
-	Affected int64      `json:"affected"`
-	Message  string     `json:"message"`
+	Columns       []string   `json:"columns,omitempty"`
+	Rows          [][]string `json:"rows,omitempty"`
+	Affected      int64      `json:"affected"`
+	RowsReturned  int        `json:"rowsReturned"`
+	EstimatedRows int64      `json:"estimatedRows,omitempty"`
+	DurationMs    int64      `json:"durationMs"`
+	Message       string     `json:"message"`
 }
 
 // Table is a browsable relation; Column one of its attributes.
@@ -124,11 +128,15 @@ func (u *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Resu
 	return withDB(c, func(db *stdsql.DB) (Result, error) {
 		ctx, cancel := context.WithTimeout(ctx, stmtTimeout)
 		defer cancel()
+		started := time.Now()
 		var last Result
 		n, err := execEach(sqlText, func(stmt string) error {
 			var err error
 			if reads.set[firstKeyword(stmt)] {
 				last, err = query(ctx, db, stmt)
+				if err == nil {
+					last.EstimatedRows = estimateRows(ctx, db, c.Driver, stmt)
+				}
 			} else {
 				last, err = exec(ctx, db, stmt)
 			}
@@ -140,6 +148,8 @@ func (u *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Resu
 		if n == 0 {
 			return Result{}, fmt.Errorf("no statements to run")
 		}
+		last.DurationMs = time.Since(started).Milliseconds()
+		last.RowsReturned = len(last.Rows)
 		last.Message = fmt.Sprintf("%d statement(s) executed", n)
 		return last, nil
 	})
@@ -154,6 +164,7 @@ func (u *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (r
 	if isMySQL(c.Driver) && containsDDL(sqlText) {
 		return Result{}, fmt.Errorf("dry run of DDL is not safe on %s (implicit commit) — try it on a postgres connection", c.Driver)
 	}
+	started := time.Now()
 	n, err := inTx(c, func(tx *stdsql.Tx) (int, error) {
 		return execEach(sqlText, func(stmt string) error {
 			_, err := tx.ExecContext(ctx, stmt)
@@ -163,7 +174,7 @@ func (u *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (r
 	if err != nil {
 		return Result{}, err
 	}
-	return Result{Message: fmt.Sprintf("rolled back (dry run): %d statement(s)", n)}, nil
+	return Result{DurationMs: time.Since(started).Milliseconds(), Message: fmt.Sprintf("rolled back (dry run): %d statement(s)", n)}, nil
 }
 
 // ValidateChange dry-runs a change and its rollback together: the query must
@@ -176,22 +187,37 @@ func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rol
 	if isMySQL(c.Driver) && containsDDL(query) {
 		return Result{}, fmt.Errorf("query has DDL and %s: %w", c.Driver, ErrUnverifiable)
 	}
+	started := time.Now()
+	var affected int64
 	n, err := inTx(c, func(tx *stdsql.Tx) (int, error) {
-		if _, err := execEach(query, func(stmt string) error {
-			_, err := tx.ExecContext(ctx, stmt)
-			return err
-		}); err != nil {
+		queryN, err := execEach(query, func(stmt string) error {
+			out, err := tx.ExecContext(ctx, stmt)
+			if err != nil {
+				return err
+			}
+			if a, err := out.RowsAffected(); err == nil {
+				affected += a
+			}
+			return nil
+		})
+		if err != nil {
 			return 0, fmt.Errorf("query %w", err)
 		}
-		return execEach(rollback, func(stmt string) error {
+		rollbackN, err := execEach(rollback, func(stmt string) error {
 			_, err := tx.ExecContext(ctx, stmt)
 			return err
 		})
+		_ = queryN
+		return rollbackN, err
 	})
 	if err != nil {
 		return Result{}, err
 	}
-	return Result{Message: fmt.Sprintf("query and rollback both valid (rolled back, %d rollback statement(s))", n)}, nil
+	return Result{
+		Affected:   affected,
+		DurationMs: time.Since(started).Milliseconds(),
+		Message:    fmt.Sprintf("query and rollback both valid (rolled back, %d rollback statement(s))", n),
+	}, nil
 }
 
 // Apply executes write statements in a transaction and commits.
@@ -204,6 +230,7 @@ func (u *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (re
 	if err = verifyKind(sqlText, writes); err != nil {
 		return Result{}, err
 	}
+	started := time.Now()
 	var affected int64
 	n, err := inTx(c, func(tx *stdsql.Tx) (int, error) {
 		return execEach(sqlText, func(stmt string) error {
@@ -223,7 +250,11 @@ func (u *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (re
 	if n == 0 {
 		return Result{}, fmt.Errorf("no statements to apply")
 	}
-	return Result{Affected: affected, Message: fmt.Sprintf("applied: %d statement(s)", n)}, nil
+	return Result{
+		Affected:   affected,
+		DurationMs: time.Since(started).Milliseconds(),
+		Message:    fmt.Sprintf("applied: %d statement(s)", n),
+	}, nil
 }
 
 // inTx runs fn inside a transaction: commit when it returns nil error.
@@ -259,7 +290,11 @@ func (u *DB) Rows(ctx context.Context, c entity.Connection, schema, table string
 	return withDB(c, func(db *stdsql.DB) (Result, error) {
 		ctx, cancel := context.WithTimeout(ctx, stmtTimeout)
 		defer cancel()
-		return query(ctx, db, stmt)
+		started := time.Now()
+		res, err := query(ctx, db, stmt)
+		res.DurationMs = time.Since(started).Milliseconds()
+		res.RowsReturned = len(res.Rows)
+		return res, err
 	})
 }
 
@@ -284,6 +319,17 @@ func (u *DB) Analyze(ctx context.Context, c entity.Connection, table string) (re
 		stmt = "ANALYZE TABLE " + table
 	}
 	return u.run(ctx, c, stmt)
+}
+
+// Stats snapshots the instance (connections, size, cache, throughput).
+func (u *DB) Stats(ctx context.Context, c entity.Connection) (stats Stats, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	return withDB(c, func(db *stdsql.DB) (Stats, error) {
+		ctx, cancel := context.WithTimeout(ctx, stmtTimeout)
+		defer cancel()
+		return collectStats(ctx, db, c)
+	})
 }
 
 // VerifyWrite exposes the write guard (a change's query must be a write).

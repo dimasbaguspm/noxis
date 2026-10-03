@@ -12,7 +12,8 @@ import (
 	"noxis/internal/interfaces"
 )
 
-const changeColumns = `id, connection, notes, query, rollback, kind, status, checks, created_at, approved_at, applied_at`
+const changeColumns = `id, connection, notes, query, rollback, kind, status, checks, created_at, approved_at,
+	applied_at, rejected_at, est_duration_ms, est_affected, applied_affected, applied_duration_ms`
 
 // SaveChange upserts a change.
 func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
@@ -23,13 +24,17 @@ func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
 		return fmt.Errorf("encode checks: %w", err)
 	}
 	if _, err := s.db.ExecContext(ctx, `
-		INSERT INTO changes (`+changeColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO changes (`+changeColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			connection=excluded.connection, notes=excluded.notes, query=excluded.query,
 			rollback=excluded.rollback, kind=excluded.kind, status=excluded.status, checks=excluded.checks,
-			approved_at=excluded.approved_at, applied_at=excluded.applied_at`,
+			approved_at=excluded.approved_at, applied_at=excluded.applied_at,
+			rejected_at=excluded.rejected_at,
+			est_duration_ms=excluded.est_duration_ms, est_affected=excluded.est_affected,
+			applied_affected=excluded.applied_affected, applied_duration_ms=excluded.applied_duration_ms`,
 		c.ID, c.Connection, c.Notes, c.Query, c.Rollback, c.Kind, c.Status, string(checks),
-		c.CreatedAt, c.ApprovedAt, c.AppliedAt); err != nil {
+		c.CreatedAt, c.ApprovedAt, c.AppliedAt, c.RejectedAt,
+		c.EstDurationMs, c.EstAffected, c.AppliedAffected, c.AppliedDurationMs); err != nil {
 		return fmt.Errorf("save change %s: %w", c.ID, err)
 	}
 	return nil
@@ -73,7 +78,8 @@ func scanChange(row scanner) (entity.Change, error) {
 		checks string
 	)
 	if err := row.Scan(&c.ID, &c.Connection, &c.Notes, &c.Query, &c.Rollback, &c.Kind, &c.Status, &checks,
-		&c.CreatedAt, &c.ApprovedAt, &c.AppliedAt); err != nil {
+		&c.CreatedAt, &c.ApprovedAt, &c.AppliedAt, &c.RejectedAt,
+		&c.EstDurationMs, &c.EstAffected, &c.AppliedAffected, &c.AppliedDurationMs); err != nil {
 		return c, err
 	}
 	if checks != "" {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, type Change, type ChangeInput, type Result } from "@/lib/api";
+import { api, type Change, type ChangeInput, type Result, type Stats } from "@/lib/api";
 import { useAction } from "@/hooks/use-action";
 import { classify } from "@/lib/statements";
 
@@ -60,6 +60,38 @@ export function useTableRows(connection?: string) {
   });
 
   return { result, label, pick: pick.run, loading: pick.loading };
+}
+
+// useStatsStream subscribes to the instance stats SSE stream (2s ticks).
+export function useStatsStream(connection?: string) {
+  const [history, setHistory] = useState<Stats[]>([]);
+  const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    if (!connection) {
+      setHistory([]);
+      return;
+    }
+    setHistory([]);
+    const source = new EventSource(api.connections.statsStream(connection));
+    source.addEventListener("open", () => setConnected(true));
+    source.addEventListener("error", () => setConnected(false));
+    source.addEventListener("stats", (event) => {
+      try {
+        const next = JSON.parse((event as MessageEvent).data) as Stats;
+        setHistory((prev) => [...prev, next].slice(-60));
+      } catch {
+        /* ignore malformed frames */
+      }
+    });
+    return () => {
+      source.close();
+      setConnected(false);
+    };
+  }, [connection]);
+
+  const latest = history.at(-1);
+  return { latest, history, connected };
 }
 
 // useQuery runs a read against the active connection.

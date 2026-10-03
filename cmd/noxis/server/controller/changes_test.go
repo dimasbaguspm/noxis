@@ -92,6 +92,10 @@ func (f *fakeSQL) VerifyWrite(string) error { return f.writeErr }
 
 func (f *fakeSQL) Kind(string) string { return constants.KindDDL }
 
+func (f *fakeSQL) Stats(context.Context, entity.Connection) (interfaces.Stats, error) {
+	return interfaces.Stats{Connections: 3}, nil
+}
+
 func (f *fakeSQL) ValidateChange(context.Context, entity.Connection, string, string) (interfaces.Result, error) {
 	if f.validateErr != nil {
 		return interfaces.Result{}, f.validateErr

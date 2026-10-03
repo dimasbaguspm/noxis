@@ -5,6 +5,10 @@ Feature: connections
   Background:
     Given the stack is running
 
+  Scenario: instance stats are exposed for the live view
+    Given connection "demo" is registered
+    Then the instance stats report connections and size
+
   Scenario: a registered connection answers and hides its password
     Given connection "demo" is registered
     Then the connection test passes

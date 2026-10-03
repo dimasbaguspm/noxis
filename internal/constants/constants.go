@@ -33,4 +33,5 @@ const (
 	ChangeFailed     = "failed"     // validation found a problem
 	ChangeApproved   = "approved"   // a human signed off (self-approval allowed)
 	ChangeApplied    = "applied"    // executed and committed
+	ChangeRejected   = "rejected"   // reviewed and declined (kept as an artifact)
 )

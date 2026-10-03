@@ -8,7 +8,7 @@ import { useChanges, type ChangeKind } from "@/hooks/use-data";
 // (self-approval is allowed), then apply.
 export function ChangePage({ kind }: { kind: ChangeKind }) {
   const { active } = useApp();
-  const { changes, submit, approve, apply, reject } = useChanges(kind);
+  const { changes, submit, approve, apply } = useChanges(kind);
 
   const label = kind.toUpperCase();
   const description =
@@ -34,7 +34,6 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
             changes={changes}
             onApprove={(id) => approve.run(id).then(() => undefined)}
             onApply={(id) => apply.run(id).then(() => undefined)}
-            onReject={(id) => reject.run(id).then(() => undefined)}
             emptyHint={`no ${label} changes yet`}
           />
         </CardContent>

@@ -50,7 +50,9 @@ func Open(ctx context.Context, path string) (*Store, error) {
 		return nil, fmt.Errorf("schema: %w", err)
 	}
 	// pre-existing volumes: add columns introduced after the first release
-	_, _ = db.Exec(`ALTER TABLE changes ADD COLUMN kind TEXT NOT NULL DEFAULT ''`)
+	for _, ddl := range migrations {
+		_, _ = db.Exec(ddl)
+	}
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	if err := db.PingContext(ctx); err != nil {
@@ -58,6 +60,17 @@ func Open(ctx context.Context, path string) (*Store, error) {
 		return nil, fmt.Errorf("sqlite ping: %w", err)
 	}
 	return s, nil
+}
+
+// migrations are applied best-effort; duplicates (fresh databases) error and
+// are ignored.
+var migrations = []string{
+	`ALTER TABLE changes ADD COLUMN kind TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE changes ADD COLUMN rejected_at INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE changes ADD COLUMN est_duration_ms INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE changes ADD COLUMN est_affected INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE changes ADD COLUMN applied_affected INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE changes ADD COLUMN applied_duration_ms INTEGER NOT NULL DEFAULT 0`,
 }
 
 const schema = `
@@ -72,7 +85,12 @@ CREATE TABLE IF NOT EXISTS changes (
   checks      TEXT NOT NULL DEFAULT '[]',
   created_at  INTEGER NOT NULL,
   approved_at INTEGER NOT NULL DEFAULT 0,
-  applied_at  INTEGER NOT NULL DEFAULT 0
+  applied_at  INTEGER NOT NULL DEFAULT 0,
+  rejected_at INTEGER NOT NULL DEFAULT 0,
+  est_duration_ms INTEGER NOT NULL DEFAULT 0,
+  est_affected    INTEGER NOT NULL DEFAULT 0,
+  applied_affected   INTEGER NOT NULL DEFAULT 0,
+  applied_duration_ms INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS connections (

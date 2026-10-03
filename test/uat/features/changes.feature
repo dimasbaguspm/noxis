@@ -26,6 +26,21 @@ Feature: changes — submit, validate, approve, apply
     And the schema lists table "uat_w"
     And table "uat_w" has 1 row(s)
 
+  Scenario: a rejected change is kept as an artifact
+    When I submit a change with query "CREATE TABLE IF NOT EXISTS uat_rej (id INT)" and rollback "DROP TABLE uat_rej"
+    Then the change is "validated"
+    And I reject the change
+    Then the change is "rejected"
+    And the change list still contains it
+
+  Scenario: an applied change carries estimates and actuals
+    When I submit a change with query "CREATE TABLE IF NOT EXISTS uat_est (id INT)" and rollback "DROP TABLE uat_est"
+    Then the change is "validated"
+    And I approve the change
+    And I apply the change
+    Then the change is "applied"
+    And the change records an estimated duration and affected count
+
   Scenario: a dry run and analytics stay available
     When I submit a change with query "CREATE TABLE IF NOT EXISTS uat_a (v INT)" and rollback "DROP TABLE uat_a"
     Then the change is "validated"

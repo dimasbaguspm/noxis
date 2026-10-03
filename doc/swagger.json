@@ -120,38 +120,6 @@
                         }
                     }
                 }
-            },
-            "delete": {
-                "summary": "Reject (discard) a change",
-                "parameters": [
-                    {
-                        "description": "change id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "discarded"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             }
         },
         "/v1/changes/{id}/apply": {
@@ -198,6 +166,47 @@
         "/v1/changes/{id}/approve": {
             "post": {
                 "summary": "Approve a validated change (self-approval allowed)",
+                "parameters": [
+                    {
+                        "description": "change id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Change"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/changes/{id}/reject": {
+            "post": {
+                "summary": "Reject a change (kept as an artifact, never deleted)",
                 "parameters": [
                     {
                         "description": "change id",
@@ -614,6 +623,75 @@
                 }
             }
         },
+        "/v1/connections/{name}/stats": {
+            "get": {
+                "summary": "Instance stats snapshot (connections, size, cache, throughput)",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/sql.Stats"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/connections/{name}/stats/stream": {
+            "get": {
+                "summary": "Instance stats stream (SSE, one snapshot every 2s)",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "text/event-stream",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/connections/{name}/tables/{table}/rows": {
             "get": {
                 "summary": "Preview a table's rows",
@@ -762,7 +840,13 @@
                     "rollback"
                 ],
                 "properties": {
+                    "appliedAffected": {
+                        "type": "integer"
+                    },
                     "appliedAt": {
+                        "type": "integer"
+                    },
+                    "appliedDurationMs": {
                         "type": "integer"
                     },
                     "approvedAt": {
@@ -780,6 +864,13 @@
                     "createdAt": {
                         "type": "integer"
                     },
+                    "estAffected": {
+                        "type": "integer"
+                    },
+                    "estDurationMs": {
+                        "description": "measured on the dry run (estimates) and on apply (actuals)",
+                        "type": "integer"
+                    },
                     "id": {
                         "type": "string"
                     },
@@ -793,11 +884,14 @@
                     "query": {
                         "type": "string"
                     },
+                    "rejectedAt": {
+                        "type": "integer"
+                    },
                     "rollback": {
                         "type": "string"
                     },
                     "status": {
-                        "description": "validated | failed | approved | applied",
+                        "description": "validated | unverified | failed | approved | applied | rejected",
                         "type": "string"
                     }
                 }
@@ -891,6 +985,12 @@
                             "type": "string"
                         }
                     },
+                    "durationMs": {
+                        "type": "integer"
+                    },
+                    "estimatedRows": {
+                        "type": "integer"
+                    },
                     "message": {
                         "type": "string"
                     },
@@ -902,6 +1002,62 @@
                                 "type": "string"
                             }
                         }
+                    },
+                    "rowsReturned": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "sql.Stats": {
+                "type": "object",
+                "properties": {
+                    "active": {
+                        "type": "integer"
+                    },
+                    "cacheHitRatio": {
+                        "type": "number"
+                    },
+                    "commits": {
+                        "type": "integer"
+                    },
+                    "connections": {
+                        "type": "integer"
+                    },
+                    "databaseSizeBytes": {
+                        "type": "integer"
+                    },
+                    "deadlocks": {
+                        "type": "integer"
+                    },
+                    "driver": {
+                        "type": "string"
+                    },
+                    "idle": {
+                        "type": "integer"
+                    },
+                    "idleInTransaction": {
+                        "type": "integer"
+                    },
+                    "longestQuerySeconds": {
+                        "type": "number"
+                    },
+                    "maxConnections": {
+                        "type": "integer"
+                    },
+                    "rollbacks": {
+                        "type": "integer"
+                    },
+                    "takenAt": {
+                        "type": "integer"
+                    },
+                    "tempBytes": {
+                        "type": "integer"
+                    },
+                    "uptimeSeconds": {
+                        "type": "integer"
+                    },
+                    "version": {
+                        "type": "string"
                     }
                 }
             },

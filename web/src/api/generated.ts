@@ -156,39 +156,7 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        /** Reject (discard) a change */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description change id */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description discarded */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -254,6 +222,56 @@ export interface paths {
         get?: never;
         put?: never;
         /** Approve a validated change (self-approval allowed) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description change id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Change"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/changes/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a change (kept as an artifact, never deleted) */
         post: {
             parameters: {
                 query?: never;
@@ -712,6 +730,95 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/connections/{name}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Instance stats snapshot (connections, size, cache, throughput) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["sql.Stats"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/connections/{name}/stats/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Instance stats stream (SSE, one snapshot every 2s) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description text/event-stream */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/connections/{name}/tables/{table}/rows": {
         parameters: {
             query?: never;
@@ -830,18 +937,24 @@ export interface components {
             table?: string;
         };
         "entity.Change": {
+            appliedAffected?: number;
             appliedAt?: number;
+            appliedDurationMs?: number;
             approvedAt?: number;
             checks?: components["schemas"]["entity.ChangeCheck"][];
             connection: string;
             createdAt?: number;
+            estAffected?: number;
+            /** @description measured on the dry run (estimates) and on apply (actuals) */
+            estDurationMs?: number;
             id?: string;
             /** @description dml | ddl */
             kind?: string;
             notes: string;
             query: string;
+            rejectedAt?: number;
             rollback: string;
-            /** @description validated | failed | approved | applied */
+            /** @description validated | unverified | failed | approved | applied | rejected */
             status?: string;
         };
         "entity.ChangeCheck": {
@@ -874,8 +987,29 @@ export interface components {
         "sql.Result": {
             affected?: number;
             columns?: string[];
+            durationMs?: number;
+            estimatedRows?: number;
             message?: string;
             rows?: string[][];
+            rowsReturned?: number;
+        };
+        "sql.Stats": {
+            active?: number;
+            cacheHitRatio?: number;
+            commits?: number;
+            connections?: number;
+            databaseSizeBytes?: number;
+            deadlocks?: number;
+            driver?: string;
+            idle?: number;
+            idleInTransaction?: number;
+            longestQuerySeconds?: number;
+            maxConnections?: number;
+            rollbacks?: number;
+            takenAt?: number;
+            tempBytes?: number;
+            uptimeSeconds?: number;
+            version?: string;
         };
         "sql.Table": {
             columns?: components["schemas"]["sql.Column"][];
