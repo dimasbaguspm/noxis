@@ -9,6 +9,7 @@ import (
 	"errors"
 	"os/exec"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -24,6 +25,19 @@ func New() *Client {
 	}}
 }
 
+// Node-isolation conventions: every noxis resource on a node is scoped by
+// these names (owned here, next to the commands that use them).
+const (
+	networkPrefix = "noxis-"
+	networkLabel  = "noxis.network"
+)
+
+// NodeNetworkName is the docker network name bounding a node's instances.
+func NodeNetworkName(node string) string { return networkPrefix + node }
+
+// NodeNetworkLabel is the label pinning a network to its node.
+func NodeNetworkLabel(node string) string { return networkLabel + "=" + NodeNetworkName(node) }
+
 // NetworkExists reports whether any network carries the label.
 func (c *Client) NetworkExists(ctx context.Context, label string) (bool, error) {
 	out, err := c.run(ctx, "network", "ls", "--format", "{{.Name}}",
@@ -32,6 +46,32 @@ func (c *Client) NetworkExists(ctx context.Context, label string) (bool, error) 
 		return false, err
 	}
 	return strings.TrimSpace(string(out)) != "", nil
+}
+
+// NetworkReconcile makes the network exist iff engines are assigned (the
+// node's isolation boundary, bound before images exist). Returns a detail
+// string of what changed.
+func (c *Client) NetworkReconcile(ctx context.Context, name, label string, engines int) (string, error) {
+	exists, err := c.NetworkExists(ctx, label)
+	if err != nil {
+		return "", err
+	}
+	desired := engines > 0
+	switch {
+	case desired && !exists:
+		if err := c.NetworkCreate(ctx, name, label); err != nil {
+			return "", err
+		}
+		return "network " + name + " created (" + strconv.Itoa(engines) + " engine(s))", nil
+	case !desired && exists:
+		if err := c.NetworkRemove(ctx, name); err != nil {
+			return "", err
+		}
+		return "network " + name + " removed (spec empty)", nil
+	case desired && exists:
+		return "in sync", nil
+	}
+	return "", nil // no engines, no network
 }
 
 // NetworkCreate makes a bridge network with the given labels.

@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"noxis/cmd/noxis/master"
-	"noxis/cmd/noxis/slave"
+	slavecmd "noxis/cmd/noxis/slave/commands"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 )
@@ -41,14 +41,14 @@ func Bootstrap() error {
 			RunE: func(cmd *cobra.Command, _ []string) error {
 				return master.Run(cmd.Context(), log, cfg)
 			}},
-		slave.NewRunCmd(log),
+		slavecmd.NewRunCmd(log),
 	)
 
 	reg := &cobra.Command{
 		Use:          "register",
 		Short:        "One-shot registration",
 		SilenceUsage: true}
-	reg.AddCommand(slave.NewRegisterCmd(log, cfg))
+	reg.AddCommand(slavecmd.NewRegisterCmd(log, cfg))
 
 	root := &cobra.Command{
 		Use:          "noxis",

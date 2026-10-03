@@ -26,8 +26,8 @@ internal/repositories/   grouped by service:
   kafka/                 franz-go transport + EnsureTopic + Topics (env prefix)
   master/                typed methods for the master REST API
   slave/                 identity file (id, broker, topic prefix)
-  docker/                docker CLI wrapper: exact argv for networks, containers
-                        (run/inspect/status/start/stop/restart/kill/remove), images, volumes
+  docker/                docker CLI wrapper: exact argv for networks (+ NodeNetworkName/Label
+                        conventions + NetworkReconcile), containers, images, volumes
 internal/common/         shared infra: http (standard headers), logging
 internal/modules/doorman/   SQL module (doorman): instance create (postgres/mariadb/mysql),
                         query, alter, rollback (dry-run tx), analytics; engine descriptors

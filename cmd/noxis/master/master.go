@@ -1,5 +1,5 @@
-// Package master is the master daemon: REST API for frontends, events over
-// Kafka to slave workers.
+// Package master is the master daemon module: REST API for frontends, events
+// over Kafka to slave workers. Run is the module entry.
 package master
 
 import (
