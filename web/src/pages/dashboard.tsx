@@ -51,7 +51,6 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-lg font-semibold">Dashboard</h2>
         <span className="flex-1" />
         <ConnectionDialog trigger="New connection" />
       </div>

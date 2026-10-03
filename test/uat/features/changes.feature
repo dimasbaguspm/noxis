@@ -10,11 +10,10 @@ Feature: changes — submit, validate, approve, apply
     When I submit a change with query "CREATE TABLE IF NOT EXISTS uat_c (id INT, note TEXT); INSERT INTO uat_c VALUES (1, 'a;b')" and rollback "DROP TABLE uat_c"
     Then the change is "validated"
 
-  Scenario: an invalid change fails validation and cannot be approved
+  Scenario: an invalid change is rejected without being recorded
     When I submit a change with query "INSERT INTO no_such_table VALUES (1)" and rollback "DELETE FROM no_such_table"
     Then the change is "failed"
-    And I approve the change
-    Then applying is rejected
+    And the change was not recorded
 
   Scenario: an approved change applies and lands in the schema
     When I submit a change with query "CREATE TABLE IF NOT EXISTS uat_w (id INT); INSERT INTO uat_w VALUES (7)" and rollback "DROP TABLE uat_w"

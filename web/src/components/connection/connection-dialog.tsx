@@ -69,7 +69,7 @@ export function ConnectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant="secondary" />}>{trigger}</DialogTrigger>
+      <DialogTrigger render={<Button />}>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Connection</DialogTitle>

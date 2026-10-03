@@ -32,6 +32,10 @@ export default function MonacoSqlEditor({
   placeholder,
 }: MonacoSqlEditorProps) {
   const completion = useRef<MonacoNS.IDisposable | undefined>(undefined);
+  // the provider lives for the editor's lifetime and the schema arrives
+  // asynchronously, so it reads the latest tables through a ref
+  const tablesRef = useRef(tables);
+  tablesRef.current = tables;
 
   // schema-aware completion: tables in the outer scope, their columns after
   // FROM/JOIN/UPDATE/INTO
@@ -62,7 +66,7 @@ export default function MonacoSqlEditor({
         const after = /(?:from|join|update|into)\s+([\w.]+)\s+[\w]*$/i.exec(line);
         if (after) {
           const [, tableName] = after;
-          const table = tables.find(
+          const table = tablesRef.current.find(
             (t) =>
               t.name.toLowerCase() === tableName.toLowerCase() ||
               `${t.schema}.${t.name}`.toLowerCase() === tableName.toLowerCase(),
@@ -78,7 +82,9 @@ export default function MonacoSqlEditor({
 
         return {
           suggestions: [
-            ...tables.map((t) => keyword(`${t.schema}.${t.name}`, monaco.languages.CompletionItemKind.Struct)),
+            ...tablesRef.current.map((t) =>
+              keyword(`${t.schema}.${t.name}`, monaco.languages.CompletionItemKind.Struct),
+            ),
             ...KEYWORDS.map((k) => keyword(k, monaco.languages.CompletionItemKind.Keyword)),
           ],
         };

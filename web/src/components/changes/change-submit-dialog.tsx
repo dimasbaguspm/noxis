@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ export function ChangeSubmitDialog({
 }: {
   kind: "dml" | "ddl";
   onSubmit: (input: { connection: string; notes: string; query: string; rollback: string }) => Promise<
-    { id?: string } | undefined
+    { id?: string; status?: string; checks?: { target?: string; ok?: boolean; detail?: string; error?: string }[] } | undefined
   >;
 }) {
   // the instance is part of the change, so it is chosen here, not on the page
@@ -38,6 +39,7 @@ export function ChangeSubmitDialog({
   const [query, setQuery] = useState("");
   const [rollback, setRollback] = useState("");
   const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<{ target?: string; ok?: boolean; detail?: string; error?: string }[]>([]);
 
   async function submit() {
     if (!connection) {
@@ -52,10 +54,17 @@ export function ChangeSubmitDialog({
     const change = await onSubmit({ connection, notes, query, rollback });
     setBusy(false);
     if (!change) return;
-    toast.success(`submitted for review${change.id ? ` · ${change.id.slice(0, 8)}` : ""}`);
+    if (change.status === "failed" || !change.id) {
+      // rejected proposals are not recorded: stay open and show why
+      setFailure(change.checks ?? []);
+      toast.error("validation failed — nothing was submitted");
+      return;
+    }
+    toast.success(`submitted for review · ${change.id.slice(0, 8)}`);
     setNotes("");
     setQuery("");
     setRollback("");
+    setFailure([]);
     setOpen(false);
   }
 
@@ -106,6 +115,23 @@ export function ChangeSubmitDialog({
             </Label>
             <SqlEditor value={rollback} onChange={setRollback} tables={tables} height="9rem" />
           </div>
+          {failure.length > 0 && (
+            <div className="grid gap-1 rounded-md border border-destructive/40 p-3">
+              {failure.map((check) => (
+                <p key={check.target} className="flex items-start gap-2 text-xs">
+                  {check.ok ? (
+                    <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
+                  ) : (
+                    <XCircle className="mt-0.5 size-3.5 shrink-0 text-destructive" />
+                  )}
+                  <span className={check.ok ? "text-muted-foreground" : "text-destructive"}>
+                    <span className="font-medium">{check.target}</span>
+                    {check.ok ? `: ${check.detail ?? "ok"}` : `: ${check.error ?? "failed"}`}
+                  </span>
+                </p>
+              ))}
+            </div>
+          )}
         </div>
 
         <DialogFooter className="items-center">

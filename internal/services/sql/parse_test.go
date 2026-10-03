@@ -1,6 +1,10 @@
 package sql
 
-import "testing"
+import (
+	"errors"
+	"strings"
+	"testing"
+)
 
 // splitStatements returns raw fragments; empty ones (trailing separators)
 // are skipped by the callers, so counts here include them.
@@ -46,5 +50,19 @@ func TestVerifyKindPerStatement(t *testing.T) {
 	}
 	if err := verifyKind("INSERT INTO t VALUES ($q$DROP TABLE x$q$)", reads); err == nil {
 		t.Error("dollar-quoted text must not be read as a statement")
+	}
+}
+
+func TestHintOf(t *testing.T) {
+	quoteErr := errors.New(`ERROR: column "dimas" does not exist (SQLSTATE 42703)`)
+	got := hintOf(`INSERT INTO t (name) VALUES ("dimas")`, quoteErr).Error()
+	if !strings.Contains(got, "hint:") || !strings.Contains(got, "'dimas'") {
+		t.Fatalf("expected a single-quote hint, got %q", got)
+	}
+	if !errors.Is(hintOf(`SELECT 1`, quoteErr), quoteErr) {
+		t.Fatal("unrelated errors must pass through untouched")
+	}
+	if hintOf(`INSERT INTO t (name) VALUES ("x")`, errors.New("other")) == nil {
+		t.Fatal("non-'does not exist' errors pass through")
 	}
 }

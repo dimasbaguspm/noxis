@@ -17,7 +17,6 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-lg font-semibold">{label} changes</h2>
         <span className="flex-1" />
         <ChangeSubmitDialog kind={kind} onSubmit={(input) => submit.run(input)} />
       </div>

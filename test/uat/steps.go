@@ -14,6 +14,7 @@ import (
 // changeBody is the wire shape of a change (only the fields UAT asserts on).
 type changeBody struct {
 	ID            string      `json:"id"`
+	Notes         string      `json:"notes"`
 	Status        string      `json:"status"`
 	Checks        []checkBody `json:"checks"`
 	EstDurationMs int64       `json:"estDurationMs"`
@@ -41,6 +42,7 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	sc.Step("applying is rejected", w.applyRejected)
 	sc.Step("I reject the change", w.rejectChange)
 	sc.Step("the change list still contains it", w.changeStillPresent)
+	sc.Step("the change was not recorded", w.changeNotRecorded)
 	sc.Step(`the change records an estimated duration and affected count`, w.changeEstimates)
 	sc.Step(`the instance stats report connections and size`, w.instanceStats)
 
@@ -221,6 +223,26 @@ func (w *world) changeStillPresent(ctx context.Context) error {
 		}
 	}
 	return fmt.Errorf("change %s disappeared from the list", w.changeID)
+}
+
+// changeNotRecorded proves rejected proposals never enter the store: the
+// submit response carries no id and the list does not grow.
+func (w *world) changeNotRecorded(ctx context.Context) error {
+	if w.changeID != "" {
+		return fmt.Errorf("failed change kept an id: %s", w.changeID)
+	}
+	var body struct {
+		Changes []changeBody `json:"changes"`
+	}
+	if err := w.api(http.MethodGet, "/v1/changes", nil, &body); err != nil {
+		return err
+	}
+	for _, c := range body.Changes {
+		if c.Notes == "uat change" && c.Status == "failed" {
+			return fmt.Errorf("failed change was recorded: %+v", c)
+		}
+	}
+	return nil
 }
 
 func (w *world) changeEstimates(ctx context.Context) error {

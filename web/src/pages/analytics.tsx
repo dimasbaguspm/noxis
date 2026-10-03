@@ -31,12 +31,16 @@ export default function AnalyticsPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-lg font-semibold">Analytics</h2>
         <ConnectionSelect value={connection} onChange={pick} />
         <Badge variant={connected ? "default" : "outline"}>
           <Radio className={connected ? "animate-pulse" : undefined} />
-          {connected ? "live · 2s" : "connecting…"}
+          {connected ? "streaming" : "reconnecting…"}
         </Badge>
+        {latest && (
+          <span className="text-xs text-muted-foreground">
+            last sample {new Date((latest.takenAt ?? 0) * 1000).toLocaleTimeString()} · {history.length} buffered
+          </span>
+        )}
         {latest?.version && (
           <span className="truncate text-xs text-muted-foreground" title={latest.version}>
             {latest.version.split(" on ")[0]}

@@ -1,15 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { debounce, group } from "radash";
-import { ChevronDown, ChevronRight, EllipsisVertical, ListTree, PlayCircle, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ChevronDown, ChevronRight, ListTree, PlayCircle, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { RowMenu } from "@/components/ui/row-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Table } from "@/lib/api";
 
@@ -26,11 +21,17 @@ export function TableBrowser({ tables, onPick, onRecords, onAnalyze }: Props) {
   const [filter, setFilter] = useState("");
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [schemaFilter, setSchemaFilter] = useState<string | null>(null);
+  const [schemaFilter, setSchemaFilter] = useState<string>("");
 
   const setFilterDebounced = useMemo(() => debounce({ delay: 200 }, (v: string) => setQuery(v)), []);
 
   const schemas = useMemo(() => Object.keys(group(tables, (t) => t.schema || "public")).sort(), [tables]);
+
+  // the schema is chosen explicitly and defaults to the first one, so the
+  // list is always scoped to a single schema
+  useEffect(() => {
+    if (!schemaFilter && schemas.length > 0) setSchemaFilter(schemas[0]);
+  }, [schemas, schemaFilter]);
 
   const entries = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -42,21 +43,18 @@ export function TableBrowser({ tables, onPick, onRecords, onAnalyze }: Props) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex flex-wrap gap-1">
-        <Button size="xs" variant={schemaFilter === null ? "secondary" : "ghost"} onClick={() => setSchemaFilter(null)}>
-          all schemas
-        </Button>
-        {schemas.map((s) => (
-          <Button
-            key={s}
-            size="xs"
-            variant={schemaFilter === s ? "secondary" : "ghost"}
-            onClick={() => setSchemaFilter(s)}
-          >
-            {s}
-          </Button>
-        ))}
-      </div>
+      <Select value={schemaFilter} onValueChange={(next) => setSchemaFilter(String(next))}>
+        <SelectTrigger className="w-full" aria-label="schema">
+          <SelectValue placeholder="pick a schema" />
+        </SelectTrigger>
+        <SelectContent>
+          {schemas.map((s) => (
+            <SelectItem key={s} value={s}>
+              {s}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       <div className="relative">
         <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -102,22 +100,18 @@ export function TableBrowser({ tables, onPick, onRecords, onAnalyze }: Props) {
                       <span className="truncate">{t.name}</span>
                       <span className="ml-1 text-xs text-muted-foreground">{t.columns.length}</span>
                     </button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        render={<Button size="icon" variant="ghost" aria-label={`actions for ${t.name}`} />}
-                      >
-                        <EllipsisVertical />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onPick?.(t)}>
-                          <PlayCircle /> Use in query
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onRecords?.(t)}>
-                          <ListTree /> Show records (limit 100)
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onAnalyze?.(t)}>Analyze</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <RowMenu
+                      label={`actions for ${t.name}`}
+                      items={[
+                        { label: "Use in query", icon: <PlayCircle className="size-3.5" />, onSelect: () => onPick?.(t) },
+                        {
+                          label: "Show records (limit 100)",
+                          icon: <ListTree className="size-3.5" />,
+                          onSelect: () => onRecords?.(t),
+                        },
+                        { label: "Analyze", onSelect: () => onAnalyze?.(t) },
+                      ]}
+                    />
                   </div>
                   {open && (
                     <div className="mb-1 ml-5 border-l border-border pl-2">

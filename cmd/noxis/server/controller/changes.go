@@ -55,6 +55,13 @@ func (d Deps) submitChange(ctx context.Context, ch entity.Change) (out entity.Ch
 	}
 	ch.Checks = append(ch.Checks, dry)
 
+	// a change that fails validation is a rejected proposal, not an artifact:
+	// it is returned with its checks so the submitter sees why, and never
+	// recorded.
+	if ch.Status == constants.ChangeFailed {
+		ch.ID = ""
+		return ch, nil
+	}
 	if err := d.Changes.SaveChange(ctx, ch); err != nil {
 		return entity.Change{}, err
 	}

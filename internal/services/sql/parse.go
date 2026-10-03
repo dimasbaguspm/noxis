@@ -3,6 +3,7 @@ package sql
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -127,6 +128,21 @@ func dollarQuoted(sqlText string, i int) (end int, ok bool) {
 		return 0, false
 	}
 	return i + len(tag) + shut + len(tag), true
+}
+
+// hintOf augments common engine errors with the fix, so a rejected change
+// teaches instead of just refusing. Postgres treats "x" as an identifier:
+// the number one cause of "column x does not exist" on a values list.
+var quotedValue = regexp.MustCompile(`(?i)(?:values\s*\(|=\s*)"([^"]+)"`)
+
+func hintOf(sqlText string, err error) error {
+	if err == nil || !strings.Contains(err.Error(), "does not exist") {
+		return err
+	}
+	if match := quotedValue.FindStringSubmatch(sqlText); match != nil {
+		return fmt.Errorf(`%w — hint: "%s" is an identifier in postgres; use '%s' for a string literal`, err, match[1], match[1])
+	}
+	return err
 }
 
 func firstKeyword(sqlText string) string {

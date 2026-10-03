@@ -140,7 +140,7 @@ func (u *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Resu
 			} else {
 				last, err = exec(ctx, db, stmt)
 			}
-			return err
+			return hintOf(stmt, err)
 		})
 		if err != nil {
 			return Result{}, err
@@ -168,7 +168,7 @@ func (u *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (r
 	n, err := inTx(c, func(tx *stdsql.Tx) (int, error) {
 		return execEach(sqlText, func(stmt string) error {
 			_, err := tx.ExecContext(ctx, stmt)
-			return err
+			return hintOf(stmt, err)
 		})
 	})
 	if err != nil {
@@ -193,7 +193,7 @@ func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rol
 		queryN, err := execEach(query, func(stmt string) error {
 			out, err := tx.ExecContext(ctx, stmt)
 			if err != nil {
-				return err
+				return hintOf(stmt, err)
 			}
 			if a, err := out.RowsAffected(); err == nil {
 				affected += a
@@ -205,7 +205,7 @@ func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rol
 		}
 		rollbackN, err := execEach(rollback, func(stmt string) error {
 			_, err := tx.ExecContext(ctx, stmt)
-			return err
+			return hintOf(stmt, err)
 		})
 		_ = queryN
 		return rollbackN, err

@@ -84,7 +84,28 @@ export function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center gap-2 border-b border-border px-4 py-2.5">
+        <header className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border px-4 py-2">
+          <nav aria-label="primary" className="flex items-center gap-1">
+            {NAV.flatMap((group) => group.items)
+              .filter((item) => !item.soon)
+              .map(({ to, label, icon: Icon, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                      isActive && "bg-accent font-medium text-accent-foreground",
+                    )
+                  }
+                >
+                  <Icon className="size-3.5" />
+                  {label}
+                </NavLink>
+              ))}
+          </nav>
+          <span className="text-muted-foreground/30">|</span>
           <nav aria-label="breadcrumb">
             <ol className="flex items-center gap-1.5 text-sm">
               {crumbs.map((crumb, i) => (

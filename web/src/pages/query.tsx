@@ -37,7 +37,6 @@ export default function QueryPage() {
   return (
     <div className="flex h-[calc(100svh-7rem)] flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-lg font-semibold">Query</h2>
         <ConnectionSelect value={connection} onChange={pick} />
         <Badge variant={kind === "read" ? "secondary" : "destructive"}>{kind}</Badge>
         <span className="text-xs text-muted-foreground">
