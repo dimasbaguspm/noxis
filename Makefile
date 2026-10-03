@@ -8,6 +8,10 @@ build:
 test:
 	go test ./...
 
+.PHONY: uat
+uat:
+	UAT_TAGS="$${UAT_TAGS:-~@slow}" go test ./test/uat -count=1
+
 lint:  ## run golangci-lint (installs it on first use)
 	command -v golangci-lint >/dev/null 2>&1 || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	golangci-lint run ./...
