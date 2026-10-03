@@ -18,8 +18,8 @@ REST API.
 - **SQL module (doorman)** — creates/updates engine instances (docker:
   image, persistent volume, isolated per-node network) and runs database ops
   with statement verification:
-  - `query` — reads and DML (SELECT/INSERT/UPDATE/…) — DDL rejected
-  - `alter` — DDL (ALTER/CREATE/DROP/…) — reads rejected
+  - `query` — reads only (SELECT/SHOW/EXPLAIN/…) — any write rejected
+  - `alter` — writes: DML (INSERT/UPDATE/…) and DDL (ALTER/CREATE/DROP/…)
   - `rollback` — dry-run inside a transaction that always rolls back
   - `analytics` — `ANALYZE` / `ANALYZE TABLE`
 - **Engine updates that don't lose data** — same-major version bumps swap the

@@ -213,10 +213,10 @@ func firstKeyword(sql string) string {
 	return strings.ToUpper(strings.Trim(trimmed, "(;"))
 }
 
-// Query runs statements against the instance — reads (SELECT/SHOW/EXPLAIN/…)
-// and DML (INSERT/UPDATE/DELETE/…) but never DDL (verified first).
+// Query runs read-only statements against the instance (SELECT/SHOW/
+// EXPLAIN/…; DML and DDL rejected — writes belong on alter).
 func (u *Doorman) Query(ctx context.Context, node string, eng entity.Engine, sql string) (string, error) {
-	if err := verifyKind(sql, kindBoth); err != nil {
+	if err := verifyKind(sql, readKinds); err != nil {
 		return "", err
 	}
 	desc, ok := lookupEngine(eng.Type)
@@ -226,10 +226,10 @@ func (u *Doorman) Query(ctx context.Context, node string, eng entity.Engine, sql
 	return u.exec(ctx, node, eng, clientArgs(desc, sql))
 }
 
-// AlterTable applies DDL statements (ALTER/CREATE/DROP/…) to the instance
-// — reads and DML are rejected (verified first).
+// AlterTable applies writes to the instance — DDL (ALTER/CREATE/DROP/…)
+// and DML (INSERT/UPDATE/DELETE/…); reads are rejected (verified first).
 func (u *Doorman) AlterTable(ctx context.Context, node string, eng entity.Engine, sql string) (string, error) {
-	if err := verifyKind(sql, ddlKinds); err != nil {
+	if err := verifyKind(sql, writeKinds); err != nil {
 		return "", err
 	}
 	desc, ok := lookupEngine(eng.Type)

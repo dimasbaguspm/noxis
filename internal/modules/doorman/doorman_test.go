@@ -114,12 +114,16 @@ func TestVerifyKinds(t *testing.T) {
 	u := New(&stubDocker{})
 	eng := entity.Engine{Name: "postgres", Type: "postgres"}
 
+	if _, err := u.Query(context.Background(), "zeus", eng, "SELECT 6*6"); err != nil {
+		t.Fatalf("query must allow reads, got %v", err)
+	}
 	if _, err := u.Query(context.Background(), "zeus", eng, "DROP TABLE t"); err == nil ||
 		!strings.Contains(err.Error(), "not allowed") {
 		t.Fatalf("query must reject DDL, got %v", err)
 	}
-	if _, err := u.Query(context.Background(), "zeus", eng, "INSERT INTO t VALUES (1)"); err != nil {
-		t.Fatalf("query must allow DML, got %v", err)
+	if _, err := u.Query(context.Background(), "zeus", eng, "INSERT INTO t VALUES (1)"); err == nil ||
+		!strings.Contains(err.Error(), "not allowed") {
+		t.Fatalf("query is read-only, must reject DML, got %v", err)
 	}
 	if _, err := u.AlterTable(context.Background(), "zeus", eng, "SELECT 1"); err == nil ||
 		!strings.Contains(err.Error(), "not allowed") {
@@ -128,36 +132,54 @@ func TestVerifyKinds(t *testing.T) {
 	if _, err := u.AlterTable(context.Background(), "zeus", eng, "ALTER TABLE t ADD COLUMN c int"); err != nil {
 		t.Fatalf("alter must allow DDL, got %v", err)
 	}
+	if _, err := u.AlterTable(context.Background(), "zeus", eng, "INSERT INTO t VALUES (1)"); err != nil {
+		t.Fatalf("alter must allow DML, got %v", err)
+	}
+	if _, err := u.AlterTable(context.Background(), "zeus", eng, "WITH x AS (SELECT 1) INSERT INTO t SELECT * FROM x"); err != nil {
+		t.Fatalf("alter must allow CTE-fronted DML (WITH is a write opener), got %v", err)
+	}
 }
 
 func TestVerifyKindsPerStatement(t *testing.T) {
 	u := New(&stubDocker{})
 	eng := entity.Engine{Name: "postgres", Type: "postgres"}
 
-	cases := []struct {
+	queryCases := []struct {
 		name, sql string
 		wantErr   bool
 	}{
 		{"smuggled DDL after a read", "SELECT 1; DROP TABLE t", true},
-		{"smuggled DDL after DML", "INSERT INTO t VALUES (1); TRUNCATE t", true},
-		{"DML batch stays allowed", "INSERT INTO t VALUES (1); UPDATE t SET a=2", false},
-		{"semicolon inside a string", "INSERT INTO t VALUES ('a;b')", false},
-		{"escaped quote with semicolon", "INSERT INTO t VALUES ('it''s; fine')", false},
-		{"trailing semicolon", "SELECT 1;", false},
+		{"smuggled DML after a read", "SELECT 1; INSERT INTO t VALUES (2)", true},
+		{"read batch stays allowed", "SELECT 1; SELECT 2", false},
+		{"semicolon inside a string on select", "SELECT 'a;b'", false},
+		{"trailing semicolon on select", "SELECT 1;", false},
 	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for _, tc := range queryCases {
+		t.Run("query/"+tc.name, func(t *testing.T) {
 			_, err := u.Query(context.Background(), "zeus", eng, tc.sql)
 			if err == nil != !tc.wantErr {
 				t.Fatalf("query %q err=%v, wantErr=%v", tc.sql, err, tc.wantErr)
 			}
 		})
 	}
-	if _, err := u.AlterTable(context.Background(), "zeus", eng, "CREATE TABLE t (c int); ALTER TABLE t ADD COLUMN d int"); err != nil {
-		t.Fatalf("alter must allow the DDL batch, got %v", err)
+	alterCases := []struct {
+		name, sql string
+		wantErr   bool
+	}{
+		{"DML batch stays allowed", "INSERT INTO t VALUES (1); UPDATE t SET a=2", false},
+		{"multi DDL stays allowed", "CREATE TABLE t (c int); ALTER TABLE t ADD COLUMN d int", false},
+		{"read half of the batch rejected", "ALTER TABLE t ADD COLUMN d int; SELECT 1", true},
+		{"semicolon inside a string value", "INSERT INTO t VALUES ('a;b')", false},
+		{"escaped quote with semicolon", "INSERT INTO t VALUES ('it''s; fine')", false},
+		{"DML after a read rejected", "SELECT 1; INSERT INTO t VALUES (2)", true},
 	}
-	if _, err := u.AlterTable(context.Background(), "zeus", eng, "ALTER TABLE t ADD COLUMN d int; SELECT 1"); err == nil {
-		t.Fatalf("alter must reject the read half of the batch")
+	for _, tc := range alterCases {
+		t.Run("alter/"+tc.name, func(t *testing.T) {
+			_, err := u.AlterTable(context.Background(), "zeus", eng, tc.sql)
+			if err == nil != !tc.wantErr {
+				t.Fatalf("alter %q err=%v, wantErr=%v", tc.sql, err, tc.wantErr)
+			}
+		})
 	}
 }
 

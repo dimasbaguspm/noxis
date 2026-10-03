@@ -26,12 +26,15 @@ const (
 	stmtBegin    = "BEGIN;"
 	stmtRollback = "ROLLBACK;"
 
-	// Statement kind guards: each op accepts only appropriate statements
-	// (verify before execute — a control plane must not run DROP via query).
-	readKinds = "SELECT SHOW EXPLAIN DESCRIBE DESC WITH"
-	dmlKinds  = "INSERT UPDATE DELETE MERGE REPLACE"
-	ddlKinds  = "ALTER CREATE DROP TRUNCATE RENAME GRANT REVOKE COMMENT"
-	kindBoth  = readKinds + " " + dmlKinds
+	// Statement kind guards: query is read-only; alter takes every write
+	// (DML and DDL). Verified per statement before execute — a control plane
+	// must neither run DROP via query nor SELECT via alter.
+	// WITH is a write opener (CTEs can front INSERT/UPDATE/DELETE), so it
+	// lives with the writes; CTE reads stay plain SELECTs on query.
+	readKinds  = "SELECT SHOW EXPLAIN DESCRIBE DESC"
+	dmlKinds   = "WITH INSERT UPDATE DELETE MERGE REPLACE"
+	ddlKinds   = "ALTER CREATE DROP TRUNCATE RENAME GRANT REVOKE COMMENT"
+	writeKinds = dmlKinds + " " + ddlKinds
 
 	// Supported engine kinds (doorman is SQL-only by design).
 	EnginePostgres = "postgres"

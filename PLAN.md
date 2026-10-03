@@ -62,8 +62,9 @@ contract — node lifecycle, query/alter/rollback/analytics, statement guards,
 engine updates (tagged @slow). `make uat`.
 
 Capabilities (verified e2e): create instance (several per node), query
-(read+DML), alter/DDL, rollback dry-run, analyze; statement-kind guards
-(query rejects DDL, alter rejects reads, 400); engine update — same-major
+(read-only), alter (DML + DDL), rollback dry-run, analyze; statement-kind
+guards are a reads/writes split (query rejects DML + DDL, alter rejects
+reads, 400); engine update — same-major
 recreates the container and keeps the volume (data survives), major bump gets
 a fresh cluster backed by a major-split volume (old data preserved; migration
 is the operator's job).

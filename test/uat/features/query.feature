@@ -1,6 +1,6 @@
-Feature: doorman query — reads and DML, never DDL
-  As an operator I want to run ad-hoc reads and data changes against assigned
-  databases without touching schemas by accident.
+Feature: doorman query — read-only
+  As an operator I want to ask questions of assigned databases without ever
+  changing them (schema or data — writes live on alter).
 
   Background:
     Given the stack is running
@@ -11,12 +11,17 @@ Feature: doorman query — reads and DML, never DDL
     When I query engine "postgres" with "SELECT 6*6"
     Then the output is "36"
 
-  Scenario: data changes and reads work across steps
+  Scenario: reads and writes split across ops
     Given the master assigns engine "postgres" version "16-alpine" to node "zeus"
     And I alter engine "postgres" with "CREATE TABLE IF NOT EXISTS uat_q (n INT)"
-    When I query engine "postgres" with "INSERT INTO uat_q VALUES (7), (8)"
-    And I query engine "postgres" with "SELECT SUM(n) FROM uat_q"
+    And I alter engine "postgres" with "INSERT INTO uat_q VALUES (7), (8)"
+    When I query engine "postgres" with "SELECT SUM(n) FROM uat_q"
     Then the output is "15"
+
+  Scenario: DML is rejected by the read-only query guard
+    Given the master assigns engine "postgres" version "16-alpine" to node "zeus"
+    When I query engine "postgres" with "INSERT INTO uat_q VALUES (1)"
+    Then the master rejects the request with a 400
 
   Scenario: DDL is rejected by the query guard
     Given the master assigns engine "postgres" version "16-alpine" to node "zeus"
@@ -31,6 +36,6 @@ Feature: doorman query — reads and DML, never DDL
   Scenario: a semicolon inside a string value does not split the batch
     Given the master assigns engine "postgres" version "16-alpine" to node "zeus"
     And I alter engine "postgres" with "CREATE TABLE IF NOT EXISTS uat_semi (v TEXT)"
-    When I query engine "postgres" with "INSERT INTO uat_semi VALUES ('a;b')"
+    When I alter engine "postgres" with "INSERT INTO uat_semi VALUES ('a;b')"
     And I query engine "postgres" with "SELECT v FROM uat_semi"
     Then the output is "a;b"
