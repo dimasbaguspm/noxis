@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Leaf,
   PenLine,
-  TerminalSquare,
 } from "lucide-react";
 
 export interface NavItem {
@@ -49,9 +48,8 @@ export const NAV: NavGroup[] = [
   {
     label: "Redis",
     items: [
-      { to: "/redis/explore", label: "Explore", icon: Boxes, soon: true },
-      { to: "/redis/console", label: "Console", icon: TerminalSquare, soon: true },
-      { to: "/redis/analytics", label: "Analytics", icon: BarChart3, soon: true },
+      { to: "/redis", label: "Keys", icon: Boxes, end: true },
+      { to: "/redis/analytics", label: "Analytics", icon: BarChart3 },
     ],
   },
 ];
@@ -96,39 +94,6 @@ export const PLACEHOLDERS: Record<string, PlaceholderSpec> = {
       "memory: resident, virtual, mapped and cache usage",
       "replication lag and oplog window",
       "slow-query sampling (profiler) with a per-collection breakdown",
-    ],
-    icon: BarChart3,
-  },
-  "/redis/explore": {
-    title: "Redis · Explore",
-    summary: "A key browser for Redis: scan by pattern, inspect values, TTLs and encodings.",
-    planned: [
-      "SCAN-based browsing (never KEYS) with pattern filter and cursors",
-      "value inspector per type: string, hash, list, set, zset, stream",
-      "TTL editing and safe deletion with confirmation",
-      "keyspace summary per database index",
-    ],
-    icon: Boxes,
-  },
-  "/redis/console": {
-    title: "Redis · Console",
-    summary: "Run Redis commands with the same guard rails the SQL console uses.",
-    planned: [
-      "read-only commands (GET, HGETALL, SCAN, INFO, TTL…) run directly",
-      "write commands (SET/DEL/EXPIRE/HSET…) go through the review flow",
-      "command hints with arity and complexity",
-      "result rendered per type instead of a raw reply",
-    ],
-    icon: TerminalSquare,
-  },
-  "/redis/analytics": {
-    title: "Redis · Analytics",
-    summary: "INFO-driven metrics, streamed over SSE like the SQL analytics page.",
-    planned: [
-      "memory: used, peak, fragmentation ratio, evicted keys",
-      "throughput: ops/sec, hit ratio, expired vs evicted",
-      "connections: clients, blocked, rejected",
-      "persistence: RDB/AOF status, last save, replication offsets",
     ],
     icon: BarChart3,
   },

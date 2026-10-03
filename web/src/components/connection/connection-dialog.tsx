@@ -28,38 +28,50 @@ const EMPTY: Connection = {
   database: "",
 };
 
+const REDIS_EMPTY: Connection = { ...EMPTY, driver: "redis", port: 6379, database: "0" };
+
 // ConnectionDialog adds (or edits) a connection. Nothing is kept unless the
 // instance answers: the probe runs first, and a failed probe removes the
-// registry entry it just wrote.
+// registry entry it just wrote. The family decides which namespace it talks
+// to and which fields make sense.
 export function ConnectionDialog({
   trigger = "New connection",
   initial,
+  family = "sql",
+  onSaved,
 }: {
   trigger?: string;
   initial?: Connection;
+  family?: "sql" | "redis";
+  onSaved?: () => void | Promise<void>;
 }) {
+  const redis = family === "redis";
+  const blank = redis ? REDIS_EMPTY : EMPTY;
+  const client = redis ? api.redis : api.connections;
   const { reload, setActive } = useApp();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<Connection>(initial ?? EMPTY);
+  const [form, setForm] = useState<Connection>(initial ?? blank);
   const [verified, setVerified] = useState(false);
 
   const connect = useAction(async () => {
-    const saved = await api.connections.save({ ...form, port: Number(form.port) || 5432 });
+    const saved = await client.save({ ...form, port: Number(form.port) || (redis ? 6379 : 5432) });
     const name = saved.name ?? "";
     try {
-      await api.connections.test(name);
+      await client.test(name);
     } catch (err) {
-      await api.connections.remove(name).catch(() => undefined);
+      await client.remove(name).catch(() => undefined);
       await reload();
+      await onSaved?.();
       setVerified(false);
       throw new Error(`connection refused — not saved: ${err instanceof Error ? err.message : String(err)}`);
     }
     setVerified(true);
     toast.success(`${name}: verified and saved`);
     await reload();
-    setActive(name);
+    await onSaved?.();
+    if (!redis) setActive(name);
     setOpen(false);
-    setForm(EMPTY);
+    setForm(blank);
   });
 
   function update<K extends keyof Connection>(key: K, value: Connection[K]) {
@@ -74,7 +86,9 @@ export function ConnectionDialog({
         <DialogHeader>
           <DialogTitle>Connection</DialogTitle>
           <DialogDescription>
-            Point noxis at a database that already exists — it is verified before it is saved.
+            {redis
+              ? "Point noXis at a Redis server that already exists. It is verified before it is saved."
+              : "Point noXis at a database that already exists. It is verified before it is saved."}
           </DialogDescription>
         </DialogHeader>
 
@@ -82,26 +96,40 @@ export function ConnectionDialog({
           <Field label="Name" value={form.name} onChange={(v) => update("name", v)} placeholder="prod-readonly" />
           <div className="grid gap-1.5">
             <Label>Driver</Label>
-            <Select
-              value={form.driver}
-              onValueChange={(v) => {
-                const driver = String(v);
-                setForm((prev) => ({ ...prev, driver, port: driver === "mysql" ? 3306 : 5432 }));
-                setVerified(false);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="postgres">postgres</SelectItem>
-                <SelectItem value="mysql">mysql / mariadb</SelectItem>
-              </SelectContent>
-            </Select>
+            {redis ? (
+              <Input value="redis" readOnly disabled />
+            ) : (
+              <Select
+                value={form.driver}
+                onValueChange={(v) => {
+                  const driver = String(v);
+                  setForm((prev) => ({ ...prev, driver, port: driver === "mysql" ? 3306 : 5432 }));
+                  setVerified(false);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="postgres">postgres</SelectItem>
+                  <SelectItem value="mysql">mysql / mariadb</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
-          <Field label="Host" value={form.host} onChange={(v) => update("host", v)} placeholder="db.internal" />
+          <Field
+            label="Host"
+            value={form.host}
+            onChange={(v) => update("host", v)}
+            placeholder={redis ? "cache.internal" : "db.internal"}
+          />
           <Field label="Port" value={String(form.port)} onChange={(v) => update("port", Number(v))} type="number" />
-          <Field label="User" value={form.user ?? ""} onChange={(v) => update("user", v)} placeholder="postgres" />
+          <Field
+            label={redis ? "User (ACL, optional)" : "User"}
+            value={form.user ?? ""}
+            onChange={(v) => update("user", v)}
+            placeholder={redis ? "default" : "postgres"}
+          />
           <Field
             label="Password"
             value={form.password ?? ""}
@@ -109,7 +137,12 @@ export function ConnectionDialog({
             type="password"
             placeholder={initial ? "unchanged" : ""}
           />
-          <Field label="Database" value={form.database} onChange={(v) => update("database", v)} placeholder="app" />
+          <Field
+            label={redis ? "DB index" : "Database"}
+            value={form.database}
+            onChange={(v) => update("database", v)}
+            placeholder={redis ? "0" : "app"}
+          />
         </div>
 
         <DialogFooter className="items-center gap-2">
