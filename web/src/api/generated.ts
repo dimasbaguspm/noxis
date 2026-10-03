@@ -386,6 +386,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/connections/status/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reachability stream for every connection (SSE, one tick per 5s) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description text/event-stream */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/connections/{name}": {
         parameters: {
             query?: never;
@@ -937,6 +973,9 @@ export interface components {
             table?: string;
         };
         "entity.Change": {
+            affectedColumns?: string[];
+            /** @description what the batch touches (keyword-anchored, best effort) */
+            affectedTables?: string[];
             appliedAffected?: number;
             appliedAt?: number;
             appliedDurationMs?: number;

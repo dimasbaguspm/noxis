@@ -71,6 +71,8 @@ var migrations = []string{
 	`ALTER TABLE changes ADD COLUMN est_affected INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE changes ADD COLUMN applied_affected INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE changes ADD COLUMN applied_duration_ms INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE changes ADD COLUMN affected_tables TEXT NOT NULL DEFAULT '[]'`,
+	`ALTER TABLE changes ADD COLUMN affected_columns TEXT NOT NULL DEFAULT '[]'`,
 }
 
 const schema = `
@@ -90,7 +92,9 @@ CREATE TABLE IF NOT EXISTS changes (
   est_duration_ms INTEGER NOT NULL DEFAULT 0,
   est_affected    INTEGER NOT NULL DEFAULT 0,
   applied_affected   INTEGER NOT NULL DEFAULT 0,
-  applied_duration_ms INTEGER NOT NULL DEFAULT 0
+  applied_duration_ms INTEGER NOT NULL DEFAULT 0,
+  affected_tables  TEXT NOT NULL DEFAULT '[]',
+  affected_columns TEXT NOT NULL DEFAULT '[]'
 );
 
 CREATE TABLE IF NOT EXISTS connections (

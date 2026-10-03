@@ -15,6 +15,9 @@ type Change struct {
 	ApprovedAt int64         `json:"approvedAt,omitempty"`
 	AppliedAt  int64         `json:"appliedAt,omitempty"`
 	RejectedAt int64         `json:"rejectedAt,omitempty"`
+	// what the batch touches (keyword-anchored, best effort)
+	AffectedTables  []string `json:"affectedTables,omitempty"`
+	AffectedColumns []string `json:"affectedColumns,omitempty"`
 	// measured on the dry run (estimates) and on apply (actuals)
 	EstDurationMs     int64 `json:"estDurationMs,omitempty"`
 	EstAffected       int64 `json:"estAffected,omitempty"`

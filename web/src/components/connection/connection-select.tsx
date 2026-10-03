@@ -1,3 +1,4 @@
+import { Database } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useApp } from "@/app/app-provider";
 
@@ -21,11 +22,13 @@ export function ConnectionSelect({
   return (
     <Select value={value} onValueChange={(next) => onChange(String(next))}>
       <SelectTrigger className={className} aria-label="db instance">
+        <Database className="size-3.5 text-muted-foreground" />
         <SelectValue placeholder="pick an instance" />
       </SelectTrigger>
       <SelectContent>
         {connections.map((c) => (
           <SelectItem key={c.name} value={c.name ?? ""}>
+            <Database className="size-3.5 text-muted-foreground" />
             {c.name} · {c.driver}
           </SelectItem>
         ))}

@@ -189,6 +189,16 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
+  /v1/connections/status/stream:
+    get:
+      summary: Reachability stream for every connection (SSE, one tick per 5s)
+      responses:
+        "200":
+          description: text/event-stream
+          content:
+            "*/*":
+              schema:
+                type: string
   "/v1/connections/{name}":
     get:
       summary: Get one connection (password redacted)
@@ -518,6 +528,15 @@ components:
         - query
         - rollback
       properties:
+        affectedColumns:
+          type: array
+          items:
+            type: string
+        affectedTables:
+          description: what the batch touches (keyword-anchored, best effort)
+          type: array
+          items:
+            type: string
         appliedAffected:
           type: integer
         appliedAt:

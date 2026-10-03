@@ -104,12 +104,10 @@ export function TableBrowser({ tables, onPick, onRecords, onAnalyze }: Props) {
                     </button>
                     <DropdownMenu>
                       <DropdownMenuTrigger
-                        render={
-                          <Button size="icon" variant="ghost" aria-label={`actions for ${t.name}`}>
-                            <EllipsisVertical />
-                          </Button>
-                        }
-                      />
+                        render={<Button size="icon" variant="ghost" aria-label={`actions for ${t.name}`} />}
+                      >
+                        <EllipsisVertical />
+                      </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => onPick?.(t)}>
                           <PlayCircle /> Use in query

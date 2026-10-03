@@ -43,6 +43,7 @@ export const api = {
     test: (name: string) => request<{ status: string }>("POST", `/v1/connections/${name}/test`),
     schema: (name: string) => request<{ tables: Table[] }>("GET", `/v1/connections/${name}/schema`),
     stats: (name: string) => request<Stats>("GET", `/v1/connections/${name}/stats`),
+    statusStream: () => "/v1/connections/status/stream",
     // the live view subscribes to this endpoint with an EventSource
     statsStream: (name: string) => `/v1/connections/${name}/stats/stream`,
     rows: (name: string, schema: string, table: string, limit = 100) =>

@@ -1,21 +1,24 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { debounce } from "radash";
-import { Database, Search, Trash2, Zap } from "lucide-react";
+import { debounce, title } from "radash";
+import { CircleCheck, CircleX, Database, Loader2, Search, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { useApp } from "@/app/app-provider";
 import { useAction } from "@/hooks/use-action";
+import { useConnectionStates } from "@/hooks/use-connection-states";
 import { useChanges } from "@/hooks/use-data";
 import { api } from "@/lib/api";
 
 export default function DashboardPage() {
   const { connections, reload } = useApp();
   const { changes } = useChanges();
+  const { states, connected } = useConnectionStates();
 
   const [filter, setFilter] = useState("");
   const [query, setQuery] = useState("");
@@ -47,6 +50,12 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="text-lg font-semibold">Dashboard</h2>
+        <span className="flex-1" />
+        <ConnectionDialog trigger="New connection" />
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Stat title="Instances connected" value={connections.length} hint="registered & verified" />
         <Stat title="DDL executed" value={ddl} hint="schema changes applied" />
@@ -63,7 +72,10 @@ export default function DashboardPage() {
         <CardHeader className="gap-3">
           <div>
             <CardTitle className="text-base">Instances</CardTitle>
-            <CardDescription>{connections.length} registered</CardDescription>
+            <CardDescription>
+              {connections.length} registered · reachability streamed live
+              {connected ? "" : " (connecting…)"}
+            </CardDescription>
           </div>
           <div className="relative max-w-md">
             <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -88,11 +100,12 @@ export default function DashboardPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>name</TableHead>
-                    <TableHead>driver</TableHead>
-                    <TableHead>endpoint</TableHead>
-                    <TableHead>database</TableHead>
-                    <TableHead className="w-[210px]">actions</TableHead>
+                    <TableHead>{title("name")}</TableHead>
+                    <TableHead className="w-[110px]">{title("state")}</TableHead>
+                    <TableHead>{title("driver")}</TableHead>
+                    <TableHead>{title("endpoint")}</TableHead>
+                    <TableHead>{title("database")}</TableHead>
+                    <TableHead className="w-[200px]">{title("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -103,6 +116,9 @@ export default function DashboardPage() {
                           <Database className="size-3.5 text-muted-foreground" />
                           {c.name}
                         </Link>
+                      </TableCell>
+                      <TableCell>
+                        <StateCell state={states[c.name ?? ""]} />
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">{c.driver}</Badge>
@@ -128,6 +144,31 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// StateCell renders the streamed reachability of one row — only the rows the
+// dashboard shows are rendered, the stream carries them all.
+function StateCell({ state }: { state?: { ok: boolean; latencyMs: number; error?: string } }) {
+  if (!state) {
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Loader2 className="size-3.5 animate-spin" /> checking
+      </span>
+    );
+  }
+  if (!state.ok) {
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-destructive" title={state.error}>
+        <CircleX className="size-3.5" /> unreachable
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-emerald-500">
+      <CircleCheck className="size-3.5" /> reachable
+      <span className="text-muted-foreground">{state.latencyMs} ms</span>
+    </span>
   );
 }
 

@@ -13,6 +13,7 @@ const QueryPage = lazy(() => import("@/pages/query"));
 const DmlPage = lazy(() => import("@/pages/dml"));
 const DdlPage = lazy(() => import("@/pages/ddl"));
 const AnalyticsPage = lazy(() => import("@/pages/analytics"));
+const MongoPage = lazy(() => import("@/pages/mongo"));
 const ChangeDetail = lazy(() =>
   import("@/pages/change-detail").then((m) => ({ default: m.ChangeDetailPage })),
 );
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
       { path: "ddl", element: <DdlPage /> },
       { path: "ddl/:id", element: <ChangeDetail kind="ddl" /> },
       { path: "analytics", element: <AnalyticsPage /> },
+      { path: "mongo", element: <MongoPage /> },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

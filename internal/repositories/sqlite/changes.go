@@ -13,7 +13,8 @@ import (
 )
 
 const changeColumns = `id, connection, notes, query, rollback, kind, status, checks, created_at, approved_at,
-	applied_at, rejected_at, est_duration_ms, est_affected, applied_affected, applied_duration_ms`
+	applied_at, rejected_at, est_duration_ms, est_affected, applied_affected, applied_duration_ms,
+	affected_tables, affected_columns`
 
 // SaveChange upserts a change.
 func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
@@ -23,18 +24,28 @@ func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
 	if err != nil {
 		return fmt.Errorf("encode checks: %w", err)
 	}
+	tables, err := json.Marshal(c.AffectedTables)
+	if err != nil {
+		return fmt.Errorf("encode tables: %w", err)
+	}
+	columns, err := json.Marshal(c.AffectedColumns)
+	if err != nil {
+		return fmt.Errorf("encode columns: %w", err)
+	}
 	if _, err := s.db.ExecContext(ctx, `
-		INSERT INTO changes (`+changeColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO changes (`+changeColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			connection=excluded.connection, notes=excluded.notes, query=excluded.query,
 			rollback=excluded.rollback, kind=excluded.kind, status=excluded.status, checks=excluded.checks,
 			approved_at=excluded.approved_at, applied_at=excluded.applied_at,
 			rejected_at=excluded.rejected_at,
 			est_duration_ms=excluded.est_duration_ms, est_affected=excluded.est_affected,
-			applied_affected=excluded.applied_affected, applied_duration_ms=excluded.applied_duration_ms`,
+			applied_affected=excluded.applied_affected, applied_duration_ms=excluded.applied_duration_ms,
+			affected_tables=excluded.affected_tables, affected_columns=excluded.affected_columns`,
 		c.ID, c.Connection, c.Notes, c.Query, c.Rollback, c.Kind, c.Status, string(checks),
 		c.CreatedAt, c.ApprovedAt, c.AppliedAt, c.RejectedAt,
-		c.EstDurationMs, c.EstAffected, c.AppliedAffected, c.AppliedDurationMs); err != nil {
+		c.EstDurationMs, c.EstAffected, c.AppliedAffected, c.AppliedDurationMs,
+		string(tables), string(columns)); err != nil {
 		return fmt.Errorf("save change %s: %w", c.ID, err)
 	}
 	return nil
@@ -74,13 +85,26 @@ func (s *Store) DeleteChange(ctx context.Context, id string) (err error) {
 
 func scanChange(row scanner) (entity.Change, error) {
 	var (
-		c      entity.Change
-		checks string
+		c       entity.Change
+		checks  string
+		tables  string
+		columns string
 	)
 	if err := row.Scan(&c.ID, &c.Connection, &c.Notes, &c.Query, &c.Rollback, &c.Kind, &c.Status, &checks,
 		&c.CreatedAt, &c.ApprovedAt, &c.AppliedAt, &c.RejectedAt,
-		&c.EstDurationMs, &c.EstAffected, &c.AppliedAffected, &c.AppliedDurationMs); err != nil {
+		&c.EstDurationMs, &c.EstAffected, &c.AppliedAffected, &c.AppliedDurationMs,
+		&tables, &columns); err != nil {
 		return c, err
+	}
+	for _, target := range []struct {
+		raw string
+		dst *[]string
+	}{{tables, &c.AffectedTables}, {columns, &c.AffectedColumns}} {
+		if target.raw != "" {
+			if err := json.Unmarshal([]byte(target.raw), target.dst); err != nil {
+				return c, fmt.Errorf("decode affected identifiers for %s: %w", c.ID, err)
+			}
+		}
 	}
 	if checks != "" {
 		if err := json.Unmarshal([]byte(checks), &c.Checks); err != nil {

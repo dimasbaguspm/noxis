@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { title } from "radash";
 import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,10 +27,11 @@ export function ChangeTable({ changes, emptyHint }: { changes: Change[]; emptyHi
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[90px]">status</TableHead>
-            <TableHead>notes</TableHead>
-            <TableHead className="w-[130px]">instance</TableHead>
-            <TableHead className="w-[200px]">impact</TableHead>
+            <TableHead className="w-[90px]">{title("status")}</TableHead>
+            <TableHead>{title("notes")}</TableHead>
+            <TableHead className="w-[130px]">{title("instance")}</TableHead>
+            <TableHead className="w-[220px]">{title("touches")}</TableHead>
+            <TableHead className="w-[200px]">{title("impact")}</TableHead>
             <TableHead className="w-[110px]" />
           </TableRow>
         </TableHeader>
@@ -48,6 +50,14 @@ export function ChangeTable({ changes, emptyHint }: { changes: Change[]; emptyHi
                   </Link>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{change.connection}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {(change.affectedTables ?? []).join(", ") || "—"}
+                  {(change.affectedColumns ?? []).length > 0 && (
+                    <span className="block text-muted-foreground/70">
+                      {(change.affectedColumns ?? []).join(", ")}
+                    </span>
+                  )}
+                </TableCell>
                 <TableCell className="text-xs text-muted-foreground tabular-nums">
                   {change.status === "applied"
                     ? `${change.appliedDurationMs ?? 0} ms · ${change.appliedAffected ?? 0} rows`

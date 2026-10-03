@@ -24,14 +24,17 @@ brokers, no orchestration — one binary, one volume, no docker socket.
   DDL there is marked `unverified` instead of pretending a dry-run happened.
 - **Operator console** — served by the binary itself at `/` (React + TS +
   shadcn/ui, embedded; no build step at deploy time):
-  - **Dashboard** — registered instances in a searchable table, executed
-    DDL/DML counts and the error rate; add an instance (verified before it is
-    saved)
-  - **Query** — per-instance schema/table browser, monaco editor with
-    schema-aware completion, result grid with duration / rows / plan estimate
-    and CSV export; `ANALYZE` lives here as a table action
-  - **DML / DDL** — change queue, then a focus review page per change
-    (estimates vs actuals, activity trail); changes are artifacts, never deleted
+  - **Dashboard** — registered instances in a searchable table with live
+    reachability (SSE), executed DDL/DML counts and the error rate; add an
+    instance (verified before it is saved)
+  - menu: Dashboard · Analytics · SQL (Query / DML / DDL) · MongoDB (soon)
+  - **Query** — per-instance schema/table browser, monaco editor (self-hosted,
+    schema-aware completion), result grid with duration / rows / plan estimate
+    and CSV export; `ANALYZE` and "show records" live in each table's menu
+  - **DML / DDL** — change queue, then a focus review page per change:
+    estimates vs actuals, the tables/columns it touches (parsed from the
+    statements), an activity trail, and monaco for query/rollback; changes are
+    artifacts, never deleted
   - **Analytics** — live instance metrics over SSE (connections, cache hit
     ratio, throughput) with recharts graphs
 

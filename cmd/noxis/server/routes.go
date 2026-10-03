@@ -26,6 +26,7 @@ func newHandler(store *sqlite.Store, log *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", controller.GetHealthz)
+	mux.HandleFunc("GET /v1/connections/status/stream", controller.StreamConnectionStatus)
 	mux.HandleFunc("GET /v1/connections", controller.ListConnections)
 	mux.HandleFunc("POST /v1/connections", controller.SaveConnection)
 	mux.HandleFunc("GET /v1/connections/{name}", controller.GetConnection)

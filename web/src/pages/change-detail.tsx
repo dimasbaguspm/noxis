@@ -128,6 +128,35 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
 
           <Card>
             <CardHeader>
+              <CardTitle className="text-base">Touches</CardTitle>
+              <CardDescription>parsed from the statements (best effort)</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-2 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">tables</p>
+                <div className="flex flex-wrap gap-1">
+                  {(change.affectedTables ?? []).length === 0 ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    (change.affectedTables ?? []).map((t) => <Badge key={t} variant="secondary">{t}</Badge>)
+                  )}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">columns</p>
+                <div className="flex flex-wrap gap-1">
+                  {(change.affectedColumns ?? []).length === 0 ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    (change.affectedColumns ?? []).map((c) => <Badge key={c} variant="outline">{c}</Badge>)
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="text-base">Impact</CardTitle>
               <CardDescription>estimates from the dry run, actuals from apply</CardDescription>
             </CardHeader>
