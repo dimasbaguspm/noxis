@@ -1,21 +1,21 @@
-import { useState } from "react";
-import { CircleHelp, Play, Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { ResultTable } from "@/components/sql/result-table";
 import { SqlEditor } from "@/components/sql/sql-editor";
 import { SqlTabs } from "@/components/sql/sql-tabs";
 import { TableBrowser } from "@/components/sql/table-browser";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAction } from "@/hooks/use-action";
 import { useConnectionSelection, useSchema } from "@/hooks/use-connection";
 import { useQuery } from "@/hooks/use-data";
 import { useSqlTabs } from "@/hooks/use-sql-tabs";
 import { api, type Result } from "@/lib/api";
 import { classify } from "@/lib/statements";
+import { CircleHelp, Play } from "lucide-react";
+import { useState } from "react";
 
 export default function QueryPage() {
   const { connection, pick } = useConnectionSelection();
@@ -51,12 +51,6 @@ export default function QueryPage() {
       <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
         <ResizablePanel defaultSize={24} minSize={16}>
           <Card className="mr-2 h-full min-h-0">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-1.5 text-base">
-                <Search className="size-3.5 text-muted-foreground" />
-                {connection ?? "no instance"}
-              </CardTitle>
-            </CardHeader>
             <CardContent className="min-h-0 flex-1">
               <TableBrowser
                 tables={tables}

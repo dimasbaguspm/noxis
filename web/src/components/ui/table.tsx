@@ -54,7 +54,9 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        // zebra striping (in the primitive, so every table gets it) plus a
+        // hover tint so the row under the pointer stays obvious
+        "border-b transition-colors even:bg-muted/40 hover:bg-accent/60 has-aria-expanded:bg-accent/60 data-[state=selected]:bg-muted",
         className
       )}
       {...props}
