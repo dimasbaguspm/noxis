@@ -17,7 +17,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=web /bin/dist /src/bin/dist
-RUN rm -rf cmd/noxis/server/controller/static && cp -r bin/dist cmd/noxis/server/controller/static \
+RUN rm -rf cmd/noxis/server/controller/static/assets cmd/noxis/server/controller/static/index.html \
+    && cp -r bin/dist/* cmd/noxis/server/controller/static \
     && CGO_ENABLED=0 go build -o /out/noxis ./cmd/noxis
 
 FROM alpine:3.20
