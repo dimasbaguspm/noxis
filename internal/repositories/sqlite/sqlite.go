@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"noxis/internal/interfaces"
@@ -21,7 +22,9 @@ type Store struct{ db *sql.DB }
 // Satisfier: the registry store implements the node repository seam.
 var _ interfaces.NodeRepository = (*Store)(nil)
 
-// Open opens the registry and verifies it answers a ping.
+// Open opens the registry and verifies it answers a ping. It is deployable
+// with zero host-side files: the parent directory is created when missing
+// and sqlite creates the database file itself on first open.
 func Open(path string) (*Store, error) {
 	// The classic bind-mount trap: docker creates a DIRECTORY at a bind
 	// target that doesn't exist yet, and sqlite cannot open a directory
@@ -29,6 +32,11 @@ func Open(path string) (*Store, error) {
 	// crash-looping on it.
 	if fi, err := os.Stat(path); err == nil && fi.IsDir() {
 		return nil, fmt.Errorf("open %s: is a directory — bind-mount a folder (named volume), not a file", path)
+	}
+	if dir := filepath.Dir(path); dir != "." {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return nil, fmt.Errorf("open %s: mkdir: %w", path, err)
+		}
 	}
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
