@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -249,5 +251,21 @@ func TestSecretsStayRedacted(t *testing.T) {
 	}
 	if raw, err := d.raw(ctx, "demo"); err != nil || raw.Password != "supersecret" {
 		t.Fatalf("internal path must still see the password: %v", err)
+	}
+}
+
+// TestHandlersRespond exercises the HTTP path (handle → span → JSON): a
+// self-calling span closure once turned this into a stack overflow.
+func TestHandlersRespond(t *testing.T) {
+	d, _, _ := newDeps(&fakeSQL{})
+	h := WithDeps(http.HandlerFunc(ListConnections), d)
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/connections", http.NoBody))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"connections"`) {
+		t.Fatalf("body: %s", rec.Body.String())
 	}
 }

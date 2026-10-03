@@ -18,7 +18,7 @@ const (
 	EnvOTELName      = "NOXIS_OTEL_NAME"      // service name reported to OTEL (optional)
 )
 
-// Config is the process environment as a struct; no defaults.
+// Config is the process environment; no defaults.
 type Config struct {
 	Listen        string `validate:"required"`
 	DB            string `validate:"required"`
@@ -38,7 +38,7 @@ func LoadConfig() Config {
 	}
 }
 
-// Require aggregates the missing variables a command needs, via struct tags.
+// Require aggregates the missing variables a command needs.
 func (c Config) Require(envs ...string) error {
 	var errs []error
 	for _, env := range envs {

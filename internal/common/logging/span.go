@@ -7,9 +7,8 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// StartSpan opens a span for one operation. Without a configured collector
-// the tracer is a no-op and only the caller's timing/log remains; with one,
-// records carry the span id through the ctx-aware slog handler.
+// StartSpan opens a span for one operation (a no-op tracer without a
+// configured collector).
 func StartSpan(ctx context.Context, name string) (ctxOut context.Context, end func(error)) {
 	ctxOut, span := otel.Tracer("noxis").Start(ctx, name)
 	return ctxOut, func(err error) {

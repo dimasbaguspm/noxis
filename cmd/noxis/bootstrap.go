@@ -21,7 +21,7 @@ func Bootstrap() error {
 	defer stop()
 
 	cfg := entity.LoadConfig()
-	log, shutdown, err := logging.New(cfg)
+	log, shutdown, err := logging.New(ctx, cfg)
 
 	if err != nil {
 		return err

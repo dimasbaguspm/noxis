@@ -1,5 +1,5 @@
-// Package logging wires slog + OTLP; ctx-aware handlers stamp trace_id/span_id
-// into records so logs, traces and metrics share one identity.
+// Package logging wires slog + OTLP; the ctx-aware handler stamps
+// trace_id/span_id into every record.
 package logging
 
 import (
@@ -20,7 +20,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// Defaults and log attribute keys.
+// Log attribute keys.
 const (
 	serviceFallback = "noxis"
 	// attribute keys stay consistent across log/trace/metric
@@ -31,7 +31,7 @@ const (
 // Shutdown flushes telemetry; call on process exit.
 type Shutdown func(context.Context) error
 
-func New(cfg entity.Config) (*slog.Logger, Shutdown, error) {
+func New(ctx context.Context, cfg entity.Config) (*slog.Logger, Shutdown, error) {
 	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
 	logger := slog.New(&ctxHandler{inner: jsonHandler})
 	slog.SetDefault(logger)
@@ -41,7 +41,6 @@ func New(cfg entity.Config) (*slog.Logger, Shutdown, error) {
 		return logger, noop, nil
 	}
 
-	ctx := context.Background()
 	service := firstNonEmpty(cfg.OTELName, serviceFallback)
 	res := resource.NewWithAttributes(
 		semconv.SchemaURL,

@@ -7,17 +7,14 @@ import (
 	sqlsvc "noxis/internal/services/sql"
 )
 
-// SQL operation shapes live with the module; these aliases let the seam
-// describe itself without duplicating types.
+// SQL operation shapes live with the module.
 type (
 	Result = sqlsvc.Result
 	Table  = sqlsvc.Table
 	Column = sqlsvc.Column
 )
 
-// SQLModule is the SQL operations seam: the console's only route to a
-// database. Implemented by internal/services/sql — swapping it (tests, a
-// different driver strategy) needs no handler change.
+// SQLModule is the console's only route to a database.
 type SQLModule interface {
 	Ping(ctx context.Context, c entity.Connection) error
 	Query(ctx context.Context, c entity.Connection, sqlText string) (Result, error)
@@ -31,5 +28,5 @@ type SQLModule interface {
 	VerifyWrite(sqlText string) error
 }
 
-// Satisfier: the SQL module implements its seam.
+// Satisfier.
 var _ SQLModule = (*sqlsvc.DB)(nil)

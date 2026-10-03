@@ -1,8 +1,7 @@
-// Package controller holds the REST handlers, one concern per file,
-// annotated with swag comments (`make swagger` regenerates
-// doc/swagger.yaml|json). The workflow logic lives here with the handlers:
-// repositories and the SQL module arrive through the request context (Deps),
-// so there is no separate core layer to keep in sync.
+// Package controller holds the REST handlers, one concern per file, with swag
+// annotations (`make swagger` regenerates doc/swagger.yaml|json). Workflow
+// logic lives next to the handlers; repositories and the SQL module arrive
+// through the request context.
 package controller
 
 import (
@@ -16,8 +15,7 @@ import (
 	"noxis/internal/interfaces"
 )
 
-// Deps is everything a handler needs: the repositories (the app's state),
-// the SQL module, and the logger. Injected per request.
+// Deps is everything a handler needs, injected per request.
 type Deps struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
@@ -35,23 +33,50 @@ func WithDeps(next http.Handler, d Deps) http.Handler {
 }
 
 // From returns the request's Deps.
-func From(r *http.Request) Deps {
-	return r.Context().Value(ctxKey{}).(Deps)
-}
+func From(r *http.Request) Deps { return r.Context().Value(ctxKey{}).(Deps) }
 
-// span opens a named span for one operation and logs its outcome, so every
-// log line carries trace_id/span_id.
-func (d Deps) span(ctx context.Context, name string) (ctxOut context.Context, end func(error)) {
-	ctxOut, end = logging.StartSpan(ctx, name)
+// span opens a span for the operation and logs its outcome (trace ids ride
+// the ctx-aware handler). The end func is bound to a local: naming the result
+// "end" would make the returned closure call itself.
+func (d Deps) span(ctx context.Context, name string) (ctxOut context.Context, finish func(error)) {
+	ctxOut, endSpan := logging.StartSpan(ctx, name)
 	return ctxOut, func(err error) {
 		if err != nil {
 			d.Log.WarnContext(ctx, name, "error", err.Error())
 		} else {
 			d.Log.InfoContext(ctx, name)
 		}
-		end(err)
+		endSpan(err)
 	}
 }
+
+// handle runs one handler body: span, error mapping, JSON response.
+func handle(w http.ResponseWriter, r *http.Request, name string, fn func(ctx context.Context, d Deps) (any, error)) {
+	d := From(r)
+	ctx, end := d.span(r.Context(), name)
+	v, err := fn(ctx, d)
+	end(err)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, v)
+}
+
+// handleNoContent is handle for operations with an empty response.
+func handleNoContent(w http.ResponseWriter, r *http.Request, name string, fn func(ctx context.Context, d Deps) error) {
+	d := From(r)
+	ctx, end := d.span(r.Context(), name)
+	err := fn(ctx, d)
+	end(err)
+	if err != nil {
+		writeErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func decode(r *http.Request, v any) error { return json.NewDecoder(r.Body).Decode(v) }
 
 func writeJSON(w http.ResponseWriter, code int, v any) {
 	w.Header().Set("Content-Type", "application/json")

@@ -1,4 +1,4 @@
-// Package sqlite persists the connection registry (SQLite via modernc,
+// Package sqlite persists connections and changes (SQLite via modernc,
 // cgo-free) — the app's only state.
 package sqlite
 
@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/interfaces"
 
 	// modernc SQLite driver: pure-Go, cgo-free (interface is database/sql).
@@ -18,20 +19,19 @@ import (
 
 type Store struct{ db *sql.DB }
 
-// Satisfiers: the store implements both repository seams.
+// Satisfiers.
 var (
 	_ interfaces.ConnectionRepository = (*Store)(nil)
 	_ interfaces.ChangeRepository     = (*Store)(nil)
 )
 
-// Open opens the store and verifies it answers a ping. It is deployable
-// with zero host-side files: the parent directory is created when missing
-// and sqlite creates the database file itself on first open.
-func Open(path string) (*Store, error) {
-	// The classic bind-mount trap: docker creates a DIRECTORY at a bind
-	// target that doesn't exist yet, and sqlite cannot open a directory
-	// ("unable to open database file (14)"). Name the failure instead of
-	// crash-looping on it.
+// Open opens the store and verifies it answers a ping. The parent directory
+// is created when missing and sqlite creates the file itself, so the app is
+// deployable with zero host-side files.
+func Open(ctx context.Context, path string) (*Store, error) {
+	// The bind-mount trap: docker creates a DIRECTORY at a missing bind
+	// target, and sqlite cannot open a directory ("unable to open database
+	// file (14)"). Name it instead of crash-looping.
 	if fi, err := os.Stat(path); err == nil && fi.IsDir() {
 		return nil, fmt.Errorf("open %s: is a directory — bind-mount a folder (named volume), not a file", path)
 	}
@@ -50,7 +50,7 @@ func Open(path string) (*Store, error) {
 		db.Close()
 		return nil, fmt.Errorf("schema: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	if err := db.PingContext(ctx); err != nil {
 		db.Close()
@@ -87,8 +87,35 @@ CREATE TABLE IF NOT EXISTS connections (
 
 func (s *Store) Close() { _ = s.db.Close() }
 
-// WithTx runs fn inside a transaction: commit on success, rollback on error
-// or panic. Repository methods that touch more than one table use it.
+// scanner is the shared row/rows interface.
+type scanner interface{ Scan(dest ...any) error }
+
+// span opens a repository-layer span.
+func span(ctx context.Context, name string) (ctxOut context.Context, end func(error)) {
+	ctxOut, end = logging.StartSpan(ctx, "sqlite."+name)
+	return ctxOut, end
+}
+
+// queryRows runs a query and scans every row with scan (shared by the list
+// methods, so the iteration lives in one place).
+func queryRows[T any](ctx context.Context, db *sql.DB, q string, scan func(scanner) (T, error)) ([]T, error) {
+	rows, err := db.QueryContext(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []T
+	for rows.Next() {
+		v, err := scan(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+// WithTx runs fn in a transaction: commit on success, rollback otherwise.
 func (s *Store) WithTx(ctx context.Context, fn func(tx *sql.Tx) error) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {

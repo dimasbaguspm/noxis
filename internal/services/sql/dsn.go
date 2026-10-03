@@ -16,7 +16,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// sqlDriver maps a connection driver to the database/sql driver name.
+// sqlDriver maps a driver name to a database/sql driver.
 func sqlDriver(driver string) (string, error) {
 	switch strings.ToLower(driver) {
 	case constants.DriverPostgres, "postgresql":
@@ -36,8 +36,7 @@ func isMySQL(driver string) bool {
 	return false
 }
 
-// dsn builds the driver-native connection string from the structured fields,
-// so callers never hand-craft (or leak) connection details.
+// dsn builds the driver-native connection string.
 func dsn(c entity.Connection) (string, error) {
 	addr := net.JoinHostPort(c.Host, strconv.Itoa(c.Port))
 	if isMySQL(c.Driver) {

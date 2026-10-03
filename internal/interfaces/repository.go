@@ -1,7 +1,4 @@
-// Package interfaces is where the codebase agrees on its seams (one file per
-// service) and their data shapes. Implementations live in
-// internal/repositories/* and assert satisfiability right next to their
-// structs. Thin on purpose — swap-ability in tests, not a taxonomy.
+// Package interfaces holds the seams between layers (one file per service).
 package interfaces
 
 import (
@@ -14,7 +11,7 @@ import (
 // ErrNotFound reports a missing row.
 var ErrNotFound = errors.New("not found")
 
-// ConnectionRepository persists the SQL connections the console manages.
+// ConnectionRepository persists the console's connections.
 type ConnectionRepository interface {
 	List(ctx context.Context) ([]entity.Connection, error)
 	Get(ctx context.Context, name string) (*entity.Connection, error)
@@ -22,8 +19,8 @@ type ConnectionRepository interface {
 	Delete(ctx context.Context, name string) error
 }
 
-// ChangeRepository persists proposed changes (query + rollback + notes).
-// Method names carry the noun because one Store implements both seams.
+// ChangeRepository persists proposed changes (names carry the noun because
+// one Store implements both seams).
 type ChangeRepository interface {
 	ListChanges(ctx context.Context) ([]entity.Change, error)
 	GetChange(ctx context.Context, id string) (*entity.Change, error)

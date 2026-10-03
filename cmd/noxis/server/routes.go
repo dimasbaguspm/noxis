@@ -15,9 +15,7 @@ import (
 	"noxis/internal/services/sql"
 )
 
-// newHandler wires every route to its controller handler, then middleware.
-// Handlers get their repositories and the SQL module through the request
-// context — no separate core layer to keep in sync.
+// newHandler wires routes to handlers; dependencies ride the request ctx.
 func newHandler(store *sqlite.Store, log *slog.Logger) http.Handler {
 	deps := controller.Deps{
 		Connections: store,

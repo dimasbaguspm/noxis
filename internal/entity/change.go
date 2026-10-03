@@ -1,9 +1,7 @@
 package entity
 
-// Change is a proposed database change: the SQL to run plus the SQL that
-// undoes it, submitted with notes and validated before anyone approves it.
-// The flow is submit → validate → approve → apply; self-approval is allowed
-// (single-operator tool).
+// Change is a proposed database change (SQL + rollback + notes), moving
+// through submit → validate → approve → apply. Self-approval is allowed.
 type Change struct {
 	ID         string        `json:"id"`
 	Connection string        `json:"connection" validate:"required"`
@@ -17,8 +15,7 @@ type Change struct {
 	AppliedAt  int64         `json:"appliedAt,omitempty"`
 }
 
-// ChangeCheck is one validation outcome (the query and its rollback are each
-// dry-run in a transaction that rolls back — nothing persists).
+// ChangeCheck is one validation outcome.
 type ChangeCheck struct {
 	Target string `json:"target"` // query | rollback
 	OK     bool   `json:"ok"`

@@ -1,12 +1,10 @@
 package entity
 
-// Connection is a registered SQL database the console talks to. It is the
-// unit of work now: noxis connects to databases that already exist — it does
-// not create them.
+// Connection is a registered SQL database. noxis connects to databases that
+// already exist; it does not create them.
 //
 // ponytail: the password is stored as-is (single-operator trust model) and
-// never leaves the API (handlers serve Redacted); encrypt at rest when this
-// box stops being yours alone.
+// never leaves the API; encrypt at rest when this box stops being yours.
 type Connection struct {
 	Name      string            `json:"name" validate:"required"`
 	Driver    string            `json:"driver" validate:"required"` // postgres | mysql (mariadb aliases mysql)
@@ -19,10 +17,10 @@ type Connection struct {
 	CreatedAt int64             `json:"createdAt"`
 }
 
-// Validate checks the required fields (validator tags above).
+// Validate checks the required fields.
 func (c Connection) Validate() error { return validate.Struct(c) }
 
-// Redacted is the copy safe to serve: the password is blanked.
+// Redacted blanks the password for serving.
 func (c Connection) Redacted() Connection {
 	c.Password = ""
 	return c

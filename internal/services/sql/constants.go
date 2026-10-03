@@ -2,11 +2,8 @@ package sql
 
 import "strings"
 
-// Statement kind guards: query is read-only; alter takes every write (DML
-// and DDL). Verified per statement before execute — a DB console must
-// neither run DROP via query nor SELECT via alter.
-// WITH is a write opener (CTEs can front INSERT/UPDATE/DELETE), so it lives
-// with the writes; CTE reads stay plain SELECTs on query.
+// Statement kind guards: query is read-only; alter takes every write (DML and
+// DDL). WITH is a write opener (CTEs can front INSERT/UPDATE/DELETE).
 const (
 	readKinds  = "SELECT SHOW EXPLAIN DESCRIBE DESC"
 	dmlKinds   = "WITH INSERT UPDATE DELETE MERGE REPLACE"
@@ -14,7 +11,6 @@ const (
 	writeKinds = dmlKinds + " " + ddlKinds
 )
 
-// Table preview bounds (rows endpoint).
 const (
 	defaultPreviewRows = 100
 	maxPreviewRows     = 500

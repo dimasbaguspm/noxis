@@ -2,10 +2,9 @@ package controller
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"noxis/internal/common/idgen"
@@ -14,36 +13,10 @@ import (
 	"noxis/internal/services/sql"
 )
 
-// decode reads a JSON body into v.
-func decode(r *http.Request, v any) error {
-	return json.NewDecoder(r.Body).Decode(v)
-}
-
-// atoi is a lenient query-param int (0 on absence/garbage; the SQL module
-// applies its own default/clamp).
-func atoi(s string) int {
-	n, _ := strconv.Atoi(s)
-	return n
-}
-
-// changes lists every proposed change, newest first.
-func (d Deps) changes(ctx context.Context) ([]entity.Change, error) {
-	return d.Changes.ListChanges(ctx)
-}
-
-// change returns one change.
-func (d Deps) change(ctx context.Context, id string) (entity.Change, error) {
-	ch, err := d.Changes.GetChange(ctx, id)
-	if err != nil {
-		return entity.Change{}, err
-	}
-	return *ch, nil
-}
-
-// submitChange records a change and validates it: the query must be a write,
-// and the query plus its rollback are dry-run together inside a transaction
-// that always rolls back — proving the rollback undoes the change. Nothing
-// persists on submit.
+// submitChange validates a change and records it. Validation is the trust
+// step: the query must be a write, and query + rollback are dry-run together
+// in one rolled-back transaction — proving the rollback undoes the change.
+// Nothing persists on submit.
 func (d Deps) submitChange(ctx context.Context, ch entity.Change) (entity.Change, error) {
 	if err := ch.Validate(); err != nil {
 		return entity.Change{}, err
@@ -55,30 +28,25 @@ func (d Deps) submitChange(ctx context.Context, ch entity.Change) (entity.Change
 	ch.ID = idgen.UUID()
 	ch.CreatedAt = time.Now().Unix()
 	ch.Status = constants.ChangeValidated
-	ch.Checks = nil
+	ch.Checks = []entity.ChangeCheck{{Target: "query kind"}}
 
-	kind := entity.ChangeCheck{Target: "query kind"}
 	if err := d.SQL.VerifyWrite(ch.Query); err != nil {
-		kind.Error = err.Error()
+		ch.Checks[0].Error = err.Error()
 		ch.Status = constants.ChangeFailed
 	} else {
-		kind.OK = true
-		kind.Detail = "write statements only"
+		ch.Checks[0].OK = true
+		ch.Checks[0].Detail = "write statements only"
 	}
-	ch.Checks = append(ch.Checks, kind)
 
 	dry := entity.ChangeCheck{Target: "dry-run (query + rollback)"}
 	res, err := d.SQL.ValidateChange(ctx, *conn, ch.Query, ch.Rollback)
 	switch {
 	case err == nil:
-		dry.OK = true
-		dry.Detail = res.Message
-	case isUnverifiable(err):
-		ch.Status = constants.ChangeUnverified
-		dry.Error = err.Error()
+		dry.OK, dry.Detail = true, res.Message
+	case errors.Is(err, sql.ErrUnverifiable):
+		ch.Status, dry.Error = constants.ChangeUnverified, err.Error()
 	default:
-		ch.Status = constants.ChangeFailed
-		dry.Error = err.Error()
+		ch.Status, dry.Error = constants.ChangeFailed, err.Error()
 	}
 	ch.Checks = append(ch.Checks, dry)
 
@@ -88,8 +56,7 @@ func (d Deps) submitChange(ctx context.Context, ch entity.Change) (entity.Change
 	return ch, nil
 }
 
-// approve signs off a validated (or unverifiable) change; self-approval is
-// allowed — this is a single-operator tool.
+// approve signs off a validated change; self-approval is fine here.
 func (d Deps) approve(ctx context.Context, id string) (entity.Change, error) {
 	ch, err := d.Changes.GetChange(ctx, id)
 	if err != nil {
@@ -98,16 +65,15 @@ func (d Deps) approve(ctx context.Context, id string) (entity.Change, error) {
 	if ch.Status != constants.ChangeValidated && ch.Status != constants.ChangeUnverified {
 		return *ch, fmt.Errorf("change is %s, not validated — cannot approve", ch.Status)
 	}
-	ch.Status = constants.ChangeApproved
-	ch.ApprovedAt = time.Now().Unix()
+	ch.Status, ch.ApprovedAt = constants.ChangeApproved, time.Now().Unix()
 	if err := d.Changes.SaveChange(ctx, *ch); err != nil {
 		return entity.Change{}, err
 	}
 	return *ch, nil
 }
 
-// apply executes an approved change transactionally and records the outcome
-// (a failure stays on the change, not just in the HTTP response).
+// apply executes an approved change transactionally; a failure is recorded
+// on the change, not just returned.
 func (d Deps) apply(ctx context.Context, id string) (entity.Change, error) {
 	ch, err := d.Changes.GetChange(ctx, id)
 	if err != nil {
@@ -127,8 +93,7 @@ func (d Deps) apply(ctx context.Context, id string) (entity.Change, error) {
 		_ = d.Changes.SaveChange(ctx, *ch)
 		return *ch, err
 	}
-	ch.Status = constants.ChangeApplied
-	ch.AppliedAt = time.Now().Unix()
+	ch.Status, ch.AppliedAt = constants.ChangeApplied, time.Now().Unix()
 	ch.Checks = append(ch.Checks, entity.ChangeCheck{Target: "apply", OK: true, Detail: res.Message})
 	if err := d.Changes.SaveChange(ctx, *ch); err != nil {
 		return entity.Change{}, err
@@ -136,26 +101,14 @@ func (d Deps) apply(ctx context.Context, id string) (entity.Change, error) {
 	return *ch, nil
 }
 
-// isUnverifiable reports the driver-cannot-dry-run case without importing
-// the SQL module's errors into the handler flow.
-func isUnverifiable(err error) bool { return sql.IsUnverifiable(err) }
-
-// ---- handlers ----
-
 // @Summary List proposed changes (newest first)
 // @Success 200 {object} object{changes=[]entity.Change}
 // @Router /v1/changes [get]
 func ListChanges(w http.ResponseWriter, r *http.Request) {
-	d := From(r)
-	ctx, end := d.span(r.Context(), "changes.list")
-	defer end(nil)
-	changes, err := d.changes(ctx)
-	if err != nil {
-		end(err)
-		writeErr(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"changes": changes})
+	handle(w, r, "changes.list", func(ctx context.Context, d Deps) (any, error) {
+		changes, err := d.Changes.ListChanges(ctx)
+		return map[string]any{"changes": changes}, err
+	})
 }
 
 // @Summary Submit a change (validates query + rollback; nothing persists)
@@ -164,22 +117,13 @@ func ListChanges(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Router /v1/changes [post]
 func SubmitChange(w http.ResponseWriter, r *http.Request) {
-	d := From(r)
-	ctx, end := d.span(r.Context(), "changes.submit")
-	defer end(nil)
-	var ch entity.Change
-	if err := decode(r, &ch); err != nil {
-		end(err)
-		writeErr(w, err)
-		return
-	}
-	saved, err := d.submitChange(ctx, ch)
-	if err != nil {
-		end(err)
-		writeErr(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, saved)
+	handle(w, r, "changes.submit", func(ctx context.Context, d Deps) (any, error) {
+		var ch entity.Change
+		if err := decode(r, &ch); err != nil {
+			return nil, err
+		}
+		return d.submitChange(ctx, ch)
+	})
 }
 
 // @Summary Get one change
@@ -188,16 +132,9 @@ func SubmitChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} map[string]string
 // @Router /v1/changes/{id} [get]
 func GetChange(w http.ResponseWriter, r *http.Request) {
-	d := From(r)
-	ctx, end := d.span(r.Context(), "changes.get")
-	defer end(nil)
-	ch, err := d.change(ctx, r.PathValue("id"))
-	if err != nil {
-		end(err)
-		writeErr(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, ch)
+	handle(w, r, "changes.get", func(ctx context.Context, d Deps) (any, error) {
+		return d.Changes.GetChange(ctx, r.PathValue("id"))
+	})
 }
 
 // @Summary Approve a validated change (self-approval allowed)
@@ -206,16 +143,9 @@ func GetChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Router /v1/changes/{id}/approve [post]
 func ApproveChange(w http.ResponseWriter, r *http.Request) {
-	d := From(r)
-	ctx, end := d.span(r.Context(), "changes.approve")
-	defer end(nil)
-	ch, err := d.approve(ctx, r.PathValue("id"))
-	if err != nil {
-		end(err)
-		writeErr(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, ch)
+	handle(w, r, "changes.approve", func(ctx context.Context, d Deps) (any, error) {
+		return d.approve(ctx, r.PathValue("id"))
+	})
 }
 
 // @Summary Apply an approved change (transactional)
@@ -224,16 +154,9 @@ func ApproveChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Router /v1/changes/{id}/apply [post]
 func ApplyChange(w http.ResponseWriter, r *http.Request) {
-	d := From(r)
-	ctx, end := d.span(r.Context(), "changes.apply")
-	defer end(nil)
-	ch, err := d.apply(ctx, r.PathValue("id"))
-	if err != nil {
-		end(err)
-		writeErr(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, ch)
+	handle(w, r, "changes.apply", func(ctx context.Context, d Deps) (any, error) {
+		return d.apply(ctx, r.PathValue("id"))
+	})
 }
 
 // @Summary Reject (discard) a change
@@ -242,13 +165,7 @@ func ApplyChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Router /v1/changes/{id} [delete]
 func RejectChange(w http.ResponseWriter, r *http.Request) {
-	d := From(r)
-	ctx, end := d.span(r.Context(), "changes.reject")
-	defer end(nil)
-	if err := d.Changes.DeleteChange(ctx, r.PathValue("id")); err != nil {
-		end(err)
-		writeErr(w, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+	handleNoContent(w, r, "changes.reject", func(ctx context.Context, d Deps) error {
+		return d.Changes.DeleteChange(ctx, r.PathValue("id"))
+	})
 }

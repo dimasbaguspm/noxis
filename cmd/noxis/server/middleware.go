@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// withMiddleware applies CORS (dev frontends) and request logging.
+// withMiddleware adds CORS and request logging.
 func withMiddleware(next http.Handler, log *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
