@@ -1,6 +1,3 @@
-// Domain constants for doorman: resource naming, the wire contract ops, SQL
-// statement fragments, and the supported engine kinds. No bare strings in
-// module logic — everything that defines "what we do" lives here.
 package doorman
 
 const (

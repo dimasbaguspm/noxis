@@ -1,4 +1,7 @@
 # golangci-lint v2 (run: make lint)
+# Standard healthy set: correctness (errcheck/govet/staticcheck/ineffassign/
+# unused/errorlint/nilerr) + style (revive/gocritic/unconvert/nakedret/
+# whitespace/misspell/predeclared).
 version: "2"
 
 linters:
@@ -9,12 +12,68 @@ linters:
     - ineffassign
     - staticcheck
     - unused
+    - errorlint
+    - nilerr
+    - revive
+    - gocritic
+    - unconvert
+    - nakedret
+    - whitespace
     - misspell
+    - predeclared
   settings:
     errcheck:
-      # Close() on these is deferrable and expected — lets us write
-      # `defer rows.Close()` instead of defer func() { _ = rows.Close() }()
+      # Close() on these is deferrable and expected — this lets idiomatic
+      # `defer rows.Close()` survive lint instead of a func() wrapper.
       exclude-functions:
         - (io.Closer).Close
         - (*database/sql.Rows).Close
         - (*database/sql.DB).Close
+    revive:
+      rules:
+        - name: package-comments
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: var-declaration
+        - name: unreachable-code
+        - name: superfluous-else
+        # exported deliberately off: godoc-style comments are not enforced
+        # here — short receiver methods have package-level docs instead
+    gocritic:
+      enabled-checks:
+        - appendAssign
+        - argOrder
+        - assignOp
+        - badCond
+        - boolExprSimplify
+        - commentFormatting
+        - commentedOutCode
+        - httpNoBody
+        - indexAlloc
+        - nilValReturn
+        - octalLiteral
+        - rangeExprCopy
+        - rangeValCopy
+        - sprintfQuotedString
+        - stringXbytes
+        - truncateCmp
+        - unnamedResult
+        - unnecessaryBlock
+  issues:
+    # revive: guard matching is human judgment — stated in the exclude (kept
+    # the rule on so its other checks still run); blank-imports justified at
+    # the import site.
+    exclude-rules:
+      - linters: [revive]
+        text: "if-return"
+
+run:
+  timeout: 3m

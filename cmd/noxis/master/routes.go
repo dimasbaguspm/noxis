@@ -1,4 +1,4 @@
-// noxis control plane API
+// Package master is the noxis control plane API.
 //
 // @title       noxis control plane API
 // @version     0.1.0

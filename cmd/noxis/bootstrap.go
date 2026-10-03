@@ -1,3 +1,5 @@
+// Package main is the noxis CLI entry: `run master`, `run slave`, and
+// `register slave` (env → config → logging → root command).
 package main
 
 import (
