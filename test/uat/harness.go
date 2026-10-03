@@ -17,19 +17,40 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
-const (
-	stackFile = "docker/docker-compose.yml"
+// root is the module root, found via go.mod: `go test` runs with the package
+// dir as cwd, so all stack paths resolve against it.
+var root = func() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		panic(fmt.Sprintf("getwd: %v", err))
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			panic("go.mod not found above " + dir)
+		}
+		dir = parent
+	}
+}()
+
+var (
+	stackFile = root + "/docker/docker-compose.yml"
 	masterURL = "http://localhost:9000"
-	nodeName  = "zeus" // the compose slave registers as this (NOXIS_SLAVE_NAME)
-	dbFile    = "docker/db.sqlite"
+	dbFile    = root + "/docker/db.sqlite"
 
 	// engineLabel marks slave-created containers; compose down won't see
-	// them, so stackDown sweeps by label/prefix (see stackDown).
+	// them, so stackDown sweeps by label/prefix (see stackDown). nodeName is
+	// what the compose slave registers as (NOXIS_SLAVE_NAME).
 	engineLabel = "noxis.engine"
+	nodeName    = "zeus"
 
 	waitHealth   = 2 * time.Minute
 	waitRegister = 2 * time.Minute
