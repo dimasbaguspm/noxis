@@ -3,6 +3,8 @@
 // user-facing error messages live next to the logic that raises them.
 package constants
 
+import "strings"
+
 // Version is the build version reported by the CLI and health surfaces.
 const Version = "0.1.0"
 
@@ -28,6 +30,14 @@ const (
 	FamilySQL   = "sql"
 	FamilyRedis = "redis"
 )
+
+// FamilyOf maps a driver to the family that serves it.
+func FamilyOf(driver string) string {
+	if strings.EqualFold(driver, DriverRedis) {
+		return FamilyRedis
+	}
+	return FamilySQL
+}
 
 // Change kinds (which statement family a change carries).
 const (

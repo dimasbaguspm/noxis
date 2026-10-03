@@ -50,8 +50,22 @@ type world struct {
 	code     int
 	conn     string // connection name under test
 	changeID string
+	key      redisKey // the redis key a scenario picked out of a browse
+	page     redisPage
+	info     redisInfo
 	result   resultBody
 	change   changeBody
+}
+
+// redisSeed runs redis-cli inside the compose redis service: the scenarios
+// need keys to browse, and noxis has no endpoint that writes one.
+func redisSeed(args ...string) error {
+	full := append([]string{"compose", "-f", stackFile, "exec", "-T", "redis", "redis-cli"}, args...)
+	out, err := exec.Command("docker", full...).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("redis-cli %s: %w\n%s", strings.Join(args, " "), err, out)
+	}
+	return nil
 }
 
 type resultBody struct {

@@ -13,6 +13,7 @@ const statusInterval = 5 * time.Second
 // ConnectionState is one instance's reachability, as the dashboard shows it.
 type ConnectionState struct {
 	Name      string `json:"name"`
+	Driver    string `json:"driver"`
 	OK        bool   `json:"ok"`
 	LatencyMs int64  `json:"latencyMs"`
 	Error     string `json:"error,omitempty"`
@@ -20,7 +21,7 @@ type ConnectionState struct {
 
 // @Summary Reachability stream for every connection (SSE, one tick per 5s)
 // @Success 200 {string} string "text/event-stream"
-// @Router /v1/sql/connections/status/stream [get]
+// @Router /v1/connections/status/stream [get]
 func StreamConnectionStatus(w http.ResponseWriter, r *http.Request) {
 	d := From(r)
 	ctx, end := d.span(r.Context())
@@ -66,9 +67,9 @@ func (d Deps) connectionStates(ctx context.Context) ([]ConnectionState, error) {
 	}
 	out := make([]ConnectionState, 0, len(list))
 	for _, c := range list {
-		state := ConnectionState{Name: c.Name}
+		state := ConnectionState{Name: c.Name, Driver: c.Driver}
 		started := time.Now()
-		if err := d.SQL.Ping(ctx, c); err != nil {
+		if err := d.module(c.Driver).Ping(ctx, c); err != nil {
 			state.Error = err.Error()
 		} else {
 			state.OK = true

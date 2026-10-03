@@ -1,0 +1,460 @@
+// Package redis inspects a Redis server: browse keys with their type and TTL,
+// inspect a value, read INFO metrics, and remove keys. Every operation is a
+// typed client call, so no user-supplied command text exists to inject into.
+package redis
+
+import (
+	"context"
+	"crypto/tls"
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
+	goredis "github.com/redis/go-redis/v9"
+
+	"noxis/internal/common/logging"
+	"noxis/internal/constants"
+	"noxis/internal/entity"
+)
+
+const (
+	pingTimeout = 10 * time.Second
+	opTimeout   = 30 * time.Second
+
+	// ScanLimit bounds a browse, and MaxScanLimit the caller's ask. A keyspace
+	// larger than the limit comes back with Truncated set instead of hanging.
+	ScanLimit    = 500
+	MaxScanLimit = 5000
+
+	// maxKeysPerDelete bounds one delete call.
+	maxKeysPerDelete = 500
+
+	// maxValueBytes caps a rendered value so a fat string cannot pin the
+	// console; the grid says when it was clipped.
+	maxValueBytes = 64 * 1024
+)
+
+// Result is the shared operation outcome, so the console renders a key's
+// value with the same grid component as a SQL row set.
+type Result = entity.Result
+
+// DB talks to Redis servers.
+type DB struct{}
+
+func New() *DB { return &DB{} }
+
+// Key is one entry of a browse: its name, type and TTL (-1 = no expiry).
+type Key struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+	TTL  int64  `json:"ttlMs"`
+	Size int64  `json:"sizeBytes"`
+}
+
+// KeyPage is a browse result. Truncated reports that the keyspace held more
+// keys than the limit, so the counts are a lower bound.
+type KeyPage struct {
+	Keys      []Key  `json:"keys"`
+	Total     int64  `json:"total"`
+	Truncated bool   `json:"truncated"`
+	Pattern   string `json:"pattern"`
+}
+
+// Stats is one INFO snapshot, in the units the console charts.
+type Stats struct {
+	Version      string  `json:"version"`
+	Role         string  `json:"role"`
+	UptimeSec    int64   `json:"uptimeSeconds"`
+	Clients      int64   `json:"connectedClients"`
+	Connections  int64   `json:"totalConnectionsReceived"`
+	RejectedConn int64   `json:"rejectedConnections"`
+	Keys         int64   `json:"keys"`
+	Expires      int64   `json:"expires"`
+	UsedMemory   int64   `json:"usedMemoryBytes"`
+	PeakMemory   int64   `json:"usedMemoryPeakBytes"`
+	MaxMemory    int64   `json:"maxMemoryBytes"`
+	FragRatio    float64 `json:"memoryFragmentationRatio"`
+	OpsPerSec    int64   `json:"opsPerSec"`
+	Commands     int64   `json:"totalCommandsProcessed"`
+	Hits         int64   `json:"keyspaceHits"`
+	Misses       int64   `json:"keyspaceMisses"`
+	HitRatio     float64 `json:"hitRatio"`
+	Evicted      int64   `json:"evictedKeys"`
+	Expired      int64   `json:"expiredKeys"`
+	RDBStatus    string  `json:"rdbLastSaveStatus"`
+	RDBLastSave  int64   `json:"rdbLastSaveUnix"`
+	AOFEnabled   bool    `json:"aofEnabled"`
+	AOFStatus    string  `json:"aofLastWriteStatus"`
+}
+
+// Family is the namespace this module serves.
+func (r *DB) Family() string { return constants.FamilyRedis }
+
+// Supports reports whether this module serves the driver.
+func (r *DB) Supports(driver string) bool {
+	return strings.EqualFold(driver, constants.DriverRedis)
+}
+
+// Ping verifies the server answers and the credentials work.
+func (r *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	_, err = withClient(ctx, c, func(ctx context.Context, cl *goredis.Client) (struct{}, error) {
+		ctx, cancel := context.WithTimeout(ctx, pingTimeout)
+		defer cancel()
+		if err := cl.Ping(ctx).Err(); err != nil {
+			return struct{}{}, fmt.Errorf("ping %s: %w", c.Name, err)
+		}
+		return struct{}{}, nil
+	})
+	return err
+}
+
+// Keys browses by pattern, scanning at most limit keys and resolving each
+// key's type, TTL and size in one pipeline.
+//
+// ponytail: this is a bounded full scan, not a cursor walk, so the console can
+// sort by TTL truthfully instead of sorting one page. Raise MaxScanLimit or
+// add cursor paging when a keyspace outgrows 5000 keys.
+func (r *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limit int) (page KeyPage, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	if pattern == "" {
+		pattern = "*"
+	}
+	if limit <= 0 {
+		limit = ScanLimit
+	}
+	if limit > MaxScanLimit {
+		limit = MaxScanLimit
+	}
+	page.Pattern = pattern
+	page.Keys = []Key{}
+
+	_, err = withClient(ctx, c, func(ctx context.Context, cl *goredis.Client) (struct{}, error) {
+		ctx, cancel := context.WithTimeout(ctx, opTimeout)
+		defer cancel()
+
+		var cursor uint64
+		names := make([]string, 0, limit)
+		for len(names) < limit {
+			batch, next, err := cl.Scan(ctx, cursor, pattern, int64(limit-len(names))).Result()
+			if err != nil {
+				return struct{}{}, fmt.Errorf("scan %s: %w", c.Name, err)
+			}
+			names = append(names, batch...)
+			cursor = next
+			if cursor == 0 {
+				break
+			}
+		}
+		if len(names) > limit {
+			names = names[:limit]
+			page.Truncated = true
+		}
+
+		if size, err := cl.DBSize(ctx).Result(); err == nil {
+			page.Total = size
+		}
+		if page.Total > int64(len(names)) {
+			page.Truncated = true
+		}
+
+		pipe := cl.Pipeline()
+		types := make([]*goredis.StatusCmd, len(names))
+		ttls := make([]*goredis.DurationCmd, len(names))
+		sizes := make([]*goredis.IntCmd, len(names))
+		for i, name := range names {
+			types[i] = pipe.Type(ctx, name)
+			ttls[i] = pipe.TTL(ctx, name)
+			sizes[i] = pipe.MemoryUsage(ctx, name)
+		}
+		// MEMORY USAGE can be denied by ACL or unsupported; only the type and
+		// TTL are load-bearing, so pipe errors are not fatal here.
+		_, _ = pipe.Exec(ctx)
+
+		for i, name := range names {
+			key := Key{Name: name, Type: types[i].Val(), TTL: -1}
+			if ttl, err := ttls[i].Result(); err == nil {
+				// go-redis reports a missing key as -2 and "no expiry" as -1.
+				switch {
+				case ttl < 0:
+					key.TTL = -1
+				default:
+					key.TTL = ttl.Milliseconds()
+				}
+			}
+			if size, err := sizes[i].Result(); err == nil {
+				key.Size = size
+			}
+			page.Keys = append(page.Keys, key)
+		}
+		return struct{}{}, nil
+	})
+	return page, err
+}
+
+// Value renders one key per its type as a two-column grid, reusing the SQL
+// console's result shape.
+func (r *DB) Value(ctx context.Context, c entity.Connection, key string) (res Result, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	started := time.Now()
+
+	_, err = withClient(ctx, c, func(ctx context.Context, cl *goredis.Client) (struct{}, error) {
+		ctx, cancel := context.WithTimeout(ctx, opTimeout)
+		defer cancel()
+
+		kind, err := cl.Type(ctx, key).Result()
+		if err != nil {
+			return struct{}{}, fmt.Errorf("type %s: %w", key, err)
+		}
+		switch kind {
+		case "none":
+			return struct{}{}, fmt.Errorf("key %q does not exist", key)
+		case "string":
+			value, err := cl.Get(ctx, key).Result()
+			if err != nil {
+				return struct{}{}, fmt.Errorf("get %s: %w", key, err)
+			}
+			res.Columns = []string{"value"}
+			res.Rows = [][]string{{clip(value, &res)}}
+		case "list":
+			values, err := cl.LRange(ctx, key, 0, -1).Result()
+			if err != nil {
+				return struct{}{}, fmt.Errorf("lrange %s: %w", key, err)
+			}
+			res.Columns = []string{"index", "value"}
+			for i, v := range values {
+				res.Rows = append(res.Rows, []string{strconv.Itoa(i), clip(v, &res)})
+			}
+		case "set":
+			values, err := cl.SMembers(ctx, key).Result()
+			if err != nil {
+				return struct{}{}, fmt.Errorf("smembers %s: %w", key, err)
+			}
+			res.Columns = []string{"member"}
+			for _, v := range values {
+				res.Rows = append(res.Rows, []string{clip(v, &res)})
+			}
+		case "zset":
+			values, err := cl.ZRangeWithScores(ctx, key, 0, -1).Result()
+			if err != nil {
+				return struct{}{}, fmt.Errorf("zrange %s: %w", key, err)
+			}
+			res.Columns = []string{"score", "member"}
+			for _, v := range values {
+				res.Rows = append(res.Rows, []string{strconv.FormatFloat(v.Score, 'f', -1, 64), clip(fmt.Sprint(v.Member), &res)})
+			}
+		case "hash":
+			values, err := cl.HGetAll(ctx, key).Result()
+			if err != nil {
+				return struct{}{}, fmt.Errorf("hgetall %s: %w", key, err)
+			}
+			res.Columns = []string{"field", "value"}
+			for field, v := range values {
+				res.Rows = append(res.Rows, []string{field, clip(v, &res)})
+			}
+		case "stream":
+			entries, err := cl.XRangeN(ctx, key, "-", "+", 100).Result()
+			if err != nil {
+				return struct{}{}, fmt.Errorf("xrange %s: %w", key, err)
+			}
+			res.Columns = []string{"id", "fields"}
+			for _, e := range entries {
+				fields := make([]string, 0, len(e.Values))
+				for f, v := range e.Values {
+					fields = append(fields, fmt.Sprintf("%s=%v", f, v))
+				}
+				res.Rows = append(res.Rows, []string{e.ID, clip(strings.Join(fields, ", "), &res)})
+			}
+		default:
+			return struct{}{}, fmt.Errorf("key %q has unsupported type %q", key, kind)
+		}
+		res.RowsReturned = len(res.Rows)
+		res.Message = "read"
+		return struct{}{}, nil
+	})
+	res.DurationMs = time.Since(started).Milliseconds()
+	return res, err
+}
+
+// Delete removes keys, returning how many were actually there.
+func (r *DB) Delete(ctx context.Context, c entity.Connection, keys []string) (deleted int64, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	if len(keys) == 0 {
+		return 0, fmt.Errorf("no keys to delete")
+	}
+	if len(keys) > maxKeysPerDelete {
+		return 0, fmt.Errorf("too many keys at once (%d, max %d)", len(keys), maxKeysPerDelete)
+	}
+	_, err = withClient(ctx, c, func(ctx context.Context, cl *goredis.Client) (struct{}, error) {
+		ctx, cancel := context.WithTimeout(ctx, opTimeout)
+		defer cancel()
+		n, err := cl.Del(ctx, keys...).Result()
+		if err != nil {
+			return struct{}{}, fmt.Errorf("del: %w", err)
+		}
+		deleted = n
+		return struct{}{}, nil
+	})
+	return deleted, err
+}
+
+// Flush empties the connected logical database only. FLUSHALL is deliberately
+// not reachable: it would wipe every database on the server.
+func (r *DB) Flush(ctx context.Context, c entity.Connection) (err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	_, err = withClient(ctx, c, func(ctx context.Context, cl *goredis.Client) (struct{}, error) {
+		ctx, cancel := context.WithTimeout(ctx, opTimeout)
+		defer cancel()
+		if err := cl.FlushDB(ctx).Err(); err != nil {
+			return struct{}{}, fmt.Errorf("flushdb %s: %w", c.Name, err)
+		}
+		return struct{}{}, nil
+	})
+	return err
+}
+
+// Stats reads one INFO snapshot.
+func (r *DB) Stats(ctx context.Context, c entity.Connection) (stats Stats, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	_, err = withClient(ctx, c, func(ctx context.Context, cl *goredis.Client) (struct{}, error) {
+		ctx, cancel := context.WithTimeout(ctx, opTimeout)
+		defer cancel()
+		text, err := cl.Info(ctx).Result()
+		if err != nil {
+			return struct{}{}, fmt.Errorf("info %s: %w", c.Name, err)
+		}
+		stats = parseInfo(text, dbIndex(c))
+		return struct{}{}, nil
+	})
+	return stats, err
+}
+
+// parseInfo turns the INFO text into metrics; missing fields stay zero.
+func parseInfo(text string, db int) Stats {
+	fields := make(map[string]string, 128)
+	for line := range strings.SplitSeq(text, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if key, value, ok := strings.Cut(line, ":"); ok {
+			fields[key] = strings.TrimSpace(value)
+		}
+	}
+	stats := Stats{
+		Version:      fields["redis_version"],
+		Role:         fields["role"],
+		UptimeSec:    intOf(fields, "uptime_in_seconds"),
+		Clients:      intOf(fields, "connected_clients"),
+		Connections:  intOf(fields, "total_connections_received"),
+		RejectedConn: intOf(fields, "rejected_connections"),
+		UsedMemory:   intOf(fields, "used_memory"),
+		PeakMemory:   intOf(fields, "used_memory_peak"),
+		MaxMemory:    intOf(fields, "maxmemory"),
+		OpsPerSec:    intOf(fields, "instantaneous_ops_per_sec"),
+		Commands:     intOf(fields, "total_commands_processed"),
+		Hits:         intOf(fields, "keyspace_hits"),
+		Misses:       intOf(fields, "keyspace_misses"),
+		Evicted:      intOf(fields, "evicted_keys"),
+		Expired:      intOf(fields, "expired_keys"),
+		RDBStatus:    fields["rdb_last_bgsave_status"],
+		RDBLastSave:  intOf(fields, "rdb_last_save_time"),
+		AOFEnabled:   fields["aof_enabled"] == "1",
+		AOFStatus:    fields["aof_last_write_status"],
+	}
+	if ratio, err := strconv.ParseFloat(fields["mem_fragmentation_ratio"], 64); err == nil {
+		stats.FragRatio = ratio
+	}
+	if total := stats.Hits + stats.Misses; total > 0 {
+		stats.HitRatio = float64(stats.Hits) / float64(total)
+	}
+	// Keyspace lines look like "db0:keys=12,expires=3,avg_ttl=0".
+	if line := fields[fmt.Sprintf("db%d", db)]; line != "" {
+		for part := range strings.SplitSeq(line, ",") {
+			key, value, ok := strings.Cut(part, "=")
+			if !ok {
+				continue
+			}
+			switch key {
+			case "keys":
+				stats.Keys = intValue(value)
+			case "expires":
+				stats.Expires = intValue(value)
+			}
+		}
+	}
+	return stats
+}
+
+// withClient opens a client for one operation and closes it; the caller's
+// context rides along so spans and cancellation keep working.
+func withClient[T any](ctx context.Context, c entity.Connection, fn func(ctx context.Context, cl *goredis.Client) (T, error)) (T, error) {
+	var zero T
+	options, err := clientOptions(c)
+	if err != nil {
+		return zero, err
+	}
+	cl := goredis.NewClient(options)
+	defer func() { _ = cl.Close() }()
+	return fn(ctx, cl)
+}
+
+func clientOptions(c entity.Connection) (*goredis.Options, error) {
+	index := dbIndex(c)
+	if index < 0 {
+		return nil, fmt.Errorf("connection %q: database %q is not a redis database index", c.Name, c.Database)
+	}
+	options := &goredis.Options{
+		Addr:                  fmt.Sprintf("%s:%d", c.Host, c.Port),
+		Username:              c.User,
+		Password:              c.Password,
+		DB:                    index,
+		DialTimeout:           5 * time.Second,
+		ReadTimeout:           opTimeout,
+		WriteTimeout:          opTimeout,
+		ContextTimeoutEnabled: true,
+	}
+	if c.Params["tls"] == "true" {
+		options.TLSConfig = &tls.Config{InsecureSkipVerify: c.Params["insecure_skip_verify"] == "true"}
+	}
+	return options, nil
+}
+
+// dbIndex reads the logical database index from the connection. An empty
+// database means 0; anything else must parse as a non-negative integer.
+func dbIndex(c entity.Connection) int {
+	if strings.TrimSpace(c.Database) == "" {
+		return 0
+	}
+	index, err := strconv.Atoi(strings.TrimSpace(c.Database))
+	if err != nil || index < 0 {
+		return -1
+	}
+	return index
+}
+
+// clip caps a rendered value and records the clipping in the message.
+func clip(value string, res *Result) string {
+	if len(value) <= maxValueBytes {
+		return value
+	}
+	res.Message = fmt.Sprintf("value clipped to %d bytes", maxValueBytes)
+	return value[:maxValueBytes] + "…"
+}
+
+func intOf(fields map[string]string, key string) int64 { return intValue(fields[key]) }
+
+func intValue(text string) int64 {
+	n, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64)
+	if err != nil {
+		return 0
+	}
+	return n
+}

@@ -13,7 +13,10 @@ import (
 	"noxis/internal/interfaces"
 )
 
-func (d Deps) connections(ctx context.Context) (out []entity.Connection, err error) {
+// The connection handlers are family-agnostic: the module decides which
+// drivers belong to it, so the SQL and Redis namespaces share one
+// implementation instead of two drifting copies.
+func (d Deps) connections(ctx context.Context, mod interfaces.Module) (out []entity.Connection, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
 	list, err := d.Connections.List(ctx)
@@ -22,43 +25,45 @@ func (d Deps) connections(ctx context.Context) (out []entity.Connection, err err
 	}
 	out = make([]entity.Connection, 0, len(list))
 	for _, c := range list {
-		if d.SQL.Supports(c.Driver) {
+		if mod.Supports(c.Driver) {
 			out = append(out, c.Redacted())
 		}
 	}
 	return out, nil
 }
 
-func (d Deps) connection(ctx context.Context, name string) (out entity.Connection, err error) {
+func (d Deps) connection(ctx context.Context, mod interfaces.Module, name string) (out entity.Connection, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	c, err := d.raw(ctx, name)
+	c, err := d.raw(ctx, mod, name)
 	if err != nil {
 		return entity.Connection{}, err
 	}
 	return c.Redacted(), nil
 }
 
-// raw returns the password-bearing connection, for SQL work only: a
-// connection of another engine family is not addressable here.
-func (d Deps) raw(ctx context.Context, name string) (*entity.Connection, error) {
+// raw returns the password-bearing connection for a module: a connection of
+// another engine family is not addressable in this namespace.
+func (d Deps) raw(ctx context.Context, mod interfaces.Module, name string) (*entity.Connection, error) {
 	c, err := d.Connections.Get(ctx, name)
 	if err != nil {
 		return nil, err
 	}
-	if !d.SQL.Supports(c.Driver) {
-		return nil, fmt.Errorf("connection %q is %s, not %s (use /v1/%s)", c.Name, c.Driver, constants.FamilySQL, constants.FamilySQL)
+	if !mod.Supports(c.Driver) {
+		return nil, fmt.Errorf("connection %q is not a %s connection (driver %q, try /v1/%s)",
+			c.Name, mod.Family(), c.Driver, constants.FamilyOf(c.Driver))
 	}
 	return c, nil
 }
 
 // saveConnection upserts; an update that omits the password keeps the stored
 // one (the console never sees it).
-func (d Deps) saveConnection(ctx context.Context, c entity.Connection) (out entity.Connection, err error) {
+func (d Deps) saveConnection(ctx context.Context, mod interfaces.Module, c entity.Connection) (out entity.Connection, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	if !d.SQL.Supports(c.Driver) {
-		return entity.Connection{}, fmt.Errorf("driver %q is not served by %s", c.Driver, constants.FamilySQL)
+	if !mod.Supports(c.Driver) {
+		return entity.Connection{}, fmt.Errorf("driver %q is not a %s driver (try /v1/%s)",
+			c.Driver, mod.Family(), constants.FamilyOf(c.Driver))
 	}
 	if err := c.Validate(); err != nil {
 		return entity.Connection{}, err
@@ -81,20 +86,32 @@ func (d Deps) saveConnection(ctx context.Context, c entity.Connection) (out enti
 	return c.Redacted(), nil
 }
 
-func (d Deps) testConnection(ctx context.Context, name string) (err error) {
+// deleteConnection removes a connection and its changes after checking the
+// connection belongs to this family, so the SQL namespace cannot delete a
+// redis server by name.
+func (d Deps) deleteConnection(ctx context.Context, mod interfaces.Module, name string) (err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	c, err := d.raw(ctx, name)
+	if _, err := d.raw(ctx, mod, name); err != nil {
+		return err
+	}
+	return d.Connections.Delete(ctx, name)
+}
+
+func (d Deps) testConnection(ctx context.Context, mod interfaces.Module, name string) (err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
+	c, err := d.raw(ctx, mod, name)
 	if err != nil {
 		return err
 	}
-	return d.SQL.Ping(ctx, *c)
+	return mod.Ping(ctx, *c)
 }
 
 func (d Deps) schema(ctx context.Context, name string) (out []interfaces.Table, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	c, err := d.raw(ctx, name)
+	c, err := d.raw(ctx, d.SQL, name)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +121,7 @@ func (d Deps) schema(ctx context.Context, name string) (out []interfaces.Table, 
 func (d Deps) rows(ctx context.Context, name, schema, table string, limit int) (out interfaces.Result, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	c, err := d.raw(ctx, name)
+	c, err := d.raw(ctx, d.SQL, name)
 	if err != nil {
 		return interfaces.Result{}, err
 	}
@@ -115,7 +132,7 @@ func (d Deps) rows(ctx context.Context, name, schema, table string, limit int) (
 func (d Deps) op(ctx context.Context, name, operation, sqlText, table string) (out interfaces.Result, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	c, err := d.raw(ctx, name)
+	c, err := d.raw(ctx, d.SQL, name)
 	if err != nil {
 		return interfaces.Result{}, err
 	}
@@ -137,7 +154,7 @@ func (d Deps) op(ctx context.Context, name, operation, sqlText, table string) (o
 // @Router /v1/sql/connections [get]
 func ListConnections(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
-		conns, err := d.connections(ctx)
+		conns, err := d.connections(ctx, d.SQL)
 		return map[string]any{"connections": conns}, err
 	})
 }
@@ -153,7 +170,7 @@ func SaveConnection(w http.ResponseWriter, r *http.Request) {
 		if err := decode(r, &c); err != nil {
 			return nil, err
 		}
-		return d.saveConnection(ctx, c)
+		return d.saveConnection(ctx, d.SQL, c)
 	})
 }
 
@@ -164,7 +181,7 @@ func SaveConnection(w http.ResponseWriter, r *http.Request) {
 // @Router /v1/sql/connections/{name} [get]
 func GetConnection(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
-		return d.connection(ctx, r.PathValue("name"))
+		return d.connection(ctx, d.SQL, r.PathValue("name"))
 	})
 }
 
@@ -175,7 +192,7 @@ func GetConnection(w http.ResponseWriter, r *http.Request) {
 // @Router /v1/sql/connections/{name} [delete]
 func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 	handleNoContent(w, r, func(ctx context.Context, d Deps) error {
-		return d.Connections.Delete(ctx, r.PathValue("name"))
+		return d.deleteConnection(ctx, d.SQL, r.PathValue("name"))
 	})
 }
 
@@ -186,7 +203,7 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 // @Router /v1/sql/connections/{name}/test [post]
 func TestConnection(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
-		if err := d.testConnection(ctx, r.PathValue("name")); err != nil {
+		if err := d.testConnection(ctx, d.SQL, r.PathValue("name")); err != nil {
 			return nil, err
 		}
 		return map[string]string{"status": "ok"}, nil

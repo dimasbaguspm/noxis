@@ -1,6 +1,6 @@
-# Dev/UAT stack: noxis itself plus a target postgres. In real use the
-# database already exists somewhere and noxis just connects to it — this
-# `db` service is the local stand-in so the console has something to talk to.
+# Dev/UAT stack: noxis itself plus target postgres and redis. In real use the
+# database already exists somewhere and noxis just connects to it — these
+# services are the local stand-ins so the console has something to talk to.
 name: noxis
 
 services:
@@ -17,6 +17,14 @@ services:
       - "9000:9000"
     volumes:
       - noxis-data:/data
+    # The console is only as useful as the targets it can reach, so the demo
+    # stack comes up in order: `up -d` returns with both already healthy,
+    # which is what makes the acceptance suite deterministic.
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9000/healthz"]
       interval: 5s
@@ -36,6 +44,15 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
 
   console:
     image: node:22-alpine

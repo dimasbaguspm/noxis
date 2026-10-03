@@ -90,6 +90,8 @@ type fakeSQL struct {
 
 func (f *fakeSQL) Supports(string) bool { return true }
 
+func (f *fakeSQL) Family() string { return constants.FamilySQL }
+
 func (f *fakeSQL) VerifyWrite(string) error { return f.writeErr }
 
 func (f *fakeSQL) Kind(string) string { return constants.KindDDL }
@@ -244,14 +246,14 @@ func TestSecretsStayRedacted(t *testing.T) {
 	c.Password = "supersecret"
 	_ = conns.Save(ctx, *c)
 
-	got, err := d.connection(ctx, "demo")
+	got, err := d.connection(ctx, d.SQL, "demo")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
 	if got.Password != "" {
 		t.Fatalf("password leaked: %q", got.Password)
 	}
-	list, err := d.connections(ctx)
+	list, err := d.connections(ctx, d.SQL)
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -260,7 +262,7 @@ func TestSecretsStayRedacted(t *testing.T) {
 			t.Fatalf("password leaked in list: %q", x.Password)
 		}
 	}
-	if raw, err := d.raw(ctx, "demo"); err != nil || raw.Password != "supersecret" {
+	if raw, err := d.raw(ctx, d.SQL, "demo"); err != nil || raw.Password != "supersecret" {
 		t.Fatalf("internal path must still see the password: %v", err)
 	}
 }

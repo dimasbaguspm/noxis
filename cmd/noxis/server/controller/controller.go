@@ -15,11 +15,13 @@ import (
 	"noxis/internal/interfaces"
 )
 
-// Deps is everything a handler needs, injected per request.
+// Deps is everything a handler needs, injected per request: one module per
+// engine family, plus the shared stores.
 type Deps struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
 	SQL         interfaces.SQLModule
+	Redis       interfaces.RedisModule
 	Log         *slog.Logger
 }
 
@@ -34,6 +36,15 @@ func WithDeps(next http.Handler, d Deps) http.Handler {
 
 // From returns the request's Deps.
 func From(r *http.Request) Deps { return r.Context().Value(ctxKey{}).(Deps) }
+
+// module resolves the engine family that serves a driver, for the paths that
+// work across families (connection reachability).
+func (d Deps) module(driver string) interfaces.Module {
+	if d.Redis.Supports(driver) {
+		return d.Redis
+	}
+	return d.SQL
+}
 
 // span opens the span for the calling method (the name derives from the
 // caller) and logs its outcome.

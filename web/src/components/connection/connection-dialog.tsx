@@ -101,7 +101,7 @@ export function ConnectionDialog({
           </div>
           <Field label="Host" value={form.host} onChange={(v) => update("host", v)} placeholder="db.internal" />
           <Field label="Port" value={String(form.port)} onChange={(v) => update("port", Number(v))} type="number" />
-          <Field label="User" value={form.user} onChange={(v) => update("user", v)} placeholder="postgres" />
+          <Field label="User" value={form.user ?? ""} onChange={(v) => update("user", v)} placeholder="postgres" />
           <Field
             label="Password"
             value={form.password ?? ""}

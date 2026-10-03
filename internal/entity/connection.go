@@ -6,11 +6,13 @@ package entity
 // ponytail: the password is stored as-is (single-operator trust model) and
 // never leaves the API; encrypt at rest when this box stops being yours.
 type Connection struct {
-	Name      string            `json:"name" validate:"required"`
-	Driver    string            `json:"driver" validate:"required"` // postgres | mysql (mariadb aliases mysql)
-	Host      string            `json:"host" validate:"required"`
-	Port      int               `json:"port" validate:"required"`
-	User      string            `json:"user" validate:"required"`
+	Name   string `json:"name" validate:"required"`
+	Driver string `json:"driver" validate:"required"` // postgres | mysql (mariadb aliases mysql)
+	Host   string `json:"host" validate:"required"`
+	Port   int    `json:"port" validate:"required"`
+	// User is required for SQL; Redis servers commonly run without an ACL user,
+	// where only the password (or nothing) is set.
+	User      string            `json:"user" validate:"required_unless=Driver redis"`
 	Password  string            `json:"password,omitempty"`
 	Database  string            `json:"database" validate:"required"`
 	Params    map[string]string `json:"params,omitempty"` // extra DSN params (sslmode, ...)

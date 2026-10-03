@@ -24,32 +24,33 @@ type changeBody struct {
 // steps registers every scenario step on the world.
 func (w *world) steps(sc *godog.ScenarioContext) {
 	sc.Step("the stack is running", w.stackRunning)
+	w.redisSteps(sc)
 
-	sc.Step(`connection "{}" is registered`, w.registerConnection)
+	sc.Step(`^connection "([^"]*)" is registered$`, w.registerConnection)
 	sc.Step("the connection test passes", w.testConnection)
 	sc.Step("the connection list hides the password", w.listRedacted)
-	sc.Step(`the operator console is served at "/"`, w.consoleServed)
+	sc.Step(`^the operator console is served at "/"$`, w.consoleServed)
 
-	sc.Step(`I read "{}"`, w.read)
-	sc.Step(`the result has {} row(s)`, w.rowCount)
-	sc.Step(`the first row's "{}" is "{}"`, w.firstRowCell)
+	sc.Step(`^I read "([^"]*)"$`, w.read)
+	sc.Step(`^the result has (\d+) row\(s\)$`, w.rowCount)
+	sc.Step(`^the first row's "([^"]*)" is "([^"]*)"$`, w.firstRowCell)
 	sc.Step("the request is rejected", w.rejected)
 
-	sc.Step(`I submit a change with query "{}" and rollback "{}"`, w.submitChange)
-	sc.Step(`the change is "{}"`, w.changeStatus)
+	sc.Step(`^I submit a change with query "([^"]*)" and rollback "([^"]*)"$`, w.submitChange)
+	sc.Step(`^the change is "([^"]*)"$`, w.changeStatus)
 	sc.Step("I approve the change", w.approve)
 	sc.Step("I apply the change", w.apply)
 	sc.Step("applying is rejected", w.applyRejected)
 	sc.Step("I reject the change", w.rejectChange)
 	sc.Step("the change list still contains it", w.changeStillPresent)
 	sc.Step("the change was not recorded", w.changeNotRecorded)
-	sc.Step(`the change records an estimated duration and affected count`, w.changeEstimates)
-	sc.Step(`the instance stats report connections and size`, w.instanceStats)
+	sc.Step(`^the change records an estimated duration and affected count$`, w.changeEstimates)
+	sc.Step(`^the instance stats report connections and size$`, w.instanceStats)
 
-	sc.Step(`I dry-run "{}"`, w.dryRun)
-	sc.Step(`analytics on table "{}" succeeds`, w.analytics)
-	sc.Step(`the schema lists table "{}"`, w.schemaLists)
-	sc.Step(`table "{}" has {} row(s)`, w.tableRows)
+	sc.Step(`^I dry-run "([^"]*)"$`, w.dryRun)
+	sc.Step(`^analytics on table "([^"]*)" succeeds$`, w.analytics)
+	sc.Step(`^the schema lists table "([^"]*)"$`, w.schemaLists)
+	sc.Step(`^table "([^"]*)" has (\d+) row\(s\)$`, w.tableRows)
 }
 
 func (w *world) stackRunning(ctx context.Context) error {
@@ -105,8 +106,9 @@ func (w *world) consoleServed(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if code != http.StatusOK || !strings.Contains(body, "noxis") {
-		return fmt.Errorf("console at /: status %d", code)
+	// case-insensitive: the brand is "noXis", the binary is "noxis"
+	if code != http.StatusOK || !strings.Contains(strings.ToLower(body), "noxis") {
+		return fmt.Errorf("console at /: status %d, body %q", code, body[:min(len(body), 60)])
 	}
 	return nil
 }

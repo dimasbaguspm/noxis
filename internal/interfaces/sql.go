@@ -7,20 +7,29 @@ import (
 	sqlsvc "noxis/internal/services/sql"
 )
 
-// SQL operation shapes live with the module.
+// SQL operation shapes live with the module; the result grid is shared.
 type (
-	Result = sqlsvc.Result
+	Result = entity.Result
 	Table  = sqlsvc.Table
 	Column = sqlsvc.Column
 	Stats  = sqlsvc.Stats
 )
 
-// SQLModule is the console's only route to a database.
-type SQLModule interface {
+// Module is what any engine family must provide for a connection to be
+// registered and tested. Adding an engine starts here.
+type Module interface {
+	// Family is the API namespace this module serves (constants.FamilySQL,
+	// constants.FamilyRedis).
+	Family() string
 	// Supports reports whether this module serves the driver, which keeps a
-	// redis connection out of the SQL namespace.
+	// connection out of the other families' namespaces.
 	Supports(driver string) bool
 	Ping(ctx context.Context, c entity.Connection) error
+}
+
+// SQLModule is the console's only route to a SQL database.
+type SQLModule interface {
+	Module
 	Query(ctx context.Context, c entity.Connection, sqlText string) (Result, error)
 	Alter(ctx context.Context, c entity.Connection, sqlText string) (Result, error)
 	DryRun(ctx context.Context, c entity.Connection, sqlText string) (Result, error)

@@ -38,6 +38,540 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/connections/status/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reachability stream for every connection (SSE, one tick per 5s) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description text/event-stream */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/redis/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List redis connections (passwords redacted) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            connections?: components["schemas"]["entity.Connection"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create or update a redis connection (database is the db index) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["entity.Connection"];
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Connection"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/redis/connections/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one redis connection (password redacted) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Connection"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Delete a redis connection */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/redis/connections/{name}/flush": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Empty the connected database (FLUSHDB, never FLUSHALL) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            /** @description confirm must repeat the connection name */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["controller.redisFlushBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            status?: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/redis/connections/{name}/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Browse keys by pattern (bounded scan, with type, TTL and size) */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description glob pattern (default *) */
+                    pattern?: string;
+                    /** @description scan cap (default 500, max 5000) */
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["redis.KeyPage"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Remove keys (the selected ones only) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            /** @description keys to remove */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["controller.redisKeysBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            deleted?: number;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/redis/connections/{name}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Redis INFO snapshot (memory, clients, hits, persistence) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["redis.Stats"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/redis/connections/{name}/stats/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Redis stats stream (SSE, one INFO snapshot every 2s) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description text/event-stream */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/redis/connections/{name}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test that a redis connection answers */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            status?: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/redis/connections/{name}/value": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect one key's value (rendered per its type) */
+        get: {
+            parameters: {
+                query: {
+                    /** @description key name */
+                    key: string;
+                };
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Result"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/sql/changes": {
         parameters: {
             query?: never;
@@ -351,12 +885,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            /** @description connection (omit password to keep the stored one) */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["entity.Connection"];
-                };
-            };
+            requestBody: components["requestBodies"]["entity.Connection"];
             responses: {
                 /** @description OK */
                 200: {
@@ -380,42 +909,6 @@ export interface paths {
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/sql/connections/status/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Reachability stream for every connection (SSE, one tick per 5s) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description text/event-stream */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": string;
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -972,6 +1465,12 @@ export interface components {
             sql?: string;
             table?: string;
         };
+        "controller.redisFlushBody": {
+            confirm?: string;
+        };
+        "controller.redisKeysBody": {
+            keys?: string[];
+        };
         "entity.Change": {
             affectedColumns?: string[];
             /** @description what the batch touches (keyword-anchored, best effort) */
@@ -1016,7 +1515,57 @@ export interface components {
             };
             password?: string;
             port: number;
-            user: string;
+            /**
+             * @description User is required for SQL; Redis servers commonly run without an ACL user,
+             *     where only the password (or nothing) is set.
+             */
+            user?: string;
+        };
+        "entity.Result": {
+            affected?: number;
+            columns?: string[];
+            durationMs?: number;
+            estimatedRows?: number;
+            message?: string;
+            rows?: string[][];
+            rowsReturned?: number;
+        };
+        "redis.Key": {
+            name?: string;
+            sizeBytes?: number;
+            ttlMs?: number;
+            type?: string;
+        };
+        "redis.KeyPage": {
+            keys?: components["schemas"]["redis.Key"][];
+            pattern?: string;
+            total?: number;
+            truncated?: boolean;
+        };
+        "redis.Stats": {
+            aofEnabled?: boolean;
+            aofLastWriteStatus?: string;
+            connectedClients?: number;
+            evictedKeys?: number;
+            expiredKeys?: number;
+            expires?: number;
+            hitRatio?: number;
+            keys?: number;
+            keyspaceHits?: number;
+            keyspaceMisses?: number;
+            maxMemoryBytes?: number;
+            memoryFragmentationRatio?: number;
+            opsPerSec?: number;
+            rdbLastSaveStatus?: string;
+            rdbLastSaveUnix?: number;
+            rejectedConnections?: number;
+            role?: string;
+            totalCommandsProcessed?: number;
+            totalConnectionsReceived?: number;
+            uptimeSeconds?: number;
+            usedMemoryBytes?: number;
+            usedMemoryPeakBytes?: number;
+            version?: string;
         };
         "sql.Column": {
             name?: string;
@@ -1059,6 +1608,12 @@ export interface components {
     responses: never;
     parameters: never;
     requestBodies: {
+        /** @description connection (omit password to keep the stored one) */
+        "entity.Connection": {
+            content: {
+                "application/json": components["schemas"]["entity.Connection"];
+            };
+        };
         /** @description sql */
         "controller.opBody": {
             content: {

@@ -17,6 +17,486 @@
                 }
             }
         },
+        "/v1/connections/status/stream": {
+            "get": {
+                "summary": "Reachability stream for every connection (SSE, one tick per 5s)",
+                "responses": {
+                    "200": {
+                        "description": "text/event-stream",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/redis/connections": {
+            "get": {
+                "summary": "List redis connections (passwords redacted)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "connections": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/entity.Connection"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create or update a redis connection (database is the db index)",
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/entity.Connection"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Connection"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/redis/connections/{name}": {
+            "get": {
+                "summary": "Get one redis connection (password redacted)",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Connection"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete a redis connection",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "deleted"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/redis/connections/{name}/flush": {
+            "post": {
+                "summary": "Empty the connected database (FLUSHDB, never FLUSHALL)",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/controller.redisFlushBody"
+                            }
+                        }
+                    },
+                    "description": "confirm must repeat the connection name",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/redis/connections/{name}/keys": {
+            "get": {
+                "summary": "Browse keys by pattern (bounded scan, with type, TTL and size)",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "glob pattern (default *)",
+                        "name": "pattern",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "scan cap (default 500, max 5000)",
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/redis.KeyPage"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Remove keys (the selected ones only)",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/controller.redisKeysBody"
+                            }
+                        }
+                    },
+                    "description": "keys to remove",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "deleted": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/redis/connections/{name}/stats": {
+            "get": {
+                "summary": "Redis INFO snapshot (memory, clients, hits, persistence)",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/redis.Stats"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/redis/connections/{name}/stats/stream": {
+            "get": {
+                "summary": "Redis stats stream (SSE, one INFO snapshot every 2s)",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "text/event-stream",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/redis/connections/{name}/test": {
+            "post": {
+                "summary": "Test that a redis connection answers",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/redis/connections/{name}/value": {
+            "get": {
+                "summary": "Inspect one key's value (rendered per its type)",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "key name",
+                        "name": "key",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Result"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/sql/changes": {
             "get": {
                 "summary": "List proposed changes (newest first)",
@@ -272,15 +752,7 @@
             "post": {
                 "summary": "Create or update a connection",
                 "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/entity.Connection"
-                            }
-                        }
-                    },
-                    "description": "connection (omit password to keep the stored one)",
-                    "required": true
+                    "$ref": "#/components/requestBodies/entity.Connection"
                 },
                 "responses": {
                     "200": {
@@ -302,23 +774,6 @@
                                     "additionalProperties": {
                                         "type": "string"
                                     }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/sql/connections/status/stream": {
-            "get": {
-                "summary": "Reachability stream for every connection (SSE, one tick per 5s)",
-                "responses": {
-                    "200": {
-                        "description": "text/event-stream",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "string"
                                 }
                             }
                         }
@@ -824,6 +1279,17 @@
     },
     "components": {
         "requestBodies": {
+            "entity.Connection": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/entity.Connection"
+                        }
+                    }
+                },
+                "description": "connection (omit password to keep the stored one)",
+                "required": true
+            },
             "controller.opBody": {
                 "content": {
                     "application/json": {
@@ -845,6 +1311,25 @@
                     },
                     "table": {
                         "type": "string"
+                    }
+                }
+            },
+            "controller.redisFlushBody": {
+                "type": "object",
+                "properties": {
+                    "confirm": {
+                        "type": "string"
+                    }
+                }
+            },
+            "controller.redisKeysBody": {
+                "type": "object",
+                "properties": {
+                    "keys": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },
@@ -951,8 +1436,7 @@
                     "driver",
                     "host",
                     "name",
-                    "port",
-                    "user"
+                    "port"
                 ],
                 "properties": {
                     "createdAt": {
@@ -985,6 +1469,153 @@
                         "type": "integer"
                     },
                     "user": {
+                        "description": "User is required for SQL; Redis servers commonly run without an ACL user,\nwhere only the password (or nothing) is set.",
+                        "type": "string"
+                    }
+                }
+            },
+            "entity.Result": {
+                "type": "object",
+                "properties": {
+                    "affected": {
+                        "type": "integer"
+                    },
+                    "columns": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "durationMs": {
+                        "type": "integer"
+                    },
+                    "estimatedRows": {
+                        "type": "integer"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "rows": {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "rowsReturned": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "redis.Key": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "sizeBytes": {
+                        "type": "integer"
+                    },
+                    "ttlMs": {
+                        "type": "integer"
+                    },
+                    "type": {
+                        "type": "string"
+                    }
+                }
+            },
+            "redis.KeyPage": {
+                "type": "object",
+                "properties": {
+                    "keys": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/redis.Key"
+                        }
+                    },
+                    "pattern": {
+                        "type": "string"
+                    },
+                    "total": {
+                        "type": "integer"
+                    },
+                    "truncated": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "redis.Stats": {
+                "type": "object",
+                "properties": {
+                    "aofEnabled": {
+                        "type": "boolean"
+                    },
+                    "aofLastWriteStatus": {
+                        "type": "string"
+                    },
+                    "connectedClients": {
+                        "type": "integer"
+                    },
+                    "evictedKeys": {
+                        "type": "integer"
+                    },
+                    "expiredKeys": {
+                        "type": "integer"
+                    },
+                    "expires": {
+                        "type": "integer"
+                    },
+                    "hitRatio": {
+                        "type": "number"
+                    },
+                    "keys": {
+                        "type": "integer"
+                    },
+                    "keyspaceHits": {
+                        "type": "integer"
+                    },
+                    "keyspaceMisses": {
+                        "type": "integer"
+                    },
+                    "maxMemoryBytes": {
+                        "type": "integer"
+                    },
+                    "memoryFragmentationRatio": {
+                        "type": "number"
+                    },
+                    "opsPerSec": {
+                        "type": "integer"
+                    },
+                    "rdbLastSaveStatus": {
+                        "type": "string"
+                    },
+                    "rdbLastSaveUnix": {
+                        "type": "integer"
+                    },
+                    "rejectedConnections": {
+                        "type": "integer"
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "totalCommandsProcessed": {
+                        "type": "integer"
+                    },
+                    "totalConnectionsReceived": {
+                        "type": "integer"
+                    },
+                    "uptimeSeconds": {
+                        "type": "integer"
+                    },
+                    "usedMemoryBytes": {
+                        "type": "integer"
+                    },
+                    "usedMemoryPeakBytes": {
+                        "type": "integer"
+                    },
+                    "version": {
                         "type": "string"
                     }
                 }

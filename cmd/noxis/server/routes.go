@@ -12,6 +12,7 @@ import (
 
 	"noxis/cmd/noxis/server/controller"
 	"noxis/internal/repositories/sqlite"
+	"noxis/internal/services/redis"
 	"noxis/internal/services/sql"
 )
 
@@ -21,12 +22,13 @@ func newHandler(store *sqlite.Store, log *slog.Logger) http.Handler {
 		Connections: store,
 		Changes:     store,
 		SQL:         sql.New(),
+		Redis:       redis.New(),
 		Log:         log,
 	}
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", controller.GetHealthz)
-	mux.HandleFunc("GET /v1/sql/connections/status/stream", controller.StreamConnectionStatus)
+	mux.HandleFunc("GET /v1/connections/status/stream", controller.StreamConnectionStatus)
 	mux.HandleFunc("GET /v1/sql/connections", controller.ListConnections)
 	mux.HandleFunc("POST /v1/sql/connections", controller.SaveConnection)
 	mux.HandleFunc("GET /v1/sql/connections/{name}", controller.GetConnection)
@@ -46,6 +48,20 @@ func newHandler(store *sqlite.Store, log *slog.Logger) http.Handler {
 	mux.HandleFunc("POST /v1/sql/connections/{name}/alter", controller.PostAlter)
 	mux.HandleFunc("POST /v1/sql/connections/{name}/rollback", controller.PostRollback)
 	mux.HandleFunc("POST /v1/sql/connections/{name}/analytics", controller.PostAnalytics)
+
+	// The Redis namespace: the same connection lifecycle, plus keys, values,
+	// removal and INFO stats.
+	mux.HandleFunc("GET /v1/redis/connections", controller.ListRedisConnections)
+	mux.HandleFunc("POST /v1/redis/connections", controller.SaveRedisConnection)
+	mux.HandleFunc("GET /v1/redis/connections/{name}", controller.GetRedisConnection)
+	mux.HandleFunc("DELETE /v1/redis/connections/{name}", controller.DeleteRedisConnection)
+	mux.HandleFunc("POST /v1/redis/connections/{name}/test", controller.TestRedisConnection)
+	mux.HandleFunc("GET /v1/redis/connections/{name}/keys", controller.ListRedisKeys)
+	mux.HandleFunc("DELETE /v1/redis/connections/{name}/keys", controller.DeleteRedisKeys)
+	mux.HandleFunc("GET /v1/redis/connections/{name}/value", controller.GetRedisValue)
+	mux.HandleFunc("POST /v1/redis/connections/{name}/flush", controller.FlushRedisDB)
+	mux.HandleFunc("GET /v1/redis/connections/{name}/stats", controller.GetRedisStats)
+	mux.HandleFunc("GET /v1/redis/connections/{name}/stats/stream", controller.StreamRedisStats)
 	mux.Handle("GET /assets/", http.HandlerFunc(controller.GetAssets)) // embedded FS keeps the assets/ prefix
 	mux.HandleFunc("GET /", controller.GetConsole)                     // the operator console (SPA shell)
 

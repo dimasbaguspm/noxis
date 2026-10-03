@@ -9,7 +9,7 @@ import (
 )
 
 // TestUAT runs the Gherkin acceptance suite against the real compose stack
-// (Kafka + master + slave on host docker). Default run excludes @slow
+// (noxis + postgres + redis on host docker). Default run excludes @slow
 // scenarios (image pulls); set UAT_TAGS to override, e.g.
 // UAT_TAGS="~@slow" make uat.
 func TestUAT(t *testing.T) {
@@ -26,6 +26,10 @@ func TestUAT(t *testing.T) {
 			Tags:      tags,
 			TestingT:  t,
 			Randomize: -1, // keep the serialized, deterministic order
+			// Strict: an undefined or pending step fails the suite. Without it
+			// godog skips the step and reports a green run, which is how a
+			// mistyped step expression once went unnoticed.
+			Strict: true,
 		},
 		TestSuiteInitializer: func(ctx *godog.TestSuiteContext) {
 			ctx.BeforeSuite(func() {

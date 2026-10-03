@@ -15,7 +15,7 @@ export function useConnectionStates() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const source = new EventSource("/v1/sql/connections/status/stream");
+    const source = new EventSource("/v1/connections/status/stream");
     source.addEventListener("open", () => setConnected(true));
     source.addEventListener("error", () => setConnected(false));
     source.addEventListener("status", (event) => {

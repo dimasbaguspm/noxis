@@ -23,7 +23,7 @@ func (d Deps) submitChange(ctx context.Context, ch entity.Change) (out entity.Ch
 	if err := ch.Validate(); err != nil {
 		return entity.Change{}, err
 	}
-	conn, err := d.raw(ctx, ch.Connection)
+	conn, err := d.raw(ctx, d.SQL, ch.Connection)
 	if err != nil {
 		return entity.Change{}, err
 	}
@@ -98,7 +98,7 @@ func (d Deps) apply(ctx context.Context, id string) (out entity.Change, err erro
 	if ch.Status != constants.ChangeApproved {
 		return *ch, fmt.Errorf("change is %s, not approved — cannot apply", ch.Status)
 	}
-	conn, err := d.raw(ctx, ch.Connection)
+	conn, err := d.raw(ctx, d.SQL, ch.Connection)
 	if err != nil {
 		return entity.Change{}, err
 	}

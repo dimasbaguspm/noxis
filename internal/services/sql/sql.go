@@ -24,17 +24,9 @@ type DB struct{}
 
 func New() *DB { return &DB{} }
 
-// Result is one operation's outcome: a grid for reads, counts and timings
-// for writes. EstimatedRows comes from EXPLAIN when the driver allows it.
-type Result struct {
-	Columns       []string   `json:"columns,omitempty"`
-	Rows          [][]string `json:"rows,omitempty"`
-	Affected      int64      `json:"affected"`
-	RowsReturned  int        `json:"rowsReturned"`
-	EstimatedRows int64      `json:"estimatedRows,omitempty"`
-	DurationMs    int64      `json:"durationMs"`
-	Message       string     `json:"message"`
-}
+// Result is the shared operation outcome; SQL fills Columns/Rows for reads
+// and EstimatedRows from EXPLAIN when the driver allows it.
+type Result = entity.Result
 
 // Table is a browsable relation; Column one of its attributes.
 type Table struct {
@@ -86,6 +78,9 @@ func execEach(sqlText string, fn func(stmt string) error) (int, error) {
 	}
 	return n, nil
 }
+
+// Family is the namespace this module serves.
+func (u *DB) Family() string { return constants.FamilySQL }
 
 // Supports reports whether the driver speaks SQL.
 func (u *DB) Supports(driver string) bool {
