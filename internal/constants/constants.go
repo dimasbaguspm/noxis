@@ -1,21 +1,16 @@
-// Package constants centralises the app's universal defined values: version,
-// group naming, status states. Module-local domain strings stay with their
-// module (doorman/constants.go); user-facing error messages live next to the
-// logic that raises them.
+// Package constants holds universal defined values shared across modules.
+// Domain strings stay with their module (internal/sql/constants.go);
+// user-facing error messages live next to the logic that raises them.
 package constants
 
+// Version is the build version reported by the CLI and health surfaces.
+const Version = "0.1.0"
+
+// Change workflow statuses.
 const (
-	// Version is the app version (user-agent, reports).
-	Version = "0.1.0"
-
-	// ConsumerGroupPrefix names each slave's durable consumer group
-	// (ConsumerGroupPrefix + node id). Group names are stable and distinct
-	// from the env-configurable topic prefix.
-	ConsumerGroupPrefix = "noxis."
-
-	// Status states crossing the wire (slave heartbeats, master merge).
-	StateOK      = "ok"
-	StateError   = "error"
-	StateUp      = "up"
-	StateOffline = "offline"
+	ChangeValidated  = "validated"  // query and rollback dry-ran clean, together
+	ChangeUnverified = "unverified" // driver cannot dry-run it (mysql DDL) — approve with eyes open
+	ChangeFailed     = "failed"     // validation found a problem
+	ChangeApproved   = "approved"   // a human signed off (self-approval allowed)
+	ChangeApplied    = "applied"    // executed and committed
 )

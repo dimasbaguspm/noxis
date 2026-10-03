@@ -38,94 +38,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/nodes/{node}/doorman/alter": {
+    "/v1/changes": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** Apply an ALTER TABLE on the node's engine */
-        post: {
+        /** List proposed changes (newest first) */
+        get: {
             parameters: {
                 query?: never;
                 header?: never;
-                path: {
-                    /** @description slave node id */
-                    node: string;
-                };
+                path?: never;
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["control.OpRequest"];
+            requestBody?: never;
             responses: {
-                /** @description result output */
+                /** @description OK */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "*/*": {
-                            output?: string;
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
+                            changes?: components["schemas"]["entity.Change"][];
                         };
                     };
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/nodes/{node}/doorman/analytics": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
         put?: never;
-        /** Analyze a table (ANALYZE / ANALYZE TABLE) */
+        /** Submit a change and validate query + rollback (dry-run, nothing persists) */
         post: {
             parameters: {
                 query?: never;
                 header?: never;
-                path: {
-                    /** @description slave node id */
-                    node: string;
-                };
+                path?: never;
                 cookie?: never;
             };
-            /** @description engine and table */
+            /** @description connection, notes, query, rollback */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["control.OpRequest"];
+                    "application/json": components["schemas"]["entity.Change"];
                 };
             };
             responses: {
-                /** @description result output */
+                /** @description OK */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            output?: string;
-                        };
+                        "*/*": components["schemas"]["entity.Change"];
                     };
                 };
                 /** @description Bad Request */
@@ -147,7 +112,450 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/nodes/{node}/doorman/query": {
+    "/v1/changes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one change */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description change id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Change"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Reject (discard) a change */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description change id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description discarded */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/changes/{id}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply an approved change (transactional) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description change id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Change"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/changes/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a validated change (self-approval allowed) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description change id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Change"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List connections (passwords redacted) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            connections?: components["schemas"]["entity.Connection"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create or update a connection */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description connection (omit password to keep the stored one) */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["entity.Connection"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Connection"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/connections/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one connection (password redacted) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Connection"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Delete a connection */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/connections/{name}/alter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply a write (DML or DDL) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["controller.opBody"];
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["sql.Result"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/connections/{name}/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Refresh planner statistics for a table */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            /** @description table */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["controller.opBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["sql.Result"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/connections/{name}/query": {
         parameters: {
             query?: never;
             header?: never;
@@ -162,27 +570,25 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description slave node id */
-                    node: string;
+                    /** @description connection name */
+                    name: string;
                 };
                 cookie?: never;
             };
-            /** @description op, engine, and sql/table */
+            /** @description sql (or table for analytics) */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["control.OpRequest"];
+                    "application/json": components["schemas"]["controller.opBody"];
                 };
             };
             responses: {
-                /** @description result output */
+                /** @description OK */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            output?: string;
-                        };
+                        "*/*": components["schemas"]["sql.Result"];
                     };
                 };
                 /** @description Bad Request */
@@ -204,7 +610,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/nodes/{node}/doorman/rollback": {
+    "/v1/connections/{name}/rollback": {
         parameters: {
             query?: never;
             header?: never;
@@ -213,28 +619,26 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Dry-run a change inside a transaction that always rolls back */
+        /** Dry-run statements inside a transaction that always rolls back */
         post: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description slave node id */
-                    node: string;
+                    /** @description connection name */
+                    name: string;
                 };
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["control.OpRequest"];
+            requestBody: components["requestBodies"]["controller.opBody"];
             responses: {
-                /** @description result output */
+                /** @description OK */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            output?: string;
-                        };
+                        "*/*": components["schemas"]["sql.Result"];
                     };
                 };
                 /** @description Bad Request */
@@ -256,69 +660,21 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/nodes/{node}/register": {
+    "/v1/connections/{name}/schema": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** Register a slave node (one-shot) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description slave node id */
-                    node: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description registered */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/nodes/{node}/spec": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Read a node's desired engines */
+        /** Introspect a connection's tables and columns */
         get: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description slave node id */
-                    node: string;
+                    /** @description connection name */
+                    name: string;
                 };
                 cookie?: never;
             };
@@ -330,92 +686,8 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["entity.Spec"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
                         "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        /** Set a node's desired engines (publishes the event to the slave) */
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description slave node id */
-                    node: string;
-                };
-                cookie?: never;
-            };
-            /** @description desired engines */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["controller.putSpecBody"];
-                };
-            };
-            responses: {
-                /** @description accepted and published */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Node statuses (registry merged with live heartbeats) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description status of every node */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            nodes?: components["schemas"]["entity.NodeStatus"][];
+                            tables?: components["schemas"]["sql.Table"][];
                         };
                     };
                 };
@@ -440,51 +712,182 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/connections/{name}/tables/{table}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview a table's rows */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description schema (when table is unqualified) */
+                    schema?: string;
+                    /** @description row cap (default 100, max 500) */
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                    /** @description table name (schema.table allowed) */
+                    table: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["sql.Result"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/connections/{name}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test that a connection answers */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            status?: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "control.OpRequest": {
-            engine?: string;
-            /** @description query | alter | rollback | analytics */
-            op?: string;
+        "controller.opBody": {
             sql?: string;
             table?: string;
         };
-        "controller.putSpecBody": {
-            engines?: components["schemas"]["entity.Engine"][];
+        "entity.Change": {
+            appliedAt?: number;
+            approvedAt?: number;
+            checks?: components["schemas"]["entity.ChangeCheck"][];
+            connection: string;
+            createdAt?: number;
+            id?: string;
+            notes: string;
+            query: string;
+            rollback: string;
+            /** @description validated | failed | approved | applied */
+            status?: string;
         };
-        "entity.Engine": {
-            env?: {
-                [key: string]: string;
-            };
-            name?: string;
-            ports?: {
-                [key: string]: string;
-            };
-            type?: string;
-            version?: string;
-        };
-        "entity.NodeStatus": {
+        "entity.ChangeCheck": {
             detail?: string;
-            node?: string;
-            /** @description ok | error | up | offline */
-            state?: string;
-            /** @description unix seconds */
-            ts?: number;
+            error?: string;
+            ok?: boolean;
+            /** @description query | rollback */
+            target?: string;
         };
-        "entity.Spec": {
-            engines?: components["schemas"]["entity.Engine"][];
-            node?: string;
+        "entity.Connection": {
+            createdAt?: number;
+            database: string;
+            /** @description postgres | mysql (mariadb aliases mysql) */
+            driver: string;
+            host: string;
+            name: string;
+            /** @description extra DSN params (sslmode, ...) */
+            params?: {
+                [key: string]: string;
+            };
+            password?: string;
+            port: number;
+            user: string;
+        };
+        "sql.Column": {
+            name?: string;
+            nullable?: boolean;
+            type?: string;
+        };
+        "sql.Result": {
+            affected?: number;
+            columns?: string[];
+            message?: string;
+            rows?: string[][];
+        };
+        "sql.Table": {
+            columns?: components["schemas"]["sql.Column"][];
+            name?: string;
+            schema?: string;
         };
     };
     responses: never;
     parameters: never;
     requestBodies: {
-        /** @description engine and SQL */
-        "control.OpRequest": {
+        /** @description sql */
+        "controller.opBody": {
             content: {
-                "application/json": components["schemas"]["control.OpRequest"];
+                "application/json": components["schemas"]["controller.opBody"];
             };
         };
     };

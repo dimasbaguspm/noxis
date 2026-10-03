@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
-  description: "Master REST API: frontends read node state here; the master"
-  title: noxis control plane API
+  description: "SQL console API: manage database connections and run"
+  title: noxis API
   contact: {}
   version: 0.1.0
 paths:
@@ -11,163 +11,51 @@ paths:
       responses:
         "200":
           description: process is alive
-  "/v1/nodes/{node}/doorman/alter":
-    post:
-      summary: Apply an ALTER TABLE on the node's engine
-      parameters:
-        - description: slave node id
-          name: node
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        $ref: "#/components/requestBodies/control.OpRequest"
-      responses:
-        "200":
-          description: result output
-          content:
-            "*/*":
-              schema:
-                type: object
-                properties:
-                  output:
-                    type: string
-        "400":
-          description: Bad Request
-          content:
-            "*/*":
-              schema:
-                type: object
-                additionalProperties:
-                  type: string
-  "/v1/nodes/{node}/doorman/analytics":
-    post:
-      summary: Analyze a table (ANALYZE / ANALYZE TABLE)
-      parameters:
-        - description: slave node id
-          name: node
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/control.OpRequest"
-        description: engine and table
-        required: true
-      responses:
-        "200":
-          description: result output
-          content:
-            "*/*":
-              schema:
-                type: object
-                properties:
-                  output:
-                    type: string
-        "400":
-          description: Bad Request
-          content:
-            "*/*":
-              schema:
-                type: object
-                additionalProperties:
-                  type: string
-  "/v1/nodes/{node}/doorman/query":
-    post:
-      summary: Run a doorman DB op (query | alter | rollback | analytics)
-      parameters:
-        - description: slave node id
-          name: node
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/control.OpRequest"
-        description: op, engine, and sql/table
-        required: true
-      responses:
-        "200":
-          description: result output
-          content:
-            "*/*":
-              schema:
-                type: object
-                properties:
-                  output:
-                    type: string
-        "400":
-          description: Bad Request
-          content:
-            "*/*":
-              schema:
-                type: object
-                additionalProperties:
-                  type: string
-  "/v1/nodes/{node}/doorman/rollback":
-    post:
-      summary: Dry-run a change inside a transaction that always rolls back
-      parameters:
-        - description: slave node id
-          name: node
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        $ref: "#/components/requestBodies/control.OpRequest"
-      responses:
-        "200":
-          description: result output
-          content:
-            "*/*":
-              schema:
-                type: object
-                properties:
-                  output:
-                    type: string
-        "400":
-          description: Bad Request
-          content:
-            "*/*":
-              schema:
-                type: object
-                additionalProperties:
-                  type: string
-  "/v1/nodes/{node}/register":
-    post:
-      summary: Register a slave node (one-shot)
-      parameters:
-        - description: slave node id
-          name: node
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "204":
-          description: registered
-        "400":
-          description: Bad Request
-          content:
-            "*/*":
-              schema:
-                type: object
-                additionalProperties:
-                  type: string
-  "/v1/nodes/{node}/spec":
+  /v1/changes:
     get:
-      summary: Read a node's desired engines
+      summary: List proposed changes (newest first)
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                type: object
+                properties:
+                  changes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/entity.Change"
+    post:
+      summary: Submit a change and validate query + rollback (dry-run, nothing persists)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/entity.Change"
+        description: connection, notes, query, rollback
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.Change"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/changes/{id}":
+    get:
+      summary: Get one change
       parameters:
-        - description: slave node id
-          name: node
+        - description: change id
+          name: id
           in: path
           required: true
           schema:
@@ -178,7 +66,27 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/entity.Spec"
+                $ref: "#/components/schemas/entity.Change"
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+    delete:
+      summary: Reject (discard) a change
+      parameters:
+        - description: change id
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: discarded
         "400":
           description: Bad Request
           content:
@@ -187,11 +95,173 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-    put:
-      summary: Set a node's desired engines (publishes the event to the slave)
+  "/v1/changes/{id}/apply":
+    post:
+      summary: Apply an approved change (transactional)
       parameters:
-        - description: slave node id
-          name: node
+        - description: change id
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.Change"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/changes/{id}/approve":
+    post:
+      summary: Approve a validated change (self-approval allowed)
+      parameters:
+        - description: change id
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.Change"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  /v1/connections:
+    get:
+      summary: List connections (passwords redacted)
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                type: object
+                properties:
+                  connections:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/entity.Connection"
+    post:
+      summary: Create or update a connection
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/entity.Connection"
+        description: connection (omit password to keep the stored one)
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.Connection"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/connections/{name}":
+    get:
+      summary: Get one connection (password redacted)
+      parameters:
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.Connection"
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+    delete:
+      summary: Delete a connection
+      parameters:
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: deleted
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/connections/{name}/alter":
+    post:
+      summary: Apply a write (DML or DDL)
+      parameters:
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        $ref: "#/components/requestBodies/controller.opBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/sql.Result"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/connections/{name}/analytics":
+    post:
+      summary: Refresh planner statistics for a table
+      parameters:
+        - description: connection name
+          name: name
           in: path
           required: true
           schema:
@@ -200,12 +270,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/controller.putSpecBody"
-        description: desired engines
+              $ref: "#/components/schemas/controller.opBody"
+        description: table
         required: true
       responses:
-        "204":
-          description: accepted and published
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/sql.Result"
         "400":
           description: Bad Request
           content:
@@ -214,21 +288,156 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  /v1/status:
-    get:
-      summary: Node statuses (registry merged with live heartbeats)
+  "/v1/connections/{name}/query":
+    post:
+      summary: Run a doorman DB op (query | alter | rollback | analytics)
+      parameters:
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/controller.opBody"
+        description: sql (or table for analytics)
+        required: true
       responses:
         "200":
-          description: status of every node
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/sql.Result"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/connections/{name}/rollback":
+    post:
+      summary: Dry-run statements inside a transaction that always rolls back
+      parameters:
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        $ref: "#/components/requestBodies/controller.opBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/sql.Result"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/connections/{name}/schema":
+    get:
+      summary: Introspect a connection's tables and columns
+      parameters:
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
           content:
             "*/*":
               schema:
                 type: object
                 properties:
-                  nodes:
+                  tables:
                     type: array
                     items:
-                      $ref: "#/components/schemas/entity.NodeStatus"
+                      $ref: "#/components/schemas/sql.Table"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/connections/{name}/tables/{table}/rows":
+    get:
+      summary: Preview a table's rows
+      parameters:
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: table name (schema.table allowed)
+          name: table
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: schema (when table is unqualified)
+          name: schema
+          in: query
+          schema:
+            type: string
+        - description: row cap (default 100, max 500)
+          name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/sql.Result"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/connections/{name}/test":
+    post:
+      summary: Test that a connection answers
+      parameters:
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
         "400":
           description: Bad Request
           content:
@@ -239,69 +448,130 @@ paths:
                   type: string
 components:
   requestBodies:
-    control.OpRequest:
+    controller.opBody:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/control.OpRequest"
-      description: engine and SQL
+            $ref: "#/components/schemas/controller.opBody"
+      description: sql
       required: true
   schemas:
-    control.OpRequest:
+    controller.opBody:
       type: object
       properties:
-        engine:
-          type: string
-        op:
-          description: query | alter | rollback | analytics
-          type: string
         sql:
           type: string
         table:
           type: string
-    controller.putSpecBody:
+    entity.Change:
       type: object
+      required:
+        - connection
+        - notes
+        - query
+        - rollback
       properties:
-        engines:
+        appliedAt:
+          type: integer
+        approvedAt:
+          type: integer
+        checks:
           type: array
           items:
-            $ref: "#/components/schemas/entity.Engine"
-    entity.Engine:
-      type: object
-      properties:
-        env:
-          type: object
-          additionalProperties:
-            type: string
-        name:
+            $ref: "#/components/schemas/entity.ChangeCheck"
+        connection:
           type: string
-        ports:
-          type: object
-          additionalProperties:
-            type: string
-        type:
+        createdAt:
+          type: integer
+        id:
           type: string
-        version:
+        notes:
           type: string
-    entity.NodeStatus:
+        query:
+          type: string
+        rollback:
+          type: string
+        status:
+          description: validated | failed | approved | applied
+          type: string
+    entity.ChangeCheck:
       type: object
       properties:
         detail:
           type: string
-        node:
+        error:
           type: string
-        state:
-          description: ok | error | up | offline
+        ok:
+          type: boolean
+        target:
+          description: query | rollback
           type: string
-        ts:
-          description: unix seconds
+    entity.Connection:
+      type: object
+      required:
+        - database
+        - driver
+        - host
+        - name
+        - port
+        - user
+      properties:
+        createdAt:
           type: integer
-    entity.Spec:
+        database:
+          type: string
+        driver:
+          description: postgres | mysql (mariadb aliases mysql)
+          type: string
+        host:
+          type: string
+        name:
+          type: string
+        params:
+          description: extra DSN params (sslmode, ...)
+          type: object
+          additionalProperties:
+            type: string
+        password:
+          type: string
+        port:
+          type: integer
+        user:
+          type: string
+    sql.Column:
       type: object
       properties:
-        engines:
+        name:
+          type: string
+        nullable:
+          type: boolean
+        type:
+          type: string
+    sql.Result:
+      type: object
+      properties:
+        affected:
+          type: integer
+        columns:
           type: array
           items:
-            $ref: "#/components/schemas/entity.Engine"
-        node:
+            type: string
+        message:
+          type: string
+        rows:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+    sql.Table:
+      type: object
+      properties:
+        columns:
+          type: array
+          items:
+            $ref: "#/components/schemas/sql.Column"
+        name:
+          type: string
+        schema:
           type: string

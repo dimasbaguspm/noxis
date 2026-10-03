@@ -7,9 +7,9 @@ build:
 
 web:  ## build the React console (web/, pnpm) into the embedded static dir
 	cd web && pnpm install --frozen-lockfile && pnpm build
-	rm -rf cmd/noxis/master/controller/static
-	mkdir -p cmd/noxis/master/controller/static
-	cp -r bin/dist/* cmd/noxis/master/controller/static/
+	rm -rf cmd/noxis/server/controller/static
+	mkdir -p cmd/noxis/server/controller/static
+	cp -r bin/dist/* cmd/noxis/server/controller/static/
 
 test:
 	go test ./...
@@ -24,7 +24,7 @@ lint:  ## run golangci-lint (installs it on first use)
 
 swagger:  ## regenerate doc/swagger.yaml|json (OpenAPI 3) from handler annotations
 	go install github.com/swaggo/swag/cmd/swag@latest
-	swag init -g cmd/noxis/master/routes.go --output ./doc
+	swag init -g cmd/noxis/server/routes.go --output ./doc
 	rm -f doc/docs.go
 	# swag emits Swagger 2.0; convert to OpenAPI 3 for Postman
 	npx --yes swagger2openapi -y doc/swagger.json -o doc/openapi3.yaml
@@ -32,12 +32,11 @@ swagger:  ## regenerate doc/swagger.yaml|json (OpenAPI 3) from handler annotatio
 	mv doc/openapi3.yaml doc/swagger.yaml
 	mv doc/openapi3.json doc/swagger.json
 
-dev:  ## build + run the dev stack (docker compose; registry lives in the noxis-data volume)
+dev:  ## build + run the dev stack (noxis + a target postgres for playing)
 	docker compose -f docker/docker-compose.yml up --build
 
-down:  ## stop the dev stack and wipe its data (compose volumes, slave containers/volumes/network, registry) — start fresh later with make dev
-	docker compose -f docker/docker-compose.yml down -v
-	@docker rm -f $$(docker ps -aq --filter label=noxis.engine) 2>/dev/null || true
-	@docker volume rm -f $$(docker volume ls -q --filter name=noxis-zeus) 2>/dev/null || true
-	@docker network rm noxis-zeus 2>/dev/null || true
-	@rm -rf docker/db.sqlite
+dev-ui:  ## dev stack + the hot-reloading console on :5173
+	docker compose -f docker/docker-compose.yml --profile dev up --build
+
+down:  ## stop the dev stack and wipe its data (volumes incl. the registry)
+	docker compose -f docker/docker-compose.yml --profile dev down -v

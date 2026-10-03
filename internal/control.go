@@ -1,231 +1,247 @@
-// Package control is the master's operations core: registry repo + Kafka
-// broker + memory state (the app-level brain, hence internal/). Used by the
-// master daemon (cmd/noxis/master) and its REST handlers (controller);
-// slaves never touch it.
+// Package control is the app's operations core: connections, the SQL module,
+// and the change workflow (submit → validate → approve → apply).
 package control
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
-	"sync"
 	"time"
 
 	"noxis/internal/common/idgen"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/repositories/kafka"
+	sqlops "noxis/internal/sql"
 )
 
-const (
-	queryTimeout       = 30 * time.Second
-	statusOfflineAfter = 30 * time.Second // no heartbeat in this window => offline
-	primeTimeout       = 2 * time.Second  // reply consumer settle before publish
-)
-
-// Control owns the master's data + event sides. Desired specs and reported
-// statuses live in memory; the sqlite store holds only the slave registry.
-//
-// ponytail: master restart loses specs/status until the slave's next heartbeat;
-// if that ever matters, replay the spec topics on startup.
+// Control carries the connection registry, the change registry, and the SQL
+// module they run through.
 type Control struct {
-	nodes  interfaces.NodeRepository
-	topics kafka.Topics
-	k      *kafka.Broker
-	log    *slog.Logger
-	addrs  []string
-
-	mu     sync.Mutex
-	specs  map[string]entity.Spec
-	status map[string]entity.NodeStatus
+	conns   interfaces.ConnectionRepository
+	changes interfaces.ChangeRepository
+	db      *sqlops.DB
+	log     *slog.Logger
 }
 
-func New(nodes interfaces.NodeRepository, topics kafka.Topics, k *kafka.Broker, log *slog.Logger, addrs []string) *Control {
-	return &Control{
-		nodes: nodes, topics: topics, k: k, log: log, addrs: addrs,
-		specs: map[string]entity.Spec{}, status: map[string]entity.NodeStatus{},
-	}
+// New wires the stores and the SQL module.
+func New(conns interfaces.ConnectionRepository, changes interfaces.ChangeRepository, log *slog.Logger) *Control {
+	return &Control{conns: conns, changes: changes, db: sqlops.New(), log: log}
 }
 
-func (c *Control) Spec(ctx context.Context, node string) (*entity.Spec, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	s, ok := c.specs[node]
-	if !ok {
-		return nil, errors.New("no spec assigned to node " + node)
-	}
-	return &s, nil
-}
-
-// SetSpec remembers the assignment then publishes it to the node's topic.
-// A crash between the two self-heals: the next publish carries the full spec.
-func (c *Control) SetSpec(ctx context.Context, spec *entity.Spec) error {
-	if err := c.nodeKnown(ctx, spec.Node); err != nil {
-		return err
-	}
-	if err := c.k.EnsureTopic(ctx, c.topics.Spec(spec.Node)); err != nil {
-		return err
-	}
-	body, err := json.Marshal(spec)
-	if err != nil {
-		return err
-	}
-	if err := c.k.PublishSync(ctx, c.topics.Spec(spec.Node), spec.Node, body); err != nil {
-		return err
-	}
-	c.mu.Lock()
-	c.specs[spec.Node] = *spec
-	c.mu.Unlock()
-	return nil
-}
-
-func (c *Control) RegisterNode(ctx context.Context, id, name, ip string) error {
-	return c.nodes.Register(ctx, id, name, ip)
-}
-
-// nodeKnown guards master writes (spec assign, doorman ops) against names
-// the registry has never seen: publishing into a void would silently wait
-// for a node that does not exist. Trust boundary — checked in control, not
-// per handler.
-func (c *Control) nodeKnown(ctx context.Context, node string) error {
-	slaves, err := c.nodes.List(ctx)
-	if err != nil {
-		return err
-	}
-	for _, s := range slaves {
-		if s.ID == node {
-			return nil
-		}
-	}
-	return errors.New("node " + node + " not registered")
-}
-
-// Statuses merges the registered registry with live heartbeats: registered
-// nodes with a stale (or missing) heartbeat read as offline.
-func (c *Control) Statuses(ctx context.Context) ([]entity.NodeStatus, error) {
-	slaves, err := c.nodes.List(ctx)
+// Connections lists the registry, passwords redacted.
+func (c *Control) Connections(ctx context.Context) ([]entity.Connection, error) {
+	list, err := c.conns.List(ctx)
 	if err != nil {
 		return nil, err
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	now := time.Now().Unix()
-	out := make([]entity.NodeStatus, 0, len(slaves))
-	for _, s := range slaves {
-		st, ok := c.status[s.ID]
-		if !ok || now-st.TS > int64(statusOfflineAfter.Seconds()) {
-			out = append(out, entity.NodeStatus{Node: s.ID, State: constants.StateOffline})
-			continue
-		}
-		out = append(out, st)
+	out := make([]entity.Connection, 0, len(list))
+	for _, x := range list {
+		out = append(out, x.Redacted())
 	}
 	return out, nil
 }
 
-// RunStatusConsumer drains the status topic into memory until ctx is done.
-func (c *Control) RunStatusConsumer(ctx context.Context) error {
-	if err := c.k.EnsureTopic(ctx, c.topics.Status()); err != nil {
+// Connection returns one redacted connection.
+func (c *Control) Connection(ctx context.Context, name string) (entity.Connection, error) {
+	x, err := c.conns.Get(ctx, name)
+	if err != nil {
+		return entity.Connection{}, err
+	}
+	return x.Redacted(), nil
+}
+
+// SaveConnection validates and upserts. An update that omits the password
+// keeps the stored one (the console never sees it).
+func (c *Control) SaveConnection(ctx context.Context, conn entity.Connection) (entity.Connection, error) {
+	if err := conn.Validate(); err != nil {
+		return entity.Connection{}, err
+	}
+	existing, err := c.conns.Get(ctx, conn.Name)
+	switch {
+	case err == nil:
+		if conn.Password == "" {
+			conn.Password = existing.Password
+		}
+		conn.CreatedAt = existing.CreatedAt
+	case errors.Is(err, interfaces.ErrNotFound):
+		conn.CreatedAt = time.Now().Unix()
+	default:
+		return entity.Connection{}, err
+	}
+	if err := c.conns.Save(ctx, conn); err != nil {
+		return entity.Connection{}, err
+	}
+	return conn.Redacted(), nil
+}
+
+// DeleteConnection removes a connection.
+func (c *Control) DeleteConnection(ctx context.Context, name string) error {
+	return c.conns.Delete(ctx, name)
+}
+
+// TestConnection verifies the connection answers.
+func (c *Control) TestConnection(ctx context.Context, name string) error {
+	conn, err := c.conns.Get(ctx, name)
+	if err != nil {
 		return err
 	}
-	cons, err := kafka.Consume(ctx, c.addrs, "", true, c.topics.Status())
-	if err != nil {
-		return err
-	}
-	defer cons.Close()
-	for {
-		rec, err := cons.Next(ctx)
-		if err != nil {
-			if ctx.Err() != nil {
-				return nil
-			}
-			cons.Log(c.log, err)
-			continue
-		}
-		var st entity.NodeStatus
-		if err := json.Unmarshal(rec.Value, &st); err != nil {
-			c.log.WarnContext(ctx, "bad status event", "node", rec.Key, "error", err)
-			continue
-		}
-		c.mu.Lock()
-		c.status[st.Node] = st
-		c.mu.Unlock()
-	}
+	return c.db.Ping(ctx, *conn)
 }
 
-// OpRequest is a doorman responsibility crossing to the slave over the
-// node's request topic.
-type OpRequest struct {
-	Op     string `json:"op"` // query | alter | rollback | analytics
-	Engine string `json:"engine"`
-	SQL    string `json:"sql,omitempty"`
-	Table  string `json:"table,omitempty"`
+// connection loads the raw (password-bearing) connection for SQL work.
+func (c *Control) connection(ctx context.Context, name string) (*entity.Connection, error) {
+	return c.conns.Get(ctx, name)
 }
 
-type opRes struct {
-	Output string `json:"output"`
-	Error  string `json:"error"`
+// Op runs one direct SQL operation against a connection. Reads are meant to
+// be immediate; writes belong on the change workflow for anything auditable.
+func (c *Control) Op(ctx context.Context, name, op, sqlText, table string) (sqlops.Result, error) {
+	conn, err := c.connection(ctx, name)
+	if err != nil {
+		return sqlops.Result{}, err
+	}
+	switch op {
+	case sqlops.OpQuery:
+		return c.db.Query(ctx, *conn, sqlText)
+	case sqlops.OpAlter:
+		return c.db.Alter(ctx, *conn, sqlText)
+	case sqlops.OpRollback:
+		return c.db.DryRun(ctx, *conn, sqlText)
+	case sqlops.OpAnalytics:
+		return c.db.Analyze(ctx, *conn, table)
+	}
+	return sqlops.Result{}, errors.New("unknown op " + op)
 }
 
-// Request publishes a doorman op to the node's topic and waits for the
-// correlated reply. One throwaway consumer per request keeps reply routing
-// trivial.
-//
-// The reply consumer subscribes BEFORE the publish: an answer produced in
-// the same instant as the consumer's offset resolution was previously lost
-// (the offset fetch raced the produce, and the reply sat unread until the
-// 30s timeout). Subscribing first turns every answer into a record that
-// arrives after the consumer is already fetching; stale replies keyed by
-// other request ids are skipped.
-//
-// ponytail: per-request consumer connection; fine at personal-infra rates —
-// reuse a pool if requests ever become frequent.
-func (c *Control) Request(ctx context.Context, node string, req OpRequest) (string, error) {
-	if err := c.nodeKnown(ctx, node); err != nil {
-		return "", err
-	}
-	qid := idgen.UUID()
-	if err := c.k.EnsureTopic(ctx, c.topics.Req(node)); err != nil {
-		return "", err
-	}
-	if err := c.k.EnsureTopic(ctx, c.topics.Res(node)); err != nil {
-		return "", err
-	}
-	cons, err := kafka.Consume(ctx, c.addrs, "", false, c.topics.Res(node))
+// Schema introspects a connection for the console's browser.
+func (c *Control) Schema(ctx context.Context, name string) ([]sqlops.Table, error) {
+	conn, err := c.connection(ctx, name)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	defer cons.Close()
-	// Settle the reply consumer BEFORE publishing: a fetch session formed
-	// after the answer exists can miss it (observed: empty polls for the
-	// whole 30s window while the record sat on the broker — the fetch
-	// position raced the produce). Prime forces the first fetch now, so the
-	// answer below always lands after the consumer is positioned; stale
-	// replies read during priming are discarded.
-	primeCtx, cancelPrime := context.WithTimeout(ctx, primeTimeout)
-	_ = cons.Prime(primeCtx)
-	cancelPrime()
-	body, err := json.Marshal(req)
-	if err != nil {
-		return "", err
-	}
-	if err := c.k.PublishSync(ctx, c.topics.Req(node), qid, body); err != nil {
-		return "", err
-	}
+	return c.db.Tables(ctx, *conn)
+}
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
-	defer cancel()
-	reply, err := cons.WaitKey(ctx, qid)
+// Rows previews a table's rows.
+func (c *Control) Rows(ctx context.Context, name, schema, table string, limit int) (sqlops.Result, error) {
+	conn, err := c.connection(ctx, name)
 	if err != nil {
-		return "", errors.New("request timed out: node " + node + " did not answer")
+		return sqlops.Result{}, err
 	}
-	var res opRes
-	if err := json.Unmarshal(reply, &res); err != nil {
-		return "", err
+	return c.db.Rows(ctx, *conn, schema, table, limit)
+}
+
+// Changes lists every proposed change, newest first.
+func (c *Control) Changes(ctx context.Context) ([]entity.Change, error) {
+	return c.changes.ListChanges(ctx)
+}
+
+// Change returns one change.
+func (c *Control) Change(ctx context.Context, id string) (entity.Change, error) {
+	ch, err := c.changes.GetChange(ctx, id)
+	if err != nil {
+		return entity.Change{}, err
 	}
-	if res.Error != "" {
-		return "", errors.New(res.Error)
+	return *ch, nil
+}
+
+// SubmitChange records a change and validates it: both the query and its
+// rollback are dry-run inside a transaction that always rolls back, so the
+// submitter learns whether it is safe before anyone approves it.
+func (c *Control) SubmitChange(ctx context.Context, ch entity.Change) (entity.Change, error) {
+	if err := ch.Validate(); err != nil {
+		return entity.Change{}, err
 	}
-	return res.Output, nil
+	conn, err := c.connection(ctx, ch.Connection)
+	if err != nil {
+		return entity.Change{}, err
+	}
+	ch.ID = idgen.UUID()
+	ch.CreatedAt = time.Now().Unix()
+	ch.Status = constants.ChangeValidated
+	ch.Checks = nil
+	// The query must be a write (reads run directly).
+	kind := entity.ChangeCheck{Target: "query kind"}
+	if err := sqlops.VerifyWrite(ch.Query); err != nil {
+		kind.Error = err.Error()
+		ch.Status = constants.ChangeFailed
+	} else {
+		kind.OK = true
+		kind.Detail = "write statements only"
+	}
+	ch.Checks = append(ch.Checks, kind)
+	// Then the change and its rollback are dry-run together (nothing persists):
+	// the query must apply and the rollback must undo it.
+	dry := entity.ChangeCheck{Target: "dry-run (query + rollback)"}
+	res, err := c.db.ValidateChange(ctx, *conn, ch.Query, ch.Rollback)
+	switch {
+	case err == nil:
+		dry.OK = true
+		dry.Detail = res.Message
+	case errors.Is(err, sqlops.ErrUnverifiable):
+		ch.Status = constants.ChangeUnverified
+		dry.Error = err.Error()
+	default:
+		ch.Status = constants.ChangeFailed
+		dry.Error = err.Error()
+	}
+	ch.Checks = append(ch.Checks, dry)
+	if err := c.changes.SaveChange(ctx, ch); err != nil {
+		return entity.Change{}, err
+	}
+	return ch, nil
+}
+
+// ApproveChange signs off a validated change (self-approval is allowed).
+func (c *Control) ApproveChange(ctx context.Context, id string) (entity.Change, error) {
+	ch, err := c.changes.GetChange(ctx, id)
+	if err != nil {
+		return entity.Change{}, err
+	}
+	if ch.Status != constants.ChangeValidated && ch.Status != constants.ChangeUnverified {
+		return *ch, fmt.Errorf("change is %s, not validated — cannot approve", ch.Status)
+	}
+	ch.Status = constants.ChangeApproved
+	ch.ApprovedAt = time.Now().Unix()
+	if err := c.changes.SaveChange(ctx, *ch); err != nil {
+		return entity.Change{}, err
+	}
+	return *ch, nil
+}
+
+// ApplyChange executes an approved change in a transaction and records the
+// outcome (a failure is kept on the change, not just returned).
+func (c *Control) ApplyChange(ctx context.Context, id string) (entity.Change, error) {
+	ch, err := c.changes.GetChange(ctx, id)
+	if err != nil {
+		return entity.Change{}, err
+	}
+	if ch.Status != constants.ChangeApproved {
+		return *ch, fmt.Errorf("change is %s, not approved — cannot apply", ch.Status)
+	}
+	conn, err := c.connection(ctx, ch.Connection)
+	if err != nil {
+		return entity.Change{}, err
+	}
+	res, err := c.db.Apply(ctx, *conn, ch.Query)
+	if err != nil {
+		ch.Status = constants.ChangeFailed
+		ch.Checks = append(ch.Checks, entity.ChangeCheck{Target: "apply", Error: err.Error()})
+		_ = c.changes.SaveChange(ctx, *ch)
+		return *ch, err
+	}
+	ch.Status = constants.ChangeApplied
+	ch.AppliedAt = time.Now().Unix()
+	ch.Checks = append(ch.Checks, entity.ChangeCheck{Target: "apply", OK: true, Detail: res.Message})
+	if err := c.changes.SaveChange(ctx, *ch); err != nil {
+		return entity.Change{}, err
+	}
+	return *ch, nil
+}
+
+// RejectChange discards a change.
+func (c *Control) RejectChange(ctx context.Context, id string) error {
+	return c.changes.DeleteChange(ctx, id)
 }

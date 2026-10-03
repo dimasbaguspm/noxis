@@ -1,211 +1,190 @@
 import { useEffect, useState } from "react";
-import * as Select from "@radix-ui/react-select";
-import { ENGINE_TYPES, putSpec, runOp, type Engine, type OpResult } from "../api/client";
-import { useConsole } from "../store";
+import Changes from "../components/Changes";
+import Grid from "../components/Grid";
+import {
+  DRIVERS,
+  deleteConnection,
+  getRows,
+  listChanges,
+  type Change,
+  type Connection,
+  type Result,
+  runOp,
+  saveConnection,
+  testConnection,
+} from "../api/client";
+import { useStore } from "../store";
 
-const OPS = ["query", "alter", "rollback", "analytics"] as const;
-const COLORS: Record<string, string> = {
-  up: "bg-[#3fb950]",
-  online: "bg-[#3fb950]",
-  error: "bg-[#f85149]",
-  offline: "bg-[#8b949e]",
-};
+const EMPTY: Connection = { name: "", driver: "postgres", host: "", port: 5432, user: "", password: "", database: "" };
 
 export default function Console() {
-  const { nodes, node, engines, detail, busy, pick, refresh, setBusy } = useConsole();
-  const [op, setOp] = useState<(typeof OPS)[number]>("query");
-  const [engine, setEngine] = useState("");
-  const [sql, setSql] = useState("");
-  const [out, setOut] = useState<OpResult | null>(null);
-  const [outErr, setOutErr] = useState(false);
-  const [name, setName] = useState("");
-  const [type, setType] = useState("postgres");
-  const [version, setVersion] = useState("");
-  const [ports, setPorts] = useState("");
+  const { connections, active, schema, refresh, pick, busy, setBusy } = useStore();
+  const [form, setForm] = useState<Connection>(EMPTY);
+  const [showForm, setShowForm] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [sql, setSql] = useState("SELECT 1");
+  const [result, setResult] = useState<Result | null>(null);
+  const [resultErr, setResultErr] = useState("");
+  const [changes, setChanges] = useState<Change[]>([]);
 
   useEffect(() => {
     void refresh();
-    const t = setInterval(() => void refresh(), 5000);
-    return () => clearInterval(t);
+    void loadChanges();
   }, [refresh]);
 
-  useEffect(() => {
-    setVersion(ENGINE_TYPES[type]?.[0] ?? "");
-  }, [type]);
+  async function loadChanges() {
+    const res = await listChanges();
+    setChanges(res.data?.changes ?? []);
+  }
 
-  useEffect(() => {
-    setEngine((e) => (engines.some((x) => x.name === e) ? e : (engines[0]?.name ?? "")));
-  }, [engines]);
-
-  async function save(next: Engine[]) {
-    if (!node) return;
+  async function addConnection() {
+    if (!form.name.trim() || !form.host.trim() || !form.user.trim() || !form.database.trim()) return;
     setBusy(true);
-    const res = await putSpec(node, next);
+    const res = await saveConnection({ ...form, port: Number(form.port) || 5432 });
     setBusy(false);
     if (!res.ok) {
-      setOutErr(true);
-      setOut({ error: "save failed: " + String((res.data as unknown as { error?: string })?.error ?? "") });
+      setMsg(String((res.data as unknown as { error?: string })?.error ?? "save failed"));
       return;
     }
+    setForm(EMPTY);
+    setShowForm(false);
+    await refresh();
+    pick(form.name);
+  }
+
+  async function test(name: string) {
+    setBusy(true);
+    const res = await testConnection(name);
+    setBusy(false);
+    setMsg(res.ok ? `${name}: ok` : `${name}: ${String((res.data as unknown as { error?: string })?.error ?? "failed")}`);
+  }
+
+  async function remove(name: string) {
+    await deleteConnection(name);
     await refresh();
   }
 
-  async function add() {
-    if (!name.trim() || !node) return;
-    const e: Engine = { name: name.trim(), type, version: version.trim() };
-    if (ports.trim()) {
-      e.ports = {};
-      for (const p of ports.split(",")) {
-        const [h, c] = p.trim().split(":");
-        if (h && c) e.ports[h] = c;
-      }
+  async function preview(schemaName: string, table: string) {
+    setResultErr("");
+    const res = await getRows(active, schemaName, table, 100);
+    if (!res.ok) {
+      setResult(null);
+      setResultErr(String((res.data as unknown as { error?: string })?.error ?? "failed"));
+      return;
     }
-    await save([...engines, e]);
-    setName("");
-    setPorts("");
+    setResult(res.data);
   }
 
-  async function run() {
-    if (!node || !engine || !sql.trim()) return;
+  async function read() {
+    if (!active || !sql.trim()) return;
     setBusy(true);
-    const body: Record<string, string> =
-      op === "analytics" ? { engine, table: sql.trim() } : { engine, sql: sql.trim() };
-    const res = await runOp(node, op, body);
+    const res = await runOp(active, "query", { sql: sql.trim() });
     setBusy(false);
-    setOutErr(!res.ok);
-    setOut(res.data ?? { error: `HTTP ${res.status}` });
+    if (!res.ok) {
+      setResult(null);
+      setResultErr(String((res.data as unknown as { error?: string })?.error ?? "failed"));
+      return;
+    }
+    setResultErr("");
+    setResult(res.data);
   }
-
-  const current = nodes.find((n) => n.node === node);
 
   return (
     <div className="min-h-screen bg-[#0d1117] text-[#c9d1d9]">
-      <header className="flex items-center gap-3 border-b border-[#30363d] bg-[#161b22] px-4 py-2.5">
-        <h1 className="m-0 text-[15px] font-semibold text-[#58a6ff]">noxis console</h1>
+      <header className="flex flex-wrap items-center gap-3 border-b border-[#30363d] bg-[#161b22] px-4 py-2.5">
+        <h1 className="m-0 text-[15px] font-semibold text-[#58a6ff]">noxis</h1>
         <div className="flex flex-wrap gap-1.5">
-          {nodes.map((n) => (
-            <button
-              key={n.node}
-              onClick={() => n.node && pick(n.node)}
-              className={`rounded-full border px-3 py-1 text-sm ${
-                n.node === node
-                  ? "border-[#58a6ff] text-[#58a6ff]"
-                  : "border-[#30363d] bg-[#0d1117] hover:border-[#58a6ff]"
-              }`}
-            >
-              <span className={`mr-1.5 inline-block h-2 w-2 rounded-full ${COLORS[n.state ?? ""] ?? "bg-[#8b949e]"}`} />
-              {n.node}
+          {connections.map((c) => (
+            <button key={c.name} onClick={() => pick(c.name)}
+              className={`rounded-full border px-3 py-1 text-sm ${c.name === active ? "border-[#58a6ff] text-[#58a6ff]" : "border-[#30363d] bg-[#0d1117] hover:border-[#58a6ff]"}`}>
+              {c.name}
             </button>
           ))}
         </div>
+        <span className="flex-1" />
+        <span className="text-xs text-[#8b949e]">{msg}</span>
+        <button onClick={() => setShowForm((v) => !v)} className="rounded-md border border-[#30363d] px-3 py-1 text-sm">
+          {showForm ? "cancel" : "+ connection"}
+        </button>
       </header>
 
-      <main className="mx-auto grid max-w-[1400px] gap-4 p-4 lg:grid-cols-[380px_1fr]">
-        {/* engines */}
-        <section className="rounded-lg border border-[#30363d] bg-[#161b22] p-4">
-          <h2 className="mb-2.5 text-[13px] uppercase tracking-wider text-[#8b949e]">engines — {node}</h2>
-          <table className="w-full border-collapse text-[13px]">
-            <thead>
-              <tr className="text-left text-[#8b949e]">
-                <th className="border-b border-[#21262d] py-1.5 pr-2">name</th>
-                <th className="border-b border-[#21262d] py-1.5 pr-2">type</th>
-                <th className="border-b border-[#21262d] py-1.5 pr-2">version</th>
-                <th className="border-b border-[#21262d] py-1.5 pr-2">ports</th>
-                <th className="border-b border-[#21262d] py-1.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {engines.map((e, i) => (
-                <tr key={i}>
-                  <td className="border-b border-[#21262d] py-1.5 pr-2">{e.name}</td>
-                  <td className="border-b border-[#21262d] py-1.5 pr-2">{e.type}</td>
-                  <td className="border-b border-[#21262d] py-1.5 pr-2">{e.version}</td>
-                  <td className="border-b border-[#21262d] py-1.5 pr-2">
-                    {Object.entries(e.ports ?? {}).map(([h, c]) => `${h}:${c}`).join(", ")}
-                  </td>
-                  <td className="border-b border-[#21262d] py-1.5 text-right">
-                    <button onClick={() => void save(engines.filter((_, j) => j !== i))} className="text-[#f85149]">
-                      ✕
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {engines.length === 0 && (
-                <tr><td colSpan={5} className="py-2 text-xs text-[#8b949e]">no engines assigned</td></tr>
-              )}
-            </tbody>
-          </table>
-
-          <div className="mt-2.5 flex gap-2">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="name (db1)"
-              className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 outline-none focus:border-[#58a6ff]" />
-            <select value={type} onChange={(e) => setType(e.target.value)}
-              className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 outline-none focus:border-[#58a6ff]">
-              {Object.keys(ENGINE_TYPES).map((k) => <option key={k}>{k}</option>)}
+      {showForm && (
+        <div className="border-b border-[#30363d] bg-[#161b22] px-4 py-3">
+          <div className="mx-auto grid max-w-[1400px] gap-2 md:grid-cols-6">
+            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="name"
+              className="rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 outline-none focus:border-[#58a6ff]" />
+            <select value={form.driver} onChange={(e) => setForm({ ...form, driver: e.target.value, port: e.target.value === "mysql" ? 3306 : 5432 })}
+              className="rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 outline-none focus:border-[#58a6ff]">
+              {DRIVERS.map((d) => <option key={d}>{d}</option>)}
             </select>
-            <input value={version} onChange={(e) => setVersion(e.target.value)} placeholder="version"
-              className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 outline-none focus:border-[#58a6ff]" />
+            <input value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} placeholder="host"
+              className="rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 outline-none focus:border-[#58a6ff]" />
+            <input value={form.port} onChange={(e) => setForm({ ...form, port: Number(e.target.value) })} placeholder="port" type="number"
+              className="rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 outline-none focus:border-[#58a6ff]" />
+            <input value={form.user} onChange={(e) => setForm({ ...form, user: e.target.value })} placeholder="user"
+              className="rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 outline-none focus:border-[#58a6ff]" />
+            <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="password" type="password"
+              className="rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 outline-none focus:border-[#58a6ff]" />
+            <input value={form.database} onChange={(e) => setForm({ ...form, database: e.target.value })} placeholder="database"
+              className="rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 outline-none focus:border-[#58a6ff]" />
+            <button onClick={() => void addConnection()} disabled={busy}
+              className="rounded-md bg-[#1f6feb] px-4 py-1.5 text-white disabled:opacity-50">save</button>
           </div>
-          <div className="mt-2 flex gap-2">
-            <input value={ports} onChange={(e) => setPorts(e.target.value)} placeholder="ports host:container, comma sep"
-              className="w-full rounded-md border border-[#30363d] bg-[#0d1117] px-2 py-1.5 outline-none focus:border-[#58a6ff]" />
-            <button onClick={() => void add()} disabled={busy}
-              className="rounded-md bg-[#1f6feb] px-4 py-1.5 text-white disabled:opacity-50">add</button>
-          </div>
-          <div className="mt-2 flex gap-2">
-            <button onClick={() => void save(engines)} disabled={busy}
-              className="rounded-md border border-[#30363d] bg-[#21262d] px-4 py-1.5 disabled:opacity-50">save spec</button>
-            <button onClick={() => void save([])} disabled={busy}
-              className="rounded-md border border-[#30363d] bg-[#21262d] px-4 py-1.5 disabled:opacity-50">stop engines</button>
-          </div>
-          <p className="mt-2 text-xs text-[#8b949e]">{detail}</p>
-        </section>
+        </div>
+      )}
 
-        {/* doorman */}
-        <section className="rounded-lg border border-[#30363d] bg-[#161b22] p-4">
-          <h2 className="mb-2.5 text-[13px] uppercase tracking-wider text-[#8b949e]">doorman — {node}</h2>
-          <div className="mb-2 flex gap-1.5">
-            {OPS.map((o) => (
-              <button key={o} onClick={() => setOp(o)}
-                className={`rounded-t-md border-b-0 border border-[#30363d] px-3 py-1 text-sm ${
-                  op === o ? "border-b-transparent bg-[#1f6feb] text-white" : "bg-[#21262d]"
-                }`}>{o}</button>
+      <main className="mx-auto grid max-w-[1400px] gap-4 p-4 lg:grid-cols-[300px_1fr_380px]">
+        <div className="space-y-4">
+          <section className="rounded-lg border border-[#30363d] bg-[#161b22] p-4">
+            <h2 className="mb-2.5 text-[13px] uppercase tracking-wider text-[#8b949e]">connections</h2>
+            {connections.length === 0 && <p className="text-xs text-[#8b949e]">none yet — add one above</p>}
+            {connections.map((c) => (
+              <div key={c.name} className={`mb-1.5 rounded-md border p-2 ${c.name === active ? "border-[#58a6ff]/50" : "border-[#30363d]"}`}>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px]">{c.name}</span>
+                  <span className="flex-1" />
+                  <span className="text-[11px] text-[#8b949e]">{c.driver}</span>
+                </div>
+                <p className="text-[11px] text-[#8b949e]">{c.user}@{c.host}:{c.port}/{c.database}</p>
+                <div className="mt-1 flex gap-1.5">
+                  <button className="rounded border border-[#30363d] px-2 py-0.5 text-xs" onClick={() => void test(c.name ?? "")}>test</button>
+                  <button className="rounded border border-[#f85149]/50 px-2 py-0.5 text-xs text-[#f85149]" onClick={() => void remove(c.name ?? "")}>delete</button>
+                </div>
+              </div>
             ))}
-          </div>
+          </section>
 
-          <Select.Root value={engine} onValueChange={setEngine}>
-            <Select.Trigger className="mb-2 flex w-full items-center justify-between rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 outline-none focus:border-[#58a6ff]">
-              <Select.Value placeholder="(no engine)" />
-              <Select.Icon>▾</Select.Icon>
-            </Select.Trigger>
-            <Select.Portal>
-              <Select.Content className="rounded-md border border-[#30363d] bg-[#161b22] text-[#c9d1d9]">
-                <Select.Viewport>
-                  {engines.map((e, i) => (
-                    <Select.Item key={e.name ?? String(i)} value={e.name ?? ""}
-                      className="cursor-pointer px-3 py-1.5 outline-none data-[highlighted]:bg-[#21262d]">
-                      <Select.ItemText>{e.name}</Select.ItemText>
-                    </Select.Item>
-                  ))}
-                </Select.Viewport>
-              </Select.Content>
-            </Select.Portal>
-          </Select.Root>
+          <section className="rounded-lg border border-[#30363d] bg-[#161b22] p-4">
+            <h2 className="mb-2.5 text-[13px] uppercase tracking-wider text-[#8b949e]">schema — {active}</h2>
+            {schema.length === 0 && <p className="text-xs text-[#8b949e]">no tables</p>}
+            <div className="max-h-[320px] space-y-0.5 overflow-auto">
+              {schema.map((t) => (
+                <button key={`${t.schema}.${t.name}`} onClick={() => void preview(t.schema, t.name)}
+                  className="block w-full rounded px-2 py-1 text-left text-[13px] hover:bg-[#21262d]">
+                  <span className="text-[#8b949e]">{t.schema}.</span>{t.name}
+                  <span className="ml-1 text-[11px] text-[#8b949e]">({t.columns.length})</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        </div>
 
+        <section className="rounded-lg border border-[#30363d] bg-[#161b22] p-4">
+          <h2 className="mb-2.5 text-[13px] uppercase tracking-wider text-[#8b949e]">read — {active}</h2>
           <textarea value={sql} onChange={(e) => setSql(e.target.value)}
-            placeholder={op === "analytics" ? "table name" : "SQL"}
-            onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") void run(); }}
-            className="min-h-[140px] w-full resize-y rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 outline-none focus:border-[#58a6ff]" />
-          <button onClick={() => void run()} disabled={busy}
-            className="mt-2 rounded-md bg-[#1f6feb] px-4 py-1.5 text-white disabled:opacity-50">run</button>
-          <pre className={`mt-2 min-h-[60px] whitespace-pre-wrap break-words rounded-md border border-[#30363d] bg-[#0d1117] p-2.5 ${outErr ? "text-[#f85149]" : "text-[#3fb950]"}`}>
-            {out ? (out.error ?? out.output ?? "") : ""}
-          </pre>
-          <p className="mt-2 text-xs text-[#8b949e]">
-            {current ? `${current.state} @ ${new Date((current.ts ?? 0) * 1000).toLocaleString()}` : "no nodes registered"}
+            onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") void read(); }}
+            className="min-h-[110px] w-full rounded-md border border-[#30363d] bg-[#0d1117] px-3 py-2 font-mono outline-none focus:border-[#58a6ff]" />
+          <button onClick={() => void read()} disabled={busy || !active}
+            className="mt-2 rounded-md bg-[#1f6feb] px-4 py-1.5 text-white disabled:opacity-50">
+            run (⌘↵)
+          </button>
+          <p className="mb-2 mt-2 text-xs text-[#8b949e]">
+            SELECT / EXPLAIN run directly — writes go through the change workflow
           </p>
-          <p className="text-xs text-[#8b949e]">{current?.detail ?? ""}</p>
+          <Grid result={result} error={resultErr} />
         </section>
+
+        <Changes changes={changes} reload={loadChanges} />
       </main>
     </div>
   );

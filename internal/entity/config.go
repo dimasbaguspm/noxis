@@ -1,3 +1,4 @@
+// Package entity is the shared data model across store, wire and REST.
 package entity
 
 import (
@@ -11,20 +12,14 @@ import (
 
 // Env is read exactly once, here; nothing else talks to the environment.
 const (
-	EnvMaster        = "NOXIS_MASTER"         // REST base URL of the master: CLI/frontend
-	EnvBroker        = "NOXIS_BROKER"         // Kafka broker address: master + register
-	EnvTopicPrefix   = "NOXIS_TOPIC_PREFIX"   // Kafka topic prefix: master + register
-	EnvListen        = "NOXIS_LISTEN"         // REST listen addr: master
-	EnvDB            = "NOXIS_DB"             // sqlite path: master
+	EnvListen        = "NOXIS_LISTEN"         // REST listen addr
+	EnvDB            = "NOXIS_DB"             // sqlite path (connection registry)
 	EnvOTELCollector = "NOXIS_OTEL_COLLECTOR" // OTLP endpoint (optional)
 	EnvOTELName      = "NOXIS_OTEL_NAME"      // service name reported to OTEL (optional)
 )
 
 // Config is the process environment as a struct; no defaults.
 type Config struct {
-	Master        string `validate:"required"`
-	Broker        string `validate:"required"`
-	TopicPrefix   string `validate:"required"`
 	Listen        string `validate:"required"`
 	DB            string `validate:"required"`
 	OTELCollector string
@@ -33,12 +28,9 @@ type Config struct {
 
 var validate = validator.New()
 
-// Load reads every env var exactly once, per process.
+// LoadConfig reads every env var exactly once, per process.
 func LoadConfig() Config {
 	return Config{
-		Master:        os.Getenv(EnvMaster),
-		Broker:        os.Getenv(EnvBroker),
-		TopicPrefix:   os.Getenv(EnvTopicPrefix),
 		Listen:        os.Getenv(EnvListen),
 		DB:            os.Getenv(EnvDB),
 		OTELCollector: os.Getenv(EnvOTELCollector),
@@ -59,12 +51,6 @@ func (c Config) Require(envs ...string) error {
 
 func fieldOf(c Config, env string) string {
 	switch env {
-	case EnvMaster:
-		return c.Master
-	case EnvBroker:
-		return c.Broker
-	case EnvTopicPrefix:
-		return c.TopicPrefix
 	case EnvListen:
 		return c.Listen
 	case EnvDB:
@@ -79,9 +65,6 @@ func fieldOf(c Config, env string) string {
 
 func (c Config) String() string {
 	return strings.Join([]string{
-		EnvMaster + "=" + c.Master,
-		EnvBroker + "=" + c.Broker,
-		EnvTopicPrefix + "=" + c.TopicPrefix,
 		EnvListen + "=" + c.Listen,
 		EnvDB + "=" + c.DB,
 		EnvOTELCollector + "=" + c.OTELCollector,

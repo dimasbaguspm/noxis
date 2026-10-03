@@ -38,8 +38,7 @@ func TestUAT(t *testing.T) {
 			})
 		},
 		ScenarioInitializer: func(ctx *godog.ScenarioContext) {
-			(&world{}).stepsNode(ctx)
-			(&world{}).stepsDoorman(ctx)
+			(&world{}).steps(ctx)
 		},
 	}
 	if suite.Run() != 0 {

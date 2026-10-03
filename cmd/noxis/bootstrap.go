@@ -1,5 +1,5 @@
-// Package main is the noxis CLI entry: `run master`, `run slave`, and
-// `register slave` (env → config → logging → root command).
+// Package main is the noxis CLI entry: `run server` (env → config →
+// logging → root command).
 package main
 
 import (
@@ -10,8 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"noxis/cmd/noxis/master"
-	slavecmd "noxis/cmd/noxis/slave/commands"
+	"noxis/cmd/noxis/server"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 )
@@ -36,28 +35,19 @@ func Bootstrap() error {
 		Use:          "run",
 		Short:        "Run a daemon",
 		SilenceUsage: true}
-	run.AddCommand(
-		&cobra.Command{
-			Use:   "master",
-			Short: "Run the master daemon",
-			RunE: func(cmd *cobra.Command, _ []string) error {
-				return master.Run(cmd.Context(), log, cfg)
-			}},
-		slavecmd.NewRunCmd(log),
-	)
-
-	reg := &cobra.Command{
-		Use:          "register",
-		Short:        "One-shot registration",
-		SilenceUsage: true}
-	reg.AddCommand(slavecmd.NewRegisterCmd(log, cfg))
+	run.AddCommand(&cobra.Command{
+		Use:   "server",
+		Short: "Run the noxis server (REST API + console)",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return server.Run(cmd.Context(), log, cfg)
+		}})
 
 	root := &cobra.Command{
 		Use:          "noxis",
-		Short:        "Personal multi-machine infra control plane",
+		Short:        "Lightweight SQL console: manage connections, run verified SQL",
 		SilenceUsage: true,
 	}
-	root.AddCommand(run, reg)
+	root.AddCommand(run)
 
 	return root.ExecuteContext(ctx)
 }

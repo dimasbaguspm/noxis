@@ -1,7 +1,6 @@
-# noxis as a container: master or slave, same image, role by env.
-# Slaves need the docker socket mounted so doorman can manage engines:
-#   docker run -d -v /var/run/docker.sock:/var/run/docker.sock \
-#     -e NOXIS_MASTER=... -e NOXIS_NODE=zeus noxis slave
+# noxis as a container: one process (REST API + console + the SQL module).
+#   docker run -d -p 9000:9000 -v noxis-data:/data \
+#     -e NOXIS_LISTEN=:9000 -e NOXIS_DB=/data/noxis.db noxis run server
 # The operator console (React+TS) — built once, dist copied into the
 # embeddable static dir before the Go build.
 FROM node:22-alpine AS web
@@ -18,7 +17,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=web /bin/dist /src/bin/dist
-RUN rm -rf cmd/noxis/master/controller/static && cp -r bin/dist cmd/noxis/master/controller/static \
+RUN rm -rf cmd/noxis/server/controller/static && cp -r bin/dist cmd/noxis/server/controller/static \
     && CGO_ENABLED=0 go build -o /out/noxis ./cmd/noxis
 
 FROM alpine:3.20

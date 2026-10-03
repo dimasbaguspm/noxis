@@ -1,43 +1,48 @@
 # noxis
 
-Your own multi-machine SQL database control plane.
+A lightweight SQL console for databases you already run.
 
-**The goal:** manage SQL databases spread across your machines from one
-place. Tell the master *which engines live on which node* — postgres,
-mariadb, mysql — and that machine's worker builds and runs them. Then ask
-questions, change schemas, or test changes safely, all through a single
-REST API.
+**The goal:** point noxis at your databases (Postgres, MySQL/MariaDB) and get a
+single place to browse them, run reads, and ship changes safely. No agents, no
+brokers, no orchestration — one binary, one volume, no docker socket.
 
 ## What it does at a glance
 
-- **One binary, two roles** — a `master` (REST API) and per-machine `slave`
-  workers. Register a machine once; it converges itself from then on.
-- **Event-driven over Kafka** (franz-go). Desired state flows master → slave;
-  durable consumer offsets mean restarts resume cleanly — no reconnect loops,
-  no extra broker daemons to babysit beyond Kafka itself.
-- **SQL module (doorman)** — creates/updates engine instances (docker:
-  image, persistent volume, isolated per-node network) and runs database ops
-  with statement verification:
-  - `query` — reads only (SELECT/SHOW/EXPLAIN/…) — any write rejected
-  - `alter` — writes: DML (INSERT/UPDATE/…) and DDL (ALTER/CREATE/DROP/…)
-  - `rollback` — dry-run inside a transaction that always rolls back
-  - `analytics` — `ANALYZE` / `ANALYZE TABLE`
-- **Engine updates that don't lose data** — same-major version bumps swap the
-  container and keep the volume; major bumps get a fresh cluster with the old
-  data preserved for manual migration.
-- **Isolation by default** — each node's engines share one docker bridge
-  network, invisible to other machines.
-- **Small state footprint** — sqlite holds only the registry; specs and
-  status live in Kafka + master memory.
+- **Connections** — register a database (host/port/user/password/database);
+  passwords never leave the API (redacted on every response).
+- **Browse** — introspect schema (tables + columns) and preview table rows.
+- **Reads run directly** — `SELECT`/`EXPLAIN`/`SHOW` execute immediately with a
+  result grid; the read path is read-only and rejects DML/DDL.
+- **Changes are a workflow** — submit *{connection, notes, query, rollback}*:
+  - **validate** — the query and its rollback are dry-run **together** in a
+    transaction that always rolls back, proving the rollback really undoes the
+    change (nothing persists on submit);
+  - **approve** — self-approval is fine (single-operator tool);
+  - **apply** — executed inside a transaction; failures stay recorded on the
+    change.
+- **Honest about drivers** — MySQL commits DDL implicitly, so a change carrying
+  DDL there is marked `unverified` instead of pretending a dry-run happened.
+- **Operator console** — served by the binary itself at `/` (React + TS,
+  embedded; no build step at deploy time).
 
 ## Docs
 
 - `PLAN.md` — architecture, decisions, and known ceilings.
 - `doc/swagger.yaml|json` — OpenAPI 3 spec (Postman artifact, generated from
   controller annotations via `make swagger`).
-- `test/uat/` — Gherkin acceptance suite (godog): the real compose stack is
-  driven through its public REST surface, `make uat` (skips @slow image-pull
-  scenarios unless UAT_TAGS is set).
-- `web/` — the React+TS operator console (`make web` builds it into the
-  binary via embed; dev: `docker compose --profile dev up -d` → hot-reload on
-  :5173, proxied to the master).
+- `web/` — the console source (`make web` embeds it; `make dev-ui` gives a
+  hot-reloading dev server on :5173).
+- `test/uat/` — Gherkin acceptance suite over the real stack: `make uat`.
+
+## Quick start
+
+```bash
+make dev          # noxis + a throwaway postgres to play with
+open http://localhost:9000
+# or drive the API:
+curl -s -X POST localhost:9000/v1/connections -H 'Content-Type: application/json' \
+  -d '{"name":"demo","driver":"postgres","host":"db","port":5432,
+       "user":"postgres","password":"noxis","database":"demo"}'
+curl -s -X POST localhost:9000/v1/connections/demo/query \
+  -H 'Content-Type: application/json' -d '{"sql":"SELECT 6*6 AS n"}'
+```

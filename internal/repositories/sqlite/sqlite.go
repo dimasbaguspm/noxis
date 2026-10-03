@@ -1,6 +1,5 @@
-// Package sqlite persists the master's slave registry (SQLite via modernc,
-// cgo-free). Specs and status live in Kafka + master memory now — the store
-// is deliberately just the registry.
+// Package sqlite persists the connection registry (SQLite via modernc,
+// cgo-free) — the app's only state.
 package sqlite
 
 import (
@@ -19,10 +18,13 @@ import (
 
 type Store struct{ db *sql.DB }
 
-// Satisfier: the registry store implements the node repository seam.
-var _ interfaces.NodeRepository = (*Store)(nil)
+// Satisfiers: the store implements both repository seams.
+var (
+	_ interfaces.ConnectionRepository = (*Store)(nil)
+	_ interfaces.ChangeRepository     = (*Store)(nil)
+)
 
-// Open opens the registry and verifies it answers a ping. It is deployable
+// Open opens the store and verifies it answers a ping. It is deployable
 // with zero host-side files: the parent directory is created when missing
 // and sqlite creates the database file itself on first open.
 func Open(path string) (*Store, error) {
@@ -58,11 +60,29 @@ func Open(path string) (*Store, error) {
 }
 
 const schema = `
-CREATE TABLE IF NOT EXISTS slaves (
-  id            TEXT PRIMARY KEY,
-  name          TEXT NOT NULL,
-  ip            TEXT NOT NULL DEFAULT '',
-  registered_at INTEGER NOT NULL
+CREATE TABLE IF NOT EXISTS changes (
+  id          TEXT PRIMARY KEY,
+  connection  TEXT NOT NULL,
+  notes       TEXT NOT NULL,
+  query       TEXT NOT NULL,
+  rollback    TEXT NOT NULL,
+  status      TEXT NOT NULL,
+  checks      TEXT NOT NULL DEFAULT '[]',
+  created_at  INTEGER NOT NULL,
+  approved_at INTEGER NOT NULL DEFAULT 0,
+  applied_at  INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS connections (
+  name       TEXT PRIMARY KEY,
+  driver     TEXT NOT NULL,
+  host       TEXT NOT NULL,
+  port       INTEGER NOT NULL,
+  user       TEXT NOT NULL,
+  password   TEXT NOT NULL DEFAULT '',
+  database   TEXT NOT NULL,
+  params     TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL
 );`
 
 func (s *Store) Close() { _ = s.db.Close() }
