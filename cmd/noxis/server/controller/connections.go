@@ -13,19 +13,23 @@ import (
 	"noxis/internal/interfaces"
 )
 
-func (d Deps) connections(ctx context.Context) ([]entity.Connection, error) {
+func (d Deps) connections(ctx context.Context) (out []entity.Connection, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
 	list, err := d.Connections.List(ctx)
 	if err != nil {
 		return nil, err
 	}
-	out := make([]entity.Connection, 0, len(list))
+	out = make([]entity.Connection, 0, len(list))
 	for _, c := range list {
 		out = append(out, c.Redacted())
 	}
 	return out, nil
 }
 
-func (d Deps) connection(ctx context.Context, name string) (entity.Connection, error) {
+func (d Deps) connection(ctx context.Context, name string) (out entity.Connection, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
 	c, err := d.raw(ctx, name)
 	if err != nil {
 		return entity.Connection{}, err
@@ -40,7 +44,9 @@ func (d Deps) raw(ctx context.Context, name string) (*entity.Connection, error) 
 
 // saveConnection upserts; an update that omits the password keeps the stored
 // one (the console never sees it).
-func (d Deps) saveConnection(ctx context.Context, c entity.Connection) (entity.Connection, error) {
+func (d Deps) saveConnection(ctx context.Context, c entity.Connection) (out entity.Connection, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
 	if err := c.Validate(); err != nil {
 		return entity.Connection{}, err
 	}
@@ -62,7 +68,9 @@ func (d Deps) saveConnection(ctx context.Context, c entity.Connection) (entity.C
 	return c.Redacted(), nil
 }
 
-func (d Deps) testConnection(ctx context.Context, name string) error {
+func (d Deps) testConnection(ctx context.Context, name string) (err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
 	c, err := d.raw(ctx, name)
 	if err != nil {
 		return err
@@ -70,7 +78,9 @@ func (d Deps) testConnection(ctx context.Context, name string) error {
 	return d.SQL.Ping(ctx, *c)
 }
 
-func (d Deps) schema(ctx context.Context, name string) ([]interfaces.Table, error) {
+func (d Deps) schema(ctx context.Context, name string) (out []interfaces.Table, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
 	c, err := d.raw(ctx, name)
 	if err != nil {
 		return nil, err
@@ -78,7 +88,9 @@ func (d Deps) schema(ctx context.Context, name string) ([]interfaces.Table, erro
 	return d.SQL.Tables(ctx, *c)
 }
 
-func (d Deps) rows(ctx context.Context, name, schema, table string, limit int) (interfaces.Result, error) {
+func (d Deps) rows(ctx context.Context, name, schema, table string, limit int) (out interfaces.Result, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
 	c, err := d.raw(ctx, name)
 	if err != nil {
 		return interfaces.Result{}, err
@@ -87,7 +99,9 @@ func (d Deps) rows(ctx context.Context, name, schema, table string, limit int) (
 }
 
 // op dispatches one direct SQL operation.
-func (d Deps) op(ctx context.Context, name, operation, sqlText, table string) (interfaces.Result, error) {
+func (d Deps) op(ctx context.Context, name, operation, sqlText, table string) (out interfaces.Result, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
 	c, err := d.raw(ctx, name)
 	if err != nil {
 		return interfaces.Result{}, err
@@ -109,7 +123,7 @@ func (d Deps) op(ctx context.Context, name, operation, sqlText, table string) (i
 // @Success 200 {object} object{connections=[]entity.Connection}
 // @Router /v1/connections [get]
 func ListConnections(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, "connections.list", func(ctx context.Context, d Deps) (any, error) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		conns, err := d.connections(ctx)
 		return map[string]any{"connections": conns}, err
 	})
@@ -121,7 +135,7 @@ func ListConnections(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Router /v1/connections [post]
 func SaveConnection(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, "connections.save", func(ctx context.Context, d Deps) (any, error) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		var c entity.Connection
 		if err := decode(r, &c); err != nil {
 			return nil, err
@@ -136,7 +150,7 @@ func SaveConnection(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} map[string]string
 // @Router /v1/connections/{name} [get]
 func GetConnection(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, "connections.get", func(ctx context.Context, d Deps) (any, error) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		return d.connection(ctx, r.PathValue("name"))
 	})
 }
@@ -147,7 +161,7 @@ func GetConnection(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Router /v1/connections/{name} [delete]
 func DeleteConnection(w http.ResponseWriter, r *http.Request) {
-	handleNoContent(w, r, "connections.delete", func(ctx context.Context, d Deps) error {
+	handleNoContent(w, r, func(ctx context.Context, d Deps) error {
 		return d.Connections.Delete(ctx, r.PathValue("name"))
 	})
 }
@@ -158,7 +172,7 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Router /v1/connections/{name}/test [post]
 func TestConnection(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, "connections.test", func(ctx context.Context, d Deps) (any, error) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		if err := d.testConnection(ctx, r.PathValue("name")); err != nil {
 			return nil, err
 		}
@@ -172,7 +186,7 @@ func TestConnection(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Router /v1/connections/{name}/schema [get]
 func GetSchema(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, "connections.schema", func(ctx context.Context, d Deps) (any, error) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		tables, err := d.schema(ctx, r.PathValue("name"))
 		return map[string]any{"tables": tables}, err
 	})
@@ -187,7 +201,7 @@ func GetSchema(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Router /v1/connections/{name}/tables/{table}/rows [get]
 func GetRows(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, "connections.rows", func(ctx context.Context, d Deps) (any, error) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 		return d.rows(ctx, r.PathValue("name"), r.URL.Query().Get("schema"), r.PathValue("table"), limit)
 	})
@@ -239,7 +253,7 @@ var opRoutes = map[string]string{
 }
 
 func doOp(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, "connections.op", func(ctx context.Context, d Deps) (any, error) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		var body opBody
 		if err := decode(r, &body); err != nil {
 			return nil, err

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
@@ -15,7 +16,7 @@ const changeColumns = `id, connection, notes, query, rollback, status, checks, c
 
 // SaveChange upserts a change.
 func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
-	ctx, end := span(ctx, "changes.save")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	checks, err := json.Marshal(c.Checks)
 	if err != nil {
@@ -36,14 +37,14 @@ func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
 
 // ListChanges returns changes, newest first.
 func (s *Store) ListChanges(ctx context.Context) (out []entity.Change, err error) {
-	ctx, end := span(ctx, "changes.list")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	return queryRows(ctx, s.db, `SELECT `+changeColumns+` FROM changes ORDER BY created_at DESC, id`, scanChange)
 }
 
 // GetChange returns one change, or interfaces.ErrNotFound.
 func (s *Store) GetChange(ctx context.Context, id string) (c *entity.Change, err error) {
-	ctx, end := span(ctx, "changes.get")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	row := s.db.QueryRowContext(ctx, `SELECT `+changeColumns+` FROM changes WHERE id = ?`, id)
 	ch, err := scanChange(row)
@@ -58,7 +59,7 @@ func (s *Store) GetChange(ctx context.Context, id string) (c *entity.Change, err
 
 // DeleteChange removes a change (reject = delete).
 func (s *Store) DeleteChange(ctx context.Context, id string) (err error) {
-	ctx, end := span(ctx, "changes.delete")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if _, err := s.db.ExecContext(ctx, `DELETE FROM changes WHERE id = ?`, id); err != nil {
 		return fmt.Errorf("delete change %s: %w", id, err)

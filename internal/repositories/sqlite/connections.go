@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
@@ -16,7 +17,7 @@ const connColumns = `name, driver, host, port, user, password, database, params,
 
 // Save upserts a connection (created_at is set on first insert).
 func (s *Store) Save(ctx context.Context, c entity.Connection) (err error) {
-	ctx, end := span(ctx, "connections.save")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	params, err := json.Marshal(c.Params)
 	if err != nil {
@@ -36,14 +37,14 @@ func (s *Store) Save(ctx context.Context, c entity.Connection) (err error) {
 
 // List returns every connection (passwords included — callers redact).
 func (s *Store) List(ctx context.Context) (out []entity.Connection, err error) {
-	ctx, end := span(ctx, "connections.list")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	return queryRows(ctx, s.db, `SELECT `+connColumns+` FROM connections ORDER BY name`, scanConnection)
 }
 
 // Get returns one connection, or interfaces.ErrNotFound.
 func (s *Store) Get(ctx context.Context, name string) (c *entity.Connection, err error) {
-	ctx, end := span(ctx, "connections.get")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	row := s.db.QueryRowContext(ctx, `SELECT `+connColumns+` FROM connections WHERE name = ?`, name)
 	conn, err := scanConnection(row)
@@ -59,7 +60,7 @@ func (s *Store) Get(ctx context.Context, name string) (c *entity.Connection, err
 // Delete removes a connection and its changes atomically (orphaned changes
 // would point at a database nobody can reach).
 func (s *Store) Delete(ctx context.Context, name string) (err error) {
-	ctx, end := span(ctx, "connections.delete")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	return s.WithTx(ctx, func(tx *sql.Tx) error {
 		if _, err := tx.ExecContext(ctx, `DELETE FROM changes WHERE connection = ?`, name); err != nil {

@@ -35,25 +35,29 @@ func WithDeps(next http.Handler, d Deps) http.Handler {
 // From returns the request's Deps.
 func From(r *http.Request) Deps { return r.Context().Value(ctxKey{}).(Deps) }
 
-// span opens a span for the operation and logs its outcome (trace ids ride
-// the ctx-aware handler). The end func is bound to a local: naming the result
-// "end" would make the returned closure call itself.
-func (d Deps) span(ctx context.Context, name string) (ctxOut context.Context, finish func(error)) {
+// span opens the span for the calling method (the name derives from the
+// caller) and logs its outcome.
+func (d Deps) span(ctx context.Context) (ctxOut context.Context, end func(error)) {
+	return d.spanNamed(ctx, logging.CallerName(1))
+}
+
+func (d Deps) spanNamed(ctx context.Context, name string) (ctxOut context.Context, end func(error)) {
 	ctxOut, endSpan := logging.StartSpan(ctx, name)
 	return ctxOut, func(err error) {
 		if err != nil {
-			d.Log.WarnContext(ctx, name, "error", err.Error())
+			d.Log.WarnContext(ctxOut, name, "error", err.Error())
 		} else {
-			d.Log.InfoContext(ctx, name)
+			d.Log.InfoContext(ctxOut, name)
 		}
 		endSpan(err)
 	}
 }
 
-// handle runs one handler body: span, error mapping, JSON response.
-func handle(w http.ResponseWriter, r *http.Request, name string, fn func(ctx context.Context, d Deps) (any, error)) {
+// handle runs one handler body: span (named after the handler), error
+// mapping, JSON response.
+func handle(w http.ResponseWriter, r *http.Request, fn func(ctx context.Context, d Deps) (any, error)) {
 	d := From(r)
-	ctx, end := d.span(r.Context(), name)
+	ctx, end := d.spanNamed(r.Context(), logging.CallerName(1))
 	v, err := fn(ctx, d)
 	end(err)
 	if err != nil {
@@ -64,9 +68,9 @@ func handle(w http.ResponseWriter, r *http.Request, name string, fn func(ctx con
 }
 
 // handleNoContent is handle for operations with an empty response.
-func handleNoContent(w http.ResponseWriter, r *http.Request, name string, fn func(ctx context.Context, d Deps) error) {
+func handleNoContent(w http.ResponseWriter, r *http.Request, fn func(ctx context.Context, d Deps) error) {
 	d := From(r)
-	ctx, end := d.span(r.Context(), name)
+	ctx, end := d.spanNamed(r.Context(), logging.CallerName(1))
 	err := fn(ctx, d)
 	end(err)
 	if err != nil {

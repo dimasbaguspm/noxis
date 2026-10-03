@@ -17,7 +17,9 @@ import (
 // step: the query must be a write, and query + rollback are dry-run together
 // in one rolled-back transaction — proving the rollback undoes the change.
 // Nothing persists on submit.
-func (d Deps) submitChange(ctx context.Context, ch entity.Change) (entity.Change, error) {
+func (d Deps) submitChange(ctx context.Context, ch entity.Change) (out entity.Change, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
 	if err := ch.Validate(); err != nil {
 		return entity.Change{}, err
 	}
@@ -57,7 +59,9 @@ func (d Deps) submitChange(ctx context.Context, ch entity.Change) (entity.Change
 }
 
 // approve signs off a validated change; self-approval is fine here.
-func (d Deps) approve(ctx context.Context, id string) (entity.Change, error) {
+func (d Deps) approve(ctx context.Context, id string) (out entity.Change, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
 	ch, err := d.Changes.GetChange(ctx, id)
 	if err != nil {
 		return entity.Change{}, err
@@ -74,7 +78,9 @@ func (d Deps) approve(ctx context.Context, id string) (entity.Change, error) {
 
 // apply executes an approved change transactionally; a failure is recorded
 // on the change, not just returned.
-func (d Deps) apply(ctx context.Context, id string) (entity.Change, error) {
+func (d Deps) apply(ctx context.Context, id string) (out entity.Change, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
 	ch, err := d.Changes.GetChange(ctx, id)
 	if err != nil {
 		return entity.Change{}, err
@@ -105,7 +111,7 @@ func (d Deps) apply(ctx context.Context, id string) (entity.Change, error) {
 // @Success 200 {object} object{changes=[]entity.Change}
 // @Router /v1/changes [get]
 func ListChanges(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, "changes.list", func(ctx context.Context, d Deps) (any, error) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		changes, err := d.Changes.ListChanges(ctx)
 		return map[string]any{"changes": changes}, err
 	})
@@ -117,7 +123,7 @@ func ListChanges(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Router /v1/changes [post]
 func SubmitChange(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, "changes.submit", func(ctx context.Context, d Deps) (any, error) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		var ch entity.Change
 		if err := decode(r, &ch); err != nil {
 			return nil, err
@@ -132,7 +138,7 @@ func SubmitChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} map[string]string
 // @Router /v1/changes/{id} [get]
 func GetChange(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, "changes.get", func(ctx context.Context, d Deps) (any, error) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		return d.Changes.GetChange(ctx, r.PathValue("id"))
 	})
 }
@@ -143,7 +149,7 @@ func GetChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Router /v1/changes/{id}/approve [post]
 func ApproveChange(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, "changes.approve", func(ctx context.Context, d Deps) (any, error) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		return d.approve(ctx, r.PathValue("id"))
 	})
 }
@@ -154,7 +160,7 @@ func ApproveChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Router /v1/changes/{id}/apply [post]
 func ApplyChange(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, "changes.apply", func(ctx context.Context, d Deps) (any, error) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		return d.apply(ctx, r.PathValue("id"))
 	})
 }
@@ -165,7 +171,7 @@ func ApplyChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Router /v1/changes/{id} [delete]
 func RejectChange(w http.ResponseWriter, r *http.Request) {
-	handleNoContent(w, r, "changes.reject", func(ctx context.Context, d Deps) error {
+	handleNoContent(w, r, func(ctx context.Context, d Deps) error {
 		return d.Changes.DeleteChange(ctx, r.PathValue("id"))
 	})
 }

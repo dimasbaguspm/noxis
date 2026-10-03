@@ -44,12 +44,6 @@ type Column struct {
 	Nullable bool   `json:"nullable"`
 }
 
-// span opens a span for one SQL operation.
-func span(ctx context.Context, name string) (ctxOut context.Context, end func(error)) {
-	ctxOut, end = logging.StartSpan(ctx, "sql."+name)
-	return ctxOut, end
-}
-
 // withDB opens a short-lived pool (control-plane rates) for one operation.
 func withDB[T any](c entity.Connection, fn func(db *stdsql.DB) (T, error)) (T, error) {
 	var zero T
@@ -90,7 +84,7 @@ func execEach(sqlText string, fn func(stmt string) error) (int, error) {
 
 // Ping verifies a connection answers.
 func (u *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
-	ctx, end := span(ctx, "ping")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	_, err = withDB(c, func(db *stdsql.DB) (struct{}, error) {
 		ctx, cancel := context.WithTimeout(ctx, pingTimeout)
@@ -106,16 +100,16 @@ func (u *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 // Query runs read-only statements; DML and DDL are rejected (writes belong on
 // Alter or the change workflow).
 func (u *DB) Query(ctx context.Context, c entity.Connection, sqlText string) (Result, error) {
-	return u.verifyRun(ctx, c, sqlText, reads, "query")
+	return u.verifyRun(ctx, c, sqlText, reads)
 }
 
 // Alter applies writes: DML and DDL; reads are rejected.
 func (u *DB) Alter(ctx context.Context, c entity.Connection, sqlText string) (Result, error) {
-	return u.verifyRun(ctx, c, sqlText, writes, "alter")
+	return u.verifyRun(ctx, c, sqlText, writes)
 }
 
-func (u *DB) verifyRun(ctx context.Context, c entity.Connection, sqlText string, allowed kindSet, name string) (res Result, err error) {
-	ctx, end := span(ctx, name)
+func (u *DB) verifyRun(ctx context.Context, c entity.Connection, sqlText string, allowed kindSet) (res Result, err error) {
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err = verifyKind(sqlText, allowed); err != nil {
 		return Result{}, err
@@ -154,7 +148,7 @@ func (u *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Resu
 // mysql-family drivers DDL is refused: MySQL commits DDL implicitly, so a
 // "dry run" there would apply it.
 func (u *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
-	ctx, end := span(ctx, "rollback")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if isMySQL(c.Driver) && containsDDL(sqlText) {
 		return Result{}, fmt.Errorf("dry run of DDL is not safe on %s (implicit commit) — try it on a postgres connection", c.Driver)
@@ -176,7 +170,7 @@ func (u *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (r
 // that always rolls back. This is why a rollback is validated against the
 // change rather than against the current database.
 func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
-	ctx, end := span(ctx, "validate")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if isMySQL(c.Driver) && containsDDL(query) {
 		return Result{}, fmt.Errorf("query has DDL and %s: %w", c.Driver, ErrUnverifiable)
@@ -204,7 +198,7 @@ func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rol
 // ponytail: mysql commits DDL implicitly, so a batch mixing DDL and DML there
 // is not all-or-nothing; postgres is.
 func (u *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
-	ctx, end := span(ctx, "apply")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err = verifyKind(sqlText, writes); err != nil {
 		return Result{}, err
@@ -252,7 +246,7 @@ func inTx(c entity.Connection, fn func(tx *stdsql.Tx) (int, error)) (int, error)
 
 // Rows previews a table's rows (bounded).
 func (u *DB) Rows(ctx context.Context, c entity.Connection, schema, table string, limit int) (res Result, err error) {
-	ctx, end := span(ctx, "rows")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if !identOK(table) || (schema != "" && !identOK(schema)) {
 		return Result{}, fmt.Errorf("invalid table %q", table)
@@ -270,7 +264,7 @@ func (u *DB) Rows(ctx context.Context, c entity.Connection, schema, table string
 
 // Tables lists user relations and their columns.
 func (u *DB) Tables(ctx context.Context, c entity.Connection) (tables []Table, err error) {
-	ctx, end := span(ctx, "schema")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	return withDB(c, func(db *stdsql.DB) ([]Table, error) {
 		return listTables(ctx, db)
@@ -279,7 +273,7 @@ func (u *DB) Tables(ctx context.Context, c entity.Connection) (tables []Table, e
 
 // Analyze refreshes planner statistics (ANALYZE / ANALYZE TABLE).
 func (u *DB) Analyze(ctx context.Context, c entity.Connection, table string) (res Result, err error) {
-	ctx, end := span(ctx, "analyze")
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if !identOK(table) {
 		return Result{}, fmt.Errorf("invalid table name %q", table)

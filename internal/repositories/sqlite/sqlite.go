@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"noxis/internal/common/logging"
 	"noxis/internal/interfaces"
 
 	// modernc SQLite driver: pure-Go, cgo-free (interface is database/sql).
@@ -89,12 +88,6 @@ func (s *Store) Close() { _ = s.db.Close() }
 
 // scanner is the shared row/rows interface.
 type scanner interface{ Scan(dest ...any) error }
-
-// span opens a repository-layer span.
-func span(ctx context.Context, name string) (ctxOut context.Context, end func(error)) {
-	ctxOut, end = logging.StartSpan(ctx, "sqlite."+name)
-	return ctxOut, end
-}
 
 // queryRows runs a query and scans every row with scan (shared by the list
 // methods, so the iteration lives in one place).
