@@ -74,6 +74,23 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  console:
+    image: node:22-alpine
+    profiles: [dev]
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["corepack enable && corepack prepare pnpm@10.34.5 --activate && cd /web && pnpm install && pnpm dev"]
+    environment:
+      VITE_PROXY_TARGET: http://master:9000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../web:/web
+      - web_node_modules:/web/node_modules
+    depends_on:
+      master:
+        condition: service_healthy
+
 volumes:
   noxis-identity:
   noxis-data:
+  web_node_modules:

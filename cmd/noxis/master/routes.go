@@ -28,7 +28,8 @@ func newHandler(ctrl *control.Control, log *slog.Logger) http.Handler {
 	mux.HandleFunc("POST /v1/nodes/{node}/doorman/rollback", controller.PostRollback)
 	mux.HandleFunc("POST /v1/nodes/{node}/doorman/analytics", controller.PostAnalytics)
 	mux.HandleFunc("POST /v1/nodes/{node}/register", controller.PostRegister)
-	mux.HandleFunc("GET /", controller.GetConsole) // the operator console (static HTML)
+	mux.Handle("GET /assets/", http.HandlerFunc(controller.GetAssets)) // embedded FS keeps the assets/ prefix
+	mux.HandleFunc("GET /", controller.GetConsole)                     // the operator console (SPA shell)
 
 	return withMiddleware(controller.WithDeps(mux, controller.Deps{Ctrl: ctrl, Log: log}), log)
 }

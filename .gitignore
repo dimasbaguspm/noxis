@@ -4,3 +4,9 @@ bin/
 docker/db.sqlite
 
 doc/docs.go
+web/node_modules/
+cmd/noxis/master/controller/static/assets/
+web/.vite/
+web/dist/
+*.tsbuildinfo
+.pnpm-store/

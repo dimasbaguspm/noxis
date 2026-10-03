@@ -34,5 +34,10 @@ jobs:
       - name: unit tests
         run: go test -count=1 $(go list ./... | grep -v /test/uat)
 
+      - name: web (lint + typecheck + build)
+        run: |
+          npm install -g pnpm@10
+          cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm build
+
       - name: uat (real stack via REST)
         run: make uat

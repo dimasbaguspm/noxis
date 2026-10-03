@@ -296,7 +296,6 @@ components:
         ts:
           description: unix seconds
           type: integer
-          format: int64
     entity.Spec:
       type: object
       properties:

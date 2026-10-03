@@ -38,3 +38,6 @@ REST API.
 - `test/uat/` — Gherkin acceptance suite (godog): the real compose stack is
   driven through its public REST surface, `make uat` (skips @slow image-pull
   scenarios unless UAT_TAGS is set).
+- `web/` — the React+TS operator console (`make web` builds it into the
+  binary via embed; dev: `docker compose --profile dev up -d` → hot-reload on
+  :5173, proxied to the master).

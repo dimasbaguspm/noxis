@@ -1,9 +1,15 @@
 PATH := $(HOME)/.local/bin:$(HOME)/go/bin:$(PATH)
 
-.PHONY: build test lint swagger dev down uat
+.PHONY: build test lint swagger web dev down uat
 
 build:
 	go build -o bin/noxis ./cmd/noxis
+
+web:  ## build the React console (web/, pnpm) into the embedded static dir
+	cd web && pnpm install --frozen-lockfile && pnpm build
+	rm -rf cmd/noxis/master/controller/static
+	mkdir -p cmd/noxis/master/controller/static
+	cp -r bin/dist/* cmd/noxis/master/controller/static/
 
 test:
 	go test ./...

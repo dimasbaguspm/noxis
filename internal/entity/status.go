@@ -4,10 +4,10 @@ package entity
 // state lives on the machine (docker ps), this is only the master's window
 // into it. One row per node, updated on every report.
 type NodeStatus struct {
-	Node   string
-	State  string // ok | error | up | offline
-	Detail string
-	TS     int64 // unix seconds
+	Node   string `json:"node"`
+	State  string `json:"state"` // ok | error | up | offline
+	Detail string `json:"detail,omitempty"`
+	TS     int64  `json:"ts"` // unix seconds
 }
 
 // Slave is a row in the master's registry (sqlite, slaves table).

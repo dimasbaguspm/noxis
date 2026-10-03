@@ -1,0 +1,34 @@
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import { fileURLToPath } from "node:url";
+import { defineConfig, loadEnv } from "vite";
+
+// One predictable config: dist into bin/dist (the Go embed sync), the API
+// proxied for dev under /v1, no surprises across environments. `pnpm dev`
+// talks to localhost:9000 by default; the compose dev service sets
+// VITE_PROXY_TARGET to http://master:9000.
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, ".");
+  return {
+    plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    },
+    build: {
+      outDir: "../bin/dist",
+      emptyOutDir: true,
+      target: "es2020",
+      sourcemap: false,
+    },
+    server: {
+      host: true,
+      port: 5173,
+      proxy: {
+        "/v1": {
+          target: env.VITE_PROXY_TARGET ?? "http://localhost:9000",
+          changeOrigin: true,
+        },
+      },
+    },
+  };
+});

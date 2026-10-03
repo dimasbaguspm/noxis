@@ -1,0 +1,7 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "env": { "browser": true, "es2022": true },
+  "categories": { "correctness": "error", "perf": "warn" },
+  "plugins": ["react", "unicorn", "typescript"],
+  "ignorePatterns": ["node_modules", "src/api/generated.ts", "dist"]
+}
