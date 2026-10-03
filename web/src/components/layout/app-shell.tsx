@@ -1,35 +1,10 @@
 import { NavLink, Outlet, Link } from "react-router-dom";
-import { Activity, BarChart3, Database, LayoutDashboard, Leaf, PencilRuler } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { NavMenu } from "@/components/layout/nav-menu";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
+import { NAV } from "@/lib/nav";
 import { cn } from "@/lib/utils";
-
-type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; end?: boolean; soon?: boolean };
-type NavGroup = { label?: string; items: NavItem[] };
-
-// The menu: Dashboard and Analytics at the top, SQL work grouped, and the
-// next engines parked as "soon" so the shape of the product is visible.
-const NAV: NavGroup[] = [
-  {
-    items: [
-      { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-      { to: "/analytics", label: "Analytics", icon: BarChart3 },
-    ],
-  },
-  {
-    label: "SQL",
-    items: [
-      { to: "/query", label: "Query", icon: Database },
-      { to: "/dml", label: "DML", icon: PencilRuler },
-      { to: "/ddl", label: "DDL", icon: Activity },
-    ],
-  },
-  {
-    label: "MongoDB",
-    items: [{ to: "/mongo", label: "Documents", icon: Leaf, soon: true }],
-  },
-];
 
 export function AppShell() {
   const crumbs = useBreadcrumbs();
@@ -48,35 +23,27 @@ export function AppShell() {
                 </p>
               </>
             )}
-            {group.items.map(({ to, label, icon: Icon, end, soon }) =>
-              soon ? (
-                <span
-                  key={to}
-                  className="flex cursor-not-allowed items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground/60"
-                >
-                  <Icon className="size-4" />
-                  {label}
+            {group.items.map(({ to, label, icon: Icon, end, soon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
+                    isActive && "bg-accent font-medium text-accent-foreground",
+                  )
+                }
+              >
+                <Icon className="size-4" />
+                {label}
+                {soon && (
                   <Badge variant="outline" className="ml-auto text-[10px]">
                     soon
                   </Badge>
-                </span>
-              ) : (
-                <NavLink
-                  key={to}
-                  to={to}
-                  end={end}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
-                      isActive && "bg-accent font-medium text-accent-foreground",
-                    )
-                  }
-                >
-                  <Icon className="size-4" />
-                  {label}
-                </NavLink>
-              ),
-            )}
+                )}
+              </NavLink>
+            ))}
           </div>
         ))}
         <span className="flex-1" />
@@ -84,29 +51,10 @@ export function AppShell() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border px-4 py-2">
-          <nav aria-label="primary" className="flex items-center gap-1">
-            {NAV.flatMap((group) => group.items)
-              .filter((item) => !item.soon)
-              .map(({ to, label, icon: Icon, end }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  end={end}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                      isActive && "bg-accent font-medium text-accent-foreground",
-                    )
-                  }
-                >
-                  <Icon className="size-3.5" />
-                  {label}
-                </NavLink>
-              ))}
-          </nav>
-          <span className="text-muted-foreground/30">|</span>
-          <nav aria-label="breadcrumb">
+        <header className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-border px-4 py-2">
+          <span />
+          <NavMenu />
+          <nav aria-label="breadcrumb" className="justify-self-end">
             <ol className="flex items-center gap-1.5 text-sm">
               {crumbs.map((crumb, i) => (
                 <li key={`${crumb.label}-${i}`} className="flex items-center gap-1.5">

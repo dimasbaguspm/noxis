@@ -2,6 +2,7 @@ import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { AppProvider } from "@/app/app-provider";
+import { PLACEHOLDERS } from "@/lib/nav";
 import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import "./app.css";
@@ -13,7 +14,9 @@ const QueryPage = lazy(() => import("@/pages/query"));
 const DmlPage = lazy(() => import("@/pages/dml"));
 const DdlPage = lazy(() => import("@/pages/ddl"));
 const AnalyticsPage = lazy(() => import("@/pages/analytics"));
-const MongoPage = lazy(() => import("@/pages/mongo"));
+const PlaceholderPage = lazy(() =>
+  import("@/components/layout/placeholder-page").then((m) => ({ default: m.PlaceholderPage })),
+);
 const ChangeDetail = lazy(() =>
   import("@/pages/change-detail").then((m) => ({ default: m.ChangeDetailPage })),
 );
@@ -29,7 +32,10 @@ const router = createBrowserRouter([
       { path: "ddl", element: <DdlPage /> },
       { path: "ddl/:id", element: <ChangeDetail kind="ddl" /> },
       { path: "analytics", element: <AnalyticsPage /> },
-      { path: "mongo", element: <MongoPage /> },
+      ...Object.keys(PLACEHOLDERS).map((path) => ({
+        path: path.replace(/^\//, ""),
+        element: <PlaceholderPage spec={PLACEHOLDERS[path]} />,
+      })),
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

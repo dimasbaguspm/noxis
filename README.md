@@ -27,7 +27,9 @@ brokers, no orchestration — one binary, one volume, no docker socket.
   - **Dashboard** — registered instances in a searchable table with live
     reachability (SSE), executed DDL/DML counts and the error rate; add an
     instance (verified before it is saved)
-  - menu: Dashboard · Analytics · SQL (Query / DML / DDL) · MongoDB (soon)
+  - menu (sidebar + a searchable dropdown in the header): Dashboard ·
+    SQL (Query, DML, DDL, Analytics) · MongoDB and Redis (scoped, pages
+    describe the plan)
   - **Query** — per-instance schema/table browser, monaco editor (self-hosted,
     schema-aware completion), result grid with duration / rows / plan estimate
     and CSV export; `ANALYZE` and "show records" live in each table's menu

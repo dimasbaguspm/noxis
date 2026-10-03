@@ -103,7 +103,7 @@ export function TableBrowser({ tables, onPick, onRecords, onAnalyze }: Props) {
                     <RowMenu
                       label={`actions for ${t.name}`}
                       items={[
-                        { label: "Use in query", icon: <PlayCircle className="size-3.5" />, onSelect: () => onPick?.(t) },
+                        { label: "Load into editor", icon: <PlayCircle className="size-3.5" />, onSelect: () => onPick?.(t) },
                         {
                           label: "Show records (limit 100)",
                           icon: <ListTree className="size-3.5" />,

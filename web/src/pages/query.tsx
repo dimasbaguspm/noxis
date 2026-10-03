@@ -54,7 +54,7 @@ export default function QueryPage() {
             <CardContent className="min-h-0 flex-1">
               <TableBrowser
                 tables={tables}
-                onPick={(t) => void pickTable(t.schema, t.name)}
+                onPick={(t) => setSql(`SELECT * FROM ${t.schema}.${t.name} LIMIT 100;`)}
                 onRecords={(t) => void pickTable(t.schema, t.name)}
                 onAnalyze={(t) => void analyze.run(t)}
               />
