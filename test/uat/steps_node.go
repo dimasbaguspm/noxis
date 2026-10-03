@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/cucumber/godog"
@@ -19,6 +20,7 @@ func (w *world) stepsNode(sc *godog.ScenarioContext) {
 	sc.Step("the master rejects the assignment", w.assignRejected)
 	sc.Step(`the instance "{}" container is running image "{}"`, w.containerImage)
 	sc.Step(`the node "{}" status is "{}"`, w.nodeStatus)
+	sc.Step(`the operator console is served at "/"`, w.consoleServed)
 	sc.Step(`the node "{}" status detail mentions "{}"`, w.statusMentions)
 }
 
@@ -76,6 +78,18 @@ func (w *world) containerImage(ctx context.Context, name, image string) error {
 
 func (w *world) nodeStatus(ctx context.Context, name, state string) error {
 	return w.waitState(name, state, waitRegister)
+}
+
+// consoleServed asserts the root path returns the embedded operator page.
+func (w *world) consoleServed(ctx context.Context) error {
+	code, b, err := w.api(http.MethodGet, "/", nil)
+	if err != nil {
+		return err
+	}
+	if code != http.StatusOK || !strings.Contains(string(b), "noxis console") {
+		return fmt.Errorf("console at /: status %d", code)
+	}
+	return nil
 }
 
 func (w *world) statusMentions(ctx context.Context, name, needle string) error {
