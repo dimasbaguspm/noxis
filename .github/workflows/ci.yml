@@ -26,7 +26,7 @@ jobs:
           cache: true
 
       - name: lint
-        run: go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run ./...
+        run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run ./...
 
       - name: build (Dockerfile)
         run: docker build -t noxis:ci .
