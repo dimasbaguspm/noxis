@@ -64,7 +64,6 @@ func doOp(w http.ResponseWriter, r *http.Request) {
 	req.Op = op
 	out, err := From(r).Ctrl.Request(r.Context(), r.PathValue("node"), req)
 	if err != nil {
-		From(r).Log.WarnContext(r.Context(), "doOp error", "err", err.Error())
 		writeErr(w, err)
 		return
 	}
