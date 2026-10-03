@@ -1,0 +1,38 @@
+# One sequential pipeline: lint → build (Dockerfile) → unit → UAT.
+# UAT brings the real compose stack up (kafka + master + slave) on the
+# runner's docker daemon and drives it through the REST surface (make uat);
+# the default tag set skips the @slow image-pull scenarios.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pipeline:
+    name: lint → build → unit → uat
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: lint
+        run: go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run ./...
+
+      - name: build (Dockerfile)
+        run: docker build -t noxis:ci .
+
+      - name: unit tests
+        run: go test -count=1 $(go list ./... | grep -v /test/uat)
+
+      - name: uat (real stack via REST)
+        run: make uat
