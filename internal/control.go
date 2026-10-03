@@ -1,19 +1,19 @@
-// Package control is the master daemon's operations core: registry repo +
-// Kafka broker + memory state. Lives under cmd/noxis because it is command
-// scope — used by the master daemon (server) and its REST handlers
-// (controller), nothing in internal/ shares it. Slaves never touch it.
+// Package control is the master's operations core: registry repo + Kafka
+// broker + memory state (the app-level brain, hence internal/). Used by the
+// master daemon (cmd/noxis/master) and its REST handlers (controller);
+// slaves never touch it.
 package control
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"log/slog"
 	"sync"
 	"time"
 
+	"noxis/internal/common/idgen"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/repositories/kafka"
@@ -95,7 +95,7 @@ func (c *Control) Statuses(ctx context.Context) ([]entity.NodeStatus, error) {
 	for _, s := range slaves {
 		st, ok := c.status[s.ID]
 		if !ok || now-st.TS > int64(statusOfflineAfter.Seconds()) {
-			out = append(out, entity.NodeStatus{Node: s.ID, State: "offline"})
+			out = append(out, entity.NodeStatus{Node: s.ID, State: constants.StateOffline})
 			continue
 		}
 		out = append(out, st)
@@ -154,10 +154,7 @@ type opRes struct {
 // ponytail: per-request consumer connection; fine at personal-infra rates —
 // reuse a pool if requests ever become frequent.
 func (c *Control) Request(ctx context.Context, node string, req OpRequest) (string, error) {
-	qid, err := newID()
-	if err != nil {
-		return "", err
-	}
+	qid := idgen.UUID()
 	if err := c.k.EnsureTopic(ctx, c.topics.Req(node)); err != nil {
 		return "", err
 	}
@@ -194,12 +191,4 @@ func (c *Control) Request(ctx context.Context, node string, req OpRequest) (stri
 		return "", errors.New(res.Error)
 	}
 	return res.Output, nil
-}
-
-func newID() (string, error) {
-	b := make([]byte, 8)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(b), nil
 }

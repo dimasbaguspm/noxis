@@ -1,12 +1,13 @@
 // Package handlers answers the node's op requests — the slave's counterpart
-// to the master's controller. The daemon feeds consumed records in; handlers
-// resolve the engine from the desired spec, run the doorman op, and reply.
+// to the master's controller: one file per method (query, alter, rollback,
+// analytics), mod.go holds the shared plumbing. The daemon feeds consumed
+// records in; handlers resolve the engine from the desired spec, run the
+// doorman op, and reply.
 package handlers
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 
 	"noxis/internal/entity"
@@ -47,7 +48,18 @@ func (d Deps) Answer(ctx context.Context, node string, spec entity.Spec, rec kaf
 	if !ok {
 		res.Error = "no engine named " + req.Engine + " on this node"
 	} else {
-		res = runOp(ctx, d.Dm, node, req, eng)
+		switch req.Op {
+		case doorman.OpQuery:
+			res = runQuery(ctx, d.Dm, node, eng, req)
+		case doorman.OpAlter:
+			res = runAlter(ctx, d.Dm, node, eng, req)
+		case doorman.OpRollback:
+			res = runRollback(ctx, d.Dm, node, eng, req)
+		case doorman.OpAnalytics:
+			res = runAnalytics(ctx, d.Dm, node, eng, req)
+		default:
+			res = opRes{Error: "unknown op " + req.Op}
+		}
 	}
 	body, err := json.Marshal(res)
 	if err != nil {
@@ -57,29 +69,6 @@ func (d Deps) Answer(ctx context.Context, node string, spec entity.Spec, rec kaf
 		d.Log.WarnContext(ctx, "publish op answer", "error", err)
 	}
 	d.Log.InfoContext(ctx, "op answered", "op", req.Op, "error", res.Error != "")
-}
-
-func runOp(ctx context.Context, dm *doorman.Doorman, node string, req opReq, eng entity.Engine) opRes {
-	var (
-		out string
-		err error
-	)
-	switch req.Op {
-	case doorman.OpQuery:
-		out, err = dm.Query(ctx, node, eng, req.SQL)
-	case doorman.OpAlter:
-		out, err = dm.AlterTable(ctx, node, eng, req.SQL)
-	case doorman.OpRollback:
-		out, err = dm.RollbackTable(ctx, node, eng, req.SQL)
-	case doorman.OpAnalytics:
-		out, err = dm.AnalyzeTable(ctx, node, eng, req.Table)
-	default:
-		err = fmt.Errorf("unknown op %q", req.Op)
-	}
-	if err != nil {
-		return opRes{Error: err.Error()}
-	}
-	return opRes{Output: out}
 }
 
 func engineOf(spec entity.Spec, name string) (entity.Engine, bool) {

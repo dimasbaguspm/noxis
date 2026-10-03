@@ -32,6 +32,9 @@ internal/common/         shared infra: http (standard headers), logging
 internal/modules/doorman/   SQL module (doorman): instance create (postgres/mariadb/mysql),
                         query, alter, rollback (dry-run tx), analytics; engine descriptors
                         and client argv live here; mechanics in repositories/docker
+internal/constants/     universal defined values (Version, ConsumerGroupPrefix, status states)
+internal/control.go      master's operations core (registry repo + Kafka + memory)
+internal/common/         http (standard headers), logging, idgen (dashless uuid), sign (HMAC)
 internal/entity/         domain models + Config (env struct, go-validator)
 internal/interfaces/     seams, one file per service: NodeRepository (sqlite), Docker (repositories/docker)
 internal/features/doorman/   decisions only: network isolation boundary (noxis-<node> bridge per node); container decisions return later

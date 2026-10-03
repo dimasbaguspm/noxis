@@ -9,7 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"noxis/cmd/noxis/control"
+	control "noxis/internal"
 )
 
 // Deps is everything a handler needs from the master.

@@ -12,10 +12,10 @@ import (
 	"net/http"
 	"time"
 
-	"noxis/internal/common/version"
+	"noxis/internal/constants"
 )
 
-const userAgent = "noxis/" + version.Version
+const userAgent = "noxis/" + constants.Version
 
 type Client struct {
 	base string

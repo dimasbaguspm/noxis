@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"noxis/cmd/noxis/slave/handlers"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/modules/doorman"
 	"noxis/internal/repositories/docker"
@@ -21,10 +22,7 @@ import (
 	reposlave "noxis/internal/repositories/slave"
 )
 
-const (
-	heartbeatInterval   = 15 * time.Second
-	consumerGroupPrefix = "noxis." // distinct from topic prefix; stable groups keep offsets
-)
+const heartbeatInterval = 15 * time.Second
 
 // Run is the module entry: the worker daemon for one node.
 func Run(ctx context.Context, base *slog.Logger, id *reposlave.Identity) error {
@@ -39,7 +37,7 @@ func slaveLoop(ctx context.Context, base *slog.Logger, id *reposlave.Identity) e
 	addrs := strings.Split(id.Broker, ",")
 	topics := kafka.Topics{Prefix: id.TopicPrefix}
 
-	cons, err := kafka.Consume(ctx, addrs, consumerGroupPrefix+id.ID, false,
+	cons, err := kafka.Consume(ctx, addrs, constants.ConsumerGroupPrefix+id.ID, false,
 		topics.Spec(id.ID), topics.Req(id.ID))
 	if err != nil {
 		return err
@@ -77,7 +75,7 @@ func slaveLoop(ctx context.Context, base *slog.Logger, id *reposlave.Identity) e
 	recCh := make(chan kafka.Record)
 	go feed(ctx, cons, recCh)
 
-	publishStatus(ctx, producer, topics, id.ID, "up", "slave online")
+	publishStatus(ctx, producer, topics, id.ID, constants.StateUp, "slave online")
 	ticker := time.NewTicker(heartbeatInterval)
 	defer ticker.Stop()
 	log.InfoContext(ctx, "slave consuming")
@@ -95,7 +93,7 @@ func slaveLoop(ctx context.Context, base *slog.Logger, id *reposlave.Identity) e
 				deps.Answer(ctx, id.ID, lastSpec, rec)
 			}
 		case <-ticker.C:
-			publishStatus(ctx, producer, topics, id.ID, "up", "slave online")
+			publishStatus(ctx, producer, topics, id.ID, constants.StateUp, "slave online")
 		case <-ctx.Done():
 			return nil
 		}
@@ -134,7 +132,7 @@ func ackSpec(ctx context.Context, log *slog.Logger, producer *kafka.Broker, topi
 	state := "ok"
 	netDetail, err := d.NetworkReconcile(ctx, docker.NodeNetworkName(node), docker.NodeNetworkLabel(node), len(spec.Engines))
 	if err != nil {
-		state = "error"
+		state = constants.StateError
 		netDetail = "network error: " + err.Error()
 	}
 	if netDetail != "" {
@@ -143,7 +141,7 @@ func ackSpec(ctx context.Context, log *slog.Logger, producer *kafka.Broker, topi
 	for _, eng := range spec.Engines {
 		instanceDetail, err := dm.CreateInstance(ctx, node, docker.NodeNetworkName(node), eng)
 		if err != nil {
-			state = "error"
+			state = constants.StateError
 			instanceDetail = fmt.Sprintf("instance %s error: %s", eng.Name, err.Error())
 		}
 		details = append(details, instanceDetail)

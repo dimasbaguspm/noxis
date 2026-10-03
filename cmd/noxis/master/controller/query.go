@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"noxis/cmd/noxis/control"
+	control "noxis/internal"
 	"noxis/internal/modules/doorman"
 )
 
