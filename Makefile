@@ -33,5 +33,9 @@ db:   ## create the dev sqlite store under docker/
 dev: db  ## build + run the dev stack (docker compose)
 	docker compose -f docker/docker-compose.yml up --build
 
-down:  ## stop the dev stack
-	docker compose -f docker/docker-compose.yml down
+down:  ## stop the dev stack and wipe its data (compose volumes, slave containers/volumes/network, registry) — start fresh later with make dev
+	docker compose -f docker/docker-compose.yml down -v
+	@docker rm -f $$(docker ps -aq --filter label=noxis.engine) 2>/dev/null || true
+	@docker volume rm -f $$(docker volume ls -q --filter name=noxis-zeus) 2>/dev/null || true
+	@docker network rm noxis-zeus 2>/dev/null || true
+	@rm -rf docker/db.sqlite
