@@ -1,6 +1,6 @@
-# noxis
+# noXis
 
-A lightweight SQL console for databases you already run.
+A lightweight console to query and change the databases you already run, with confidence.
 
 **The goal:** point noxis at your databases (Postgres, MySQL/MariaDB) and get a
 single place to browse them, run reads, and ship changes safely. No agents, no

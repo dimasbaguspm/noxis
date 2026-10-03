@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { debounce, group } from "radash";
-import { ChevronDown, ChevronRight, ListTree, PlayCircle, Search } from "lucide-react";
+import { Activity, ChevronDown, ChevronRight, ListTree, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { RowMenu } from "@/components/ui/row-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,14 +10,13 @@ import type { Table } from "@/lib/api";
 
 interface Props {
   tables: Table[];
-  onPick?: (table: Table) => void;
   onRecords?: (table: Table) => void;
   onAnalyze?: (table: Table) => void;
 }
 
 // TableBrowser: schemas first, then their tables. Rows expand to columns and
 // carry per-table actions.
-export function TableBrowser({ tables, onPick, onRecords, onAnalyze }: Props) {
+export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
   const [filter, setFilter] = useState("");
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -103,13 +102,12 @@ export function TableBrowser({ tables, onPick, onRecords, onAnalyze }: Props) {
                     <RowMenu
                       label={`actions for ${t.name}`}
                       items={[
-                        { label: "Load into editor", icon: <PlayCircle className="size-3.5" />, onSelect: () => onPick?.(t) },
                         {
-                          label: "Show records (limit 100)",
+                          label: "Show Records",
                           icon: <ListTree className="size-3.5" />,
                           onSelect: () => onRecords?.(t),
                         },
-                        { label: "Analyze", onSelect: () => onAnalyze?.(t) },
+                        { label: "Analyze", icon: <Activity className="size-3.5" />, onSelect: () => onAnalyze?.(t) },
                       ]}
                     />
                   </div>

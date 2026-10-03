@@ -5,6 +5,7 @@ import { AppProvider } from "@/app/app-provider";
 import { PLACEHOLDERS } from "@/lib/nav";
 import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import "./app.css";
 
 // route-level splitting: monaco (query/changes) and recharts (analytics)
@@ -44,9 +45,11 @@ const router = createBrowserRouter([
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AppProvider>
-      <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">loading…</div>}>
-        <RouterProvider router={router} />
-      </Suspense>
+      <TooltipProvider>
+        <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">loading…</div>}>
+          <RouterProvider router={router} />
+        </Suspense>
+      </TooltipProvider>
       <Toaster position="bottom-right" />
     </AppProvider>
   </StrictMode>,

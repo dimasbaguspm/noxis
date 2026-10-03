@@ -9,10 +9,15 @@ export type ChangeKind = "dml" | "ddl";
 // workflow actions, reloading the list after each one.
 export function useChanges(kind?: ChangeKind) {
   const [changes, setChanges] = useState<Change[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
-    const { changes: list } = await api.changes.list();
-    setChanges(list ?? []);
+    try {
+      const { changes: list } = await api.changes.list();
+      setChanges(list ?? []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -44,7 +49,7 @@ export function useChanges(kind?: ChangeKind) {
     return changes.filter((c) => (c.kind || classify(c.query ?? "")) === kind);
   }, [changes, kind]);
 
-  return { changes: visible, total: changes.length, reload, submit, approve, apply, reject };
+  return { changes: visible, total: changes.length, loading, reload, submit, approve, apply, reject };
 }
 
 // useTableRows previews a table's rows for the active connection.

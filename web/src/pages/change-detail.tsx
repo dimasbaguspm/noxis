@@ -1,9 +1,10 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Check, Play, Undo2 } from "lucide-react";
+import { ArrowLeft, Check, CircleHelp, FileWarning, Loader2, Play, Undo2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChangeActivity } from "@/components/changes/change-activity";
 import { SqlEditor } from "@/components/sql/sql-editor";
 import { useSchema } from "@/hooks/use-connection";
@@ -19,29 +20,29 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   rejected: "outline",
 };
 
-// ChangeDetailPage is the reviewer's focus view: the change, its estimates vs
-// actuals, its activity trail and the only place actions live.
+// ChangeDetailPage is the reviewer's focus view. Actions live here and only
+// here: the queue stays a queue.
 export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { changes, approve, apply, reject } = useChanges(kind);
+  const { changes, loading, approve, apply, reject } = useChanges(kind);
   const change = changes.find((c) => c.id === id);
   const { tables } = useSchema(change?.connection);
 
-  if (!change) {
+  if (loading && !change) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Change not found</CardTitle>
-          <CardDescription>
-            <Link to={`/${kind}`} className="underline">
-              back to {kind.toUpperCase()}
-            </Link>
-          </CardDescription>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Loader2 className="size-4 animate-spin" />
+            Loading change {id.slice(0, 8)}
+          </CardTitle>
         </CardHeader>
       </Card>
     );
   }
+
+  if (!change) return <Unavailable kind={kind} id={id} />;
 
   const act = (fn: (id: string) => Promise<unknown>) => () => void fn(id);
   const canApprove = change.status === "validated" || change.status === "unverified";
@@ -80,7 +81,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">{change.notes}</CardTitle>
-              <CardDescription>proposed {kind.toUpperCase()} change</CardDescription>
+              <CardDescription>Proposed {kind.toUpperCase()} change</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <Section label="Query">
@@ -94,8 +95,18 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Validation trail</CardTitle>
-              <CardDescription>the dry run proves the rollback undoes the change; nothing persists</CardDescription>
+              <CardTitle className="flex items-center gap-1.5 text-base">
+                Validation
+                <Tooltip>
+                  <TooltipTrigger render={<span className="text-muted-foreground" />}>
+                    <CircleHelp className="size-3.5" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    The dry run applies the query and then its rollback inside a transaction that is always
+                    rolled back, so nothing persists.
+                  </TooltipContent>
+                </Tooltip>
+              </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-1.5">
               {(change.checks ?? []).map((check) => (
@@ -107,11 +118,6 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
                   {check.ok ? `: ${check.detail ?? ""}` : `: ${check.error ?? ""}`}
                 </p>
               ))}
-              {change.status === "failed" && (
-                <p className="text-xs text-destructive">
-                  validation failed — submit a new change for the corrected statements
-                </p>
-              )}
             </CardContent>
           </Card>
         </div>
@@ -129,36 +135,18 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Touches</CardTitle>
-              <CardDescription>parsed from the statements (best effort)</CardDescription>
+              <CardDescription>Parsed from the statements</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-2 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">tables</p>
-                <div className="flex flex-wrap gap-1">
-                  {(change.affectedTables ?? []).length === 0 ? (
-                    <span className="text-muted-foreground">—</span>
-                  ) : (
-                    (change.affectedTables ?? []).map((t) => <Badge key={t} variant="secondary">{t}</Badge>)
-                  )}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">columns</p>
-                <div className="flex flex-wrap gap-1">
-                  {(change.affectedColumns ?? []).length === 0 ? (
-                    <span className="text-muted-foreground">—</span>
-                  ) : (
-                    (change.affectedColumns ?? []).map((c) => <Badge key={c} variant="outline">{c}</Badge>)
-                  )}
-                </div>
-              </div>
+              <Identifiers label="tables" values={change.affectedTables} />
+              <Identifiers label="columns" values={change.affectedColumns} variant="outline" />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Impact</CardTitle>
-              <CardDescription>estimates from the dry run, actuals from apply</CardDescription>
+              <CardDescription>Dry run estimates, apply actuals</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3">
               <div className="grid grid-cols-2 gap-3">
@@ -169,7 +157,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
               </div>
               <Separator />
               <p className="text-xs text-muted-foreground">
-                changes are artifacts: rejected records stay in the list, nothing is deleted.
+                Rejected changes stay in the queue as artifacts. Nothing is deleted.
               </p>
             </CardContent>
           </Card>
@@ -179,11 +167,82 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   );
 }
 
+// Unavailable is the state for an id that is not in the queue: explained,
+// with the way out, instead of a bare "not found".
+function Unavailable({ kind, id }: { kind: ChangeKind; id: string }) {
+  return (
+    <Card className="mx-auto max-w-2xl">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <FileWarning className="size-4 text-amber-500" />
+          Change {id.slice(0, 8)} is not available to review
+        </CardTitle>
+        <CardDescription>
+          The queue has no record with this id. Nothing is broken, this is usually one of these:
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
+          <li className="flex gap-2">
+            <span className="text-foreground">1.</span>
+            Validation failed when it was submitted, so it was never recorded. Failed proposals are
+            returned to the submitter with the reason and are not kept.
+          </li>
+          <li className="flex gap-2">
+            <span className="text-foreground">2.</span>
+            The link came from another browser or session. The queue is per noXis instance, not per user.
+          </li>
+          <li className="flex gap-2">
+            <span className="text-foreground">3.</span>
+            The change belongs to a different connection that has since been removed, which also removes
+            its changes.
+          </li>
+        </ul>
+        <div className="flex flex-wrap gap-2">
+          <Button render={<Link to={`/${kind}`} />} size="sm">
+            Back to {kind.toUpperCase()} queue
+          </Button>
+          <Button variant="outline" size="sm" render={<Link to="/query" />}>
+            Go to Query
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-1.5">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       {children}
+    </div>
+  );
+}
+
+function Identifiers({
+  label,
+  values,
+  variant = "secondary",
+}: {
+  label: string;
+  values?: string[];
+  variant?: "secondary" | "outline";
+}) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <div className="mt-0.5 flex flex-wrap gap-1">
+        {(values ?? []).length === 0 ? (
+          <span className="text-muted-foreground">—</span>
+        ) : (
+          (values ?? []).map((value) => (
+            <Badge key={value} variant={variant}>
+              {value}
+            </Badge>
+          ))
+        )}
+      </div>
     </div>
   );
 }
