@@ -37,33 +37,33 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 export const api = {
   connections: {
-    list: () => request<{ connections: Connection[] }>("GET", "/v1/connections"),
-    save: (c: Connection) => request<Connection>("POST", "/v1/connections", c),
-    remove: (name: string) => request<null>("DELETE", `/v1/connections/${name}`),
-    test: (name: string) => request<{ status: string }>("POST", `/v1/connections/${name}/test`),
-    schema: (name: string) => request<{ tables: Table[] }>("GET", `/v1/connections/${name}/schema`),
-    stats: (name: string) => request<Stats>("GET", `/v1/connections/${name}/stats`),
-    statusStream: () => "/v1/connections/status/stream",
+    list: () => request<{ connections: Connection[] }>("GET", "/v1/sql/connections"),
+    save: (c: Connection) => request<Connection>("POST", "/v1/sql/connections", c),
+    remove: (name: string) => request<null>("DELETE", `/v1/sql/connections/${name}`),
+    test: (name: string) => request<{ status: string }>("POST", `/v1/sql/connections/${name}/test`),
+    schema: (name: string) => request<{ tables: Table[] }>("GET", `/v1/sql/connections/${name}/schema`),
+    stats: (name: string) => request<Stats>("GET", `/v1/sql/connections/${name}/stats`),
+    statusStream: () => "/v1/sql/connections/status/stream",
     // the live view subscribes to this endpoint with an EventSource
-    statsStream: (name: string) => `/v1/connections/${name}/stats/stream`,
+    statsStream: (name: string) => `/v1/sql/connections/${name}/stats/stream`,
     rows: (name: string, schema: string, table: string, limit = 100) =>
       request<Result>(
         "GET",
-        `/v1/connections/${name}/tables/${table}/rows?schema=${encodeURIComponent(schema)}&limit=${limit}`,
+        `/v1/sql/connections/${name}/tables/${table}/rows?schema=${encodeURIComponent(schema)}&limit=${limit}`,
       ),
   },
   ops: {
-    query: (name: string, sql: string) => request<Result>("POST", `/v1/connections/${name}/query`, { sql }),
-    alter: (name: string, sql: string) => request<Result>("POST", `/v1/connections/${name}/alter`, { sql }),
-    rollback: (name: string, sql: string) => request<Result>("POST", `/v1/connections/${name}/rollback`, { sql }),
+    query: (name: string, sql: string) => request<Result>("POST", `/v1/sql/connections/${name}/query`, { sql }),
+    alter: (name: string, sql: string) => request<Result>("POST", `/v1/sql/connections/${name}/alter`, { sql }),
+    rollback: (name: string, sql: string) => request<Result>("POST", `/v1/sql/connections/${name}/rollback`, { sql }),
     analytics: (name: string, table: string) =>
-      request<Result>("POST", `/v1/connections/${name}/analytics`, { table }),
+      request<Result>("POST", `/v1/sql/connections/${name}/analytics`, { table }),
   },
   changes: {
-    list: () => request<{ changes: Change[] }>("GET", "/v1/changes"),
-    submit: (input: ChangeInput) => request<Change>("POST", "/v1/changes", input),
-    approve: (id: string) => request<Change>("POST", `/v1/changes/${id}/approve`),
-    apply: (id: string) => request<Change>("POST", `/v1/changes/${id}/apply`),
-    reject: (id: string) => request<Change>("POST", `/v1/changes/${id}/reject`),
+    list: () => request<{ changes: Change[] }>("GET", "/v1/sql/changes"),
+    submit: (input: ChangeInput) => request<Change>("POST", "/v1/sql/changes", input),
+    approve: (id: string) => request<Change>("POST", `/v1/sql/changes/${id}/approve`),
+    apply: (id: string) => request<Change>("POST", `/v1/sql/changes/${id}/apply`),
+    reject: (id: string) => request<Change>("POST", `/v1/sql/changes/${id}/reject`),
   },
 };

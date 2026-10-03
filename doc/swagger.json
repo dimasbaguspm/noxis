@@ -17,7 +17,7 @@
                 }
             }
         },
-        "/v1/changes": {
+        "/v1/sql/changes": {
             "get": {
                 "summary": "List proposed changes (newest first)",
                 "responses": {
@@ -81,7 +81,7 @@
                 }
             }
         },
-        "/v1/changes/{id}": {
+        "/v1/sql/changes/{id}": {
             "get": {
                 "summary": "Get one change",
                 "parameters": [
@@ -122,7 +122,7 @@
                 }
             }
         },
-        "/v1/changes/{id}/apply": {
+        "/v1/sql/changes/{id}/apply": {
             "post": {
                 "summary": "Apply an approved change (transactional)",
                 "parameters": [
@@ -163,7 +163,7 @@
                 }
             }
         },
-        "/v1/changes/{id}/approve": {
+        "/v1/sql/changes/{id}/approve": {
             "post": {
                 "summary": "Approve a validated change (self-approval allowed)",
                 "parameters": [
@@ -204,7 +204,7 @@
                 }
             }
         },
-        "/v1/changes/{id}/reject": {
+        "/v1/sql/changes/{id}/reject": {
             "post": {
                 "summary": "Reject a change (kept as an artifact, never deleted)",
                 "parameters": [
@@ -245,7 +245,7 @@
                 }
             }
         },
-        "/v1/connections": {
+        "/v1/sql/connections": {
             "get": {
                 "summary": "List connections (passwords redacted)",
                 "responses": {
@@ -309,7 +309,7 @@
                 }
             }
         },
-        "/v1/connections/status/stream": {
+        "/v1/sql/connections/status/stream": {
             "get": {
                 "summary": "Reachability stream for every connection (SSE, one tick per 5s)",
                 "responses": {
@@ -326,7 +326,7 @@
                 }
             }
         },
-        "/v1/connections/{name}": {
+        "/v1/sql/connections/{name}": {
             "get": {
                 "summary": "Get one connection (password redacted)",
                 "parameters": [
@@ -399,7 +399,7 @@
                 }
             }
         },
-        "/v1/connections/{name}/alter": {
+        "/v1/sql/connections/{name}/alter": {
             "post": {
                 "summary": "Apply a write directly (DML or DDL)",
                 "parameters": [
@@ -443,7 +443,7 @@
                 }
             }
         },
-        "/v1/connections/{name}/analytics": {
+        "/v1/sql/connections/{name}/analytics": {
             "post": {
                 "summary": "Refresh planner statistics for a table",
                 "parameters": [
@@ -495,7 +495,7 @@
                 }
             }
         },
-        "/v1/connections/{name}/query": {
+        "/v1/sql/connections/{name}/query": {
             "post": {
                 "summary": "Run a SQL console op (query | alter | rollback | analytics)",
                 "parameters": [
@@ -547,7 +547,7 @@
                 }
             }
         },
-        "/v1/connections/{name}/rollback": {
+        "/v1/sql/connections/{name}/rollback": {
             "post": {
                 "summary": "Dry-run statements inside a transaction that always rolls back",
                 "parameters": [
@@ -591,7 +591,7 @@
                 }
             }
         },
-        "/v1/connections/{name}/schema": {
+        "/v1/sql/connections/{name}/schema": {
             "get": {
                 "summary": "Introspect a connection's tables and columns",
                 "parameters": [
@@ -640,7 +640,7 @@
                 }
             }
         },
-        "/v1/connections/{name}/stats": {
+        "/v1/sql/connections/{name}/stats": {
             "get": {
                 "summary": "Instance stats snapshot (connections, size, cache, throughput)",
                 "parameters": [
@@ -681,7 +681,7 @@
                 }
             }
         },
-        "/v1/connections/{name}/stats/stream": {
+        "/v1/sql/connections/{name}/stats/stream": {
             "get": {
                 "summary": "Instance stats stream (SSE, one snapshot every 2s)",
                 "parameters": [
@@ -709,7 +709,7 @@
                 }
             }
         },
-        "/v1/connections/{name}/tables/{table}/rows": {
+        "/v1/sql/connections/{name}/tables/{table}/rows": {
             "get": {
                 "summary": "Preview a table's rows",
                 "parameters": [
@@ -775,7 +775,7 @@
                 }
             }
         },
-        "/v1/connections/{name}/test": {
+        "/v1/sql/connections/{name}/test": {
             "post": {
                 "summary": "Test that a connection answers",
                 "parameters": [

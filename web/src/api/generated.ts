@@ -38,7 +38,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/changes": {
+    "/v1/sql/changes": {
         parameters: {
             query?: never;
             header?: never;
@@ -112,7 +112,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/changes/{id}": {
+    "/v1/sql/changes/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -162,7 +162,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/changes/{id}/apply": {
+    "/v1/sql/changes/{id}/apply": {
         parameters: {
             query?: never;
             header?: never;
@@ -212,7 +212,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/changes/{id}/approve": {
+    "/v1/sql/changes/{id}/approve": {
         parameters: {
             query?: never;
             header?: never;
@@ -262,7 +262,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/changes/{id}/reject": {
+    "/v1/sql/changes/{id}/reject": {
         parameters: {
             query?: never;
             header?: never;
@@ -312,7 +312,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections": {
+    "/v1/sql/connections": {
         parameters: {
             query?: never;
             header?: never;
@@ -386,7 +386,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections/status/stream": {
+    "/v1/sql/connections/status/stream": {
         parameters: {
             query?: never;
             header?: never;
@@ -422,7 +422,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections/{name}": {
+    "/v1/sql/connections/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -504,7 +504,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections/{name}/alter": {
+    "/v1/sql/connections/{name}/alter": {
         parameters: {
             query?: never;
             header?: never;
@@ -554,7 +554,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections/{name}/analytics": {
+    "/v1/sql/connections/{name}/analytics": {
         parameters: {
             query?: never;
             header?: never;
@@ -609,7 +609,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections/{name}/query": {
+    "/v1/sql/connections/{name}/query": {
         parameters: {
             query?: never;
             header?: never;
@@ -664,7 +664,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections/{name}/rollback": {
+    "/v1/sql/connections/{name}/rollback": {
         parameters: {
             query?: never;
             header?: never;
@@ -714,7 +714,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections/{name}/schema": {
+    "/v1/sql/connections/{name}/schema": {
         parameters: {
             query?: never;
             header?: never;
@@ -766,7 +766,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections/{name}/stats": {
+    "/v1/sql/connections/{name}/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -816,7 +816,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections/{name}/stats/stream": {
+    "/v1/sql/connections/{name}/stats/stream": {
         parameters: {
             query?: never;
             header?: never;
@@ -855,7 +855,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections/{name}/tables/{table}/rows": {
+    "/v1/sql/connections/{name}/tables/{table}/rows": {
         parameters: {
             query?: never;
             header?: never;
@@ -912,7 +912,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections/{name}/test": {
+    "/v1/sql/connections/{name}/test": {
         parameters: {
             query?: never;
             header?: never;

@@ -20,7 +20,7 @@ type ConnectionState struct {
 
 // @Summary Reachability stream for every connection (SSE, one tick per 5s)
 // @Success 200 {string} string "text/event-stream"
-// @Router /v1/connections/status/stream [get]
+// @Router /v1/sql/connections/status/stream [get]
 func StreamConnectionStatus(w http.ResponseWriter, r *http.Request) {
 	d := From(r)
 	ctx, end := d.span(r.Context())

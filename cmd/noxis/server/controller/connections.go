@@ -22,7 +22,9 @@ func (d Deps) connections(ctx context.Context) (out []entity.Connection, err err
 	}
 	out = make([]entity.Connection, 0, len(list))
 	for _, c := range list {
-		out = append(out, c.Redacted())
+		if d.SQL.Supports(c.Driver) {
+			out = append(out, c.Redacted())
+		}
 	}
 	return out, nil
 }
@@ -37,9 +39,17 @@ func (d Deps) connection(ctx context.Context, name string) (out entity.Connectio
 	return c.Redacted(), nil
 }
 
-// raw returns the password-bearing connection, for SQL work only.
+// raw returns the password-bearing connection, for SQL work only: a
+// connection of another engine family is not addressable here.
 func (d Deps) raw(ctx context.Context, name string) (*entity.Connection, error) {
-	return d.Connections.Get(ctx, name)
+	c, err := d.Connections.Get(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	if !d.SQL.Supports(c.Driver) {
+		return nil, fmt.Errorf("connection %q is %s, not %s (use /v1/%s)", c.Name, c.Driver, constants.FamilySQL, constants.FamilySQL)
+	}
+	return c, nil
 }
 
 // saveConnection upserts; an update that omits the password keeps the stored
@@ -47,6 +57,9 @@ func (d Deps) raw(ctx context.Context, name string) (*entity.Connection, error) 
 func (d Deps) saveConnection(ctx context.Context, c entity.Connection) (out entity.Connection, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
+	if !d.SQL.Supports(c.Driver) {
+		return entity.Connection{}, fmt.Errorf("driver %q is not served by %s", c.Driver, constants.FamilySQL)
+	}
 	if err := c.Validate(); err != nil {
 		return entity.Connection{}, err
 	}
@@ -121,7 +134,7 @@ func (d Deps) op(ctx context.Context, name, operation, sqlText, table string) (o
 
 // @Summary List connections (passwords redacted)
 // @Success 200 {object} object{connections=[]entity.Connection}
-// @Router /v1/connections [get]
+// @Router /v1/sql/connections [get]
 func ListConnections(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		conns, err := d.connections(ctx)
@@ -133,7 +146,7 @@ func ListConnections(w http.ResponseWriter, r *http.Request) {
 // @Param body body entity.Connection true "connection (omit password to keep the stored one)"
 // @Success 200 {object} entity.Connection
 // @Failure 400 {object} map[string]string
-// @Router /v1/connections [post]
+// @Router /v1/sql/connections [post]
 func SaveConnection(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		var c entity.Connection
@@ -148,7 +161,7 @@ func SaveConnection(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Success 200 {object} entity.Connection
 // @Failure 404 {object} map[string]string
-// @Router /v1/connections/{name} [get]
+// @Router /v1/sql/connections/{name} [get]
 func GetConnection(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		return d.connection(ctx, r.PathValue("name"))
@@ -159,7 +172,7 @@ func GetConnection(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Success 204 "deleted"
 // @Failure 400 {object} map[string]string
-// @Router /v1/connections/{name} [delete]
+// @Router /v1/sql/connections/{name} [delete]
 func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 	handleNoContent(w, r, func(ctx context.Context, d Deps) error {
 		return d.Connections.Delete(ctx, r.PathValue("name"))
@@ -170,7 +183,7 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Success 200 {object} object{status=string}
 // @Failure 400 {object} map[string]string
-// @Router /v1/connections/{name}/test [post]
+// @Router /v1/sql/connections/{name}/test [post]
 func TestConnection(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		if err := d.testConnection(ctx, r.PathValue("name")); err != nil {
@@ -184,7 +197,7 @@ func TestConnection(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Success 200 {object} object{tables=[]sql.Table}
 // @Failure 400 {object} map[string]string
-// @Router /v1/connections/{name}/schema [get]
+// @Router /v1/sql/connections/{name}/schema [get]
 func GetSchema(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		tables, err := d.schema(ctx, r.PathValue("name"))
@@ -199,7 +212,7 @@ func GetSchema(w http.ResponseWriter, r *http.Request) {
 // @Param limit query int false "row cap (default 100, max 500)"
 // @Success 200 {object} sql.Result
 // @Failure 400 {object} map[string]string
-// @Router /v1/connections/{name}/tables/{table}/rows [get]
+// @Router /v1/sql/connections/{name}/tables/{table}/rows [get]
 func GetRows(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -212,7 +225,7 @@ func GetRows(w http.ResponseWriter, r *http.Request) {
 // @Param body body opBody true "sql (or table for analytics)"
 // @Success 200 {object} sql.Result
 // @Failure 400 {object} map[string]string
-// @Router /v1/connections/{name}/query [post]
+// @Router /v1/sql/connections/{name}/query [post]
 func PostQuery(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 // @Summary Apply a write directly (DML or DDL)
@@ -220,7 +233,7 @@ func PostQuery(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Param body body opBody true "sql"
 // @Success 200 {object} sql.Result
 // @Failure 400 {object} map[string]string
-// @Router /v1/connections/{name}/alter [post]
+// @Router /v1/sql/connections/{name}/alter [post]
 func PostAlter(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 // @Summary Dry-run statements inside a transaction that always rolls back
@@ -228,7 +241,7 @@ func PostAlter(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Param body body opBody true "sql"
 // @Success 200 {object} sql.Result
 // @Failure 400 {object} map[string]string
-// @Router /v1/connections/{name}/rollback [post]
+// @Router /v1/sql/connections/{name}/rollback [post]
 func PostRollback(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 // @Summary Refresh planner statistics for a table
@@ -236,7 +249,7 @@ func PostRollback(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Param body body opBody true "table"
 // @Success 200 {object} sql.Result
 // @Failure 400 {object} map[string]string
-// @Router /v1/connections/{name}/analytics [post]
+// @Router /v1/sql/connections/{name}/analytics [post]
 func PostAnalytics(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 type opBody struct {
@@ -246,10 +259,10 @@ type opBody struct {
 
 // opRoutes pins each op route to its op name.
 var opRoutes = map[string]string{
-	"POST /v1/connections/{name}/query":     constants.OpQuery,
-	"POST /v1/connections/{name}/alter":     constants.OpAlter,
-	"POST /v1/connections/{name}/rollback":  constants.OpRollback,
-	"POST /v1/connections/{name}/analytics": constants.OpAnalytics,
+	"POST /v1/sql/connections/{name}/query":     constants.OpQuery,
+	"POST /v1/sql/connections/{name}/alter":     constants.OpAlter,
+	"POST /v1/sql/connections/{name}/rollback":  constants.OpRollback,
+	"POST /v1/sql/connections/{name}/analytics": constants.OpAnalytics,
 }
 
 func doOp(w http.ResponseWriter, r *http.Request) {

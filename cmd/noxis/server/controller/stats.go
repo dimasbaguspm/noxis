@@ -14,7 +14,7 @@ const statsInterval = 2 * time.Second
 // @Param name path string true "connection name"
 // @Success 200 {object} sql.Stats
 // @Failure 400 {object} map[string]string
-// @Router /v1/connections/{name}/stats [get]
+// @Router /v1/sql/connections/{name}/stats [get]
 func GetStats(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		return d.stats(ctx, r.PathValue("name"))
@@ -35,7 +35,7 @@ func (d Deps) stats(ctx context.Context, name string) (out any, err error) {
 // @Summary Instance stats stream (SSE, one snapshot every 2s)
 // @Param name path string true "connection name"
 // @Success 200 {string} string "text/event-stream"
-// @Router /v1/connections/{name}/stats/stream [get]
+// @Router /v1/sql/connections/{name}/stats/stream [get]
 func StreamStats(w http.ResponseWriter, r *http.Request) {
 	d := From(r)
 	ctx, end := d.span(r.Context())

@@ -120,7 +120,7 @@ func (d Deps) apply(ctx context.Context, id string) (out entity.Change, err erro
 
 // @Summary List proposed changes (newest first)
 // @Success 200 {object} object{changes=[]entity.Change}
-// @Router /v1/changes [get]
+// @Router /v1/sql/changes [get]
 func ListChanges(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		changes, err := d.Changes.ListChanges(ctx)
@@ -132,7 +132,7 @@ func ListChanges(w http.ResponseWriter, r *http.Request) {
 // @Param body body entity.Change true "connection, notes, query, rollback"
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} map[string]string
-// @Router /v1/changes [post]
+// @Router /v1/sql/changes [post]
 func SubmitChange(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		var ch entity.Change
@@ -147,7 +147,7 @@ func SubmitChange(w http.ResponseWriter, r *http.Request) {
 // @Param id path string true "change id"
 // @Success 200 {object} entity.Change
 // @Failure 404 {object} map[string]string
-// @Router /v1/changes/{id} [get]
+// @Router /v1/sql/changes/{id} [get]
 func GetChange(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		return d.Changes.GetChange(ctx, r.PathValue("id"))
@@ -158,7 +158,7 @@ func GetChange(w http.ResponseWriter, r *http.Request) {
 // @Param id path string true "change id"
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} map[string]string
-// @Router /v1/changes/{id}/approve [post]
+// @Router /v1/sql/changes/{id}/approve [post]
 func ApproveChange(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		return d.approve(ctx, r.PathValue("id"))
@@ -169,7 +169,7 @@ func ApproveChange(w http.ResponseWriter, r *http.Request) {
 // @Param id path string true "change id"
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} map[string]string
-// @Router /v1/changes/{id}/apply [post]
+// @Router /v1/sql/changes/{id}/apply [post]
 func ApplyChange(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		return d.apply(ctx, r.PathValue("id"))
@@ -199,7 +199,7 @@ func (d Deps) reject(ctx context.Context, id string) (out entity.Change, err err
 // @Param id path string true "change id"
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} map[string]string
-// @Router /v1/changes/{id}/reject [post]
+// @Router /v1/sql/changes/{id}/reject [post]
 func RejectChange(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		return d.reject(ctx, r.PathValue("id"))

@@ -87,6 +87,12 @@ func execEach(sqlText string, fn func(stmt string) error) (int, error) {
 	return n, nil
 }
 
+// Supports reports whether the driver speaks SQL.
+func (u *DB) Supports(driver string) bool {
+	_, err := sqlDriver(driver)
+	return err == nil
+}
+
 // Ping verifies a connection answers.
 func (u *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 	ctx, end := logging.StartSpan(ctx)

@@ -55,9 +55,9 @@ brokers, no orchestration — one binary, one volume, no docker socket.
 make dev          # noxis + a throwaway postgres to play with
 open http://localhost:9000
 # or drive the API:
-curl -s -X POST localhost:9000/v1/connections -H 'Content-Type: application/json' \
+curl -s -X POST localhost:9000/v1/sql/connections -H 'Content-Type: application/json' \
   -d '{"name":"demo","driver":"postgres","host":"db","port":5432,
        "user":"postgres","password":"noxis","database":"demo"}'
-curl -s -X POST localhost:9000/v1/connections/demo/query \
+curl -s -X POST localhost:9000/v1/sql/connections/demo/query \
   -H 'Content-Type: application/json' -d '{"sql":"SELECT 6*6 AS n"}'
 ```

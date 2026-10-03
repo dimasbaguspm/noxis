@@ -88,6 +88,8 @@ type fakeSQL struct {
 	writeErr    error
 }
 
+func (f *fakeSQL) Supports(string) bool { return true }
+
 func (f *fakeSQL) VerifyWrite(string) error { return f.writeErr }
 
 func (f *fakeSQL) Kind(string) string { return constants.KindDDL }
@@ -270,7 +272,7 @@ func TestHandlersRespond(t *testing.T) {
 	h := WithDeps(http.HandlerFunc(ListConnections), d)
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/connections", http.NoBody))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/sql/connections", http.NoBody))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}

@@ -17,6 +17,9 @@ type (
 
 // SQLModule is the console's only route to a database.
 type SQLModule interface {
+	// Supports reports whether this module serves the driver, which keeps a
+	// redis connection out of the SQL namespace.
+	Supports(driver string) bool
 	Ping(ctx context.Context, c entity.Connection) error
 	Query(ctx context.Context, c entity.Connection, sqlText string) (Result, error)
 	Alter(ctx context.Context, c entity.Connection, sqlText string) (Result, error)

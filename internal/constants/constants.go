@@ -18,6 +18,15 @@ const (
 const (
 	DriverPostgres = "postgres"
 	DriverMySQL    = "mysql"
+	DriverRedis    = "redis"
+)
+
+// Engine families: the API namespace and console section that serve a
+// connection's driver. Each family owns its own connection list, even though
+// both write to the same store.
+const (
+	FamilySQL   = "sql"
+	FamilyRedis = "redis"
 )
 
 // Change kinds (which statement family a change carries).

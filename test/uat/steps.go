@@ -62,7 +62,7 @@ func (w *world) registerConnection(ctx context.Context, name string) error {
 		"name": name, "driver": "postgres", "host": connHost, "port": 5432,
 		"user": "postgres", "password": connPass, "database": "demo",
 	}
-	if err := w.api(http.MethodPost, "/v1/connections", conn, nil); err != nil {
+	if err := w.api(http.MethodPost, "/v1/sql/connections", conn, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -73,7 +73,7 @@ func (w *world) registerConnection(ctx context.Context, name string) error {
 }
 
 func (w *world) testConnection(ctx context.Context) error {
-	if err := w.api(http.MethodPost, "/v1/connections/"+w.conn+"/test", map[string]string{}, nil); err != nil {
+	if err := w.api(http.MethodPost, "/v1/sql/connections/"+w.conn+"/test", map[string]string{}, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -83,7 +83,7 @@ func (w *world) testConnection(ctx context.Context) error {
 }
 
 func (w *world) listRedacted(ctx context.Context) error {
-	code, body, err := w.raw("/v1/connections")
+	code, body, err := w.raw("/v1/sql/connections")
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (w *world) consoleServed(ctx context.Context) error {
 
 func (w *world) read(ctx context.Context, sqlText string) error {
 	w.result = resultBody{}
-	return w.api(http.MethodPost, "/v1/connections/"+w.conn+"/query", map[string]string{"sql": sqlText}, &w.result)
+	return w.api(http.MethodPost, "/v1/sql/connections/"+w.conn+"/query", map[string]string{"sql": sqlText}, &w.result)
 }
 
 func (w *world) rowCount(ctx context.Context, want int) error {
@@ -157,7 +157,7 @@ func (w *world) submitChange(ctx context.Context, query, rollback string) error 
 	body := map[string]string{
 		"connection": w.conn, "notes": "uat change", "query": query, "rollback": rollback,
 	}
-	if err := w.api(http.MethodPost, "/v1/changes", body, &w.change); err != nil {
+	if err := w.api(http.MethodPost, "/v1/sql/changes", body, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -185,7 +185,7 @@ func (w *world) apply(ctx context.Context) error {
 // changeAction POSTs to a change sub-resource and records the new state.
 func (w *world) changeAction(action string) error {
 	w.change = changeBody{}
-	if err := w.api(http.MethodPost, "/v1/changes/"+w.changeID+action, map[string]string{}, &w.change); err != nil {
+	if err := w.api(http.MethodPost, "/v1/sql/changes/"+w.changeID+action, map[string]string{}, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -196,7 +196,7 @@ func (w *world) changeAction(action string) error {
 
 func (w *world) applyRejected(ctx context.Context) error {
 	w.change = changeBody{}
-	if err := w.api(http.MethodPost, "/v1/changes/"+w.changeID+"/apply", map[string]string{}, &w.change); err != nil {
+	if err := w.api(http.MethodPost, "/v1/sql/changes/"+w.changeID+"/apply", map[string]string{}, &w.change); err != nil {
 		return err
 	}
 	if w.code == http.StatusOK {
@@ -214,7 +214,7 @@ func (w *world) changeStillPresent(ctx context.Context) error {
 	var body struct {
 		Changes []changeBody `json:"changes"`
 	}
-	if err := w.api(http.MethodGet, "/v1/changes", nil, &body); err != nil {
+	if err := w.api(http.MethodGet, "/v1/sql/changes", nil, &body); err != nil {
 		return err
 	}
 	for _, c := range body.Changes {
@@ -234,7 +234,7 @@ func (w *world) changeNotRecorded(ctx context.Context) error {
 	var body struct {
 		Changes []changeBody `json:"changes"`
 	}
-	if err := w.api(http.MethodGet, "/v1/changes", nil, &body); err != nil {
+	if err := w.api(http.MethodGet, "/v1/sql/changes", nil, &body); err != nil {
 		return err
 	}
 	for _, c := range body.Changes {
@@ -261,7 +261,7 @@ func (w *world) instanceStats(ctx context.Context) error {
 		DatabaseSize   int64 `json:"databaseSizeBytes"`
 		MaxConnections int64 `json:"maxConnections"`
 	}
-	if err := w.api(http.MethodGet, "/v1/connections/"+w.conn+"/stats", nil, &body); err != nil {
+	if err := w.api(http.MethodGet, "/v1/sql/connections/"+w.conn+"/stats", nil, &body); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -275,7 +275,7 @@ func (w *world) instanceStats(ctx context.Context) error {
 
 func (w *world) dryRun(ctx context.Context, sqlText string) error {
 	w.result = resultBody{}
-	if err := w.api(http.MethodPost, "/v1/connections/"+w.conn+"/rollback", map[string]string{"sql": sqlText}, &w.result); err != nil {
+	if err := w.api(http.MethodPost, "/v1/sql/connections/"+w.conn+"/rollback", map[string]string{"sql": sqlText}, &w.result); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -285,7 +285,7 @@ func (w *world) dryRun(ctx context.Context, sqlText string) error {
 }
 
 func (w *world) analytics(ctx context.Context, table string) error {
-	if err := w.api(http.MethodPost, "/v1/connections/"+w.conn+"/analytics", map[string]string{"table": table}, &w.result); err != nil {
+	if err := w.api(http.MethodPost, "/v1/sql/connections/"+w.conn+"/analytics", map[string]string{"table": table}, &w.result); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -300,7 +300,7 @@ func (w *world) schemaLists(ctx context.Context, table string) error {
 			Name string `json:"name"`
 		} `json:"tables"`
 	}
-	if err := w.api(http.MethodGet, "/v1/connections/"+w.conn+"/schema", nil, &body); err != nil {
+	if err := w.api(http.MethodGet, "/v1/sql/connections/"+w.conn+"/schema", nil, &body); err != nil {
 		return err
 	}
 	for _, t := range body.Tables {
@@ -313,7 +313,7 @@ func (w *world) schemaLists(ctx context.Context, table string) error {
 
 func (w *world) tableRows(ctx context.Context, table string, want int) error {
 	w.result = resultBody{}
-	if err := w.api(http.MethodGet, "/v1/connections/"+w.conn+"/tables/"+table+"/rows?schema=public", nil, &w.result); err != nil {
+	if err := w.api(http.MethodGet, "/v1/sql/connections/"+w.conn+"/tables/"+table+"/rows?schema=public", nil, &w.result); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
