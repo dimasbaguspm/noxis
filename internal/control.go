@@ -22,6 +22,7 @@ import (
 const (
 	queryTimeout       = 30 * time.Second
 	statusOfflineAfter = 30 * time.Second // no heartbeat in this window => offline
+	primeTimeout       = 2 * time.Second  // reply consumer settle before publish
 )
 
 // Control owns the master's data + event sides. Desired specs and reported
@@ -196,6 +197,15 @@ func (c *Control) Request(ctx context.Context, node string, req OpRequest) (stri
 		return "", err
 	}
 	defer cons.Close()
+	// Settle the reply consumer BEFORE publishing: a fetch session formed
+	// after the answer exists can miss it (observed: empty polls for the
+	// whole 30s window while the record sat on the broker — the fetch
+	// position raced the produce). Prime forces the first fetch now, so the
+	// answer below always lands after the consumer is positioned; stale
+	// replies read during priming are discarded.
+	primeCtx, cancelPrime := context.WithTimeout(ctx, primeTimeout)
+	_ = cons.Prime(primeCtx)
+	cancelPrime()
 	body, err := json.Marshal(req)
 	if err != nil {
 		return "", err

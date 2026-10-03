@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"sync/atomic"
 	"time"
 
@@ -166,6 +167,14 @@ func (b *Broker) Next(ctx context.Context) (Record, error) {
 			return Record{}, ctx.Err()
 		}
 	}
+}
+
+// Prime forces the consumer to establish its fetch session/position: one
+// poll, result discarded. Used before publishing a request-reply so the
+// reply record cannot race the consumer's first fetch.
+func (b *Broker) Prime(ctx context.Context) error {
+	_, err := b.Next(ctx)
+	return err
 }
 
 // WaitKey consumes until a record with the given key arrives or the context
