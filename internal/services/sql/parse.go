@@ -87,6 +87,14 @@ func splitStatements(sqlText string) []string {
 				cur.WriteString("*/")
 				i += 2
 			}
+		case c == '$':
+			if end, ok := dollarQuoted(sqlText, i); ok {
+				cur.WriteString(sqlText[i:end])
+				i = end
+				continue
+			}
+			cur.WriteByte(c)
+			i++
 		case c == ';':
 			stmts = append(stmts, cur.String())
 			cur.Reset()
@@ -97,6 +105,28 @@ func splitStatements(sqlText string) []string {
 		}
 	}
 	return append(stmts, cur.String())
+}
+
+// dollarQuoted matches a postgres dollar-quoted string ($tag$ … $tag$) at i.
+func dollarQuoted(sqlText string, i int) (end int, ok bool) {
+	tagEnd := strings.IndexByte(sqlText[i+1:], '$')
+	if tagEnd < 0 {
+		return 0, false
+	}
+	tag := sqlText[i : i+1+tagEnd+1] // "$tag$"
+	for _, r := range tag[1 : len(tag)-1] {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '_':
+		default:
+			return 0, false
+		}
+	}
+	rest := sqlText[i+len(tag):]
+	shut := strings.Index(rest, tag)
+	if shut < 0 {
+		return 0, false
+	}
+	return i + len(tag) + shut + len(tag), true
 }
 
 func firstKeyword(sqlText string) string {

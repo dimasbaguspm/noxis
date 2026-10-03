@@ -836,6 +836,8 @@ export interface components {
             connection: string;
             createdAt?: number;
             id?: string;
+            /** @description dml | ddl */
+            kind?: string;
             notes: string;
             query: string;
             rollback: string;

@@ -90,6 +90,8 @@ type fakeSQL struct {
 
 func (f *fakeSQL) VerifyWrite(string) error { return f.writeErr }
 
+func (f *fakeSQL) Kind(string) string { return constants.KindDDL }
+
 func (f *fakeSQL) ValidateChange(context.Context, entity.Connection, string, string) (interfaces.Result, error) {
 	if f.validateErr != nil {
 		return interfaces.Result{}, f.validateErr
@@ -136,6 +138,9 @@ func TestChangeWorkflow(t *testing.T) {
 	}
 	if submitted.Status != constants.ChangeValidated || submitted.ID == "" || len(submitted.Checks) != 2 {
 		t.Fatalf("submit result: status=%q id=%q checks=%d", submitted.Status, submitted.ID, len(submitted.Checks))
+	}
+	if submitted.Kind != constants.KindDDL {
+		t.Fatalf("kind=%q want ddl", submitted.Kind)
 	}
 
 	// apply before approval is refused

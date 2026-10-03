@@ -20,6 +20,12 @@ const (
 	DriverMySQL    = "mysql"
 )
 
+// Change kinds (which statement family a change carries).
+const (
+	KindDML = "dml"
+	KindDDL = "ddl"
+)
+
 // Change workflow statuses.
 const (
 	ChangeValidated  = "validated"  // query and rollback dry-ran clean, together

@@ -49,6 +49,8 @@ func Open(ctx context.Context, path string) (*Store, error) {
 		db.Close()
 		return nil, fmt.Errorf("schema: %w", err)
 	}
+	// pre-existing volumes: add columns introduced after the first release
+	_, _ = db.Exec(`ALTER TABLE changes ADD COLUMN kind TEXT NOT NULL DEFAULT ''`)
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	if err := db.PingContext(ctx); err != nil {
@@ -65,6 +67,7 @@ CREATE TABLE IF NOT EXISTS changes (
   notes       TEXT NOT NULL,
   query       TEXT NOT NULL,
   rollback    TEXT NOT NULL,
+  kind        TEXT NOT NULL DEFAULT '',
   status      TEXT NOT NULL,
   checks      TEXT NOT NULL DEFAULT '[]',
   created_at  INTEGER NOT NULL,

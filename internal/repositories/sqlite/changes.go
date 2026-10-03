@@ -12,7 +12,7 @@ import (
 	"noxis/internal/interfaces"
 )
 
-const changeColumns = `id, connection, notes, query, rollback, status, checks, created_at, approved_at, applied_at`
+const changeColumns = `id, connection, notes, query, rollback, kind, status, checks, created_at, approved_at, applied_at`
 
 // SaveChange upserts a change.
 func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
@@ -23,12 +23,12 @@ func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
 		return fmt.Errorf("encode checks: %w", err)
 	}
 	if _, err := s.db.ExecContext(ctx, `
-		INSERT INTO changes (`+changeColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO changes (`+changeColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			connection=excluded.connection, notes=excluded.notes, query=excluded.query,
-			rollback=excluded.rollback, status=excluded.status, checks=excluded.checks,
+			rollback=excluded.rollback, kind=excluded.kind, status=excluded.status, checks=excluded.checks,
 			approved_at=excluded.approved_at, applied_at=excluded.applied_at`,
-		c.ID, c.Connection, c.Notes, c.Query, c.Rollback, c.Status, string(checks),
+		c.ID, c.Connection, c.Notes, c.Query, c.Rollback, c.Kind, c.Status, string(checks),
 		c.CreatedAt, c.ApprovedAt, c.AppliedAt); err != nil {
 		return fmt.Errorf("save change %s: %w", c.ID, err)
 	}
@@ -72,7 +72,7 @@ func scanChange(row scanner) (entity.Change, error) {
 		c      entity.Change
 		checks string
 	)
-	if err := row.Scan(&c.ID, &c.Connection, &c.Notes, &c.Query, &c.Rollback, &c.Status, &checks,
+	if err := row.Scan(&c.ID, &c.Connection, &c.Notes, &c.Query, &c.Rollback, &c.Kind, &c.Status, &checks,
 		&c.CreatedAt, &c.ApprovedAt, &c.AppliedAt); err != nil {
 		return c, err
 	}

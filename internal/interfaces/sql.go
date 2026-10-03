@@ -26,6 +26,7 @@ type SQLModule interface {
 	Tables(ctx context.Context, c entity.Connection) ([]Table, error)
 	Rows(ctx context.Context, c entity.Connection, schema, table string, limit int) (Result, error)
 	VerifyWrite(sqlText string) error
+	Kind(sqlText string) string
 }
 
 // Satisfier.

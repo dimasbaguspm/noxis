@@ -485,6 +485,9 @@ components:
           type: integer
         id:
           type: string
+        kind:
+          description: dml | ddl
+          type: string
         notes:
           type: string
         query:

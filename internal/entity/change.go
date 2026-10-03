@@ -8,6 +8,7 @@ type Change struct {
 	Notes      string        `json:"notes" validate:"required"`
 	Query      string        `json:"query" validate:"required"`
 	Rollback   string        `json:"rollback" validate:"required"`
+	Kind       string        `json:"kind"`   // dml | ddl
 	Status     string        `json:"status"` // validated | failed | approved | applied
 	Checks     []ChangeCheck `json:"checks,omitempty"`
 	CreatedAt  int64         `json:"createdAt"`

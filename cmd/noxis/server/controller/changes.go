@@ -29,6 +29,7 @@ func (d Deps) submitChange(ctx context.Context, ch entity.Change) (out entity.Ch
 	}
 	ch.ID = idgen.UUID()
 	ch.CreatedAt = time.Now().Unix()
+	ch.Kind = d.SQL.Kind(ch.Query)
 	ch.Status = constants.ChangeValidated
 	ch.Checks = []entity.ChangeCheck{{Target: "query kind"}}
 

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"noxis/internal/common/logging"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 )
 
@@ -287,3 +288,22 @@ func (u *DB) Analyze(ctx context.Context, c entity.Connection, table string) (re
 
 // VerifyWrite exposes the write guard (a change's query must be a write).
 func (u *DB) VerifyWrite(sqlText string) error { return verifyKind(sqlText, writes) }
+
+// Kind classifies a batch as dml, ddl, or read (mixed batches report ddl when
+// any DDL appears — that is the stricter review).
+func (u *DB) Kind(sqlText string) string {
+	kind := constants.KindDML
+	for _, stmt := range splitStatements(sqlText) {
+		k := firstKeyword(stmt)
+		if k == "" {
+			continue
+		}
+		if ddls.set[k] {
+			return constants.KindDDL
+		}
+		if !reads.set[k] && !writes.set[k] {
+			continue
+		}
+	}
+	return kind
+}
