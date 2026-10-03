@@ -61,6 +61,9 @@ func (c *Control) Spec(ctx context.Context, node string) (*entity.Spec, error) {
 // SetSpec remembers the assignment then publishes it to the node's topic.
 // A crash between the two self-heals: the next publish carries the full spec.
 func (c *Control) SetSpec(ctx context.Context, spec *entity.Spec) error {
+	if err := c.nodeKnown(ctx, spec.Node); err != nil {
+		return err
+	}
 	if err := c.k.EnsureTopic(ctx, c.topics.Spec(spec.Node)); err != nil {
 		return err
 	}
@@ -79,6 +82,23 @@ func (c *Control) SetSpec(ctx context.Context, spec *entity.Spec) error {
 
 func (c *Control) RegisterNode(ctx context.Context, id, name, ip string) error {
 	return c.nodes.Register(ctx, id, name, ip)
+}
+
+// nodeKnown guards master writes (spec assign, doorman ops) against names
+// the registry has never seen: publishing into a void would silently wait
+// for a node that does not exist. Trust boundary — checked in control, not
+// per handler.
+func (c *Control) nodeKnown(ctx context.Context, node string) error {
+	slaves, err := c.nodes.List(ctx)
+	if err != nil {
+		return err
+	}
+	for _, s := range slaves {
+		if s.ID == node {
+			return nil
+		}
+	}
+	return errors.New("node " + node + " not registered")
 }
 
 // Statuses merges the registered registry with live heartbeats: registered
@@ -151,9 +171,19 @@ type opRes struct {
 // correlated reply. One throwaway consumer per request keeps reply routing
 // trivial.
 //
+// The reply consumer subscribes BEFORE the publish: an answer produced in
+// the same instant as the consumer's offset resolution was previously lost
+// (the offset fetch raced the produce, and the reply sat unread until the
+// 30s timeout). Subscribing first turns every answer into a record that
+// arrives after the consumer is already fetching; stale replies keyed by
+// other request ids are skipped.
+//
 // ponytail: per-request consumer connection; fine at personal-infra rates —
 // reuse a pool if requests ever become frequent.
 func (c *Control) Request(ctx context.Context, node string, req OpRequest) (string, error) {
+	if err := c.nodeKnown(ctx, node); err != nil {
+		return "", err
+	}
 	qid := idgen.UUID()
 	if err := c.k.EnsureTopic(ctx, c.topics.Req(node)); err != nil {
 		return "", err
@@ -161,6 +191,11 @@ func (c *Control) Request(ctx context.Context, node string, req OpRequest) (stri
 	if err := c.k.EnsureTopic(ctx, c.topics.Res(node)); err != nil {
 		return "", err
 	}
+	cons, err := kafka.Consume(ctx, c.addrs, "", false, c.topics.Res(node))
+	if err != nil {
+		return "", err
+	}
+	defer cons.Close()
 	body, err := json.Marshal(req)
 	if err != nil {
 		return "", err
@@ -169,14 +204,6 @@ func (c *Control) Request(ctx context.Context, node string, req OpRequest) (stri
 		return "", err
 	}
 
-	// Scroll from the start of the topic so an answer published before this
-	// consumer subscribed is never missed; stale replies are keyed by other
-	// request ids and skipped. Subscribing first would also fix the race.
-	cons, err := kafka.Consume(ctx, c.addrs, "", false, c.topics.Res(node))
-	if err != nil {
-		return "", err
-	}
-	defer cons.Close()
 	ctx, cancel := context.WithTimeout(ctx, queryTimeout)
 	defer cancel()
 	reply, err := cons.WaitKey(ctx, qid)

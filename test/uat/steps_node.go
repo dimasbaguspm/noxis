@@ -15,6 +15,8 @@ func (w *world) stepsNode(sc *godog.ScenarioContext) {
 	sc.Step("the stack is running", w.stackRunning)
 	sc.Step(`node "{}" is registered`, w.nodeRegistered)
 	sc.Step(`the master assigns engine "{}" version "{}" to node "{}"`, w.assignEngine)
+	sc.Step(`the master tries to assign engine "{}" version "{}" to node "{}"`, w.tryAssign)
+	sc.Step("the master rejects the assignment", w.assignRejected)
 	sc.Step(`the instance "{}" container is running image "{}"`, w.containerImage)
 	sc.Step(`the node "{}" status is "{}"`, w.nodeStatus)
 	sc.Step(`the node "{}" status detail mentions "{}"`, w.statusMentions)
@@ -43,6 +45,27 @@ func (w *world) assignEngine(ctx context.Context, engine, version, node string) 
 	}
 	if code != http.StatusNoContent {
 		return fmt.Errorf("assign %s: %d %s", node, code, b)
+	}
+	return nil
+}
+
+// tryAssign attempts the same assign but records the status for an assertion
+// step (used for rejection paths) instead of failing immediately.
+func (w *world) tryAssign(ctx context.Context, engine, version, node string) error {
+	spec := map[string]any{"engines": []map[string]any{
+		{"name": engine, "type": engine, "version": version},
+	}}
+	code, _, err := w.api(http.MethodPut, "/v1/nodes/"+node+"/spec", spec)
+	if err != nil {
+		return err
+	}
+	w.code = code
+	return nil
+}
+
+func (w *world) assignRejected(ctx context.Context) error {
+	if w.code != http.StatusBadRequest {
+		return fmt.Errorf("expected 400 for unregistered node, got %d", w.code)
 	}
 	return nil
 }

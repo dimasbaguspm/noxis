@@ -18,3 +18,7 @@ Feature: node lifecycle
     Given the master assigns engine "postgres" version "16-alpine" to node "zeus"
     When the master assigns engine "postgres" version "16-alpine" to node "zeus"
     Then node "zeus" status detail mentions "in sync"
+
+  Scenario: assigning to an unregistered node is rejected
+    When the master tries to assign engine "postgres" version "16-alpine" to node "ghost"
+    Then the master rejects the assignment
