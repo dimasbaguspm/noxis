@@ -22,3 +22,15 @@ Feature: doorman query — reads and DML, never DDL
     Given the master assigns engine "postgres" version "16-alpine" to node "zeus"
     When I query engine "postgres" with "DROP TABLE uat_q"
     Then the master rejects the request with a 400
+
+  Scenario: DDL smuggled after a read is rejected too
+    Given the master assigns engine "postgres" version "16-alpine" to node "zeus"
+    When I query engine "postgres" with "SELECT 1; DROP TABLE uat_q"
+    Then the master rejects the request with a 400
+
+  Scenario: a semicolon inside a string value does not split the batch
+    Given the master assigns engine "postgres" version "16-alpine" to node "zeus"
+    And I alter engine "postgres" with "CREATE TABLE IF NOT EXISTS uat_semi (v TEXT)"
+    When I query engine "postgres" with "INSERT INTO uat_semi VALUES ('a;b')"
+    And I query engine "postgres" with "SELECT v FROM uat_semi"
+    Then the output is "a;b"

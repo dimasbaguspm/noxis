@@ -126,13 +126,83 @@ func (u *Doorman) CreateInstance(ctx context.Context, node, network string, eng 
 	return "instance " + name + " " + verb + " (" + image + ")", nil
 }
 
-// verifyKind rejects statements whose first keyword is not allowed.
+// verifyKind rejects every statement whose first keyword is not allowed.
+// The check runs per statement — split outside quoted strings and comments —
+// so DDL cannot be smuggled behind a read in a multi-statement batch
+// (`SELECT 1; DROP TABLE x` is rejected, not executed). Empty fragments
+// (trailing semicolons) are ignored.
 func verifyKind(sql, allowed string) error {
-	kind := firstKeyword(sql)
-	if !strings.Contains(" "+allowed+" ", " "+kind+" ") {
-		return fmt.Errorf("statement %q not allowed here (only: %s)", kind, allowed)
+	for _, stmt := range splitStatements(sql) {
+		kind := firstKeyword(stmt)
+		if kind == "" {
+			continue
+		}
+		if !strings.Contains(" "+allowed+" ", " "+kind+" ") {
+			return fmt.Errorf("statement %q not allowed here (only: %s)", kind, allowed)
+		}
 	}
 	return nil
+}
+
+// splitStatements splits on ';' while skipping string literals ('...' with
+// ” escapes, "..." for identifiers, `...` for mysql) and comments (-- and
+// /* */), so semicolons inside values do not split the batch.
+//
+// ponytail: backslash-escaped quotes inside literals (mysql without
+// NO_BACKSLASH_ESCAPES) can still desync the splitter — control-plane
+// statements rarely carry them; a real SQL lexer if that ever matters.
+func splitStatements(sql string) []string {
+	var stmts []string
+	var cur strings.Builder
+	i, n := 0, len(sql)
+	for i < n {
+		c := sql[i]
+		switch {
+		case c == '\'' || c == '"' || c == '`':
+			q := c
+			cur.WriteByte(c)
+			i++
+			for i < n {
+				cur.WriteByte(sql[i])
+				if sql[i] == q {
+					if i+1 < n && sql[i+1] == q { // doubled quote = escaped
+						cur.WriteByte(sql[i+1])
+						i += 2
+						continue
+					}
+					i++
+					break
+				}
+				i++
+			}
+		case c == '-' && i+1 < n && sql[i+1] == '-':
+			cur.WriteString("--")
+			i += 2
+			for i < n && sql[i] != '\n' {
+				cur.WriteByte(sql[i])
+				i++
+			}
+		case c == '/' && i+1 < n && sql[i+1] == '*':
+			cur.WriteString("/*")
+			i += 2
+			for i < n && (sql[i] != '*' || i+1 >= n || sql[i+1] != '/') {
+				cur.WriteByte(sql[i])
+				i++
+			}
+			if i+1 < n {
+				cur.WriteString("*/")
+				i += 2
+			}
+		case c == ';':
+			stmts = append(stmts, cur.String())
+			cur.Reset()
+			i++
+		default:
+			cur.WriteByte(c)
+			i++
+		}
+	}
+	return append(stmts, cur.String())
 }
 
 func firstKeyword(sql string) string {

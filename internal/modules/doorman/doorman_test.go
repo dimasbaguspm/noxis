@@ -130,6 +130,37 @@ func TestVerifyKinds(t *testing.T) {
 	}
 }
 
+func TestVerifyKindsPerStatement(t *testing.T) {
+	u := New(&stubDocker{})
+	eng := entity.Engine{Name: "postgres", Type: "postgres"}
+
+	cases := []struct {
+		name, sql string
+		wantErr   bool
+	}{
+		{"smuggled DDL after a read", "SELECT 1; DROP TABLE t", true},
+		{"smuggled DDL after DML", "INSERT INTO t VALUES (1); TRUNCATE t", true},
+		{"DML batch stays allowed", "INSERT INTO t VALUES (1); UPDATE t SET a=2", false},
+		{"semicolon inside a string", "INSERT INTO t VALUES ('a;b')", false},
+		{"escaped quote with semicolon", "INSERT INTO t VALUES ('it''s; fine')", false},
+		{"trailing semicolon", "SELECT 1;", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := u.Query(context.Background(), "zeus", eng, tc.sql)
+			if err == nil != !tc.wantErr {
+				t.Fatalf("query %q err=%v, wantErr=%v", tc.sql, err, tc.wantErr)
+			}
+		})
+	}
+	if _, err := u.AlterTable(context.Background(), "zeus", eng, "CREATE TABLE t (c int); ALTER TABLE t ADD COLUMN d int"); err != nil {
+		t.Fatalf("alter must allow the DDL batch, got %v", err)
+	}
+	if _, err := u.AlterTable(context.Background(), "zeus", eng, "ALTER TABLE t ADD COLUMN d int; SELECT 1"); err == nil {
+		t.Fatalf("alter must reject the read half of the batch")
+	}
+}
+
 func TestRollbackWrapsPostgres(t *testing.T) {
 	stub := &stubDocker{}
 	u := New(stub)
