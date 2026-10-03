@@ -9,11 +9,16 @@ import (
 	"fmt"
 	"time"
 
+	"noxis/internal/interfaces"
+
 	// modernc SQLite driver: pure-Go, cgo-free (interface is database/sql).
 	_ "modernc.org/sqlite"
 )
 
 type Store struct{ db *sql.DB }
+
+// Satisfier: the registry store implements the node repository seam.
+var _ interfaces.NodeRepository = (*Store)(nil)
 
 // Open opens the registry and verifies it answers a ping.
 func Open(path string) (*Store, error) {

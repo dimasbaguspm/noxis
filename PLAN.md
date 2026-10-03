@@ -36,7 +36,8 @@ internal/constants/     universal defined values (Version, ConsumerGroupPrefix, 
 internal/control.go      master's operations core (registry repo + Kafka + memory)
 internal/common/         http (standard headers), logging, idgen (dashless uuid), sign (HMAC)
 internal/entity/         domain models + Config (env struct, go-validator)
-internal/interfaces/     seams, one file per service: NodeRepository (sqlite), Docker (repositories/docker)
+internal/interfaces/     all seams + data shapes (NodeRepository, Docker); implementers
+                         assert `var _ interfaces.X = (*Impl)(nil)` next to their structs
 internal/features/doorman/   decisions only: network isolation boundary (noxis-<node> bridge per node); container decisions return later
 docker/                  docker-compose.yml (Kafka + master + slave) + db.sqlite
 

@@ -6,11 +6,12 @@ package docker
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"os/exec"
 	"sort"
 	"strconv"
 	"strings"
+
+	"noxis/internal/interfaces"
 )
 
 // Runner executes docker commands; swapped for a fake in tests.
@@ -91,35 +92,20 @@ func (c *Client) NetworkRemove(ctx context.Context, name string) error {
 	return err
 }
 
-// ContainerOptions is everything `docker run` needs for one engine.
-type ContainerOptions struct {
-	Name         string
-	Image        string
-	Labels       map[string]string
-	Env          map[string]string
-	Ports        map[string]string // host:container, external key
-	Volumes      []string          // name:path entries
-	Network      string
-	NetworkAlias string
-}
-
-// ContainerState is what the feature decides on (drift checks, queries).
+// Value shapes live on the seam (internal/interfaces/docker.go); these
+// aliases keep the package API stable for its consumers.
 type (
-	Container struct {
-		State  ContainerState  `json:"State"`
-		Config ContainerConfig `json:"Config"`
-	}
-	ContainerState struct {
-		Running bool `json:"Running"`
-	}
-	ContainerConfig struct {
-		Image  string            `json:"Image"`
-		Labels map[string]string `json:"Labels"`
-	}
+	ContainerOptions = interfaces.ContainerOptions
+	Container        = interfaces.Container
+	ContainerState   = interfaces.ContainerState
+	ContainerConfig  = interfaces.ContainerConfig
 )
 
-// ErrNotFound is returned when no such container exists.
-var ErrNotFound = errors.New("container not found")
+// ErrNotFound aliases the seam's sentinel.
+var ErrNotFound = interfaces.ErrNotFound
+
+// Satisfier: the docker client implements the full seam.
+var _ interfaces.Docker = (*Client)(nil)
 
 // ContainerList returns container names tagged with the label.
 func (c *Client) ContainerList(ctx context.Context, label string) ([]string, error) {

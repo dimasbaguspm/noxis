@@ -15,6 +15,7 @@ import (
 	"noxis/cmd/noxis/slave/handlers"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 	"noxis/internal/modules/doorman"
 	"noxis/internal/repositories/docker"
 	"noxis/internal/repositories/kafka"
@@ -54,7 +55,7 @@ func slaveLoop(ctx context.Context, base *slog.Logger, id *reposlave.Identity) e
 	}
 
 	// One docker client drives both the node network and the instances.
-	d := docker.New()
+	var d interfaces.Docker = docker.New()
 	dm := doorman.New(d)
 	var lastSpec entity.Spec
 
@@ -122,7 +123,7 @@ func feed(ctx context.Context, cons *kafka.Broker, out chan<- kafka.Record) {
 // ackSpec converges the node on the desired state: network boundary first,
 // then one instance per assigned engine. Reports each step in status.
 func ackSpec(ctx context.Context, log *slog.Logger, producer *kafka.Broker, topics kafka.Topics,
-	d *docker.Client, dm *doorman.Doorman, node string, body []byte) entity.Spec {
+	d interfaces.Docker, dm *doorman.Doorman, node string, body []byte) entity.Spec {
 	var spec entity.Spec
 	if err := json.Unmarshal(body, &spec); err != nil {
 		log.WarnContext(ctx, "bad spec event", "error", err)
