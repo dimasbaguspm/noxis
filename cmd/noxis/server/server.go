@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	control "noxis/internal"
 	"noxis/internal/entity"
 	"noxis/internal/repositories/sqlite"
 )
@@ -23,10 +22,9 @@ func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
 	}
 	defer store.Close()
 
-	ctrl := control.New(store, store, log)
 	log.InfoContext(ctx, "noxis serving", "addr", cfg.Listen, "db", cfg.DB)
 
-	srv := &http.Server{Addr: cfg.Listen, Handler: newHandler(ctrl, log)}
+	srv := &http.Server{Addr: cfg.Listen, Handler: newHandler(store, log)}
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- srv.ListenAndServe()

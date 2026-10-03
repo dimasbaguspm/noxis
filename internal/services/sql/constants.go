@@ -2,20 +2,6 @@ package sql
 
 import "strings"
 
-// The wire contract ops.
-const (
-	OpQuery     = "query"
-	OpAlter     = "alter"
-	OpRollback  = "rollback"
-	OpAnalytics = "analytics"
-)
-
-// Supported drivers (mariadb is served by the mysql driver).
-const (
-	DriverPostgres = "postgres"
-	DriverMySQL    = "mysql"
-)
-
 // Statement kind guards: query is read-only; alter takes every write (DML
 // and DDL). Verified per statement before execute — a DB console must
 // neither run DROP via query nor SELECT via alter.

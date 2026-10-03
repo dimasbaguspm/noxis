@@ -87,4 +87,21 @@ CREATE TABLE IF NOT EXISTS connections (
 
 func (s *Store) Close() { _ = s.db.Close() }
 
+// WithTx runs fn inside a transaction: commit on success, rollback on error
+// or panic. Repository methods that touch more than one table use it.
+func (s *Store) WithTx(ctx context.Context, fn func(tx *sql.Tx) error) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if err := fn(tx); err != nil {
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+	return nil
+}
+
 func (s *Store) Ping(ctx context.Context) error { return s.db.PingContext(ctx) }

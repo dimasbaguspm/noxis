@@ -27,7 +27,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/entity.Change"
     post:
-      summary: Submit a change and validate query + rollback (dry-run, nothing persists)
+      summary: Submit a change (validates query + rollback; nothing persists)
       requestBody:
         content:
           application/json:
@@ -210,7 +210,7 @@ paths:
                 additionalProperties:
                   type: string
     delete:
-      summary: Delete a connection
+      summary: Delete a connection (and its changes)
       parameters:
         - description: connection name
           name: name
@@ -231,7 +231,7 @@ paths:
                   type: string
   "/v1/connections/{name}/alter":
     post:
-      summary: Apply a write (DML or DDL)
+      summary: Apply a write directly (DML or DDL)
       parameters:
         - description: connection name
           name: name
@@ -290,7 +290,7 @@ paths:
                   type: string
   "/v1/connections/{name}/query":
     post:
-      summary: Run a doorman DB op (query | alter | rollback | analytics)
+      summary: Run a SQL console op (query | alter | rollback | analytics)
       parameters:
         - description: connection name
           name: name
@@ -387,13 +387,13 @@ paths:
           required: true
           schema:
             type: string
-        - description: table name (schema.table allowed)
+        - description: table name (unqualified)
           name: table
           in: path
           required: true
           schema:
             type: string
-        - description: schema (when table is unqualified)
+        - description: schema (defaults to the driver's)
           name: schema
           in: query
           schema:

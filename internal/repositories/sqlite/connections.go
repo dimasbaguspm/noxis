@@ -67,12 +67,18 @@ func (s *Store) Get(ctx context.Context, name string) (*entity.Connection, error
 	return &c, nil
 }
 
-// Delete removes a connection.
+// Delete removes a connection and its changes, atomically (orphaned changes
+// would point at a database nobody can reach).
 func (s *Store) Delete(ctx context.Context, name string) error {
-	if _, err := s.db.ExecContext(ctx, `DELETE FROM connections WHERE name = ?`, name); err != nil {
-		return fmt.Errorf("delete connection %s: %w", name, err)
-	}
-	return nil
+	return s.WithTx(ctx, func(tx *sql.Tx) error {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM changes WHERE connection = ?`, name); err != nil {
+			return fmt.Errorf("delete changes of %s: %w", name, err)
+		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM connections WHERE name = ?`, name); err != nil {
+			return fmt.Errorf("delete connection %s: %w", name, err)
+		}
+		return nil
+	})
 }
 
 type scanner interface{ Scan(dest ...any) error }

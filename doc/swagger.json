@@ -42,7 +42,7 @@
                 }
             },
             "post": {
-                "summary": "Submit a change and validate query + rollback (dry-run, nothing persists)",
+                "summary": "Submit a change (validates query + rollback; nothing persists)",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -341,7 +341,7 @@
                 }
             },
             "delete": {
-                "summary": "Delete a connection",
+                "summary": "Delete a connection (and its changes)",
                 "parameters": [
                     {
                         "description": "connection name",
@@ -375,7 +375,7 @@
         },
         "/v1/connections/{name}/alter": {
             "post": {
-                "summary": "Apply a write (DML or DDL)",
+                "summary": "Apply a write directly (DML or DDL)",
                 "parameters": [
                     {
                         "description": "connection name",
@@ -471,7 +471,7 @@
         },
         "/v1/connections/{name}/query": {
             "post": {
-                "summary": "Run a doorman DB op (query | alter | rollback | analytics)",
+                "summary": "Run a SQL console op (query | alter | rollback | analytics)",
                 "parameters": [
                     {
                         "description": "connection name",
@@ -628,7 +628,7 @@
                         }
                     },
                     {
-                        "description": "table name (schema.table allowed)",
+                        "description": "table name (unqualified)",
                         "name": "table",
                         "in": "path",
                         "required": true,
@@ -637,7 +637,7 @@
                         }
                     },
                     {
-                        "description": "schema (when table is unqualified)",
+                        "description": "schema (defaults to the driver's)",
                         "name": "schema",
                         "in": "query",
                         "schema": {

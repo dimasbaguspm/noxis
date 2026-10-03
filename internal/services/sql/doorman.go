@@ -219,10 +219,7 @@ func stringify(v any) string {
 }
 
 // VerifyWrite exposes the write guard (a change's query must be a write).
-func VerifyWrite(sqlText string) error { return verifyKind(sqlText, writes) }
-
-// VerifyRead exposes the read guard.
-func VerifyRead(sqlText string) error { return verifyKind(sqlText, reads) }
+func (u *DB) VerifyWrite(sqlText string) error { return verifyKind(sqlText, writes) }
 
 // verifyKind rejects every statement whose first keyword is not allowed.
 // The check runs per statement — split outside quoted strings and comments —

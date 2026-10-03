@@ -69,7 +69,7 @@ export interface paths {
             };
         };
         put?: never;
-        /** Submit a change and validate query + rollback (dry-run, nothing persists) */
+        /** Submit a change (validates query + rollback; nothing persists) */
         post: {
             parameters: {
                 query?: never;
@@ -412,7 +412,7 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        /** Delete a connection */
+        /** Delete a connection (and its changes) */
         delete: {
             parameters: {
                 query?: never;
@@ -459,7 +459,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Apply a write (DML or DDL) */
+        /** Apply a write directly (DML or DDL) */
         post: {
             parameters: {
                 query?: never;
@@ -564,7 +564,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Run a doorman DB op (query | alter | rollback | analytics) */
+        /** Run a SQL console op (query | alter | rollback | analytics) */
         post: {
             parameters: {
                 query?: never;
@@ -723,7 +723,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    /** @description schema (when table is unqualified) */
+                    /** @description schema (defaults to the driver's) */
                     schema?: string;
                     /** @description row cap (default 100, max 500) */
                     limit?: number;
@@ -732,7 +732,7 @@ export interface paths {
                 path: {
                     /** @description connection name */
                     name: string;
-                    /** @description table name (schema.table allowed) */
+                    /** @description table name (unqualified) */
                     table: string;
                 };
                 cookie?: never;

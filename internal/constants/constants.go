@@ -1,10 +1,24 @@
-// Package constants holds universal defined values shared across modules.
-// Domain strings stay with their module (internal/sql/constants.go);
+// Package constants holds universal defined values shared across packages.
+// Domain behaviour (statement kinds, preview bounds) stays with its service;
 // user-facing error messages live next to the logic that raises them.
 package constants
 
 // Version is the build version reported by the CLI and health surfaces.
 const Version = "0.1.0"
+
+// The wire contract ops (SQL console operations).
+const (
+	OpQuery     = "query"
+	OpAlter     = "alter"
+	OpRollback  = "rollback"
+	OpAnalytics = "analytics"
+)
+
+// Supported database drivers (mariadb is served by the mysql driver).
+const (
+	DriverPostgres = "postgres"
+	DriverMySQL    = "mysql"
+)
 
 // Change workflow statuses.
 const (

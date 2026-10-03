@@ -10,3 +10,5 @@ web/.vite/
 web/dist/
 *.tsbuildinfo
 .pnpm-store/
+cmd/noxis/server/controller/static/index.html
+cmd/noxis/server/controller/static/assets/

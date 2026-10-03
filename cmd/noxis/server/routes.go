@@ -11,11 +11,20 @@ import (
 	"net/http"
 
 	"noxis/cmd/noxis/server/controller"
-	control "noxis/internal"
+	"noxis/internal/repositories/sqlite"
+	"noxis/internal/services/sql"
 )
 
 // newHandler wires every route to its controller handler, then middleware.
-func newHandler(ctrl *control.Control, log *slog.Logger) http.Handler {
+// Handlers get their repositories and the SQL module through the request
+// context — no separate core layer to keep in sync.
+func newHandler(store *sqlite.Store, log *slog.Logger) http.Handler {
+	deps := controller.Deps{
+		Connections: store,
+		Changes:     store,
+		SQL:         sql.New(),
+		Log:         log,
+	}
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", controller.GetHealthz)
@@ -39,5 +48,5 @@ func newHandler(ctrl *control.Control, log *slog.Logger) http.Handler {
 	mux.Handle("GET /assets/", http.HandlerFunc(controller.GetAssets)) // embedded FS keeps the assets/ prefix
 	mux.HandleFunc("GET /", controller.GetConsole)                     // the operator console (SPA shell)
 
-	return withMiddleware(controller.WithDeps(mux, controller.Deps{Ctrl: ctrl, Log: log}), log)
+	return withMiddleware(controller.WithDeps(mux, deps), log)
 }

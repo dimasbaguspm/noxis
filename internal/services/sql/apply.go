@@ -58,6 +58,9 @@ func (u *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (Re
 // (mysql commits DDL implicitly), so validation must be skipped honestly.
 var ErrUnverifiable = errors.New("unverifiable on this driver")
 
+// IsUnverifiable reports the driver-cannot-dry-run case.
+func IsUnverifiable(err error) bool { return errors.Is(err, ErrUnverifiable) }
+
 // ValidateChange dry-runs a change and its rollback together, in one
 // transaction that always rolls back: the query must apply cleanly and the
 // rollback must then undo it. Nothing persists — this is the "hidden schema"
