@@ -1,41 +1,42 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { ChangeSubmitDialog } from "@/components/changes/change-submit-dialog";
 import { ChangeTable } from "@/components/changes/change-table";
-import { useApp } from "@/app/app-provider";
+import { ConnectionSelect } from "@/components/connection/connection-select";
+import { useConnectionSelection, useSchema } from "@/hooks/use-connection";
 import { useChanges, type ChangeKind } from "@/hooks/use-data";
 
-// ChangePage is the shared DML/DDL workbench: submit for validation, approve
-// (self-approval is allowed), then apply.
+// ChangePage is the shared DML/DDL queue: submit through a modal, review on
+// the detail page.
 export function ChangePage({ kind }: { kind: ChangeKind }) {
-  const { active } = useApp();
-  const { changes, submit, approve, apply } = useChanges(kind);
+  const { connection, pick } = useConnectionSelection();
+  const { tables } = useSchema(connection);
+  const { changes, submit } = useChanges(kind);
 
   const label = kind.toUpperCase();
   const description =
     kind === "ddl"
-      ? "schema changes — validated against their rollback before you approve"
-      : "data changes — validated against their rollback before you approve";
+      ? "schema changes — validated against their rollback before review"
+      : "data changes — validated against their rollback before review";
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="text-lg font-semibold">{label}</h2>
+        <ConnectionSelect value={connection} onChange={pick} />
+        <span className="flex-1" />
+        <ChangeSubmitDialog
+          kind={kind}
+          tables={tables}
+          onSubmit={async (input) => (connection ? submit.run({ ...input, connection }) : undefined)}
+        />
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-base">
-            {label} changes
-            <span className="flex-1" />
-            <ChangeSubmitDialog kind={kind} onSubmit={(input) => submit.run(input)} />
-          </CardTitle>
-          <CardDescription>
-            {description} · target: {active ?? "no connection"}
-          </CardDescription>
+          <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChangeTable
-            changes={changes}
-            onApprove={(id) => approve.run(id).then(() => undefined)}
-            onApply={(id) => apply.run(id).then(() => undefined)}
-            emptyHint={`no ${label} changes yet`}
-          />
+          <ChangeTable changes={changes} emptyHint={`no ${label} changes yet`} />
         </CardContent>
       </Card>
     </div>

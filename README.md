@@ -22,8 +22,18 @@ brokers, no orchestration — one binary, one volume, no docker socket.
     change.
 - **Honest about drivers** — MySQL commits DDL implicitly, so a change carrying
   DDL there is marked `unverified` instead of pretending a dry-run happened.
-- **Operator console** — served by the binary itself at `/` (React + TS,
-  embedded; no build step at deploy time).
+- **Operator console** — served by the binary itself at `/` (React + TS +
+  shadcn/ui, embedded; no build step at deploy time):
+  - **Dashboard** — registered instances in a searchable table, executed
+    DDL/DML counts and the error rate; add an instance (verified before it is
+    saved)
+  - **Query** — per-instance schema/table browser, monaco editor with
+    schema-aware completion, result grid with duration / rows / plan estimate
+    and CSV export; `ANALYZE` lives here as a table action
+  - **DML / DDL** — change queue, then a focus review page per change
+    (estimates vs actuals, activity trail); changes are artifacts, never deleted
+  - **Analytics** — live instance metrics over SSE (connections, cache hit
+    ratio, throughput) with recharts graphs
 
 ## Docs
 

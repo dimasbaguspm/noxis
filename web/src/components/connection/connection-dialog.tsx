@@ -43,7 +43,7 @@ export function ConnectionDialog({
   const [form, setForm] = useState<Connection>(initial ?? EMPTY);
   const [verified, setVerified] = useState(false);
 
-  const connect = useAction(async (close: boolean) => {
+  const connect = useAction(async () => {
     const saved = await api.connections.save({ ...form, port: Number(form.port) || 5432 });
     const name = saved.name ?? "";
     try {
@@ -58,10 +58,8 @@ export function ConnectionDialog({
     toast.success(`${name}: verified and saved`);
     await reload();
     setActive(name);
-    if (close) {
-      setOpen(false);
-      setForm(EMPTY);
-    }
+    setOpen(false);
+    setForm(EMPTY);
   });
 
   function update<K extends keyof Connection>(key: K, value: Connection[K]) {
@@ -120,11 +118,8 @@ export function ConnectionDialog({
               <BadgeCheck className="size-3.5" /> verified
             </span>
           )}
-          <Button variant="outline" onClick={() => void connect.run(false)} disabled={connect.loading}>
-            <PlugZap /> Test
-          </Button>
-          <Button onClick={() => void connect.run(true)} disabled={connect.loading}>
-            Save
+          <Button onClick={() => void connect.run()} disabled={connect.loading}>
+            <PlugZap /> Save (verifies first)
           </Button>
         </DialogFooter>
       </DialogContent>

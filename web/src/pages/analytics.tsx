@@ -1,37 +1,47 @@
-import { Activity, Radio } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Radio } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useApp } from "@/app/app-provider";
+import { ConnectionSelect } from "@/components/connection/connection-select";
+import { useConnectionSelection } from "@/hooks/use-connection";
 import { useStatsStream } from "@/hooks/use-data";
-import type { Stats } from "@/lib/api";
+
+const AXIS = { stroke: "var(--muted-foreground)", fontSize: 11 };
 
 // AnalyticsPage is the live instance view: the API streams a snapshot every
-// 2 seconds (SSE) and this page renders it as tiles plus sparklines.
+// 2 seconds (SSE) and recharts renders the series.
 export default function AnalyticsPage() {
-  const { active } = useApp();
-  const { latest, history, connected } = useStatsStream(active);
-  const peakConnections = history.reduce((max, s) => Math.max(max, s.connections ?? 0), 0);
+  const { connection, pick } = useConnectionSelection();
+  const { latest, history, connected } = useStatsStream(connection);
 
-  if (!active) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>No connection selected</CardTitle>
-          <CardDescription>pick a connection to watch it live</CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
+  const samples = history.map((s, i) => ({
+    i,
+    at: new Date((s.takenAt ?? 0) * 1000).toLocaleTimeString(),
+    connections: s.connections ?? 0,
+    active: s.active ?? 0,
+    idleInTransaction: s.idleInTransaction ?? 0,
+    cacheHit: Number(((s.cacheHitRatio ?? 0) * 100).toFixed(2)),
+    commits: s.commits ?? 0,
+    rollbacks: s.rollbacks ?? 0,
+    sizeMb: Number(((s.databaseSizeBytes ?? 0) / 1024 / 1024).toFixed(2)),
+  }));
+
+  const peak = samples.reduce((max, s) => Math.max(max, s.connections), 0);
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <h2 className="text-lg font-semibold">{active}</h2>
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="text-lg font-semibold">Analytics</h2>
+        <ConnectionSelect value={connection} onChange={pick} />
         <Badge variant={connected ? "default" : "outline"}>
           <Radio className={connected ? "animate-pulse" : undefined} />
           {connected ? "live · 2s" : "connecting…"}
         </Badge>
-        {latest?.version && <span className="truncate text-xs text-muted-foreground">{latest.version}</span>}
+        {latest?.version && (
+          <span className="truncate text-xs text-muted-foreground" title={latest.version}>
+            {latest.version.split(" on ")[0]}
+          </span>
+        )}
       </div>
 
       {!latest ? (
@@ -44,111 +54,100 @@ export default function AnalyticsPage() {
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <Tile title="Connections" value={latest.connections ?? 0} series={series(history, (s) => s.connections)} />
-            <Tile title="Peak (this session)" value={peakConnections} hint="derived from the stream" />
-            <Tile title="Active" value={latest.active ?? 0} series={series(history, (s) => s.active)} tone="text-amber-500" />
-            <Tile title="Max connections" value={latest.maxConnections ?? 0} hint="server setting" />
-            <Tile
-              title="Database size"
-              value={bytes(latest.databaseSizeBytes ?? 0)}
-              series={series(history, (s) => s.databaseSizeBytes)}
+            <Stat title="Connections" value={latest.connections ?? 0} hint={`session peak ${peak}`} />
+            <Stat title="Active" value={latest.active ?? 0} hint={`${latest.idle ?? 0} idle`} />
+            <Stat title="Max connections" value={latest.maxConnections ?? 0} hint="server setting" />
+            <Stat title="Database size" value={`${samples.at(-1)?.sizeMb ?? 0} MB`} hint="current database" />
+            <Stat title="Cache hit ratio" value={`${((latest.cacheHitRatio ?? 0) * 100).toFixed(1)}%`} hint="blocks from cache" />
+            <Stat title="Longest query" value={`${(latest.longestQuerySeconds ?? 0).toFixed(2)} s`} hint="running now" />
+            <Stat title="Commits" value={compact(latest.commits ?? 0)} hint="since server start" />
+            <Stat
+              title="Rollbacks / deadlocks"
+              value={`${compact(latest.rollbacks ?? 0)} / ${latest.deadlocks ?? 0}`}
+              hint={latest.uptimeSeconds ? `uptime ${duration(latest.uptimeSeconds)}` : ""}
             />
-            <Tile title="Cache hit ratio" value={pct(latest.cacheHitRatio)} hint="blocks served from cache" />
-            <Tile title="Longest query" value={`${(latest.longestQuerySeconds ?? 0).toFixed(1)} s`} hint="currently running" />
-            <Tile title="Commits" value={compact(latest.commits ?? 0)} hint="since server start" />
-            <Tile title="Rollbacks / deadlocks" value={`${compact(latest.rollbacks ?? 0)} / ${latest.deadlocks ?? 0}`} />
-            {latest.uptimeSeconds ? <Tile title="Uptime" value={duration(latest.uptimeSeconds)} /> : null}
-            {latest.tempBytes ? <Tile title="Temp bytes" value={bytes(latest.tempBytes)} hint="spilled to disk" /> : null}
-            {latest.idleInTransaction !== undefined && (
-              <Tile title="Idle in transaction" value={latest.idleInTransaction} hint="watch for lock holders" />
-            )}
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Activity className="size-4" /> Connections over the last {history.length} samples
-              </CardTitle>
-              <CardDescription>streamed from /v1/connections/{active}/stats/stream</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Sparkline values={series(history, (s) => s.connections)} height={64} />
-            </CardContent>
-          </Card>
+          <div className="grid gap-4 xl:grid-cols-2">
+            <ChartCard title="Connections" description="total, active and idle-in-transaction">
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={samples}>
+                  <defs>
+                    <linearGradient id="conn" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#58a6ff" stopOpacity={0.6} />
+                      <stop offset="95%" stopColor="#58a6ff" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="at" {...AXIS} minTickGap={24} />
+                  <YAxis {...AXIS} allowDecimals={false} width={32} />
+                  <Tooltip
+                    contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Area type="monotone" dataKey="connections" stroke="#58a6ff" fill="url(#conn)" />
+                  <Line type="monotone" dataKey="active" stroke="#d29922" dot={false} />
+                  <Line type="monotone" dataKey="idleInTransaction" stroke="#f85149" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartCard>
+
+            <ChartCard title="Cache hit ratio" description="percentage of blocks served from cache">
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={samples}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="at" {...AXIS} minTickGap={24} />
+                  <YAxis {...AXIS} domain={[0, 100]} width={32} />
+                  <Tooltip
+                    contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                  />
+                  <Line type="monotone" dataKey="cacheHit" stroke="#3fb950" dot={false} name="cache hit %" />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          </div>
         </>
       )}
     </div>
   );
 }
 
-function series(history: Stats[], pick: (s: Stats) => number | undefined): number[] {
-  return history.map((s) => pick(s) ?? 0);
-}
-
-function Tile({
+function ChartCard({
   title,
-  value,
-  hint,
-  tone,
-  series: values,
+  description,
+  children,
 }: {
   title: string;
-  value: string | number;
-  hint?: string;
-  tone?: string;
-  series?: number[];
+  description: string;
+  children: React.ReactNode;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardDescription>{title}</CardDescription>
-        <CardTitle className={`text-2xl tabular-nums ${tone ?? ""}`}>{value}</CardTitle>
+        <CardTitle className="text-base">{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-1">
-        {values && values.length > 1 && <Sparkline values={values} height={28} />}
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
+
+function Stat({ title, value, hint }: { title: string; value: string | number; hint?: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardDescription>{title}</CardDescription>
+        <CardTitle className="text-2xl tabular-nums">{value}</CardTitle>
+      </CardHeader>
+      <CardContent>
         <p className="text-xs text-muted-foreground">{hint ?? "\u00a0"}</p>
       </CardContent>
     </Card>
   );
 }
 
-// Sparkline is a pure SVG polyline — no chart dependency for a 60-point trend.
-function Sparkline({ values, height }: { values: number[]; height: number }) {
-  if (values.length < 2) return <div style={{ height }} />;
-  const max = Math.max(...values, 1);
-  const min = Math.min(...values, 0);
-  const span = max - min || 1;
-  const points = values
-    .map((v, i) => {
-      const x = (i / (values.length - 1)) * 100;
-      const y = height - ((v - min) / span) * height;
-      return `${x.toFixed(2)},${y.toFixed(2)}`;
-    })
-    .join(" ");
-  return (
-    <svg viewBox={`0 0 100 ${height}`} preserveAspectRatio="none" className="w-full" style={{ height }}>
-      <polyline points={points} fill="none" stroke="currentColor" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-    </svg>
-  );
-}
-
-function bytes(n: number): string {
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  let value = n;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit++;
-  }
-  return `${value >= 10 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
-}
-
 function compact(n: number): string {
   return Intl.NumberFormat("en", { notation: "compact" }).format(n);
-}
-
-function pct(ratio?: number): string {
-  return ratio === undefined ? "—" : `${(ratio * 100).toFixed(1)}%`;
 }
 
 function duration(seconds: number): string {

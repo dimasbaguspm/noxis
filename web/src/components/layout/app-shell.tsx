@@ -2,7 +2,6 @@ import { NavLink, Outlet } from "react-router-dom";
 import { Activity, BarChart3, Database, LayoutDashboard, PencilRuler } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
-import { ConnectionPicker } from "@/components/connection/connection-picker";
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
 
 // The menu, in one place: route, label, icon.
@@ -45,7 +44,7 @@ export function AppShell() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center gap-3 border-b border-border px-4 py-3">
-          <ConnectionPicker />
+          <span className="text-sm font-medium">SQL console</span>
           <span className="flex-1" />
           <ConnectionDialog trigger="New connection" />
         </header>
