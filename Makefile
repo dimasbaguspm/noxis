@@ -1,6 +1,6 @@
 PATH := $(HOME)/.local/bin:$(HOME)/go/bin:$(PATH)
 
-.PHONY: build test lint swagger db dev down
+.PHONY: build test lint swagger db dev down uat
 
 build:
 	go build -o bin/noxis ./cmd/noxis

@@ -35,3 +35,6 @@ REST API.
 - `PLAN.md` — architecture, decisions, and known ceilings.
 - `doc/swagger.yaml|json` — OpenAPI 3 spec (Postman artifact, generated from
   controller annotations via `make swagger`).
+- `test/uat/` — Gherkin acceptance suite (godog): the real compose stack is
+  driven through its public REST surface, `make uat` (skips @slow image-pull
+  scenarios unless UAT_TAGS is set).

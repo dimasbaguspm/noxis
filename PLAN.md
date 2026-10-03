@@ -57,6 +57,10 @@ empty spec. Instances join it (network alias = engine name) with a persistent
 volume (noxis-<node>-<engine>-data) and dev passwords in env (overridable via
 spec env). Restart recovery: master memory refetch via REST (identity.master).
 
+Acceptance: test/uat (godog/Gherkin) covers the same surface as a runnable
+contract — node lifecycle, query/alter/rollback/analytics, statement guards,
+engine updates (tagged @slow). `make uat`.
+
 Capabilities (verified e2e): create instance (several per node), query
 (read+DML), alter/DDL, rollback dry-run, analyze; statement-kind guards
 (query rejects DDL, alter rejects reads, 400); engine update — same-major
