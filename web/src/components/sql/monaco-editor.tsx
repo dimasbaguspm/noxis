@@ -1,21 +1,33 @@
 import { useEffect, useRef } from "react";
 import Editor, { loader, type OnMount } from "@monaco-editor/react";
 import type * as MonacoNS from "monaco-editor";
-import monaco from "@/lib/monaco";
+import monaco, { MONGO_LANGUAGE } from "@/lib/monaco";
 import type { Table } from "@/lib/api";
-
-// This module is loaded lazily (see sql-editor.tsx) so monaco — a few MB of
-// editor and SQL grammar — never lands in the entry bundle.
+// This module is loaded lazily (see sql-editor.tsx / json-editor.tsx) so
+// monaco — a few MB of editor and grammars — never lands in the entry bundle.
 loader.config({ monaco });
 
-export interface MonacoSqlEditorProps {
+export interface MonacoEditorProps {
   value: string;
   onChange?: (value: string) => void;
   readOnly?: boolean;
   height: string;
-  tables: Table[];
+  language: "sql" | "mongo";
+  // SQL: the tables to complete against. JSON: the document fields to suggest.
+  tables?: Table[];
+  fields?: string[];
   placeholder?: string;
 }
+
+// MongoDB query and update operators: the vocabulary a filter or value
+// document is written in.
+const MONGO_OPERATORS = [
+  "$eq", "$ne", "$gt", "$gte", "$lt", "$lte", "$in", "$nin", "$exists", "$type", "$regex", "$all",
+  "$elemMatch", "$size", "$and", "$or", "$nor", "$not", "$expr", "$mod", "$text", "$where",
+  "$set", "$unset", "$inc", "$mul", "$min", "$max", "$rename", "$push", "$pull", "$pop", "$addToSet",
+  "$currentDate", "$setOnInsert", "$each", "$slice", "$sort", "$position",
+  "$match", "$group", "$project", "$lookup", "$unwind", "$limit", "$skip", "$count", "$sum", "$avg",
+];
 
 const KEYWORDS = [
   "SELECT", "FROM", "WHERE", "JOIN", "LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "GROUP BY", "ORDER BY",
@@ -23,24 +35,67 @@ const KEYWORDS = [
   "ALTER TABLE", "DROP TABLE", "TRUNCATE", "ANALYZE", "EXPLAIN", "WITH", "RETURNING", "ON CONFLICT",
 ];
 
-export default function MonacoSqlEditor({
+export default function MonacoEditor({
   value,
   onChange,
   readOnly,
   height,
-  tables,
+  language,
+  tables = [],
+  fields = [],
   placeholder,
-}: MonacoSqlEditorProps) {
+}: MonacoEditorProps) {
   const completion = useRef<MonacoNS.IDisposable | undefined>(undefined);
   // the provider lives for the editor's lifetime and the schema arrives
-  // asynchronously, so it reads the latest tables through a ref
+  // asynchronously, so it reads the latest tables/fields through a ref
   const tablesRef = useRef(tables);
   tablesRef.current = tables;
+  const fieldsRef = useRef(fields);
+  fieldsRef.current = fields;
 
-  // schema-aware completion: tables in the outer scope, their columns after
-  // FROM/JOIN/UPDATE/INTO
+  // Completion per language: SQL suggests tables and their columns after
+  // FROM/JOIN; JSON suggests MongoDB operators and the collection's fields.
   const onMount: OnMount = () => {
     completion.current?.dispose();
+    if (language === MONGO_LANGUAGE) {
+      completion.current = monaco.languages.registerCompletionItemProvider(MONGO_LANGUAGE, {
+        triggerCharacters: ["$", '"', "{", ","],
+        provideCompletionItems: (model, position) => {
+          const word = model.getWordUntilPosition(position);
+          const range = {
+            startLineNumber: position.lineNumber,
+            endLineNumber: position.lineNumber,
+            startColumn: word.startColumn,
+            endColumn: word.endColumn,
+          };
+          const item = (label: string, kind: MonacoNS.languages.CompletionItemKind) => ({
+            label,
+            kind,
+            insertText: label,
+            range,
+          });
+          const line = model.getValueInRange({
+            startLineNumber: position.lineNumber,
+            startColumn: 1,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column,
+          });
+          // after a "$" only operators make sense
+          if (/\$[\w]*$/.test(line)) {
+            return {
+              suggestions: MONGO_OPERATORS.map((op) => item(op, monaco.languages.CompletionItemKind.Operator)),
+            };
+          }
+          return {
+            suggestions: [
+              ...fieldsRef.current.map((field) => item(field, monaco.languages.CompletionItemKind.Field)),
+              ...MONGO_OPERATORS.map((op) => item(op, monaco.languages.CompletionItemKind.Operator)),
+            ],
+          };
+        },
+      });
+      return;
+    }
     completion.current = monaco.languages.registerCompletionItemProvider("sql", {
       provideCompletionItems: (model, position) => {
         const line = model.getValueInRange({
@@ -96,7 +151,7 @@ export default function MonacoSqlEditor({
 
   return (
     <Editor
-      language="sql"
+      language={language}
       value={value}
       height={height}
       theme="vs-dark"

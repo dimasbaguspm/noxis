@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BadgeCheck, Boxes, ChevronLeft, Database, PlugZap } from "lucide-react";
+import { BadgeCheck, Boxes, ChevronLeft, Database, Leaf, PlugZap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,7 @@ import { useApp } from "@/app/app-provider";
 import { api, type Connection } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-type Family = "sql" | "memcache";
+type Family = "sql" | "memcache" | "mongo";
 
 const SQL_EMPTY: Connection = {
   name: "",
@@ -32,6 +32,13 @@ const SQL_EMPTY: Connection = {
 };
 
 const MEMCACHE_EMPTY: Connection = { ...SQL_EMPTY, driver: "redis", port: 6379, database: "0" };
+const MONGO_EMPTY: Connection = { ...SQL_EMPTY, driver: "mongo", port: 27017, database: "admin" };
+
+const BLANK: Record<Family, Connection> = {
+  sql: SQL_EMPTY,
+  memcache: MEMCACHE_EMPTY,
+  mongo: MONGO_EMPTY,
+};
 
 // ConnectionDialog registers an instance. Nothing is kept unless it answers:
 // the probe runs first, and a failed probe removes the registry entry it just
@@ -42,50 +49,55 @@ export function ConnectionDialog({
   initial,
   family = "sql",
   wizard = false,
-  onSaved,
 }: {
   trigger?: string;
   initial?: Connection;
   family?: Family;
   wizard?: boolean;
-  onSaved?: () => void | Promise<void>;
 }) {
-  const { reload, setActive } = useApp();
+  const { reload, reloadMemcache, setActive } = useApp();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<Family>(family);
   const [step, setStep] = useState<1 | 2>(wizard && !initial ? 1 : 2);
-  const [form, setForm] = useState<Connection>(initial ?? (family === "memcache" ? MEMCACHE_EMPTY : SQL_EMPTY));
+  const [form, setForm] = useState<Connection>(initial ?? BLANK[family]);
   const [verified, setVerified] = useState(false);
 
   const cache = kind === "memcache";
-  const client = cache ? api.memcache : api.connections;
+  const mongo = kind === "mongo";
+  const client = cache ? api.memcache : mongo ? api.mongodb : api.connections;
+
+  // Saving writes to the shared registry, so refresh both families: the
+  // dashboard table reads them from the provider, and a new memory-cache
+  // server must show up there without a reload.
+  async function refresh() {
+    await Promise.all([reload(), reloadMemcache()]);
+  }
 
   function choose(next: Family) {
     setKind(next);
-    setForm(next === "memcache" ? MEMCACHE_EMPTY : SQL_EMPTY);
+    setForm(BLANK[next]);
     setVerified(false);
     setStep(2);
   }
 
   const connect = useAction(async () => {
-    const saved = await client.save({ ...form, port: Number(form.port) || (cache ? 6379 : 5432) });
+    const fallback = cache ? 6379 : mongo ? 27017 : 5432;
+    const saved = await client.save({ ...form, port: Number(form.port) || fallback });
     const name = saved.name ?? "";
     try {
       await client.test(name);
     } catch (err) {
       await client.remove(name).catch(() => undefined);
-      await reload();
-      await onSaved?.();
+      await refresh();
       setVerified(false);
       throw new Error(`connection refused — not saved: ${err instanceof Error ? err.message : String(err)}`);
     }
     setVerified(true);
     toast.success(`${name}: verified and saved`);
-    await reload();
-    await onSaved?.();
+    await refresh();
     if (!cache) setActive(name);
     setOpen(false);
-    setForm(cache ? MEMCACHE_EMPTY : SQL_EMPTY);
+    setForm(BLANK[kind]);
     setStep(wizard ? 1 : 2);
   });
 
@@ -121,6 +133,12 @@ export function ConnectionDialog({
               detail="Redis or Valkey. Browse keys, inspect values, watch INFO metrics."
               onClick={() => choose("memcache")}
             />
+            <Choice
+              icon={<Leaf className="size-4" />}
+              title="Document database"
+              detail="MongoDB. Explore databases and collections, run CRUD requests, watch stats."
+              onClick={() => choose("mongo")}
+            />
           </div>
         ) : (
           <>
@@ -128,7 +146,9 @@ export function ConnectionDialog({
               <Field label="Name" value={form.name} onChange={(v) => update("name", v)} placeholder="prod-readonly" />
               <div className="grid gap-1.5">
                 <Label>Driver</Label>
-                {cache ? (
+                {mongo ? (
+                  <Input value="mongo" readOnly disabled />
+                ) : cache ? (
                   <Select
                     value={form.driver}
                     onValueChange={(v) => {
@@ -167,7 +187,7 @@ export function ConnectionDialog({
                 label="Host"
                 value={form.host}
                 onChange={(v) => update("host", v)}
-                placeholder={cache ? "cache.internal" : "db.internal"}
+                placeholder={cache ? "cache.internal" : mongo ? "mongo.internal" : "db.internal"}
               />
               <Field
                 label="Port"
@@ -179,7 +199,7 @@ export function ConnectionDialog({
                 label={cache ? "User (ACL, optional)" : "User"}
                 value={form.user ?? ""}
                 onChange={(v) => update("user", v)}
-                placeholder={cache ? "default" : "postgres"}
+                placeholder={cache ? "default" : mongo ? "root" : "postgres"}
               />
               <Field
                 label="Password"
@@ -189,10 +209,10 @@ export function ConnectionDialog({
                 placeholder={initial ? "unchanged" : ""}
               />
               <Field
-                label={cache ? "DB index" : "Database"}
+                label={cache ? "DB index" : mongo ? "Database (auth)" : "Database"}
                 value={form.database}
                 onChange={(v) => update("database", v)}
-                placeholder={cache ? "0" : "app"}
+                placeholder={cache ? "0" : mongo ? "admin" : "app"}
               />
             </div>
 
@@ -208,7 +228,7 @@ export function ConnectionDialog({
                 </span>
               )}
               <Button onClick={() => void connect.run()} disabled={connect.loading}>
-                <PlugZap /> Save (verifies first)
+                <PlugZap /> Save
               </Button>
             </DialogFooter>
           </>

@@ -572,6 +572,470 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/mongodb/connections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List MongoDB connections (passwords redacted) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            connections?: components["schemas"]["entity.Connection"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create or update a MongoDB connection */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: components["requestBodies"]["entity.Connection"];
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Connection"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/mongodb/connections/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one MongoDB connection (password redacted) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Connection"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Delete a MongoDB connection */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/mongodb/connections/{name}/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a database's collections with their sizes */
+        get: {
+            parameters: {
+                query: {
+                    /** @description database name */
+                    database: string;
+                };
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            collections?: components["schemas"]["mongodb.Collection"][];
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/mongodb/connections/{name}/databases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List databases with their sizes */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            databases?: components["schemas"]["mongodb.Database"][];
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/mongodb/connections/{name}/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run a CRUD request (find | aggregate | count | insert | update | delete) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            /** @description op, database, collection, filter and value as Extended JSON */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["mongodb.Request"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Result"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/mongodb/connections/{name}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** MongoDB stats snapshot (server, database and collection) */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description database to describe */
+                    database?: string;
+                    /** @description collection to describe */
+                    collection?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["mongodb.Stats"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/mongodb/connections/{name}/stats/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** MongoDB stats stream (SSE, one snapshot every 2s) */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description database to describe */
+                    database?: string;
+                    /** @description collection to describe */
+                    collection?: string;
+                };
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description text/event-stream */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/mongodb/connections/{name}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test that a MongoDB connection answers */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            status?: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/sql/changes": {
         parameters: {
             query?: never;
@@ -1563,6 +2027,71 @@ export interface components {
             usedMemoryBytes?: number;
             usedMemoryPeakBytes?: number;
             version?: string;
+        };
+        "mongodb.Collection": {
+            avgObjectSizeBytes?: number;
+            capped?: boolean;
+            count?: number;
+            indexSizeBytes?: number;
+            indexes?: number;
+            name?: string;
+            sizeBytes?: number;
+            storageBytes?: number;
+            /** @description collection | view | timeseries */
+            type?: string;
+        };
+        "mongodb.Database": {
+            avgObjectSizeBytes?: number;
+            collections?: number;
+            indexSizeBytes?: number;
+            name?: string;
+            objects?: number;
+            /** @description uncompressed data */
+            sizeBytes?: number;
+            /** @description on-disk */
+            storageBytes?: number;
+        };
+        "mongodb.Request": {
+            collection?: string;
+            database?: string;
+            filter?: string;
+            limit?: number;
+            many?: boolean;
+            op?: string;
+            sort?: string;
+            value?: string;
+        };
+        "mongodb.Stats": {
+            collection?: string;
+            collectionAvgObjectSizeBytes?: number;
+            collectionCapped?: boolean;
+            /** @description collection (zero when none was asked for) */
+            collectionCount?: number;
+            collectionIndexSizeBytes?: number;
+            collectionIndexes?: number;
+            collectionSizeBytes?: number;
+            collectionStorageBytes?: number;
+            connections?: number;
+            currentOps?: number;
+            database?: string;
+            /** @description database */
+            dbCollections?: number;
+            dbDataSizeBytes?: number;
+            dbIndexSizeBytes?: number;
+            dbIndexes?: number;
+            dbObjects?: number;
+            dbStorageBytes?: number;
+            deleted?: number;
+            inserted?: number;
+            networkInBytes?: number;
+            networkOutBytes?: number;
+            queried?: number;
+            residentMemoryMb?: number;
+            updated?: number;
+            uptimeSeconds?: number;
+            /** @description server */
+            version?: string;
+            virtualMemoryMb?: number;
         };
         "sql.Column": {
             name?: string;

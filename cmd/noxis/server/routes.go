@@ -13,6 +13,7 @@ import (
 	"noxis/cmd/noxis/server/controller"
 	"noxis/internal/repositories/sqlite"
 	"noxis/internal/services/memcache"
+	"noxis/internal/services/mongodb"
 	"noxis/internal/services/sql"
 )
 
@@ -23,6 +24,7 @@ func newHandler(store *sqlite.Store, log *slog.Logger) http.Handler {
 		Changes:     store,
 		SQL:         sql.New(),
 		Memcache:    memcache.New(),
+		Mongo:       mongodb.New(),
 		Log:         log,
 	}
 	mux := http.NewServeMux()
@@ -62,6 +64,19 @@ func newHandler(store *sqlite.Store, log *slog.Logger) http.Handler {
 	mux.HandleFunc("POST /v1/memcache/connections/{name}/flush", controller.FlushMemcacheDB)
 	mux.HandleFunc("GET /v1/memcache/connections/{name}/stats", controller.GetMemcacheStats)
 	mux.HandleFunc("GET /v1/memcache/connections/{name}/stats/stream", controller.StreamMemcacheStats)
+
+	// The MongoDB namespace: the same connection lifecycle, plus databases,
+	// collections, CRUD requests and stats.
+	mux.HandleFunc("GET /v1/mongodb/connections", controller.ListMongoConnections)
+	mux.HandleFunc("POST /v1/mongodb/connections", controller.SaveMongoConnection)
+	mux.HandleFunc("GET /v1/mongodb/connections/{name}", controller.GetMongoConnection)
+	mux.HandleFunc("DELETE /v1/mongodb/connections/{name}", controller.DeleteMongoConnection)
+	mux.HandleFunc("POST /v1/mongodb/connections/{name}/test", controller.TestMongoConnection)
+	mux.HandleFunc("GET /v1/mongodb/connections/{name}/databases", controller.ListMongoDatabases)
+	mux.HandleFunc("GET /v1/mongodb/connections/{name}/collections", controller.ListMongoCollections)
+	mux.HandleFunc("POST /v1/mongodb/connections/{name}/requests", controller.PostMongoRequest)
+	mux.HandleFunc("GET /v1/mongodb/connections/{name}/stats", controller.GetMongoStats)
+	mux.HandleFunc("GET /v1/mongodb/connections/{name}/stats/stream", controller.StreamMongoStats)
 	mux.Handle("GET /assets/", http.HandlerFunc(controller.GetAssets)) // embedded FS keeps the assets/ prefix
 	mux.HandleFunc("GET /", controller.GetConsole)                     // the operator console (SPA shell)
 

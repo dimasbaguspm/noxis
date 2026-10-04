@@ -22,6 +22,7 @@ type Deps struct {
 	Changes     interfaces.ChangeRepository
 	SQL         interfaces.SQLModule
 	Memcache    interfaces.MemcacheModule
+	Mongo       interfaces.MongoModule
 	Log         *slog.Logger
 }
 
@@ -40,8 +41,11 @@ func From(r *http.Request) Deps { return r.Context().Value(ctxKey{}).(Deps) }
 // module resolves the engine family that serves a driver, for the paths that
 // work across families (connection reachability).
 func (d Deps) module(driver string) interfaces.Module {
-	if d.Memcache.Supports(driver) {
+	switch {
+	case d.Memcache.Supports(driver):
 		return d.Memcache
+	case d.Mongo.Supports(driver):
+		return d.Mongo
 	}
 	return d.SQL
 }

@@ -1,7 +1,7 @@
 import { Suspense, lazy } from "react";
 import type { Table } from "@/lib/api";
 
-const MonacoSqlEditor = lazy(() => import("@/components/sql/monaco-sql-editor"));
+const MonacoEditor = lazy(() => import("@/components/sql/monaco-editor"));
 
 export interface SqlEditorProps {
   value: string;
@@ -35,11 +35,12 @@ export function SqlEditor({
           />
         }
       >
-        <MonacoSqlEditor
+        <MonacoEditor
           value={value}
           onChange={onChange}
           readOnly={readOnly}
           height={height}
+          language="sql"
           tables={tables}
           placeholder={placeholder}
         />

@@ -25,23 +25,38 @@ const (
 	// commands, same family. It is a separate driver name so the console can
 	// show what it is actually talking to.
 	DriverValkey = "valkey"
+	DriverMongo  = "mongo"
 )
 
 // Engine families: the API namespace and console section that serve a
 // connection's driver. Each family owns its own connection list, even though
-// both write to the same store.
+// they all write to the same store.
 const (
-	FamilySQL   = "sql"
-	FamilyMemcache = "redis"
+	FamilySQL      = "sql"
+	FamilyMemcache = "memcache"
+	FamilyMongo    = "mongodb"
 )
 
 // FamilyOf maps a driver to the family that serves it.
 func FamilyOf(driver string) string {
-	if strings.EqualFold(driver, DriverRedis) || strings.EqualFold(driver, DriverValkey) {
+	switch {
+	case strings.EqualFold(driver, DriverRedis), strings.EqualFold(driver, DriverValkey):
 		return FamilyMemcache
+	case strings.EqualFold(driver, DriverMongo), strings.EqualFold(driver, "mongodb"):
+		return FamilyMongo
 	}
 	return FamilySQL
 }
+
+// MongoDB request ops.
+const (
+	MongoFind      = "find"
+	MongoAggregate = "aggregate"
+	MongoCount     = "count"
+	MongoInsert    = "insert"
+	MongoUpdate    = "update"
+	MongoDelete    = "delete"
+)
 
 // Change kinds (which statement family a change carries).
 const (

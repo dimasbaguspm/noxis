@@ -55,6 +55,11 @@ type world struct {
 	info     redisInfo
 	result   resultBody
 	change   changeBody
+	body     string // the last response body, for error assertions
+
+	database   mongoDatabase   // the mongo database a scenario picked out
+	collection mongoCollection // the mongo collection a scenario picked out
+	mongo      mongoInfo
 }
 
 // redisSeed runs the CLI inside a compose key-value service: the scenarios
@@ -74,9 +79,10 @@ func redisSeed(service string, args ...string) error {
 }
 
 type resultBody struct {
-	Columns []string   `json:"columns"`
-	Rows    [][]string `json:"rows"`
-	Message string     `json:"message"`
+	Columns  []string   `json:"columns"`
+	Rows     [][]string `json:"rows"`
+	Affected int64      `json:"affected"`
+	Message  string     `json:"message"`
 }
 
 type checkBody struct {
@@ -140,6 +146,7 @@ func (w *world) api(method, path string, body any, out any) error {
 		return err
 	}
 	w.code = resp.StatusCode
+	w.body = strings.TrimSpace(string(b))
 	if out != nil && len(b) > 0 {
 		if err := json.Unmarshal(b, out); err != nil {
 			return fmt.Errorf("decode %s %s: %w (%s)", method, path, err, strings.TrimSpace(string(b)))

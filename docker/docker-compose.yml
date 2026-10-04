@@ -27,6 +27,8 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
+      mongo:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9000/healthz"]
       interval: 5s
@@ -55,6 +57,21 @@ services:
       timeout: 3s
       retries: 10
       start_period: 3s
+
+  # A document database for the MongoDB family. Auth is on so the console's
+  # user/password path is the one exercised.
+  mongo:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: noxis
+      MONGO_INITDB_DATABASE: demo
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
 
   # Valkey is a Redis-protocol fork; the suite registers it as its own driver
   # to keep that claim honest.

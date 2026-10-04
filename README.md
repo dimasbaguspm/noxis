@@ -3,7 +3,7 @@
 A lightweight console to query and change the databases you already run, with confidence.
 
 **The goal:** point noXis at the databases you already run (Postgres,
-MySQL/MariaDB, Redis and Valkey) and get a single place to browse them, run reads, and
+MySQL/MariaDB, Redis, Valkey and MongoDB) and get a single place to browse them, run reads, and
 ship changes safely. No agents, no brokers, no orchestration — one binary, one
 volume, no docker socket.
 
@@ -27,11 +27,11 @@ volume, no docker socket.
   there is no validated change queue for it: keys can be browsed, inspected and
   removed, and every operation is a typed client call (no command text to
   inject). `FLUSHALL` is deliberately unreachable.
-- **Namespaced API** — `/v1/sql/...` and `/v1/memcache/...`; each family serves
-  only its own drivers, so a memory-cache connection is invisible to the SQL
-  routes and vice versa. The console follows the same split: one dashboard
-  table for every instance with a detail dialog, and a sidebar group per
-  family.
+- **Namespaced API** — `/v1/sql/...`, `/v1/memcache/...` and `/v1/mongodb/...`;
+  each family serves only its own drivers, so a memory-cache connection is
+  invisible to the SQL routes and vice versa. The console follows the same
+  split: one dashboard table for every instance with a detail dialog, and a
+  sidebar group per family.
 - **Redis and Valkey are one family: Memory Cache** — Valkey implements the
   Redis protocol and command set, so it is served by the same module under its
   own driver name (`valkey`), and INFO is read from its own `valkey_version` so
@@ -41,11 +41,11 @@ volume, no docker socket.
   shadcn/ui, embedded; no build step at deploy time):
   - **Dashboard** — every instance in one searchable table with live
     reachability (SSE) and a detail dialog; a swipeable tile counts All / SQL /
-    Memory Cache; one "new connection" wizard asks for the kind of instance
-    first, then verifies it before saving
+    Memory Cache and MongoDB; one "new connection" wizard asks for the kind of
+    instance first, then verifies it before saving
   - menu (collapsible sidebar + a search field in the header that opens a
     searchable palette): Dashboard · SQL (Query, DML, DDL, Analytics) ·
-    Redis (Keys, Analytics) · MongoDB (scoped, pages describe the plan)
+    Memory Cache (Keys, Analytics) · MongoDB (Explore, Requests, Analytics)
   - **Query** — per-instance schema/table browser, monaco editor (self-hosted,
     schema-aware completion), result grid with duration / rows / plan estimate
     and CSV export; `ANALYZE` and "show records" live in each table's menu
@@ -60,6 +60,10 @@ volume, no docker socket.
     type, remove selected keys, and empty a database behind a typed
     confirmation; Analytics charts INFO (memory, clients, ops/sec, hit ratio,
     eviction)
+  - **MongoDB** — Explore walks databases → collections with counts, sizes and
+    indexes; Requests runs one CRUD request at a time with the filter and the
+    value apart (monaco completing `$operators` and document fields); Analytics
+    watches serverStatus, dbStats and collStats over SSE
 
 ## Docs
 
@@ -82,7 +86,16 @@ curl -s -X POST localhost:9000/v1/sql/connections -H 'Content-Type: application/
 curl -s -X POST localhost:9000/v1/sql/connections/demo/query \
   -H 'Content-Type: application/json' -d '{"sql":"SELECT 6*6 AS n"}'
 
-# redis: register the compose server, browse keys, read INFO
+# mongodb: register the compose server, explore, run a request
+curl -s -X POST localhost:9000/v1/mongodb/connections -H 'Content-Type: application/json' \
+  -d '{"name":"docs","driver":"mongo","host":"mongo","port":27017,"user":"root",
+       "password":"noxis","database":"admin"}'
+curl -s "localhost:9000/v1/mongodb/connections/docs/collections?database=demo"
+curl -s -X POST localhost:9000/v1/mongodb/connections/docs/requests \
+  -H 'Content-Type: application/json' \
+  -d '{"op":"find","database":"demo","collection":"items","filter":"{\"sku\": \"a\"}"}'
+
+# memory cache: register the compose server, browse keys, read INFO
 curl -s -X POST localhost:9000/v1/memcache/connections -H 'Content-Type: application/json' \
   -d '{"name":"cache","driver":"redis","host":"redis","port":6379,"database":"0"}'
 curl -s "localhost:9000/v1/memcache/connections/cache/keys?pattern=*"

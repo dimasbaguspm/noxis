@@ -40,9 +40,9 @@ export const NAV: NavGroup[] = [
   {
     label: "MongoDB",
     items: [
-      { to: "/mongo/explore", label: "Explore", icon: Leaf, soon: true },
-      { to: "/mongo/crud", label: "CRUD Request", icon: PenLine, soon: true },
-      { to: "/mongo/analytics", label: "Analytics", icon: BarChart3, soon: true },
+      { to: "/mongodb", label: "Explore", icon: Leaf, end: true },
+      { to: "/mongodb/requests", label: "Requests", icon: PenLine },
+      { to: "/mongodb/analytics", label: "Analytics", icon: BarChart3 },
     ],
   },
   {
@@ -53,51 +53,6 @@ export const NAV: NavGroup[] = [
     ],
   },
 ];
-
-// Placeholder copy for the engines that are scoped but not built yet: the
-// pages exist so the shape of the product is visible and honest.
-export interface PlaceholderSpec {
-  title: string;
-  summary: string;
-  planned: string[];
-  icon: ComponentType<{ className?: string }>;
-}
-
-export const PLACEHOLDERS: Record<string, PlaceholderSpec> = {
-  "/mongo/explore": {
-    title: "MongoDB · Explore",
-    summary: "Browse databases and collections the way the SQL sidebar browses schemas and tables.",
-    planned: [
-      "connection registry reuse (host, credentials, replica set)",
-      "collection list with document counts and indexes",
-      "document viewer with a query filter bar (find/aggregate)",
-      "export the current result as JSON",
-    ],
-    icon: Leaf,
-  },
-  "/mongo/crud": {
-    title: "MongoDB · CRUD Request",
-    summary: "Document changes go through the same review flow as SQL DML.",
-    planned: [
-      "request shape: instance, notes, operation, filter/document, rollback",
-      "validation dry-run against a temporary collection copy",
-      "approve → apply with the affected-document estimate recorded",
-      "artifact trail: nothing is ever deleted",
-    ],
-    icon: PenLine,
-  },
-  "/mongo/analytics": {
-    title: "MongoDB · Analytics",
-    summary: "Live instance metrics for a replica set, streamed like the SQL analytics page.",
-    planned: [
-      "connections, op counters (query/insert/update/delete) and their rates",
-      "memory: resident, virtual, mapped and cache usage",
-      "replication lag and oplog window",
-      "slow-query sampling (profiler) with a per-collection breakdown",
-    ],
-    icon: BarChart3,
-  },
-};
 
 // findNav resolves the registry entries for a pathname, for breadcrumbs.
 export function findNav(pathname: string): { group?: string; item?: NavItem } {

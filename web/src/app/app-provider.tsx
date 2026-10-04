@@ -16,6 +16,11 @@ interface AppState {
   memcacheActive?: string;
   setMemcacheActive: (name: string) => void;
   reloadMemcache: () => Promise<void>;
+  // MongoDB connections are their own registry too.
+  mongoConnections: Connection[];
+  mongoActive?: string;
+  setMongoActive: (name: string) => void;
+  reloadMongo: () => Promise<void>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -29,6 +34,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [memcacheConnections, setMemcacheConnections] = useState<Connection[]>([]);
   const [memcacheActive, setMemcacheActive] = useState<string>();
+  const [mongoConnections, setMongoConnections] = useState<Connection[]>([]);
+  const [mongoActive, setMongoActive] = useState<string>();
 
   const reload = useCallback(async () => {
     setBusy(true);
@@ -53,10 +60,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const reloadMongo = useCallback(async () => {
+    try {
+      const { connections: list } = await api.mongodb.list();
+      setMongoConnections(list ?? []);
+      setMongoActive((prev) => (list?.some((c) => c.name === prev) ? prev : list?.[0]?.name));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
+
   useEffect(() => {
     void reload();
     void reloadMemcache();
-  }, [reload, reloadMemcache]);
+    void reloadMongo();
+  }, [reload, reloadMemcache, reloadMongo]);
 
   useEffect(() => {
     if (!active) {
@@ -85,8 +103,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
       memcacheActive,
       setMemcacheActive,
       reloadMemcache,
+      mongoConnections,
+      mongoActive,
+      setMongoActive,
+      reloadMongo,
     }),
-    [connections, active, schema, busy, reload, memcacheConnections, memcacheActive, reloadMemcache],
+    [
+      connections,
+      active,
+      schema,
+      busy,
+      reload,
+      memcacheConnections,
+      memcacheActive,
+      reloadMemcache,
+      mongoConnections,
+      mongoActive,
+      reloadMongo,
+    ],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

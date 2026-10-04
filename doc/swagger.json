@@ -497,6 +497,441 @@
                 }
             }
         },
+        "/v1/mongodb/connections": {
+            "get": {
+                "summary": "List MongoDB connections (passwords redacted)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "connections": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/entity.Connection"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Create or update a MongoDB connection",
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/entity.Connection"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Connection"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/mongodb/connections/{name}": {
+            "get": {
+                "summary": "Get one MongoDB connection (password redacted)",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Connection"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Delete a MongoDB connection",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "deleted"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/mongodb/connections/{name}/collections": {
+            "get": {
+                "summary": "List a database's collections with their sizes",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "database name",
+                        "name": "database",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "collections": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/mongodb.Collection"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/mongodb/connections/{name}/databases": {
+            "get": {
+                "summary": "List databases with their sizes",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "databases": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/mongodb.Database"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/mongodb/connections/{name}/requests": {
+            "post": {
+                "summary": "Run a CRUD request (find | aggregate | count | insert | update | delete)",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/mongodb.Request"
+                            }
+                        }
+                    },
+                    "description": "op, database, collection, filter and value as Extended JSON",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Result"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/mongodb/connections/{name}/stats": {
+            "get": {
+                "summary": "MongoDB stats snapshot (server, database and collection)",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "database to describe",
+                        "name": "database",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "collection to describe",
+                        "name": "collection",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/mongodb.Stats"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/mongodb/connections/{name}/stats/stream": {
+            "get": {
+                "summary": "MongoDB stats stream (SSE, one snapshot every 2s)",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "database to describe",
+                        "name": "database",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "collection to describe",
+                        "name": "collection",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "text/event-stream",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/mongodb/connections/{name}/test": {
+            "post": {
+                "summary": "Test that a MongoDB connection answers",
+                "parameters": [
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/sql/changes": {
             "get": {
                 "summary": "List proposed changes (newest first)",
@@ -1619,6 +2054,185 @@
                     },
                     "version": {
                         "type": "string"
+                    }
+                }
+            },
+            "mongodb.Collection": {
+                "type": "object",
+                "properties": {
+                    "avgObjectSizeBytes": {
+                        "type": "integer"
+                    },
+                    "capped": {
+                        "type": "boolean"
+                    },
+                    "count": {
+                        "type": "integer"
+                    },
+                    "indexSizeBytes": {
+                        "type": "integer"
+                    },
+                    "indexes": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "sizeBytes": {
+                        "type": "integer"
+                    },
+                    "storageBytes": {
+                        "type": "integer"
+                    },
+                    "type": {
+                        "description": "collection | view | timeseries",
+                        "type": "string"
+                    }
+                }
+            },
+            "mongodb.Database": {
+                "type": "object",
+                "properties": {
+                    "avgObjectSizeBytes": {
+                        "type": "integer"
+                    },
+                    "collections": {
+                        "type": "integer"
+                    },
+                    "indexSizeBytes": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "objects": {
+                        "type": "integer"
+                    },
+                    "sizeBytes": {
+                        "description": "uncompressed data",
+                        "type": "integer"
+                    },
+                    "storageBytes": {
+                        "description": "on-disk",
+                        "type": "integer"
+                    }
+                }
+            },
+            "mongodb.Request": {
+                "type": "object",
+                "properties": {
+                    "collection": {
+                        "type": "string"
+                    },
+                    "database": {
+                        "type": "string"
+                    },
+                    "filter": {
+                        "type": "string"
+                    },
+                    "limit": {
+                        "type": "integer"
+                    },
+                    "many": {
+                        "type": "boolean"
+                    },
+                    "op": {
+                        "type": "string"
+                    },
+                    "sort": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                }
+            },
+            "mongodb.Stats": {
+                "type": "object",
+                "properties": {
+                    "collection": {
+                        "type": "string"
+                    },
+                    "collectionAvgObjectSizeBytes": {
+                        "type": "integer"
+                    },
+                    "collectionCapped": {
+                        "type": "boolean"
+                    },
+                    "collectionCount": {
+                        "description": "collection (zero when none was asked for)",
+                        "type": "integer"
+                    },
+                    "collectionIndexSizeBytes": {
+                        "type": "integer"
+                    },
+                    "collectionIndexes": {
+                        "type": "integer"
+                    },
+                    "collectionSizeBytes": {
+                        "type": "integer"
+                    },
+                    "collectionStorageBytes": {
+                        "type": "integer"
+                    },
+                    "connections": {
+                        "type": "integer"
+                    },
+                    "currentOps": {
+                        "type": "integer"
+                    },
+                    "database": {
+                        "type": "string"
+                    },
+                    "dbCollections": {
+                        "description": "database",
+                        "type": "integer"
+                    },
+                    "dbDataSizeBytes": {
+                        "type": "integer"
+                    },
+                    "dbIndexSizeBytes": {
+                        "type": "integer"
+                    },
+                    "dbIndexes": {
+                        "type": "integer"
+                    },
+                    "dbObjects": {
+                        "type": "integer"
+                    },
+                    "dbStorageBytes": {
+                        "type": "integer"
+                    },
+                    "deleted": {
+                        "type": "integer"
+                    },
+                    "inserted": {
+                        "type": "integer"
+                    },
+                    "networkInBytes": {
+                        "type": "integer"
+                    },
+                    "networkOutBytes": {
+                        "type": "integer"
+                    },
+                    "queried": {
+                        "type": "integer"
+                    },
+                    "residentMemoryMb": {
+                        "type": "integer"
+                    },
+                    "updated": {
+                        "type": "integer"
+                    },
+                    "uptimeSeconds": {
+                        "type": "integer"
+                    },
+                    "version": {
+                        "description": "server",
+                        "type": "string"
+                    },
+                    "virtualMemoryMb": {
+                        "type": "integer"
                     }
                 }
             },

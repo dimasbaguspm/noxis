@@ -6,6 +6,10 @@ export type ChangeCheck = components["schemas"]["entity.ChangeCheck"];
 export type Result = components["schemas"]["entity.Result"];
 export type Stats = components["schemas"]["sql.Stats"];
 export type MemcacheStats = components["schemas"]["memcache.Stats"];
+export type MongoStats = components["schemas"]["mongodb.Stats"];
+export type MongoDatabase = components["schemas"]["mongodb.Database"];
+export type MongoCollection = components["schemas"]["mongodb.Collection"];
+export type MongoRequest = components["schemas"]["mongodb.Request"];
 export type MemcacheKey = components["schemas"]["memcache.Key"];
 export type MemcacheKeyPage = components["schemas"]["memcache.KeyPage"];
 
@@ -80,6 +84,30 @@ export const api = {
       request<{ status: string }>("POST", `/v1/memcache/connections/${name}/flush`, { confirm: name }),
     stats: (name: string) => request<MemcacheStats>("GET", `/v1/memcache/connections/${name}/stats`),
     statsStream: (name: string) => `/v1/memcache/connections/${name}/stats/stream`,
+  },
+  mongodb: {
+    list: () => request<{ connections: Connection[] }>("GET", "/v1/mongodb/connections"),
+    save: (c: Connection) => request<Connection>("POST", "/v1/mongodb/connections", c),
+    remove: (name: string) => request<null>("DELETE", `/v1/mongodb/connections/${name}`),
+    test: (name: string) => request<{ status: string }>("POST", `/v1/mongodb/connections/${name}/test`),
+    databases: (name: string) =>
+      request<{ databases: MongoDatabase[] }>("GET", `/v1/mongodb/connections/${name}/databases`),
+    collections: (name: string, database: string) =>
+      request<{ collections: MongoCollection[] }>(
+        "GET",
+        `/v1/mongodb/connections/${name}/collections?database=${encodeURIComponent(database)}`,
+      ),
+    run: (name: string, req: MongoRequest) =>
+      request<Result>("POST", `/v1/mongodb/connections/${name}/requests`, req),
+    stats: (name: string, database?: string, collection?: string) =>
+      request<MongoStats>(
+        "GET",
+        `/v1/mongodb/connections/${name}/stats?database=${encodeURIComponent(database ?? "")}` +
+          `&collection=${encodeURIComponent(collection ?? "")}`,
+      ),
+    statsStream: (name: string, database?: string, collection?: string) =>
+      `/v1/mongodb/connections/${name}/stats/stream?database=${encodeURIComponent(database ?? "")}` +
+      `&collection=${encodeURIComponent(collection ?? "")}`,
   },
   changes: {
     list: () => request<{ changes: Change[] }>("GET", "/v1/sql/changes"),

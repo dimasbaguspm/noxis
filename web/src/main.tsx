@@ -2,7 +2,6 @@ import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { AppProvider } from "@/app/app-provider";
-import { PLACEHOLDERS } from "@/lib/nav";
 import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,9 +16,9 @@ const DdlPage = lazy(() => import("@/pages/ddl"));
 const AnalyticsPage = lazy(() => import("@/pages/analytics"));
 const MemcachePage = lazy(() => import("@/pages/memcache"));
 const MemcacheAnalyticsPage = lazy(() => import("@/pages/memcache-analytics"));
-const PlaceholderPage = lazy(() =>
-  import("@/components/layout/placeholder-page").then((m) => ({ default: m.PlaceholderPage })),
-);
+const MongoExplorePage = lazy(() => import("@/pages/mongodb"));
+const MongoRequestsPage = lazy(() => import("@/pages/mongodb-requests"));
+const MongoAnalyticsPage = lazy(() => import("@/pages/mongodb-analytics"));
 const ChangeDetail = lazy(() =>
   import("@/pages/change-detail").then((m) => ({ default: m.ChangeDetailPage })),
 );
@@ -37,10 +36,9 @@ const router = createBrowserRouter([
       { path: "analytics", element: <AnalyticsPage /> },
       { path: "memcache", element: <MemcachePage /> },
       { path: "memcache/analytics", element: <MemcacheAnalyticsPage /> },
-      ...Object.keys(PLACEHOLDERS).map((path) => ({
-        path: path.replace(/^\//, ""),
-        element: <PlaceholderPage spec={PLACEHOLDERS[path]} />,
-      })),
+      { path: "mongodb", element: <MongoExplorePage /> },
+      { path: "mongodb/requests", element: <MongoRequestsPage /> },
+      { path: "mongodb/analytics", element: <MongoAnalyticsPage /> },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

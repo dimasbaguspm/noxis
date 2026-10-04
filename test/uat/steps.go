@@ -25,6 +25,7 @@ type changeBody struct {
 func (w *world) steps(sc *godog.ScenarioContext) {
 	sc.Step("the stack is running", w.stackRunning)
 	w.memcacheSteps(sc)
+	w.mongoSteps(sc)
 
 	sc.Step(`^connection "([^"]*)" is registered$`, w.registerConnection)
 	sc.Step("the connection test passes", w.testConnection)

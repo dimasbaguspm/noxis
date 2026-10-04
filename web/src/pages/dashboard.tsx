@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { debounce, title } from "radash";
-import { Boxes, CircleCheck, CircleX, Database, Loader2, Search, Trash2, Zap } from "lucide-react";
+import { Boxes, CircleCheck, CircleX, Database, Leaf, Loader2, Search, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ import { useChanges } from "@/hooks/use-data";
 import { api, type Connection } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-type Family = "sql" | "memcache";
+type Family = "sql" | "memcache" | "mongo";
 
 // One row per instance, whichever family it belongs to: the table shows only
 // what both have in common, and the detail dialog carries the rest.
@@ -32,10 +32,26 @@ interface Instance extends Connection {
   family: Family;
 }
 
-const FAMILY_LABEL: Record<Family, string> = { sql: "SQL", memcache: "Memory Cache" };
+const FAMILY_LABEL: Record<Family, string> = {
+  sql: "SQL",
+  memcache: "Memory Cache",
+  mongo: "MongoDB",
+};
+
+const FAMILY_PAGE: Record<Family, { to: string; label: string }> = {
+  sql: { to: "/query", label: "Open in Query" },
+  memcache: { to: "/memcache", label: "Browse keys" },
+  mongo: { to: "/mongodb", label: "Explore" },
+};
+
+const FAMILY_ICON: Record<Family, React.ReactNode> = {
+  sql: <Database className="size-3.5 text-muted-foreground" />,
+  memcache: <Boxes className="size-3.5 text-muted-foreground" />,
+  mongo: <Leaf className="size-3.5 text-muted-foreground" />,
+};
 
 export default function DashboardPage() {
-  const { connections, memcacheConnections, reload, reloadMemcache } = useApp();
+  const { connections, memcacheConnections, mongoConnections, reload, reloadMemcache, reloadMongo } = useApp();
   const { changes } = useChanges();
   const { states, connected } = useConnectionStates();
 
@@ -43,8 +59,9 @@ export default function DashboardPage() {
     () => [
       ...connections.map((c) => ({ ...c, family: "sql" as const })),
       ...memcacheConnections.map((c) => ({ ...c, family: "memcache" as const })),
+      ...mongoConnections.map((c) => ({ ...c, family: "mongo" as const })),
     ],
-    [connections, memcacheConnections],
+    [connections, memcacheConnections, mongoConnections],
   );
 
   const [filter, setFilter] = useState("");
@@ -68,17 +85,21 @@ export default function DashboardPage() {
     );
   }, [instances, query]);
 
+  const client = (family: Family) =>
+    family === "memcache" ? api.memcache : family === "mongo" ? api.mongodb : api.connections;
+
+  const refresh = (family: Family) =>
+    family === "memcache" ? reloadMemcache() : family === "mongo" ? reloadMongo() : reload();
+
   const test = useAction(async (c: Instance) => {
-    const client = c.family === "memcache" ? api.memcache : api.connections;
-    await client.test(c.name ?? "");
+    await client(c.family).test(c.name ?? "");
     toast.success(`${c.name}: reachable`);
   });
 
   const remove = useAction(async (c: Instance) => {
-    const client = c.family === "memcache" ? api.memcache : api.connections;
-    await client.remove(c.name ?? "");
+    await client(c.family).remove(c.name ?? "");
     toast.success(`deleted ${c.name}`);
-    await (c.family === "memcache" ? reloadMemcache() : reload());
+    await refresh(c.family);
     setDetail(undefined);
   });
 
@@ -89,6 +110,7 @@ export default function DashboardPage() {
           all={instances.length}
           sql={connections.length}
           memcache={memcacheConnections.length}
+          mongo={mongoConnections.length}
         />
         <Stat title="DDL executed" value={ddl} hint="schema changes applied" />
         <Stat title="DML executed" value={dml} hint="data changes applied" />
@@ -146,11 +168,7 @@ export default function DashboardPage() {
                     <TableRow key={`${c.family}:${c.name}`}>
                       <TableCell>
                         <span className="flex items-center gap-2 text-sm">
-                          {c.family === "sql" ? (
-                            <Database className="size-3.5 text-muted-foreground" />
-                          ) : (
-                            <Boxes className="size-3.5 text-muted-foreground" />
-                          )}
+                          {FAMILY_ICON[c.family]}
                           {c.name}
                         </span>
                       </TableCell>
@@ -181,11 +199,7 @@ export default function DashboardPage() {
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  {detail.family === "sql" ? (
-                    <Database className="size-4" />
-                  ) : (
-                    <Boxes className="size-4" />
-                  )}
+                  {FAMILY_ICON[detail.family]}
                   {detail.name}
                 </DialogTitle>
                 <DialogDescription>{FAMILY_LABEL[detail.family]}</DialogDescription>
@@ -200,7 +214,9 @@ export default function DashboardPage() {
                 <dd className="font-mono text-xs">
                   {detail.host}:{detail.port}
                 </dd>
-                <dt className="text-muted-foreground">{detail.family === "sql" ? "Database" : "DB index"}</dt>
+                <dt className="text-muted-foreground">
+                  {detail.family === "sql" ? "Database" : detail.family === "mongo" ? "Database (auth)" : "DB index"}
+                </dt>
                 <dd>{detail.database}</dd>
                 {detail.user && (
                   <>
@@ -222,11 +238,9 @@ export default function DashboardPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  render={
-                    <Link to={detail.family === "sql" ? "/query" : "/memcache"} />
-                  }
+                  render={<Link to={FAMILY_PAGE[detail.family].to} />}
                 >
-                  {detail.family === "sql" ? "Open in Query" : "Browse keys"}
+                  {FAMILY_PAGE[detail.family].label}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => void test.run(detail)}>
                   <Zap /> Test
@@ -251,11 +265,22 @@ export default function DashboardPage() {
 // TotalTile is one card holding every count: swipe (or click) between All,
 // SQL and Memory Cache. The slides are a scroll-snapped track, so a trackpad
 // swipe works and the tabs stay in sync.
-function TotalTile({ all, sql, memcache }: { all: number; sql: number; memcache: number }) {
+function TotalTile({
+  all,
+  sql,
+  memcache,
+  mongo,
+}: {
+  all: number;
+  sql: number;
+  memcache: number;
+  mongo: number;
+}) {
   const slides = [
     { label: "All", value: all },
     { label: "SQL", value: sql },
     { label: "Memory Cache", value: memcache },
+    { label: "MongoDB", value: mongo },
   ];
   const [active, setActive] = useState(0);
   const track = useRef<HTMLDivElement>(null);
