@@ -60,8 +60,9 @@ const (
 
 // Change kinds (which statement family a change carries).
 const (
-	KindDML = "dml"
-	KindDDL = "ddl"
+	KindDML   = "dml"
+	KindDDL   = "ddl"
+	KindMongo = "mongo" // a MongoDB request, reviewed like a DML change
 )
 
 // Change workflow statuses.

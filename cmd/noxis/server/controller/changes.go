@@ -118,14 +118,37 @@ func (d Deps) apply(ctx context.Context, id string) (out entity.Change, err erro
 	return *ch, nil
 }
 
-// @Summary List proposed changes (newest first)
+// @Summary List proposed SQL changes (newest first)
 // @Success 200 {object} object{changes=[]entity.Change}
 // @Router /v1/sql/changes [get]
 func ListChanges(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
-		changes, err := d.Changes.ListChanges(ctx)
-		return map[string]any{"changes": changes}, err
+		all, err := d.Changes.ListChanges(ctx)
+		if err != nil {
+			return nil, err
+		}
+		// the queue is per family: a MongoDB request never shows up here
+		changes := make([]entity.Change, 0, len(all))
+		for i := range all {
+			if all[i].Kind == constants.KindDML || all[i].Kind == constants.KindDDL {
+				changes = append(changes, all[i])
+			}
+		}
+		return map[string]any{"changes": changes}, nil
 	})
+}
+
+// sqlChange loads a change and insists it is a SQL one, so the DML/DDL pages
+// cannot open a MongoDB request.
+func (d Deps) sqlChange(ctx context.Context, id string) (*entity.Change, error) {
+	ch, err := d.Changes.GetChange(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if ch.Kind != constants.KindDML && ch.Kind != constants.KindDDL {
+		return nil, fmt.Errorf("change %s is %s, not a sql change", id, ch.Kind)
+	}
+	return ch, nil
 }
 
 // @Summary Submit a change (validates query + rollback; nothing persists)
@@ -150,7 +173,7 @@ func SubmitChange(w http.ResponseWriter, r *http.Request) {
 // @Router /v1/sql/changes/{id} [get]
 func GetChange(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
-		return d.Changes.GetChange(ctx, r.PathValue("id"))
+		return d.sqlChange(ctx, r.PathValue("id"))
 	})
 }
 

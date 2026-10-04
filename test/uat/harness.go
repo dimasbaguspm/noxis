@@ -57,9 +57,10 @@ type world struct {
 	change   changeBody
 	body     string // the last response body, for error assertions
 
-	database   mongoDatabase   // the mongo database a scenario picked out
-	collection mongoCollection // the mongo collection a scenario picked out
-	mongo      mongoInfo
+	database       mongoDatabase   // the mongo database a scenario picked out
+	collection     mongoCollection // the mongo collection a scenario picked out
+	mongo          mongoInfo
+	mongoQueueSize int
 }
 
 // redisSeed runs the CLI inside a compose key-value service: the scenarios

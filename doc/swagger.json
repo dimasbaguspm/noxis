@@ -497,6 +497,234 @@
                 }
             }
         },
+        "/v1/mongodb/changes": {
+            "get": {
+                "summary": "List MongoDB requests (newest first)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "changes": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/entity.Change"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Submit a MongoDB request (validated on a scratch collection)",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/controller.mongoChangeBody"
+                            }
+                        }
+                    },
+                    "description": "connection, notes and the request",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Change"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/mongodb/changes/{id}": {
+            "get": {
+                "summary": "Get one MongoDB request",
+                "parameters": [
+                    {
+                        "description": "change id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Change"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/mongodb/changes/{id}/apply": {
+            "post": {
+                "summary": "Apply an approved MongoDB request (no rollback exists)",
+                "parameters": [
+                    {
+                        "description": "change id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Change"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/mongodb/changes/{id}/approve": {
+            "post": {
+                "summary": "Approve a validated MongoDB request (self-approval allowed)",
+                "parameters": [
+                    {
+                        "description": "change id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Change"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/mongodb/changes/{id}/reject": {
+            "post": {
+                "summary": "Reject a MongoDB request (kept as an artifact, never deleted)",
+                "parameters": [
+                    {
+                        "description": "change id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Change"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/mongodb/connections": {
             "get": {
                 "summary": "List MongoDB connections (passwords redacted)",
@@ -735,7 +963,7 @@
         },
         "/v1/mongodb/connections/{name}/requests": {
             "post": {
-                "summary": "Run a CRUD request (find | aggregate | count | insert | update | delete)",
+                "summary": "Run a read request (find | aggregate | count)",
                 "parameters": [
                     {
                         "description": "connection name",
@@ -764,7 +992,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/entity.Result"
+                                    "$ref": "#/components/schemas/mongodb.Result"
                                 }
                             }
                         }
@@ -934,7 +1162,7 @@
         },
         "/v1/sql/changes": {
             "get": {
-                "summary": "List proposed changes (newest first)",
+                "summary": "List proposed SQL changes (newest first)",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1757,6 +1985,9 @@
                     }
                 }
             },
+            "controller.mongoChangeBody": {
+                "type": "object"
+            },
             "controller.opBody": {
                 "type": "object",
                 "properties": {
@@ -2144,6 +2375,47 @@
                     },
                     "value": {
                         "type": "string"
+                    }
+                }
+            },
+            "mongodb.Result": {
+                "type": "object",
+                "properties": {
+                    "affected": {
+                        "type": "integer"
+                    },
+                    "columns": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "documents": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "durationMs": {
+                        "type": "integer"
+                    },
+                    "estimatedRows": {
+                        "type": "integer"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "rows": {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "rowsReturned": {
+                        "type": "integer"
                     }
                 }
             },

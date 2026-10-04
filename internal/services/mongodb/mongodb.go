@@ -11,8 +11,11 @@ package mongodb
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -46,8 +49,12 @@ type DB struct{}
 
 func New() *DB { return &DB{} }
 
-// Result is the shared operation outcome.
-type Result = entity.Result
+// Result is the shared operation outcome plus the documents as Extended JSON,
+// so the console can render them as a grid, as JSON or as a tree.
+type Result struct {
+	entity.Result
+	Documents []string `json:"documents,omitempty"`
+}
 
 // Database is one database with its size, as `dbStats` reports it.
 type Database struct {
@@ -218,8 +225,180 @@ func (m *DB) Collections(ctx context.Context, c entity.Connection, database stri
 	return out, err
 }
 
-// Run executes one CRUD request.
+// ReadOps are the ops the console runs directly; WriteOps go through the
+// request queue instead (validated on a scratch collection, then reviewed).
+var (
+	ReadOps  = []string{constants.MongoFind, constants.MongoAggregate, constants.MongoCount}
+	WriteOps = []string{constants.MongoInsert, constants.MongoUpdate, constants.MongoDelete}
+)
+
+// IsWrite reports whether an op changes documents.
+func IsWrite(op string) bool {
+	for _, write := range WriteOps {
+		if op == write {
+			return true
+		}
+	}
+	return false
+}
+
+// Run executes one read request. Writes are refused here on purpose: they go
+// through ValidateRequest and the review queue.
 func (m *DB) Run(ctx context.Context, c entity.Connection, req Request) (res Result, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	if IsWrite(req.Op) {
+		return Result{}, fmt.Errorf("op %q changes documents: submit it as a request for review", req.Op)
+	}
+	return m.run(ctx, c, req)
+}
+
+// ValidateRequest dry-runs a write on a scratch collection: the matching
+// documents are copied into a throwaway database, the write runs there, and
+// the scratch database is dropped whatever happens. It proves the filter, the
+// value document and the affected count against real data without touching
+// the collection.
+//
+// ponytail: a scratch copy, not a transaction (transactions need a replica
+// set). Switch to a real transaction when the server is one.
+func (m *DB) ValidateRequest(ctx context.Context, c entity.Connection, req Request) (res Result, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	if err := req.validate(); err != nil {
+		return Result{}, err
+	}
+	started := time.Now()
+	defer func() { res.DurationMs = time.Since(started).Milliseconds() }()
+
+	err = withClient(ctx, c, func(ctx context.Context, cl *mongo.Client) error {
+		ctx, cancel := context.WithTimeout(ctx, opTimeout)
+		defer cancel()
+
+		scratch := cl.Database("noxis_validate_" + strings.ReplaceAll(randSuffix(), "-", ""))
+		defer func() { _ = scratch.Drop(context.Background()) }()
+		temporary := scratch.Collection("dryrun")
+
+		affected, err := applyOn(ctx, cl.Database(req.Database).Collection(req.Collection), temporary, req)
+		if err != nil {
+			return err
+		}
+		res.Affected = affected
+		res.Message = fmt.Sprintf("would affect %d document(s), checked on a scratch collection", affected)
+		return nil
+	})
+	return res, err
+}
+
+// Apply runs a write for real, after review.
+func (m *DB) Apply(ctx context.Context, c entity.Connection, req Request) (res Result, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	if err := req.validate(); err != nil {
+		return Result{}, err
+	}
+	return m.run(ctx, c, req)
+}
+
+// applyOn copies the documents a request matches into target and applies the
+// write there. It is the body of the dry run, and the only difference from a
+// real apply is which collection it writes to.
+func applyOn(ctx context.Context, source, target *mongo.Collection, req Request) (int64, error) {
+	if req.Op == constants.MongoInsert {
+		doc, err := parseValue(req.Value)
+		if err != nil {
+			return 0, err
+		}
+		if req.Many {
+			docs, ok := doc.(bson.A)
+			if !ok {
+				return 0, fmt.Errorf("insert many needs an array of documents in the value box")
+			}
+			inserted, err := target.InsertMany(ctx, docs)
+			if err != nil {
+				return 0, fmt.Errorf("insertMany: %w", err)
+			}
+			return int64(len(inserted.InsertedIDs)), nil
+		}
+		if _, err := target.InsertOne(ctx, doc); err != nil {
+			return 0, fmt.Errorf("insertOne: %w", err)
+		}
+		return 1, nil
+	}
+
+	// update and delete: copy what the filter matches, then write to the copy
+	filter, err := parseFilter(req.Filter)
+	if err != nil {
+		return 0, err
+	}
+	cursor, err := source.Find(ctx, filter, options.Find().SetLimit(maxGridRows*25))
+	if err != nil {
+		return 0, fmt.Errorf("find: %w", err)
+	}
+	var docs bson.A
+	for cursor.Next(ctx) {
+		var doc bson.M
+		if err := cursor.Decode(&doc); err != nil {
+			return 0, fmt.Errorf("decode document: %w", err)
+		}
+		docs = append(docs, doc)
+	}
+	if err := cursor.Err(); err != nil {
+		return 0, fmt.Errorf("iterate: %w", err)
+	}
+	_ = cursor.Close(ctx)
+	if len(docs) > 0 {
+		if _, err := target.InsertMany(ctx, docs); err != nil {
+			return 0, fmt.Errorf("stage documents: %w", err)
+		}
+	}
+
+	switch req.Op {
+	case constants.MongoUpdate:
+		value, err := parseValue(req.Value)
+		if err != nil {
+			return 0, err
+		}
+		if req.Many {
+			result, err := target.UpdateMany(ctx, bson.M{}, value)
+			if err != nil {
+				return 0, fmt.Errorf("updateMany: %w", err)
+			}
+			return result.ModifiedCount, nil
+		}
+		result, err := target.UpdateOne(ctx, bson.M{}, value)
+		if err != nil {
+			return 0, fmt.Errorf("updateOne: %w", err)
+		}
+		return result.ModifiedCount, nil
+	case constants.MongoDelete:
+		if req.Many {
+			result, err := target.DeleteMany(ctx, bson.M{})
+			if err != nil {
+				return 0, fmt.Errorf("deleteMany: %w", err)
+			}
+			return result.DeletedCount, nil
+		}
+		result, err := target.DeleteOne(ctx, bson.M{})
+		if err != nil {
+			return 0, fmt.Errorf("deleteOne: %w", err)
+		}
+		return result.DeletedCount, nil
+	}
+	return 0, fmt.Errorf("unsupported op %q", req.Op)
+}
+
+// randSuffix names a scratch database uniquely, so two validations running at
+// once cannot drop each other's work.
+func randSuffix() string {
+	buf := make([]byte, 8)
+	if _, err := rand.Read(buf); err != nil {
+		return strconv.FormatInt(time.Now().UnixNano(), 16)
+	}
+	return hex.EncodeToString(buf)
+}
+
+// run executes a request against the real collection.
+func (m *DB) run(ctx context.Context, c entity.Connection, req Request) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	started := time.Now()
@@ -515,12 +694,18 @@ func renderCursor(ctx context.Context, cursor *mongo.Cursor, res *Result) error 
 	sort.Strings(columns)
 	res.Columns = columns
 	res.Rows = make([][]string, 0, len(docs))
+	// the documents ride along as Extended JSON so the console can render them
+	// as JSON or as a tree without guessing from the grid
+	res.Documents = make([]string, 0, len(docs))
 	for _, doc := range docs {
 		row := make([]string, len(columns))
 		for i, column := range columns {
 			row[i] = jsonValue(doc[column])
 		}
 		res.Rows = append(res.Rows, row)
+		if encoded, err := bson.MarshalExtJSON(doc, false, false); err == nil {
+			res.Documents = append(res.Documents, string(encoded))
+		}
 	}
 	res.RowsReturned = len(res.Rows)
 	res.Message = fmt.Sprintf("%d document(s)", len(res.Rows))

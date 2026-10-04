@@ -12,17 +12,23 @@ type (
 	MongoDatabase   = mongosvc.Database
 	MongoCollection = mongosvc.Collection
 	MongoRequest    = mongosvc.Request
+	MongoResult     = mongosvc.Result
 	MongoStats      = mongosvc.Stats
 )
 
-// MongoModule is the console's only route to a MongoDB server. Requests run
-// directly: a document change has no generic rollback, so the guards are the
-// op allowlist and the refusal to update or delete without a filter.
+// MongoModule is the console's only route to a MongoDB server. Reads run
+// directly; writes are validated on a scratch collection and then reviewed,
+// because a document change has no rollback to undo it.
 type MongoModule interface {
 	Module
 	Databases(ctx context.Context, c entity.Connection) ([]MongoDatabase, error)
 	Collections(ctx context.Context, c entity.Connection, database string) ([]MongoCollection, error)
-	Run(ctx context.Context, c entity.Connection, req MongoRequest) (Result, error)
+	// Run executes a read request; a write is refused here by design.
+	Run(ctx context.Context, c entity.Connection, req MongoRequest) (MongoResult, error)
+	// ValidateRequest dry-runs a write against a scratch collection.
+	ValidateRequest(ctx context.Context, c entity.Connection, req MongoRequest) (MongoResult, error)
+	// Apply executes a write for real, after review.
+	Apply(ctx context.Context, c entity.Connection, req MongoRequest) (MongoResult, error)
 	Stats(ctx context.Context, c entity.Connection, database, collection string) (MongoStats, error)
 }
 

@@ -1,5 +1,13 @@
-import { useEffect, useState } from "react";
-import { api, type MongoCollection, type MongoDatabase, type MongoStats, type Result } from "@/lib/api";
+import { useCallback, useEffect, useState } from "react";
+import {
+  api,
+  type Change,
+  type MongoChangeInput,
+  type MongoCollection,
+  type MongoDatabase,
+  type MongoResult,
+  type MongoStats,
+} from "@/lib/api";
 import { useApp } from "@/app/app-provider";
 import { useAction } from "@/hooks/use-action";
 
@@ -53,13 +61,57 @@ export function useMongoCollections(connection?: string, database?: string) {
   return { collections, loading: load.loading, reload: () => connection && database && void load.run(connection, database) };
 }
 
-// useMongoRequest runs one CRUD request and keeps its result.
-export function useMongoRequest() {
-  const [result, setResult] = useState<Result | null>(null);
+// useMongoRead runs one read request (find, aggregate, count) and keeps its
+// result. Writes are not accepted here: they belong in the request queue.
+export function useMongoRead() {
+  const [result, setResult] = useState<MongoResult | null>(null);
   const run = useAction(async (name: string, body: Parameters<typeof api.mongodb.run>[1]) => {
     setResult(await api.mongodb.run(name, body));
   });
   return { result, run, loading: run.loading, reset: () => setResult(null) };
+}
+
+// useMongoChanges is the request queue: submit validates, approve signs off,
+// apply runs (there is no rollback to fall back on).
+export function useMongoChanges() {
+  const [changes, setChanges] = useState<Change[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    try {
+      const { changes: list } = await api.mongodb.changes.list();
+      setChanges(list ?? []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const submit = useAction(async (input: MongoChangeInput) => {
+    const change = await api.mongodb.changes.submit(input);
+    await reload();
+    return change;
+  });
+  const approve = useAction(async (id: string) => {
+    const change = await api.mongodb.changes.approve(id);
+    await reload();
+    return change;
+  });
+  const apply = useAction(async (id: string) => {
+    const change = await api.mongodb.changes.apply(id);
+    await reload();
+    return change;
+  });
+  const reject = useAction(async (id: string) => {
+    const change = await api.mongodb.changes.reject(id);
+    await reload();
+    return change;
+  });
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  return { changes, loading, reload, submit, approve, apply, reject };
 }
 
 // useMongoStatsStream subscribes to the stats stream (2s ticks), scoped to a

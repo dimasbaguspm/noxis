@@ -77,6 +77,12 @@ func newHandler(store *sqlite.Store, log *slog.Logger) http.Handler {
 	mux.HandleFunc("POST /v1/mongodb/connections/{name}/requests", controller.PostMongoRequest)
 	mux.HandleFunc("GET /v1/mongodb/connections/{name}/stats", controller.GetMongoStats)
 	mux.HandleFunc("GET /v1/mongodb/connections/{name}/stats/stream", controller.StreamMongoStats)
+	mux.HandleFunc("GET /v1/mongodb/changes", controller.ListMongoChanges)
+	mux.HandleFunc("POST /v1/mongodb/changes", controller.SubmitMongoChange)
+	mux.HandleFunc("GET /v1/mongodb/changes/{id}", controller.GetMongoChange)
+	mux.HandleFunc("POST /v1/mongodb/changes/{id}/approve", controller.ApproveMongoChange)
+	mux.HandleFunc("POST /v1/mongodb/changes/{id}/apply", controller.ApplyMongoChange)
+	mux.HandleFunc("POST /v1/mongodb/changes/{id}/reject", controller.RejectMongoChange)
 	mux.Handle("GET /assets/", http.HandlerFunc(controller.GetAssets)) // embedded FS keeps the assets/ prefix
 	mux.HandleFunc("GET /", controller.GetConsole)                     // the operator console (SPA shell)
 

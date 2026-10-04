@@ -60,9 +60,11 @@ volume, no docker socket.
     type, remove selected keys, and empty a database behind a typed
     confirmation; Analytics charts INFO (memory, clients, ops/sec, hit ratio,
     eviction)
-  - **MongoDB** — Explore walks databases → collections with counts, sizes and
-    indexes; Requests runs one CRUD request at a time with the filter and the
-    value apart (monaco completing `$operators` and document fields); Analytics
+  - **MongoDB** — Explore has three resizable panes (databases, collections,
+    documents): pick a collection and filter it, reading the documents as
+    **JSON, a grid or a tree**; Requests is the review queue plus a wizard
+    (database → collection → filter and value, stacked) and a review page with
+    the dry-run checks, the activity trail and no rollback editor; Analytics
     watches serverStatus, dbStats and collStats over SSE
 
 ## Docs

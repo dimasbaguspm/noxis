@@ -53,6 +53,128 @@ func (w *world) mongoSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the mongo request is rejected with "([^"]*)"$`, w.mongoRejected)
 	sc.Step(`^I read mongo stats for "([^"]*)" and "([^"]*)"$`, w.mongoStats)
 	sc.Step("the mongo stats describe the server and the collection", w.mongoStatsDescribe)
+	sc.Step(`^I request a mongo "([^"]*)" on "([^"]*)" with filter (.+?) and value (.+)$`, w.mongoRequestChange)
+	sc.Step("the mongo request is validated", w.mongoRequestValidated)
+	sc.Step(`^the mongo request estimates (\d+) affected$`, w.mongoRequestEstimate)
+	sc.Step("the mongo request was not recorded", w.mongoRequestNotRecorded)
+	sc.Step("I approve the mongo request", w.mongoRequestApprove)
+	sc.Step("I apply the mongo request", w.mongoRequestApply)
+	sc.Step(`^the mongo request is "([^"]*)"$`, w.mongoRequestStatus)
+	sc.Step("a read op is refused by the request queue", w.mongoReadRefused)
+	sc.Step(`^the mongo request checks mention "([^"]*)"$`, w.mongoChecksMention)
+}
+
+// mongoRequestChange submits a write as a request for review, the way the
+// console does.
+func (w *world) mongoRequestChange(ctx context.Context, op, collection, filter, value string) error {
+	w.change = changeBody{}
+	w.mongoQueueSize = w.mongoQueueLen()
+	body := map[string]any{
+		"connection": w.conn, "notes": "uat " + op, "op": op, "database": "demo",
+		"collection": collection, "filter": filter, "value": value, "many": false,
+	}
+	if err := w.api(http.MethodPost, "/v1/mongodb/changes", body, &w.change); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("submit mongo request: %d", w.code)
+	}
+	return nil
+}
+
+func (w *world) mongoRequestValidated(ctx context.Context) error {
+	if w.change.Status != "validated" {
+		return fmt.Errorf("request status %q want validated (checks: %+v)", w.change.Status, w.change.Checks)
+	}
+	return nil
+}
+
+func (w *world) mongoRequestEstimate(ctx context.Context, want int) error {
+	if w.change.EstAffected != int64(want) {
+		return fmt.Errorf("estimate %d want %d", w.change.EstAffected, want)
+	}
+	return nil
+}
+
+// mongoChecksMention asserts a validation check says why a request was
+// refused (a delete with no filter, an unknown update operator).
+func (w *world) mongoChecksMention(ctx context.Context, fragment string) error {
+	for _, check := range w.change.Checks {
+		if strings.Contains(check.Error, fragment) {
+			return nil
+		}
+	}
+	return fmt.Errorf("no check mentions %q (checks: %+v)", fragment, w.change.Checks)
+}
+
+// mongoQueueLen reads how many requests are already in the queue.
+func (w *world) mongoQueueLen() int {
+	var out struct {
+		Changes []changeBody `json:"changes"`
+	}
+	if err := w.api(http.MethodGet, "/v1/mongodb/changes", nil, &out); err != nil {
+		return -1
+	}
+	return len(out.Changes)
+}
+
+// mongoRequestNotRecorded proves a failed validation is a rejected proposal:
+// it is returned with its checks and never enters the queue.
+func (w *world) mongoRequestNotRecorded(ctx context.Context) error {
+	if w.change.ID != "" {
+		return fmt.Errorf("failed request was recorded with id %s", w.change.ID)
+	}
+	var out struct {
+		Changes []changeBody `json:"changes"`
+	}
+	if err := w.api(http.MethodGet, "/v1/mongodb/changes", nil, &out); err != nil {
+		return err
+	}
+	if len(out.Changes) != w.mongoQueueSize {
+		return fmt.Errorf("queue grew to %d, want %d", len(out.Changes), w.mongoQueueSize)
+	}
+	return nil
+}
+
+func (w *world) mongoRequestApprove(ctx context.Context) error {
+	if err := w.api(http.MethodPost, "/v1/mongodb/changes/"+w.change.ID+"/approve", map[string]string{}, &w.change); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("approve: %d", w.code)
+	}
+	return nil
+}
+
+func (w *world) mongoRequestApply(ctx context.Context) error {
+	if err := w.api(http.MethodPost, "/v1/mongodb/changes/"+w.change.ID+"/apply", map[string]string{}, &w.change); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("apply: %d", w.code)
+	}
+	return nil
+}
+
+func (w *world) mongoRequestStatus(ctx context.Context, want string) error {
+	if w.change.Status != want {
+		return fmt.Errorf("request status %q want %q (checks: %+v)", w.change.Status, want, w.change.Checks)
+	}
+	return nil
+}
+
+// mongoReadRefused proves a read cannot be queued as a request.
+func (w *world) mongoReadRefused(ctx context.Context) error {
+	body := map[string]any{
+		"connection": w.conn, "notes": "read", "op": "find", "database": "demo", "collection": "items",
+	}
+	if err := w.api(http.MethodPost, "/v1/mongodb/changes", body, &w.change); err != nil {
+		return err
+	}
+	if w.change.Status != "failed" {
+		return fmt.Errorf("read request status %q want failed", w.change.Status)
+	}
+	return nil
 }
 
 func (w *world) registerMongo(ctx context.Context, name string) error {

@@ -10,6 +10,14 @@ export type MongoStats = components["schemas"]["mongodb.Stats"];
 export type MongoDatabase = components["schemas"]["mongodb.Database"];
 export type MongoCollection = components["schemas"]["mongodb.Collection"];
 export type MongoRequest = components["schemas"]["mongodb.Request"];
+export type MongoResult = components["schemas"]["mongodb.Result"];
+
+// MongoChangeInput is one submitted request: the change envelope plus the
+// request itself, flat so the wizard sends a single object.
+export interface MongoChangeInput extends MongoRequest {
+  connection: string;
+  notes: string;
+}
 export type MemcacheKey = components["schemas"]["memcache.Key"];
 export type MemcacheKeyPage = components["schemas"]["memcache.KeyPage"];
 
@@ -97,8 +105,9 @@ export const api = {
         "GET",
         `/v1/mongodb/connections/${name}/collections?database=${encodeURIComponent(database)}`,
       ),
+    // reads only: a write op is refused here and belongs in the request queue
     run: (name: string, req: MongoRequest) =>
-      request<Result>("POST", `/v1/mongodb/connections/${name}/requests`, req),
+      request<MongoResult>("POST", `/v1/mongodb/connections/${name}/requests`, req),
     stats: (name: string, database?: string, collection?: string) =>
       request<MongoStats>(
         "GET",
@@ -108,6 +117,14 @@ export const api = {
     statsStream: (name: string, database?: string, collection?: string) =>
       `/v1/mongodb/connections/${name}/stats/stream?database=${encodeURIComponent(database ?? "")}` +
       `&collection=${encodeURIComponent(collection ?? "")}`,
+    changes: {
+      list: () => request<{ changes: Change[] }>("GET", "/v1/mongodb/changes"),
+      submit: (input: MongoChangeInput) => request<Change>("POST", "/v1/mongodb/changes", input),
+      get: (id: string) => request<Change>("GET", `/v1/mongodb/changes/${id}`),
+      approve: (id: string) => request<Change>("POST", `/v1/mongodb/changes/${id}/approve`),
+      apply: (id: string) => request<Change>("POST", `/v1/mongodb/changes/${id}/apply`),
+      reject: (id: string) => request<Change>("POST", `/v1/mongodb/changes/${id}/reject`),
+    },
   },
   changes: {
     list: () => request<{ changes: Change[] }>("GET", "/v1/sql/changes"),

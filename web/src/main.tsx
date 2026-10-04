@@ -18,6 +18,8 @@ const MemcachePage = lazy(() => import("@/pages/memcache"));
 const MemcacheAnalyticsPage = lazy(() => import("@/pages/memcache-analytics"));
 const MongoExplorePage = lazy(() => import("@/pages/mongodb"));
 const MongoRequestsPage = lazy(() => import("@/pages/mongodb-requests"));
+const MongoRequestNewPage = lazy(() => import("@/pages/mongodb-request-new"));
+const MongoRequestDetailPage = lazy(() => import("@/pages/mongodb-request-detail"));
 const MongoAnalyticsPage = lazy(() => import("@/pages/mongodb-analytics"));
 const ChangeDetail = lazy(() =>
   import("@/pages/change-detail").then((m) => ({ default: m.ChangeDetailPage })),
@@ -38,6 +40,8 @@ const router = createBrowserRouter([
       { path: "memcache/analytics", element: <MemcacheAnalyticsPage /> },
       { path: "mongodb", element: <MongoExplorePage /> },
       { path: "mongodb/requests", element: <MongoRequestsPage /> },
+      { path: "mongodb/requests/new", element: <MongoRequestNewPage /> },
+      { path: "mongodb/requests/:id", element: <MongoRequestDetailPage /> },
       { path: "mongodb/analytics", element: <MongoAnalyticsPage /> },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
