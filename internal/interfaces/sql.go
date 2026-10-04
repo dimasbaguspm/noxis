@@ -19,7 +19,7 @@ type (
 // registered and tested. Adding an engine starts here.
 type Module interface {
 	// Family is the API namespace this module serves (constants.FamilySQL,
-	// constants.FamilyRedis).
+	// constants.FamilyMemcache).
 	Family() string
 	// Supports reports whether this module serves the driver, which keeps a
 	// connection out of the other families' namespaces.

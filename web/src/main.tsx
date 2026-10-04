@@ -15,8 +15,8 @@ const QueryPage = lazy(() => import("@/pages/query"));
 const DmlPage = lazy(() => import("@/pages/dml"));
 const DdlPage = lazy(() => import("@/pages/ddl"));
 const AnalyticsPage = lazy(() => import("@/pages/analytics"));
-const RedisExplorePage = lazy(() => import("@/pages/redis-explore"));
-const RedisAnalyticsPage = lazy(() => import("@/pages/redis-analytics"));
+const MemcachePage = lazy(() => import("@/pages/memcache"));
+const MemcacheAnalyticsPage = lazy(() => import("@/pages/memcache-analytics"));
 const PlaceholderPage = lazy(() =>
   import("@/components/layout/placeholder-page").then((m) => ({ default: m.PlaceholderPage })),
 );
@@ -35,8 +35,8 @@ const router = createBrowserRouter([
       { path: "ddl", element: <DdlPage /> },
       { path: "ddl/:id", element: <ChangeDetail kind="ddl" /> },
       { path: "analytics", element: <AnalyticsPage /> },
-      { path: "redis", element: <RedisExplorePage /> },
-      { path: "redis/analytics", element: <RedisAnalyticsPage /> },
+      { path: "memcache", element: <MemcachePage /> },
+      { path: "memcache/analytics", element: <MemcacheAnalyticsPage /> },
       ...Object.keys(PLACEHOLDERS).map((path) => ({
         path: path.replace(/^\//, ""),
         element: <PlaceholderPage spec={PLACEHOLDERS[path]} />,

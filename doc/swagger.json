@@ -34,7 +34,7 @@
                 }
             }
         },
-        "/v1/redis/connections": {
+        "/v1/memcache/connections": {
             "get": {
                 "summary": "List redis connections (passwords redacted)",
                 "responses": {
@@ -90,7 +90,7 @@
                 }
             }
         },
-        "/v1/redis/connections/{name}": {
+        "/v1/memcache/connections/{name}": {
             "get": {
                 "summary": "Get one redis connection (password redacted)",
                 "parameters": [
@@ -163,7 +163,7 @@
                 }
             }
         },
-        "/v1/redis/connections/{name}/flush": {
+        "/v1/memcache/connections/{name}/flush": {
             "post": {
                 "summary": "Empty the connected database (FLUSHDB, never FLUSHALL)",
                 "parameters": [
@@ -181,7 +181,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/controller.redisFlushBody"
+                                "$ref": "#/components/schemas/controller.memcacheFlushBody"
                             }
                         }
                     },
@@ -220,7 +220,7 @@
                 }
             }
         },
-        "/v1/redis/connections/{name}/keys": {
+        "/v1/memcache/connections/{name}/keys": {
             "get": {
                 "summary": "Browse keys by pattern (bounded scan, with type, TTL and size)",
                 "parameters": [
@@ -256,7 +256,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/redis.KeyPage"
+                                    "$ref": "#/components/schemas/memcache.KeyPage"
                                 }
                             }
                         }
@@ -293,7 +293,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/controller.redisKeysBody"
+                                "$ref": "#/components/schemas/controller.memcacheKeysBody"
                             }
                         }
                     },
@@ -332,9 +332,9 @@
                 }
             }
         },
-        "/v1/redis/connections/{name}/stats": {
+        "/v1/memcache/connections/{name}/stats": {
             "get": {
-                "summary": "Redis INFO snapshot (memory, clients, hits, persistence)",
+                "summary": "Memcache INFO snapshot (memory, clients, hits, persistence)",
                 "parameters": [
                     {
                         "description": "connection name",
@@ -352,7 +352,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/redis.Stats"
+                                    "$ref": "#/components/schemas/memcache.Stats"
                                 }
                             }
                         }
@@ -373,9 +373,9 @@
                 }
             }
         },
-        "/v1/redis/connections/{name}/stats/stream": {
+        "/v1/memcache/connections/{name}/stats/stream": {
             "get": {
-                "summary": "Redis stats stream (SSE, one INFO snapshot every 2s)",
+                "summary": "Memcache stats stream (SSE, one INFO snapshot every 2s)",
                 "parameters": [
                     {
                         "description": "connection name",
@@ -401,7 +401,7 @@
                 }
             }
         },
-        "/v1/redis/connections/{name}/test": {
+        "/v1/memcache/connections/{name}/test": {
             "post": {
                 "summary": "Test that a redis connection answers",
                 "parameters": [
@@ -447,7 +447,7 @@
                 }
             }
         },
-        "/v1/redis/connections/{name}/value": {
+        "/v1/memcache/connections/{name}/value": {
             "get": {
                 "summary": "Inspect one key's value (rendered per its type)",
                 "parameters": [
@@ -877,7 +877,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/sql.Result"
+                                    "$ref": "#/components/schemas/entity.Result"
                                 }
                             }
                         }
@@ -929,7 +929,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/sql.Result"
+                                    "$ref": "#/components/schemas/entity.Result"
                                 }
                             }
                         }
@@ -981,7 +981,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/sql.Result"
+                                    "$ref": "#/components/schemas/entity.Result"
                                 }
                             }
                         }
@@ -1025,7 +1025,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/sql.Result"
+                                    "$ref": "#/components/schemas/entity.Result"
                                 }
                             }
                         }
@@ -1209,7 +1209,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/sql.Result"
+                                    "$ref": "#/components/schemas/entity.Result"
                                 }
                             }
                         }
@@ -1303,6 +1303,25 @@
             }
         },
         "schemas": {
+            "controller.memcacheFlushBody": {
+                "type": "object",
+                "properties": {
+                    "confirm": {
+                        "type": "string"
+                    }
+                }
+            },
+            "controller.memcacheKeysBody": {
+                "type": "object",
+                "properties": {
+                    "keys": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
             "controller.opBody": {
                 "type": "object",
                 "properties": {
@@ -1311,25 +1330,6 @@
                     },
                     "table": {
                         "type": "string"
-                    }
-                }
-            },
-            "controller.redisFlushBody": {
-                "type": "object",
-                "properties": {
-                    "confirm": {
-                        "type": "string"
-                    }
-                }
-            },
-            "controller.redisKeysBody": {
-                "type": "object",
-                "properties": {
-                    "keys": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
                     }
                 }
             },
@@ -1508,7 +1508,7 @@
                     }
                 }
             },
-            "redis.Key": {
+            "memcache.Key": {
                 "type": "object",
                 "properties": {
                     "name": {
@@ -1525,13 +1525,13 @@
                     }
                 }
             },
-            "redis.KeyPage": {
+            "memcache.KeyPage": {
                 "type": "object",
                 "properties": {
                     "keys": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/redis.Key"
+                            "$ref": "#/components/schemas/memcache.Key"
                         }
                     },
                     "pattern": {
@@ -1545,7 +1545,7 @@
                     }
                 }
             },
-            "redis.Stats": {
+            "memcache.Stats": {
                 "type": "object",
                 "properties": {
                     "aofEnabled": {
@@ -1633,41 +1633,6 @@
                     },
                     "type": {
                         "type": "string"
-                    }
-                }
-            },
-            "sql.Result": {
-                "type": "object",
-                "properties": {
-                    "affected": {
-                        "type": "integer"
-                    },
-                    "columns": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "durationMs": {
-                        "type": "integer"
-                    },
-                    "estimatedRows": {
-                        "type": "integer"
-                    },
-                    "message": {
-                        "type": "string"
-                    },
-                    "rows": {
-                        "type": "array",
-                        "items": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "rowsReturned": {
-                        "type": "integer"
                     }
                 }
             },

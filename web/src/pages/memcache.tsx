@@ -16,10 +16,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { ResultTable } from "@/components/sql/result-table";
 import { useAction } from "@/hooks/use-action";
-import { useRedisConnections, useRedisKeys, useRedisValue } from "@/hooks/use-redis";
+import { useMemcacheConnections, useMemcacheKeys, useMemcacheValue } from "@/hooks/use-memcache";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -34,11 +33,12 @@ interface Row {
   size: number;
 }
 
-// RedisExplorePage browses a live server: keys with their type and TTL, the
-// value of the selected one, removal of the selected keys, and emptying the
-// database behind a typed confirmation.
-export default function RedisExplorePage() {
-  const { connections, connection, pick, reload } = useRedisConnections();
+// MemcachePage browses a live memory-cache server: keys with their type and
+// TTL, the value of a key in a dialog, removal of the selected keys, and
+// emptying the database behind a typed confirmation. New instances are
+// registered from the dashboard, the single entry point.
+export default function MemcachePage() {
+  const { connections, connection, pick } = useMemcacheConnections();
   const [pattern, setPattern] = useState("*");
   const [glob, setGlob] = useState("*");
   const [selected, setSelected] = useState<string[]>([]);
@@ -53,8 +53,8 @@ export default function RedisExplorePage() {
     return () => window.clearTimeout(id);
   }, [pattern]);
 
-  const { page, loading, reload: reloadKeys } = useRedisKeys(connection, glob);
-  const { result, loading: valueLoading } = useRedisValue(connection, inspected);
+  const { page, loading, reload: reloadKeys } = useMemcacheKeys(connection, glob);
+  const { result, loading: valueLoading } = useMemcacheValue(connection, inspected);
 
   useEffect(() => {
     setSelected([]);
@@ -80,7 +80,7 @@ export default function RedisExplorePage() {
 
   const removeKeys = useAction(async () => {
     if (!connection || selected.length === 0) return;
-    const res = await api.redis.removeKeys(connection, selected);
+    const res = await api.memcache.removeKeys(connection, selected);
     toast.success(`${res.deleted} key(s) removed`);
     setSelected([]);
     if (inspected && selected.includes(inspected)) setInspected(undefined);
@@ -89,7 +89,7 @@ export default function RedisExplorePage() {
 
   const flush = useAction(async () => {
     if (!connection) return;
-    await api.redis.flush(connection);
+    await api.memcache.flush(connection);
     toast.success(`${connection}: database emptied`);
     setFlushOpen(false);
     setConfirm("");
@@ -120,10 +120,10 @@ export default function RedisExplorePage() {
       <div className="flex flex-wrap items-center gap-3">
         <Select value={connection ?? ""} onValueChange={(v) => pick(String(v))}>
           <SelectTrigger className="w-56">
-            <SelectValue placeholder="no redis connection" />
+            <SelectValue placeholder="no memory cache registered" />
           </SelectTrigger>
           <SelectContent>
-            {connections.length === 0 && <SelectItem value="none">no connection yet</SelectItem>}
+            {connections.length === 0 && <SelectItem value="none">none registered yet</SelectItem>}
             {connections.map((c) => (
               <SelectItem key={c.name} value={c.name}>
                 {c.name}
@@ -131,7 +131,6 @@ export default function RedisExplorePage() {
             ))}
           </SelectContent>
         </Select>
-        <ConnectionDialog family="redis" trigger="New connection" onSaved={reload} />
         <div className="flex items-center gap-2">
           <Search className="size-4 text-muted-foreground" />
           <Input
@@ -147,9 +146,7 @@ export default function RedisExplorePage() {
         <Badge variant="outline">{page.total} key(s) in db</Badge>
         {page.truncated && (
           <Tooltip>
-            <TooltipTrigger render={<span className="text-xs text-amber-500" />}>
-              scan truncated
-            </TooltipTrigger>
+            <TooltipTrigger render={<span className="text-xs text-amber-500" />}>scan truncated</TooltipTrigger>
             <TooltipContent>
               The keyspace holds more keys than one scan reads (500 by default). Narrow the pattern.
             </TooltipContent>
@@ -157,101 +154,99 @@ export default function RedisExplorePage() {
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
-        <Card className="flex min-h-0 flex-col">
-          <CardHeader>
-            <CardTitle className="text-base">Keys</CardTitle>
-            <CardDescription>
-              {selected.length > 0 ? `${selected.length} selected` : "click a key to inspect its value"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="min-h-0 overflow-auto">
-            <div className="mb-2 flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={selected.length === 0 || removeKeys.loading}
-                onClick={() => void removeKeys.run()}
-              >
-                <Trash2 /> Remove selected
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive"
-                disabled={!connection}
-                onClick={() => setFlushOpen(true)}
-              >
-                <Eraser /> Empty database
-              </Button>
-            </div>
-            <Table>
-              <TableHeader>
+      <Card className="flex min-h-0 flex-col">
+        <CardHeader>
+          <CardTitle className="text-base">Keys</CardTitle>
+          <CardDescription>
+            {selected.length > 0 ? `${selected.length} selected` : "click a key to open its value"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="min-h-0 overflow-auto">
+          <div className="mb-2 flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={selected.length === 0 || removeKeys.loading}
+              onClick={() => void removeKeys.run()}
+            >
+              <Trash2 /> Remove selected
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive"
+              disabled={!connection}
+              onClick={() => setFlushOpen(true)}
+            >
+              <Eraser /> Empty database
+            </Button>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-8" />
+                <TableHead>{head("name", "Key")}</TableHead>
+                <TableHead>{head("type", "Type")}</TableHead>
+                <TableHead>{head("ttl", "TTL")}</TableHead>
+                <TableHead>{head("size", "Size")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {keys.length === 0 && (
                 <TableRow>
-                  <TableHead className="w-8" />
-                  <TableHead>{head("name", "Key")}</TableHead>
-                  <TableHead>{head("type", "Type")}</TableHead>
-                  <TableHead>{head("ttl", "TTL")}</TableHead>
-                  <TableHead>{head("size", "Size")}</TableHead>
+                  <TableCell colSpan={5} className="text-muted-foreground">
+                    {connection ? "no key matches" : "register a memory cache from the dashboard to browse"}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {keys.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-muted-foreground">
-                      {connection ? "no key matches" : "register a redis connection to browse"}
-                    </TableCell>
-                  </TableRow>
-                )}
-                {keys.map((key) => (
-                  <TableRow
-                    key={key.name}
-                    className={cn("cursor-pointer", inspected === key.name && "bg-accent/60")}
-                    onClick={() => setInspected(key.name)}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        aria-label={`select ${key.name}`}
-                        checked={selected.includes(key.name)}
-                        onChange={() => toggle(key.name)}
-                      />
-                    </TableCell>
-                    <TableCell className="max-w-64 truncate font-mono text-xs" title={key.name}>
-                      {key.name}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-[10px]">
-                        {key.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{ttl(key.ttl)}</TableCell>
-                    <TableCell className="text-xs tabular-nums text-muted-foreground">
-                      {key.size ? bytes(key.size) : "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              )}
+              {keys.map((key) => (
+                <TableRow
+                  key={key.name}
+                  className={cn("cursor-pointer", inspected === key.name && "bg-accent/60")}
+                  onClick={() => setInspected(key.name)}
+                >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      aria-label={`select ${key.name}`}
+                      checked={selected.includes(key.name)}
+                      onChange={() => toggle(key.name)}
+                    />
+                  </TableCell>
+                  <TableCell className="max-w-96 truncate font-mono text-xs" title={key.name}>
+                    {key.name}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-[10px]">
+                      {key.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{ttl(key.ttl)}</TableCell>
+                  <TableCell className="text-xs tabular-nums text-muted-foreground">
+                    {key.size ? bytes(key.size) : "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-        <Card className="flex min-h-0 flex-col">
-          <CardHeader>
-            <CardTitle className="truncate font-mono text-base">{inspected ?? "Value"}</CardTitle>
-            <CardDescription>
-              {inspected ? "rendered per the key's type" : "select a key on the left"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="min-h-0 overflow-auto">
+      <Dialog open={inspected !== undefined} onOpenChange={(open) => !open && setInspected(undefined)}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="truncate font-mono text-base">{inspected}</DialogTitle>
+            <DialogDescription>rendered per the key's type</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60svh] overflow-auto">
             {valueLoading ? (
               <p className="text-sm text-muted-foreground">loading…</p>
             ) : (
               <ResultTable result={result} title={inspected ?? "value"} />
             )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={flushOpen} onOpenChange={setFlushOpen}>
         <DialogContent className="sm:max-w-md">

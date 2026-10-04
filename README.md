@@ -27,21 +27,22 @@ volume, no docker socket.
   there is no validated change queue for it: keys can be browsed, inspected and
   removed, and every operation is a typed client call (no command text to
   inject). `FLUSHALL` is deliberately unreachable.
-- **Namespaced API** — `/v1/sql/...` and `/v1/redis/...`; each family serves
-  only its own drivers, so a redis connection is invisible to the SQL routes
-  and vice versa. The console follows the same split: the dashboard lists SQL
-  instances and key-value servers as separate tables, and the sidebar groups
-  them.
-- **Valkey works** — it implements the Redis protocol and command set, so it is
-  served by the same module under its own driver name (`valkey`), and INFO is
-  read from its own `valkey_version` so the console shows what it is really
-  talking to. The acceptance suite registers a real Valkey server to keep that
-  claim honest.
+- **Namespaced API** — `/v1/sql/...` and `/v1/memcache/...`; each family serves
+  only its own drivers, so a memory-cache connection is invisible to the SQL
+  routes and vice versa. The console follows the same split: one dashboard
+  table for every instance with a detail dialog, and a sidebar group per
+  family.
+- **Redis and Valkey are one family: Memory Cache** — Valkey implements the
+  Redis protocol and command set, so it is served by the same module under its
+  own driver name (`valkey`), and INFO is read from its own `valkey_version` so
+  the console shows what it is really talking to. The acceptance suite
+  registers a real Valkey server to keep that claim honest.
 - **Operator console** — served by the binary itself at `/` (React + TS +
   shadcn/ui, embedded; no build step at deploy time):
-  - **Dashboard** — registered instances in a searchable table with live
-    reachability (SSE), executed DDL/DML counts and the error rate; add an
-    instance (verified before it is saved)
+  - **Dashboard** — every instance in one searchable table with live
+    reachability (SSE) and a detail dialog; a swipeable tile counts All / SQL /
+    Memory Cache; one "new connection" wizard asks for the kind of instance
+    first, then verifies it before saving
   - menu (collapsible sidebar + a search field in the header that opens a
     searchable palette): Dashboard · SQL (Query, DML, DDL, Analytics) ·
     Redis (Keys, Analytics) · MongoDB (scoped, pages describe the plan)
@@ -54,7 +55,7 @@ volume, no docker socket.
     artifacts, never deleted
     - **Analytics** — live instance metrics over SSE (connections, cache hit
     ratio, throughput) with recharts graphs
-  - **Redis / Valkey** — browse keys by pattern with type, TTL and size (one bounded
+  - **Memory Cache** — browse keys by pattern with type, TTL and size (one bounded
     scan, so the list can be sorted by TTL for real), inspect any value per its
     type, remove selected keys, and empty a database behind a typed
     confirmation; Analytics charts INFO (memory, clients, ops/sec, hit ratio,
@@ -82,8 +83,8 @@ curl -s -X POST localhost:9000/v1/sql/connections/demo/query \
   -H 'Content-Type: application/json' -d '{"sql":"SELECT 6*6 AS n"}'
 
 # redis: register the compose server, browse keys, read INFO
-curl -s -X POST localhost:9000/v1/redis/connections -H 'Content-Type: application/json' \
+curl -s -X POST localhost:9000/v1/memcache/connections -H 'Content-Type: application/json' \
   -d '{"name":"cache","driver":"redis","host":"redis","port":6379,"database":"0"}'
-curl -s "localhost:9000/v1/redis/connections/cache/keys?pattern=*"
-curl -s localhost:9000/v1/redis/connections/cache/stats
+curl -s "localhost:9000/v1/memcache/connections/cache/keys?pattern=*"
+curl -s localhost:9000/v1/memcache/connections/cache/stats
 ```

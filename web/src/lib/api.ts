@@ -5,9 +5,9 @@ export type Change = components["schemas"]["entity.Change"];
 export type ChangeCheck = components["schemas"]["entity.ChangeCheck"];
 export type Result = components["schemas"]["entity.Result"];
 export type Stats = components["schemas"]["sql.Stats"];
-export type RedisStats = components["schemas"]["redis.Stats"];
-export type RedisKey = components["schemas"]["redis.Key"];
-export type RedisKeyPage = components["schemas"]["redis.KeyPage"];
+export type MemcacheStats = components["schemas"]["memcache.Stats"];
+export type MemcacheKey = components["schemas"]["memcache.Key"];
+export type MemcacheKeyPage = components["schemas"]["memcache.KeyPage"];
 
 export interface Column {
   name: string;
@@ -62,24 +62,24 @@ export const api = {
     analytics: (name: string, table: string) =>
       request<Result>("POST", `/v1/sql/connections/${name}/analytics`, { table }),
   },
-  redis: {
-    list: () => request<{ connections: Connection[] }>("GET", "/v1/redis/connections"),
-    save: (c: Connection) => request<Connection>("POST", "/v1/redis/connections", c),
-    remove: (name: string) => request<null>("DELETE", `/v1/redis/connections/${name}`),
-    test: (name: string) => request<{ status: string }>("POST", `/v1/redis/connections/${name}/test`),
+  memcache: {
+    list: () => request<{ connections: Connection[] }>("GET", "/v1/memcache/connections"),
+    save: (c: Connection) => request<Connection>("POST", "/v1/memcache/connections", c),
+    remove: (name: string) => request<null>("DELETE", `/v1/memcache/connections/${name}`),
+    test: (name: string) => request<{ status: string }>("POST", `/v1/memcache/connections/${name}/test`),
     keys: (name: string, pattern = "*", limit = 500) =>
-      request<RedisKeyPage>(
+      request<MemcacheKeyPage>(
         "GET",
-        `/v1/redis/connections/${name}/keys?pattern=${encodeURIComponent(pattern)}&limit=${limit}`,
+        `/v1/memcache/connections/${name}/keys?pattern=${encodeURIComponent(pattern)}&limit=${limit}`,
       ),
     value: (name: string, key: string) =>
-      request<Result>("GET", `/v1/redis/connections/${name}/value?key=${encodeURIComponent(key)}`),
+      request<Result>("GET", `/v1/memcache/connections/${name}/value?key=${encodeURIComponent(key)}`),
     removeKeys: (name: string, keys: string[]) =>
-      request<{ deleted: number }>("DELETE", `/v1/redis/connections/${name}/keys`, { keys }),
+      request<{ deleted: number }>("DELETE", `/v1/memcache/connections/${name}/keys`, { keys }),
     flush: (name: string) =>
-      request<{ status: string }>("POST", `/v1/redis/connections/${name}/flush`, { confirm: name }),
-    stats: (name: string) => request<RedisStats>("GET", `/v1/redis/connections/${name}/stats`),
-    statsStream: (name: string) => `/v1/redis/connections/${name}/stats/stream`,
+      request<{ status: string }>("POST", `/v1/memcache/connections/${name}/flush`, { confirm: name }),
+    stats: (name: string) => request<MemcacheStats>("GET", `/v1/memcache/connections/${name}/stats`),
+    statsStream: (name: string) => `/v1/memcache/connections/${name}/stats/stream`,
   },
   changes: {
     list: () => request<{ changes: Change[] }>("GET", "/v1/sql/changes"),

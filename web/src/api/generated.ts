@@ -74,7 +74,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/redis/connections": {
+    "/v1/memcache/connections": {
         parameters: {
             query?: never;
             header?: never;
@@ -143,7 +143,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/redis/connections/{name}": {
+    "/v1/memcache/connections/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -225,7 +225,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/redis/connections/{name}/flush": {
+    "/v1/memcache/connections/{name}/flush": {
         parameters: {
             query?: never;
             header?: never;
@@ -248,7 +248,7 @@ export interface paths {
             /** @description confirm must repeat the connection name */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["controller.redisFlushBody"];
+                    "application/json": components["schemas"]["controller.memcacheFlushBody"];
                 };
             };
             responses: {
@@ -282,7 +282,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/redis/connections/{name}/keys": {
+    "/v1/memcache/connections/{name}/keys": {
         parameters: {
             query?: never;
             header?: never;
@@ -313,7 +313,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["redis.KeyPage"];
+                        "*/*": components["schemas"]["memcache.KeyPage"];
                     };
                 };
                 /** @description Bad Request */
@@ -345,7 +345,7 @@ export interface paths {
             /** @description keys to remove */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["controller.redisKeysBody"];
+                    "application/json": components["schemas"]["controller.memcacheKeysBody"];
                 };
             };
             responses: {
@@ -378,14 +378,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/redis/connections/{name}/stats": {
+    "/v1/memcache/connections/{name}/stats": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Redis INFO snapshot (memory, clients, hits, persistence) */
+        /** Memcache INFO snapshot (memory, clients, hits, persistence) */
         get: {
             parameters: {
                 query?: never;
@@ -404,7 +404,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["redis.Stats"];
+                        "*/*": components["schemas"]["memcache.Stats"];
                     };
                 };
                 /** @description Bad Request */
@@ -428,14 +428,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/redis/connections/{name}/stats/stream": {
+    "/v1/memcache/connections/{name}/stats/stream": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Redis stats stream (SSE, one INFO snapshot every 2s) */
+        /** Memcache stats stream (SSE, one INFO snapshot every 2s) */
         get: {
             parameters: {
                 query?: never;
@@ -467,7 +467,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/redis/connections/{name}/test": {
+    "/v1/memcache/connections/{name}/test": {
         parameters: {
             query?: never;
             header?: never;
@@ -519,7 +519,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/redis/connections/{name}/value": {
+    "/v1/memcache/connections/{name}/value": {
         parameters: {
             query?: never;
             header?: never;
@@ -1025,7 +1025,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["sql.Result"];
+                        "*/*": components["schemas"]["entity.Result"];
                     };
                 };
                 /** @description Bad Request */
@@ -1080,7 +1080,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["sql.Result"];
+                        "*/*": components["schemas"]["entity.Result"];
                     };
                 };
                 /** @description Bad Request */
@@ -1135,7 +1135,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["sql.Result"];
+                        "*/*": components["schemas"]["entity.Result"];
                     };
                 };
                 /** @description Bad Request */
@@ -1185,7 +1185,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["sql.Result"];
+                        "*/*": components["schemas"]["entity.Result"];
                     };
                 };
                 /** @description Bad Request */
@@ -1381,7 +1381,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["sql.Result"];
+                        "*/*": components["schemas"]["entity.Result"];
                     };
                 };
                 /** @description Bad Request */
@@ -1461,15 +1461,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        "controller.memcacheFlushBody": {
+            confirm?: string;
+        };
+        "controller.memcacheKeysBody": {
+            keys?: string[];
+        };
         "controller.opBody": {
             sql?: string;
             table?: string;
-        };
-        "controller.redisFlushBody": {
-            confirm?: string;
-        };
-        "controller.redisKeysBody": {
-            keys?: string[];
         };
         "entity.Change": {
             affectedColumns?: string[];
@@ -1526,19 +1526,19 @@ export interface components {
             rows?: string[][];
             rowsReturned?: number;
         };
-        "redis.Key": {
+        "memcache.Key": {
             name?: string;
             sizeBytes?: number;
             ttlMs?: number;
             type?: string;
         };
-        "redis.KeyPage": {
-            keys?: components["schemas"]["redis.Key"][];
+        "memcache.KeyPage": {
+            keys?: components["schemas"]["memcache.Key"][];
             pattern?: string;
             total?: number;
             truncated?: boolean;
         };
-        "redis.Stats": {
+        "memcache.Stats": {
             aofEnabled?: boolean;
             aofLastWriteStatus?: string;
             connectedClients?: number;
@@ -1568,15 +1568,6 @@ export interface components {
             name?: string;
             nullable?: boolean;
             type?: string;
-        };
-        "sql.Result": {
-            affected?: number;
-            columns?: string[];
-            durationMs?: number;
-            estimatedRows?: number;
-            message?: string;
-            rows?: string[][];
-            rowsReturned?: number;
         };
         "sql.Stats": {
             active?: number;

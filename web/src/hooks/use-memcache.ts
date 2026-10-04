@@ -1,26 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, type RedisKeyPage, type RedisStats, type Result } from "@/lib/api";
+import { api, type MemcacheKeyPage, type MemcacheStats, type Result } from "@/lib/api";
 import { useApp } from "@/app/app-provider";
 import { useAction } from "@/hooks/use-action";
 
-// useRedisConnections reads the Redis-family registry from the provider: the
-// same list the dashboard shows, so the two never disagree.
-export function useRedisConnections() {
-  const { redisConnections, redisActive, setRedisActive, reloadRedis } = useApp();
+// useMemcacheConnections reads the memory-cache registry from the provider:
+// the same list the dashboard shows, so the two never disagree.
+export function useMemcacheConnections() {
+  const { memcacheConnections, memcacheActive, setMemcacheActive, reloadMemcache } = useApp();
   return {
-    connections: redisConnections,
-    connection: redisActive,
-    pick: setRedisActive,
-    reload: reloadRedis,
+    connections: memcacheConnections,
+    connection: memcacheActive,
+    pick: setMemcacheActive,
+    reload: reloadMemcache,
   };
 }
 
-// useRedisKeys browses keys by pattern. The API does a bounded full scan, so
+// useMemcacheKeys browses keys by pattern. The API does a bounded full scan, so
 // the whole page can be sorted by TTL in the browser.
-export function useRedisKeys(connection?: string, pattern = "*") {
-  const [page, setPage] = useState<RedisKeyPage>({ keys: [], total: 0, truncated: false, pattern: "*" });
+export function useMemcacheKeys(connection?: string, pattern = "*") {
+  const [page, setPage] = useState<MemcacheKeyPage>({ keys: [], total: 0, truncated: false, pattern: "*" });
   const load = useAction(async (name: string, glob: string) => {
-    setPage(await api.redis.keys(name, glob));
+    setPage(await api.memcache.keys(name, glob));
   });
 
   const reload = useCallback(() => {
@@ -38,11 +38,11 @@ export function useRedisKeys(connection?: string, pattern = "*") {
   return { page, loading: load.loading, reload };
 }
 
-// useRedisValue renders one key's value.
-export function useRedisValue(connection?: string, key?: string) {
+// useMemcacheValue renders one key's value.
+export function useMemcacheValue(connection?: string, key?: string) {
   const [result, setResult] = useState<Result | null>(null);
   const load = useAction(async (name: string, target: string) => {
-    setResult(await api.redis.value(name, target));
+    setResult(await api.memcache.value(name, target));
   });
 
   useEffect(() => {
@@ -56,9 +56,9 @@ export function useRedisValue(connection?: string, key?: string) {
   return { result, loading: load.loading };
 }
 
-// useRedisStatsStream subscribes to the INFO stream (2s ticks).
-export function useRedisStatsStream(connection?: string) {
-  const [history, setHistory] = useState<RedisStats[]>([]);
+// useMemcacheStatsStream subscribes to the INFO stream (2s ticks).
+export function useMemcacheStatsStream(connection?: string) {
+  const [history, setHistory] = useState<MemcacheStats[]>([]);
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
@@ -67,12 +67,12 @@ export function useRedisStatsStream(connection?: string) {
       return;
     }
     setHistory([]);
-    const source = new EventSource(api.redis.statsStream(connection));
+    const source = new EventSource(api.memcache.statsStream(connection));
     source.addEventListener("open", () => setConnected(true));
     source.addEventListener("error", () => setConnected(false));
     source.addEventListener("stats", (event) => {
       try {
-        const next = JSON.parse((event as MessageEvent).data) as RedisStats;
+        const next = JSON.parse((event as MessageEvent).data) as MemcacheStats;
         setHistory((prev) => [...prev, next].slice(-60));
       } catch {
         /* ignore malformed frames */

@@ -21,7 +21,7 @@ paths:
             "*/*":
               schema:
                 type: string
-  /v1/redis/connections:
+  /v1/memcache/connections:
     get:
       summary: List redis connections (passwords redacted)
       responses:
@@ -55,7 +55,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/redis/connections/{name}":
+  "/v1/memcache/connections/{name}":
     get:
       summary: Get one redis connection (password redacted)
       parameters:
@@ -100,7 +100,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/redis/connections/{name}/flush":
+  "/v1/memcache/connections/{name}/flush":
     post:
       summary: Empty the connected database (FLUSHDB, never FLUSHALL)
       parameters:
@@ -114,7 +114,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/controller.redisFlushBody"
+              $ref: "#/components/schemas/controller.memcacheFlushBody"
         description: confirm must repeat the connection name
         required: true
       responses:
@@ -135,7 +135,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/redis/connections/{name}/keys":
+  "/v1/memcache/connections/{name}/keys":
     get:
       summary: Browse keys by pattern (bounded scan, with type, TTL and size)
       parameters:
@@ -161,7 +161,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/redis.KeyPage"
+                $ref: "#/components/schemas/memcache.KeyPage"
         "400":
           description: Bad Request
           content:
@@ -183,7 +183,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/controller.redisKeysBody"
+              $ref: "#/components/schemas/controller.memcacheKeysBody"
         description: keys to remove
         required: true
       responses:
@@ -204,9 +204,9 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/redis/connections/{name}/stats":
+  "/v1/memcache/connections/{name}/stats":
     get:
-      summary: Redis INFO snapshot (memory, clients, hits, persistence)
+      summary: Memcache INFO snapshot (memory, clients, hits, persistence)
       parameters:
         - description: connection name
           name: name
@@ -220,7 +220,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/redis.Stats"
+                $ref: "#/components/schemas/memcache.Stats"
         "400":
           description: Bad Request
           content:
@@ -229,9 +229,9 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/redis/connections/{name}/stats/stream":
+  "/v1/memcache/connections/{name}/stats/stream":
     get:
-      summary: Redis stats stream (SSE, one INFO snapshot every 2s)
+      summary: Memcache stats stream (SSE, one INFO snapshot every 2s)
       parameters:
         - description: connection name
           name: name
@@ -246,7 +246,7 @@ paths:
             "*/*":
               schema:
                 type: string
-  "/v1/redis/connections/{name}/test":
+  "/v1/memcache/connections/{name}/test":
     post:
       summary: Test that a redis connection answers
       parameters:
@@ -274,7 +274,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/redis/connections/{name}/value":
+  "/v1/memcache/connections/{name}/value":
     get:
       summary: Inspect one key's value (rendered per its type)
       parameters:
@@ -541,7 +541,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/sql.Result"
+                $ref: "#/components/schemas/entity.Result"
         "400":
           description: Bad Request
           content:
@@ -573,7 +573,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/sql.Result"
+                $ref: "#/components/schemas/entity.Result"
         "400":
           description: Bad Request
           content:
@@ -605,7 +605,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/sql.Result"
+                $ref: "#/components/schemas/entity.Result"
         "400":
           description: Bad Request
           content:
@@ -632,7 +632,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/sql.Result"
+                $ref: "#/components/schemas/entity.Result"
         "400":
           description: Bad Request
           content:
@@ -745,7 +745,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/sql.Result"
+                $ref: "#/components/schemas/entity.Result"
         "400":
           description: Bad Request
           content:
@@ -799,6 +799,18 @@ components:
       description: sql
       required: true
   schemas:
+    controller.memcacheFlushBody:
+      type: object
+      properties:
+        confirm:
+          type: string
+    controller.memcacheKeysBody:
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            type: string
     controller.opBody:
       type: object
       properties:
@@ -806,18 +818,6 @@ components:
           type: string
         table:
           type: string
-    controller.redisFlushBody:
-      type: object
-      properties:
-        confirm:
-          type: string
-    controller.redisKeysBody:
-      type: object
-      properties:
-        keys:
-          type: array
-          items:
-            type: string
     entity.Change:
       type: object
       required:
@@ -938,7 +938,7 @@ components:
               type: string
         rowsReturned:
           type: integer
-    redis.Key:
+    memcache.Key:
       type: object
       properties:
         name:
@@ -949,20 +949,20 @@ components:
           type: integer
         type:
           type: string
-    redis.KeyPage:
+    memcache.KeyPage:
       type: object
       properties:
         keys:
           type: array
           items:
-            $ref: "#/components/schemas/redis.Key"
+            $ref: "#/components/schemas/memcache.Key"
         pattern:
           type: string
         total:
           type: integer
         truncated:
           type: boolean
-    redis.Stats:
+    memcache.Stats:
       type: object
       properties:
         aofEnabled:
@@ -1022,29 +1022,6 @@ components:
           type: boolean
         type:
           type: string
-    sql.Result:
-      type: object
-      properties:
-        affected:
-          type: integer
-        columns:
-          type: array
-          items:
-            type: string
-        durationMs:
-          type: integer
-        estimatedRows:
-          type: integer
-        message:
-          type: string
-        rows:
-          type: array
-          items:
-            type: array
-            items:
-              type: string
-        rowsReturned:
-          type: integer
     sql.Stats:
       type: object
       properties:

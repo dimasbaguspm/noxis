@@ -10,12 +10,12 @@ interface AppState {
   busy: boolean;
   setActive: (name: string) => void;
   reload: () => Promise<void>;
-  // Redis-family connections (redis and valkey) are their own registry: the
-  // engine families are separate everywhere, including the shared state.
-  redisConnections: Connection[];
-  redisActive?: string;
-  setRedisActive: (name: string) => void;
-  reloadRedis: () => Promise<void>;
+  // Memory-cache connections (Redis and Valkey) are their own registry: the
+  // engine families stay separate everywhere, including the shared state.
+  memcacheConnections: Connection[];
+  memcacheActive?: string;
+  setMemcacheActive: (name: string) => void;
+  reloadMemcache: () => Promise<void>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -27,8 +27,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [active, setActive] = useState<string>();
   const [schema, setSchema] = useState<Table[]>([]);
   const [busy, setBusy] = useState(false);
-  const [redisConnections, setRedisConnections] = useState<Connection[]>([]);
-  const [redisActive, setRedisActive] = useState<string>();
+  const [memcacheConnections, setMemcacheConnections] = useState<Connection[]>([]);
+  const [memcacheActive, setMemcacheActive] = useState<string>();
 
   const reload = useCallback(async () => {
     setBusy(true);
@@ -43,11 +43,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const reloadRedis = useCallback(async () => {
+  const reloadMemcache = useCallback(async () => {
     try {
-      const { connections: list } = await api.redis.list();
-      setRedisConnections(list ?? []);
-      setRedisActive((prev) => (list?.some((c) => c.name === prev) ? prev : list?.[0]?.name));
+      const { connections: list } = await api.memcache.list();
+      setMemcacheConnections(list ?? []);
+      setMemcacheActive((prev) => (list?.some((c) => c.name === prev) ? prev : list?.[0]?.name));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
@@ -55,8 +55,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void reload();
-    void reloadRedis();
-  }, [reload, reloadRedis]);
+    void reloadMemcache();
+  }, [reload, reloadMemcache]);
 
   useEffect(() => {
     if (!active) {
@@ -81,12 +81,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       busy,
       setActive,
       reload,
-      redisConnections,
-      redisActive,
-      setRedisActive,
-      reloadRedis,
+      memcacheConnections,
+      memcacheActive,
+      setMemcacheActive,
+      reloadMemcache,
     }),
-    [connections, active, schema, busy, reload, redisConnections, redisActive, reloadRedis],
+    [connections, active, schema, busy, reload, memcacheConnections, memcacheActive, reloadMemcache],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

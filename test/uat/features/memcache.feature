@@ -1,7 +1,7 @@
-Feature: Redis keys and metrics
-  The /v1/redis namespace browses a live server: keys with their type and TTL,
-  values rendered per type, INFO metrics, and key removal. Redis writes stop
-  at deleting keys because a Redis value cannot be rolled back.
+Feature: Memory cache keys and metrics
+  The /v1/memcache namespace browses a live server (Redis or Valkey): keys with
+  their type and TTL, values rendered per type, INFO metrics, and key removal.
+  Writes stop at deleting keys because a cache value cannot be rolled back.
 
   Scenario: browse keys with their type and TTL
     Given the stack is running

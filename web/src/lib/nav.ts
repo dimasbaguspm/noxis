@@ -46,10 +46,10 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
-    label: "Redis / Valkey",
+    label: "Memory Cache",
     items: [
-      { to: "/redis", label: "Keys", icon: Boxes, end: true },
-      { to: "/redis/analytics", label: "Analytics", icon: BarChart3 },
+      { to: "/memcache", label: "Keys", icon: Boxes, end: true },
+      { to: "/memcache/analytics", label: "Analytics", icon: BarChart3 },
     ],
   },
 ];

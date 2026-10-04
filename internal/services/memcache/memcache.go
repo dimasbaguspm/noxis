@@ -1,7 +1,8 @@
-// Package redis inspects a Redis server: browse keys with their type and TTL,
-// inspect a value, read INFO metrics, and remove keys. Every operation is a
-// typed client call, so no user-supplied command text exists to inject into.
-package redis
+// Package memcache inspects a memory-cache server (Redis or Valkey): browse
+// keys with their type and TTL, inspect a value, read INFO metrics, and remove
+// keys. Every operation is a typed client call, so no user-supplied command
+// text exists to inject into.
+package memcache
 
 import (
 	"context"
@@ -92,7 +93,7 @@ type Stats struct {
 }
 
 // Family is the namespace this module serves.
-func (r *DB) Family() string { return constants.FamilyRedis }
+func (r *DB) Family() string { return constants.FamilyMemcache }
 
 // Supports reports whether this module serves the driver. Valkey is served
 // too: it implements the same protocol and command set.

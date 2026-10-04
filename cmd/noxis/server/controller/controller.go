@@ -21,7 +21,7 @@ type Deps struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
 	SQL         interfaces.SQLModule
-	Redis       interfaces.RedisModule
+	Memcache    interfaces.MemcacheModule
 	Log         *slog.Logger
 }
 
@@ -40,8 +40,8 @@ func From(r *http.Request) Deps { return r.Context().Value(ctxKey{}).(Deps) }
 // module resolves the engine family that serves a driver, for the paths that
 // work across families (connection reachability).
 func (d Deps) module(driver string) interfaces.Module {
-	if d.Redis.Supports(driver) {
-		return d.Redis
+	if d.Memcache.Supports(driver) {
+		return d.Memcache
 	}
 	return d.SQL
 }

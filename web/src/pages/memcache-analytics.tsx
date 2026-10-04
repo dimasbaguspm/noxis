@@ -14,7 +14,7 @@ import { Radio } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useRedisConnections, useRedisStatsStream } from "@/hooks/use-redis";
+import { useMemcacheConnections, useMemcacheStatsStream } from "@/hooks/use-memcache";
 
 const AXIS = { stroke: "var(--muted-foreground)", fontSize: 11 };
 const TOOLTIP = {
@@ -26,10 +26,10 @@ const TOOLTIP = {
   },
 };
 
-// RedisAnalyticsPage charts what INFO reports every 2 seconds.
-export default function RedisAnalyticsPage() {
-  const { connections, connection, pick } = useRedisConnections();
-  const { latest, history, connected } = useRedisStatsStream(connection);
+// MemcacheAnalyticsPage charts what INFO reports every 2 seconds.
+export default function MemcacheAnalyticsPage() {
+  const { connections, connection, pick } = useMemcacheConnections();
+  const { latest, history, connected } = useMemcacheStatsStream(connection);
 
   const samples = history.map((s, i) => ({
     i,
@@ -52,10 +52,10 @@ export default function RedisAnalyticsPage() {
       <div className="flex flex-wrap items-center gap-3">
         <Select value={connection ?? ""} onValueChange={(v) => pick(String(v))}>
           <SelectTrigger className="w-56">
-            <SelectValue placeholder="no redis connection" />
+            <SelectValue placeholder="no memory cache registered" />
           </SelectTrigger>
           <SelectContent>
-            {connections.length === 0 && <SelectItem value="none">no connection yet</SelectItem>}
+            {connections.length === 0 && <SelectItem value="none">none registered yet</SelectItem>}
             {connections.map((c) => (
               <SelectItem key={c.name} value={c.name}>
                 {c.name}

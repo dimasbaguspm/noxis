@@ -24,7 +24,7 @@ type changeBody struct {
 // steps registers every scenario step on the world.
 func (w *world) steps(sc *godog.ScenarioContext) {
 	sc.Step("the stack is running", w.stackRunning)
-	w.redisSteps(sc)
+	w.memcacheSteps(sc)
 
 	sc.Step(`^connection "([^"]*)" is registered$`, w.registerConnection)
 	sc.Step("the connection test passes", w.testConnection)

@@ -32,13 +32,13 @@ const (
 // both write to the same store.
 const (
 	FamilySQL   = "sql"
-	FamilyRedis = "redis"
+	FamilyMemcache = "redis"
 )
 
 // FamilyOf maps a driver to the family that serves it.
 func FamilyOf(driver string) string {
 	if strings.EqualFold(driver, DriverRedis) || strings.EqualFold(driver, DriverValkey) {
-		return FamilyRedis
+		return FamilyMemcache
 	}
 	return FamilySQL
 }

@@ -227,7 +227,7 @@ func GetSchema(w http.ResponseWriter, r *http.Request) {
 // @Param table path string true "table name (unqualified)"
 // @Param schema query string false "schema (defaults to the driver's)"
 // @Param limit query int false "row cap (default 100, max 500)"
-// @Success 200 {object} sql.Result
+// @Success 200 {object} entity.Result
 // @Failure 400 {object} map[string]string
 // @Router /v1/sql/connections/{name}/tables/{table}/rows [get]
 func GetRows(w http.ResponseWriter, r *http.Request) {
@@ -240,7 +240,7 @@ func GetRows(w http.ResponseWriter, r *http.Request) {
 // @Summary Run a SQL console op (query | alter | rollback | analytics)
 // @Param name path string true "connection name"
 // @Param body body opBody true "sql (or table for analytics)"
-// @Success 200 {object} sql.Result
+// @Success 200 {object} entity.Result
 // @Failure 400 {object} map[string]string
 // @Router /v1/sql/connections/{name}/query [post]
 func PostQuery(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
@@ -248,7 +248,7 @@ func PostQuery(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Summary Apply a write directly (DML or DDL)
 // @Param name path string true "connection name"
 // @Param body body opBody true "sql"
-// @Success 200 {object} sql.Result
+// @Success 200 {object} entity.Result
 // @Failure 400 {object} map[string]string
 // @Router /v1/sql/connections/{name}/alter [post]
 func PostAlter(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
@@ -256,7 +256,7 @@ func PostAlter(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Summary Dry-run statements inside a transaction that always rolls back
 // @Param name path string true "connection name"
 // @Param body body opBody true "sql"
-// @Success 200 {object} sql.Result
+// @Success 200 {object} entity.Result
 // @Failure 400 {object} map[string]string
 // @Router /v1/sql/connections/{name}/rollback [post]
 func PostRollback(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
@@ -264,7 +264,7 @@ func PostRollback(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Summary Refresh planner statistics for a table
 // @Param name path string true "connection name"
 // @Param body body opBody true "table"
-// @Success 200 {object} sql.Result
+// @Success 200 {object} entity.Result
 // @Failure 400 {object} map[string]string
 // @Router /v1/sql/connections/{name}/analytics [post]
 func PostAnalytics(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
