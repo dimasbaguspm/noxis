@@ -69,7 +69,7 @@ export default function RedisAnalyticsPage() {
         </Badge>
         {latest && (
           <span className="text-xs text-muted-foreground">
-            {latest.version} · {latest.role} · {history.length} buffered
+            {latest.flavor} {latest.version} · {latest.role} · {history.length} buffered
           </span>
         )}
       </div>

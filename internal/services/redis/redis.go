@@ -61,8 +61,11 @@ type KeyPage struct {
 	Pattern   string `json:"pattern"`
 }
 
-// Stats is one INFO snapshot, in the units the console charts.
+// Stats is one INFO snapshot, in the units the console charts. Flavor is the
+// server family INFO reports: redis, or valkey (which also reports a
+// redis_version for compatibility).
 type Stats struct {
+	Flavor       string  `json:"flavor"`
 	Version      string  `json:"version"`
 	Role         string  `json:"role"`
 	UptimeSec    int64   `json:"uptimeSeconds"`
@@ -91,9 +94,10 @@ type Stats struct {
 // Family is the namespace this module serves.
 func (r *DB) Family() string { return constants.FamilyRedis }
 
-// Supports reports whether this module serves the driver.
+// Supports reports whether this module serves the driver. Valkey is served
+// too: it implements the same protocol and command set.
 func (r *DB) Supports(driver string) bool {
-	return strings.EqualFold(driver, constants.DriverRedis)
+	return strings.EqualFold(driver, constants.DriverRedis) || strings.EqualFold(driver, constants.DriverValkey)
 }
 
 // Ping verifies the server answers and the credentials work.
@@ -349,7 +353,8 @@ func parseInfo(text string, db int) Stats {
 		}
 	}
 	stats := Stats{
-		Version:      fields["redis_version"],
+		Flavor:       flavorOf(fields),
+		Version:      versionOf(fields),
 		Role:         fields["role"],
 		UptimeSec:    intOf(fields, "uptime_in_seconds"),
 		Clients:      intOf(fields, "connected_clients"),
@@ -391,6 +396,23 @@ func parseInfo(text string, db int) Stats {
 		}
 	}
 	return stats
+}
+
+// flavorOf names the server family. Valkey reports both valkey_version and a
+// redis_version for compatibility, so the valkey key decides.
+func flavorOf(fields map[string]string) string {
+	if fields["valkey_version"] != "" {
+		return constants.DriverValkey
+	}
+	return constants.DriverRedis
+}
+
+// versionOf prefers the flavor's own version.
+func versionOf(fields map[string]string) string {
+	if v := fields["valkey_version"]; v != "" {
+		return v
+	}
+	return fields["redis_version"]
 }
 
 // withClient opens a client for one operation and closes it; the caller's

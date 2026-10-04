@@ -57,13 +57,18 @@ type world struct {
 	change   changeBody
 }
 
-// redisSeed runs redis-cli inside the compose redis service: the scenarios
-// need keys to browse, and noxis has no endpoint that writes one.
-func redisSeed(args ...string) error {
-	full := append([]string{"compose", "-f", stackFile, "exec", "-T", "redis", "redis-cli"}, args...)
+// redisSeed runs the CLI inside a compose key-value service: the scenarios
+// need keys to browse, and noxis has no endpoint that writes one. The service
+// and its CLI differ per server (redis-cli / valkey-cli).
+func redisSeed(service string, args ...string) error {
+	cli := "redis-cli"
+	if service == "valkey" {
+		cli = "valkey-cli"
+	}
+	full := append([]string{"compose", "-f", stackFile, "exec", "-T", service, cli}, args...)
 	out, err := exec.Command("docker", full...).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("redis-cli %s: %w\n%s", strings.Join(args, " "), err, out)
+		return fmt.Errorf("%s %s: %w\n%s", cli, strings.Join(args, " "), err, out)
 	}
 	return nil
 }

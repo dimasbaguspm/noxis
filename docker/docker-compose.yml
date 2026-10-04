@@ -25,6 +25,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      valkey:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9000/healthz"]
       interval: 5s
@@ -49,6 +51,17 @@ services:
     image: redis:7-alpine
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
+
+  # Valkey is a Redis-protocol fork; the suite registers it as its own driver
+  # to keep that claim honest.
+  valkey:
+    image: valkey/valkey:8-alpine
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 10

@@ -914,11 +914,6 @@ components:
         port:
           type: integer
         user:
-          description: >-
-            User is required for SQL; Redis servers commonly run without an ACL
-            user,
-
-            where only the password (or nothing) is set.
           type: string
     entity.Result:
       type: object
@@ -982,6 +977,8 @@ components:
           type: integer
         expires:
           type: integer
+        flavor:
+          type: string
         hitRatio:
           type: number
         keys:

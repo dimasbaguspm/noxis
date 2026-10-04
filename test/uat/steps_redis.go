@@ -31,6 +31,7 @@ type redisPage struct {
 
 // redisInfo is the subset of INFO stats the scenarios assert on.
 type redisInfo struct {
+	Flavor  string `json:"flavor"`
 	Version string `json:"version"`
 	Role    string `json:"role"`
 	Keys    int64  `json:"keys"`
@@ -40,6 +41,7 @@ type redisInfo struct {
 
 func (w *world) redisSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^a redis connection named "([^"]*)"$`, w.registerRedis)
+	sc.Step(`^a valkey connection named "([^"]*)"$`, w.registerValkey)
 	sc.Step("the redis server answers", w.redisAnswers)
 	sc.Step(`^the redis key "([^"]*)" holds "([^"]*)"$`, w.redisSeedString)
 	sc.Step(`^the redis key "([^"]*)" lives for (\d+) seconds$`, w.redisSeedTTL)
@@ -55,6 +57,7 @@ func (w *world) redisSteps(sc *godog.ScenarioContext) {
 	sc.Step("the redis database is empty", w.redisEmpty)
 	sc.Step("I read redis stats", w.redisStats)
 	sc.Step("the redis stats name the server version", w.redisStatsVersion)
+	sc.Step(`^the redis stats report the "([^"]*)" flavour$`, w.redisStatsFlavor)
 }
 
 func (w *world) registerRedis(ctx context.Context, name string) error {
@@ -71,6 +74,22 @@ func (w *world) registerRedis(ctx context.Context, name string) error {
 	return nil
 }
 
+// registerValkey registers the compose valkey service: same protocol, its own
+// driver name, and it must be served by the same module.
+func (w *world) registerValkey(ctx context.Context, name string) error {
+	conn := map[string]any{
+		"name": name, "driver": "valkey", "host": "valkey", "port": 6379, "database": "0",
+	}
+	if err := w.api(http.MethodPost, "/v1/redis/connections", conn, nil); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("register valkey connection: %d", w.code)
+	}
+	w.conn = name
+	return nil
+}
+
 func (w *world) redisAnswers(ctx context.Context) error {
 	if err := w.api(http.MethodPost, "/v1/redis/connections/"+w.conn+"/test", map[string]string{}, nil); err != nil {
 		return err
@@ -82,15 +101,24 @@ func (w *world) redisAnswers(ctx context.Context) error {
 }
 
 func (w *world) redisSeedString(ctx context.Context, key, value string) error {
-	return redisSeed("set", key, value)
+	return redisSeed(w.service(), "set", key, value)
 }
 
 func (w *world) redisSeedTTL(ctx context.Context, key string, seconds int) error {
-	return redisSeed("expire", key, fmt.Sprint(seconds))
+	return redisSeed(w.service(), "expire", key, fmt.Sprint(seconds))
 }
 
 func (w *world) redisSeedList(ctx context.Context, key, value string) error {
-	return redisSeed("rpush", key, value)
+	return redisSeed(w.service(), "rpush", key, value)
+}
+
+// service is the compose service a key-value scenario seeds into: the
+// connection name is the driver under test.
+func (w *world) service() string {
+	if w.conn == "valkey" {
+		return "valkey"
+	}
+	return "redis"
 }
 
 func (w *world) redisBrowse(ctx context.Context, pattern string) error {
@@ -211,6 +239,16 @@ func (w *world) redisStats(ctx context.Context) error {
 func (w *world) redisStatsVersion(ctx context.Context) error {
 	if w.info.Version == "" || w.info.Role == "" {
 		return fmt.Errorf("stats are missing server fields: %+v", w.info)
+	}
+	return nil
+}
+
+func (w *world) redisStatsFlavor(ctx context.Context, want string) error {
+	if w.info.Flavor != want {
+		return fmt.Errorf("flavor %q, want %q (version %s)", w.info.Flavor, want, w.info.Version)
+	}
+	if w.info.Version == "" {
+		return fmt.Errorf("flavor %q without a version", want)
 	}
 	return nil
 }

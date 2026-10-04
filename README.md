@@ -3,7 +3,7 @@
 A lightweight console to query and change the databases you already run, with confidence.
 
 **The goal:** point noXis at the databases you already run (Postgres,
-MySQL/MariaDB, Redis) and get a single place to browse them, run reads, and
+MySQL/MariaDB, Redis and Valkey) and get a single place to browse them, run reads, and
 ship changes safely. No agents, no brokers, no orchestration — one binary, one
 volume, no docker socket.
 
@@ -29,7 +29,14 @@ volume, no docker socket.
   inject). `FLUSHALL` is deliberately unreachable.
 - **Namespaced API** — `/v1/sql/...` and `/v1/redis/...`; each family serves
   only its own drivers, so a redis connection is invisible to the SQL routes
-  and vice versa.
+  and vice versa. The console follows the same split: the dashboard lists SQL
+  instances and key-value servers as separate tables, and the sidebar groups
+  them.
+- **Valkey works** — it implements the Redis protocol and command set, so it is
+  served by the same module under its own driver name (`valkey`), and INFO is
+  read from its own `valkey_version` so the console shows what it is really
+  talking to. The acceptance suite registers a real Valkey server to keep that
+  claim honest.
 - **Operator console** — served by the binary itself at `/` (React + TS +
   shadcn/ui, embedded; no build step at deploy time):
   - **Dashboard** — registered instances in a searchable table with live
@@ -47,7 +54,7 @@ volume, no docker socket.
     artifacts, never deleted
     - **Analytics** — live instance metrics over SSE (connections, cache hit
     ratio, throughput) with recharts graphs
-  - **Redis** — browse keys by pattern with type, TTL and size (one bounded
+  - **Redis / Valkey** — browse keys by pattern with type, TTL and size (one bounded
     scan, so the list can be sorted by TTL for real), inspect any value per its
     type, remove selected keys, and empty a database behind a typed
     confirmation; Analytics charts INFO (memory, clients, ops/sec, hit ratio,

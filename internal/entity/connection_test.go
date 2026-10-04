@@ -18,4 +18,9 @@ func TestConnectionValidation(t *testing.T) {
 	if err := (Connection{Name: "c", Driver: "redis", Host: "h", Port: 6379}).Validate(); err == nil {
 		t.Fatal("redis without a database index must fail validation")
 	}
+	valkey := base
+	valkey.Driver, valkey.User = "valkey", ""
+	if err := valkey.Validate(); err != nil {
+		t.Fatalf("valkey without a user must pass: %v", err)
+	}
 }

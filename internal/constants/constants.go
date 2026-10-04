@@ -21,6 +21,10 @@ const (
 	DriverPostgres = "postgres"
 	DriverMySQL    = "mysql"
 	DriverRedis    = "redis"
+	// DriverValkey is the Linux Foundation fork of Redis: same protocol, same
+	// commands, same family. It is a separate driver name so the console can
+	// show what it is actually talking to.
+	DriverValkey = "valkey"
 )
 
 // Engine families: the API namespace and console section that serve a
@@ -33,7 +37,7 @@ const (
 
 // FamilyOf maps a driver to the family that serves it.
 func FamilyOf(driver string) string {
-	if strings.EqualFold(driver, DriverRedis) {
+	if strings.EqualFold(driver, DriverRedis) || strings.EqualFold(driver, DriverValkey) {
 		return FamilyRedis
 	}
 	return FamilySQL

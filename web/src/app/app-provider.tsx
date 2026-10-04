@@ -3,12 +3,19 @@ import { toast } from "sonner";
 import { api, type Connection, type Table } from "@/lib/api";
 
 interface AppState {
+  // SQL connections drive the SQL pages (active one + its schema).
   connections: Connection[];
   active?: string;
   schema: Table[];
   busy: boolean;
   setActive: (name: string) => void;
   reload: () => Promise<void>;
+  // Redis-family connections (redis and valkey) are their own registry: the
+  // engine families are separate everywhere, including the shared state.
+  redisConnections: Connection[];
+  redisActive?: string;
+  setRedisActive: (name: string) => void;
+  reloadRedis: () => Promise<void>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -20,6 +27,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [active, setActive] = useState<string>();
   const [schema, setSchema] = useState<Table[]>([]);
   const [busy, setBusy] = useState(false);
+  const [redisConnections, setRedisConnections] = useState<Connection[]>([]);
+  const [redisActive, setRedisActive] = useState<string>();
 
   const reload = useCallback(async () => {
     setBusy(true);
@@ -34,9 +43,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const reloadRedis = useCallback(async () => {
+    try {
+      const { connections: list } = await api.redis.list();
+      setRedisConnections(list ?? []);
+      setRedisActive((prev) => (list?.some((c) => c.name === prev) ? prev : list?.[0]?.name));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
+
   useEffect(() => {
     void reload();
-  }, [reload]);
+    void reloadRedis();
+  }, [reload, reloadRedis]);
 
   useEffect(() => {
     if (!active) {
@@ -54,8 +74,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [active]);
 
   const value = useMemo(
-    () => ({ connections, active, schema, busy, setActive, reload }),
-    [connections, active, schema, busy, reload],
+    () => ({
+      connections,
+      active,
+      schema,
+      busy,
+      setActive,
+      reload,
+      redisConnections,
+      redisActive,
+      setRedisActive,
+      reloadRedis,
+    }),
+    [connections, active, schema, busy, reload, redisConnections, redisActive, reloadRedis],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

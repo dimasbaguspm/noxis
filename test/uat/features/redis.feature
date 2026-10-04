@@ -28,6 +28,17 @@ Feature: Redis keys and metrics
     And a redis connection named "cache"
     When I read redis stats
     Then the redis stats name the server version
+    And the redis stats report the "redis" flavour
+
+  Scenario: a Valkey server is served by the same family
+    Given the stack is running
+    And a valkey connection named "valkey"
+    And the redis server answers
+    And the redis key "valkey:key" holds "from-valkey"
+    When I browse redis keys matching "valkey:*"
+    Then the browse finds the key "valkey:key"
+    And I read redis stats
+    And the redis stats report the "valkey" flavour
 
   Scenario: removing keys, and the guard on emptying the database
     Given the stack is running

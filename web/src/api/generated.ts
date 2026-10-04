@@ -1515,10 +1515,6 @@ export interface components {
             };
             password?: string;
             port: number;
-            /**
-             * @description User is required for SQL; Redis servers commonly run without an ACL user,
-             *     where only the password (or nothing) is set.
-             */
             user?: string;
         };
         "entity.Result": {
@@ -1549,6 +1545,7 @@ export interface components {
             evictedKeys?: number;
             expiredKeys?: number;
             expires?: number;
+            flavor?: string;
             hitRatio?: number;
             keys?: number;
             keyspaceHits?: number;

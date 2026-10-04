@@ -46,7 +46,7 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
-    label: "Redis",
+    label: "Redis / Valkey",
     items: [
       { to: "/redis", label: "Keys", icon: Boxes, end: true },
       { to: "/redis/analytics", label: "Analytics", icon: BarChart3 },

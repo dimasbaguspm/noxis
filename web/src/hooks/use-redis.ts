@@ -1,27 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, type Connection, type RedisKeyPage, type RedisStats, type Result } from "@/lib/api";
+import { api, type RedisKeyPage, type RedisStats, type Result } from "@/lib/api";
+import { useApp } from "@/app/app-provider";
 import { useAction } from "@/hooks/use-action";
 
-// Redis keeps its own connection list: the family is separate from the SQL
-// instances, so it does not ride the app provider's shared state.
+// useRedisConnections reads the Redis-family registry from the provider: the
+// same list the dashboard shows, so the two never disagree.
 export function useRedisConnections() {
-  const [connections, setConnections] = useState<Connection[]>([]);
-  const [connection, setConnection] = useState<string>();
-
-  const reload = useCallback(async () => {
-    const res = await api.redis.list();
-    setConnections(res.connections ?? []);
-  }, []);
-
-  useEffect(() => {
-    void reload();
-  }, [reload]);
-
-  useEffect(() => {
-    if (!connection && connections.length > 0) setConnection(connections[0]?.name);
-  }, [connection, connections]);
-
-  return { connections, connection, pick: setConnection, reload };
+  const { redisConnections, redisActive, setRedisActive, reloadRedis } = useApp();
+  return {
+    connections: redisConnections,
+    connection: redisActive,
+    pick: setRedisActive,
+    reload: reloadRedis,
+  };
 }
 
 // useRedisKeys browses keys by pattern. The API does a bounded full scan, so

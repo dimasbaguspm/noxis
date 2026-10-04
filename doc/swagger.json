@@ -1469,7 +1469,6 @@
                         "type": "integer"
                     },
                     "user": {
-                        "description": "User is required for SQL; Redis servers commonly run without an ACL user,\nwhere only the password (or nothing) is set.",
                         "type": "string"
                     }
                 }
@@ -1566,6 +1565,9 @@
                     },
                     "expires": {
                         "type": "integer"
+                    },
+                    "flavor": {
+                        "type": "string"
                     },
                     "hitRatio": {
                         "type": "number"

@@ -87,7 +87,7 @@ export function ConnectionDialog({
           <DialogTitle>Connection</DialogTitle>
           <DialogDescription>
             {redis
-              ? "Point noXis at a Redis server that already exists. It is verified before it is saved."
+              ? "Point noXis at a Redis or Valkey server that already exists. It is verified before it is saved."
               : "Point noXis at a database that already exists. It is verified before it is saved."}
           </DialogDescription>
         </DialogHeader>
@@ -97,7 +97,21 @@ export function ConnectionDialog({
           <div className="grid gap-1.5">
             <Label>Driver</Label>
             {redis ? (
-              <Input value="redis" readOnly disabled />
+              <Select
+                value={form.driver}
+                onValueChange={(v) => {
+                  update("driver", String(v));
+                  update("port", 6379);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="redis">redis</SelectItem>
+                  <SelectItem value="valkey">valkey (redis-compatible)</SelectItem>
+                </SelectContent>
+              </Select>
             ) : (
               <Select
                 value={form.driver}
