@@ -122,7 +122,7 @@ func newDeps(sq interfaces.SQLModule) (Deps, *fakeChanges, *fakeConns) {
 	return Deps{
 		Connections: conns,
 		Changes:     changes,
-		SQL:         sq,
+		Modules:     map[string]interfaces.Module{constants.FamilySQL: sq},
 		Log:         slog.New(slog.NewTextHandler(io.Discard, nil)),
 	}, changes, conns
 }
@@ -137,10 +137,11 @@ func sampleChange() entity.Change {
 }
 
 func TestChangeWorkflow(t *testing.T) {
-	d, _, _ := newDeps(&fakeSQL{})
+	sq := &fakeSQL{}
+	d, _, _ := newDeps(sq)
 	ctx := context.Background()
 
-	submitted, err := d.submitChange(ctx, sampleChange())
+	submitted, err := d.submitChange(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
@@ -152,7 +153,7 @@ func TestChangeWorkflow(t *testing.T) {
 	}
 
 	// apply before approval is refused
-	if _, err := d.apply(ctx, submitted.ID); err == nil {
+	if _, err := d.apply(ctx, sq, submitted.ID); err == nil {
 		t.Fatal("apply must require approval")
 	}
 
@@ -164,7 +165,7 @@ func TestChangeWorkflow(t *testing.T) {
 		t.Fatalf("approve result: %+v", approved)
 	}
 
-	applied, err := d.apply(ctx, submitted.ID)
+	applied, err := d.apply(ctx, sq, submitted.ID)
 	if err != nil {
 		t.Fatalf("apply: %v", err)
 	}
@@ -177,8 +178,9 @@ func TestChangeValidationFailures(t *testing.T) {
 	ctx := context.Background()
 
 	// a read on the change path is refused up front
-	d, _, _ := newDeps(&fakeSQL{writeErr: errors.New(`statement "SELECT" not allowed here`)})
-	bad, err := d.submitChange(ctx, sampleChange())
+	sq := &fakeSQL{writeErr: errors.New(`statement "SELECT" not allowed here`)}
+	d, _, _ := newDeps(sq)
+	bad, err := d.submitChange(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
@@ -190,8 +192,9 @@ func TestChangeValidationFailures(t *testing.T) {
 	}
 
 	// a dry-run failure also lands as failed with the reason recorded
-	d2, _, _ := newDeps(&fakeSQL{validateErr: errors.New("rollback statement 1: syntax error")})
-	failed, err := d2.submitChange(ctx, sampleChange())
+	sq2 := &fakeSQL{validateErr: errors.New("rollback statement 1: syntax error")}
+	d2, _, _ := newDeps(sq2)
+	failed, err := d2.submitChange(ctx, sq2, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
@@ -203,8 +206,9 @@ func TestChangeValidationFailures(t *testing.T) {
 	}
 
 	// mysql DDL cannot be dry-run: unverified, still approvable
-	d3, _, _ := newDeps(&fakeSQL{validateErr: sql.ErrUnverifiable})
-	unv, err := d3.submitChange(ctx, sampleChange())
+	sq3 := &fakeSQL{validateErr: sql.ErrUnverifiable}
+	d3, _, _ := newDeps(sq3)
+	unv, err := d3.submitChange(ctx, sq3, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
@@ -217,16 +221,17 @@ func TestChangeValidationFailures(t *testing.T) {
 }
 
 func TestApplyFailureIsRecorded(t *testing.T) {
-	d, changes, _ := newDeps(&fakeSQL{applyErr: errors.New("statement 1: duplicate key")})
+	sq := &fakeSQL{applyErr: errors.New("statement 1: duplicate key")}
+	d, changes, _ := newDeps(sq)
 	ctx := context.Background()
-	ch, err := d.submitChange(ctx, sampleChange())
+	ch, err := d.submitChange(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
 	if _, err := d.approve(ctx, ch.ID); err != nil {
 		t.Fatalf("approve: %v", err)
 	}
-	if _, err := d.apply(ctx, ch.ID); err == nil {
+	if _, err := d.apply(ctx, sq, ch.ID); err == nil {
 		t.Fatal("apply must surface the failure")
 	}
 	stored, ok := changes.changes[ch.ID]
@@ -241,19 +246,20 @@ func TestApplyFailureIsRecorded(t *testing.T) {
 
 func TestSecretsStayRedacted(t *testing.T) {
 	d, _, conns := newDeps(&fakeSQL{})
+	mod := d.Modules[constants.FamilySQL]
 	ctx := context.Background()
 	c, _ := conns.Get(ctx, "demo")
 	c.Password = "supersecret"
 	_ = conns.Save(ctx, *c)
 
-	got, err := d.connection(ctx, d.SQL, "demo")
+	got, err := d.connection(ctx, mod, "demo")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
 	if got.Password != "" {
 		t.Fatalf("password leaked: %q", got.Password)
 	}
-	list, err := d.connections(ctx, d.SQL)
+	list, err := d.connections(ctx, mod)
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -262,7 +268,7 @@ func TestSecretsStayRedacted(t *testing.T) {
 			t.Fatalf("password leaked in list: %q", x.Password)
 		}
 	}
-	if raw, err := d.raw(ctx, d.SQL, "demo"); err != nil || raw.Password != "supersecret" {
+	if raw, err := d.raw(ctx, mod, "demo"); err != nil || raw.Password != "supersecret" {
 		t.Fatalf("internal path must still see the password: %v", err)
 	}
 }
@@ -271,7 +277,9 @@ func TestSecretsStayRedacted(t *testing.T) {
 // self-calling span closure once turned this into a stack overflow.
 func TestHandlersRespond(t *testing.T) {
 	d, _, _ := newDeps(&fakeSQL{})
-	h := WithDeps(http.HandlerFunc(ListConnections), d)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /v1/{engine}/connections", ListConnections)
+	h := WithDeps(mux, d)
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/sql/connections", http.NoBody))
@@ -280,5 +288,52 @@ func TestHandlersRespond(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), `"connections"`) {
 		t.Fatalf("body: %s", rec.Body.String())
+	}
+}
+
+// TestEngineGating locks the generic route contract: an unknown engine and a
+// sub-resource the engine does not serve are 404, never routed elsewhere.
+func TestEngineGating(t *testing.T) {
+	d, _, _ := newDeps(&fakeSQL{})
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /v1/{engine}/connections", ListConnections)
+	mux.HandleFunc("GET /v1/{engine}/connections/{name}/keys", ListKeys)
+	h := WithDeps(mux, d)
+
+	cases := []struct {
+		path string
+		want int
+	}{
+		{"/v1/nope/connections", http.StatusNotFound},
+		{"/v1/sql/connections/demo/keys", http.StatusNotFound},
+		{"/v1/sql/connections", http.StatusOK},
+	}
+	for _, tc := range cases {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, http.NoBody))
+		if rec.Code != tc.want {
+			t.Fatalf("%s: status=%d want=%d body=%s", tc.path, rec.Code, tc.want, rec.Body.String())
+		}
+	}
+}
+
+// TestChangeKindGated locks the family guard on the shared change routes: a
+// SQL engine URL cannot approve or reject a MongoDB request (direct id), and
+// the reverse is guarded by mongoChange.
+func TestChangeKindGated(t *testing.T) {
+	d, changes, _ := newDeps(&fakeSQL{})
+	changes.changes["m1"] = entity.Change{ID: "m1", Kind: constants.KindMongo, Status: constants.ChangeValidated, Connection: "mongo"}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /v1/{engine}/changes/{id}/approve", ApproveChange)
+	mux.HandleFunc("POST /v1/{engine}/changes/{id}/reject", RejectChange)
+	h := WithDeps(mux, d)
+
+	for _, path := range []string{"/v1/sql/changes/m1/approve", "/v1/sql/changes/m1/reject"} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, http.NoBody))
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("%s: status=%d want=400 body=%s", path, rec.Code, rec.Body.String())
+		}
 	}
 }

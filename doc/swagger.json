@@ -34,9 +34,371 @@
                 }
             }
         },
-        "/v1/memcache/connections": {
+        "/v1/{engine}/changes": {
             "get": {
-                "summary": "List redis connections (passwords redacted)",
+                "summary": "List proposed changes for an engine (newest first)",
+                "parameters": [
+                    {
+                        "description": "engine family (sql, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "changes": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/entity.Change"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Submit a change (validates before recording)",
+                "parameters": [
+                    {
+                        "description": "engine family (sql, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/entity.Change"
+                            }
+                        }
+                    },
+                    "description": "connection, notes, query, rollback (sql) or the request (mongodb)",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Change"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/{engine}/changes/{id}": {
+            "get": {
+                "summary": "Get one change",
+                "parameters": [
+                    {
+                        "description": "engine family (sql, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "change id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Change"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/{engine}/changes/{id}/apply": {
+            "post": {
+                "summary": "Apply an approved change",
+                "parameters": [
+                    {
+                        "description": "engine family (sql, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "change id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Change"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/{engine}/changes/{id}/approve": {
+            "post": {
+                "summary": "Approve a validated change (self-approval allowed)",
+                "parameters": [
+                    {
+                        "description": "engine family (sql, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "change id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Change"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/{engine}/changes/{id}/reject": {
+            "post": {
+                "summary": "Reject a change (kept as an artifact, never deleted)",
+                "parameters": [
+                    {
+                        "description": "engine family (sql, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "change id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Change"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/{engine}/connections": {
+            "get": {
+                "summary": "List connections (passwords redacted)",
+                "parameters": [
+                    {
+                        "description": "engine family (sql, memcache, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -59,9 +421,28 @@
                 }
             },
             "post": {
-                "summary": "Create or update a redis connection (database is the db index)",
+                "summary": "Create or update a connection",
+                "parameters": [
+                    {
+                        "description": "engine family (sql, memcache, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "requestBody": {
-                    "$ref": "#/components/requestBodies/entity.Connection"
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/entity.Connection"
+                            }
+                        }
+                    },
+                    "description": "connection (omit password to keep the stored one)",
+                    "required": true
                 },
                 "responses": {
                     "200": {
@@ -90,10 +471,19 @@
                 }
             }
         },
-        "/v1/memcache/connections/{name}": {
+        "/v1/{engine}/connections/{name}": {
             "get": {
-                "summary": "Get one redis connection (password redacted)",
+                "summary": "Get one connection (password redacted)",
                 "parameters": [
+                    {
+                        "description": "engine family (sql, memcache, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "description": "connection name",
                         "name": "name",
@@ -131,8 +521,17 @@
                 }
             },
             "delete": {
-                "summary": "Delete a redis connection",
+                "summary": "Delete a connection (and its changes)",
                 "parameters": [
+                    {
+                        "description": "engine family (sql, memcache, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "description": "connection name",
                         "name": "name",
@@ -147,8 +546,8 @@
                     "204": {
                         "description": "deleted"
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "404": {
+                        "description": "Not Found",
                         "content": {
                             "*/*": {
                                 "schema": {
@@ -163,10 +562,19 @@
                 }
             }
         },
-        "/v1/memcache/connections/{name}/flush": {
+        "/v1/{engine}/connections/{name}/alter": {
             "post": {
-                "summary": "Empty the connected database (FLUSHDB, never FLUSHALL)",
+                "summary": "Apply a write directly (DML or DDL)",
                 "parameters": [
+                    {
+                        "description": "engine family (sql)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "description": "connection name",
                         "name": "name",
@@ -178,298 +586,8 @@
                     }
                 ],
                 "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/controller.memcacheFlushBody"
-                            }
-                        }
-                    },
-                    "description": "confirm must repeat the connection name",
-                    "required": true
+                    "$ref": "#/components/requestBodies/controller.opBody"
                 },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "status": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/memcache/connections/{name}/keys": {
-            "get": {
-                "summary": "Browse keys by pattern (bounded scan, with type, TTL and size)",
-                "parameters": [
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "glob pattern (default *)",
-                        "name": "pattern",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "scan cap (default 500, max 5000)",
-                        "name": "limit",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/memcache.KeyPage"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "summary": "Remove keys (the selected ones only)",
-                "parameters": [
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/controller.memcacheKeysBody"
-                            }
-                        }
-                    },
-                    "description": "keys to remove",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "deleted": {
-                                            "type": "integer"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/memcache/connections/{name}/stats": {
-            "get": {
-                "summary": "Memcache INFO snapshot (memory, clients, hits, persistence)",
-                "parameters": [
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/memcache.Stats"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/memcache/connections/{name}/stats/stream": {
-            "get": {
-                "summary": "Memcache stats stream (SSE, one INFO snapshot every 2s)",
-                "parameters": [
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "text/event-stream",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/memcache/connections/{name}/test": {
-            "post": {
-                "summary": "Test that a redis connection answers",
-                "parameters": [
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "status": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/memcache/connections/{name}/value": {
-            "get": {
-                "summary": "Inspect one key's value (rendered per its type)",
-                "parameters": [
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "key name",
-                        "name": "key",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -493,45 +611,55 @@
                                 }
                             }
                         }
-                    }
-                }
-            }
-        },
-        "/v1/mongodb/changes": {
-            "get": {
-                "summary": "List MongoDB requests (newest first)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "content": {
                             "*/*": {
                                 "schema": {
                                     "type": "object",
-                                    "properties": {
-                                        "changes": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/entity.Change"
-                                            }
-                                        }
+                                    "additionalProperties": {
+                                        "type": "string"
                                     }
                                 }
                             }
                         }
                     }
                 }
-            },
+            }
+        },
+        "/v1/{engine}/connections/{name}/analytics": {
             "post": {
-                "summary": "Submit a MongoDB request (validated on a scratch collection)",
+                "summary": "Refresh planner statistics for a table",
+                "parameters": [
+                    {
+                        "description": "engine family (sql)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "requestBody": {
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/controller.mongoChangeBody"
+                                "$ref": "#/components/schemas/controller.opBody"
                             }
                         }
                     },
-                    "description": "connection, notes and the request",
+                    "description": "table",
                     "required": true
                 },
                 "responses": {
@@ -540,7 +668,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/entity.Change"
+                                    "$ref": "#/components/schemas/entity.Result"
                                 }
                             }
                         }
@@ -554,34 +682,6 @@
                                     "additionalProperties": {
                                         "type": "string"
                                     }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/mongodb/changes/{id}": {
-            "get": {
-                "summary": "Get one MongoDB request",
-                "parameters": [
-                    {
-                        "description": "change id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Change"
                                 }
                             }
                         }
@@ -602,262 +702,19 @@
                 }
             }
         },
-        "/v1/mongodb/changes/{id}/apply": {
-            "post": {
-                "summary": "Apply an approved MongoDB request (no rollback exists)",
-                "parameters": [
-                    {
-                        "description": "change id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Change"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/mongodb/changes/{id}/approve": {
-            "post": {
-                "summary": "Approve a validated MongoDB request (self-approval allowed)",
-                "parameters": [
-                    {
-                        "description": "change id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Change"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/mongodb/changes/{id}/reject": {
-            "post": {
-                "summary": "Reject a MongoDB request (kept as an artifact, never deleted)",
-                "parameters": [
-                    {
-                        "description": "change id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Change"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/mongodb/connections": {
-            "get": {
-                "summary": "List MongoDB connections (passwords redacted)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "connections": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/entity.Connection"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "summary": "Create or update a MongoDB connection",
-                "requestBody": {
-                    "$ref": "#/components/requestBodies/entity.Connection"
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Connection"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/mongodb/connections/{name}": {
-            "get": {
-                "summary": "Get one MongoDB connection (password redacted)",
-                "parameters": [
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Connection"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "summary": "Delete a MongoDB connection",
-                "parameters": [
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "deleted"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/mongodb/connections/{name}/collections": {
+        "/v1/{engine}/connections/{name}/collections": {
             "get": {
                 "summary": "List a database's collections with their sizes",
                 "parameters": [
+                    {
+                        "description": "engine family (mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "description": "connection name",
                         "name": "name",
@@ -908,14 +765,36 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         },
-        "/v1/mongodb/connections/{name}/databases": {
+        "/v1/{engine}/connections/{name}/databases": {
             "get": {
                 "summary": "List databases with their sizes",
                 "parameters": [
+                    {
+                        "description": "engine family (mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "description": "connection name",
                         "name": "name",
@@ -957,14 +836,36 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         },
-        "/v1/mongodb/connections/{name}/requests": {
+        "/v1/{engine}/connections/{name}/flush": {
             "post": {
-                "summary": "Run a read request (find | aggregate | count)",
+                "summary": "Empty the connected database (FLUSHDB, never FLUSHALL)",
                 "parameters": [
+                    {
+                        "description": "engine family (memcache)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "description": "connection name",
                         "name": "name",
@@ -979,155 +880,13 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/mongodb.Request"
+                                "$ref": "#/components/schemas/controller.memcacheFlushBody"
                             }
                         }
                     },
-                    "description": "op, database, collection, filter and value as Extended JSON",
+                    "description": "confirm must repeat the connection name",
                     "required": true
                 },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/mongodb.Result"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/mongodb/connections/{name}/stats": {
-            "get": {
-                "summary": "MongoDB stats snapshot (server, database and collection)",
-                "parameters": [
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "database to describe",
-                        "name": "database",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "collection to describe",
-                        "name": "collection",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/mongodb.Stats"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/mongodb/connections/{name}/stats/stream": {
-            "get": {
-                "summary": "MongoDB stats stream (SSE, one snapshot every 2s)",
-                "parameters": [
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "database to describe",
-                        "name": "database",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "collection to describe",
-                        "name": "collection",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "text/event-stream",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/mongodb/connections/{name}/test": {
-            "post": {
-                "summary": "Test that a MongoDB connection answers",
-                "parameters": [
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -1156,98 +915,6 @@
                                 }
                             }
                         }
-                    }
-                }
-            }
-        },
-        "/v1/sql/changes": {
-            "get": {
-                "summary": "List proposed SQL changes (newest first)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "changes": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/entity.Change"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "summary": "Submit a change (validates query + rollback; nothing persists)",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/entity.Change"
-                            }
-                        }
-                    },
-                    "description": "connection, notes, query, rollback",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Change"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/sql/changes/{id}": {
-            "get": {
-                "summary": "Get one change",
-                "parameters": [
-                    {
-                        "description": "change id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Change"
-                                }
-                            }
-                        }
                     },
                     "404": {
                         "description": "Not Found",
@@ -1265,189 +932,19 @@
                 }
             }
         },
-        "/v1/sql/changes/{id}/apply": {
-            "post": {
-                "summary": "Apply an approved change (transactional)",
-                "parameters": [
-                    {
-                        "description": "change id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Change"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/sql/changes/{id}/approve": {
-            "post": {
-                "summary": "Approve a validated change (self-approval allowed)",
-                "parameters": [
-                    {
-                        "description": "change id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Change"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/sql/changes/{id}/reject": {
-            "post": {
-                "summary": "Reject a change (kept as an artifact, never deleted)",
-                "parameters": [
-                    {
-                        "description": "change id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Change"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/sql/connections": {
+        "/v1/{engine}/connections/{name}/keys": {
             "get": {
-                "summary": "List connections (passwords redacted)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "connections": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/entity.Connection"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "summary": "Create or update a connection",
-                "requestBody": {
-                    "$ref": "#/components/requestBodies/entity.Connection"
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Connection"
-                                }
-                            }
+                "summary": "Browse keys by pattern (bounded scan, with type, TTL and size)",
+                "parameters": [
+                    {
+                        "description": "engine family (memcache)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/sql/connections/{name}": {
-            "get": {
-                "summary": "Get one connection (password redacted)",
-                "parameters": [
                     {
                         "description": "connection name",
                         "name": "name",
@@ -1456,6 +953,22 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    {
+                        "description": "glob pattern (default *)",
+                        "name": "pattern",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "scan cap (default 500, max 5000)",
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
                     }
                 ],
                 "responses": {
@@ -1464,7 +977,20 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/entity.Connection"
+                                    "$ref": "#/components/schemas/memcache.KeyPage"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
                                 }
                             }
                         }
@@ -1485,86 +1011,17 @@
                 }
             },
             "delete": {
-                "summary": "Delete a connection (and its changes)",
+                "summary": "Remove keys (the selected ones only)",
                 "parameters": [
                     {
-                        "description": "connection name",
-                        "name": "name",
+                        "description": "engine family (memcache)",
+                        "name": "engine",
                         "in": "path",
                         "required": true,
                         "schema": {
                             "type": "string"
                         }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "deleted"
                     },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/sql/connections/{name}/alter": {
-            "post": {
-                "summary": "Apply a write directly (DML or DDL)",
-                "parameters": [
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "$ref": "#/components/requestBodies/controller.opBody"
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Result"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/sql/connections/{name}/analytics": {
-            "post": {
-                "summary": "Refresh planner statistics for a table",
-                "parameters": [
                     {
                         "description": "connection name",
                         "name": "name",
@@ -1579,11 +1036,11 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/controller.opBody"
+                                "$ref": "#/components/schemas/controller.memcacheKeysBody"
                             }
                         }
                     },
-                    "description": "table",
+                    "description": "keys to remove",
                     "required": true
                 },
                 "responses": {
@@ -1592,7 +1049,12 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/entity.Result"
+                                    "type": "object",
+                                    "properties": {
+                                        "deleted": {
+                                            "type": "integer"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1609,14 +1071,36 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         },
-        "/v1/sql/connections/{name}/query": {
+        "/v1/{engine}/connections/{name}/query": {
             "post": {
                 "summary": "Run a SQL console op (query | alter | rollback | analytics)",
                 "parameters": [
+                    {
+                        "description": "engine family (sql)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "description": "connection name",
                         "name": "name",
@@ -1661,14 +1145,110 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         },
-        "/v1/sql/connections/{name}/rollback": {
+        "/v1/{engine}/connections/{name}/requests": {
+            "post": {
+                "summary": "Run a read request (find | aggregate | count)",
+                "parameters": [
+                    {
+                        "description": "engine family (mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/mongodb.Request"
+                            }
+                        }
+                    },
+                    "description": "op, database, collection, filter and value as Extended JSON",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/mongodb.Result"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/{engine}/connections/{name}/rollback": {
             "post": {
                 "summary": "Dry-run statements inside a transaction that always rolls back",
                 "parameters": [
+                    {
+                        "description": "engine family (sql)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "description": "connection name",
                         "name": "name",
@@ -1705,14 +1285,36 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         },
-        "/v1/sql/connections/{name}/schema": {
+        "/v1/{engine}/connections/{name}/schema": {
             "get": {
                 "summary": "Introspect a connection's tables and columns",
                 "parameters": [
+                    {
+                        "description": "engine family (sql)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "description": "connection name",
                         "name": "name",
@@ -1754,19 +1356,57 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         },
-        "/v1/sql/connections/{name}/stats": {
+        "/v1/{engine}/connections/{name}/stats": {
             "get": {
                 "summary": "Instance stats snapshot (connections, size, cache, throughput)",
                 "parameters": [
+                    {
+                        "description": "engine family (sql, memcache, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "description": "connection name",
                         "name": "name",
                         "in": "path",
                         "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "database to describe (mongodb)",
+                        "name": "database",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "collection to describe (mongodb)",
+                        "name": "collection",
+                        "in": "query",
                         "schema": {
                             "type": "string"
                         }
@@ -1778,7 +1418,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/sql.Stats"
+                                    "type": "object"
                                 }
                             }
                         }
@@ -1795,14 +1435,36 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         },
-        "/v1/sql/connections/{name}/stats/stream": {
+        "/v1/{engine}/connections/{name}/stats/stream": {
             "get": {
                 "summary": "Instance stats stream (SSE, one snapshot every 2s)",
                 "parameters": [
+                    {
+                        "description": "engine family (sql, memcache, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "description": "connection name",
                         "name": "name",
@@ -1823,14 +1485,36 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         },
-        "/v1/sql/connections/{name}/tables/{table}/rows": {
+        "/v1/{engine}/connections/{name}/tables/{table}/rows": {
             "get": {
                 "summary": "Preview a table's rows",
                 "parameters": [
+                    {
+                        "description": "engine family (sql)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "description": "connection name",
                         "name": "name",
@@ -1889,14 +1573,36 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         },
-        "/v1/sql/connections/{name}/test": {
+        "/v1/{engine}/connections/{name}/test": {
             "post": {
                 "summary": "Test that a connection answers",
                 "parameters": [
+                    {
+                        "description": "engine family (sql, memcache, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     {
                         "description": "connection name",
                         "name": "name",
@@ -1938,21 +1644,82 @@
                     }
                 }
             }
+        },
+        "/v1/{engine}/connections/{name}/value": {
+            "get": {
+                "summary": "Inspect one key's value (rendered per its type)",
+                "parameters": [
+                    {
+                        "description": "engine family (memcache)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "key name",
+                        "name": "key",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Result"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
         "requestBodies": {
-            "entity.Connection": {
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "$ref": "#/components/schemas/entity.Connection"
-                        }
-                    }
-                },
-                "description": "connection (omit password to keep the stored one)",
-                "required": true
-            },
             "controller.opBody": {
                 "content": {
                     "application/json": {

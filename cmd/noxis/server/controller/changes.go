@@ -10,31 +10,36 @@ import (
 	"noxis/internal/common/idgen"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 	"noxis/internal/services/sql"
 )
+
+// The change routes are shared by SQL and MongoDB, each with its own queue:
+// the {engine} path parameter decides which flow runs, and a memory cache
+// serves no changes at all.
 
 // submitChange validates a change and records it. Validation is the trust
 // step: the query must be a write, and query + rollback are dry-run together
 // in one rolled-back transaction — proving the rollback undoes the change.
 // Nothing persists on submit.
-func (d Deps) submitChange(ctx context.Context, ch entity.Change) (out entity.Change, err error) {
+func (d Deps) submitChange(ctx context.Context, sq interfaces.SQLModule, ch entity.Change) (out entity.Change, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
 	if err := ch.Validate(); err != nil {
 		return entity.Change{}, err
 	}
-	conn, err := d.raw(ctx, d.SQL, ch.Connection)
+	conn, err := d.raw(ctx, sq, ch.Connection)
 	if err != nil {
 		return entity.Change{}, err
 	}
 	ch.ID = idgen.UUID()
 	ch.CreatedAt = time.Now().Unix()
-	ch.Kind = d.SQL.Kind(ch.Query)
+	ch.Kind = sq.Kind(ch.Query)
 	ch.AffectedTables, ch.AffectedColumns = sql.Referenced(ch.Query)
 	ch.Status = constants.ChangeValidated
 	ch.Checks = []entity.ChangeCheck{{Target: "query kind"}}
 
-	if err := d.SQL.VerifyWrite(ch.Query); err != nil {
+	if err := sq.VerifyWrite(ch.Query); err != nil {
 		ch.Checks[0].Error = err.Error()
 		ch.Status = constants.ChangeFailed
 	} else {
@@ -43,7 +48,7 @@ func (d Deps) submitChange(ctx context.Context, ch entity.Change) (out entity.Ch
 	}
 
 	dry := entity.ChangeCheck{Target: "dry-run (query + rollback)"}
-	res, err := d.SQL.ValidateChange(ctx, *conn, ch.Query, ch.Rollback)
+	res, err := sq.ValidateChange(ctx, *conn, ch.Query, ch.Rollback)
 	switch {
 	case err == nil:
 		dry.OK, dry.Detail = true, res.Message
@@ -88,7 +93,7 @@ func (d Deps) approve(ctx context.Context, id string) (out entity.Change, err er
 
 // apply executes an approved change transactionally; a failure is recorded
 // on the change, not just returned.
-func (d Deps) apply(ctx context.Context, id string) (out entity.Change, err error) {
+func (d Deps) apply(ctx context.Context, sq interfaces.SQLModule, id string) (out entity.Change, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
 	ch, err := d.Changes.GetChange(ctx, id)
@@ -98,11 +103,11 @@ func (d Deps) apply(ctx context.Context, id string) (out entity.Change, err erro
 	if ch.Status != constants.ChangeApproved {
 		return *ch, fmt.Errorf("change is %s, not approved — cannot apply", ch.Status)
 	}
-	conn, err := d.raw(ctx, d.SQL, ch.Connection)
+	conn, err := d.raw(ctx, sq, ch.Connection)
 	if err != nil {
 		return entity.Change{}, err
 	}
-	res, err := d.SQL.Apply(ctx, *conn, ch.Query)
+	res, err := sq.Apply(ctx, *conn, ch.Query)
 	if err != nil {
 		ch.Status = constants.ChangeFailed
 		ch.Checks = append(ch.Checks, entity.ChangeCheck{Target: "apply", Error: err.Error()})
@@ -116,87 +121,6 @@ func (d Deps) apply(ctx context.Context, id string) (out entity.Change, err erro
 		return entity.Change{}, err
 	}
 	return *ch, nil
-}
-
-// @Summary List proposed SQL changes (newest first)
-// @Success 200 {object} object{changes=[]entity.Change}
-// @Router /v1/sql/changes [get]
-func ListChanges(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
-		all, err := d.Changes.ListChanges(ctx)
-		if err != nil {
-			return nil, err
-		}
-		// the queue is per family: a MongoDB request never shows up here
-		changes := make([]entity.Change, 0, len(all))
-		for i := range all {
-			if all[i].Kind == constants.KindDML || all[i].Kind == constants.KindDDL {
-				changes = append(changes, all[i])
-			}
-		}
-		return map[string]any{"changes": changes}, nil
-	})
-}
-
-// sqlChange loads a change and insists it is a SQL one, so the DML/DDL pages
-// cannot open a MongoDB request.
-func (d Deps) sqlChange(ctx context.Context, id string) (*entity.Change, error) {
-	ch, err := d.Changes.GetChange(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if ch.Kind != constants.KindDML && ch.Kind != constants.KindDDL {
-		return nil, fmt.Errorf("change %s is %s, not a sql change", id, ch.Kind)
-	}
-	return ch, nil
-}
-
-// @Summary Submit a change (validates query + rollback; nothing persists)
-// @Param body body entity.Change true "connection, notes, query, rollback"
-// @Success 200 {object} entity.Change
-// @Failure 400 {object} map[string]string
-// @Router /v1/sql/changes [post]
-func SubmitChange(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
-		var ch entity.Change
-		if err := decode(r, &ch); err != nil {
-			return nil, err
-		}
-		return d.submitChange(ctx, ch)
-	})
-}
-
-// @Summary Get one change
-// @Param id path string true "change id"
-// @Success 200 {object} entity.Change
-// @Failure 404 {object} map[string]string
-// @Router /v1/sql/changes/{id} [get]
-func GetChange(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
-		return d.sqlChange(ctx, r.PathValue("id"))
-	})
-}
-
-// @Summary Approve a validated change (self-approval allowed)
-// @Param id path string true "change id"
-// @Success 200 {object} entity.Change
-// @Failure 400 {object} map[string]string
-// @Router /v1/sql/changes/{id}/approve [post]
-func ApproveChange(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
-		return d.approve(ctx, r.PathValue("id"))
-	})
-}
-
-// @Summary Apply an approved change (transactional)
-// @Param id path string true "change id"
-// @Success 200 {object} entity.Change
-// @Failure 400 {object} map[string]string
-// @Router /v1/sql/changes/{id}/apply [post]
-func ApplyChange(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
-		return d.apply(ctx, r.PathValue("id"))
-	})
 }
 
 // reject marks a change rejected — records are artifacts, never deleted, so
@@ -218,13 +142,192 @@ func (d Deps) reject(ctx context.Context, id string) (out entity.Change, err err
 	return *ch, nil
 }
 
-// @Summary Reject a change (kept as an artifact, never deleted)
+// sqlChanges lists only SQL changes (DML/DDL): the queue is per family.
+func (d Deps) sqlChanges(ctx context.Context) (out []entity.Change, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
+	all, err := d.Changes.ListChanges(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out = make([]entity.Change, 0, len(all))
+	for i := range all {
+		if all[i].Kind == constants.KindDML || all[i].Kind == constants.KindDDL {
+			out = append(out, all[i])
+		}
+	}
+	return out, nil
+}
+
+// sqlChange loads a change and insists it is a SQL one, so a MongoDB request
+// cannot be opened through the SQL flow.
+func (d Deps) sqlChange(ctx context.Context, id string) (*entity.Change, error) {
+	ch, err := d.Changes.GetChange(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if ch.Kind != constants.KindDML && ch.Kind != constants.KindDDL {
+		return nil, fmt.Errorf("change %s is %s, not a sql change", id, ch.Kind)
+	}
+	return ch, nil
+}
+
+// @Summary List proposed changes for an engine (newest first)
+// @Param engine path string true "engine family (sql, mongodb)"
+// @Success 200 {object} object{changes=[]entity.Change}
+// @Failure 404 {object} map[string]string
+// @Router /v1/{engine}/changes [get]
+func ListChanges(w http.ResponseWriter, r *http.Request) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
+		mod, err := d.engine(r)
+		if err != nil {
+			return nil, err
+		}
+		switch mod.(type) {
+		case interfaces.SQLModule:
+			changes, err := d.sqlChanges(ctx)
+			return map[string]any{"changes": changes}, err
+		case interfaces.MongoModule:
+			changes, err := d.mongoChanges(ctx)
+			return map[string]any{"changes": changes}, err
+		}
+		return nil, unsupported(mod, "changes")
+	})
+}
+
+// @Summary Submit a change (validates before recording)
+// @Param engine path string true "engine family (sql, mongodb)"
+// @Param body body entity.Change true "connection, notes, query, rollback (sql) or the request (mongodb)"
+// @Success 200 {object} entity.Change
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /v1/{engine}/changes [post]
+func SubmitChange(w http.ResponseWriter, r *http.Request) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
+		mod, err := d.engine(r)
+		if err != nil {
+			return nil, err
+		}
+		switch m := mod.(type) {
+		case interfaces.SQLModule:
+			var ch entity.Change
+			if err := decode(r, &ch); err != nil {
+				return nil, err
+			}
+			return d.submitChange(ctx, m, ch)
+		case interfaces.MongoModule:
+			var body mongoChangeBody
+			if err := decode(r, &body); err != nil {
+				return nil, err
+			}
+			return d.submitMongoChange(ctx, m, body)
+		}
+		return nil, unsupported(mod, "changes")
+	})
+}
+
+// @Summary Get one change
+// @Param engine path string true "engine family (sql, mongodb)"
+// @Param id path string true "change id"
+// @Success 200 {object} entity.Change
+// @Failure 404 {object} map[string]string
+// @Router /v1/{engine}/changes/{id} [get]
+func GetChange(w http.ResponseWriter, r *http.Request) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
+		mod, err := d.engine(r)
+		if err != nil {
+			return nil, err
+		}
+		switch mod.(type) {
+		case interfaces.SQLModule:
+			return d.sqlChange(ctx, r.PathValue("id"))
+		case interfaces.MongoModule:
+			return d.mongoChange(ctx, r.PathValue("id"))
+		}
+		return nil, unsupported(mod, "changes")
+	})
+}
+
+// @Summary Approve a validated change (self-approval allowed)
+// @Param engine path string true "engine family (sql, mongodb)"
 // @Param id path string true "change id"
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} map[string]string
-// @Router /v1/sql/changes/{id}/reject [post]
+// @Failure 404 {object} map[string]string
+// @Router /v1/{engine}/changes/{id}/approve [post]
+func ApproveChange(w http.ResponseWriter, r *http.Request) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
+		mod, err := d.engine(r)
+		if err != nil {
+			return nil, err
+		}
+		switch mod.(type) {
+		case interfaces.SQLModule:
+			if _, err := d.sqlChange(ctx, r.PathValue("id")); err != nil {
+				return nil, err
+			}
+			return d.approve(ctx, r.PathValue("id"))
+		case interfaces.MongoModule:
+			if _, err := d.mongoChange(ctx, r.PathValue("id")); err != nil {
+				return nil, err
+			}
+			return d.approve(ctx, r.PathValue("id"))
+		}
+		return nil, unsupported(mod, "changes")
+	})
+}
+
+// @Summary Apply an approved change
+// @Param engine path string true "engine family (sql, mongodb)"
+// @Param id path string true "change id"
+// @Success 200 {object} entity.Change
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /v1/{engine}/changes/{id}/apply [post]
+func ApplyChange(w http.ResponseWriter, r *http.Request) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
+		mod, err := d.engine(r)
+		if err != nil {
+			return nil, err
+		}
+		switch m := mod.(type) {
+		case interfaces.SQLModule:
+			if _, err := d.sqlChange(ctx, r.PathValue("id")); err != nil {
+				return nil, err
+			}
+			return d.apply(ctx, m, r.PathValue("id"))
+		case interfaces.MongoModule:
+			return d.applyMongo(ctx, m, r.PathValue("id"))
+		}
+		return nil, unsupported(mod, "changes")
+	})
+}
+
+// @Summary Reject a change (kept as an artifact, never deleted)
+// @Param engine path string true "engine family (sql, mongodb)"
+// @Param id path string true "change id"
+// @Success 200 {object} entity.Change
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /v1/{engine}/changes/{id}/reject [post]
 func RejectChange(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
-		return d.reject(ctx, r.PathValue("id"))
+		mod, err := d.engine(r)
+		if err != nil {
+			return nil, err
+		}
+		switch mod.(type) {
+		case interfaces.SQLModule:
+			if _, err := d.sqlChange(ctx, r.PathValue("id")); err != nil {
+				return nil, err
+			}
+			return d.reject(ctx, r.PathValue("id"))
+		case interfaces.MongoModule:
+			if _, err := d.mongoChange(ctx, r.PathValue("id")); err != nil {
+				return nil, err
+			}
+			return d.reject(ctx, r.PathValue("id"))
+		}
+		return nil, unsupported(mod, "changes")
 	})
 }

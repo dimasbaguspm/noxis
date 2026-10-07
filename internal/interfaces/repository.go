@@ -11,6 +11,10 @@ import (
 // ErrNotFound reports a missing row.
 var ErrNotFound = errors.New("not found")
 
+// ErrUnsupported reports an engine name with no module, or an engine that does
+// not serve the requested operation. Handlers map it to 404.
+var ErrUnsupported = errors.New("unsupported engine")
+
 // ConnectionRepository persists the console's connections.
 type ConnectionRepository interface {
 	List(ctx context.Context) ([]entity.Connection, error)
