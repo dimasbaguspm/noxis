@@ -50,7 +50,7 @@ jobs:
               - '.github/workflows/**'
 
   go:
-    name: lint → build → unit → uat
+    name: "go: lint, build, unit, uat"
     needs: changes
     if: needs.changes.outputs.go == 'true'
     runs-on: ubuntu-latest
@@ -76,7 +76,7 @@ jobs:
         run: make uat
 
   web:
-    name: web lint + typecheck + build
+    name: "web: lint, typecheck, build"
     needs: changes
     if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
