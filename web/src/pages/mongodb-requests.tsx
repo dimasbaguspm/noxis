@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMongoChanges, useMongoConnections } from "@/hooks/use-mongodb";
+import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 // MongoRequestsPage is the review queue: every write request waits here until
@@ -26,7 +27,7 @@ export default function MongoRequestsPage() {
         <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
           <RefreshCw className={cn(loading && "animate-spin")} /> Refresh
         </Button>
-        <Button size="sm" render={<Link to="/mongodb/requests/new" />}>
+        <Button size="sm" render={<Link to={PAGE_ROUTES.MONGODB.REQUEST_NEW} />}>
           <Plus /> New request
         </Button>
       </div>
@@ -72,7 +73,7 @@ export default function MongoRequestsPage() {
                     {change.estAffected ?? 0} doc(s)
                   </TableCell>
                   <TableCell>
-                    <Button size="xs" variant="outline" render={<Link to={`/mongodb/requests/${change.id}`} />}>
+                    <Button size="xs" variant="outline" render={<Link to={PAGE_ROUTES.MONGODB.REQUEST_DETAIL(change.id ?? "")} />}>
                       Review
                     </Button>
                   </TableCell>

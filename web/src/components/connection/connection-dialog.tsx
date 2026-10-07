@@ -16,10 +16,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAction } from "@/hooks/use-action";
 import { useApp } from "@/app/app-provider";
+import { FAMILY, type FamilyKey } from "@/lib/families";
 import { api, type Connection } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-type Family = "sql" | "memcache" | "mongo";
 
 const SQL_EMPTY: Connection = {
   name: "",
@@ -34,10 +33,10 @@ const SQL_EMPTY: Connection = {
 const MEMCACHE_EMPTY: Connection = { ...SQL_EMPTY, driver: "redis", port: 6379, database: "0" };
 const MONGO_EMPTY: Connection = { ...SQL_EMPTY, driver: "mongo", port: 27017, database: "admin" };
 
-const BLANK: Record<Family, Connection> = {
-  sql: SQL_EMPTY,
-  memcache: MEMCACHE_EMPTY,
-  mongo: MONGO_EMPTY,
+const BLANK: Record<FamilyKey, Connection> = {
+  [FAMILY.SQL]: SQL_EMPTY,
+  [FAMILY.MEMCACHE]: MEMCACHE_EMPTY,
+  [FAMILY.MONGODB]: MONGO_EMPTY,
 };
 
 // ConnectionDialog registers an instance. Nothing is kept unless it answers:
@@ -47,33 +46,33 @@ const BLANK: Record<Family, Connection> = {
 export function ConnectionDialog({
   trigger = "New connection",
   initial,
-  family = "sql",
+  family = FAMILY.SQL,
   wizard = false,
 }: {
   trigger?: string;
   initial?: Connection;
-  family?: Family;
+  family?: FamilyKey;
   wizard?: boolean;
 }) {
-  const { reload, reloadMemcache, setActive } = useApp();
+  const { reload, setActive } = useApp();
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<Family>(family);
+  const [kind, setKind] = useState<FamilyKey>(family);
   const [step, setStep] = useState<1 | 2>(wizard && !initial ? 1 : 2);
   const [form, setForm] = useState<Connection>(initial ?? BLANK[family]);
   const [verified, setVerified] = useState(false);
 
-  const cache = kind === "memcache";
-  const mongo = kind === "mongo";
-  const client = cache ? api.memcache : mongo ? api.mongodb : api.connections;
+  const cache = kind === FAMILY.MEMCACHE;
+  const mongo = kind === FAMILY.MONGODB;
+  const client = api.family(kind);
 
-  // Saving writes to the shared registry, so refresh both families: the
-  // dashboard table reads them from the provider, and a new memory-cache
-  // server must show up there without a reload.
+  // Saving writes to the shared registry, so refresh the family: the dashboard
+  // table reads it from the provider, and a new server must show up there
+  // without a reload.
   async function refresh() {
-    await Promise.all([reload(), reloadMemcache()]);
+    await reload(kind);
   }
 
-  function choose(next: Family) {
+  function choose(next: FamilyKey) {
     setKind(next);
     setForm(BLANK[next]);
     setVerified(false);
@@ -95,7 +94,7 @@ export function ConnectionDialog({
     setVerified(true);
     toast.success(`${name}: verified and saved`);
     await refresh();
-    if (!cache) setActive(name);
+    if (!cache) setActive(kind, name);
     setOpen(false);
     setForm(BLANK[kind]);
     setStep(wizard ? 1 : 2);
@@ -125,19 +124,19 @@ export function ConnectionDialog({
               icon={<Database className="size-4" />}
               title="SQL database"
               detail="Postgres, MySQL or MariaDB. Read and change data through the validated workflow."
-              onClick={() => choose("sql")}
+              onClick={() => choose(FAMILY.SQL)}
             />
             <Choice
               icon={<Boxes className="size-4" />}
               title="Memory cache"
               detail="Redis or Valkey. Browse keys, inspect values, watch INFO metrics."
-              onClick={() => choose("memcache")}
+              onClick={() => choose(FAMILY.MEMCACHE)}
             />
             <Choice
               icon={<Leaf className="size-4" />}
               title="Document database"
               detail="MongoDB. Explore databases and collections, run CRUD requests, watch stats."
-              onClick={() => choose("mongo")}
+              onClick={() => choose(FAMILY.MONGODB)}
             />
           </div>
         ) : (

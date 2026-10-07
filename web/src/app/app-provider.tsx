@@ -1,126 +1,80 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { api, type Connection, type Table } from "@/lib/api";
+import { FAMILIES, type FamilyKey } from "@/lib/families";
 
-interface AppState {
-  // SQL connections drive the SQL pages (active one + its schema).
+interface FamilyState {
   connections: Connection[];
   active?: string;
+}
+
+interface AppState {
+  // registry is keyed by engine family: one store, not one per family.
+  registry: Record<FamilyKey, FamilyState>;
   schema: Table[];
   busy: boolean;
-  setActive: (name: string) => void;
-  reload: () => Promise<void>;
-  // Memory-cache connections (Redis and Valkey) are their own registry: the
-  // engine families stay separate everywhere, including the shared state.
-  memcacheConnections: Connection[];
-  memcacheActive?: string;
-  setMemcacheActive: (name: string) => void;
-  reloadMemcache: () => Promise<void>;
-  // MongoDB connections are their own registry too.
-  mongoConnections: Connection[];
-  mongoActive?: string;
-  setMongoActive: (name: string) => void;
-  reloadMongo: () => Promise<void>;
+  reload: (family: FamilyKey) => Promise<void>;
+  setActive: (family: FamilyKey, name: string) => void;
 }
+
+const EMPTY = FAMILIES.reduce(
+  (acc, family) => ({ ...acc, [family.key]: { connections: [] } }),
+  {} as Record<FamilyKey, FamilyState>,
+);
 
 const AppContext = createContext<AppState | null>(null);
 
-// AppProvider owns the shared state (connections, the active one, its schema)
-// so no page has to thread props or refetch.
+// AppProvider owns the connection registry, keyed by engine family, so no page
+// threads props or refetches. A new family is another key, not another
+// parallel useState trio.
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [connections, setConnections] = useState<Connection[]>([]);
-  const [active, setActive] = useState<string>();
+  const [registry, setRegistry] = useState<Record<FamilyKey, FamilyState>>(EMPTY);
   const [schema, setSchema] = useState<Table[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [memcacheConnections, setMemcacheConnections] = useState<Connection[]>([]);
-  const [memcacheActive, setMemcacheActive] = useState<string>();
-  const [mongoConnections, setMongoConnections] = useState<Connection[]>([]);
-  const [mongoActive, setMongoActive] = useState<string>();
+  const [pending, setPending] = useState(0);
 
-  const reload = useCallback(async () => {
-    setBusy(true);
+  const reload = useCallback(async (family: FamilyKey) => {
+    setPending((n) => n + 1);
     try {
-      const { connections: list } = await api.connections.list();
-      setConnections(list ?? []);
-      setActive((prev) => (list?.some((c) => c.name === prev) ? prev : list?.[0]?.name));
+      const { connections: list } = await api.family(family).list();
+      setRegistry((prev) => {
+        const current = prev[family];
+        const active = list?.some((c) => c.name === current.active) ? current.active : list?.[0]?.name;
+        return { ...prev, [family]: { connections: list ?? [], active } };
+      });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
-      setBusy(false);
+      setPending((n) => n - 1);
     }
   }, []);
 
-  const reloadMemcache = useCallback(async () => {
-    try {
-      const { connections: list } = await api.memcache.list();
-      setMemcacheConnections(list ?? []);
-      setMemcacheActive((prev) => (list?.some((c) => c.name === prev) ? prev : list?.[0]?.name));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
-  }, []);
-
-  const reloadMongo = useCallback(async () => {
-    try {
-      const { connections: list } = await api.mongodb.list();
-      setMongoConnections(list ?? []);
-      setMongoActive((prev) => (list?.some((c) => c.name === prev) ? prev : list?.[0]?.name));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    }
+  const setActive = useCallback((family: FamilyKey, name: string) => {
+    setRegistry((prev) => ({ ...prev, [family]: { ...prev[family], active: name } }));
   }, []);
 
   useEffect(() => {
-    void reload();
-    void reloadMemcache();
-    void reloadMongo();
-  }, [reload, reloadMemcache, reloadMongo]);
+    for (const family of FAMILIES) void reload(family.key);
+  }, [reload]);
 
+  const activeSQL = registry.sql.active;
   useEffect(() => {
-    if (!active) {
+    if (!activeSQL) {
       setSchema([]);
       return;
     }
     let cancelled = false;
     api.connections
-      .schema(active)
+      .schema(activeSQL)
       .then((res) => !cancelled && setSchema(res.tables ?? []))
       .catch(() => !cancelled && setSchema([]));
     return () => {
       cancelled = true;
     };
-  }, [active]);
+  }, [activeSQL]);
 
   const value = useMemo(
-    () => ({
-      connections,
-      active,
-      schema,
-      busy,
-      setActive,
-      reload,
-      memcacheConnections,
-      memcacheActive,
-      setMemcacheActive,
-      reloadMemcache,
-      mongoConnections,
-      mongoActive,
-      setMongoActive,
-      reloadMongo,
-    }),
-    [
-      connections,
-      active,
-      schema,
-      busy,
-      reload,
-      memcacheConnections,
-      memcacheActive,
-      reloadMemcache,
-      mongoConnections,
-      mongoActive,
-      reloadMongo,
-    ],
+    () => ({ registry, schema, busy: pending > 0, reload, setActive }),
+    [registry, schema, pending, reload, setActive],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
@@ -132,7 +86,16 @@ export function useApp(): AppState {
   return ctx;
 }
 
-export function useActiveConnection(): Connection | undefined {
-  const { connections, active } = useApp();
-  return connections.find((c) => c.name === active);
+// useFamily gives a consumer its family's connections with the family already
+// bound, so the key never has to travel further.
+export function useFamily(family: FamilyKey) {
+  const { registry, busy, reload, setActive } = useApp();
+  const state = registry[family];
+  return {
+    connections: state.connections,
+    active: state.active,
+    busy,
+    setActive: useCallback((name: string) => setActive(family, name), [family, setActive]),
+    reload: useCallback(() => reload(family), [family, reload]),
+  };
 }

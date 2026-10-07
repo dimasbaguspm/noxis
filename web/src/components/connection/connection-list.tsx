@@ -4,12 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAction } from "@/hooks/use-action";
-import { useApp } from "@/app/app-provider";
+import { useFamily } from "@/app/app-provider";
+import { FAMILY } from "@/lib/families";
 import { api } from "@/lib/api";
 
 // ConnectionList shows the registered instances with test/delete actions.
 export function ConnectionList() {
-  const { connections, active, setActive, reload } = useApp();
+  const { connections, active, setActive, reload } = useFamily(FAMILY.SQL);
 
   const test = useAction(async (name: string) => {
     await api.connections.test(name);

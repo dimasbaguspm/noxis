@@ -5,6 +5,7 @@ import { AppProvider } from "@/app/app-provider";
 import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { PAGE_ROUTES, routePath } from "@/lib/routes";
 import "./app.css";
 
 // route-level splitting: monaco (query/changes) and recharts (analytics)
@@ -25,25 +26,27 @@ const ChangeDetail = lazy(() =>
   import("@/pages/change-detail").then((m) => ({ default: m.ChangeDetailPage })),
 );
 
+// Every page carries its engine family prefix (/sql, /memcache, /mongodb); the
+// dashboard is the only family-less route. Paths come from PAGE_ROUTES.
 const router = createBrowserRouter([
   {
     element: <AppShell />,
     children: [
       { index: true, element: <DashboardPage /> },
-      { path: "query", element: <QueryPage /> },
-      { path: "dml", element: <DmlPage /> },
-      { path: "dml/:id", element: <ChangeDetail kind="dml" /> },
-      { path: "ddl", element: <DdlPage /> },
-      { path: "ddl/:id", element: <ChangeDetail kind="ddl" /> },
-      { path: "analytics", element: <AnalyticsPage /> },
-      { path: "memcache", element: <MemcachePage /> },
-      { path: "memcache/analytics", element: <MemcacheAnalyticsPage /> },
-      { path: "mongodb", element: <MongoExplorePage /> },
-      { path: "mongodb/requests", element: <MongoRequestsPage /> },
-      { path: "mongodb/requests/new", element: <MongoRequestNewPage /> },
-      { path: "mongodb/requests/:id", element: <MongoRequestDetailPage /> },
-      { path: "mongodb/analytics", element: <MongoAnalyticsPage /> },
-      { path: "*", element: <Navigate to="/" replace /> },
+      { path: routePath(PAGE_ROUTES.SQL.QUERY), element: <QueryPage /> },
+      { path: routePath(PAGE_ROUTES.SQL.DML), element: <DmlPage /> },
+      { path: `${routePath(PAGE_ROUTES.SQL.DML)}/:id`, element: <ChangeDetail kind="dml" /> },
+      { path: routePath(PAGE_ROUTES.SQL.DDL), element: <DdlPage /> },
+      { path: `${routePath(PAGE_ROUTES.SQL.DDL)}/:id`, element: <ChangeDetail kind="ddl" /> },
+      { path: routePath(PAGE_ROUTES.SQL.ANALYTICS), element: <AnalyticsPage /> },
+      { path: routePath(PAGE_ROUTES.MEMCACHE.KEYS), element: <MemcachePage /> },
+      { path: routePath(PAGE_ROUTES.MEMCACHE.ANALYTICS), element: <MemcacheAnalyticsPage /> },
+      { path: routePath(PAGE_ROUTES.MONGODB.EXPLORE), element: <MongoExplorePage /> },
+      { path: routePath(PAGE_ROUTES.MONGODB.REQUESTS), element: <MongoRequestsPage /> },
+      { path: routePath(PAGE_ROUTES.MONGODB.REQUEST_NEW), element: <MongoRequestNewPage /> },
+      { path: `${routePath(PAGE_ROUTES.MONGODB.REQUESTS)}/:id`, element: <MongoRequestDetailPage /> },
+      { path: routePath(PAGE_ROUTES.MONGODB.ANALYTICS), element: <MongoAnalyticsPage /> },
+      { path: "*", element: <Navigate to={PAGE_ROUTES.DASHBOARD} replace /> },
     ],
   },
 ]);

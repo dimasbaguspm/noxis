@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, CircleHelp, Send, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { JsonEditor } from "@/components/sql/json-editor";
 import { useMongoCollections, useMongoConnections, useMongoDatabases, useMongoChanges } from "@/hooks/use-mongodb";
 import type { Change } from "@/lib/api";
+import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 // Write ops only: reads belong in Explore, and the queue refuses them.
@@ -86,7 +87,7 @@ export default function MongoRequestNewPage() {
         return;
       }
       toast.success(`request ${change.status}: ${change.estAffected ?? 0} document(s) would be affected`);
-      navigate(`/mongodb/requests/${change.id}`);
+      navigate(PAGE_ROUTES.MONGODB.REQUEST_DETAIL(change.id ?? ""));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
@@ -95,7 +96,7 @@ export default function MongoRequestNewPage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" render={<a href="/mongodb/requests" />}>
+        <Button variant="ghost" size="sm" render={<Link to={PAGE_ROUTES.MONGODB.REQUESTS} />}>
           <ChevronLeft /> Requests
         </Button>
         <Badge variant="outline">step {step} of 3</Badge>
