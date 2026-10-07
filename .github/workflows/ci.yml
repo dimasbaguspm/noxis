@@ -1,7 +1,10 @@
-# One sequential pipeline: lint → build (Dockerfile) → unit → UAT.
-# UAT brings the real compose stack up (kafka + master + slave) on the
-# runner's docker daemon and drives it through the REST surface (make uat);
-# the default tag set skips the @slow image-pull scenarios.
+# Two path-filtered jobs, one per side of the repo.
+#   go  → lint → build (Dockerfile) → unit → UAT
+#   web → lint + typecheck + build
+# A `changes` gate computes which side moved; the heavy jobs run only for
+# their side. UAT brings the real compose stack up (kafka + master + slave)
+# on the runner's docker daemon and drives it through the REST surface
+# (make uat); the default tag set skips the @slow image-pull scenarios.
 name: ci
 
 on:
@@ -9,13 +12,47 @@ on:
     branches: [master]
   pull_request:
 
+permissions:
+  contents: read
+  pull-requests: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  pipeline:
-    name: lint → build → unit → uat
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      go: ${{ steps.filter.outputs.go }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            go:
+              - 'cmd/**'
+              - 'internal/**'
+              - 'test/**'
+              - 'go.mod'
+              - 'go.sum'
+              - '.golangci.yml'
+              - 'Makefile'
+              - 'Dockerfile'
+              - 'docker/**'
+              - '.github/workflows/**'
+            web:
+              - 'web/**'
+              - '.github/workflows/**'
+
+  go:
+    name: "go: lint, build, unit, uat"
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -35,10 +72,19 @@ jobs:
       - name: unit tests
         run: go test -count=1 $(go list ./... | grep -v /test/uat)
 
+      - name: uat (real stack via REST)
+        run: make uat
+
+  web:
+    name: "web: lint, typecheck, build"
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
       - name: web (lint + typecheck + build)
         run: |
           npm install -g pnpm@10
           cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm build
-
-      - name: uat (real stack via REST)
-        run: make uat
