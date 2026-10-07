@@ -1,3 +1,4 @@
+import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { ResultTable } from "@/components/sql/result-table";
 import { SqlEditor } from "@/components/sql/sql-editor";
@@ -5,7 +6,7 @@ import { SqlTabs } from "@/components/sql/sql-tabs";
 import { TableBrowser } from "@/components/sql/table-browser";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAction } from "@/hooks/use-action";
@@ -15,10 +16,11 @@ import { useSqlTabs } from "@/hooks/use-sql-tabs";
 import { api, type Result } from "@/lib/api";
 import { classify } from "@/lib/statements";
 import { CircleHelp, Play } from "lucide-react";
+import { title } from "radash";
 import { useState } from "react";
 
 export default function QueryPage() {
-  const { connection, pick } = useConnectionSelection();
+  const { connection, connections, busy, pick } = useConnectionSelection();
   const { tables } = useSchema(connection);
   const tabs = useSqlTabs();
   const [analyzed, setAnalyzed] = useState<Result | null>(null);
@@ -33,11 +35,33 @@ export default function QueryPage() {
   const kind = classify(sql);
   const result = analyzed ?? readResult;
 
+  // No SQL connection to query: explain it and offer the way in, instead of
+  // rendering empty panes.
+  if (connections.length === 0) {
+    return (
+      <Card className="mx-auto mt-8 max-w-lg">
+        <CardHeader>
+          <CardTitle>{busy ? "Loading connections…" : "No connection found"}</CardTitle>
+          <CardDescription>
+            {busy
+              ? "Fetching your registered SQL databases."
+              : "Register a SQL database to start browsing and querying."}
+          </CardDescription>
+        </CardHeader>
+        {!busy && (
+          <CardContent>
+            <ConnectionDialog trigger="New connection" wizard />
+          </CardContent>
+        )}
+      </Card>
+    );
+  }
+
   return (
     <div className="flex h-[calc(100svh-7rem)] flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
         <ConnectionSelect value={connection} onChange={pick} />
-        <Badge variant={kind === "read" ? "secondary" : "destructive"}>{kind}</Badge>
+        <Badge variant={kind === "read" ? "secondary" : "destructive"}>{title(kind)}</Badge>
         <Tooltip>
           <TooltipTrigger render={<span className="text-muted-foreground" />}>
             <CircleHelp className="size-3.5" />
@@ -48,9 +72,9 @@ export default function QueryPage() {
         </Tooltip>
       </div>
 
-      <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
+      <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
         <ResizablePanel defaultSize={24} minSize={16}>
-          <Card className="mr-2 h-full min-h-0">
+          <Card className="mr-2 h-full min-h-0 min-w-0">
             <CardContent className="min-h-0 flex-1">
               <TableBrowser
                 tables={tables}
@@ -66,8 +90,8 @@ export default function QueryPage() {
         <ResizablePanel defaultSize={76}>
           <ResizablePanelGroup orientation="vertical" className="ml-2">
             <ResizablePanel defaultSize={45} minSize={20}>
-              <Card className="flex h-full flex-col">
-                <CardContent className="flex min-h-0 flex-1 flex-col gap-2 pt-4">
+              <Card className="flex h-full min-w-0 flex-col">
+                <CardContent className="flex min-h-0 flex-1 flex-col gap-2">
                   <SqlTabs
                     tabs={tabs.tabs}
                     activeId={tabs.activeId}
@@ -102,11 +126,11 @@ export default function QueryPage() {
             <ResizableHandle withHandle />
 
             <ResizablePanel defaultSize={55} minSize={20}>
-              <Card className="mt-2 flex h-full min-h-0 flex-col">
+              <Card className="mt-2 flex h-full min-h-0 min-w-0 flex-col">
                 <CardHeader>
                   <CardTitle className="text-base">Result</CardTitle>
                 </CardHeader>
-                <CardContent className="min-h-0 overflow-auto">
+                <CardContent className="min-h-0 min-w-0 overflow-auto">
                   <ResultTable result={result} title={tabs.active?.title ?? "query"} />
                 </CardContent>
               </Card>
