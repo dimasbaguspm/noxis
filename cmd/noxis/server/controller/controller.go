@@ -1,13 +1,19 @@
 // Package controller holds the REST handlers, one concern per file, with swag
 // annotations (`make swagger` regenerates doc/swagger.yaml|json). Workflow
-// logic lives next to the handlers; repositories and the SQL module arrive
-// through the request context.
+// logic lives next to the handlers; repositories and the engine-family registry
+// arrive through the request context.
+//
+// Routes are generic over the engine family: a path parameter `{engine}` names
+// the family, and every handler resolves its module from the registry instead
+// of naming a family in code. A family that does not serve an operation is
+// refused as unsupported (404), never routed to the wrong module.
 package controller
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -15,14 +21,14 @@ import (
 	"noxis/internal/interfaces"
 )
 
-// Deps is everything a handler needs, injected per request: one module per
-// engine family, plus the shared stores.
+// Deps is everything a handler needs, injected per request: the engine-family
+// registry, plus the shared stores. The registry is keyed by family, so one
+// generic route serves every engine and the family is read from the request's
+// {engine} path parameter.
 type Deps struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
-	SQL         interfaces.SQLModule
-	Memcache    interfaces.MemcacheModule
-	Mongo       interfaces.MongoModule
+	Modules     map[string]interfaces.Module
 	Log         *slog.Logger
 }
 
@@ -38,16 +44,80 @@ func WithDeps(next http.Handler, d Deps) http.Handler {
 // From returns the request's Deps.
 func From(r *http.Request) Deps { return r.Context().Value(ctxKey{}).(Deps) }
 
-// module resolves the engine family that serves a driver, for the paths that
-// work across families (connection reachability).
-func (d Deps) module(driver string) interfaces.Module {
-	switch {
-	case d.Memcache.Supports(driver):
-		return d.Memcache
-	case d.Mongo.Supports(driver):
-		return d.Mongo
+// engine resolves the module named by the request's {engine} path parameter.
+func (d Deps) engine(r *http.Request) (interfaces.Module, error) {
+	name := r.PathValue("engine")
+	if mod, ok := d.Modules[name]; ok {
+		return mod, nil
 	}
-	return d.SQL
+	return nil, fmt.Errorf("%w: no engine %q", interfaces.ErrUnsupported, name)
+}
+
+// moduleByDriver resolves the family that serves a driver through the registry,
+// rather than a hardcoded driver-to-family switch.
+func (d Deps) moduleByDriver(driver string) (interfaces.Module, bool) {
+	for _, mod := range d.Modules {
+		if mod.Supports(driver) {
+			return mod, true
+		}
+	}
+	return nil, false
+}
+
+// sqlOf, mongoOf and memcacheOf narrow a module to the capability a handler
+// needs; a module that does not serve it is unsupported (404).
+func sqlOf(mod interfaces.Module) (interfaces.SQLModule, error) {
+	m, ok := mod.(interfaces.SQLModule)
+	if !ok {
+		return nil, unsupported(mod, "sql operations")
+	}
+	return m, nil
+}
+
+func mongoOf(mod interfaces.Module) (interfaces.MongoModule, error) {
+	m, ok := mod.(interfaces.MongoModule)
+	if !ok {
+		return nil, unsupported(mod, "mongodb operations")
+	}
+	return m, nil
+}
+
+func memcacheOf(mod interfaces.Module) (interfaces.MemcacheModule, error) {
+	m, ok := mod.(interfaces.MemcacheModule)
+	if !ok {
+		return nil, unsupported(mod, "memory-cache operations")
+	}
+	return m, nil
+}
+
+func unsupported(mod interfaces.Module, what string) error {
+	return fmt.Errorf("%w: engine %q does not serve %s", interfaces.ErrUnsupported, mod.Family(), what)
+}
+
+// engineSQL, engineMongo and engineMemcache resolve the request's engine and
+// narrow it to the capability the handler serves.
+func (d Deps) engineSQL(r *http.Request) (interfaces.SQLModule, error) {
+	mod, err := d.engine(r)
+	if err != nil {
+		return nil, err
+	}
+	return sqlOf(mod)
+}
+
+func (d Deps) engineMongo(r *http.Request) (interfaces.MongoModule, error) {
+	mod, err := d.engine(r)
+	if err != nil {
+		return nil, err
+	}
+	return mongoOf(mod)
+}
+
+func (d Deps) engineMemcache(r *http.Request) (interfaces.MemcacheModule, error) {
+	mod, err := d.engine(r)
+	if err != nil {
+		return nil, err
+	}
+	return memcacheOf(mod)
 }
 
 // span opens the span for the calling method (the name derives from the
@@ -105,7 +175,8 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 
 func writeErr(w http.ResponseWriter, err error) {
 	code := http.StatusBadRequest
-	if errors.Is(err, interfaces.ErrNotFound) {
+	// a missing row and a missing engine/sub-resource are both "not here"
+	if errors.Is(err, interfaces.ErrNotFound) || errors.Is(err, interfaces.ErrUnsupported) {
 		code = http.StatusNotFound
 	}
 	writeJSON(w, code, map[string]string{"error": err.Error()})

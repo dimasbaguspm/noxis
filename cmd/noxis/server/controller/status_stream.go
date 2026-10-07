@@ -69,7 +69,9 @@ func (d Deps) connectionStates(ctx context.Context) ([]ConnectionState, error) {
 	for _, c := range list {
 		state := ConnectionState{Name: c.Name, Driver: c.Driver}
 		started := time.Now()
-		if err := d.module(c.Driver).Ping(ctx, c); err != nil {
+		if mod, ok := d.moduleByDriver(c.Driver); !ok {
+			state.Error = "no engine serves driver " + c.Driver
+		} else if err := mod.Ping(ctx, c); err != nil {
 			state.Error = err.Error()
 		} else {
 			state.OK = true

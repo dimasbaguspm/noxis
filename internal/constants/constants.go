@@ -3,8 +3,6 @@
 // user-facing error messages live next to the logic that raises them.
 package constants
 
-import "strings"
-
 // Version is the build version reported by the CLI and health surfaces.
 const Version = "0.1.0"
 
@@ -30,23 +28,13 @@ const (
 
 // Engine families: the API namespace and console section that serve a
 // connection's driver. Each family owns its own connection list, even though
-// they all write to the same store.
+// they all write to the same store. A family's module reports its own name
+// (interfaces.Module.Family), so no driver-to-family switch lives here.
 const (
 	FamilySQL      = "sql"
 	FamilyMemcache = "memcache"
 	FamilyMongo    = "mongodb"
 )
-
-// FamilyOf maps a driver to the family that serves it.
-func FamilyOf(driver string) string {
-	switch {
-	case strings.EqualFold(driver, DriverRedis), strings.EqualFold(driver, DriverValkey):
-		return FamilyMemcache
-	case strings.EqualFold(driver, DriverMongo), strings.EqualFold(driver, "mongodb"):
-		return FamilyMongo
-	}
-	return FamilySQL
-}
 
 // MongoDB request ops.
 const (
