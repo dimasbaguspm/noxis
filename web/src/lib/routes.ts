@@ -25,16 +25,5 @@ export const PAGE_ROUTES = {
   },
 } as const;
 
-// LEGACY_SQL holds the pre-family SQL URLs. The router redirects them to
-// PAGE_ROUTES.SQL so bookmarks and old links keep working.
-export const LEGACY_SQL = {
-  QUERY: "query",
-  DML: "dml",
-  DML_DETAIL: "dml/:id",
-  DDL: "ddl",
-  DDL_DETAIL: "ddl/:id",
-  ANALYTICS: "analytics",
-} as const;
-
 // routePath turns a link path into a router child path (no leading slash).
 export const routePath = (path: string) => path.replace(/^\//, "");

@@ -1,11 +1,11 @@
 import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter, Navigate, RouterProvider, useParams, useSearchParams } from "react-router-dom";
+import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { AppProvider } from "@/app/app-provider";
 import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { LEGACY_SQL, PAGE_ROUTES, routePath } from "@/lib/routes";
+import { PAGE_ROUTES, routePath } from "@/lib/routes";
 import "./app.css";
 
 // route-level splitting: monaco (query/changes) and recharts (analytics)
@@ -46,27 +46,10 @@ const router = createBrowserRouter([
       { path: routePath(PAGE_ROUTES.MONGODB.REQUEST_NEW), element: <MongoRequestNewPage /> },
       { path: `${routePath(PAGE_ROUTES.MONGODB.REQUESTS)}/:id`, element: <MongoRequestDetailPage /> },
       { path: routePath(PAGE_ROUTES.MONGODB.ANALYTICS), element: <MongoAnalyticsPage /> },
-      // pre-family SQL URLs keep working for bookmarks and old links
-      { path: LEGACY_SQL.QUERY, element: <Moved to={PAGE_ROUTES.SQL.QUERY} /> },
-      { path: LEGACY_SQL.DML, element: <Moved to={PAGE_ROUTES.SQL.DML} /> },
-      { path: LEGACY_SQL.DML_DETAIL, element: <Moved to={PAGE_ROUTES.SQL.DML} keepId /> },
-      { path: LEGACY_SQL.DDL, element: <Moved to={PAGE_ROUTES.SQL.DDL} /> },
-      { path: LEGACY_SQL.DDL_DETAIL, element: <Moved to={PAGE_ROUTES.SQL.DDL} keepId /> },
-      { path: LEGACY_SQL.ANALYTICS, element: <Moved to={PAGE_ROUTES.SQL.ANALYTICS} /> },
       { path: "*", element: <Navigate to={PAGE_ROUTES.DASHBOARD} replace /> },
     ],
   },
 ]);
-
-// Moved sends an old family-less SQL URL to its /sql/ equivalent, keeping the
-// detail id and any querystring so a bookmarked change still opens.
-function Moved({ to, keepId = false }: { to: string; keepId?: boolean }) {
-  const { id } = useParams();
-  const [search] = useSearchParams();
-  const path = keepId && id ? `${to}/${id}` : to;
-  const qs = search.toString();
-  return <Navigate to={qs ? `${path}?${qs}` : path} replace />;
-}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
