@@ -22,7 +22,7 @@ import { useAction } from "@/hooks/use-action";
 import { useConnectionStates, type ConnectionState } from "@/hooks/use-connection-states";
 import { useChanges } from "@/hooks/use-data";
 import { api, type Connection } from "@/lib/api";
-import { FAMILIES, FAMILY, type FamilyKey } from "@/lib/families";
+import { FAMILIES, FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
 import { cn } from "@/lib/utils";
 
 // One row per instance, whichever family it belongs to: the table shows only
@@ -56,7 +56,7 @@ export default function DashboardPage() {
     const needle = query.trim().toLowerCase();
     if (!needle) return instances;
     return instances.filter((c) =>
-      [c.name, c.driver, c.host, c.database, c.user, FAMILY[c.family].label].some((v) =>
+      [c.name, c.driver, c.host, c.database, c.user, familyByKey[c.family].label].some((v) =>
         (v ?? "").toLowerCase().includes(needle),
       ),
     );
@@ -177,7 +177,7 @@ export default function DashboardPage() {
                   <FamilyIcon family={detail.family} className="size-4 text-muted-foreground" />
                   {detail.name}
                 </DialogTitle>
-                <DialogDescription>{FAMILY[detail.family].label}</DialogDescription>
+                <DialogDescription>{familyByKey[detail.family].label}</DialogDescription>
               </DialogHeader>
 
               <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
@@ -190,7 +190,7 @@ export default function DashboardPage() {
                   {detail.host}:{detail.port}
                 </dd>
                 <dt className="text-muted-foreground">
-                  {detail.family === "sql" ? "Database" : detail.family === "mongodb" ? "Database (auth)" : "DB index"}
+                  {detail.family === FAMILY.SQL ? "Database" : detail.family === FAMILY.MONGODB ? "Database (auth)" : "DB index"}
                 </dt>
                 <dd>{detail.database}</dd>
                 {detail.user && (
@@ -213,9 +213,9 @@ export default function DashboardPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  render={<Link to={FAMILY[detail.family].page} />}
+                  render={<Link to={familyByKey[detail.family].page} />}
                 >
-                  {FAMILY[detail.family].openLabel}
+                  {familyByKey[detail.family].openLabel}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => void test.run(detail)}>
                   <Zap /> Test
@@ -239,7 +239,7 @@ export default function DashboardPage() {
 
 // FamilyIcon renders a family's glyph without naming a component per family.
 function FamilyIcon({ family, className }: { family: FamilyKey; className?: string }) {
-  const Icon = FAMILY[family].icon;
+  const Icon = familyByKey[family].icon;
   return <Icon className={className} />;
 }
 

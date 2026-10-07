@@ -9,6 +9,7 @@ import { ChangeActivity } from "@/components/changes/change-activity";
 import { SqlEditor } from "@/components/sql/sql-editor";
 import { useSchema } from "@/hooks/use-connection";
 import { useChanges, type ChangeKind } from "@/hooks/use-data";
+import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -44,6 +45,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
 
   if (!change) return <Unavailable kind={kind} id={id} />;
 
+  const queue = kind === "ddl" ? PAGE_ROUTES.SQL.DDL : PAGE_ROUTES.SQL.DML;
   const act = (fn: (id: string) => Promise<unknown>) => () => void fn(id);
   const canApprove = change.status === "validated" || change.status === "unverified";
   const canApply = change.status === "approved";
@@ -52,7 +54,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={() => navigate(`/sql/${kind}`)}>
+        <Button variant="ghost" size="sm" onClick={() => navigate(queue)}>
           <ArrowLeft /> {kind.toUpperCase()}
         </Button>
         <Badge variant={STATUS_VARIANT[change.status ?? ""] ?? "outline"}>{change.status}</Badge>
@@ -170,6 +172,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
 // Unavailable is the state for an id that is not in the queue: explained,
 // with the way out, instead of a bare "not found".
 function Unavailable({ kind, id }: { kind: ChangeKind; id: string }) {
+  const queue = kind === "ddl" ? PAGE_ROUTES.SQL.DDL : PAGE_ROUTES.SQL.DML;
   return (
     <Card className="mx-auto max-w-2xl">
       <CardHeader>
@@ -199,10 +202,10 @@ function Unavailable({ kind, id }: { kind: ChangeKind; id: string }) {
           </li>
         </ul>
         <div className="flex flex-wrap gap-2">
-          <Button render={<Link to={`/sql/${kind}`} />} size="sm">
+          <Button render={<Link to={queue} />} size="sm">
             Back to {kind.toUpperCase()} queue
           </Button>
-          <Button variant="outline" size="sm" render={<Link to="/sql/query" />}>
+          <Button variant="outline" size="sm" render={<Link to={PAGE_ROUTES.SQL.QUERY} />}>
             Go to Query
           </Button>
         </div>

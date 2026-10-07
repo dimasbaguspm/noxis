@@ -9,6 +9,7 @@ import { JsonEditor } from "@/components/sql/json-editor";
 import { ChangeActivity } from "@/components/changes/change-activity";
 import { useMongoChanges } from "@/hooks/use-mongodb";
 import type { MongoRequest } from "@/lib/api";
+import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 // MongoRequestDetailPage is the review of one request: what it would change,
@@ -42,7 +43,7 @@ export default function MongoRequestDetailPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="ghost" size="sm" render={<Link to="/mongodb/requests" />}>
+        <Button variant="ghost" size="sm" render={<Link to={PAGE_ROUTES.MONGODB.REQUESTS} />}>
           <ArrowLeft /> Requests
         </Button>
         <Badge variant={statusVariant(change.status)}>{change.status}</Badge>
@@ -217,10 +218,10 @@ function Unavailable({ id }: { id: string }) {
           </li>
         </ul>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" render={<Link to="/mongodb/requests" />}>
+          <Button size="sm" render={<Link to={PAGE_ROUTES.MONGODB.REQUESTS} />}>
             Back to Requests
           </Button>
-          <Button size="sm" variant="outline" render={<Link to="/mongodb/requests/new" />}>
+          <Button size="sm" variant="outline" render={<Link to={PAGE_ROUTES.MONGODB.REQUEST_NEW} />}>
             New request
           </Button>
         </div>

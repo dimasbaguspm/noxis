@@ -9,12 +9,13 @@ import {
   type MongoStats,
 } from "@/lib/api";
 import { useFamily } from "@/app/app-provider";
+import { FAMILY } from "@/lib/families";
 import { useAction } from "@/hooks/use-action";
 
 // useMongoConnections reads the MongoDB registry from the provider, so the
 // dashboard and these pages never disagree.
 export function useMongoConnections() {
-  const { connections, active: connection, setActive: pick, reload } = useFamily("mongodb");
+  const { connections, active: connection, setActive: pick, reload } = useFamily(FAMILY.MONGODB);
   return { connections, connection, pick, reload };
 }
 

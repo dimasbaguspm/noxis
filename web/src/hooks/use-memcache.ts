@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, type MemcacheKeyPage, type MemcacheStats, type Result } from "@/lib/api";
 import { useFamily } from "@/app/app-provider";
+import { FAMILY } from "@/lib/families";
 import { useAction } from "@/hooks/use-action";
 
 // useMemcacheConnections reads the memory-cache registry from the provider:
 // the same list the dashboard shows, so the two never disagree.
 export function useMemcacheConnections() {
-  const { connections, active: connection, setActive: pick, reload } = useFamily("memcache");
+  const { connections, active: connection, setActive: pick, reload } = useFamily(FAMILY.MEMCACHE);
   return { connections, connection, pick, reload };
 }
 

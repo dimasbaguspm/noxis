@@ -1,10 +1,11 @@
 import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter, Navigate, RouterProvider, useParams } from "react-router-dom";
+import { createBrowserRouter, Navigate, RouterProvider, useParams, useSearchParams } from "react-router-dom";
 import { AppProvider } from "@/app/app-provider";
 import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { LEGACY_SQL, PAGE_ROUTES, routePath } from "@/lib/routes";
 import "./app.css";
 
 // route-level splitting: monaco (query/changes) and recharts (analytics)
@@ -26,42 +27,45 @@ const ChangeDetail = lazy(() =>
 );
 
 // Every page carries its engine family prefix (/sql, /memcache, /mongodb); the
-// dashboard is the only family-less route.
+// dashboard is the only family-less route. Paths come from PAGE_ROUTES.
 const router = createBrowserRouter([
   {
     element: <AppShell />,
     children: [
       { index: true, element: <DashboardPage /> },
-      { path: "sql/query", element: <QueryPage /> },
-      { path: "sql/dml", element: <DmlPage /> },
-      { path: "sql/dml/:id", element: <ChangeDetail kind="dml" /> },
-      { path: "sql/ddl", element: <DdlPage /> },
-      { path: "sql/ddl/:id", element: <ChangeDetail kind="ddl" /> },
-      { path: "sql/analytics", element: <AnalyticsPage /> },
-      { path: "memcache", element: <MemcachePage /> },
-      { path: "memcache/analytics", element: <MemcacheAnalyticsPage /> },
-      { path: "mongodb", element: <MongoExplorePage /> },
-      { path: "mongodb/requests", element: <MongoRequestsPage /> },
-      { path: "mongodb/requests/new", element: <MongoRequestNewPage /> },
-      { path: "mongodb/requests/:id", element: <MongoRequestDetailPage /> },
-      { path: "mongodb/analytics", element: <MongoAnalyticsPage /> },
+      { path: routePath(PAGE_ROUTES.SQL.QUERY), element: <QueryPage /> },
+      { path: routePath(PAGE_ROUTES.SQL.DML), element: <DmlPage /> },
+      { path: `${routePath(PAGE_ROUTES.SQL.DML)}/:id`, element: <ChangeDetail kind="dml" /> },
+      { path: routePath(PAGE_ROUTES.SQL.DDL), element: <DdlPage /> },
+      { path: `${routePath(PAGE_ROUTES.SQL.DDL)}/:id`, element: <ChangeDetail kind="ddl" /> },
+      { path: routePath(PAGE_ROUTES.SQL.ANALYTICS), element: <AnalyticsPage /> },
+      { path: routePath(PAGE_ROUTES.MEMCACHE.KEYS), element: <MemcachePage /> },
+      { path: routePath(PAGE_ROUTES.MEMCACHE.ANALYTICS), element: <MemcacheAnalyticsPage /> },
+      { path: routePath(PAGE_ROUTES.MONGODB.EXPLORE), element: <MongoExplorePage /> },
+      { path: routePath(PAGE_ROUTES.MONGODB.REQUESTS), element: <MongoRequestsPage /> },
+      { path: routePath(PAGE_ROUTES.MONGODB.REQUEST_NEW), element: <MongoRequestNewPage /> },
+      { path: `${routePath(PAGE_ROUTES.MONGODB.REQUESTS)}/:id`, element: <MongoRequestDetailPage /> },
+      { path: routePath(PAGE_ROUTES.MONGODB.ANALYTICS), element: <MongoAnalyticsPage /> },
       // pre-family SQL URLs keep working for bookmarks and old links
-      { path: "query", element: <Moved to="/sql/query" /> },
-      { path: "dml", element: <Moved to="/sql/dml" /> },
-      { path: "dml/:id", element: <Moved to="/sql/dml" keepId /> },
-      { path: "ddl", element: <Moved to="/sql/ddl" /> },
-      { path: "ddl/:id", element: <Moved to="/sql/ddl" keepId /> },
-      { path: "analytics", element: <Moved to="/sql/analytics" /> },
-      { path: "*", element: <Navigate to="/" replace /> },
+      { path: LEGACY_SQL.QUERY, element: <Moved to={PAGE_ROUTES.SQL.QUERY} /> },
+      { path: LEGACY_SQL.DML, element: <Moved to={PAGE_ROUTES.SQL.DML} /> },
+      { path: LEGACY_SQL.DML_DETAIL, element: <Moved to={PAGE_ROUTES.SQL.DML} keepId /> },
+      { path: LEGACY_SQL.DDL, element: <Moved to={PAGE_ROUTES.SQL.DDL} /> },
+      { path: LEGACY_SQL.DDL_DETAIL, element: <Moved to={PAGE_ROUTES.SQL.DDL} keepId /> },
+      { path: LEGACY_SQL.ANALYTICS, element: <Moved to={PAGE_ROUTES.SQL.ANALYTICS} /> },
+      { path: "*", element: <Navigate to={PAGE_ROUTES.DASHBOARD} replace /> },
     ],
   },
 ]);
 
 // Moved sends an old family-less SQL URL to its /sql/ equivalent, keeping the
-// detail id so a bookmarked change still opens.
+// detail id and any querystring so a bookmarked change still opens.
 function Moved({ to, keepId = false }: { to: string; keepId?: boolean }) {
   const { id } = useParams();
-  return <Navigate to={keepId && id ? `${to}/${id}` : to} replace />;
+  const [search] = useSearchParams();
+  const path = keepId && id ? `${to}/${id}` : to;
+  const qs = search.toString();
+  return <Navigate to={qs ? `${path}?${qs}` : path} replace />;
 }
 
 createRoot(document.getElementById("root")!).render(

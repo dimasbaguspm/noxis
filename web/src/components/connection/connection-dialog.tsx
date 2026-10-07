@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAction } from "@/hooks/use-action";
 import { useApp } from "@/app/app-provider";
-import type { FamilyKey } from "@/lib/families";
+import { FAMILY, type FamilyKey } from "@/lib/families";
 import { api, type Connection } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -34,9 +34,9 @@ const MEMCACHE_EMPTY: Connection = { ...SQL_EMPTY, driver: "redis", port: 6379, 
 const MONGO_EMPTY: Connection = { ...SQL_EMPTY, driver: "mongo", port: 27017, database: "admin" };
 
 const BLANK: Record<FamilyKey, Connection> = {
-  sql: SQL_EMPTY,
-  memcache: MEMCACHE_EMPTY,
-  mongodb: MONGO_EMPTY,
+  [FAMILY.SQL]: SQL_EMPTY,
+  [FAMILY.MEMCACHE]: MEMCACHE_EMPTY,
+  [FAMILY.MONGODB]: MONGO_EMPTY,
 };
 
 // ConnectionDialog registers an instance. Nothing is kept unless it answers:
@@ -46,7 +46,7 @@ const BLANK: Record<FamilyKey, Connection> = {
 export function ConnectionDialog({
   trigger = "New connection",
   initial,
-  family = "sql",
+  family = FAMILY.SQL,
   wizard = false,
 }: {
   trigger?: string;
@@ -61,8 +61,8 @@ export function ConnectionDialog({
   const [form, setForm] = useState<Connection>(initial ?? BLANK[family]);
   const [verified, setVerified] = useState(false);
 
-  const cache = kind === "memcache";
-  const mongo = kind === "mongodb";
+  const cache = kind === FAMILY.MEMCACHE;
+  const mongo = kind === FAMILY.MONGODB;
   const client = api.family(kind);
 
   // Saving writes to the shared registry, so refresh the family: the dashboard
@@ -124,19 +124,19 @@ export function ConnectionDialog({
               icon={<Database className="size-4" />}
               title="SQL database"
               detail="Postgres, MySQL or MariaDB. Read and change data through the validated workflow."
-              onClick={() => choose("sql")}
+              onClick={() => choose(FAMILY.SQL)}
             />
             <Choice
               icon={<Boxes className="size-4" />}
               title="Memory cache"
               detail="Redis or Valkey. Browse keys, inspect values, watch INFO metrics."
-              onClick={() => choose("memcache")}
+              onClick={() => choose(FAMILY.MEMCACHE)}
             />
             <Choice
               icon={<Leaf className="size-4" />}
               title="Document database"
               detail="MongoDB. Explore databases and collections, run CRUD requests, watch stats."
-              onClick={() => choose("mongodb")}
+              onClick={() => choose(FAMILY.MONGODB)}
             />
           </div>
         ) : (

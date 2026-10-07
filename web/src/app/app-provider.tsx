@@ -17,11 +17,10 @@ interface AppState {
   setActive: (family: FamilyKey, name: string) => void;
 }
 
-const EMPTY: Record<FamilyKey, FamilyState> = {
-  sql: { connections: [] },
-  memcache: { connections: [] },
-  mongodb: { connections: [] },
-};
+const EMPTY = FAMILIES.reduce(
+  (acc, family) => ({ ...acc, [family.key]: { connections: [] } }),
+  {} as Record<FamilyKey, FamilyState>,
+);
 
 const AppContext = createContext<AppState | null>(null);
 
@@ -31,10 +30,10 @@ const AppContext = createContext<AppState | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [registry, setRegistry] = useState<Record<FamilyKey, FamilyState>>(EMPTY);
   const [schema, setSchema] = useState<Table[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState(0);
 
   const reload = useCallback(async (family: FamilyKey) => {
-    setBusy(true);
+    setPending((n) => n + 1);
     try {
       const { connections: list } = await api.family(family).list();
       setRegistry((prev) => {
@@ -45,7 +44,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
-      setBusy(false);
+      setPending((n) => n - 1);
     }
   }, []);
 
@@ -74,8 +73,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [activeSQL]);
 
   const value = useMemo(
-    () => ({ registry, schema, busy, reload, setActive }),
-    [registry, schema, busy, reload, setActive],
+    () => ({ registry, schema, busy: pending > 0, reload, setActive }),
+    [registry, schema, pending, reload, setActive],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
