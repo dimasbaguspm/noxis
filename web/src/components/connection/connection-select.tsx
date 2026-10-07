@@ -1,6 +1,6 @@
 import { Database } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useApp } from "@/app/app-provider";
+import { useFamily } from "@/app/app-provider";
 
 // ConnectionSelect is the page-local instance picker: pages own their choice
 // (the provider only remembers it as the default for the next page).
@@ -13,7 +13,7 @@ export function ConnectionSelect({
   onChange: (name: string) => void;
   className?: string;
 }) {
-  const { connections } = useApp();
+  const { connections } = useFamily("sql");
 
   if (connections.length === 0) {
     return <span className="text-xs text-muted-foreground">no connections yet — add one from the dashboard</span>;

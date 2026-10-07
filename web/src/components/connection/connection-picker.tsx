@@ -1,10 +1,10 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useApp } from "@/app/app-provider";
+import { useFamily } from "@/app/app-provider";
 
 // ConnectionPicker switches the active connection — the one shared piece of
 // context every page reads.
 export function ConnectionPicker() {
-  const { connections, active, setActive } = useApp();
+  const { connections, active, setActive } = useFamily("sql");
 
   if (connections.length === 0) {
     return <span className="text-xs text-muted-foreground">no connections yet</span>;

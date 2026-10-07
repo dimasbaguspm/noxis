@@ -8,19 +8,14 @@ import {
   type MongoResult,
   type MongoStats,
 } from "@/lib/api";
-import { useApp } from "@/app/app-provider";
+import { useFamily } from "@/app/app-provider";
 import { useAction } from "@/hooks/use-action";
 
 // useMongoConnections reads the MongoDB registry from the provider, so the
 // dashboard and these pages never disagree.
 export function useMongoConnections() {
-  const { mongoConnections, mongoActive, setMongoActive, reloadMongo } = useApp();
-  return {
-    connections: mongoConnections,
-    connection: mongoActive,
-    pick: setMongoActive,
-    reload: reloadMongo,
-  };
+  const { connections, active: connection, setActive: pick, reload } = useFamily("mongodb");
+  return { connections, connection, pick, reload };
 }
 
 // useMongoDatabases lists the databases with their sizes.

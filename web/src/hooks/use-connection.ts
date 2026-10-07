@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { api, type Table } from "@/lib/api";
-import { useApp } from "@/app/app-provider";
+import { useFamily } from "@/app/app-provider";
 import { useAction } from "@/hooks/use-action";
 
 // useConnectionSelection gives a page its own instance choice, seeded from
 // the provider's default (the last one anyone picked).
 export function useConnectionSelection() {
-  const { connections, active, setActive } = useApp();
+  const { connections, active, setActive } = useFamily("sql");
   const [connection, setConnection] = useState<string | undefined>(active);
 
   useEffect(() => {

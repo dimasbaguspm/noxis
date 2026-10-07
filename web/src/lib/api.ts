@@ -1,4 +1,5 @@
 import type { components } from "@/api/generated";
+import type { FamilyKey } from "@/lib/families";
 
 export type Connection = components["schemas"]["entity.Connection"];
 export type Change = components["schemas"]["entity.Change"];
@@ -38,6 +39,10 @@ export interface ChangeInput {
   rollback: string;
 }
 
+// v1 builds an endpoint from the engine family, so no call hardcodes a family
+// URL prefix: the family is the server's generic route parameter.
+const v1 = (family: FamilyKey, path: string) => `/v1/${family}/${path}`;
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
     method,
@@ -50,87 +55,93 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
+// connectionOps is the connection lifecycle every family shares; the family
+// decides the namespace, the routes are identical.
+function connectionOps(family: FamilyKey) {
+  return {
+    list: () => request<{ connections: Connection[] }>("GET", v1(family, "connections")),
+    save: (c: Connection) => request<Connection>("POST", v1(family, "connections"), c),
+    remove: (name: string) => request<null>("DELETE", v1(family, `connections/${name}`)),
+    test: (name: string) => request<{ status: string }>("POST", v1(family, `connections/${name}/test`)),
+  };
+}
+
 export const api = {
   connections: {
-    list: () => request<{ connections: Connection[] }>("GET", "/v1/sql/connections"),
-    save: (c: Connection) => request<Connection>("POST", "/v1/sql/connections", c),
-    remove: (name: string) => request<null>("DELETE", `/v1/sql/connections/${name}`),
-    test: (name: string) => request<{ status: string }>("POST", `/v1/sql/connections/${name}/test`),
-    schema: (name: string) => request<{ tables: Table[] }>("GET", `/v1/sql/connections/${name}/schema`),
-    stats: (name: string) => request<Stats>("GET", `/v1/sql/connections/${name}/stats`),
+    ...connectionOps("sql"),
+    schema: (name: string) => request<{ tables: Table[] }>("GET", v1("sql", `connections/${name}/schema`)),
+    stats: (name: string) => request<Stats>("GET", v1("sql", `connections/${name}/stats`)),
     statusStream: () => "/v1/connections/status/stream",
     // the live view subscribes to this endpoint with an EventSource
-    statsStream: (name: string) => `/v1/sql/connections/${name}/stats/stream`,
+    statsStream: (name: string) => v1("sql", `connections/${name}/stats/stream`),
     rows: (name: string, schema: string, table: string, limit = 100) =>
       request<Result>(
         "GET",
-        `/v1/sql/connections/${name}/tables/${table}/rows?schema=${encodeURIComponent(schema)}&limit=${limit}`,
+        v1("sql", `connections/${name}/tables/${table}/rows`) +
+          `?schema=${encodeURIComponent(schema)}&limit=${limit}`,
       ),
   },
   ops: {
-    query: (name: string, sql: string) => request<Result>("POST", `/v1/sql/connections/${name}/query`, { sql }),
-    alter: (name: string, sql: string) => request<Result>("POST", `/v1/sql/connections/${name}/alter`, { sql }),
-    rollback: (name: string, sql: string) => request<Result>("POST", `/v1/sql/connections/${name}/rollback`, { sql }),
+    query: (name: string, sql: string) => request<Result>("POST", v1("sql", `connections/${name}/query`), { sql }),
+    alter: (name: string, sql: string) => request<Result>("POST", v1("sql", `connections/${name}/alter`), { sql }),
+    rollback: (name: string, sql: string) =>
+      request<Result>("POST", v1("sql", `connections/${name}/rollback`), { sql }),
     analytics: (name: string, table: string) =>
-      request<Result>("POST", `/v1/sql/connections/${name}/analytics`, { table }),
+      request<Result>("POST", v1("sql", `connections/${name}/analytics`), { table }),
   },
   memcache: {
-    list: () => request<{ connections: Connection[] }>("GET", "/v1/memcache/connections"),
-    save: (c: Connection) => request<Connection>("POST", "/v1/memcache/connections", c),
-    remove: (name: string) => request<null>("DELETE", `/v1/memcache/connections/${name}`),
-    test: (name: string) => request<{ status: string }>("POST", `/v1/memcache/connections/${name}/test`),
+    ...connectionOps("memcache"),
     keys: (name: string, pattern = "*", limit = 500) =>
       request<MemcacheKeyPage>(
         "GET",
-        `/v1/memcache/connections/${name}/keys?pattern=${encodeURIComponent(pattern)}&limit=${limit}`,
+        v1("memcache", `connections/${name}/keys`) +
+          `?pattern=${encodeURIComponent(pattern)}&limit=${limit}`,
       ),
     value: (name: string, key: string) =>
-      request<Result>("GET", `/v1/memcache/connections/${name}/value?key=${encodeURIComponent(key)}`),
+      request<Result>("GET", v1("memcache", `connections/${name}/value`) + `?key=${encodeURIComponent(key)}`),
     removeKeys: (name: string, keys: string[]) =>
-      request<{ deleted: number }>("DELETE", `/v1/memcache/connections/${name}/keys`, { keys }),
-    flush: (name: string) =>
-      request<{ status: string }>("POST", `/v1/memcache/connections/${name}/flush`, { confirm: name }),
-    stats: (name: string) => request<MemcacheStats>("GET", `/v1/memcache/connections/${name}/stats`),
-    statsStream: (name: string) => `/v1/memcache/connections/${name}/stats/stream`,
+      request<{ deleted: number }>("DELETE", v1("memcache", `connections/${name}/keys`), { keys }),
+    flush: (name: string) => request<{ status: string }>("POST", v1("memcache", `connections/${name}/flush`), { confirm: name }),
+    stats: (name: string) => request<MemcacheStats>("GET", v1("memcache", `connections/${name}/stats`)),
+    statsStream: (name: string) => v1("memcache", `connections/${name}/stats/stream`),
   },
   mongodb: {
-    list: () => request<{ connections: Connection[] }>("GET", "/v1/mongodb/connections"),
-    save: (c: Connection) => request<Connection>("POST", "/v1/mongodb/connections", c),
-    remove: (name: string) => request<null>("DELETE", `/v1/mongodb/connections/${name}`),
-    test: (name: string) => request<{ status: string }>("POST", `/v1/mongodb/connections/${name}/test`),
+    ...connectionOps("mongodb"),
     databases: (name: string) =>
-      request<{ databases: MongoDatabase[] }>("GET", `/v1/mongodb/connections/${name}/databases`),
+      request<{ databases: MongoDatabase[] }>("GET", v1("mongodb", `connections/${name}/databases`)),
     collections: (name: string, database: string) =>
       request<{ collections: MongoCollection[] }>(
         "GET",
-        `/v1/mongodb/connections/${name}/collections?database=${encodeURIComponent(database)}`,
+        v1("mongodb", `connections/${name}/collections`) + `?database=${encodeURIComponent(database)}`,
       ),
     // reads only: a write op is refused here and belongs in the request queue
     run: (name: string, req: MongoRequest) =>
-      request<MongoResult>("POST", `/v1/mongodb/connections/${name}/requests`, req),
+      request<MongoResult>("POST", v1("mongodb", `connections/${name}/requests`), req),
     stats: (name: string, database?: string, collection?: string) =>
       request<MongoStats>(
         "GET",
-        `/v1/mongodb/connections/${name}/stats?database=${encodeURIComponent(database ?? "")}` +
-          `&collection=${encodeURIComponent(collection ?? "")}`,
+        v1("mongodb", `connections/${name}/stats`) +
+          `?database=${encodeURIComponent(database ?? "")}&collection=${encodeURIComponent(collection ?? "")}`,
       ),
     statsStream: (name: string, database?: string, collection?: string) =>
-      `/v1/mongodb/connections/${name}/stats/stream?database=${encodeURIComponent(database ?? "")}` +
-      `&collection=${encodeURIComponent(collection ?? "")}`,
+      v1("mongodb", `connections/${name}/stats/stream`) +
+      `?database=${encodeURIComponent(database ?? "")}&collection=${encodeURIComponent(collection ?? "")}`,
     changes: {
-      list: () => request<{ changes: Change[] }>("GET", "/v1/mongodb/changes"),
-      submit: (input: MongoChangeInput) => request<Change>("POST", "/v1/mongodb/changes", input),
-      get: (id: string) => request<Change>("GET", `/v1/mongodb/changes/${id}`),
-      approve: (id: string) => request<Change>("POST", `/v1/mongodb/changes/${id}/approve`),
-      apply: (id: string) => request<Change>("POST", `/v1/mongodb/changes/${id}/apply`),
-      reject: (id: string) => request<Change>("POST", `/v1/mongodb/changes/${id}/reject`),
+      list: () => request<{ changes: Change[] }>("GET", v1("mongodb", "changes")),
+      submit: (input: MongoChangeInput) => request<Change>("POST", v1("mongodb", "changes"), input),
+      get: (id: string) => request<Change>("GET", v1("mongodb", `changes/${id}`)),
+      approve: (id: string) => request<Change>("POST", v1("mongodb", `changes/${id}/approve`)),
+      apply: (id: string) => request<Change>("POST", v1("mongodb", `changes/${id}/apply`)),
+      reject: (id: string) => request<Change>("POST", v1("mongodb", `changes/${id}/reject`)),
     },
   },
   changes: {
-    list: () => request<{ changes: Change[] }>("GET", "/v1/sql/changes"),
-    submit: (input: ChangeInput) => request<Change>("POST", "/v1/sql/changes", input),
-    approve: (id: string) => request<Change>("POST", `/v1/sql/changes/${id}/approve`),
-    apply: (id: string) => request<Change>("POST", `/v1/sql/changes/${id}/apply`),
-    reject: (id: string) => request<Change>("POST", `/v1/sql/changes/${id}/reject`),
+    list: () => request<{ changes: Change[] }>("GET", v1("sql", "changes")),
+    submit: (input: ChangeInput) => request<Change>("POST", v1("sql", "changes"), input),
+    approve: (id: string) => request<Change>("POST", v1("sql", `changes/${id}/approve`)),
+    apply: (id: string) => request<Change>("POST", v1("sql", `changes/${id}/apply`)),
+    reject: (id: string) => request<Change>("POST", v1("sql", `changes/${id}/reject`)),
   },
+  // family returns the shared connection lifecycle for any engine family.
+  family: connectionOps,
 };

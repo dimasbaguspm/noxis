@@ -1,18 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, type MemcacheKeyPage, type MemcacheStats, type Result } from "@/lib/api";
-import { useApp } from "@/app/app-provider";
+import { useFamily } from "@/app/app-provider";
 import { useAction } from "@/hooks/use-action";
 
 // useMemcacheConnections reads the memory-cache registry from the provider:
 // the same list the dashboard shows, so the two never disagree.
 export function useMemcacheConnections() {
-  const { memcacheConnections, memcacheActive, setMemcacheActive, reloadMemcache } = useApp();
-  return {
-    connections: memcacheConnections,
-    connection: memcacheActive,
-    pick: setMemcacheActive,
-    reload: reloadMemcache,
-  };
+  const { connections, active: connection, setActive: pick, reload } = useFamily("memcache");
+  return { connections, connection, pick, reload };
 }
 
 // useMemcacheKeys browses keys by pattern. The API does a bounded full scan, so

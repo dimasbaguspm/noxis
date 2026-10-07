@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { debounce, title } from "radash";
-import { Boxes, CircleCheck, CircleX, Database, Leaf, Loader2, Search, Trash2, Zap } from "lucide-react";
+import { CircleCheck, CircleX, Loader2, Search, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,46 +22,23 @@ import { useAction } from "@/hooks/use-action";
 import { useConnectionStates, type ConnectionState } from "@/hooks/use-connection-states";
 import { useChanges } from "@/hooks/use-data";
 import { api, type Connection } from "@/lib/api";
+import { FAMILIES, FAMILY, type FamilyKey } from "@/lib/families";
 import { cn } from "@/lib/utils";
-
-type Family = "sql" | "memcache" | "mongo";
 
 // One row per instance, whichever family it belongs to: the table shows only
 // what both have in common, and the detail dialog carries the rest.
 interface Instance extends Connection {
-  family: Family;
+  family: FamilyKey;
 }
 
-const FAMILY_LABEL: Record<Family, string> = {
-  sql: "SQL",
-  memcache: "Memory Cache",
-  mongo: "MongoDB",
-};
-
-const FAMILY_PAGE: Record<Family, { to: string; label: string }> = {
-  sql: { to: "/query", label: "Open in Query" },
-  memcache: { to: "/memcache", label: "Browse keys" },
-  mongo: { to: "/mongodb", label: "Explore" },
-};
-
-const FAMILY_ICON: Record<Family, React.ReactNode> = {
-  sql: <Database className="size-3.5 text-muted-foreground" />,
-  memcache: <Boxes className="size-3.5 text-muted-foreground" />,
-  mongo: <Leaf className="size-3.5 text-muted-foreground" />,
-};
-
 export default function DashboardPage() {
-  const { connections, memcacheConnections, mongoConnections, reload, reloadMemcache, reloadMongo } = useApp();
+  const { registry, reload } = useApp();
   const { changes } = useChanges();
   const { states, connected } = useConnectionStates();
 
   const instances = useMemo<Instance[]>(
-    () => [
-      ...connections.map((c) => ({ ...c, family: "sql" as const })),
-      ...memcacheConnections.map((c) => ({ ...c, family: "memcache" as const })),
-      ...mongoConnections.map((c) => ({ ...c, family: "mongo" as const })),
-    ],
-    [connections, memcacheConnections, mongoConnections],
+    () => FAMILIES.flatMap((family) => registry[family.key].connections.map((c) => ({ ...c, family: family.key }))),
+    [registry],
   );
 
   const [filter, setFilter] = useState("");
@@ -79,17 +56,15 @@ export default function DashboardPage() {
     const needle = query.trim().toLowerCase();
     if (!needle) return instances;
     return instances.filter((c) =>
-      [c.name, c.driver, c.host, c.database, c.user, FAMILY_LABEL[c.family]].some((v) =>
+      [c.name, c.driver, c.host, c.database, c.user, FAMILY[c.family].label].some((v) =>
         (v ?? "").toLowerCase().includes(needle),
       ),
     );
   }, [instances, query]);
 
-  const client = (family: Family) =>
-    family === "memcache" ? api.memcache : family === "mongo" ? api.mongodb : api.connections;
+  const client = (family: FamilyKey) => api.family(family);
 
-  const refresh = (family: Family) =>
-    family === "memcache" ? reloadMemcache() : family === "mongo" ? reloadMongo() : reload();
+  const refresh = (family: FamilyKey) => reload(family);
 
   const test = useAction(async (c: Instance) => {
     await client(c.family).test(c.name ?? "");
@@ -108,9 +83,9 @@ export default function DashboardPage() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <TotalTile
           all={instances.length}
-          sql={connections.length}
-          memcache={memcacheConnections.length}
-          mongo={mongoConnections.length}
+          sql={registry.sql.connections.length}
+          memcache={registry.memcache.connections.length}
+          mongo={registry.mongodb.connections.length}
         />
         <Stat title="DDL executed" value={ddl} hint="schema changes applied" />
         <Stat title="DML executed" value={dml} hint="data changes applied" />
@@ -168,7 +143,7 @@ export default function DashboardPage() {
                     <TableRow key={`${c.family}:${c.name}`}>
                       <TableCell>
                         <span className="flex items-center gap-2 text-sm">
-                          {FAMILY_ICON[c.family]}
+                          <FamilyIcon family={c.family} className="size-3.5 text-muted-foreground" />
                           {c.name}
                         </span>
                       </TableCell>
@@ -199,10 +174,10 @@ export default function DashboardPage() {
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  {FAMILY_ICON[detail.family]}
+                  <FamilyIcon family={detail.family} className="size-4 text-muted-foreground" />
                   {detail.name}
                 </DialogTitle>
-                <DialogDescription>{FAMILY_LABEL[detail.family]}</DialogDescription>
+                <DialogDescription>{FAMILY[detail.family].label}</DialogDescription>
               </DialogHeader>
 
               <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
@@ -215,7 +190,7 @@ export default function DashboardPage() {
                   {detail.host}:{detail.port}
                 </dd>
                 <dt className="text-muted-foreground">
-                  {detail.family === "sql" ? "Database" : detail.family === "mongo" ? "Database (auth)" : "DB index"}
+                  {detail.family === "sql" ? "Database" : detail.family === "mongodb" ? "Database (auth)" : "DB index"}
                 </dt>
                 <dd>{detail.database}</dd>
                 {detail.user && (
@@ -238,9 +213,9 @@ export default function DashboardPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  render={<Link to={FAMILY_PAGE[detail.family].to} />}
+                  render={<Link to={FAMILY[detail.family].page} />}
                 >
-                  {FAMILY_PAGE[detail.family].label}
+                  {FAMILY[detail.family].openLabel}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => void test.run(detail)}>
                   <Zap /> Test
@@ -260,6 +235,12 @@ export default function DashboardPage() {
       </Dialog>
     </div>
   );
+}
+
+// FamilyIcon renders a family's glyph without naming a component per family.
+function FamilyIcon({ family, className }: { family: FamilyKey; className?: string }) {
+  const Icon = FAMILY[family].icon;
+  return <Icon className={className} />;
 }
 
 // TotalTile is one card holding every count: swipe (or click) between All,

@@ -38,7 +38,7 @@ export function ChangeTable({ changes, emptyHint }: { changes: Change[]; emptyHi
         <TableBody>
           {changes.map((change) => {
             const id = change.id ?? "";
-            const href = `/${change.kind ?? "dml"}/${id}`;
+            const href = `/sql/${change.kind ?? "dml"}/${id}`;
             return (
               <TableRow key={id} className="cursor-pointer">
                 <TableCell>

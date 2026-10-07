@@ -52,7 +52,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={() => navigate(`/${kind}`)}>
+        <Button variant="ghost" size="sm" onClick={() => navigate(`/sql/${kind}`)}>
           <ArrowLeft /> {kind.toUpperCase()}
         </Button>
         <Badge variant={STATUS_VARIANT[change.status ?? ""] ?? "outline"}>{change.status}</Badge>
@@ -199,10 +199,10 @@ function Unavailable({ kind, id }: { kind: ChangeKind; id: string }) {
           </li>
         </ul>
         <div className="flex flex-wrap gap-2">
-          <Button render={<Link to={`/${kind}`} />} size="sm">
+          <Button render={<Link to={`/sql/${kind}`} />} size="sm">
             Back to {kind.toUpperCase()} queue
           </Button>
-          <Button variant="outline" size="sm" render={<Link to="/query" />}>
+          <Button variant="outline" size="sm" render={<Link to="/sql/query" />}>
             Go to Query
           </Button>
         </div>
