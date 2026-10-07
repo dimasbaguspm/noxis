@@ -316,3 +316,24 @@ func TestEngineGating(t *testing.T) {
 		}
 	}
 }
+
+// TestChangeKindGated locks the family guard on the shared change routes: a
+// SQL engine URL cannot approve or reject a MongoDB request (direct id), and
+// the reverse is guarded by mongoChange.
+func TestChangeKindGated(t *testing.T) {
+	d, changes, _ := newDeps(&fakeSQL{})
+	changes.changes["m1"] = entity.Change{ID: "m1", Kind: constants.KindMongo, Status: constants.ChangeValidated, Connection: "mongo"}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /v1/{engine}/changes/{id}/approve", ApproveChange)
+	mux.HandleFunc("POST /v1/{engine}/changes/{id}/reject", RejectChange)
+	h := WithDeps(mux, d)
+
+	for _, path := range []string{"/v1/sql/changes/m1/approve", "/v1/sql/changes/m1/reject"} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, http.NoBody))
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("%s: status=%d want=400 body=%s", path, rec.Code, rec.Body.String())
+		}
+	}
+}

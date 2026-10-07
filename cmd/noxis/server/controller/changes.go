@@ -263,6 +263,9 @@ func ApproveChange(w http.ResponseWriter, r *http.Request) {
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
+			if _, err := d.sqlChange(ctx, r.PathValue("id")); err != nil {
+				return nil, err
+			}
 			return d.approve(ctx, r.PathValue("id"))
 		case interfaces.MongoModule:
 			if _, err := d.mongoChange(ctx, r.PathValue("id")); err != nil {
@@ -289,6 +292,9 @@ func ApplyChange(w http.ResponseWriter, r *http.Request) {
 		}
 		switch m := mod.(type) {
 		case interfaces.SQLModule:
+			if _, err := d.sqlChange(ctx, r.PathValue("id")); err != nil {
+				return nil, err
+			}
 			return d.apply(ctx, m, r.PathValue("id"))
 		case interfaces.MongoModule:
 			return d.applyMongo(ctx, m, r.PathValue("id"))
@@ -312,6 +318,9 @@ func RejectChange(w http.ResponseWriter, r *http.Request) {
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
+			if _, err := d.sqlChange(ctx, r.PathValue("id")); err != nil {
+				return nil, err
+			}
 			return d.reject(ctx, r.PathValue("id"))
 		case interfaces.MongoModule:
 			if _, err := d.mongoChange(ctx, r.PathValue("id")); err != nil {
