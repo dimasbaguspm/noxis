@@ -1752,6 +1752,9 @@
                     }
                 }
             },
+            "controller.mongoChangeBody": {
+                "type": "object"
+            },
             "controller.opBody": {
                 "type": "object",
                 "properties": {
@@ -1975,6 +1978,83 @@
                     }
                 }
             },
+            "memcache.Stats": {
+                "type": "object",
+                "properties": {
+                    "aofEnabled": {
+                        "type": "boolean"
+                    },
+                    "aofLastWriteStatus": {
+                        "type": "string"
+                    },
+                    "connectedClients": {
+                        "type": "integer"
+                    },
+                    "evictedKeys": {
+                        "type": "integer"
+                    },
+                    "expiredKeys": {
+                        "type": "integer"
+                    },
+                    "expires": {
+                        "type": "integer"
+                    },
+                    "flavor": {
+                        "type": "string"
+                    },
+                    "hitRatio": {
+                        "type": "number"
+                    },
+                    "keys": {
+                        "type": "integer"
+                    },
+                    "keyspaceHits": {
+                        "type": "integer"
+                    },
+                    "keyspaceMisses": {
+                        "type": "integer"
+                    },
+                    "maxMemoryBytes": {
+                        "type": "integer"
+                    },
+                    "memoryFragmentationRatio": {
+                        "type": "number"
+                    },
+                    "opsPerSec": {
+                        "type": "integer"
+                    },
+                    "rdbLastSaveStatus": {
+                        "type": "string"
+                    },
+                    "rdbLastSaveUnix": {
+                        "type": "integer"
+                    },
+                    "rejectedConnections": {
+                        "type": "integer"
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "totalCommandsProcessed": {
+                        "type": "integer"
+                    },
+                    "totalConnectionsReceived": {
+                        "type": "integer"
+                    },
+                    "uptimeSeconds": {
+                        "type": "integer"
+                    },
+                    "usedMemoryBytes": {
+                        "type": "integer"
+                    },
+                    "usedMemoryPeakBytes": {
+                        "type": "integer"
+                    },
+                    "version": {
+                        "type": "string"
+                    }
+                }
+            },
             "mongodb.Collection": {
                 "type": "object",
                 "properties": {
@@ -2106,6 +2186,95 @@
                     }
                 }
             },
+            "mongodb.Stats": {
+                "type": "object",
+                "properties": {
+                    "collection": {
+                        "type": "string"
+                    },
+                    "collectionAvgObjectSizeBytes": {
+                        "type": "integer"
+                    },
+                    "collectionCapped": {
+                        "type": "boolean"
+                    },
+                    "collectionCount": {
+                        "description": "collection (zero when none was asked for)",
+                        "type": "integer"
+                    },
+                    "collectionIndexSizeBytes": {
+                        "type": "integer"
+                    },
+                    "collectionIndexes": {
+                        "type": "integer"
+                    },
+                    "collectionSizeBytes": {
+                        "type": "integer"
+                    },
+                    "collectionStorageBytes": {
+                        "type": "integer"
+                    },
+                    "connections": {
+                        "type": "integer"
+                    },
+                    "currentOps": {
+                        "type": "integer"
+                    },
+                    "database": {
+                        "type": "string"
+                    },
+                    "dbCollections": {
+                        "description": "database",
+                        "type": "integer"
+                    },
+                    "dbDataSizeBytes": {
+                        "type": "integer"
+                    },
+                    "dbIndexSizeBytes": {
+                        "type": "integer"
+                    },
+                    "dbIndexes": {
+                        "type": "integer"
+                    },
+                    "dbObjects": {
+                        "type": "integer"
+                    },
+                    "dbStorageBytes": {
+                        "type": "integer"
+                    },
+                    "deleted": {
+                        "type": "integer"
+                    },
+                    "inserted": {
+                        "type": "integer"
+                    },
+                    "networkInBytes": {
+                        "type": "integer"
+                    },
+                    "networkOutBytes": {
+                        "type": "integer"
+                    },
+                    "queried": {
+                        "type": "integer"
+                    },
+                    "residentMemoryMb": {
+                        "type": "integer"
+                    },
+                    "updated": {
+                        "type": "integer"
+                    },
+                    "uptimeSeconds": {
+                        "type": "integer"
+                    },
+                    "version": {
+                        "description": "server",
+                        "type": "string"
+                    },
+                    "virtualMemoryMb": {
+                        "type": "integer"
+                    }
+                }
+            },
             "sql.Column": {
                 "type": "object",
                 "properties": {
@@ -2116,6 +2285,59 @@
                         "type": "boolean"
                     },
                     "type": {
+                        "type": "string"
+                    }
+                }
+            },
+            "sql.Stats": {
+                "type": "object",
+                "properties": {
+                    "active": {
+                        "type": "integer"
+                    },
+                    "cacheHitRatio": {
+                        "type": "number"
+                    },
+                    "commits": {
+                        "type": "integer"
+                    },
+                    "connections": {
+                        "type": "integer"
+                    },
+                    "databaseSizeBytes": {
+                        "type": "integer"
+                    },
+                    "deadlocks": {
+                        "type": "integer"
+                    },
+                    "driver": {
+                        "type": "string"
+                    },
+                    "idle": {
+                        "type": "integer"
+                    },
+                    "idleInTransaction": {
+                        "type": "integer"
+                    },
+                    "longestQuerySeconds": {
+                        "type": "number"
+                    },
+                    "maxConnections": {
+                        "type": "integer"
+                    },
+                    "rollbacks": {
+                        "type": "integer"
+                    },
+                    "takenAt": {
+                        "type": "integer"
+                    },
+                    "tempBytes": {
+                        "type": "integer"
+                    },
+                    "uptimeSeconds": {
+                        "type": "integer"
+                    },
+                    "version": {
                         "type": "string"
                     }
                 }
