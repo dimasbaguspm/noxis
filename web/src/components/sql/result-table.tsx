@@ -1,4 +1,5 @@
 import { Download } from "lucide-react";
+import { title as startCase } from "radash";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { downloadCSV, toCSV } from "@/lib/csv";
@@ -7,21 +8,21 @@ import type { Result } from "@/lib/api";
 // ResultTable renders a query grid and can export it as CSV.
 export function ResultTable({ result, title = "result" }: { result: Result | null; title?: string }) {
   if (!result) {
-    return <p className="text-sm text-muted-foreground">nothing to show yet</p>;
+    return <p className="text-sm text-muted-foreground">{startCase("nothing to show yet")}</p>;
   }
 
   const columns = result.columns ?? [];
   const rows = result.rows ?? [];
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-          <span>{result.message}</span>
-          <span>duration: {result.durationMs ?? 0} ms</span>
-          {(result.rowsReturned ?? 0) > 0 && <span>returned: {result.rowsReturned}</span>}
-          {(result.affected ?? 0) > 0 && <span>affected: {result.affected}</span>}
-          {(result.estimatedRows ?? 0) > 0 && <span>plan rows: ~{result.estimatedRows}</span>}
+    <div className="flex min-w-0 flex-col gap-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <p className="flex min-w-0 flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
+          <span className="break-words">{result.message}</span>
+          <span>{startCase("duration")}: {result.durationMs ?? 0} ms</span>
+          {(result.rowsReturned ?? 0) > 0 && <span>{startCase("returned")}: {result.rowsReturned}</span>}
+          {(result.affected ?? 0) > 0 && <span>{startCase("affected")}: {result.affected}</span>}
+          {(result.estimatedRows ?? 0) > 0 && <span>{startCase("plan rows")}: ~{result.estimatedRows}</span>}
         </p>
         <span className="flex-1" />
         {columns.length > 0 && (
@@ -36,7 +37,7 @@ export function ResultTable({ result, title = "result" }: { result: Result | nul
       </div>
 
       {columns.length > 0 && (
-        <div className="max-h-[28rem] overflow-auto rounded-md border border-border">
+        <div className="max-h-[28rem] min-w-0 overflow-auto rounded-md border border-border">
           <Table>
             <TableHeader className="sticky top-0 bg-card">
               <TableRow>
@@ -58,7 +59,7 @@ export function ResultTable({ result, title = "result" }: { result: Result | nul
               {rows.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="text-muted-foreground">
-                    no rows
+                    {startCase("no rows")}
                   </TableCell>
                 </TableRow>
               )}

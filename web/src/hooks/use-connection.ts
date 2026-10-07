@@ -7,7 +7,7 @@ import { useAction } from "@/hooks/use-action";
 // useConnectionSelection gives a page its own instance choice, seeded from
 // the provider's default (the last one anyone picked).
 export function useConnectionSelection() {
-  const { connections, active, setActive } = useFamily(FAMILY.SQL);
+  const { connections, active, setActive, busy } = useFamily(FAMILY.SQL);
   const [connection, setConnection] = useState<string | undefined>(active);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export function useConnectionSelection() {
     setActive(name);
   }
 
-  return { connection, pick };
+  return { connection, connections, busy, pick };
 }
 
 // useSchema loads the tables of one connection for a page.

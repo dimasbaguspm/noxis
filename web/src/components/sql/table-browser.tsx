@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { debounce, group } from "radash";
+import { debounce, group, title } from "radash";
 import { Activity, ChevronDown, ChevronRight, ListTree, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { RowMenu } from "@/components/ui/row-menu";
@@ -69,7 +69,7 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
-        {entries.length === 0 && <p className="px-1 py-2 text-xs text-muted-foreground">no tables</p>}
+        {entries.length === 0 && <p className="px-1 py-2 text-xs text-muted-foreground">{title("no tables")}</p>}
         {entries.map(([schema, items]) => (
           <div key={schema} className="mb-2">
             <p className="flex items-center gap-1 px-1 py-1 text-xs font-medium text-muted-foreground">
@@ -112,15 +112,23 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
                     />
                   </div>
                   {open && (
-                    <div className="mb-1 ml-5 border-l border-border pl-2">
+                    <ul className="mb-1 ml-5 grid gap-0.5 border-l border-border py-1 pl-2">
                       {t.columns.map((col) => (
-                        <p key={col.name} className="flex items-center gap-2 py-0.5 text-xs">
-                          <span className="font-medium">{col.name}</span>
-                          <span className="text-muted-foreground">{col.type}</span>
-                          {col.nullable && <span className="text-muted-foreground/70">null</span>}
-                        </p>
+                        <li key={col.name} className="flex items-center justify-between gap-2 text-xs">
+                          <span className="truncate font-mono">{col.name}</span>
+                          <span
+                            className={cn(
+                              "shrink-0 rounded border px-1 text-[10px]",
+                              col.nullable
+                                ? "border-border text-muted-foreground"
+                                : "border-transparent text-muted-foreground/50",
+                            )}
+                          >
+                            {title(col.nullable ? "nullable" : "required")}
+                          </span>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
                   )}
                 </div>
               );
