@@ -39,6 +39,26 @@ export interface ChangeInput {
   rollback: string;
   scheduledAt?: number;
 }
+export interface BatchFileInput {
+  name: string;
+  query: string;
+  rollback: string;
+}
+export interface BatchInput {
+  connection: string;
+  notes: string;
+  files: BatchFileInput[];
+}
+export interface BatchFileResult {
+  name: string;
+  ok: boolean;
+  error?: string;
+  change?: Change;
+}
+export interface BatchResult {
+  batchId: string;
+  results: BatchFileResult[];
+}
 
 // v1 builds an endpoint from the engine family, so no call hardcodes a family
 // URL prefix: the family is the server's generic route parameter.
@@ -145,6 +165,7 @@ export const api = {
   changes: {
     list: () => request<{ changes: Change[] }>("GET", v1(FAMILY.SQL, "changes")),
     submit: (input: ChangeInput) => request<Change>("POST", v1(FAMILY.SQL, "changes"), input),
+    submitBatch: (input: BatchInput) => request<BatchResult>("POST", v1(FAMILY.SQL, "changes/batch"), input),
     approve: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/approve`)),
     apply: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/apply`)),
     reject: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/reject`)),

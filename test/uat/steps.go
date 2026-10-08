@@ -22,6 +22,7 @@ type changeBody struct {
 	EstDurationMs int64       `json:"estDurationMs"`
 	EstAffected   int64       `json:"estAffected"`
 	ScratchSchema string      `json:"scratchSchema"`
+	BatchID       string      `json:"batchId"`
 }
 
 // steps registers every scenario step on the world.
@@ -48,6 +49,9 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	sc.Step(`^I submit a change scheduled at now with query "([^"]*)" and rollback "([^"]*)"$`, w.submitScheduledChange)
 	sc.Step("a tick without the key is rejected", w.tickWithoutKey)
 	sc.Step("a tick with the key applies the due change", w.tickWithKey)
+	sc.Step("I submit a batch of SQL files:", w.submitBatch)
+	sc.Step(`^file "([^"]*)" is verified in the batch$`, w.batchFileVerified)
+	sc.Step(`^file "([^"]*)" is rejected in the batch with "([^"]*)"$`, w.batchFileRejected)
 	sc.Step("applying is rejected", w.applyRejected)
 	sc.Step("I reject the change", w.rejectChange)
 	sc.Step("the change list still contains it", w.changeStillPresent)
@@ -371,6 +375,62 @@ func (w *world) noScratchSchemas(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// submitBatch posts a table of .sql files as one batch: each row is one file
+// (name, query, rollback).
+func (w *world) submitBatch(ctx context.Context, table *godog.Table) error {
+	files := make([]map[string]string, 0, len(table.Rows)-1)
+	for i, row := range table.Rows {
+		if i == 0 {
+			continue // header
+		}
+		files = append(files, map[string]string{
+			"name":     row.Cells[0].Value,
+			"query":    row.Cells[1].Value,
+			"rollback": row.Cells[2].Value,
+		})
+	}
+	w.batch = batchBody{}
+	body := map[string]any{"connection": w.conn, "notes": "uat batch", "files": files}
+	if err := w.api(http.MethodPost, "/v1/sql/changes/batch", body, &w.batch); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("submit batch: %d %s", w.code, w.body)
+	}
+	return nil
+}
+
+func (w *world) batchFileVerified(ctx context.Context, name string) error {
+	for i := range w.batch.Results {
+		r := &w.batch.Results[i]
+		if r.Name != name {
+			continue
+		}
+		if !r.OK {
+			return fmt.Errorf("file %s did not verify: %s", name, r.Error)
+		}
+		if r.Change.BatchID != w.batch.BatchID {
+			return fmt.Errorf("file %s batch id %q want %q", name, r.Change.BatchID, w.batch.BatchID)
+		}
+		return nil
+	}
+	return fmt.Errorf("file %s not in batch results", name)
+}
+
+func (w *world) batchFileRejected(ctx context.Context, name, reason string) error {
+	for i := range w.batch.Results {
+		r := &w.batch.Results[i]
+		if r.Name != name {
+			continue
+		}
+		if r.OK || !strings.Contains(r.Error, reason) {
+			return fmt.Errorf("file %s: ok=%v error=%q want %q", name, r.OK, r.Error, reason)
+		}
+		return nil
+	}
+	return fmt.Errorf("file %s not in batch results", name)
 }
 
 func (w *world) changeEstimates(ctx context.Context) error {

@@ -66,3 +66,20 @@ func TestHintOf(t *testing.T) {
 		t.Fatal("non-'does not exist' errors pass through")
 	}
 }
+
+func TestStatementCount(t *testing.T) {
+	cases := map[string]int{
+		"":                                 0,
+		"   ":                              0,
+		"SELECT 1":                         1,
+		"SELECT 1; SELECT 2":               2,
+		"SELECT ';' AS x":                  1,
+		"CREATE TABLE a (id INT); -- note": 1,
+		"DROP TABLE a; DROP TABLE b;":      2,
+	}
+	for sqlText, want := range cases {
+		if got := StatementCount(sqlText); got != want {
+			t.Errorf("StatementCount(%q) = %d, want %d", sqlText, got, want)
+		}
+	}
+}

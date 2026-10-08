@@ -62,13 +62,27 @@ type world struct {
 	collection     mongoCollection // the mongo collection a scenario picked out
 	mongo          mongoInfo
 	mongoQueueSize int
-	ticked         tickBody // the last /internal/tick result
+	ticked         tickBody  // the last /internal/tick result
+	batch          batchBody // the last batch submit result
 }
 
 // tickBody is the /internal/tick response shape.
 type tickBody struct {
 	Applied []string `json:"applied"`
 	Failed  []string `json:"failed"`
+}
+
+// batchBody is the POST /v1/sql/changes/batch response shape.
+type batchBody struct {
+	BatchID string          `json:"batchId"`
+	Results []batchFileBody `json:"results"`
+}
+
+type batchFileBody struct {
+	Name   string     `json:"name"`
+	OK     bool       `json:"ok"`
+	Error  string     `json:"error"`
+	Change changeBody `json:"change"`
 }
 
 // redisSeed runs the CLI inside a compose key-value service: the scenarios

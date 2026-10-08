@@ -433,3 +433,43 @@ func TestChangeKindGated(t *testing.T) {
 		}
 	}
 }
+
+// TestBatchSplitsFilesIntoChanges locks the batch contract: one file is one
+// change, multi-statement and empty files are refused before recording, and
+// every recorded change shares the batch id.
+func TestBatchSplitsFilesIntoChanges(t *testing.T) {
+	ctx := context.Background()
+	sq := &fakeSQL{}
+	d, changes, _ := newDeps(sq)
+
+	res, err := d.submitBatch(ctx, sq, batchRequest{
+		Connection: "demo",
+		Notes:      "migrate",
+		Files: []batchFile{
+			{Name: "001.sql", Query: "CREATE TABLE a (id INT)", Rollback: "DROP TABLE a"},
+			{Name: "002.sql", Query: "CREATE TABLE b (id INT); DROP TABLE b", Rollback: "DROP TABLE b"},
+			{Name: "003.sql", Query: "", Rollback: "DROP TABLE c"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("submitBatch: %v", err)
+	}
+	if res.BatchID == "" {
+		t.Fatal("batch must carry an id")
+	}
+	if len(res.Results) != 3 {
+		t.Fatalf("results=%d want 3", len(res.Results))
+	}
+	if !res.Results[0].OK || res.Results[0].Change.BatchID != res.BatchID {
+		t.Fatalf("first file: %+v", res.Results[0])
+	}
+	if res.Results[1].OK || !strings.Contains(res.Results[1].Error, "one statement") {
+		t.Fatalf("multi-statement file must be refused: %+v", res.Results[1])
+	}
+	if res.Results[2].OK || !strings.Contains(res.Results[2].Error, "empty") {
+		t.Fatalf("empty file must be refused: %+v", res.Results[2])
+	}
+	if len(changes.changes) != 1 {
+		t.Fatalf("only the valid file is recorded, got %d", len(changes.changes))
+	}
+}
