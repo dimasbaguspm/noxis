@@ -1,4 +1,5 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { title } from "radash";
 import { ArrowLeft, Check, CircleHelp, FileWarning, Loader2, Play, Undo2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChangeActivity } from "@/components/changes/change-activity";
+import { ChangeSubmitDialog } from "@/components/changes/change-submit-dialog";
 import { SqlEditor } from "@/components/sql/sql-editor";
 import { useSchema } from "@/hooks/use-connection";
 import { useChanges, type ChangeKind } from "@/hooks/use-data";
@@ -26,7 +28,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { changes, loading, approve, apply, reject } = useChanges(kind);
+  const { changes, loading, approve, apply, reject, submit } = useChanges(kind);
   const change = changes.find((c) => c.id === id);
   const { tables } = useSchema(change?.connection);
 
@@ -86,10 +88,25 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
               <CardDescription>Proposed {kind.toUpperCase()} change</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <Section label="Query">
+              <Section label={title("original query")}>
                 <SqlEditor value={change.query ?? ""} readOnly height="11rem" tables={tables} />
               </Section>
-              <Section label="Rollback">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">
+                  Prefills this rollback as the new original query
+                </span>
+                <ChangeSubmitDialog
+                  kind={kind}
+                  onSubmit={(input) => submit.run(input)}
+                  initial={{ connection: change.connection, query: change.rollback ?? "" }}
+                  trigger={
+                    <Button size="xs" variant="outline">
+                      <Undo2 /> Raise inverse change
+                    </Button>
+                  }
+                />
+              </div>
+              <Section label={title("rollback query")}>
                 <SqlEditor value={change.rollback ?? ""} readOnly height="8rem" tables={tables} />
               </Section>
             </CardContent>
@@ -140,8 +157,8 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
               <CardDescription>Parsed from the statements</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-2 text-sm">
-              <Identifiers label="tables" values={change.affectedTables} />
-              <Identifiers label="columns" values={change.affectedColumns} variant="outline" />
+              <Identifiers label={title("tables")} values={change.affectedTables} />
+              <Identifiers label={title("columns")} values={change.affectedColumns} variant="outline" />
             </CardContent>
           </Card>
 
@@ -152,10 +169,10 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
             </CardHeader>
             <CardContent className="grid gap-3">
               <div className="grid grid-cols-2 gap-3">
-                <Metric label="est. duration" value={`${change.estDurationMs ?? 0} ms`} />
-                <Metric label="est. rows" value={`~${change.estAffected ?? 0}`} />
-                <Metric label="duration" value={change.appliedAt ? `${change.appliedDurationMs ?? 0} ms` : "—"} />
-                <Metric label="rows affected" value={change.appliedAt ? String(change.appliedAffected ?? 0) : "—"} />
+                <Metric label={title("est. duration")} value={`${change.estDurationMs ?? 0} ms`} />
+                <Metric label={title("est. rows")} value={`~${change.estAffected ?? 0}`} />
+                <Metric label={title("duration")} value={change.appliedAt ? `${change.appliedDurationMs ?? 0} ms` : "—"} />
+                <Metric label={title("rows affected")} value={change.appliedAt ? String(change.appliedAffected ?? 0) : "—"} />
               </div>
               <Separator />
               <p className="text-xs text-muted-foreground">

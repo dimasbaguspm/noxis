@@ -5,10 +5,10 @@ import { FAMILY } from "@/lib/families";
 import { useAction } from "@/hooks/use-action";
 
 // useConnectionSelection gives a page its own instance choice, seeded from
-// the provider's default (the last one anyone picked).
-export function useConnectionSelection() {
+// the provider's default (the last one anyone picked) or an explicit seed.
+export function useConnectionSelection(seed?: string) {
   const { connections, active, setActive, busy } = useFamily(FAMILY.SQL);
-  const [connection, setConnection] = useState<string | undefined>(active);
+  const [connection, setConnection] = useState<string | undefined>(seed ?? active);
 
   useEffect(() => {
     if (!connection && connections.length > 0) setConnection(active ?? connections[0]?.name);
