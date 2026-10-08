@@ -176,7 +176,13 @@ func identOK(s string) bool {
 
 // qualify quotes a table reference per driver (identifiers were validated).
 func qualify(c entity.Connection, schema, table string) string {
-	if isMySQL(c.Driver) {
+	return quoteRef(c.Driver, schema, table)
+}
+
+// quoteRef is the driver-aware identifier quoting qualify and the scratch
+// verifier share.
+func quoteRef(driver, schema, table string) string {
+	if isMySQL(driver) {
 		if schema != "" {
 			return "`" + schema + "`.`" + table + "`"
 		}

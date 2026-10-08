@@ -53,6 +53,7 @@ func (d Deps) submitChange(ctx context.Context, sq interfaces.SQLModule, ch enti
 	case err == nil:
 		dry.OK, dry.Detail = true, res.Message
 		ch.EstDurationMs, ch.EstAffected = res.DurationMs, res.Affected
+		ch.ScratchSchema = res.ScratchSchema
 	case errors.Is(err, sql.ErrUnverifiable):
 		ch.Status, dry.Error = constants.ChangeUnverified, err.Error()
 	default:

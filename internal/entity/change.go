@@ -19,10 +19,11 @@ type Change struct {
 	AffectedTables  []string `json:"affectedTables,omitempty"`
 	AffectedColumns []string `json:"affectedColumns,omitempty"`
 	// measured on the dry run (estimates) and on apply (actuals)
-	EstDurationMs     int64 `json:"estDurationMs,omitempty"`
-	EstAffected       int64 `json:"estAffected,omitempty"`
-	AppliedAffected   int64 `json:"appliedAffected,omitempty"`
-	AppliedDurationMs int64 `json:"appliedDurationMs,omitempty"`
+	EstDurationMs     int64  `json:"estDurationMs,omitempty"`
+	EstAffected       int64  `json:"estAffected,omitempty"`
+	AppliedAffected   int64  `json:"appliedAffected,omitempty"`
+	AppliedDurationMs int64  `json:"appliedDurationMs,omitempty"`
+	ScratchSchema     string `json:"scratchSchema,omitempty"`
 }
 
 // ChangeCheck is one validation outcome.

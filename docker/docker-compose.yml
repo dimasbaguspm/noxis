@@ -29,6 +29,8 @@ services:
         condition: service_healthy
       mongo:
         condition: service_healthy
+      mariadb:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9000/healthz"]
       interval: 5s
@@ -72,6 +74,21 @@ services:
       timeout: 5s
       retries: 12
       start_period: 5s
+
+  # A MySQL-family stand-in: the scratch-schema verifier needs a driver whose
+  # DDL commits implicitly to prove the point.
+  mariadb:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: noxis
+      MARIADB_ROOT_HOST: "%"
+      MARIADB_DATABASE: demo
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   # Valkey is a Redis-protocol fork; the suite registers it as its own driver
   # to keep that claim honest.

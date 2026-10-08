@@ -19,6 +19,7 @@ type changeBody struct {
 	Checks        []checkBody `json:"checks"`
 	EstDurationMs int64       `json:"estDurationMs"`
 	EstAffected   int64       `json:"estAffected"`
+	ScratchSchema string      `json:"scratchSchema"`
 }
 
 // steps registers every scenario step on the world.
@@ -28,6 +29,7 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	w.mongoSteps(sc)
 
 	sc.Step(`^connection "([^"]*)" is registered$`, w.registerConnection)
+	sc.Step(`^connection "([^"]*)" is registered for driver "([^"]*)"$`, w.registerConnectionDriver)
 	sc.Step("the connection test passes", w.testConnection)
 	sc.Step("the connection list hides the password", w.listRedacted)
 	sc.Step(`^the operator console is served at "/"$`, w.consoleServed)
@@ -45,6 +47,8 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	sc.Step("I reject the change", w.rejectChange)
 	sc.Step("the change list still contains it", w.changeStillPresent)
 	sc.Step("the change was not recorded", w.changeNotRecorded)
+	sc.Step("the change was verified in a scratch schema", w.changeScratchSchema)
+	sc.Step("no scratch schemas remain", w.noScratchSchemas)
 	sc.Step(`^the change records an estimated duration and affected count$`, w.changeEstimates)
 	sc.Step(`^the instance stats report connections and size$`, w.instanceStats)
 
@@ -69,6 +73,23 @@ func (w *world) registerConnection(ctx context.Context, name string) error {
 	}
 	if w.code != http.StatusOK {
 		return fmt.Errorf("register connection: %d", w.code)
+	}
+	w.conn = name
+	return nil
+}
+
+// registerConnectionDriver registers a non-postgres target. The compose
+// service name equals the driver (mariadb) on its default port.
+func (w *world) registerConnectionDriver(ctx context.Context, name, driver string) error {
+	conn := map[string]any{
+		"name": name, "driver": driver, "host": driver, "port": 3306,
+		"user": "root", "password": connPass, "database": "demo",
+	}
+	if err := w.api(http.MethodPost, "/v1/sql/connections", conn, nil); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("register %s connection: %d", driver, w.code)
 	}
 	w.conn = name
 	return nil
@@ -243,6 +264,35 @@ func (w *world) changeNotRecorded(ctx context.Context) error {
 	for _, c := range body.Changes {
 		if c.Notes == "uat change" && c.Status == "failed" {
 			return fmt.Errorf("failed change was recorded: %+v", c)
+		}
+	}
+	return nil
+}
+
+func (w *world) changeScratchSchema(ctx context.Context) error {
+	if !strings.HasPrefix(w.change.ScratchSchema, "noxis_verify_") {
+		return fmt.Errorf("change was not verified in a scratch schema: %q", w.change.ScratchSchema)
+	}
+	return nil
+}
+
+// noScratchSchemas proves cleanup: no verification schema survived, pass or
+// fail.
+func (w *world) noScratchSchemas(ctx context.Context) error {
+	var body struct {
+		Tables []struct {
+			Schema string `json:"schema"`
+		} `json:"tables"`
+	}
+	if err := w.api(http.MethodGet, "/v1/sql/connections/"+w.conn+"/schema", nil, &body); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("schema list: %d", w.code)
+	}
+	for _, t := range body.Tables {
+		if strings.HasPrefix(t.Schema, "noxis_verify_") {
+			return fmt.Errorf("orphan scratch schema %q", t.Schema)
 		}
 	}
 	return nil

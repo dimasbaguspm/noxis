@@ -178,49 +178,6 @@ func (u *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (r
 	return Result{DurationMs: time.Since(started).Milliseconds(), Message: fmt.Sprintf("rolled back (dry run): %d statement(s)", n)}, nil
 }
 
-// ValidateChange dry-runs a change and its rollback together: the query must
-// apply cleanly, then the rollback must undo it, all inside one transaction
-// that always rolls back. This is why a rollback is validated against the
-// change rather than against the current database.
-func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
-	ctx, end := logging.StartSpan(ctx)
-	defer func() { end(err) }()
-	if isMySQL(c.Driver) && containsDDL(query) {
-		return Result{}, fmt.Errorf("query has DDL and %s: %w", c.Driver, ErrUnverifiable)
-	}
-	started := time.Now()
-	var affected int64
-	n, err := inTx(c, func(tx *stdsql.Tx) (int, error) {
-		queryN, err := execEach(query, func(stmt string) error {
-			out, err := tx.ExecContext(ctx, stmt)
-			if err != nil {
-				return hintOf(stmt, err)
-			}
-			if a, err := out.RowsAffected(); err == nil {
-				affected += a
-			}
-			return nil
-		})
-		if err != nil {
-			return 0, fmt.Errorf("query %w", err)
-		}
-		rollbackN, err := execEach(rollback, func(stmt string) error {
-			_, err := tx.ExecContext(ctx, stmt)
-			return hintOf(stmt, err)
-		})
-		_ = queryN
-		return rollbackN, err
-	})
-	if err != nil {
-		return Result{}, err
-	}
-	return Result{
-		Affected:   affected,
-		DurationMs: time.Since(started).Milliseconds(),
-		Message:    fmt.Sprintf("query and rollback both valid (rolled back, %d rollback statement(s))", n),
-	}, nil
-}
-
 // Apply executes write statements in a transaction and commits.
 //
 // ponytail: mysql commits DDL implicitly, so a batch mixing DDL and DML there

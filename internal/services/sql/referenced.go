@@ -10,6 +10,7 @@ var (
 	tableRef   = regexp.MustCompile(`(?i)\b(?:from|join|update|into|table)\s+(?:if\s+not\s+exists\s+)?("?[\w.]+"?)`)
 	insertCols = regexp.MustCompile(`(?is)\binsert\s+into\s+\S+\s*\(([^)]*)\)`)
 	createCols = regexp.MustCompile(`(?is)\bcreate\s+table\s+(?:if\s+not\s+exists\s+)?\S+\s*\(([^)]*)\)`)
+	createRef  = regexp.MustCompile(`(?i)\bcreate\s+(?:or\s+replace\s+)?(?:temporary\s+|temp\s+|unlogged\s+|global\s+|local\s+)?table\s+(?:if\s+not\s+exists\s+)?("?[\w.]+"?)`)
 	alterCols  = regexp.MustCompile(`(?i)\b(?:add|drop|alter)\s+column\s+("?\w+"?)`)
 	setCols    = regexp.MustCompile(`(?is)\bset\s+(.+?)(?:\bwhere\b|\breturning\b|$)`)
 	qualified  = regexp.MustCompile(`\b[\w"]+\.("?\w+"?)`)
@@ -73,6 +74,21 @@ func Referenced(sqlText string) (tables []string, columns []string) {
 	}
 
 	return sorted(tableSet), sorted(columnSet)
+}
+
+// createdTables lists the tables a batch itself creates, so the scratch
+// verifier does not mirror a table the change is about to create (which would
+// make a plain CREATE fail as "already exists").
+func createdTables(sqlText string) map[string]bool {
+	set := map[string]bool{}
+	for _, stmt := range splitStatements(sqlText) {
+		for _, match := range createRef.FindAllStringSubmatch(stmt, -1) {
+			if name := cleanIdent(match[1]); name != "" {
+				set[name] = true
+			}
+		}
+	}
+	return set
 }
 
 // addList records the identifiers of a parenthesised list; for CREATE TABLE
