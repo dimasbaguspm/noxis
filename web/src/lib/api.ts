@@ -104,8 +104,8 @@ export const api = {
     query: (name: string, sql: string) => request<Result>("POST", connPath(FAMILY.SQL, name, "/query"), { sql }),
     alter: (name: string, sql: string) => request<Result>("POST", connPath(FAMILY.SQL, name, "/alter"), { sql }),
     rollback: (name: string, sql: string) => request<Result>("POST", connPath(FAMILY.SQL, name, "/rollback"), { sql }),
-    analytics: (name: string, table: string) =>
-      request<Result>("POST", connPath(FAMILY.SQL, name, "/analytics"), { table }),
+    analyze: (name: string, table: string) =>
+      request<Result>("POST", connPath(FAMILY.SQL, name, "/analyze"), { table }),
   },
   memcache: {
     ...connectionOps(FAMILY.MEMCACHE),

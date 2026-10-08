@@ -59,7 +59,7 @@ func newHandler(deps controller.Deps) http.Handler {
 	mux.HandleFunc("POST /v1/{engine}/connections/{name}/query", controller.PostQuery)
 	mux.HandleFunc("POST /v1/{engine}/connections/{name}/alter", controller.PostAlter)
 	mux.HandleFunc("POST /v1/{engine}/connections/{name}/rollback", controller.PostRollback)
-	mux.HandleFunc("POST /v1/{engine}/connections/{name}/analytics", controller.PostAnalytics)
+	mux.HandleFunc("POST /v1/{engine}/connections/{name}/analyze", controller.PostAnalyze)
 
 	// Changes: SQL and MongoDB keep separate queues behind one route.
 	mux.HandleFunc("GET /v1/{engine}/changes", controller.ListChanges)

@@ -8,10 +8,10 @@ const Version = "0.1.0"
 
 // The wire contract ops (SQL console operations).
 const (
-	OpQuery     = "query"
-	OpAlter     = "alter"
-	OpRollback  = "rollback"
-	OpAnalytics = "analytics"
+	OpQuery    = "query"
+	OpAlter    = "alter"
+	OpRollback = "rollback"
+	OpAnalyze  = "analyze"
 )
 
 // Supported database drivers (mariadb is served by the mysql driver).
