@@ -25,6 +25,22 @@ func LevelAllows(have, need string) bool {
 	return ok && haveRank >= needRank
 }
 
+// StrongestLevel returns the strongest known level in levels, or "" when none
+// is known. It collapses a caller's matching grants into one effective level.
+func StrongestLevel(levels ...string) string {
+	best := ""
+	for _, level := range levels {
+		rank, ok := levelRank[level]
+		if !ok {
+			continue
+		}
+		if best == "" || rank > levelRank[best] {
+			best = level
+		}
+	}
+	return best
+}
+
 // Grant binds one OIDC group to one connection at a level. Noxis stores the
 // policy only — identity and membership live in the issuer.
 type Grant struct {

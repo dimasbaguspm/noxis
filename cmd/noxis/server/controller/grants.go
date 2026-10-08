@@ -13,23 +13,13 @@ import (
 // errForbidden maps to 403: editing the policy is a global-admin action.
 var errForbidden = errors.New("forbidden: global admin required")
 
-// requireAdmin returns the caller when it is a global admin (a member of
-// NOXIS_OIDC_ADMIN_GROUP), else errForbidden.
-func requireAdmin(ctx context.Context) (entity.Principal, error) {
-	p, ok := Principal(ctx)
-	if !ok || !p.Admin {
-		return entity.Principal{}, errForbidden
-	}
-	return p, nil
-}
-
 func (d Deps) grants(ctx context.Context, mod interfaces.Module, name string) (out []entity.Grant, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	if _, err := requireAdmin(ctx); err != nil {
+	if err := d.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
-	if _, err := d.raw(ctx, mod, name); err != nil {
+	if _, err := d.raw(ctx, mod, name, entity.LevelRead); err != nil {
 		return nil, err
 	}
 	return d.Grants.ListGrants(ctx, name)
@@ -38,10 +28,10 @@ func (d Deps) grants(ctx context.Context, mod interfaces.Module, name string) (o
 func (d Deps) setGrant(ctx context.Context, mod interfaces.Module, name, group, level string) (out entity.Grant, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	if _, err := requireAdmin(ctx); err != nil {
+	if err := d.requireAdmin(ctx); err != nil {
 		return entity.Grant{}, err
 	}
-	if _, err := d.raw(ctx, mod, name); err != nil {
+	if _, err := d.raw(ctx, mod, name, entity.LevelRead); err != nil {
 		return entity.Grant{}, err
 	}
 	g := entity.Grant{Connection: name, Group: group, Level: level}
@@ -57,13 +47,13 @@ func (d Deps) setGrant(ctx context.Context, mod interfaces.Module, name, group, 
 func (d Deps) deleteGrant(ctx context.Context, mod interfaces.Module, name, group string) (err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	if _, err := requireAdmin(ctx); err != nil {
+	if err := d.requireAdmin(ctx); err != nil {
 		return err
 	}
 	if group == "" {
 		return fmt.Errorf("group is required")
 	}
-	if _, err := d.raw(ctx, mod, name); err != nil {
+	if _, err := d.raw(ctx, mod, name, entity.LevelRead); err != nil {
 		return err
 	}
 	return d.Grants.DeleteGrant(ctx, name, group)

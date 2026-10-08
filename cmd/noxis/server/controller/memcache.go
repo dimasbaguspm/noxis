@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"noxis/internal/entity"
 )
 
 // The memory-cache operations. Connection CRUD is shared generically with the
@@ -29,7 +31,7 @@ func ListKeys(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.raw(ctx, mc, r.PathValue("name"))
+		c, err := d.raw(ctx, mc, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -56,7 +58,7 @@ func GetValue(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.raw(ctx, mc, r.PathValue("name"))
+		c, err := d.raw(ctx, mc, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +88,7 @@ func DeleteKeys(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.raw(ctx, mc, r.PathValue("name"))
+		c, err := d.raw(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +119,7 @@ func FlushDB(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.raw(ctx, mc, r.PathValue("name"))
+		c, err := d.raw(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
 		if err != nil {
 			return nil, err
 		}
