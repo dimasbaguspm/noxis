@@ -11,4 +11,7 @@ type Result struct {
 	EstimatedRows int64      `json:"estimatedRows,omitempty"`
 	DurationMs    int64      `json:"durationMs"`
 	Message       string     `json:"message"`
+	// ScratchSchema is set by change validation: the throwaway schema the
+	// change was verified against, if any.
+	ScratchSchema string `json:"scratchSchema,omitempty"`
 }
