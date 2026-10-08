@@ -40,8 +40,9 @@ var (
 	stackFile = root + "/docker/docker-compose.yml"
 	baseURL   = "http://localhost:9000"
 
-	connHost = "db"    // the compose postgres target
-	connPass = "noxis" // its password (dev stack only)
+	connHost = "db"         // the compose postgres target
+	connPass = "noxis"      // its password (dev stack only)
+	tickKey  = "noxis-tick" // NOXIS_TICK_KEY in the compose stack
 )
 
 // world carries state between steps; godog runs scenarios sequentially and
@@ -61,6 +62,13 @@ type world struct {
 	collection     mongoCollection // the mongo collection a scenario picked out
 	mongo          mongoInfo
 	mongoQueueSize int
+	ticked         tickBody // the last /internal/tick result
+}
+
+// tickBody is the /internal/tick response shape.
+type tickBody struct {
+	Applied []string `json:"applied"`
+	Failed  []string `json:"failed"`
 }
 
 // redisSeed runs the CLI inside a compose key-value service: the scenarios

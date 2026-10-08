@@ -2231,6 +2231,7 @@ export interface components {
             query: string;
             rejectedAt?: number;
             rollback: string;
+            scheduledAt?: number;
             /** @description validated | unverified | failed | approved | applied | rejected */
             status?: string;
         };

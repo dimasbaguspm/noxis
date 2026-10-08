@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"noxis/cmd/noxis/server"
+	"noxis/cmd/noxis/ticker"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 )
@@ -40,6 +41,12 @@ func Bootstrap() error {
 		Short: "Run the noxis server (REST API + console)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return server.Run(cmd.Context(), log, cfg)
+		}})
+	run.AddCommand(&cobra.Command{
+		Use:   "ticker",
+		Short: "Run the standalone scheduler (POSTs /internal/tick on an interval)",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return ticker.Run(cmd.Context(), log, cfg)
 		}})
 
 	root := &cobra.Command{

@@ -19,14 +19,9 @@ import (
 	"noxis/internal/services/sql"
 )
 
-// newHandler wires routes to handlers; dependencies ride the request ctx.
-//
-// Routes are generic over the engine family: `{engine}` names the family and
-// every handler resolves its module from the registry. A family is registered
-// exactly once, here, and a family that does not serve a route is refused by
-// the handler (404) instead of reaching the wrong module.
-func newHandler(store *sqlite.Store, log *slog.Logger) http.Handler {
-	deps := controller.Deps{
+// newDeps wires the shared stores and the engine-family registry.
+func newDeps(store *sqlite.Store, log *slog.Logger, tickKey string) controller.Deps {
+	return controller.Deps{
 		Connections: store,
 		Changes:     store,
 		Modules: map[string]interfaces.Module{
@@ -34,8 +29,18 @@ func newHandler(store *sqlite.Store, log *slog.Logger) http.Handler {
 			constants.FamilyMemcache: memcache.New(),
 			constants.FamilyMongo:    mongodb.New(),
 		},
-		Log: log,
+		Log:     log,
+		TickKey: tickKey,
 	}
+}
+
+// newHandler wires routes to handlers; dependencies ride the request ctx.
+//
+// Routes are generic over the engine family: `{engine}` names the family and
+// every handler resolves its module from the registry. A family is registered
+// exactly once, here, and a family that does not serve a route is refused by
+// the handler (404) instead of reaching the wrong module.
+func newHandler(deps controller.Deps) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", controller.GetHealthz)
@@ -83,5 +88,9 @@ func newHandler(store *sqlite.Store, log *slog.Logger) http.Handler {
 	mux.Handle("GET /assets/", http.HandlerFunc(controller.GetAssets)) // embedded FS keeps the assets/ prefix
 	mux.HandleFunc("GET /", controller.GetConsole)                     // the operator console (SPA shell)
 
-	return withMiddleware(controller.WithDeps(mux, deps), log)
+	// Scheduling: an external cron (or the in-process scheduler) drives due
+	// changes through the same handler.
+	mux.HandleFunc("POST /internal/tick", controller.PostTick)
+
+	return withMiddleware(controller.WithDeps(mux, deps), deps.Log)
 }

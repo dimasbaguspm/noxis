@@ -27,7 +27,9 @@ func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
 
 	log.InfoContext(ctx, "noxis serving", "addr", cfg.Listen, "db", cfg.DB)
 
-	srv := &http.Server{Addr: cfg.Listen, Handler: newHandler(store, log)}
+	deps := newDeps(store, log, cfg.TickKey)
+
+	srv := &http.Server{Addr: cfg.Listen, Handler: newHandler(deps)}
 	// every request ctx descends from ours
 	srv.BaseContext = func(net.Listener) context.Context { return ctx }
 
