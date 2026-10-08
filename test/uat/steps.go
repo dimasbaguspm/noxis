@@ -59,7 +59,6 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	sc.Step("the change was verified in a scratch schema", w.changeScratchSchema)
 	sc.Step("no scratch schemas remain", w.noScratchSchemas)
 	sc.Step(`^the change records an estimated duration and affected count$`, w.changeEstimates)
-	sc.Step(`^the instance stats report connections and size$`, w.instanceStats)
 
 	sc.Step(`^I dry-run "([^"]*)"$`, w.dryRun)
 	sc.Step(`^analytics on table "([^"]*)" succeeds$`, w.analytics)
@@ -439,24 +438,6 @@ func (w *world) changeEstimates(ctx context.Context) error {
 	}
 	if w.change.Status != "applied" {
 		return fmt.Errorf("estimates are recorded on validation; status=%s", w.change.Status)
-	}
-	return nil
-}
-
-func (w *world) instanceStats(ctx context.Context) error {
-	var body struct {
-		Connections    int64 `json:"connections"`
-		DatabaseSize   int64 `json:"databaseSizeBytes"`
-		MaxConnections int64 `json:"maxConnections"`
-	}
-	if err := w.api(http.MethodGet, "/v1/sql/connections/"+w.conn+"/stats", nil, &body); err != nil {
-		return err
-	}
-	if w.code != http.StatusOK {
-		return fmt.Errorf("stats: %d", w.code)
-	}
-	if body.Connections <= 0 || body.MaxConnections <= 0 {
-		return fmt.Errorf("stats look wrong: %+v", body)
 	}
 	return nil
 }

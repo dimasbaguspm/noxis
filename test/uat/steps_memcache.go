@@ -29,16 +29,6 @@ type redisPage struct {
 	Truncated bool       `json:"truncated"`
 }
 
-// redisInfo is the subset of INFO stats the scenarios assert on.
-type redisInfo struct {
-	Flavor  string `json:"flavor"`
-	Version string `json:"version"`
-	Role    string `json:"role"`
-	Keys    int64  `json:"keys"`
-	Hits    int64  `json:"keyspaceHits"`
-	Misses  int64  `json:"keyspaceMisses"`
-}
-
 func (w *world) memcacheSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^a redis connection named "([^"]*)"$`, w.registerRedis)
 	sc.Step(`^a valkey connection named "([^"]*)"$`, w.registerValkey)
@@ -55,9 +45,6 @@ func (w *world) memcacheSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I empty the redis database as "([^"]*)"$`, w.redisFlush)
 	sc.Step("the redis flush is rejected", w.redisFlushRejected)
 	sc.Step("the redis database is empty", w.redisEmpty)
-	sc.Step("I read redis stats", w.redisStats)
-	sc.Step("the redis stats name the server version", w.redisStatsVersion)
-	sc.Step(`^the redis stats report the "([^"]*)" flavour$`, w.redisStatsFlavor)
 }
 
 func (w *world) registerRedis(ctx context.Context, name string) error {
@@ -221,34 +208,6 @@ func (w *world) redisEmpty(ctx context.Context) error {
 	}
 	if len(w.page.Keys) != 0 || w.page.Total != 0 {
 		return fmt.Errorf("database still holds %d key(s)", w.page.Total)
-	}
-	return nil
-}
-
-func (w *world) redisStats(ctx context.Context) error {
-	w.info = redisInfo{}
-	if err := w.api(http.MethodGet, "/v1/memcache/connections/"+w.conn+"/stats", nil, &w.info); err != nil {
-		return err
-	}
-	if w.code != http.StatusOK {
-		return fmt.Errorf("stats: %d", w.code)
-	}
-	return nil
-}
-
-func (w *world) redisStatsVersion(ctx context.Context) error {
-	if w.info.Version == "" || w.info.Role == "" {
-		return fmt.Errorf("stats are missing server fields: %+v", w.info)
-	}
-	return nil
-}
-
-func (w *world) redisStatsFlavor(ctx context.Context, want string) error {
-	if w.info.Flavor != want {
-		return fmt.Errorf("flavor %q, want %q (version %s)", w.info.Flavor, want, w.info.Version)
-	}
-	if w.info.Version == "" {
-		return fmt.Errorf("flavor %q without a version", want)
 	}
 	return nil
 }

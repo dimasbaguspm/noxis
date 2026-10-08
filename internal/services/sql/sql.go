@@ -279,17 +279,6 @@ func (u *DB) Analyze(ctx context.Context, c entity.Connection, table string) (re
 	return u.run(ctx, c, stmt)
 }
 
-// Stats snapshots the instance (connections, size, cache, throughput).
-func (u *DB) Stats(ctx context.Context, c entity.Connection) (stats Stats, err error) {
-	ctx, end := logging.StartSpan(ctx)
-	defer func() { end(err) }()
-	return withDB(c, func(db *stdsql.DB) (Stats, error) {
-		ctx, cancel := context.WithTimeout(ctx, stmtTimeout)
-		defer cancel()
-		return collectStats(ctx, db, c)
-	})
-}
-
 // VerifyWrite exposes the write guard (a change's query must be a write).
 func (u *DB) VerifyWrite(sqlText string) error { return verifyKind(sqlText, writes) }
 

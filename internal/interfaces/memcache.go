@@ -9,9 +9,8 @@ import (
 
 // Redis operation shapes live with the module; the result grid is shared.
 type (
-	Key           = memcachesvc.Key
-	KeyPage       = memcachesvc.KeyPage
-	MemcacheStats = memcachesvc.Stats
+	Key     = memcachesvc.Key
+	KeyPage = memcachesvc.KeyPage
 )
 
 // MemcacheModule is the console's only route to a memory-cache server (Redis
@@ -24,7 +23,6 @@ type MemcacheModule interface {
 	Value(ctx context.Context, c entity.Connection, key string) (Result, error)
 	Delete(ctx context.Context, c entity.Connection, keys []string) (int64, error)
 	Flush(ctx context.Context, c entity.Connection) error
-	Stats(ctx context.Context, c entity.Connection) (MemcacheStats, error)
 }
 
 // Satisfier.

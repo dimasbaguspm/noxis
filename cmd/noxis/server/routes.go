@@ -44,7 +44,6 @@ func newHandler(deps controller.Deps) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", controller.GetHealthz)
-	mux.HandleFunc("GET /v1/connections/status/stream", controller.StreamConnectionStatus)
 
 	// Connections: one generic handler per route, gated by the {engine} path
 	// parameter through the module registry.
@@ -61,10 +60,6 @@ func newHandler(deps controller.Deps) http.Handler {
 	mux.HandleFunc("POST /v1/{engine}/connections/{name}/alter", controller.PostAlter)
 	mux.HandleFunc("POST /v1/{engine}/connections/{name}/rollback", controller.PostRollback)
 	mux.HandleFunc("POST /v1/{engine}/connections/{name}/analytics", controller.PostAnalytics)
-
-	// Stats: one handler, the engine's capability decides the shape.
-	mux.HandleFunc("GET /v1/{engine}/connections/{name}/stats", controller.GetStats)
-	mux.HandleFunc("GET /v1/{engine}/connections/{name}/stats/stream", controller.StreamStats)
 
 	// Changes: SQL and MongoDB keep separate queues behind one route.
 	mux.HandleFunc("GET /v1/{engine}/changes", controller.ListChanges)

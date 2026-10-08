@@ -53,14 +53,12 @@ type world struct {
 	changeID string
 	key      redisKey // the redis key a scenario picked out of a browse
 	page     redisPage
-	info     redisInfo
 	result   resultBody
 	change   changeBody
 	body     string // the last response body, for error assertions
 
 	database       mongoDatabase   // the mongo database a scenario picked out
 	collection     mongoCollection // the mongo collection a scenario picked out
-	mongo          mongoInfo
 	mongoQueueSize int
 	ticked         tickBody  // the last /internal/tick result
 	batch          batchBody // the last batch submit result
