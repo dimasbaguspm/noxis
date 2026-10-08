@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, type MemcacheKeyPage, type MemcacheStats, type Result } from "@/lib/api";
+import { api, type MemcacheKeyPage, type Result } from "@/lib/api";
 import { useFamily } from "@/app/app-provider";
 import { FAMILY } from "@/lib/families";
 import { useAction } from "@/hooks/use-action";
@@ -50,35 +50,4 @@ export function useMemcacheValue(connection?: string, key?: string) {
   }, [connection, key, load.run]);
 
   return { result, loading: load.loading };
-}
-
-// useMemcacheStatsStream subscribes to the INFO stream (2s ticks).
-export function useMemcacheStatsStream(connection?: string) {
-  const [history, setHistory] = useState<MemcacheStats[]>([]);
-  const [connected, setConnected] = useState(false);
-
-  useEffect(() => {
-    if (!connection) {
-      setHistory([]);
-      return;
-    }
-    setHistory([]);
-    const source = new EventSource(api.memcache.statsStream(connection));
-    source.addEventListener("open", () => setConnected(true));
-    source.addEventListener("error", () => setConnected(false));
-    source.addEventListener("stats", (event) => {
-      try {
-        const next = JSON.parse((event as MessageEvent).data) as MemcacheStats;
-        setHistory((prev) => [...prev, next].slice(-60));
-      } catch {
-        /* ignore malformed frames */
-      }
-    });
-    return () => {
-      source.close();
-      setConnected(false);
-    };
-  }, [connection]);
-
-  return { latest: history.at(-1), history, connected };
 }

@@ -5,9 +5,6 @@ export type Connection = components["schemas"]["entity.Connection"];
 export type Change = components["schemas"]["entity.Change"];
 export type ChangeCheck = components["schemas"]["entity.ChangeCheck"];
 export type Result = components["schemas"]["entity.Result"];
-export type Stats = components["schemas"]["sql.Stats"];
-export type MemcacheStats = components["schemas"]["memcache.Stats"];
-export type MongoStats = components["schemas"]["mongodb.Stats"];
 export type MongoDatabase = components["schemas"]["mongodb.Database"];
 export type MongoCollection = components["schemas"]["mongodb.Collection"];
 export type MongoRequest = components["schemas"]["mongodb.Request"];
@@ -96,11 +93,6 @@ export const api = {
   connections: {
     ...connectionOps(FAMILY.SQL),
     schema: (name: string) => request<{ tables: Table[] }>("GET", connPath(FAMILY.SQL, name, "/schema")),
-    stats: (name: string) => request<Stats>("GET", connPath(FAMILY.SQL, name, "/stats")),
-    // the status stream probes every family, so it is not family-scoped
-    statusStream: () => "/v1/connections/status/stream",
-    // the live view subscribes to this endpoint with an EventSource
-    statsStream: (name: string) => connPath(FAMILY.SQL, name, "/stats/stream"),
     rows: (name: string, schema: string, table: string, limit = 100) =>
       request<Result>(
         "GET",
@@ -129,8 +121,6 @@ export const api = {
       request<{ deleted: number }>("DELETE", connPath(FAMILY.MEMCACHE, name, "/keys"), { keys }),
     flush: (name: string) =>
       request<{ status: string }>("POST", connPath(FAMILY.MEMCACHE, name, "/flush"), { confirm: name }),
-    stats: (name: string) => request<MemcacheStats>("GET", connPath(FAMILY.MEMCACHE, name, "/stats")),
-    statsStream: (name: string) => connPath(FAMILY.MEMCACHE, name, "/stats/stream"),
   },
   mongodb: {
     ...connectionOps(FAMILY.MONGODB),
@@ -144,15 +134,6 @@ export const api = {
     // reads only: a write op is refused here and belongs in the request queue
     run: (name: string, req: MongoRequest) =>
       request<MongoResult>("POST", connPath(FAMILY.MONGODB, name, "/requests"), req),
-    stats: (name: string, database?: string, collection?: string) =>
-      request<MongoStats>(
-        "GET",
-        connPath(FAMILY.MONGODB, name, "/stats") +
-          `?database=${encodeURIComponent(database ?? "")}&collection=${encodeURIComponent(collection ?? "")}`,
-      ),
-    statsStream: (name: string, database?: string, collection?: string) =>
-      connPath(FAMILY.MONGODB, name, "/stats/stream") +
-      `?database=${encodeURIComponent(database ?? "")}&collection=${encodeURIComponent(collection ?? "")}`,
     changes: {
       list: () => request<{ changes: Change[] }>("GET", v1(FAMILY.MONGODB, "changes")),
       submit: (input: MongoChangeInput) => request<Change>("POST", v1(FAMILY.MONGODB, "changes"), input),

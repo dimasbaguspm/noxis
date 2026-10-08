@@ -6,7 +6,6 @@ import {
   type MongoCollection,
   type MongoDatabase,
   type MongoResult,
-  type MongoStats,
 } from "@/lib/api";
 import { useFamily } from "@/app/app-provider";
 import { FAMILY } from "@/lib/families";
@@ -108,36 +107,4 @@ export function useMongoChanges() {
   }, [reload]);
 
   return { changes, loading, reload, submit, approve, apply, reject };
-}
-
-// useMongoStatsStream subscribes to the stats stream (2s ticks), scoped to a
-// database and (optionally) a collection.
-export function useMongoStatsStream(connection?: string, database?: string, collection?: string) {
-  const [history, setHistory] = useState<MongoStats[]>([]);
-  const [connected, setConnected] = useState(false);
-
-  useEffect(() => {
-    if (!connection) {
-      setHistory([]);
-      return;
-    }
-    setHistory([]);
-    const source = new EventSource(api.mongodb.statsStream(connection, database, collection));
-    source.addEventListener("open", () => setConnected(true));
-    source.addEventListener("error", () => setConnected(false));
-    source.addEventListener("stats", (event) => {
-      try {
-        const next = JSON.parse((event as MessageEvent).data) as MongoStats;
-        setHistory((prev) => [...prev, next].slice(-60));
-      } catch {
-        /* ignore malformed frames */
-      }
-    });
-    return () => {
-      source.close();
-      setConnected(false);
-    };
-  }, [connection, database, collection]);
-
-  return { latest: history.at(-1), history, connected };
 }

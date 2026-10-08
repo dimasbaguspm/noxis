@@ -39,13 +39,13 @@ volume, no docker socket.
   registers a real Valkey server to keep that claim honest.
 - **Operator console** — served by the binary itself at `/` (React + TS +
   shadcn/ui, embedded; no build step at deploy time):
-  - **Dashboard** — every instance in one searchable table with live
-    reachability (SSE) and a detail dialog; a swipeable tile counts All / SQL /
-    Memory Cache and MongoDB; one "new connection" wizard asks for the kind of
-    instance first, then verifies it before saving
+  - **Dashboard** — every instance in one searchable table with a detail
+    dialog; a swipeable tile counts All / SQL / Memory Cache and MongoDB; one
+    "new connection" wizard asks for the kind of instance first, then verifies
+    it before saving
   - menu (collapsible sidebar + a search field in the header that opens a
-    searchable palette): Dashboard · SQL (Query, DML, DDL, Analytics) ·
-    Memory Cache (Keys, Analytics) · MongoDB (Explore, Requests, Analytics)
+    searchable palette): Dashboard · SQL (Query, DML, DDL) ·
+    Memory Cache (Keys) · MongoDB (Explore, Requests)
   - **Query** — per-instance schema/table browser, monaco editor (self-hosted,
     schema-aware completion), result grid with duration / rows / plan estimate
     and CSV export; `ANALYZE` and "show records" live in each table's menu
@@ -53,19 +53,15 @@ volume, no docker socket.
     estimates vs actuals, the tables/columns it touches (parsed from the
     statements), an activity trail, and monaco for query/rollback; changes are
     artifacts, never deleted
-    - **Analytics** — live instance metrics over SSE (connections, cache hit
-    ratio, throughput) with recharts graphs
   - **Memory Cache** — browse keys by pattern with type, TTL and size (one bounded
     scan, so the list can be sorted by TTL for real), inspect any value per its
     type, remove selected keys, and empty a database behind a typed
-    confirmation; Analytics charts INFO (memory, clients, ops/sec, hit ratio,
-    eviction)
+    confirmation
   - **MongoDB** — Explore has three resizable panes (databases, collections,
     documents): pick a collection and filter it, reading the documents as
     **JSON, a grid or a tree**; Requests is the review queue plus a wizard
     (database → collection → filter and value, stacked) and a review page with
-    the dry-run checks, the activity trail and no rollback editor; Analytics
-    watches serverStatus, dbStats and collStats over SSE
+    the dry-run checks, the activity trail and no rollback editor
 
 ## Docs
 

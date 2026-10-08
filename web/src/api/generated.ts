@@ -38,194 +38,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/connections/status/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Reachability stream for every connection (SSE, one tick per 5s) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description text/event-stream */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": string;
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/memcache/connections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List redis connections (passwords redacted) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            connections?: components["schemas"]["entity.Connection"][];
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        /** Create or update a redis connection (database is the db index) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: components["requestBodies"]["entity.Connection"];
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Connection"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/memcache/connections/{name}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get one redis connection (password redacted) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Connection"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        /** Delete a redis connection */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description deleted */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/memcache/connections/{name}/flush": {
+    "/internal/tick": {
         parameters: {
             query?: never;
             header?: never;
@@ -234,357 +47,63 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Empty the connected database (FLUSHDB, never FLUSHALL) */
+        /** Apply every due scheduled change (external cron / scheduler) */
         post: {
             parameters: {
                 query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
+                header: {
+                    /** @description NOXIS_TICK_KEY */
+                    "X-API-Key": string;
                 };
-                cookie?: never;
-            };
-            /** @description confirm must repeat the connection name */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["controller.memcacheFlushBody"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            status?: string;
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/memcache/connections/{name}/keys": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Browse keys by pattern (bounded scan, with type, TTL and size) */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description glob pattern (default *) */
-                    pattern?: string;
-                    /** @description scan cap (default 500, max 5000) */
-                    limit?: number;
-                };
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["memcache.KeyPage"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        /** Remove keys (the selected ones only) */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            /** @description keys to remove */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["controller.memcacheKeysBody"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            deleted?: number;
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/memcache/connections/{name}/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Memcache INFO snapshot (memory, clients, hits, persistence) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["memcache.Stats"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/memcache/connections/{name}/stats/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Memcache stats stream (SSE, one INFO snapshot every 2s) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description text/event-stream */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": string;
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/memcache/connections/{name}/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Test that a redis connection answers */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            status?: string;
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/memcache/connections/{name}/value": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Inspect one key's value (rendered per its type) */
-        get: {
-            parameters: {
-                query: {
-                    /** @description key name */
-                    key: string;
-                };
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Result"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mongodb/changes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List MongoDB requests (newest first) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
                 path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["controller.TickResult"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/{engine}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List proposed changes for an engine (newest first) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description engine family (sql, mongodb) */
+                    engine: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -600,81 +119,6 @@ export interface paths {
                         };
                     };
                 };
-            };
-        };
-        put?: never;
-        /** Submit a MongoDB request (validated on a scratch collection) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description connection, notes and the request */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["controller.mongoChangeBody"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Change"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mongodb/changes/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get one MongoDB request */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description change id */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Change"];
-                    };
-                };
                 /** @description Not Found */
                 404: {
                     headers: {
@@ -689,667 +133,18 @@ export interface paths {
             };
         };
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mongodb/changes/{id}/apply": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Apply an approved MongoDB request (no rollback exists) */
+        /** Submit a change (validates before recording) */
         post: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description change id */
-                    id: string;
+                    /** @description engine family (sql, mongodb) */
+                    engine: string;
                 };
                 cookie?: never;
             };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Change"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mongodb/changes/{id}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Approve a validated MongoDB request (self-approval allowed) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description change id */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Change"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mongodb/changes/{id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Reject a MongoDB request (kept as an artifact, never deleted) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description change id */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Change"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mongodb/connections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List MongoDB connections (passwords redacted) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            connections?: components["schemas"]["entity.Connection"][];
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        /** Create or update a MongoDB connection */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: components["requestBodies"]["entity.Connection"];
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Connection"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mongodb/connections/{name}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get one MongoDB connection (password redacted) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Connection"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        /** Delete a MongoDB connection */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description deleted */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mongodb/connections/{name}/collections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List a database's collections with their sizes */
-        get: {
-            parameters: {
-                query: {
-                    /** @description database name */
-                    database: string;
-                };
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            collections?: components["schemas"]["mongodb.Collection"][];
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mongodb/connections/{name}/databases": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List databases with their sizes */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            databases?: components["schemas"]["mongodb.Database"][];
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mongodb/connections/{name}/requests": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Run a read request (find | aggregate | count) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            /** @description op, database, collection, filter and value as Extended JSON */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["mongodb.Request"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["mongodb.Result"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mongodb/connections/{name}/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** MongoDB stats snapshot (server, database and collection) */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description database to describe */
-                    database?: string;
-                    /** @description collection to describe */
-                    collection?: string;
-                };
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["mongodb.Stats"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mongodb/connections/{name}/stats/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** MongoDB stats stream (SSE, one snapshot every 2s) */
-        get: {
-            parameters: {
-                query?: {
-                    /** @description database to describe */
-                    database?: string;
-                    /** @description collection to describe */
-                    collection?: string;
-                };
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description text/event-stream */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": string;
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/mongodb/connections/{name}/test": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Test that a MongoDB connection answers */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            status?: string;
-                        };
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/sql/changes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List proposed SQL changes (newest first) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            changes?: components["schemas"]["entity.Change"][];
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        /** Submit a change (validates query + rollback; nothing persists) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            /** @description connection, notes, query, rollback */
+            /** @description connection, notes, query, rollback (sql) or the request (mongodb) */
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["entity.Change"];
@@ -1376,6 +171,17 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
             };
         };
         delete?: never;
@@ -1384,7 +190,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sql/changes/{id}": {
+    "/v1/{engine}/changes/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a batch of .sql files as changes sharing a batch id */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description engine family (sql) */
+                    engine: string;
+                };
+                cookie?: never;
+            };
+            /** @description connection, notes and one file per statement */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["controller.batchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["controller.batchResult"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/{engine}/changes/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1397,6 +258,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description engine family (sql, mongodb) */
+                    engine: string;
                     /** @description change id */
                     id: string;
                 };
@@ -1434,7 +297,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sql/changes/{id}/apply": {
+    "/v1/{engine}/changes/{id}/apply": {
         parameters: {
             query?: never;
             header?: never;
@@ -1443,12 +306,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Apply an approved change (transactional) */
+        /** Apply an approved change */
         post: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description engine family (sql, mongodb) */
+                    engine: string;
                     /** @description change id */
                     id: string;
                 };
@@ -1476,6 +341,17 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
             };
         };
         delete?: never;
@@ -1484,7 +360,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sql/changes/{id}/approve": {
+    "/v1/{engine}/changes/{id}/approve": {
         parameters: {
             query?: never;
             header?: never;
@@ -1499,6 +375,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description engine family (sql, mongodb) */
+                    engine: string;
                     /** @description change id */
                     id: string;
                 };
@@ -1526,6 +404,17 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
             };
         };
         delete?: never;
@@ -1534,7 +423,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sql/changes/{id}/reject": {
+    "/v1/{engine}/changes/{id}/reject": {
         parameters: {
             query?: never;
             header?: never;
@@ -1549,6 +438,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description engine family (sql, mongodb) */
+                    engine: string;
                     /** @description change id */
                     id: string;
                 };
@@ -1576,6 +467,17 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
             };
         };
         delete?: never;
@@ -1584,7 +486,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sql/connections": {
+    "/v1/{engine}/connections": {
         parameters: {
             query?: never;
             header?: never;
@@ -1596,7 +498,10 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    /** @description engine family (sql, memcache, mongodb) */
+                    engine: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -1620,10 +525,18 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    /** @description engine family (sql, memcache, mongodb) */
+                    engine: string;
+                };
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["entity.Connection"];
+            /** @description connection (omit password to keep the stored one) */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["entity.Connection"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -1653,7 +566,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sql/connections/{name}": {
+    "/v1/{engine}/connections/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1666,6 +579,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description engine family (sql, memcache, mongodb) */
+                    engine: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1703,6 +618,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description engine family (sql, memcache, mongodb) */
+                    engine: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1717,8 +634,8 @@ export interface paths {
                     };
                     content?: never;
                 };
-                /** @description Bad Request */
-                400: {
+                /** @description Not Found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1735,7 +652,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sql/connections/{name}/alter": {
+    "/v1/{engine}/connections/{name}/alter": {
         parameters: {
             query?: never;
             header?: never;
@@ -1750,6 +667,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description engine family (sql) */
+                    engine: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1777,6 +696,17 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
             };
         };
         delete?: never;
@@ -1785,7 +715,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sql/connections/{name}/analytics": {
+    "/v1/{engine}/connections/{name}/analytics": {
         parameters: {
             query?: never;
             header?: never;
@@ -1800,6 +730,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description engine family (sql) */
+                    engine: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1832,6 +764,17 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
             };
         };
         delete?: never;
@@ -1840,7 +783,332 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sql/connections/{name}/query": {
+    "/v1/{engine}/connections/{name}/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List a database's collections with their sizes */
+        get: {
+            parameters: {
+                query: {
+                    /** @description database name */
+                    database: string;
+                };
+                header?: never;
+                path: {
+                    /** @description engine family (mongodb) */
+                    engine: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            collections?: components["schemas"]["mongodb.Collection"][];
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/{engine}/connections/{name}/databases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List databases with their sizes */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description engine family (mongodb) */
+                    engine: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            databases?: components["schemas"]["mongodb.Database"][];
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/{engine}/connections/{name}/flush": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Empty the connected database (FLUSHDB, never FLUSHALL) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description engine family (memcache) */
+                    engine: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            /** @description confirm must repeat the connection name */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["controller.memcacheFlushBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            status?: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/{engine}/connections/{name}/keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Browse keys by pattern (bounded scan, with type, TTL and size) */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description glob pattern (default *) */
+                    pattern?: string;
+                    /** @description scan cap (default 500, max 5000) */
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description engine family (memcache) */
+                    engine: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["memcache.KeyPage"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Remove keys (the selected ones only) */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description engine family (memcache) */
+                    engine: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            /** @description keys to remove */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["controller.memcacheKeysBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            deleted?: number;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/{engine}/connections/{name}/query": {
         parameters: {
             query?: never;
             header?: never;
@@ -1855,6 +1123,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description engine family (sql) */
+                    engine: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1887,6 +1157,17 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
             };
         };
         delete?: never;
@@ -1895,7 +1176,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sql/connections/{name}/rollback": {
+    "/v1/{engine}/connections/{name}/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run a read request (find | aggregate | count) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description engine family (mongodb) */
+                    engine: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            /** @description op, database, collection, filter and value as Extended JSON */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["mongodb.Request"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["mongodb.Result"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/{engine}/connections/{name}/rollback": {
         parameters: {
             query?: never;
             header?: never;
@@ -1910,6 +1259,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description engine family (sql) */
+                    engine: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1937,6 +1288,17 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
             };
         };
         delete?: never;
@@ -1945,7 +1307,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sql/connections/{name}/schema": {
+    "/v1/{engine}/connections/{name}/schema": {
         parameters: {
             query?: never;
             header?: never;
@@ -1958,6 +1320,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description engine family (sql) */
+                    engine: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1987,47 +1351,8 @@ export interface paths {
                         };
                     };
                 };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/sql/connections/{name}/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Instance stats snapshot (connections, size, cache, throughput) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["sql.Stats"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
+                /** @description Not Found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2047,46 +1372,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sql/connections/{name}/stats/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Instance stats stream (SSE, one snapshot every 2s) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description text/event-stream */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": string;
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/sql/connections/{name}/tables/{table}/rows": {
+    "/v1/{engine}/connections/{name}/tables/{table}/rows": {
         parameters: {
             query?: never;
             header?: never;
@@ -2104,6 +1390,8 @@ export interface paths {
                 };
                 header?: never;
                 path: {
+                    /** @description engine family (sql) */
+                    engine: string;
                     /** @description connection name */
                     name: string;
                     /** @description table name (unqualified) */
@@ -2133,6 +1421,17 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
             };
         };
         put?: never;
@@ -2143,7 +1442,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sql/connections/{name}/test": {
+    "/v1/{engine}/connections/{name}/test": {
         parameters: {
             query?: never;
             header?: never;
@@ -2158,6 +1457,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description engine family (sql, memcache, mongodb) */
+                    engine: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -2195,10 +1496,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/{engine}/connections/{name}/value": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect one key's value (rendered per its type) */
+        get: {
+            parameters: {
+                query: {
+                    /** @description key name */
+                    key: string;
+                };
+                header?: never;
+                path: {
+                    /** @description engine family (memcache) */
+                    engine: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Result"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description applied and failed change ids from one tick. */
+        "controller.TickResult": {
+            applied?: string[];
+            failed?: string[];
+        };
+        "controller.batchFile": {
+            name?: string;
+            query?: string;
+            rollback?: string;
+        };
+        "controller.batchFileResult": {
+            change?: components["schemas"]["entity.Change"];
+            error?: string;
+            name?: string;
+            ok?: boolean;
+        };
+        "controller.batchRequest": {
+            connection?: string;
+            files?: components["schemas"]["controller.batchFile"][];
+            notes?: string;
+        };
+        "controller.batchResult": {
+            batchId?: string;
+            results?: components["schemas"]["controller.batchFileResult"][];
+        };
         "controller.memcacheFlushBody": {
             confirm?: string;
         };
@@ -2218,6 +1610,11 @@ export interface components {
             appliedAt?: number;
             appliedDurationMs?: number;
             approvedAt?: number;
+            /**
+             * @description BatchID groups the changes raised together from one multi-file upload;
+             *     empty for a change raised on its own.
+             */
+            batchId?: string;
             checks?: components["schemas"]["entity.ChangeCheck"][];
             connection: string;
             createdAt?: number;
@@ -2231,7 +1628,12 @@ export interface components {
             query: string;
             rejectedAt?: number;
             rollback: string;
+            /**
+             * @description ScheduledAt is the unix time the change should run; 0 means execute
+             *     immediately (on manual apply, as before).
+             */
             scheduledAt?: number;
+            scratchSchema?: string;
             /** @description validated | unverified | failed | approved | applied | rejected */
             status?: string;
         };
@@ -2265,6 +1667,11 @@ export interface components {
             message?: string;
             rows?: string[][];
             rowsReturned?: number;
+            /**
+             * @description ScratchSchema is set by change validation: the throwaway schema the
+             *     change was verified against, if any.
+             */
+            scratchSchema?: string;
         };
         "memcache.Key": {
             name?: string;
@@ -2277,32 +1684,6 @@ export interface components {
             pattern?: string;
             total?: number;
             truncated?: boolean;
-        };
-        "memcache.Stats": {
-            aofEnabled?: boolean;
-            aofLastWriteStatus?: string;
-            connectedClients?: number;
-            evictedKeys?: number;
-            expiredKeys?: number;
-            expires?: number;
-            flavor?: string;
-            hitRatio?: number;
-            keys?: number;
-            keyspaceHits?: number;
-            keyspaceMisses?: number;
-            maxMemoryBytes?: number;
-            memoryFragmentationRatio?: number;
-            opsPerSec?: number;
-            rdbLastSaveStatus?: string;
-            rdbLastSaveUnix?: number;
-            rejectedConnections?: number;
-            role?: string;
-            totalCommandsProcessed?: number;
-            totalConnectionsReceived?: number;
-            uptimeSeconds?: number;
-            usedMemoryBytes?: number;
-            usedMemoryPeakBytes?: number;
-            version?: string;
         };
         "mongodb.Collection": {
             avgObjectSizeBytes?: number;
@@ -2346,61 +1727,16 @@ export interface components {
             message?: string;
             rows?: string[][];
             rowsReturned?: number;
-        };
-        "mongodb.Stats": {
-            collection?: string;
-            collectionAvgObjectSizeBytes?: number;
-            collectionCapped?: boolean;
-            /** @description collection (zero when none was asked for) */
-            collectionCount?: number;
-            collectionIndexSizeBytes?: number;
-            collectionIndexes?: number;
-            collectionSizeBytes?: number;
-            collectionStorageBytes?: number;
-            connections?: number;
-            currentOps?: number;
-            database?: string;
-            /** @description database */
-            dbCollections?: number;
-            dbDataSizeBytes?: number;
-            dbIndexSizeBytes?: number;
-            dbIndexes?: number;
-            dbObjects?: number;
-            dbStorageBytes?: number;
-            deleted?: number;
-            inserted?: number;
-            networkInBytes?: number;
-            networkOutBytes?: number;
-            queried?: number;
-            residentMemoryMb?: number;
-            updated?: number;
-            uptimeSeconds?: number;
-            /** @description server */
-            version?: string;
-            virtualMemoryMb?: number;
+            /**
+             * @description ScratchSchema is set by change validation: the throwaway schema the
+             *     change was verified against, if any.
+             */
+            scratchSchema?: string;
         };
         "sql.Column": {
             name?: string;
             nullable?: boolean;
             type?: string;
-        };
-        "sql.Stats": {
-            active?: number;
-            cacheHitRatio?: number;
-            commits?: number;
-            connections?: number;
-            databaseSizeBytes?: number;
-            deadlocks?: number;
-            driver?: string;
-            idle?: number;
-            idleInTransaction?: number;
-            longestQuerySeconds?: number;
-            maxConnections?: number;
-            rollbacks?: number;
-            takenAt?: number;
-            tempBytes?: number;
-            uptimeSeconds?: number;
-            version?: string;
         };
         "sql.Table": {
             columns?: components["schemas"]["sql.Column"][];
@@ -2411,12 +1747,6 @@ export interface components {
     responses: never;
     parameters: never;
     requestBodies: {
-        /** @description connection (omit password to keep the stored one) */
-        "entity.Connection": {
-            content: {
-                "application/json": components["schemas"]["entity.Connection"];
-            };
-        };
         /** @description sql */
         "controller.opBody": {
             content: {

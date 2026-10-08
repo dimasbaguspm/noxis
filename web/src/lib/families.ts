@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { Activity, BarChart3, Boxes, Database, Leaf, PenLine } from "lucide-react";
+import { Activity, Boxes, Database, Leaf, PenLine } from "lucide-react";
 import { PAGE_ROUTES } from "./routes";
 
 // The engine-family registry: one place that names every family, its landing
@@ -46,7 +46,6 @@ export const FAMILIES: Family[] = [
       { to: PAGE_ROUTES.SQL.QUERY, label: "Query", icon: Database },
       { to: PAGE_ROUTES.SQL.DML, label: "DML", icon: PenLine },
       { to: PAGE_ROUTES.SQL.DDL, label: "DDL", icon: Activity },
-      { to: PAGE_ROUTES.SQL.ANALYTICS, label: "Analytics", icon: BarChart3 },
     ],
   },
   {
@@ -57,7 +56,6 @@ export const FAMILIES: Family[] = [
     openLabel: "Browse keys",
     nav: [
       { to: PAGE_ROUTES.MEMCACHE.KEYS, label: "Keys", icon: Boxes, end: true },
-      { to: PAGE_ROUTES.MEMCACHE.ANALYTICS, label: "Analytics", icon: BarChart3 },
     ],
   },
   {
@@ -69,7 +67,6 @@ export const FAMILIES: Family[] = [
     nav: [
       { to: PAGE_ROUTES.MONGODB.EXPLORE, label: "Explore", icon: Leaf, end: true },
       { to: PAGE_ROUTES.MONGODB.REQUESTS, label: "Requests", icon: PenLine },
-      { to: PAGE_ROUTES.MONGODB.ANALYTICS, label: "Analytics", icon: BarChart3 },
     ],
   },
 ];
