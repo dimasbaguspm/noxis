@@ -30,6 +30,8 @@ type Deps struct {
 	Changes     interfaces.ChangeRepository
 	Modules     map[string]interfaces.Module
 	Log         *slog.Logger
+	// TickKey guards POST /internal/tick; empty disables the endpoint.
+	TickKey string
 }
 
 type ctxKey struct{}
@@ -178,6 +180,9 @@ func writeErr(w http.ResponseWriter, err error) {
 	// a missing row and a missing engine/sub-resource are both "not here"
 	if errors.Is(err, interfaces.ErrNotFound) || errors.Is(err, interfaces.ErrUnsupported) {
 		code = http.StatusNotFound
+	}
+	if errors.Is(err, errUnauthorized) {
+		code = http.StatusUnauthorized
 	}
 	writeJSON(w, code, map[string]string{"error": err.Error()})
 }

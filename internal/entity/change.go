@@ -24,6 +24,9 @@ type Change struct {
 	AppliedAffected   int64  `json:"appliedAffected,omitempty"`
 	AppliedDurationMs int64  `json:"appliedDurationMs,omitempty"`
 	ScratchSchema     string `json:"scratchSchema,omitempty"`
+	// ScheduledAt is the unix time the change should run; 0 means execute
+	// immediately (on manual apply, as before).
+	ScheduledAt int64 `json:"scheduledAt,omitempty"`
 }
 
 // ChangeCheck is one validation outcome.

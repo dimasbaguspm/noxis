@@ -12,6 +12,7 @@ services:
     environment:
       NOXIS_LISTEN: ":9000"
       NOXIS_DB: /data/noxis.db
+      NOXIS_TICK_KEY: noxis-tick
       NOXIS_OTEL_NAME: noxis
     ports:
       - "9000:9000"
@@ -37,6 +38,22 @@ services:
       timeout: 3s
       retries: 10
       start_period: 2s
+    restart: unless-stopped
+
+  # The scheduler runs as its own process (same image, different command) and
+  # drives the server's /internal/tick endpoint — the server carries no ticker.
+  ticker:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: run ticker
+    environment:
+      NOXIS_TICK_URL: http://noxis:9000/internal/tick
+      NOXIS_TICK_KEY: noxis-tick
+      NOXIS_TICK_INTERVAL: 30s
+    depends_on:
+      noxis:
+        condition: service_healthy
     restart: unless-stopped
 
   db:

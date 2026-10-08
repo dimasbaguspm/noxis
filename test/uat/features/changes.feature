@@ -48,3 +48,13 @@ Feature: changes — submit, validate, approve, apply
     Then the change is "applied"
     And I dry-run "UPDATE uat_a SET v = 99"
     And analytics on table "uat_a" succeeds
+
+  Scenario: a due scheduled change is applied by the tick
+    When I submit a change scheduled at now with query "CREATE TABLE IF NOT EXISTS uat_sched (id INT)" and rollback "DROP TABLE uat_sched"
+    Then the change is "validated"
+    And I approve the change
+    Then the change is "approved"
+    And a tick without the key is rejected
+    And a tick with the key applies the due change
+    Then the change is "applied"
+    And the schema lists table "uat_sched"

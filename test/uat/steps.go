@@ -2,8 +2,10 @@ package uat
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -43,6 +45,9 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	sc.Step(`^the change is "([^"]*)"$`, w.changeStatus)
 	sc.Step("I approve the change", w.approve)
 	sc.Step("I apply the change", w.apply)
+	sc.Step(`^I submit a change scheduled at now with query "([^"]*)" and rollback "([^"]*)"$`, w.submitScheduledChange)
+	sc.Step("a tick without the key is rejected", w.tickWithoutKey)
+	sc.Step("a tick with the key applies the due change", w.tickWithKey)
 	sc.Step("applying is rejected", w.applyRejected)
 	sc.Step("I reject the change", w.rejectChange)
 	sc.Step("the change list still contains it", w.changeStillPresent)
@@ -204,6 +209,76 @@ func (w *world) approve(ctx context.Context) error {
 
 func (w *world) apply(ctx context.Context) error {
 	return w.changeAction("/apply")
+}
+
+// submitScheduledChange is submitChange with a due schedule, so the tick has
+// something to pick up without waiting.
+func (w *world) submitScheduledChange(ctx context.Context, query, rollback string) error {
+	w.change = changeBody{}
+	body := map[string]any{
+		"connection": w.conn, "notes": "uat change", "query": query, "rollback": rollback,
+		"scheduledAt": time.Now().Unix(),
+	}
+	if err := w.api(http.MethodPost, "/v1/sql/changes", body, &w.change); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("submit scheduled change: %d", w.code)
+	}
+	w.changeID = w.change.ID
+	return nil
+}
+
+func (w *world) tickWithoutKey(ctx context.Context) error {
+	if err := w.tick(ctx, ""); err != nil {
+		return err
+	}
+	if w.code != http.StatusUnauthorized {
+		return fmt.Errorf("tick without key: status %d want 401", w.code)
+	}
+	return nil
+}
+
+func (w *world) tickWithKey(ctx context.Context) error {
+	if err := w.tick(ctx, tickKey); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("tick with key: status %d body %s", w.code, w.body)
+	}
+	return nil
+}
+
+// tick drives POST /internal/tick with an optional key and, on success,
+// reloads the change under test so the next status assertion sees the result.
+func (w *world) tick(ctx context.Context, key string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/internal/tick", http.NoBody)
+	if err != nil {
+		return err
+	}
+	if key != "" {
+		req.Header.Set("X-API-Key", key)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	w.code = resp.StatusCode
+	w.body = strings.TrimSpace(string(b))
+	w.ticked = tickBody{}
+	if len(b) > 0 {
+		_ = json.Unmarshal(b, &w.ticked)
+	}
+	if w.code != http.StatusOK || w.changeID == "" {
+		return nil
+	}
+	w.change = changeBody{}
+	return w.api(http.MethodGet, "/v1/sql/changes/"+w.changeID, nil, &w.change)
 }
 
 // changeAction POSTs to a change sub-resource and records the new state.

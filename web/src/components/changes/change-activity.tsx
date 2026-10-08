@@ -28,6 +28,15 @@ export function ChangeActivity({ change }: { change: Change }) {
   if (change.approvedAt) {
     steps.push({ label: "Approved", at: change.approvedAt, icon: ShieldCheck, tone: "text-amber-500" });
   }
+  if (change.scheduledAt) {
+    steps.push({
+      label: "Scheduled",
+      at: change.scheduledAt,
+      icon: Clock,
+      tone: "text-muted-foreground",
+      hint: change.appliedAt ? "ran on the scheduled tick" : "runs on the next tick",
+    });
+  }
   if (change.appliedAt) {
     steps.push({
       label: "Executed",
@@ -35,14 +44,6 @@ export function ChangeActivity({ change }: { change: Change }) {
       icon: Play,
       tone: "text-emerald-500",
       hint: `${change.appliedDurationMs ?? 0} ms · ${change.appliedAffected ?? 0} row(s) affected`,
-    });
-  }
-  if (!change.appliedAt && change.status !== "rejected") {
-    steps.push({
-      label: "Scheduled",
-      icon: Clock,
-      tone: "text-muted-foreground",
-      hint: "runs on approve + apply (no scheduler yet)",
     });
   }
   if (change.status === "failed") {

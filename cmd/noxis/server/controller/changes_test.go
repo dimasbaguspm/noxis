@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"noxis/internal/constants"
 	"noxis/internal/entity"
@@ -313,6 +314,101 @@ func TestEngineGating(t *testing.T) {
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, http.NoBody))
 		if rec.Code != tc.want {
 			t.Fatalf("%s: status=%d want=%d body=%s", tc.path, rec.Code, tc.want, rec.Body.String())
+		}
+	}
+}
+
+// TestScheduledChangeWaitsForItsSlot: a change scheduled in the future is not
+// applicable by hand and is skipped by a tick before its time.
+func TestScheduledChangeWaitsForItsSlot(t *testing.T) {
+	ctx := context.Background()
+	sq := &fakeSQL{}
+	d, changes, _ := newDeps(sq)
+	in := sampleChange()
+	in.ScheduledAt = time.Now().Add(time.Hour).Unix()
+	ch, err := d.submitChange(ctx, sq, in)
+	if err != nil {
+		t.Fatalf("submit: %v", err)
+	}
+	if _, err := d.approve(ctx, ch.ID); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	if _, err := d.apply(ctx, sq, ch.ID); err == nil {
+		t.Fatal("apply before the scheduled time must be refused")
+	}
+	res, err := d.Tick(ctx)
+	if err != nil {
+		t.Fatalf("tick: %v", err)
+	}
+	if len(res.Applied) != 0 || len(res.Failed) != 0 {
+		t.Fatalf("future change must not be applied: %+v", res)
+	}
+	if got := changes.changes[ch.ID].Status; got != constants.ChangeApproved {
+		t.Fatalf("status=%q want approved", got)
+	}
+}
+
+// TestTickAppliesDueScheduledChange: an approved change whose time has passed
+// is applied by the tick; an immediate change is left for the operator.
+func TestTickAppliesDueScheduledChange(t *testing.T) {
+	ctx := context.Background()
+	sq := &fakeSQL{}
+	d, changes, _ := newDeps(sq)
+	in := sampleChange()
+	in.ScheduledAt = time.Now().Add(-time.Minute).Unix()
+	ch, err := d.submitChange(ctx, sq, in)
+	if err != nil {
+		t.Fatalf("submit: %v", err)
+	}
+	immediate, err := d.submitChange(ctx, sq, sampleChange())
+	if err != nil {
+		t.Fatalf("submit immediate: %v", err)
+	}
+	for _, id := range []string{ch.ID, immediate.ID} {
+		if _, err := d.approve(ctx, id); err != nil {
+			t.Fatalf("approve %s: %v", id, err)
+		}
+	}
+	res, err := d.Tick(ctx)
+	if err != nil {
+		t.Fatalf("tick: %v", err)
+	}
+	if len(res.Applied) != 1 || res.Applied[0] != ch.ID {
+		t.Fatalf("applied=%v want [%s]", res.Applied, ch.ID)
+	}
+	if got := changes.changes[ch.ID].Status; got != constants.ChangeApplied {
+		t.Fatalf("due change status=%q want applied", got)
+	}
+	if got := changes.changes[immediate.ID].Status; got != constants.ChangeApproved {
+		t.Fatalf("immediate change status=%q want approved", got)
+	}
+}
+
+// TestTickEndpointRequiresKey locks the key guard on the external tick path.
+func TestTickEndpointRequiresKey(t *testing.T) {
+	d, _, _ := newDeps(&fakeSQL{})
+	d.TickKey = "s3cret"
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /internal/tick", PostTick)
+	h := WithDeps(mux, d)
+
+	cases := []struct {
+		key  string
+		want int
+	}{
+		{"", http.StatusUnauthorized},
+		{"wrong", http.StatusUnauthorized},
+		{"s3cret", http.StatusOK},
+	}
+	for _, tc := range cases {
+		req := httptest.NewRequest(http.MethodPost, "/internal/tick", http.NoBody)
+		if tc.key != "" {
+			req.Header.Set("X-API-Key", tc.key)
+		}
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		if rec.Code != tc.want {
+			t.Fatalf("key=%q status=%d want=%d body=%s", tc.key, rec.Code, tc.want, rec.Body.String())
 		}
 	}
 }

@@ -104,6 +104,10 @@ func (d Deps) apply(ctx context.Context, sq interfaces.SQLModule, id string) (ou
 	if ch.Status != constants.ChangeApproved {
 		return *ch, fmt.Errorf("change is %s, not approved — cannot apply", ch.Status)
 	}
+	if ch.ScheduledAt > time.Now().Unix() {
+		return *ch, fmt.Errorf("change is scheduled for %s — the scheduler will apply it",
+			time.Unix(ch.ScheduledAt, 0).Format(time.RFC3339))
+	}
 	conn, err := d.raw(ctx, sq, ch.Connection)
 	if err != nil {
 		return entity.Change{}, err
@@ -330,5 +334,85 @@ func RejectChange(w http.ResponseWriter, r *http.Request) {
 			return d.reject(ctx, r.PathValue("id"))
 		}
 		return nil, unsupported(mod, "changes")
+	})
+}
+
+// errUnauthorized maps to 401: the tick endpoint is key-guarded.
+var errUnauthorized = errors.New("invalid or missing api key")
+
+// TickResult is one scheduler pass: the ids it applied and the ids it failed
+// to apply (the failure is already recorded on the change itself).
+//
+// @Description applied and failed change ids from one tick.
+type TickResult struct {
+	Applied []string `json:"applied"`
+	Failed  []string `json:"failed"`
+}
+
+// dueChange reports whether an approved change is scheduled and its slot has
+// arrived. An immediate change (no schedule) is never due: the operator
+// applies it by hand.
+func dueChange(ch entity.Change, now int64) bool {
+	return ch.Status == constants.ChangeApproved && ch.ScheduledAt > 0 && ch.ScheduledAt <= now
+}
+
+// Tick applies every due change through its own engine. The in-process
+// scheduler and POST /internal/tick both call it, so a change applied at 14:00
+// does not care who knocked.
+func (d Deps) Tick(ctx context.Context) (res TickResult, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
+	all, err := d.Changes.ListChanges(ctx)
+	if err != nil {
+		return TickResult{}, err
+	}
+	now := time.Now().Unix()
+	for i := range all {
+		if !dueChange(all[i], now) {
+			continue
+		}
+		if _, err := d.applyChange(ctx, all[i]); err != nil {
+			res.Failed = append(res.Failed, all[i].ID)
+			continue
+		}
+		res.Applied = append(res.Applied, all[i].ID)
+	}
+	return res, nil
+}
+
+// applyChange resolves a change's engine from its connection's driver and
+// applies it through the matching family, so the tick is family-agnostic.
+func (d Deps) applyChange(ctx context.Context, ch entity.Change) (entity.Change, error) {
+	conn, err := d.Connections.Get(ctx, ch.Connection)
+	if err != nil {
+		return ch, err
+	}
+	mod, ok := d.moduleByDriver(conn.Driver)
+	if !ok {
+		return ch, fmt.Errorf("no engine serves driver %q", conn.Driver)
+	}
+	switch m := mod.(type) {
+	case interfaces.SQLModule:
+		return d.apply(ctx, m, ch.ID)
+	case interfaces.MongoModule:
+		return d.applyMongo(ctx, m, ch.ID)
+	}
+	return ch, fmt.Errorf("driver %q cannot be applied", conn.Driver)
+}
+
+// @Summary Apply every due scheduled change (external cron / scheduler)
+// @Param X-API-Key header string true "NOXIS_TICK_KEY"
+// @Success 200 {object} TickResult
+// @Failure 401 {object} map[string]string
+// @Router /internal/tick [post]
+func PostTick(w http.ResponseWriter, r *http.Request) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
+		if d.TickKey == "" {
+			return nil, fmt.Errorf("%w: scheduling is not configured (set %s)", interfaces.ErrUnsupported, entity.EnvTickKey)
+		}
+		if r.Header.Get("X-API-Key") != d.TickKey {
+			return nil, errUnauthorized
+		}
+		return d.Tick(ctx)
 	})
 }
