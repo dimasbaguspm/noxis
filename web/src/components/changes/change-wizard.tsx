@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { SqlEditor } from "@/components/sql/sql-editor";
+import { SqlFileInput } from "@/components/changes/sql-file-input";
 import { useConnectionSelection, useSchema } from "@/hooks/use-connection";
 import { classify } from "@/lib/statements";
 
@@ -173,6 +174,8 @@ export function ChangeWizard({
                 {query.trim() && (
                   <Badge variant={detected === wizardKind ? "secondary" : "destructive"}>{title(detected)}</Badge>
                 )}
+                <span className="flex-1" />
+                <SqlFileInput onLoad={(sql) => setQuery(sql)} />
               </Label>
               <SqlEditor value={query} onChange={setQuery} tables={tables} height="14rem" />
             </div>
@@ -180,8 +183,10 @@ export function ChangeWizard({
 
           {step === 3 && (
             <div className="grid gap-1.5">
-              <Label>
+              <Label className="flex items-center gap-2">
                 {title("rollback query")} <Required />
+                <span className="flex-1" />
+                <SqlFileInput onLoad={(sql) => setRollback(sql)} />
               </Label>
               <SqlEditor value={rollback} onChange={setRollback} tables={tables} height="12rem" />
             </div>

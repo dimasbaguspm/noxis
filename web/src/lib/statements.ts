@@ -29,3 +29,9 @@ export function classify(sql: string): StatementKind {
 export function isReadOnly(sql: string): boolean {
   return classify(sql) === "read";
 }
+
+// statementCount reports how many statements a batch holds; the batch upload
+// keeps "one file = one statement" honest with it.
+export function statementCount(sql: string): number {
+  return statements(sql).length;
+}

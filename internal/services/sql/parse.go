@@ -39,6 +39,42 @@ func containsDDL(sqlText string) bool {
 	return false
 }
 
+// StatementCount reports how many non-empty statements a batch holds. The
+// change workflow uses it to keep "one file = one statement" honest.
+func StatementCount(sqlText string) int {
+	n := 0
+	for _, stmt := range splitStatements(sqlText) {
+		if stripLeadingComments(stmt) != "" {
+			n++
+		}
+	}
+	return n
+}
+
+// stripLeadingComments drops leading -- and /* */ comments, so a comment-only
+// statement is not mistaken for real SQL.
+func stripLeadingComments(s string) string {
+	for {
+		s = strings.TrimSpace(s)
+		switch {
+		case strings.HasPrefix(s, "--"):
+			i := strings.IndexByte(s, '\n')
+			if i < 0 {
+				return ""
+			}
+			s = s[i+1:]
+		case strings.HasPrefix(s, "/*"):
+			i := strings.Index(s, "*/")
+			if i < 0 {
+				return ""
+			}
+			s = s[i+2:]
+		default:
+			return s
+		}
+	}
+}
+
 // splitStatements splits on ';' while skipping string literals ('...' with
 // ” escapes, "..." identifiers, `...` for mysql) and comments (-- and /* */),
 // so semicolons inside values do not split the batch.
