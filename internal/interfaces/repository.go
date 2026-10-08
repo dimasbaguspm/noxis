@@ -23,6 +23,17 @@ type ConnectionRepository interface {
 	Delete(ctx context.Context, name string) error
 }
 
+// GrantRepository persists the per-connection RBAC policy: which OIDC group
+// may touch which connection, at what level.
+type GrantRepository interface {
+	// ListGrants returns a connection's grants, ordered by group.
+	ListGrants(ctx context.Context, connection string) ([]entity.Grant, error)
+	// SetGrant upserts one group's level for a connection.
+	SetGrant(ctx context.Context, g entity.Grant) error
+	// DeleteGrant removes one group's grant from a connection.
+	DeleteGrant(ctx context.Context, connection, group string) error
+}
+
 // ChangeRepository persists proposed changes (names carry the noun because
 // one Store implements both seams).
 type ChangeRepository interface {

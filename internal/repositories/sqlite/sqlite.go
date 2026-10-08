@@ -22,6 +22,7 @@ type Store struct{ db *sql.DB }
 var (
 	_ interfaces.ConnectionRepository = (*Store)(nil)
 	_ interfaces.ChangeRepository     = (*Store)(nil)
+	_ interfaces.GrantRepository      = (*Store)(nil)
 )
 
 // Open opens the store and verifies it answers a ping. The parent directory
@@ -111,6 +112,13 @@ CREATE TABLE IF NOT EXISTS connections (
   database   TEXT NOT NULL,
   params     TEXT NOT NULL DEFAULT '{}',
   created_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS connection_grants (
+  connection TEXT NOT NULL,
+  group_name TEXT NOT NULL,
+  level      TEXT NOT NULL,
+  PRIMARY KEY (connection, group_name)
 );`
 
 func (s *Store) Close() { _ = s.db.Close() }

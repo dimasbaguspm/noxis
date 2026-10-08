@@ -66,6 +66,9 @@ func (s *Store) Delete(ctx context.Context, name string) (err error) {
 		if _, err := tx.ExecContext(ctx, `DELETE FROM changes WHERE connection = ?`, name); err != nil {
 			return fmt.Errorf("delete changes of %s: %w", name, err)
 		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM connection_grants WHERE connection = ?`, name); err != nil {
+			return fmt.Errorf("delete grants of %s: %w", name, err)
+		}
 		if _, err := tx.ExecContext(ctx, `DELETE FROM connections WHERE name = ?`, name); err != nil {
 			return fmt.Errorf("delete connection %s: %w", name, err)
 		}

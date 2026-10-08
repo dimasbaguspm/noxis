@@ -28,6 +28,7 @@ import (
 type Deps struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
+	Grants      interfaces.GrantRepository
 	Modules     map[string]interfaces.Module
 	Log         *slog.Logger
 	// TickKey guards POST /internal/tick; empty disables the endpoint.
@@ -183,6 +184,9 @@ func writeErr(w http.ResponseWriter, err error) {
 	}
 	if errors.Is(err, errUnauthorized) {
 		code = http.StatusUnauthorized
+	}
+	if errors.Is(err, errForbidden) {
+		code = http.StatusForbidden
 	}
 	writeJSON(w, code, map[string]string{"error": err.Error()})
 }
