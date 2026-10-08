@@ -1,6 +1,7 @@
 import { title } from "radash";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { useApp } from "@/app/app-provider";
 import { ChangeWizard } from "@/components/changes/change-wizard";
 import { BatchChangeDialog } from "@/components/changes/batch-change-dialog";
 import { ChangeTable } from "@/components/changes/change-table";
@@ -11,8 +12,12 @@ import { useChanges, type ChangeKind } from "@/hooks/use-data";
 // ChangePage is the shared DML/DDL queue: raise through the wizard, read the
 // kind mix at a glance, and keep immediate work apart from scheduled work.
 export function ChangePage({ kind }: { kind: ChangeKind }) {
+  const { can, registry } = useApp();
   const { changes, all, submit, reload } = useChanges(kind);
   const label = kind.toUpperCase();
+  // raising a change needs a write grant on some SQL instance; the wizard
+  // still lets the server refuse a specific connection
+  const mayRaise = registry.sql.connections.some((c) => can(c.name, "write"));
 
   const immediate = changes.filter((c) => !c.scheduledAt);
   const scheduled = changes.filter((c) => Boolean(c.scheduledAt));
@@ -28,8 +33,12 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
         <Stat label="DML" value={dml} />
         <Stat label="DDL" value={ddl} />
         <span className="flex-1" />
-        <BatchChangeDialog onSubmitted={() => void reload()} />
-        <ChangeWizard kind={kind} onSubmit={(input) => submit.run(input)} />
+        {mayRaise && (
+          <>
+            <BatchChangeDialog onSubmitted={() => void reload()} />
+            <ChangeWizard kind={kind} onSubmit={(input) => submit.run(input)} />
+          </>
+        )}
       </div>
 
       <Group

@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { JsonEditor } from "@/components/sql/json-editor";
 import { ChangeActivity } from "@/components/changes/change-activity";
+import { useApp } from "@/app/app-provider";
 import { useMongoChanges } from "@/hooks/use-mongodb";
 import type { MongoRequest } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 // no rollback exists for a document change.
 export default function MongoRequestDetailPage() {
   const { id = "" } = useParams();
+  const { can } = useApp();
   const { changes, loading, approve, apply, reject } = useMongoChanges();
   const change = changes.find((c) => c.id === id);
 
@@ -36,9 +38,10 @@ export default function MongoRequestDetailPage() {
 
   const request = parseRequest(change.query);
   const act = (fn: (id: string) => Promise<unknown>) => () => void fn(id);
-  const canApprove = change.status === "validated" || change.status === "unverified";
-  const canApply = change.status === "approved";
-  const canReject = change.status !== "applied" && change.status !== "rejected";
+  const mayReview = can(change.connection, "admin");
+  const canApprove = mayReview && (change.status === "validated" || change.status === "unverified");
+  const canApply = mayReview && change.status === "approved";
+  const canReject = mayReview && change.status !== "applied" && change.status !== "rejected";
 
   return (
     <div className="flex flex-col gap-4">

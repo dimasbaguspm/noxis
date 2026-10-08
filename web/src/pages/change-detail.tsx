@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ChangeActivity } from "@/components/changes/change-activity";
 import { ChangeSubmitDialog } from "@/components/changes/change-submit-dialog";
 import { SqlEditor } from "@/components/sql/sql-editor";
+import { useApp } from "@/app/app-provider";
 import { useSchema } from "@/hooks/use-connection";
 import { useChanges, type ChangeKind } from "@/hooks/use-data";
 import { PAGE_ROUTES } from "@/lib/routes";
@@ -28,6 +29,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const { can } = useApp();
   const { changes, loading, approve, apply, reject, submit } = useChanges(kind);
   const change = changes.find((c) => c.id === id);
   const { tables } = useSchema(change?.connection);
@@ -49,9 +51,11 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
 
   const queue = kind === "ddl" ? PAGE_ROUTES.SQL.DDL : PAGE_ROUTES.SQL.DML;
   const act = (fn: (id: string) => Promise<unknown>) => () => void fn(id);
-  const canApprove = change.status === "validated" || change.status === "unverified";
-  const canApply = change.status === "approved";
-  const canReject = change.status !== "applied" && change.status !== "rejected";
+  const mayReview = can(change.connection, "admin");
+  const mayWrite = can(change.connection, "write");
+  const canApprove = mayReview && (change.status === "validated" || change.status === "unverified");
+  const canApply = mayReview && change.status === "approved";
+  const canReject = mayReview && change.status !== "applied" && change.status !== "rejected";
 
   return (
     <div className="flex flex-col gap-4">
@@ -95,16 +99,18 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
                 <span className="text-xs text-muted-foreground">
                   Prefills this rollback as the new original query
                 </span>
-                <ChangeSubmitDialog
-                  kind={kind}
-                  onSubmit={(input) => submit.run(input)}
-                  initial={{ connection: change.connection, query: change.rollback ?? "" }}
-                  trigger={
-                    <Button size="xs" variant="outline">
-                      <Undo2 /> Raise inverse change
-                    </Button>
-                  }
-                />
+                {mayWrite && (
+                  <ChangeSubmitDialog
+                    kind={kind}
+                    onSubmit={(input) => submit.run(input)}
+                    initial={{ connection: change.connection, query: change.rollback ?? "" }}
+                    trigger={
+                      <Button size="xs" variant="outline">
+                        <Undo2 /> Raise inverse change
+                      </Button>
+                    }
+                  />
+                )}
               </div>
               <Section label={title("rollback query")}>
                 <SqlEditor value={change.rollback ?? ""} readOnly height="8rem" tables={tables} />

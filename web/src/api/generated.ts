@@ -4,6 +4,42 @@
  */
 
 export interface paths {
+    "/auth/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public OIDC configuration (console bootstrap) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["controller.AuthInfo"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -95,7 +131,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The authenticated caller */
+        /** The authenticated caller and its per-connection levels */
         get: {
             parameters: {
                 query?: never;
@@ -111,7 +147,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["entity.Principal"];
+                        "*/*": components["schemas"]["controller.MeResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1822,6 +1858,20 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        "controller.AuthInfo": {
+            clientId?: string;
+            enabled?: boolean;
+            issuer?: string;
+        };
+        "controller.MeResponse": {
+            /** @description Admin reports membership of the configured global-admin group. */
+            admin?: boolean;
+            connections?: {
+                [key: string]: string;
+            };
+            groups?: string[];
+            sub?: string;
+        };
         /** @description applied and failed change ids from one tick. */
         "controller.TickResult": {
             applied?: string[];
@@ -1924,12 +1974,6 @@ export interface components {
             group: string;
             /** @enum {string} */
             level: "read" | "write" | "admin";
-        };
-        "entity.Principal": {
-            /** @description Admin reports membership of the configured global-admin group. */
-            admin?: boolean;
-            groups?: string[];
-            sub?: string;
         };
         "entity.Result": {
             affected?: number;

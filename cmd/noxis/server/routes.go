@@ -12,6 +12,7 @@ import (
 
 	"noxis/cmd/noxis/server/controller"
 	"noxis/internal/constants"
+	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/repositories/sqlite"
 	"noxis/internal/services/memcache"
@@ -20,7 +21,7 @@ import (
 )
 
 // newDeps wires the shared stores and the engine-family registry.
-func newDeps(store *sqlite.Store, log *slog.Logger, tickKey string) controller.Deps {
+func newDeps(store *sqlite.Store, log *slog.Logger, cfg entity.Config) controller.Deps {
 	return controller.Deps{
 		Connections: store,
 		Changes:     store,
@@ -31,7 +32,12 @@ func newDeps(store *sqlite.Store, log *slog.Logger, tickKey string) controller.D
 			constants.FamilyMongo:    mongodb.New(),
 		},
 		Log:     log,
-		TickKey: tickKey,
+		TickKey: cfg.TickKey,
+		Auth: controller.AuthInfo{
+			Enabled:  cfg.OIDCIssuer != "",
+			Issuer:   cfg.OIDCIssuer,
+			ClientID: cfg.OIDCClientID,
+		},
 	}
 }
 
@@ -45,6 +51,7 @@ func newHandler(deps controller.Deps, verifier interfaces.Verifier) http.Handler
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", controller.GetHealthz)
+	mux.HandleFunc("GET /auth/config", controller.GetAuthConfig)
 	mux.HandleFunc("GET /v1/me", controller.GetMe)
 
 	// Connections: one generic handler per route, gated by the {engine} path

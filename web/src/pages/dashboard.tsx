@@ -31,7 +31,7 @@ interface Instance extends Connection {
 }
 
 export default function DashboardPage() {
-  const { registry, reload } = useApp();
+  const { registry, reload, isAdmin } = useApp();
   const { changes } = useChanges();
 
   const instances = useMemo<Instance[]>(
@@ -102,7 +102,7 @@ export default function DashboardPage() {
               <CardTitle className="text-base">Instances</CardTitle>
               <CardDescription>{instances.length} registered</CardDescription>
             </div>
-            <ConnectionDialog trigger="New connection" wizard />
+            {isAdmin && <ConnectionDialog trigger="New connection" wizard />}
           </div>
           <div className="relative max-w-md">
             <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -207,14 +207,16 @@ export default function DashboardPage() {
                 <Button size="sm" variant="outline" onClick={() => void test.run(detail)}>
                   <Zap /> Test
                 </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive"
-                  onClick={() => void remove.run(detail)}
-                >
-                  <Trash2 /> Delete
-                </Button>
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => void remove.run(detail)}
+                  >
+                    <Trash2 /> Delete
+                  </Button>
+                )}
               </DialogFooter>
             </>
           )}

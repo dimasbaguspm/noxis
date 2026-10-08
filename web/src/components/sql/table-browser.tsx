@@ -107,7 +107,16 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
                           icon: <ListTree className="size-3.5" />,
                           onSelect: () => onRecords?.(t),
                         },
-                        { label: "Analyze", icon: <Activity className="size-3.5" />, onSelect: () => onAnalyze?.(t) },
+                        // ANALYZE is a write: only offered when the caller holds it
+                        ...(onAnalyze
+                          ? [
+                              {
+                                label: "Analyze",
+                                icon: <Activity className="size-3.5" />,
+                                onSelect: () => onAnalyze(t),
+                              },
+                            ]
+                          : []),
                       ]}
                     />
                   </div>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useApp } from "@/app/app-provider";
 import { useAction } from "@/hooks/use-action";
 import { useConnectionSelection, useSchema } from "@/hooks/use-connection";
 import { useQuery } from "@/hooks/use-data";
@@ -20,6 +21,7 @@ import { title } from "radash";
 import { useState } from "react";
 
 export default function QueryPage() {
+  const { can, isAdmin } = useApp();
   const { connection, connections, busy, pick } = useConnectionSelection();
   const { tables } = useSchema(connection);
   const tabs = useSqlTabs();
@@ -48,7 +50,7 @@ export default function QueryPage() {
               : "Register a SQL database to start browsing and querying."}
           </CardDescription>
         </CardHeader>
-        {!busy && (
+        {!busy && isAdmin && (
           <CardContent>
             <ConnectionDialog trigger="New connection" wizard />
           </CardContent>
@@ -79,7 +81,7 @@ export default function QueryPage() {
               <TableBrowser
                 tables={tables}
                 onRecords={(t) => tabs.add(`SELECT * FROM ${t.schema}.${t.name} LIMIT 100;`)}
-                onAnalyze={(t) => void analyze.run(t)}
+                onAnalyze={can(connection, "write") ? (t) => void analyze.run(t) : undefined}
               />
             </CardContent>
           </Card>

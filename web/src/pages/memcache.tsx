@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ResultTable } from "@/components/sql/result-table";
+import { useApp } from "@/app/app-provider";
 import { useAction } from "@/hooks/use-action";
 import { useMemcacheConnections, useMemcacheKeys, useMemcacheValue } from "@/hooks/use-memcache";
 import { api } from "@/lib/api";
@@ -38,7 +39,10 @@ interface Row {
 // emptying the database behind a typed confirmation. New instances are
 // registered from the dashboard, the single entry point.
 export default function MemcachePage() {
+  const { can } = useApp();
   const { connections, connection, pick } = useMemcacheConnections();
+  // removing keys and emptying the database are admin actions on the instance
+  const mayAdmin = can(connection, "admin");
   const [pattern, setPattern] = useState("*");
   const [glob, setGlob] = useState("*");
   const [selected, setSelected] = useState<string[]>([]);
@@ -162,25 +166,27 @@ export default function MemcachePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="min-h-0 overflow-auto">
-          <div className="mb-2 flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={selected.length === 0 || removeKeys.loading}
-              onClick={() => void removeKeys.run()}
-            >
-              <Trash2 /> Remove selected
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-destructive"
-              disabled={!connection}
-              onClick={() => setFlushOpen(true)}
-            >
-              <Eraser /> Empty database
-            </Button>
-          </div>
+          {mayAdmin && (
+            <div className="mb-2 flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={selected.length === 0 || removeKeys.loading}
+                onClick={() => void removeKeys.run()}
+              >
+                <Trash2 /> Remove selected
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive"
+                disabled={!connection}
+                onClick={() => setFlushOpen(true)}
+              >
+                <Eraser /> Empty database
+              </Button>
+            </div>
+          )}
           <Table>
             <TableHeader>
               <TableRow>

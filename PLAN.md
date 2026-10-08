@@ -111,3 +111,27 @@ Known ceilings (ponytail): proto supports `ports`/`env` overrides but CLI `assig
 - **Data loss on upgrade** — mitigated by phase 5 backup gate, never skipped.
 - **Scope creep** — this stays a handful of packages; each new service = thin layer on core, not a new framework.
 - **Two-node raft temptation** — reject; 2-node consensus is ceremony, manual promote wins.
+## Authentication & access control (OIDC + per-connection RBAC)
+
+Identity and policy are split: the OIDC provider (Authentik) owns *who* a
+caller is and *which groups* it holds; noxis owns only *which group may touch
+which instance, at what level*. No user store, no roles — one policy table.
+
+- **Auth:** bearer-only. `NOXIS_OIDC_ISSUER` unset = open (single operator, with
+  a startup warning); set = every `/v1/*` request needs a valid token, verified
+  against the issuer's JWKS (`iss`, `aud`, `exp`, signature). The console runs
+  Authorization Code + PKCE (public client, no secret) and refreshes its own
+  token; the server never handles cookies or refresh tokens. Config:
+  `NOXIS_OIDC_ISSUER`, `NOXIS_OIDC_CLIENT_ID`, `NOXIS_OIDC_AUDIENCE` (default
+  client id), `NOXIS_OIDC_GROUPS_CLAIM` (default `groups`),
+  `NOXIS_OIDC_ADMIN_GROUP` (implicit global admin).
+- **Policy:** `connection_grants(connection, group_name, level)` with
+  `read < write < admin`, default deny, effective level = strongest matching
+  grant. Managed by global admins at
+  `/v1/{engine}/connections/{name}/grants`. Open mode and global admins bypass
+  the per-connection check.
+- **Enforcement:** `controller.raw(ctx, mod, name, level)` is the single gate;
+  list endpoints hide what the caller cannot read. Level map: read = browse,
+  query, stats-free reads; write = alter, rollback, analyze, submit; admin =
+  approve/apply/reject, flush, key removal. `GET /v1/me` exposes the caller and
+  its per-connection levels; `GET /auth/config` is the public console bootstrap.

@@ -50,7 +50,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
 
 	log.InfoContext(ctx, "noxis serving", "addr", cfg.Listen, "db", cfg.DB)
 
-	deps := newDeps(store, log, cfg.TickKey)
+	deps := newDeps(store, log, cfg)
 
 	srv := &http.Server{Addr: cfg.Listen, Handler: newHandler(deps, verifier)}
 	// every request ctx descends from ours
