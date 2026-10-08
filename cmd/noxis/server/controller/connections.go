@@ -26,7 +26,14 @@ func (d Deps) connections(ctx context.Context, mod interfaces.Module) (out []ent
 	}
 	out = make([]entity.Connection, 0, len(list))
 	for _, c := range list {
-		if mod.Supports(c.Driver) {
+		if !mod.Supports(c.Driver) {
+			continue
+		}
+		ok, err := d.canRead(ctx, c.Name)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
 			out = append(out, c.Redacted())
 		}
 	}
@@ -36,7 +43,7 @@ func (d Deps) connections(ctx context.Context, mod interfaces.Module) (out []ent
 func (d Deps) connection(ctx context.Context, mod interfaces.Module, name string) (out entity.Connection, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	c, err := d.raw(ctx, mod, name)
+	c, err := d.raw(ctx, mod, name, entity.LevelRead)
 	if err != nil {
 		return entity.Connection{}, err
 	}
@@ -44,8 +51,10 @@ func (d Deps) connection(ctx context.Context, mod interfaces.Module, name string
 }
 
 // raw returns the password-bearing connection for a module: a connection of
-// another engine family is not addressable in this namespace.
-func (d Deps) raw(ctx context.Context, mod interfaces.Module, name string) (*entity.Connection, error) {
+// another engine family is not addressable in this namespace. It is also the
+// single authorization gate every connection-scoped handler funnels through:
+// level is the access the operation needs.
+func (d Deps) raw(ctx context.Context, mod interfaces.Module, name, level string) (*entity.Connection, error) {
 	c, err := d.Connections.Get(ctx, name)
 	if err != nil {
 		return nil, err
@@ -58,6 +67,9 @@ func (d Deps) raw(ctx context.Context, mod interfaces.Module, name string) (*ent
 		return nil, fmt.Errorf("connection %q is not a %s connection (driver %q)",
 			c.Name, mod.Family(), c.Driver)
 	}
+	if err := d.authorize(ctx, name, level); err != nil {
+		return nil, err
+	}
 	return c, nil
 }
 
@@ -66,6 +78,9 @@ func (d Deps) raw(ctx context.Context, mod interfaces.Module, name string) (*ent
 func (d Deps) saveConnection(ctx context.Context, mod interfaces.Module, c entity.Connection) (out entity.Connection, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
+	if err := d.requireAdmin(ctx); err != nil {
+		return entity.Connection{}, err
+	}
 	if !mod.Supports(c.Driver) {
 		return entity.Connection{}, fmt.Errorf("driver %q is not a %s driver", c.Driver, mod.Family())
 	}
@@ -96,7 +111,10 @@ func (d Deps) saveConnection(ctx context.Context, mod interfaces.Module, c entit
 func (d Deps) deleteConnection(ctx context.Context, mod interfaces.Module, name string) (err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	if _, err := d.raw(ctx, mod, name); err != nil {
+	if err := d.requireAdmin(ctx); err != nil {
+		return err
+	}
+	if _, err := d.raw(ctx, mod, name, entity.LevelRead); err != nil {
 		return err
 	}
 	return d.Connections.Delete(ctx, name)
@@ -105,7 +123,7 @@ func (d Deps) deleteConnection(ctx context.Context, mod interfaces.Module, name 
 func (d Deps) testConnection(ctx context.Context, mod interfaces.Module, name string) (err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	c, err := d.raw(ctx, mod, name)
+	c, err := d.raw(ctx, mod, name, entity.LevelRead)
 	if err != nil {
 		return err
 	}
@@ -115,7 +133,7 @@ func (d Deps) testConnection(ctx context.Context, mod interfaces.Module, name st
 func (d Deps) schema(ctx context.Context, sq interfaces.SQLModule, name string) (out []interfaces.Table, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	c, err := d.raw(ctx, sq, name)
+	c, err := d.raw(ctx, sq, name, entity.LevelRead)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +143,7 @@ func (d Deps) schema(ctx context.Context, sq interfaces.SQLModule, name string) 
 func (d Deps) rows(ctx context.Context, sq interfaces.SQLModule, name, schema, table string, limit int) (out interfaces.Result, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	c, err := d.raw(ctx, sq, name)
+	c, err := d.raw(ctx, sq, name, entity.LevelRead)
 	if err != nil {
 		return interfaces.Result{}, err
 	}
@@ -136,7 +154,7 @@ func (d Deps) rows(ctx context.Context, sq interfaces.SQLModule, name, schema, t
 func (d Deps) op(ctx context.Context, sq interfaces.SQLModule, name, operation, sqlText, table string) (out interfaces.Result, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	c, err := d.raw(ctx, sq, name)
+	c, err := d.raw(ctx, sq, name, opLevel(operation))
 	if err != nil {
 		return interfaces.Result{}, err
 	}

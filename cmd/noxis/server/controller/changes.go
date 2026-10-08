@@ -28,7 +28,7 @@ func (d Deps) submitChange(ctx context.Context, sq interfaces.SQLModule, ch enti
 	if err := ch.Validate(); err != nil {
 		return entity.Change{}, err
 	}
-	conn, err := d.raw(ctx, sq, ch.Connection)
+	conn, err := d.raw(ctx, sq, ch.Connection, entity.LevelWrite)
 	if err != nil {
 		return entity.Change{}, err
 	}
@@ -82,6 +82,9 @@ func (d Deps) approve(ctx context.Context, id string) (out entity.Change, err er
 	if err != nil {
 		return entity.Change{}, err
 	}
+	if err := d.authorize(ctx, ch.Connection, entity.LevelAdmin); err != nil {
+		return entity.Change{}, err
+	}
 	if ch.Status != constants.ChangeValidated && ch.Status != constants.ChangeUnverified {
 		return *ch, fmt.Errorf("change is %s, not validated — cannot approve", ch.Status)
 	}
@@ -108,7 +111,7 @@ func (d Deps) apply(ctx context.Context, sq interfaces.SQLModule, id string) (ou
 		return *ch, fmt.Errorf("change is scheduled for %s — the scheduler will apply it",
 			time.Unix(ch.ScheduledAt, 0).Format(time.RFC3339))
 	}
-	conn, err := d.raw(ctx, sq, ch.Connection)
+	conn, err := d.raw(ctx, sq, ch.Connection, entity.LevelAdmin)
 	if err != nil {
 		return entity.Change{}, err
 	}
@@ -137,6 +140,9 @@ func (d Deps) reject(ctx context.Context, id string) (out entity.Change, err err
 	if err != nil {
 		return entity.Change{}, err
 	}
+	if err := d.authorize(ctx, ch.Connection, entity.LevelAdmin); err != nil {
+		return entity.Change{}, err
+	}
 	if ch.Status == constants.ChangeApplied {
 		return *ch, fmt.Errorf("change already applied — it cannot be rejected")
 	}
@@ -155,9 +161,13 @@ func (d Deps) sqlChanges(ctx context.Context) (out []entity.Change, err error) {
 	if err != nil {
 		return nil, err
 	}
+	readable, err := d.readableConnections(ctx)
+	if err != nil {
+		return nil, err
+	}
 	out = make([]entity.Change, 0, len(all))
 	for i := range all {
-		if all[i].Kind == constants.KindDML || all[i].Kind == constants.KindDDL {
+		if (all[i].Kind == constants.KindDML || all[i].Kind == constants.KindDDL) && readable[all[i].Connection] {
 			out = append(out, all[i])
 		}
 	}
@@ -173,6 +183,9 @@ func (d Deps) sqlChange(ctx context.Context, id string) (*entity.Change, error) 
 	}
 	if ch.Kind != constants.KindDML && ch.Kind != constants.KindDDL {
 		return nil, fmt.Errorf("change %s is %s, not a sql change", id, ch.Kind)
+	}
+	if err := d.authorize(ctx, ch.Connection, entity.LevelRead); err != nil {
+		return nil, err
 	}
 	return ch, nil
 }

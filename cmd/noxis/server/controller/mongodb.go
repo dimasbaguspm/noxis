@@ -35,7 +35,7 @@ func ListDatabases(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.raw(ctx, m, r.PathValue("name"))
+		c, err := d.raw(ctx, m, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -58,7 +58,7 @@ func ListCollections(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.raw(ctx, m, r.PathValue("name"))
+		c, err := d.raw(ctx, m, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +85,13 @@ func PostRequest(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.raw(ctx, m, r.PathValue("name"))
+		// a write op is refused by Run, but it must still not be handed to a
+		// read-only caller
+		level := entity.LevelRead
+		if mongodb.IsWrite(req.Op) {
+			level = entity.LevelWrite
+		}
+		c, err := d.raw(ctx, m, r.PathValue("name"), level)
 		if err != nil {
 			return nil, err
 		}
@@ -107,7 +113,7 @@ type mongoChangeBody struct {
 func (d Deps) submitMongoChange(ctx context.Context, m interfaces.MongoModule, body mongoChangeBody) (out entity.Change, err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()
-	conn, err := d.raw(ctx, m, body.Connection)
+	conn, err := d.raw(ctx, m, body.Connection, entity.LevelWrite)
 	if err != nil {
 		return entity.Change{}, err
 	}
@@ -169,6 +175,9 @@ func (d Deps) mongoChange(ctx context.Context, id string) (*entity.Change, error
 	if ch.Kind != constants.KindMongo {
 		return nil, fmt.Errorf("change %s is %s, not a mongodb request", id, ch.Kind)
 	}
+	if err := d.authorize(ctx, ch.Connection, entity.LevelRead); err != nil {
+		return nil, err
+	}
 	return ch, nil
 }
 
@@ -184,7 +193,7 @@ func (d Deps) applyMongo(ctx context.Context, m interfaces.MongoModule, id strin
 	if ch.Status != constants.ChangeApproved {
 		return *ch, fmt.Errorf("request is %s, not approved — cannot apply", ch.Status)
 	}
-	conn, err := d.raw(ctx, m, ch.Connection)
+	conn, err := d.raw(ctx, m, ch.Connection, entity.LevelAdmin)
 	if err != nil {
 		return entity.Change{}, err
 	}
@@ -216,9 +225,13 @@ func (d Deps) mongoChanges(ctx context.Context) (out []entity.Change, err error)
 	if err != nil {
 		return nil, err
 	}
+	readable, err := d.readableConnections(ctx)
+	if err != nil {
+		return nil, err
+	}
 	out = make([]entity.Change, 0, len(all))
 	for i := range all {
-		if all[i].Kind == constants.KindMongo {
+		if all[i].Kind == constants.KindMongo && readable[all[i].Connection] {
 			out = append(out, all[i])
 		}
 	}

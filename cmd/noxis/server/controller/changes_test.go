@@ -265,7 +265,7 @@ func TestSecretsStayRedacted(t *testing.T) {
 			t.Fatalf("password leaked in list: %q", x.Password)
 		}
 	}
-	if raw, err := d.raw(ctx, mod, "demo"); err != nil || raw.Password != "supersecret" {
+	if raw, err := d.raw(ctx, mod, "demo", entity.LevelRead); err != nil || raw.Password != "supersecret" {
 		t.Fatalf("internal path must still see the password: %v", err)
 	}
 }
