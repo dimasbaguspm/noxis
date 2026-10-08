@@ -24,6 +24,7 @@ func newDeps(store *sqlite.Store, log *slog.Logger, tickKey string) controller.D
 	return controller.Deps{
 		Connections: store,
 		Changes:     store,
+		Grants:      store,
 		Modules: map[string]interfaces.Module{
 			constants.FamilySQL:      sql.New(),
 			constants.FamilyMemcache: memcache.New(),
@@ -53,6 +54,11 @@ func newHandler(deps controller.Deps, verifier interfaces.Verifier) http.Handler
 	mux.HandleFunc("GET /v1/{engine}/connections/{name}", controller.GetConnection)
 	mux.HandleFunc("DELETE /v1/{engine}/connections/{name}", controller.DeleteConnection)
 	mux.HandleFunc("POST /v1/{engine}/connections/{name}/test", controller.TestConnection)
+
+	// Grants: per-connection RBAC policy, managed by global admins only.
+	mux.HandleFunc("GET /v1/{engine}/connections/{name}/grants", controller.ListGrants)
+	mux.HandleFunc("PUT /v1/{engine}/connections/{name}/grants", controller.SetGrant)
+	mux.HandleFunc("DELETE /v1/{engine}/connections/{name}/grants", controller.DeleteGrant)
 
 	// SQL-only: schema, row preview and the console ops.
 	mux.HandleFunc("GET /v1/{engine}/connections/{name}/schema", controller.GetSchema)
