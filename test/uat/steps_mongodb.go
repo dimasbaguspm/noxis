@@ -30,17 +30,6 @@ type mongoCollection struct {
 	SizeBytes int64  `json:"sizeBytes"`
 }
 
-// mongoInfo is the subset of stats the scenarios assert on.
-type mongoInfo struct {
-	Database        string `json:"database"`
-	Collection      string `json:"collection"`
-	Version         string `json:"version"`
-	Connections     int64  `json:"connections"`
-	Inserted        int64  `json:"inserted"`
-	Objects         int64  `json:"dbObjects"`
-	CollectionCount int64  `json:"collectionCount"`
-}
-
 func (w *world) mongoSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^a mongo connection named "([^"]*)"$`, w.registerMongo)
 	sc.Step("the mongo server answers", w.mongoAnswers)
@@ -51,8 +40,6 @@ func (w *world) mongoSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the mongo result has (\d+) row\(s\)$`, w.mongoRowCount)
 	sc.Step(`^the mongo result reports (\d+) affected$`, w.mongoAffected)
 	sc.Step(`^the mongo request is rejected with "([^"]*)"$`, w.mongoRejected)
-	sc.Step(`^I read mongo stats for "([^"]*)" and "([^"]*)"$`, w.mongoStats)
-	sc.Step("the mongo stats describe the server and the collection", w.mongoStatsDescribe)
 	sc.Step(`^I request a mongo "([^"]*)" on "([^"]*)" with filter (.+?) and value (.+)$`, w.mongoRequestChange)
 	sc.Step("the mongo request is validated", w.mongoRequestValidated)
 	sc.Step(`^the mongo request estimates (\d+) affected$`, w.mongoRequestEstimate)
@@ -297,28 +284,6 @@ func (w *world) mongoRejected(ctx context.Context, fragment string) error {
 	}
 	if !strings.Contains(w.body, fragment) {
 		return fmt.Errorf("error %q does not mention %q", w.body, fragment)
-	}
-	return nil
-}
-
-func (w *world) mongoStats(ctx context.Context, database, collection string) error {
-	w.mongo = mongoInfo{}
-	path := fmt.Sprintf("/v1/mongodb/connections/%s/stats?database=%s&collection=%s", w.conn, database, collection)
-	if err := w.api(http.MethodGet, path, nil, &w.mongo); err != nil {
-		return err
-	}
-	if w.code != http.StatusOK {
-		return fmt.Errorf("mongo stats: %d", w.code)
-	}
-	return nil
-}
-
-func (w *world) mongoStatsDescribe(ctx context.Context) error {
-	if w.mongo.Version == "" || w.mongo.Database == "" {
-		return fmt.Errorf("stats are missing server or database fields: %+v", w.mongo)
-	}
-	if w.mongo.CollectionCount <= 0 {
-		return fmt.Errorf("collection stats are empty: %+v", w.mongo)
 	}
 	return nil
 }

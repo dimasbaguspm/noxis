@@ -13,7 +13,6 @@ type (
 	MongoCollection = mongosvc.Collection
 	MongoRequest    = mongosvc.Request
 	MongoResult     = mongosvc.Result
-	MongoStats      = mongosvc.Stats
 )
 
 // MongoModule is the console's only route to a MongoDB server. Reads run
@@ -29,7 +28,6 @@ type MongoModule interface {
 	ValidateRequest(ctx context.Context, c entity.Connection, req MongoRequest) (MongoResult, error)
 	// Apply executes a write for real, after review.
 	Apply(ctx context.Context, c entity.Connection, req MongoRequest) (MongoResult, error)
-	Stats(ctx context.Context, c entity.Connection, database, collection string) (MongoStats, error)
 }
 
 // Satisfier.

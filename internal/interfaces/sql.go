@@ -12,7 +12,6 @@ type (
 	Result = entity.Result
 	Table  = sqlsvc.Table
 	Column = sqlsvc.Column
-	Stats  = sqlsvc.Stats
 )
 
 // Module is what any engine family must provide for a connection to be
@@ -40,7 +39,6 @@ type SQLModule interface {
 	Rows(ctx context.Context, c entity.Connection, schema, table string, limit int) (Result, error)
 	VerifyWrite(sqlText string) error
 	Kind(sqlText string) string
-	Stats(ctx context.Context, c entity.Connection) (Stats, error)
 }
 
 // Satisfier.

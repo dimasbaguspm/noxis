@@ -73,9 +73,3 @@ Feature: MongoDB exploration, requests and stats
     When I run a mongo "delete" request on "review" with filter {"sku": "a"} and value {}
     Then the mongo request is rejected with "for review"
 
-  Scenario: stats describe the server and the collection
-    Given the stack is running
-    And a mongo connection named "docs"
-    And I seed mongo collection "stats" with [{"sku": "a"}, {"sku": "b"}]
-    When I read mongo stats for "demo" and "stats"
-    Then the mongo stats describe the server and the collection

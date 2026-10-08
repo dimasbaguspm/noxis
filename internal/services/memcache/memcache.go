@@ -62,36 +62,6 @@ type KeyPage struct {
 	Pattern   string `json:"pattern"`
 }
 
-// Stats is one INFO snapshot, in the units the console charts. Flavor is the
-// server family INFO reports: redis, or valkey (which also reports a
-// redis_version for compatibility).
-type Stats struct {
-	Flavor       string  `json:"flavor"`
-	Version      string  `json:"version"`
-	Role         string  `json:"role"`
-	UptimeSec    int64   `json:"uptimeSeconds"`
-	Clients      int64   `json:"connectedClients"`
-	Connections  int64   `json:"totalConnectionsReceived"`
-	RejectedConn int64   `json:"rejectedConnections"`
-	Keys         int64   `json:"keys"`
-	Expires      int64   `json:"expires"`
-	UsedMemory   int64   `json:"usedMemoryBytes"`
-	PeakMemory   int64   `json:"usedMemoryPeakBytes"`
-	MaxMemory    int64   `json:"maxMemoryBytes"`
-	FragRatio    float64 `json:"memoryFragmentationRatio"`
-	OpsPerSec    int64   `json:"opsPerSec"`
-	Commands     int64   `json:"totalCommandsProcessed"`
-	Hits         int64   `json:"keyspaceHits"`
-	Misses       int64   `json:"keyspaceMisses"`
-	HitRatio     float64 `json:"hitRatio"`
-	Evicted      int64   `json:"evictedKeys"`
-	Expired      int64   `json:"expiredKeys"`
-	RDBStatus    string  `json:"rdbLastSaveStatus"`
-	RDBLastSave  int64   `json:"rdbLastSaveUnix"`
-	AOFEnabled   bool    `json:"aofEnabled"`
-	AOFStatus    string  `json:"aofLastWriteStatus"`
-}
-
 // Family is the namespace this module serves.
 func (r *DB) Family() string { return constants.FamilyMemcache }
 
@@ -324,98 +294,6 @@ func (r *DB) Flush(ctx context.Context, c entity.Connection) (err error) {
 	return err
 }
 
-// Stats reads one INFO snapshot.
-func (r *DB) Stats(ctx context.Context, c entity.Connection) (stats Stats, err error) {
-	ctx, end := logging.StartSpan(ctx)
-	defer func() { end(err) }()
-	_, err = withClient(ctx, c, func(ctx context.Context, cl *goredis.Client) (struct{}, error) {
-		ctx, cancel := context.WithTimeout(ctx, opTimeout)
-		defer cancel()
-		text, err := cl.Info(ctx).Result()
-		if err != nil {
-			return struct{}{}, fmt.Errorf("info %s: %w", c.Name, err)
-		}
-		stats = parseInfo(text, dbIndex(c))
-		return struct{}{}, nil
-	})
-	return stats, err
-}
-
-// parseInfo turns the INFO text into metrics; missing fields stay zero.
-func parseInfo(text string, db int) Stats {
-	fields := make(map[string]string, 128)
-	for line := range strings.SplitSeq(text, "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		if key, value, ok := strings.Cut(line, ":"); ok {
-			fields[key] = strings.TrimSpace(value)
-		}
-	}
-	stats := Stats{
-		Flavor:       flavorOf(fields),
-		Version:      versionOf(fields),
-		Role:         fields["role"],
-		UptimeSec:    intOf(fields, "uptime_in_seconds"),
-		Clients:      intOf(fields, "connected_clients"),
-		Connections:  intOf(fields, "total_connections_received"),
-		RejectedConn: intOf(fields, "rejected_connections"),
-		UsedMemory:   intOf(fields, "used_memory"),
-		PeakMemory:   intOf(fields, "used_memory_peak"),
-		MaxMemory:    intOf(fields, "maxmemory"),
-		OpsPerSec:    intOf(fields, "instantaneous_ops_per_sec"),
-		Commands:     intOf(fields, "total_commands_processed"),
-		Hits:         intOf(fields, "keyspace_hits"),
-		Misses:       intOf(fields, "keyspace_misses"),
-		Evicted:      intOf(fields, "evicted_keys"),
-		Expired:      intOf(fields, "expired_keys"),
-		RDBStatus:    fields["rdb_last_bgsave_status"],
-		RDBLastSave:  intOf(fields, "rdb_last_save_time"),
-		AOFEnabled:   fields["aof_enabled"] == "1",
-		AOFStatus:    fields["aof_last_write_status"],
-	}
-	if ratio, err := strconv.ParseFloat(fields["mem_fragmentation_ratio"], 64); err == nil {
-		stats.FragRatio = ratio
-	}
-	if total := stats.Hits + stats.Misses; total > 0 {
-		stats.HitRatio = float64(stats.Hits) / float64(total)
-	}
-	// Keyspace lines look like "db0:keys=12,expires=3,avg_ttl=0".
-	if line := fields[fmt.Sprintf("db%d", db)]; line != "" {
-		for part := range strings.SplitSeq(line, ",") {
-			key, value, ok := strings.Cut(part, "=")
-			if !ok {
-				continue
-			}
-			switch key {
-			case "keys":
-				stats.Keys = intValue(value)
-			case "expires":
-				stats.Expires = intValue(value)
-			}
-		}
-	}
-	return stats
-}
-
-// flavorOf names the server family. Valkey reports both valkey_version and a
-// redis_version for compatibility, so the valkey key decides.
-func flavorOf(fields map[string]string) string {
-	if fields["valkey_version"] != "" {
-		return constants.DriverValkey
-	}
-	return constants.DriverRedis
-}
-
-// versionOf prefers the flavor's own version.
-func versionOf(fields map[string]string) string {
-	if v := fields["valkey_version"]; v != "" {
-		return v
-	}
-	return fields["redis_version"]
-}
-
 // withClient opens a client for one operation and closes it; the caller's
 // context rides along so spans and cancellation keep working.
 func withClient[T any](ctx context.Context, c entity.Connection, fn func(ctx context.Context, cl *goredis.Client) (T, error)) (T, error) {
@@ -470,14 +348,4 @@ func clip(value string, res *Result) string {
 	}
 	res.Message = fmt.Sprintf("value clipped to %d bytes", maxValueBytes)
 	return value[:maxValueBytes] + "…"
-}
-
-func intOf(fields map[string]string, key string) int64 { return intValue(fields[key]) }
-
-func intValue(text string) int64 {
-	n, err := strconv.ParseInt(strings.TrimSpace(text), 10, 64)
-	if err != nil {
-		return 0
-	}
-	return n
 }

@@ -93,43 +93,6 @@ type Request struct {
 	Many       bool   `json:"many,omitempty"`
 }
 
-// Stats is one analytics snapshot, focused on a database and collection.
-type Stats struct {
-	Database   string `json:"database"`
-	Collection string `json:"collection"`
-
-	// server
-	Version         string `json:"version"`
-	UptimeSeconds   int64  `json:"uptimeSeconds"`
-	Connections     int64  `json:"connections"`
-	CurrentOps      int64  `json:"currentOps"`
-	Inserted        int64  `json:"inserted"`
-	Queried         int64  `json:"queried"`
-	Updated         int64  `json:"updated"`
-	Deleted         int64  `json:"deleted"`
-	ResidentMB      int64  `json:"residentMemoryMb"`
-	VirtualMB       int64  `json:"virtualMemoryMb"`
-	NetworkInBytes  int64  `json:"networkInBytes"`
-	NetworkOutBytes int64  `json:"networkOutBytes"`
-
-	// database
-	Collections    int64 `json:"dbCollections"`
-	Objects        int64 `json:"dbObjects"`
-	DataSizeBytes  int64 `json:"dbDataSizeBytes"`
-	StorageBytes   int64 `json:"dbStorageBytes"`
-	Indexes        int64 `json:"dbIndexes"`
-	IndexSizeBytes int64 `json:"dbIndexSizeBytes"`
-
-	// collection (zero when none was asked for)
-	Count            int64 `json:"collectionCount"`
-	CollSizeBytes    int64 `json:"collectionSizeBytes"`
-	CollStorageBytes int64 `json:"collectionStorageBytes"`
-	CollAvgObjSize   int64 `json:"collectionAvgObjectSizeBytes"`
-	CollIndexes      int64 `json:"collectionIndexes"`
-	CollIndexBytes   int64 `json:"collectionIndexSizeBytes"`
-	Capped           bool  `json:"collectionCapped"`
-}
-
 // Family is the namespace this module serves.
 func (m *DB) Family() string { return constants.FamilyMongo }
 
@@ -442,80 +405,6 @@ func (m *DB) run(ctx context.Context, c entity.Connection, req Request) (res Res
 	return res, err
 }
 
-// Stats reads server status, database stats and (when asked) collection stats.
-func (m *DB) Stats(ctx context.Context, c entity.Connection, database, collection string) (stats Stats, err error) {
-	ctx, end := logging.StartSpan(ctx)
-	defer func() { end(err) }()
-	err = withClient(ctx, c, func(ctx context.Context, cl *mongo.Client) error {
-		ctx, cancel := context.WithTimeout(ctx, opTimeout)
-		defer cancel()
-		stats.Database, stats.Collection = database, collection
-
-		var server bson.M
-		if err := cl.Database("admin").RunCommand(ctx, bson.D{{Key: "serverStatus", Value: 1}}).Decode(&server); err != nil {
-			return fmt.Errorf("serverStatus: %w", err)
-		}
-		stats.Version = stringOf(server["version"])
-		stats.UptimeSeconds = number(server["uptime"])
-		// serverStatus nests documents, and the driver hands those back as
-		// bson.D rather than bson.M, so each lookup goes through docOf.
-		if connections := docOf(server["connections"]); connections != nil {
-			stats.Connections = number(connections["current"])
-		}
-		if ops := docOf(server["opcounters"]); ops != nil {
-			stats.Inserted = number(ops["insert"])
-			stats.Queried = number(ops["query"])
-			stats.Updated = number(ops["update"])
-			stats.Deleted = number(ops["delete"])
-		}
-		if metrics := docOf(server["metrics"]); metrics != nil {
-			if operations := docOf(metrics["operation"]); operations != nil {
-				stats.CurrentOps = number(operations["current"])
-			}
-		}
-		if memory := docOf(server["mem"]); memory != nil {
-			stats.ResidentMB = number(memory["resident"])
-			stats.VirtualMB = number(memory["virtual"])
-		}
-		if network := docOf(server["network"]); network != nil {
-			stats.NetworkInBytes = number(network["bytesIn"])
-			stats.NetworkOutBytes = number(network["bytesOut"])
-		}
-
-		if database == "" {
-			return nil
-		}
-		var dbStats bson.M
-		if err := cl.Database(database).RunCommand(ctx, bson.D{{Key: "dbStats", Value: 1}}).Decode(&dbStats); err != nil {
-			return fmt.Errorf("dbStats %s: %w", database, err)
-		}
-		stats.Collections = number(dbStats["collections"])
-		stats.Objects = number(dbStats["objects"])
-		stats.DataSizeBytes = number(dbStats["dataSize"])
-		stats.StorageBytes = number(dbStats["storageSize"])
-		stats.Indexes = number(dbStats["indexes"])
-		stats.IndexSizeBytes = number(dbStats["indexSize"])
-
-		if collection == "" {
-			return nil
-		}
-		described := describeAll(ctx, cl.Database(database), []Collection{{Name: collection}})
-		if len(described) == 0 {
-			return fmt.Errorf("collection %s.%s has no stats", database, collection)
-		}
-		one := described[0]
-		stats.Count = one.Count
-		stats.CollSizeBytes = one.SizeBytes
-		stats.CollStorageBytes = one.StorageBytes
-		stats.CollAvgObjSize = one.AvgObjectSize
-		stats.CollIndexes = one.Indexes
-		stats.CollIndexBytes = one.IndexSizeBytes
-		stats.Capped = one.Capped
-		return nil
-	})
-	return stats, err
-}
-
 // validate keeps the request honest: a known op, a target, and no update or
 // delete without a filter (an empty filter would rewrite or empty the whole
 // collection).
@@ -811,24 +700,6 @@ func jsonValue(value any) string {
 		return fmt.Sprint(value)
 	}
 	return string(encoded)
-}
-
-// docOf normalizes a nested document, whichever representation the driver
-// chose for it.
-func docOf(value any) bson.M {
-	switch typed := value.(type) {
-	case bson.M:
-		return typed
-	case bson.D:
-		out := make(bson.M, len(typed))
-		for _, element := range typed {
-			out[element.Key] = element.Value
-		}
-		return out
-	case map[string]any:
-		return typed
-	}
-	return nil
 }
 
 func stringOf(value any) string {

@@ -97,9 +97,8 @@ curl -s -X POST localhost:9000/v1/mongodb/connections/docs/requests \
   -H 'Content-Type: application/json' \
   -d '{"op":"find","database":"demo","collection":"items","filter":"{\"sku\": \"a\"}"}'
 
-# memory cache: register the compose server, browse keys, read INFO
+# memory cache: register the compose server, browse keys
 curl -s -X POST localhost:9000/v1/memcache/connections -H 'Content-Type: application/json' \
   -d '{"name":"cache","driver":"redis","host":"redis","port":6379,"database":"0"}'
 curl -s "localhost:9000/v1/memcache/connections/cache/keys?pattern=*"
-curl -s localhost:9000/v1/memcache/connections/cache/stats
 ```
