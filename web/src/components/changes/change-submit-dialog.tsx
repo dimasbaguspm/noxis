@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { title } from "radash";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -22,22 +23,35 @@ import { classify } from "@/lib/statements";
 // ChangeSubmitDialog collects {notes, query, rollback} and closes as soon as
 // the change is recorded — validation results live on the detail page, so the
 // modal never lingers.
+export type ChangeSubmitInitial = {
+  connection?: string;
+  notes?: string;
+  query?: string;
+  rollback?: string;
+};
+
 export function ChangeSubmitDialog({
   kind,
   onSubmit,
+  initial,
+  trigger,
 }: {
   kind: "dml" | "ddl";
   onSubmit: (input: { connection: string; notes: string; query: string; rollback: string }) => Promise<
     { id?: string; status?: string; checks?: { target?: string; ok?: boolean; detail?: string; error?: string }[] } | undefined
   >;
+  // initial prefills the form (raising the inverse of a reviewed change);
+  // trigger replaces the default "Create ..." button.
+  initial?: ChangeSubmitInitial;
+  trigger?: React.ReactElement;
 }) {
   // the instance is part of the change, so it is chosen here, not on the page
-  const { connection, pick } = useConnectionSelection();
+  const { connection, pick } = useConnectionSelection(initial?.connection);
   const { tables } = useSchema(connection); // completion follows the chosen instance
   const [open, setOpen] = useState(false);
-  const [notes, setNotes] = useState("");
-  const [query, setQuery] = useState("");
-  const [rollback, setRollback] = useState("");
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [query, setQuery] = useState(initial?.query ?? "");
+  const [rollback, setRollback] = useState(initial?.rollback ?? "");
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<{ target?: string; ok?: boolean; detail?: string; error?: string }[]>([]);
 
@@ -72,7 +86,11 @@ export function ChangeSubmitDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button />}>Create {kind.toUpperCase()} change</DialogTrigger>
+      {trigger ? (
+        <DialogTrigger render={trigger} />
+      ) : (
+        <DialogTrigger render={<Button />}>Create {kind.toUpperCase()} change</DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Submit {kind.toUpperCase()} change</DialogTitle>
@@ -85,13 +103,13 @@ export function ChangeSubmitDialog({
         <div className="grid gap-3">
           <div className="grid gap-1.5">
             <Label>
-              Instance <Required />
+              {title("instance")} <Required />
             </Label>
             <ConnectionSelect value={connection} onChange={pick} className="w-full" />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="change-notes">
-              Notes <Required />
+              {title("notes")} <Required />
             </Label>
             <Input
               id="change-notes"
@@ -103,15 +121,15 @@ export function ChangeSubmitDialog({
 
           <div className="grid gap-1.5">
             <Label className="flex items-center gap-2">
-              Query <Required />
-              {query.trim() && <Badge variant={detected === kind ? "secondary" : "destructive"}>{detected}</Badge>}
+              {title("original query")} <Required />
+              {query.trim() && <Badge variant={detected === kind ? "secondary" : "destructive"}>{title(detected)}</Badge>}
             </Label>
             <SqlEditor value={query} onChange={setQuery} tables={tables} height="12rem" />
           </div>
 
           <div className="grid gap-1.5">
             <Label>
-              Rollback <Required />
+              {title("rollback query")} <Required />
             </Label>
             <SqlEditor value={rollback} onChange={setRollback} tables={tables} height="9rem" />
           </div>
