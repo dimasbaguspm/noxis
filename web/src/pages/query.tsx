@@ -28,7 +28,7 @@ export default function QueryPage() {
 
   const analyze = useAction(async (table: { schema: string; name: string }) => {
     if (!connection) return;
-    setAnalyzed(await api.ops.analytics(connection, `${table.schema}.${table.name}`));
+    setAnalyzed(await api.ops.analyze(connection, `${table.schema}.${table.name}`));
   });
 
   const sql = tabs.active?.sql ?? "";

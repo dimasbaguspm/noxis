@@ -40,14 +40,14 @@ Feature: changes — submit, validate, approve, apply
     Then the change is "applied"
     And the change records an estimated duration and affected count
 
-  Scenario: a dry run and analytics stay available
+  Scenario: a dry run and analyze stay available
     When I submit a change with query "CREATE TABLE IF NOT EXISTS uat_a (v INT)" and rollback "DROP TABLE uat_a"
     Then the change is "validated"
     And I approve the change
     And I apply the change
     Then the change is "applied"
     And I dry-run "UPDATE uat_a SET v = 99"
-    And analytics on table "uat_a" succeeds
+    And analyze on table "uat_a" succeeds
 
   Scenario: a due scheduled change is applied by the tick
     When I submit a change scheduled at now with query "CREATE TABLE IF NOT EXISTS uat_sched (id INT)" and rollback "DROP TABLE uat_sched"

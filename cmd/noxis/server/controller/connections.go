@@ -147,7 +147,7 @@ func (d Deps) op(ctx context.Context, sq interfaces.SQLModule, name, operation, 
 		return sq.Alter(ctx, *c, sqlText)
 	case constants.OpRollback:
 		return sq.DryRun(ctx, *c, sqlText)
-	case constants.OpAnalytics:
+	case constants.OpAnalyze:
 		return sq.Analyze(ctx, *c, table)
 	}
 	return interfaces.Result{}, fmt.Errorf("unknown op %q", operation)
@@ -315,8 +315,8 @@ func PostRollback(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/analytics [post]
-func PostAnalytics(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
+// @Router /v1/{engine}/connections/{name}/analyze [post]
+func PostAnalyze(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 type opBody struct {
 	SQL   string `json:"sql,omitempty"`
@@ -325,10 +325,10 @@ type opBody struct {
 
 // opRoutes pins each op route to its op name.
 var opRoutes = map[string]string{
-	"POST /v1/{engine}/connections/{name}/query":     constants.OpQuery,
-	"POST /v1/{engine}/connections/{name}/alter":     constants.OpAlter,
-	"POST /v1/{engine}/connections/{name}/rollback":  constants.OpRollback,
-	"POST /v1/{engine}/connections/{name}/analytics": constants.OpAnalytics,
+	"POST /v1/{engine}/connections/{name}/query":    constants.OpQuery,
+	"POST /v1/{engine}/connections/{name}/alter":    constants.OpAlter,
+	"POST /v1/{engine}/connections/{name}/rollback": constants.OpRollback,
+	"POST /v1/{engine}/connections/{name}/analyze":  constants.OpAnalyze,
 }
 
 func doOp(w http.ResponseWriter, r *http.Request) {

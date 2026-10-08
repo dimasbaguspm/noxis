@@ -61,7 +61,7 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	sc.Step(`^the change records an estimated duration and affected count$`, w.changeEstimates)
 
 	sc.Step(`^I dry-run "([^"]*)"$`, w.dryRun)
-	sc.Step(`^analytics on table "([^"]*)" succeeds$`, w.analytics)
+	sc.Step(`^analyze on table "([^"]*)" succeeds$`, w.analyze)
 	sc.Step(`^the schema lists table "([^"]*)"$`, w.schemaLists)
 	sc.Step(`^table "([^"]*)" has (\d+) row\(s\)$`, w.tableRows)
 }
@@ -453,12 +453,12 @@ func (w *world) dryRun(ctx context.Context, sqlText string) error {
 	return nil
 }
 
-func (w *world) analytics(ctx context.Context, table string) error {
-	if err := w.api(http.MethodPost, "/v1/sql/connections/"+w.conn+"/analytics", map[string]string{"table": table}, &w.result); err != nil {
+func (w *world) analyze(ctx context.Context, table string) error {
+	if err := w.api(http.MethodPost, "/v1/sql/connections/"+w.conn+"/analyze", map[string]string{"table": table}, &w.result); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
-		return fmt.Errorf("analytics: %d", w.code)
+		return fmt.Errorf("analyze: %d", w.code)
 	}
 	return nil
 }

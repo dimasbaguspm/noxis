@@ -715,7 +715,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/analytics": {
+    "/v1/{engine}/connections/{name}/analyze": {
         parameters: {
             query?: never;
             header?: never;

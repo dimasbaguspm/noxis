@@ -704,7 +704,7 @@
                 }
             }
         },
-        "/v1/{engine}/connections/{name}/analytics": {
+        "/v1/{engine}/connections/{name}/analyze": {
             "post": {
                 "summary": "Refresh planner statistics for a table",
                 "parameters": [
