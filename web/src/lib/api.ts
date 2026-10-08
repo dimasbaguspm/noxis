@@ -37,6 +37,7 @@ export interface ChangeInput {
   notes: string;
   query: string;
   rollback: string;
+  scheduledAt?: number;
 }
 
 // v1 builds an endpoint from the engine family, so no call hardcodes a family

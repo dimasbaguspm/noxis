@@ -49,7 +49,7 @@ export function useChanges(kind?: ChangeKind) {
     return changes.filter((c) => (c.kind || classify(c.query ?? "")) === kind);
   }, [changes, kind]);
 
-  return { changes: visible, total: changes.length, loading, reload, submit, approve, apply, reject };
+  return { changes: visible, all: changes, total: changes.length, loading, reload, submit, approve, apply, reject };
 }
 
 // useTableRows previews a table's rows for the active connection.
