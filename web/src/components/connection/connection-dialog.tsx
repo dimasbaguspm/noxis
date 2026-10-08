@@ -129,13 +129,13 @@ export function ConnectionDialog({
             <Choice
               icon={<Boxes className="size-4" />}
               title="Memory cache"
-              detail="Redis or Valkey. Browse keys, inspect values, watch INFO metrics."
+              detail="Redis or Valkey. Browse keys, inspect values, remove keys."
               onClick={() => choose(FAMILY.MEMCACHE)}
             />
             <Choice
               icon={<Leaf className="size-4" />}
               title="Document database"
-              detail="MongoDB. Explore databases and collections, run CRUD requests, watch stats."
+              detail="MongoDB. Explore databases and collections, run CRUD requests."
               onClick={() => choose(FAMILY.MONGODB)}
             />
           </div>

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { debounce, title } from "radash";
-import { CircleCheck, CircleX, Loader2, Search, Trash2, Zap } from "lucide-react";
+import { Search, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { useApp } from "@/app/app-provider";
 import { useAction } from "@/hooks/use-action";
-import { useConnectionStates, type ConnectionState } from "@/hooks/use-connection-states";
 import { useChanges } from "@/hooks/use-data";
 import { api, type Connection } from "@/lib/api";
 import { FAMILIES, FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
@@ -34,7 +33,6 @@ interface Instance extends Connection {
 export default function DashboardPage() {
   const { registry, reload } = useApp();
   const { changes } = useChanges();
-  const { states, connected } = useConnectionStates();
 
   const instances = useMemo<Instance[]>(
     () => FAMILIES.flatMap((family) => registry[family.key].connections.map((c) => ({ ...c, family: family.key }))),
@@ -102,10 +100,7 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <CardTitle className="text-base">Instances</CardTitle>
-              <CardDescription>
-                {instances.length} registered · reachability streamed live
-                {connected ? "" : " (connecting…)"}
-              </CardDescription>
+              <CardDescription>{instances.length} registered</CardDescription>
             </div>
             <ConnectionDialog trigger="New connection" wizard />
           </div>
@@ -133,7 +128,6 @@ export default function DashboardPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>{title("name")}</TableHead>
-                    <TableHead className="w-[110px]">{title("state")}</TableHead>
                     <TableHead>{title("endpoint")}</TableHead>
                     <TableHead className="w-[110px]">{title("detail")}</TableHead>
                   </TableRow>
@@ -146,9 +140,6 @@ export default function DashboardPage() {
                           <FamilyIcon family={c.family} className="size-3.5 text-muted-foreground" />
                           {c.name}
                         </span>
-                      </TableCell>
-                      <TableCell>
-                        <StateCell state={states[c.name ?? ""]} />
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">
                         {c.user ? `${c.user}@` : ""}
@@ -199,10 +190,6 @@ export default function DashboardPage() {
                     <dd>{detail.user}</dd>
                   </>
                 )}
-                <dt className="text-muted-foreground">State</dt>
-                <dd>
-                  <StateCell state={states[detail.name ?? ""]} />
-                </dd>
                 <dt className="text-muted-foreground">Registered</dt>
                 <dd className="text-xs">
                   {detail.createdAt ? new Date(detail.createdAt * 1000).toLocaleString() : "—"}
@@ -312,31 +299,6 @@ function TotalTile({
         </p>
       </CardContent>
     </Card>
-  );
-}
-
-// StateCell renders the streamed reachability of one row — only the rows the
-// dashboard shows are rendered, the stream carries them all.
-function StateCell({ state }: { state?: ConnectionState }) {
-  if (!state) {
-    return (
-      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Loader2 className="size-3.5 animate-spin" /> checking
-      </span>
-    );
-  }
-  if (!state.ok) {
-    return (
-      <span className="flex items-center gap-1.5 text-xs text-destructive" title={state.error}>
-        <CircleX className="size-3.5" /> unreachable
-      </span>
-    );
-  }
-  return (
-    <span className="flex items-center gap-1.5 text-xs text-emerald-500">
-      <CircleCheck className="size-3.5" /> reachable
-      <span className="text-muted-foreground">{state.latencyMs} ms</span>
-    </span>
   );
 }
 

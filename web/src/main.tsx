@@ -8,20 +8,16 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { PAGE_ROUTES, routePath } from "@/lib/routes";
 import "./app.css";
 
-// route-level splitting: monaco (query/changes) and recharts (analytics)
-// load with the page that needs them
+// route-level splitting: monaco (query/changes) loads with the page that needs it
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
 const QueryPage = lazy(() => import("@/pages/query"));
 const DmlPage = lazy(() => import("@/pages/dml"));
 const DdlPage = lazy(() => import("@/pages/ddl"));
-const AnalyticsPage = lazy(() => import("@/pages/analytics"));
 const MemcachePage = lazy(() => import("@/pages/memcache"));
-const MemcacheAnalyticsPage = lazy(() => import("@/pages/memcache-analytics"));
 const MongoExplorePage = lazy(() => import("@/pages/mongodb"));
 const MongoRequestsPage = lazy(() => import("@/pages/mongodb-requests"));
 const MongoRequestNewPage = lazy(() => import("@/pages/mongodb-request-new"));
 const MongoRequestDetailPage = lazy(() => import("@/pages/mongodb-request-detail"));
-const MongoAnalyticsPage = lazy(() => import("@/pages/mongodb-analytics"));
 const ChangeDetail = lazy(() =>
   import("@/pages/change-detail").then((m) => ({ default: m.ChangeDetailPage })),
 );
@@ -38,14 +34,11 @@ const router = createBrowserRouter([
       { path: `${routePath(PAGE_ROUTES.SQL.DML)}/:id`, element: <ChangeDetail kind="dml" /> },
       { path: routePath(PAGE_ROUTES.SQL.DDL), element: <DdlPage /> },
       { path: `${routePath(PAGE_ROUTES.SQL.DDL)}/:id`, element: <ChangeDetail kind="ddl" /> },
-      { path: routePath(PAGE_ROUTES.SQL.ANALYTICS), element: <AnalyticsPage /> },
       { path: routePath(PAGE_ROUTES.MEMCACHE.KEYS), element: <MemcachePage /> },
-      { path: routePath(PAGE_ROUTES.MEMCACHE.ANALYTICS), element: <MemcacheAnalyticsPage /> },
       { path: routePath(PAGE_ROUTES.MONGODB.EXPLORE), element: <MongoExplorePage /> },
       { path: routePath(PAGE_ROUTES.MONGODB.REQUESTS), element: <MongoRequestsPage /> },
       { path: routePath(PAGE_ROUTES.MONGODB.REQUEST_NEW), element: <MongoRequestNewPage /> },
       { path: `${routePath(PAGE_ROUTES.MONGODB.REQUESTS)}/:id`, element: <MongoRequestDetailPage /> },
-      { path: routePath(PAGE_ROUTES.MONGODB.ANALYTICS), element: <MongoAnalyticsPage /> },
       { path: "*", element: <Navigate to={PAGE_ROUTES.DASHBOARD} replace /> },
     ],
   },

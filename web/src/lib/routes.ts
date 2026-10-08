@@ -10,18 +10,15 @@ export const PAGE_ROUTES = {
     DML_DETAIL: (id: string) => `/sql/dml/${id}`,
     DDL: "/sql/ddl",
     DDL_DETAIL: (id: string) => `/sql/ddl/${id}`,
-    ANALYTICS: "/sql/analytics",
   },
   MEMCACHE: {
     KEYS: "/memcache",
-    ANALYTICS: "/memcache/analytics",
   },
   MONGODB: {
     EXPLORE: "/mongodb",
     REQUESTS: "/mongodb/requests",
     REQUEST_NEW: "/mongodb/requests/new",
     REQUEST_DETAIL: (id: string) => `/mongodb/requests/${id}`,
-    ANALYTICS: "/mongodb/analytics",
   },
 } as const;
 
