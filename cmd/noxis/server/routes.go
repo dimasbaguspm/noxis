@@ -40,10 +40,11 @@ func newDeps(store *sqlite.Store, log *slog.Logger, tickKey string) controller.D
 // every handler resolves its module from the registry. A family is registered
 // exactly once, here, and a family that does not serve a route is refused by
 // the handler (404) instead of reaching the wrong module.
-func newHandler(deps controller.Deps) http.Handler {
+func newHandler(deps controller.Deps, verifier interfaces.Verifier) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", controller.GetHealthz)
+	mux.HandleFunc("GET /v1/me", controller.GetMe)
 
 	// Connections: one generic handler per route, gated by the {engine} path
 	// parameter through the module registry.
@@ -88,5 +89,5 @@ func newHandler(deps controller.Deps) http.Handler {
 	// changes through the same handler.
 	mux.HandleFunc("POST /internal/tick", controller.PostTick)
 
-	return withMiddleware(controller.WithDeps(mux, deps), deps.Log)
+	return withMiddleware(withAuth(verifier, controller.WithDeps(mux, deps)), deps.Log)
 }

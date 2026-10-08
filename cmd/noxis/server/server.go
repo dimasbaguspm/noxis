@@ -9,10 +9,23 @@ import (
 	"time"
 
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 	"noxis/internal/repositories/sqlite"
+	"noxis/internal/services/auth"
 )
 
 const shutdownTimeout = 10 * time.Second
+
+// newVerifier builds the token verifier, keeping a disabled issuer as an
+// untyped nil interface: a typed-nil *auth.OIDC wrapped in interfaces.Verifier
+// is not nil and would leave open mode silently enforcing auth.
+func newVerifier(ctx context.Context, cfg entity.Config) (interfaces.Verifier, error) {
+	oidc, err := auth.New(ctx, cfg)
+	if err != nil || oidc == nil {
+		return nil, err
+	}
+	return oidc, nil
+}
 
 // Run serves until ctx is done.
 func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
@@ -25,11 +38,21 @@ func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
 	}
 	defer store.Close()
 
+	verifier, err := newVerifier(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	if verifier == nil {
+		log.WarnContext(ctx, "NOXIS_OIDC_ISSUER is not set; the API is unauthenticated")
+	} else {
+		log.InfoContext(ctx, "OIDC authentication enabled", "issuer", cfg.OIDCIssuer, "adminGroup", cfg.OIDCAdminGroup)
+	}
+
 	log.InfoContext(ctx, "noxis serving", "addr", cfg.Listen, "db", cfg.DB)
 
 	deps := newDeps(store, log, cfg.TickKey)
 
-	srv := &http.Server{Addr: cfg.Listen, Handler: newHandler(deps)}
+	srv := &http.Server{Addr: cfg.Listen, Handler: newHandler(deps, verifier)}
 	// every request ctx descends from ours
 	srv.BaseContext = func(net.Listener) context.Context { return ctx }
 
