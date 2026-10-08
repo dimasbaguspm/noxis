@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useApp } from "@/app/app-provider";
 import { useMongoChanges, useMongoConnections } from "@/hooks/use-mongodb";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -12,8 +13,10 @@ import { cn } from "@/lib/utils";
 // MongoRequestsPage is the review queue: every write request waits here until
 // someone approves and applies it. Reads never appear (they run in Explore).
 export default function MongoRequestsPage() {
+  const { can, registry } = useApp();
   const { connections } = useMongoConnections();
   const { changes, loading, reload } = useMongoChanges();
+  const mayWrite = registry.mongodb.connections.some((c) => can(c.name, "write"));
 
   return (
     <div className="flex flex-col gap-4">
@@ -27,9 +30,11 @@ export default function MongoRequestsPage() {
         <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
           <RefreshCw className={cn(loading && "animate-spin")} /> Refresh
         </Button>
-        <Button size="sm" render={<Link to={PAGE_ROUTES.MONGODB.REQUEST_NEW} />}>
-          <Plus /> New request
-        </Button>
+        {mayWrite && (
+          <Button size="sm" render={<Link to={PAGE_ROUTES.MONGODB.REQUEST_NEW} />}>
+            <Plus /> New request
+          </Button>
+        )}
       </div>
 
       <Card>

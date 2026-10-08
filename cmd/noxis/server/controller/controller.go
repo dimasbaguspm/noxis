@@ -33,6 +33,8 @@ type Deps struct {
 	Log         *slog.Logger
 	// TickKey guards POST /internal/tick; empty disables the endpoint.
 	TickKey string
+	// Auth is the public OIDC configuration the console reads to start login.
+	Auth AuthInfo
 }
 
 type ctxKey struct{}

@@ -7,6 +7,23 @@
         "version": "0.1.0"
     },
     "paths": {
+        "/auth/config": {
+            "get": {
+                "summary": "Public OIDC configuration (console bootstrap)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/controller.AuthInfo"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/healthz": {
             "get": {
                 "summary": "Liveness probe",
@@ -60,14 +77,14 @@
         },
         "/v1/me": {
             "get": {
-                "summary": "The authenticated caller",
+                "summary": "The authenticated caller and its per-connection levels",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/entity.Principal"
+                                    "$ref": "#/components/schemas/controller.MeResponse"
                                 }
                             }
                         }
@@ -1968,6 +1985,44 @@
             }
         },
         "schemas": {
+            "controller.AuthInfo": {
+                "type": "object",
+                "properties": {
+                    "clientId": {
+                        "type": "string"
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "issuer": {
+                        "type": "string"
+                    }
+                }
+            },
+            "controller.MeResponse": {
+                "type": "object",
+                "properties": {
+                    "admin": {
+                        "description": "Admin reports membership of the configured global-admin group.",
+                        "type": "boolean"
+                    },
+                    "connections": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "string"
+                        }
+                    },
+                    "groups": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "sub": {
+                        "type": "string"
+                    }
+                }
+            },
             "controller.TickResult": {
                 "description": "applied and failed change ids from one tick.",
                 "type": "object",
@@ -2263,24 +2318,6 @@
                             "write",
                             "admin"
                         ]
-                    }
-                }
-            },
-            "entity.Principal": {
-                "type": "object",
-                "properties": {
-                    "admin": {
-                        "description": "Admin reports membership of the configured global-admin group.",
-                        "type": "boolean"
-                    },
-                    "groups": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "sub": {
-                        "type": "string"
                     }
                 }
             },

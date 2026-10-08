@@ -21,10 +21,14 @@ const MongoRequestDetailPage = lazy(() => import("@/pages/mongodb-request-detail
 const ChangeDetail = lazy(() =>
   import("@/pages/change-detail").then((m) => ({ default: m.ChangeDetailPage })),
 );
+const AuthCallbackPage = lazy(() => import("@/pages/auth-callback"));
 
 // Every page carries its engine family prefix (/sql, /memcache, /mongodb); the
 // dashboard is the only family-less route. Paths come from PAGE_ROUTES.
 const router = createBrowserRouter([
+  // the OIDC redirect target sits outside the shell: it has no chrome and
+  // leaves the page as soon as the code is exchanged
+  { path: "auth/callback", element: <AuthCallbackPage /> },
   {
     element: <AppShell />,
     children: [

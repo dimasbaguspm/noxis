@@ -1,5 +1,9 @@
 import type { components } from "@/api/generated";
 import { FAMILY, type FamilyKey } from "@/lib/families";
+import { accessToken, authEnabled, signin } from "@/lib/auth";
+
+export type Level = "read" | "write" | "admin";
+export type Identity = components["schemas"]["controller.MeResponse"];
 
 export type Connection = components["schemas"]["entity.Connection"];
 export type Change = components["schemas"]["entity.Change"];
@@ -67,11 +71,20 @@ const connPath = (family: FamilyKey, name: string, suffix = "") =>
   v1(family, `connections/${encodeURIComponent(name)}${suffix}`);
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const token = await accessToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
   const res = await fetch(path, {
     method,
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+  // an expired or revoked token drops the console back to the sign-in page
+  if (res.status === 401 && authEnabled()) {
+    await signin();
+    throw new Error("redirecting to sign-in");
+  }
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) throw new Error((data as { error?: string } | null)?.error ?? `HTTP ${res.status}`);
@@ -90,6 +103,7 @@ function connectionOps(family: FamilyKey) {
 }
 
 export const api = {
+  me: () => request<Identity>("GET", "/v1/me"),
   connections: {
     ...connectionOps(FAMILY.SQL),
     schema: (name: string) => request<{ tables: Table[] }>("GET", connPath(FAMILY.SQL, name, "/schema")),

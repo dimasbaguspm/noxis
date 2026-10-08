@@ -119,6 +119,7 @@ func newDeps(sq interfaces.SQLModule) (Deps, *fakeChanges, *fakeConns) {
 	return Deps{
 		Connections: conns,
 		Changes:     changes,
+		Grants:      &fakeGrants{grants: map[string]entity.Grant{}},
 		Modules:     map[string]interfaces.Module{constants.FamilySQL: sq},
 		Log:         slog.New(slog.NewTextHandler(io.Discard, nil)),
 	}, changes, conns

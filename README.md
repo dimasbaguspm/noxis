@@ -63,6 +63,26 @@ volume, no docker socket.
     (database → collection → filter and value, stacked) and a review page with
     the dry-run checks, the activity trail and no rollback editor
 
+## Authentication
+
+By default noxis runs open (single operator). Set `NOXIS_OIDC_ISSUER` to require
+a bearer token on `/v1/*`: the server validates it against the issuer's JWKS,
+and the console runs Authorization Code + PKCE against the same issuer (public
+client, no secret) and refreshes its own token.
+
+| env | meaning |
+| --- | --- |
+| `NOXIS_OIDC_ISSUER` | issuer URL; empty keeps the API open |
+| `NOXIS_OIDC_CLIENT_ID` | public client id (PKCE, no secret) |
+| `NOXIS_OIDC_AUDIENCE` | expected `aud`, defaults to the client id |
+| `NOXIS_OIDC_GROUPS_CLAIM` | token claim holding group names, defaults to `groups` |
+| `NOXIS_OIDC_ADMIN_GROUP` | members are global admins (manage connections and grants) |
+
+Access is per connection — `read` < `write` < `admin` — granted to OIDC groups
+through `/v1/{engine}/connections/{name}/grants`. Default deny: a user with no
+grant sees nothing. `GET /v1/me` reports the caller and its effective level per
+connection (`GET /auth/config` is the public console bootstrap).
+
 ## Docs
 
 - `PLAN.md` — architecture, decisions, and known ceilings.
