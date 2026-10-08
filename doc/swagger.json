@@ -58,6 +58,36 @@
                 }
             }
         },
+        "/v1/me": {
+            "get": {
+                "summary": "The authenticated caller",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Principal"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/{engine}/changes": {
             "get": {
                 "summary": "List proposed changes for an engine (newest first)",
@@ -1940,6 +1970,24 @@
                         "type": "integer"
                     },
                     "user": {
+                        "type": "string"
+                    }
+                }
+            },
+            "entity.Principal": {
+                "type": "object",
+                "properties": {
+                    "admin": {
+                        "description": "Admin reports membership of the configured global-admin group.",
+                        "type": "boolean"
+                    },
+                    "groups": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "sub": {
                         "type": "string"
                     }
                 }

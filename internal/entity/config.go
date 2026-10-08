@@ -19,6 +19,14 @@ const (
 	EnvTickInterval  = "NOXIS_TICK_INTERVAL"  // standalone ticker: how often to tick (e.g. 30s)
 	EnvOTELCollector = "NOXIS_OTEL_COLLECTOR" // OTLP endpoint (optional)
 	EnvOTELName      = "NOXIS_OTEL_NAME"      // service name reported to OTEL (optional)
+
+	// OIDC: when the issuer is set, the API authenticates every caller against
+	// it; when it is empty, noxis runs open (single-operator default).
+	EnvOIDCIssuer      = "NOXIS_OIDC_ISSUER"
+	EnvOIDCClientID    = "NOXIS_OIDC_CLIENT_ID"
+	EnvOIDCAudience    = "NOXIS_OIDC_AUDIENCE"     // defaults to the client id
+	EnvOIDCGroupsClaim = "NOXIS_OIDC_GROUPS_CLAIM" // defaults to "groups"
+	EnvOIDCAdminGroup  = "NOXIS_OIDC_ADMIN_GROUP"  // implicit global admin
 )
 
 // Config is the process environment; no defaults.
@@ -30,6 +38,12 @@ type Config struct {
 	TickInterval  string
 	OTELCollector string
 	OTELName      string
+
+	OIDCIssuer      string
+	OIDCClientID    string
+	OIDCAudience    string
+	OIDCGroupsClaim string
+	OIDCAdminGroup  string
 }
 
 var validate = validator.New()
@@ -44,6 +58,12 @@ func LoadConfig() Config {
 		TickInterval:  os.Getenv(EnvTickInterval),
 		OTELCollector: os.Getenv(EnvOTELCollector),
 		OTELName:      os.Getenv(EnvOTELName),
+
+		OIDCIssuer:      os.Getenv(EnvOIDCIssuer),
+		OIDCClientID:    os.Getenv(EnvOIDCClientID),
+		OIDCAudience:    os.Getenv(EnvOIDCAudience),
+		OIDCGroupsClaim: os.Getenv(EnvOIDCGroupsClaim),
+		OIDCAdminGroup:  os.Getenv(EnvOIDCAdminGroup),
 	}
 }
 
@@ -74,6 +94,16 @@ func fieldOf(c Config, env string) string {
 		return c.OTELCollector
 	case EnvOTELName:
 		return c.OTELName
+	case EnvOIDCIssuer:
+		return c.OIDCIssuer
+	case EnvOIDCClientID:
+		return c.OIDCClientID
+	case EnvOIDCAudience:
+		return c.OIDCAudience
+	case EnvOIDCGroupsClaim:
+		return c.OIDCGroupsClaim
+	case EnvOIDCAdminGroup:
+		return c.OIDCAdminGroup
 	}
 	return ""
 }
@@ -87,5 +117,10 @@ func (c Config) String() string {
 		EnvTickInterval + "=" + c.TickInterval,
 		EnvOTELCollector + "=" + c.OTELCollector,
 		EnvOTELName + "=" + c.OTELName,
+		EnvOIDCIssuer + "=" + c.OIDCIssuer,
+		EnvOIDCClientID + "=" + c.OIDCClientID,
+		EnvOIDCAudience + "=" + c.OIDCAudience,
+		EnvOIDCGroupsClaim + "=" + c.OIDCGroupsClaim,
+		EnvOIDCAdminGroup + "=" + c.OIDCAdminGroup,
 	}, " ")
 }
