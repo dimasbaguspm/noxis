@@ -6,15 +6,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/app/app-provider";
 import { useDebounce } from "@/hooks/use-debounce";
-import { ChangeWizard } from "@/components/changes/change-wizard";
+import { CreateChangeForm } from "@/components/changes/create-change-form";
 import { BatchChangeDialog } from "@/components/changes/batch-change-dialog";
 import { ChangeTable } from "@/components/changes/change-table";
 import type { Change } from "@/lib/api";
 import { classify } from "@/lib/statements";
 import { useChanges, type ChangeKind } from "@/hooks/use-data";
 
-// ChangePage is the shared DML/DDL queue: raise through the wizard, read the
-// kind mix at a glance, and keep immediate work apart from scheduled work.
+// ChangePage is the shared DML/DDL queue: raise inline, read the kind mix at a
+// glance, and review the single change list.
 export function ChangePage({ kind }: { kind: ChangeKind }) {
   const { can, registry } = useApp();
   const [filter, setFilter] = useState("");
@@ -48,13 +48,10 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
           />
         </div>
         <span className="flex-1" />
-        {mayRaise && (
-          <>
-            <BatchChangeDialog onSubmitted={() => void reload()} />
-            <ChangeWizard kind={kind} onSubmit={(input) => submit.run(input)} />
-          </>
-        )}
+        {mayRaise && <BatchChangeDialog onSubmitted={() => void reload()} />}
       </div>
+
+      {mayRaise && <CreateChangeForm kind={kind} onSubmit={(input) => submit.run(input)} />}
 
       <Group
         heading={`${label} changes`}

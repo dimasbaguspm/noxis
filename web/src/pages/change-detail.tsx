@@ -141,7 +141,12 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
                   <ChangeSubmitDialog
                     kind={kind}
                     onSubmit={(input) => submit.run(input)}
-                    initial={{ connection: change.connection, query: change.rollback ?? "" }}
+                    initial={{
+                      connection: change.connection,
+                      notes: change.notes ? `[Rollback] ${change.notes}` : "[Rollback]",
+                      query: change.rollback ?? "",
+                      rollback: change.query ?? "",
+                    }}
                     trigger={
                       <Button size="xs" variant="outline">
                         <Undo2 /> Raise inverse change
