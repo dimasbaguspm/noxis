@@ -17,6 +17,8 @@ export interface MonacoEditorProps {
   tables?: Table[];
   fields?: string[];
   placeholder?: string;
+  // onRun is bound to Ctrl/Cmd+Enter in the editor.
+  onRun?: () => void;
 }
 
 // MongoDB query and update operators: the vocabulary a filter or value
@@ -44,8 +46,12 @@ export default function MonacoEditor({
   tables = [],
   fields = [],
   placeholder,
+  onRun,
 }: MonacoEditorProps) {
   const completion = useRef<MonacoNS.IDisposable | undefined>(undefined);
+  // the run callback changes with the query state; read it through a ref
+  const onRunRef = useRef(onRun);
+  onRunRef.current = onRun;
   // the provider lives for the editor's lifetime and the schema arrives
   // asynchronously, so it reads the latest tables/fields through a ref
   const tablesRef = useRef(tables);
@@ -55,8 +61,10 @@ export default function MonacoEditor({
 
   // Completion per language: SQL suggests tables and their columns after
   // FROM/JOIN; JSON suggests MongoDB operators and the collection's fields.
-  const onMount: OnMount = () => {
+  const onMount: OnMount = (editor) => {
     completion.current?.dispose();
+    // Ctrl/Cmd+Enter runs the query instead of inserting a new line
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => onRunRef.current?.());
     if (language === MONGO_LANGUAGE) {
       completion.current = monaco.languages.registerCompletionItemProvider(MONGO_LANGUAGE, {
         triggerCharacters: ["$", '"', "{", ","],
