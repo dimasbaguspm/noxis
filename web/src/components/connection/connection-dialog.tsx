@@ -4,14 +4,14 @@ import { BadgeCheck, Boxes, ChevronLeft, Database, Leaf, PlugZap } from "lucide-
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -135,17 +135,17 @@ export function ConnectionDialog({
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button />}>{trigger}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{step === 1 ? "What are you connecting to?" : "Connection"}</DialogTitle>
-          <DialogDescription>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger render={<Button />}>{trigger}</SheetTrigger>
+      <SheetContent className="sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle>{step === 1 ? "What are you connecting to?" : "Connection"}</SheetTitle>
+          <SheetDescription>
             {step === 1
               ? "Pick the kind of instance. The next step asks for its details."
               : "Point noXis at an instance that already exists. It is verified before it is saved."}
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         {step === 1 ? (
           <div className="grid gap-3">
@@ -243,7 +243,7 @@ export function ConnectionDialog({
               Driver, host, database and user are fixed once saved. The password can be rotated later from the instance page.
             </p>
 
-            <DialogFooter className="items-center gap-2">
+            <SheetFooter className="items-center gap-2">
               {wizard && (
                 <Button variant="ghost" className="mr-auto" onClick={() => setStep(1)}>
                   <ChevronLeft /> Back
@@ -257,11 +257,11 @@ export function ConnectionDialog({
               <Button type="submit" disabled={busy}>
                 <PlugZap /> Save
               </Button>
-            </DialogFooter>
+            </SheetFooter>
           </form>
         )}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 

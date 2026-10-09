@@ -14,13 +14,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -286,12 +286,12 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Schedule change</DialogTitle>
-            <DialogDescription>Pick when the scheduler should apply this approved change.</DialogDescription>
-          </DialogHeader>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent className="sm:max-w-sm">
+          <SheetHeader>
+            <SheetTitle>Schedule change</SheetTitle>
+            <SheetDescription>Pick when the scheduler should apply this approved change.</SheetDescription>
+          </SheetHeader>
           <div className="grid gap-1.5">
             <Label htmlFor="schedule-at">Run at</Label>
             <Input
@@ -301,7 +301,7 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
               onChange={(e) => setWhen(e.target.value)}
             />
           </div>
-          <DialogFooter>
+          <SheetFooter>
             <Button
               size="sm"
               disabled={!valid}
@@ -312,9 +312,9 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
             >
               Schedule
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
