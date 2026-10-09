@@ -96,6 +96,31 @@ func (d Deps) approve(ctx context.Context, id string) (out entity.Change, err er
 	return *ch, nil
 }
 
+// schedule sets (or clears) the slot an approved change should run at. Only an
+// approved change can be scheduled; 0 clears the schedule (apply by hand).
+func (d Deps) schedule(ctx context.Context, id string, at int64) (out entity.Change, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
+	ch, err := d.Changes.GetChange(ctx, id)
+	if err != nil {
+		return entity.Change{}, err
+	}
+	if err := d.authorize(ctx, ch.Connection, entity.LevelAdmin); err != nil {
+		return entity.Change{}, err
+	}
+	if ch.Status != constants.ChangeApproved {
+		return *ch, fmt.Errorf("change is %s, not approved — cannot schedule", ch.Status)
+	}
+	if at > 0 && at <= time.Now().Unix() {
+		return *ch, errors.New("scheduled time must be in the future")
+	}
+	ch.ScheduledAt = at
+	if err := d.Changes.SaveChange(ctx, *ch); err != nil {
+		return entity.Change{}, err
+	}
+	return *ch, nil
+}
+
 // apply executes an approved change transactionally; a failure is recorded
 // on the change, not just returned.
 func (d Deps) apply(ctx context.Context, sq interfaces.SQLModule, id string) (out entity.Change, err error) {
@@ -369,6 +394,44 @@ func RejectChange(w http.ResponseWriter, r *http.Request) {
 			return d.reject(ctx, r.PathValue("id"))
 		}
 		return nil, unsupported(mod, "changes")
+	})
+}
+
+type scheduleBody struct {
+	ScheduledAt int64 `json:"scheduledAt"`
+}
+
+// @Summary Schedule or unschedule an approved change
+// @Param engine path string true "engine family (sql, mongodb)"
+// @Param id path string true "change id"
+// @Param body body scheduleBody true "scheduledAt unix seconds; 0 clears the schedule"
+// @Success 200 {object} entity.Change
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /v1/engine/{engine}/changes/{id}/schedule [post]
+func ScheduleChange(w http.ResponseWriter, r *http.Request) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
+		mod, err := d.engine(r)
+		if err != nil {
+			return nil, err
+		}
+		var body scheduleBody
+		if err := decode(r, &body); err != nil {
+			return nil, err
+		}
+		switch mod.(type) {
+		case interfaces.SQLModule:
+			if _, err := d.sqlChange(ctx, r.PathValue("id")); err != nil {
+				return nil, err
+			}
+		case interfaces.MongoModule:
+			if _, err := d.mongoChange(ctx, r.PathValue("id")); err != nil {
+				return nil, err
+			}
+		default:
+			return nil, unsupported(mod, "changes")
+		}
+		return d.schedule(ctx, r.PathValue("id"), body.ScheduledAt)
 	})
 }
 
