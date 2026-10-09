@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { api, type Connection, type Identity, type Level, type Table } from "@/lib/api";
+import { api, type Connection, type DriverInfo, type Identity, type Level, type Table } from "@/lib/api";
 import { currentUser, initAuth, loadAuthConfig, signin, signout } from "@/lib/auth";
 import { FAMILIES, type FamilyKey } from "@/lib/families";
 
@@ -12,6 +12,8 @@ interface FamilyState {
 interface AppState {
   // registry is keyed by engine family: one store, not one per family.
   registry: Record<FamilyKey, FamilyState>;
+  // drivers is the server's hardcoded catalog, the only source for pickers.
+  drivers: DriverInfo[];
   schema: Table[];
   busy: boolean;
   reload: (family: FamilyKey) => Promise<void>;
@@ -39,20 +41,29 @@ const AppContext = createContext<AppState | null>(null);
 // parallel useState trio. It also bootstraps OIDC and the caller's levels.
 export function AppProvider({ children }: { children: ReactNode }) {
   const [registry, setRegistry] = useState<Record<FamilyKey, FamilyState>>(EMPTY);
+  const [drivers, setDrivers] = useState<DriverInfo[]>([]);
   const [schema, setSchema] = useState<Table[]>([]);
   const [pending, setPending] = useState(0);
   const [ready, setReady] = useState(false);
   const [authOn, setAuthOn] = useState(false);
   const [identity, setIdentity] = useState<Identity | null>(null);
 
-  const reload = useCallback(async (family: FamilyKey) => {
+  // reload fetches every family in one call and splits the result, so the
+  // console no longer issues one request per family. The argument is kept so
+  // family-scoped callers (the connection dialog) stay unchanged.
+  const reload = useCallback(async (_family?: FamilyKey) => {
     setPending((n) => n + 1);
     try {
-      const { connections: list } = await api.family(family).list();
+      const { instances } = await api.instances.list();
       setRegistry((prev) => {
-        const current = prev[family];
-        const active = list?.some((c) => c.name === current.active) ? current.active : list?.[0]?.name;
-        return { ...prev, [family]: { connections: list ?? [], active } };
+        const next = { ...prev };
+        for (const family of FAMILIES) {
+          const list = (instances ?? []).filter((c) => c.family === family.key);
+          const current = prev[family.key];
+          const active = list.some((c) => c.name === current.active) ? current.active : list[0]?.name;
+          next[family.key] = { connections: list, active };
+        }
+        return next;
       });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -112,7 +123,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
-    for (const family of FAMILIES) void reload(family.key);
+    void reload();
+    api.config
+      .drivers()
+      .then(setDrivers)
+      .catch(() => setDrivers([]));
   }, [ready, reload]);
 
   const activeSQL = registry.sql.active;
@@ -134,6 +149,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       registry,
+      drivers,
       schema,
       busy: pending > 0,
       reload,
@@ -144,7 +160,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       can,
       signout: signoutNow,
     }),
-    [registry, schema, pending, reload, setActive, authOn, identity, can, signoutNow],
+    [registry, drivers, schema, pending, reload, setActive, authOn, identity, can, signoutNow],
   );
 
   if (!ready && !isCallback) {

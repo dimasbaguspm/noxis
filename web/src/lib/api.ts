@@ -23,6 +23,20 @@ export interface MongoChangeInput extends MongoRequest {
 export type MemcacheKey = components["schemas"]["memcache.Key"];
 export type MemcacheKeyPage = components["schemas"]["memcache.KeyPage"];
 
+// DriverInfo is one entry of the server's hardcoded driver catalog.
+export interface DriverInfo {
+  driver: string;
+  family: FamilyKey;
+  label: string;
+}
+
+// InstanceQuery filters the cross-family instance list; empty fields are ignored.
+export interface InstanceQuery {
+  name?: string;
+  driver?: string;
+  host?: string;
+}
+
 export interface Column {
   name: string;
   type: string;
@@ -107,6 +121,14 @@ export const api = {
   // instances are the cross-family view: one connection addressed by its
   // stable id, whatever family serves it.
   instances: {
+    list: (query: InstanceQuery = {}) => {
+      const params = new URLSearchParams();
+      if (query.name) params.set("name", query.name);
+      if (query.driver) params.set("driver", query.driver);
+      if (query.host) params.set("host", query.host);
+      const qs = params.toString();
+      return request<{ instances: Connection[] }>("GET", `/v1/instances${qs ? `?${qs}` : ""}`);
+    },
     get: (id: string) => request<Connection>("GET", `/v1/instances/${encodeURIComponent(id)}`),
     changes: (id: string) =>
       request<{ changes: Change[] }>("GET", `/v1/instances/${encodeURIComponent(id)}/changes`),
@@ -171,6 +193,10 @@ export const api = {
     approve: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/approve`)),
     apply: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/apply`)),
     reject: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/reject`)),
+  },
+  // config is the server's console-facing configuration (hardcoded Go-side).
+  config: {
+    drivers: () => request<DriverInfo[]>("GET", "/v1/config/drivers"),
   },
   // family returns the shared connection lifecycle for any engine family.
   family: connectionOps,

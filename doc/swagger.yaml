@@ -46,6 +46,18 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
+  /v1/config/drivers:
+    get:
+      summary: List the drivers the console can register
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/controller.DriverInfo"
   "/v1/engine/{engine}/changes":
     get:
       summary: List proposed changes for an engine (newest first)
@@ -1204,6 +1216,37 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
+  /v1/instances:
+    get:
+      summary: List instances across engine families (passwords redacted)
+      parameters:
+        - description: substring match on name
+          name: name
+          in: query
+          schema:
+            type: string
+        - description: exact driver match
+          name: driver
+          in: query
+          schema:
+            type: string
+        - description: substring match on host
+          name: host
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                type: object
+                properties:
+                  instances:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/entity.Connection"
   "/v1/instances/{id}":
     get:
       summary: Get one instance across engine families (password redacted)
@@ -1295,6 +1338,15 @@ components:
         enabled:
           type: boolean
         issuer:
+          type: string
+    controller.DriverInfo:
+      type: object
+      properties:
+        driver:
+          type: string
+        family:
+          type: string
+        label:
           type: string
     controller.MeResponse:
       type: object

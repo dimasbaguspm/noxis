@@ -124,6 +124,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/config/drivers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the drivers the console can register */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["controller.DriverInfo"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/engine/{engine}/changes": {
         parameters: {
             query?: never;
@@ -1807,6 +1843,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/instances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List instances across engine families (passwords redacted) */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description substring match on name */
+                    name?: string;
+                    /** @description exact driver match */
+                    driver?: string;
+                    /** @description substring match on host */
+                    host?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            instances?: components["schemas"]["entity.Connection"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/instances/{id}": {
         parameters: {
             query?: never;
@@ -1964,6 +2045,11 @@ export interface components {
             clientId?: string;
             enabled?: boolean;
             issuer?: string;
+        };
+        "controller.DriverInfo": {
+            driver?: string;
+            family?: string;
+            label?: string;
         };
         "controller.MeResponse": {
             /** @description Admin reports membership of the configured global-admin group. */
