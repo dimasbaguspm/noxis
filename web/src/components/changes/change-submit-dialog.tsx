@@ -9,6 +9,7 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetBody,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -107,7 +108,8 @@ export function ChangeSubmitDialog({
           </SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={onValid} className="grid gap-3">
+        <form onSubmit={onValid} className="flex flex-1 flex-col">
+          <SheetBody className="grid gap-3">
           <div className="grid gap-1.5">
             <Label>
               {title("instance")} <Required />
@@ -154,6 +156,7 @@ export function ChangeSubmitDialog({
               ))}
             </div>
           )}
+          </SheetBody>
 
           <SheetFooter className="items-center">
             <p className="mr-auto text-xs text-muted-foreground">

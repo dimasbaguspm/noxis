@@ -48,7 +48,7 @@ function SheetContent({
       <DialogPrimitive.Popup
         data-slot="sheet-content"
         className={cn(
-          "fixed top-0 right-0 z-50 flex h-dvh w-full max-w-md flex-col gap-4 overflow-y-auto bg-popover p-4 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 transition-transform duration-200 outline-none data-open:translate-x-0 data-closed:translate-x-full",
+          "fixed top-0 right-0 z-50 flex h-dvh w-full max-w-md flex-col overflow-hidden bg-popover text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 transition-transform duration-200 outline-none data-open:translate-x-0 data-closed:translate-x-full",
           className
         )}
         {...props}
@@ -74,11 +74,23 @@ function SheetContent({
   )
 }
 
+function SheetBody({ className, children, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="sheet-body"
+      className={cn("flex-1 overflow-y-auto p-4", className)}
+      {...props}
+    >
+      {children}
+    </div>
+  )
+}
+
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex flex-col gap-2", className)}
+      className={cn("flex flex-col gap-1.5 border-b p-4", className)}
       {...props}
     />
   )
@@ -93,7 +105,7 @@ function SheetFooter({
     <div
       data-slot="sheet-footer"
       className={cn(
-        "-mx-4 -mb-4 mt-auto flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        "flex flex-col-reverse gap-2 border-t bg-muted/50 p-4 pt-3 sm:flex-row sm:justify-end",
         className
       )}
       {...props}
@@ -131,6 +143,7 @@ function SheetDescription({
 
 export {
   Sheet,
+  SheetBody,
   SheetClose,
   SheetContent,
   SheetDescription,

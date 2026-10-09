@@ -16,6 +16,7 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetBody,
   SheetDescription,
   SheetFooter,
   SheetHeader,
@@ -292,7 +293,7 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
             <SheetTitle>Schedule change</SheetTitle>
             <SheetDescription>Pick when the scheduler should apply this approved change.</SheetDescription>
           </SheetHeader>
-          <div className="grid gap-1.5">
+          <SheetBody className="grid gap-1.5">
             <Label htmlFor="schedule-at">Run at</Label>
             <Input
               id="schedule-at"
@@ -300,7 +301,7 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
               value={when}
               onChange={(e) => setWhen(e.target.value)}
             />
-          </div>
+          </SheetBody>
           <SheetFooter>
             <Button
               size="sm"
