@@ -73,10 +73,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const config = await loadAuthConfig();
       initAuth(config);
       setAuthOn(config.enabled);
-      if (!config.enabled || isCallback) {
+      if (!config.enabled) {
         setReady(true);
         return;
       }
+      // the callback route owns its own auth; bootstrapping here would fire
+      // unauthenticated /v1/* fetches and bounce back to sign-in mid-exchange
+      if (isCallback) return;
       const user = await currentUser();
       if (!user || user.expired) {
         await signin();

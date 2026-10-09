@@ -1,13 +1,20 @@
 import { useEffect } from "react";
-import { handleCallback } from "@/lib/auth";
+import { handleCallback, initAuth, loadAuthConfig } from "@/lib/auth";
 
 // AuthCallbackPage finishes the PKCE exchange, then reloads so the AppProvider
-// bootstraps with the stored user.
+// bootstraps with the stored user. It builds the OIDC manager itself: child
+// effects run before AppProvider's, so the exchange cannot wait for it.
 export default function AuthCallbackPage() {
   useEffect(() => {
-    handleCallback()
-      .catch(() => undefined)
-      .finally(() => window.location.replace("/"));
+    (async () => {
+      try {
+        initAuth(await loadAuthConfig());
+        await handleCallback();
+      } catch {
+        /* fall through; the app sends an unauthenticated caller back to sign-in */
+      }
+      window.location.replace("/");
+    })();
   }, []);
 
   return (
