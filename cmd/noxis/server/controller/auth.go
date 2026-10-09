@@ -76,7 +76,8 @@ func (d Deps) connectionLevels(ctx context.Context) (map[string]string, error) {
 		return nil, err
 	}
 	out := make(map[string]string, len(list))
-	for _, c := range list {
+	for i := range list {
+		c := &list[i]
 		if p.Admin {
 			out[c.Name] = entity.LevelAdmin
 			continue

@@ -77,7 +77,8 @@ func (d Deps) readableConnections(ctx context.Context) (map[string]bool, error) 
 		return nil, err
 	}
 	out := make(map[string]bool, len(list))
-	for _, c := range list {
+	for i := range list {
+		c := &list[i]
 		ok, err := d.canRead(ctx, c.Name)
 		if err != nil {
 			return nil, err

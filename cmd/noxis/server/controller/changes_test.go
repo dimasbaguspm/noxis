@@ -27,8 +27,8 @@ type fakeConns struct {
 
 func (f *fakeConns) List(context.Context) ([]entity.Connection, error) {
 	out := make([]entity.Connection, 0, len(f.conns))
-	for _, c := range f.conns {
-		out = append(out, c)
+	for name := range f.conns {
+		out = append(out, f.conns[name])
 	}
 	return out, nil
 }
@@ -42,8 +42,9 @@ func (f *fakeConns) Get(_ context.Context, name string) (*entity.Connection, err
 }
 
 func (f *fakeConns) GetByID(_ context.Context, id string) (*entity.Connection, error) {
-	for _, c := range f.conns {
-		if c.ID == id {
+	for name := range f.conns {
+		if f.conns[name].ID == id {
+			c := f.conns[name]
 			return &c, nil
 		}
 	}

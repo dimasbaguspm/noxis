@@ -25,7 +25,8 @@ func (d Deps) connections(ctx context.Context, mod interfaces.Module) (out []ent
 		return nil, err
 	}
 	out = make([]entity.Connection, 0, len(list))
-	for _, c := range list {
+	for i := range list {
+		c := &list[i]
 		if !mod.Supports(c.Driver) {
 			continue
 		}
