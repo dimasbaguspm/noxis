@@ -173,6 +173,10 @@ export interface paths {
                 query?: {
                     /** @description substring match on connection name */
                     connection?: string;
+                    /** @description page number, starting at 1 */
+                    page?: number;
+                    /** @description items per page (default 20, max 100) */
+                    perPage?: number;
                 };
                 header?: never;
                 path: {
@@ -191,6 +195,7 @@ export interface paths {
                     content: {
                         "*/*": {
                             changes?: components["schemas"]["entity.Change"][];
+                            total?: number;
                         };
                     };
                 };

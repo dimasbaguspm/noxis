@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { title } from "radash";
 import { ArrowLeft, CalendarClock, Check, CircleHelp, FileWarning, Loader2, Play, Undo2 } from "lucide-react";
@@ -31,7 +31,7 @@ import { SqlEditor } from "@/components/sql/sql-editor";
 import { useApp } from "@/app/app-provider";
 import { useSchema } from "@/hooks/use-connection";
 import { useChanges, type ChangeKind } from "@/hooks/use-data";
-import { type Change } from "@/lib/api";
+import { api, type Change } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -50,11 +50,30 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { can } = useApp();
-  const { changes, loading, approve, apply, reject, submit, schedule } = useChanges(kind);
-  const change = changes.find((c) => c.id === id);
+  const { approve, apply, reject, submit, schedule } = useChanges(kind);
+  // the queues are paginated, so a detail page reads its change by id
+  const [change, setChange] = useState<Change>();
+  const [gone, setGone] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const { tables } = useSchema(change?.connection);
 
-  if (loading && !change) {
+  const refresh = useCallback(async () => {
+    setFetching(true);
+    try {
+      setChange(await api.changes.get(id));
+      setGone(false);
+    } catch {
+      setGone(true);
+    } finally {
+      setFetching(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  if (fetching && !change) {
     return (
       <Card>
         <CardHeader>
@@ -67,10 +86,11 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
     );
   }
 
-  if (!change) return <Unavailable kind={kind} id={id} />;
+  if (gone || !change) return <Unavailable kind={kind} id={id} />;
 
   const queue = kind === "ddl" ? PAGE_ROUTES.SQL.DDL : PAGE_ROUTES.SQL.DML;
-  const act = (fn: (id: string) => Promise<unknown>) => () => void fn(id);
+  const act = (fn: (id: string) => Promise<unknown>) => () =>
+    void fn(id).finally(() => void refresh());
   const mayReview = can(change.connection, "admin");
   const mayWrite = can(change.connection, "write");
   const canApprove = mayReview && (change.status === "validated" || change.status === "unverified");
@@ -94,7 +114,10 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
         )}
         {canApply && (
           <>
-            <ScheduleMenu change={change} onSchedule={(at) => void schedule.run(id, at)} />
+            <ScheduleMenu
+              change={change}
+              onSchedule={(at) => void schedule.run(id, at).finally(() => void refresh())}
+            />
             <Button size="sm" onClick={act(apply.run)}>
               <Play /> Apply
             </Button>

@@ -115,6 +115,22 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    {
+                        "description": "page number, starting at 1",
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "items per page (default 20, max 100)",
+                        "name": "perPage",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
                     }
                 ],
                 "responses": {
@@ -130,6 +146,9 @@
                                             "items": {
                                                 "$ref": "#/components/schemas/entity.Change"
                                             }
+                                        },
+                                        "total": {
+                                            "type": "integer"
                                         }
                                     }
                                 }
