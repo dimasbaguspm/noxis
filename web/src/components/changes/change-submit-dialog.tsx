@@ -19,7 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { SqlEditor } from "@/components/sql/sql-editor";
-import { useConnectionSelection, useSchema } from "@/hooks/use-connection";
+import { useConnectionSelection } from "@/hooks/use-connection";
+import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { classify } from "@/lib/statements";
 
 type FormValues = { notes: string; query: string; rollback: string };
@@ -52,7 +53,7 @@ export function ChangeSubmitDialog({
 }) {
   // the instance is part of the change, so it is chosen here, not on the page
   const { connection, pick } = useConnectionSelection(initial?.connection);
-  const { tables } = useSchema(connection); // completion follows the chosen instance
+  const { data: tables } = useConnectionSchemaQuery(connection); // completion follows the chosen instance
   const { register, handleSubmit, watch, setValue, reset } = useForm<FormValues>({
     defaultValues: { notes: "", query: "", rollback: "" },
   });
