@@ -15,6 +15,11 @@ export function useBreadcrumbs(): Crumb[] {
 
   if (pathname === "/") return [{ label: "Dashboard" }];
 
+  // instances are one stable page under the dashboard's instance list
+  if (pathname.startsWith("/instances/")) {
+    return [{ label: "Dashboard", to: "/" }, { label: "Instances" }, { label: "Instance detail" }];
+  }
+
   const segments = pathname.split("/").filter(Boolean);
   const direct = findNav(pathname);
   const target = direct.item ? pathname : `/${segments.slice(0, 2).join("/")}`;

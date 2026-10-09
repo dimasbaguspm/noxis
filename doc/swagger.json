@@ -2051,55 +2051,6 @@
                 }
             }
         },
-        "/v1/instances/{id}/changes": {
-            "get": {
-                "summary": "List the changes raised for one instance (newest first)",
-                "parameters": [
-                    {
-                        "description": "instance id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "changes": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/entity.Change"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/v1/instances/{id}/password": {
             "post": {
                 "summary": "Rotate an instance's password (identity fields stay locked)",

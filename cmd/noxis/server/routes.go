@@ -108,7 +108,6 @@ func newHandler(deps controller.Deps, verifier interfaces.Verifier) http.Handler
 	// collide with the {engine} wildcard.
 	mux.HandleFunc("GET /v1/instances", controller.ListInstances)
 	mux.HandleFunc("GET /v1/instances/{id}", controller.GetInstance)
-	mux.HandleFunc("GET /v1/instances/{id}/changes", controller.ListInstanceChanges)
 	mux.HandleFunc("POST /v1/instances/{id}/password", controller.RotatePassword)
 
 	return withMiddleware(withAuth(verifier, controller.WithDeps(mux, deps)), deps.Log)

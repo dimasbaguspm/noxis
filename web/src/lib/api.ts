@@ -130,8 +130,6 @@ export const api = {
       return request<{ instances: Connection[] }>("GET", `/v1/instances${qs ? `?${qs}` : ""}`);
     },
     get: (id: string) => request<Connection>("GET", `/v1/instances/${encodeURIComponent(id)}`),
-    changes: (id: string) =>
-      request<{ changes: Change[] }>("GET", `/v1/instances/${encodeURIComponent(id)}/changes`),
     rotatePassword: (id: string, password: string) =>
       request<{ status: string }>("POST", `/v1/instances/${encodeURIComponent(id)}/password`, { password }),
   },
