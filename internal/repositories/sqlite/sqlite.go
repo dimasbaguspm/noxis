@@ -11,13 +11,17 @@ import (
 	"time"
 
 	"noxis/internal/common/idgen"
+	"noxis/internal/common/secret"
 	"noxis/internal/interfaces"
 
 	// modernc SQLite driver: pure-Go, cgo-free (interface is database/sql).
 	_ "modernc.org/sqlite"
 )
 
-type Store struct{ db *sql.DB }
+type Store struct {
+	db     *sql.DB
+	secret *secret.Cipher
+}
 
 // Satisfiers.
 var (
@@ -28,8 +32,13 @@ var (
 
 // Open opens the store and verifies it answers a ping. The parent directory
 // is created when missing and sqlite creates the file itself, so the app is
-// deployable with zero host-side files.
-func Open(ctx context.Context, path string) (*Store, error) {
+// deployable with zero host-side files. An empty secretKey keeps passwords in
+// plaintext (open mode); a set key encrypts them at rest.
+func Open(ctx context.Context, path, secretKey string) (*Store, error) {
+	cipher, err := secret.New(secretKey)
+	if err != nil {
+		return nil, fmt.Errorf("open %s: %w", path, err)
+	}
 	// The bind-mount trap: docker creates a DIRECTORY at a missing bind
 	// target, and sqlite cannot open a directory ("unable to open database
 	// file (14)"). Name it instead of crash-looping.
@@ -46,7 +55,7 @@ func Open(ctx context.Context, path string) (*Store, error) {
 		return nil, fmt.Errorf("open %s: %w", path, err)
 	}
 	db.SetMaxOpenConns(1)
-	s := &Store{db: db}
+	s := &Store{db: db, secret: cipher}
 	if _, err := db.Exec(schema); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("schema: %w", err)
@@ -65,6 +74,10 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS connections_id ON connections(id)`); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("connection id index: %w", err)
+	}
+	if err := s.encryptLegacyPasswords(ctx); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("encrypt stored passwords: %w", err)
 	}
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -162,6 +175,44 @@ CREATE TABLE IF NOT EXISTS connection_grants (
   level      TEXT NOT NULL,
   PRIMARY KEY (connection, group_name)
 );`
+
+// encryptLegacyPasswords seals rows written before a key was set, so a store
+// that gains a key converges to ciphertext. No-op without a key.
+func (s *Store) encryptLegacyPasswords(ctx context.Context) error {
+	if s.secret == nil {
+		return nil
+	}
+	rows, err := s.db.QueryContext(ctx, `SELECT name, password FROM connections WHERE password != ''`)
+	if err != nil {
+		return err
+	}
+	type legacy struct{ name, password string }
+	var pending []legacy
+	for rows.Next() {
+		var l legacy
+		if err := rows.Scan(&l.name, &l.password); err != nil {
+			rows.Close()
+			return err
+		}
+		if !secret.Encrypted(l.password) {
+			pending = append(pending, l)
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, l := range pending {
+		sealed, err := s.secret.Encrypt(l.password)
+		if err != nil {
+			return err
+		}
+		if _, err := s.db.ExecContext(ctx, `UPDATE connections SET password = ? WHERE name = ?`, sealed, l.name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 func (s *Store) Close() { _ = s.db.Close() }
 

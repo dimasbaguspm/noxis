@@ -17,6 +17,7 @@ const (
 	EnvTickKey       = "NOXIS_TICK_KEY"       // API key for POST /internal/tick (optional)
 	EnvTickURL       = "NOXIS_TICK_URL"       // standalone ticker: the /internal/tick URL
 	EnvTickInterval  = "NOXIS_TICK_INTERVAL"  // standalone ticker: how often to tick (e.g. 30s)
+	EnvSecretKey     = "NOXIS_SECRET_KEY"     // AES key for passwords at rest (64 hex chars; empty = plaintext)
 	EnvOTELCollector = "NOXIS_OTEL_COLLECTOR" // OTLP endpoint (optional)
 	EnvOTELName      = "NOXIS_OTEL_NAME"      // service name reported to OTEL (optional)
 
@@ -36,6 +37,7 @@ type Config struct {
 	TickKey       string
 	TickURL       string
 	TickInterval  string
+	SecretKey     string
 	OTELCollector string
 	OTELName      string
 
@@ -56,6 +58,7 @@ func LoadConfig() Config {
 		TickKey:       os.Getenv(EnvTickKey),
 		TickURL:       os.Getenv(EnvTickURL),
 		TickInterval:  os.Getenv(EnvTickInterval),
+		SecretKey:     os.Getenv(EnvSecretKey),
 		OTELCollector: os.Getenv(EnvOTELCollector),
 		OTELName:      os.Getenv(EnvOTELName),
 
@@ -90,6 +93,8 @@ func fieldOf(c Config, env string) string {
 		return c.TickURL
 	case EnvTickInterval:
 		return c.TickInterval
+	case EnvSecretKey:
+		return c.SecretKey
 	case EnvOTELCollector:
 		return c.OTELCollector
 	case EnvOTELName:
@@ -115,6 +120,7 @@ func (c Config) String() string {
 		EnvTickKey + "=" + c.TickKey,
 		EnvTickURL + "=" + c.TickURL,
 		EnvTickInterval + "=" + c.TickInterval,
+		EnvSecretKey + "=" + c.SecretKey,
 		EnvOTELCollector + "=" + c.OTELCollector,
 		EnvOTELName + "=" + c.OTELName,
 		EnvOIDCIssuer + "=" + c.OIDCIssuer,

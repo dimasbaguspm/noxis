@@ -83,6 +83,14 @@ through `/v1/engine/{engine}/connections/{name}/grants`. Default deny: a user wi
 grant sees nothing. `GET /v1/me` reports the caller and its effective level per
 connection (`GET /auth/config` is the public console bootstrap).
 
+## Credentials at rest
+
+Connection passwords cannot be hashed — they must be sent to the database — so
+set `NOXIS_SECRET_KEY` (64 hex characters) to encrypt them in SQLite with
+AES-256-GCM. Without it they are stored in plaintext and the server logs a
+warning. Setting the key re-encrypts existing plaintext rows when the store
+opens. Rotate a password from the instance's detail page.
+
 ## Docs
 
 - `PLAN.md` — architecture, decisions, and known ceilings.
