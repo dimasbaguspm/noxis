@@ -4,11 +4,9 @@ import { ResultTable } from "@/components/sql/result-table";
 import { SqlEditor } from "@/components/sql/sql-editor";
 import { SqlTabs } from "@/components/sql/sql-tabs";
 import { TableBrowser } from "@/components/sql/table-browser";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useApp } from "@/app/app-provider";
 import { useAction } from "@/hooks/use-action";
 import { useConnectionSelection, useSchema } from "@/hooks/use-connection";
@@ -16,8 +14,7 @@ import { useQuery } from "@/hooks/use-data";
 import { useSqlTabs } from "@/hooks/use-sql-tabs";
 import { api, type Result } from "@/lib/api";
 import { classify } from "@/lib/statements";
-import { CircleHelp, Play } from "lucide-react";
-import { title } from "radash";
+import { Play } from "lucide-react";
 import { useState } from "react";
 
 export default function QueryPage() {
@@ -60,19 +57,7 @@ export default function QueryPage() {
   }
 
   return (
-    <div className="flex h-[calc(100svh-7rem)] flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <Badge variant={kind === "read" ? "secondary" : "destructive"}>{title(kind)}</Badge>
-        <Tooltip>
-          <TooltipTrigger render={<span className="text-muted-foreground" />}>
-            <CircleHelp className="size-3.5" />
-          </TooltipTrigger>
-          <TooltipContent>
-            Reads run directly. Writes belong on the DML or DDL page, where they get validated and approved.
-          </TooltipContent>
-        </Tooltip>
-      </div>
-
+    <div className="flex h-[calc(100svh-7rem)] flex-col">
       <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
         <ResizablePanel defaultSize={16} minSize={12}>
           <Card className="mr-2 h-full min-h-0 min-w-0">
@@ -92,7 +77,7 @@ export default function QueryPage() {
         <ResizableHandle withHandle />
 
         <ResizablePanel defaultSize={84} minSize={50} className="min-w-0 overflow-hidden">
-          <ResizablePanelGroup orientation="vertical" className="ml-2 min-w-0">
+          <ResizablePanelGroup orientation="vertical" className="flex min-w-0 flex-col gap-2 pl-2">
             <ResizablePanel defaultSize={45} minSize={20}>
               <Card className="flex h-full min-w-0 flex-col">
                 <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden">
@@ -130,7 +115,7 @@ export default function QueryPage() {
             <ResizableHandle withHandle />
 
             <ResizablePanel defaultSize={55} minSize={20}>
-              <Card className="mt-2 flex h-full min-h-0 min-w-0 flex-col">
+              <Card className="flex h-full min-h-0 min-w-0 flex-col">
                 <CardHeader className="shrink-0">
                   <CardTitle className="text-base">Result</CardTitle>
                 </CardHeader>
