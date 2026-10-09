@@ -8,14 +8,16 @@ import (
 	"fmt"
 	"time"
 
+	"noxis/internal/common/idgen"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
 
-const connColumns = `name, driver, host, port, user, password, database, params, created_at`
+const connColumns = `id, name, driver, host, port, user, password, database, params, created_at`
 
-// Save upserts a connection (created_at is set on first insert).
+// Save upserts a connection (created_at is set on first insert). The id is
+// generated when missing and never overwritten on update (name is the key).
 func (s *Store) Save(ctx context.Context, c entity.Connection) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -23,13 +25,16 @@ func (s *Store) Save(ctx context.Context, c entity.Connection) (err error) {
 	if err != nil {
 		return fmt.Errorf("encode params: %w", err)
 	}
+	if c.ID == "" {
+		c.ID = idgen.UUID()
+	}
 	if _, err := s.db.ExecContext(ctx, `
-		INSERT INTO connections (`+connColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO connections (`+connColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(name) DO UPDATE SET
 			driver=excluded.driver, host=excluded.host, port=excluded.port,
 			user=excluded.user, password=excluded.password, database=excluded.database,
 			params=excluded.params`,
-		c.Name, c.Driver, c.Host, c.Port, c.User, c.Password, c.Database, string(params), time.Now().Unix()); err != nil {
+		c.ID, c.Name, c.Driver, c.Host, c.Port, c.User, c.Password, c.Database, string(params), time.Now().Unix()); err != nil {
 		return fmt.Errorf("save connection %s: %w", c.Name, err)
 	}
 	return nil
@@ -46,10 +51,20 @@ func (s *Store) List(ctx context.Context) (out []entity.Connection, err error) {
 func (s *Store) Get(ctx context.Context, name string) (c *entity.Connection, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	row := s.db.QueryRowContext(ctx, `SELECT `+connColumns+` FROM connections WHERE name = ?`, name)
-	conn, err := scanConnection(row)
+	return s.getOne(ctx, `SELECT `+connColumns+` FROM connections WHERE name = ?`, name)
+}
+
+// GetByID returns one connection by its stable id, or interfaces.ErrNotFound.
+func (s *Store) GetByID(ctx context.Context, id string) (c *entity.Connection, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	return s.getOne(ctx, `SELECT `+connColumns+` FROM connections WHERE id = ?`, id)
+}
+
+func (s *Store) getOne(ctx context.Context, q string, arg any) (*entity.Connection, error) {
+	conn, err := scanConnection(s.db.QueryRowContext(ctx, q, arg))
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("connection %s: %w", name, interfaces.ErrNotFound)
+		return nil, fmt.Errorf("connection %v: %w", arg, interfaces.ErrNotFound)
 	}
 	if err != nil {
 		return nil, err
@@ -81,7 +96,7 @@ func scanConnection(row scanner) (entity.Connection, error) {
 		c      entity.Connection
 		params string
 	)
-	if err := row.Scan(&c.Name, &c.Driver, &c.Host, &c.Port, &c.User, &c.Password, &c.Database, &params, &c.CreatedAt); err != nil {
+	if err := row.Scan(&c.ID, &c.Name, &c.Driver, &c.Host, &c.Port, &c.User, &c.Password, &c.Database, &params, &c.CreatedAt); err != nil {
 		return c, err
 	}
 	if params != "" {

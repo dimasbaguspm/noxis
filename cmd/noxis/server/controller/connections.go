@@ -25,7 +25,8 @@ func (d Deps) connections(ctx context.Context, mod interfaces.Module) (out []ent
 		return nil, err
 	}
 	out = make([]entity.Connection, 0, len(list))
-	for _, c := range list {
+	for i := range list {
+		c := &list[i]
 		if !mod.Supports(c.Driver) {
 			continue
 		}
@@ -61,7 +62,7 @@ func (d Deps) raw(ctx context.Context, mod interfaces.Module, name, level string
 	}
 	if !mod.Supports(c.Driver) {
 		if other, ok := d.moduleByDriver(c.Driver); ok {
-			return nil, fmt.Errorf("connection %q is not a %s connection (driver %q, try /v1/%s)",
+			return nil, fmt.Errorf("connection %q is not a %s connection (driver %q, try /v1/engine/%s)",
 				c.Name, mod.Family(), c.Driver, other.Family())
 		}
 		return nil, fmt.Errorf("connection %q is not a %s connection (driver %q)",
@@ -174,7 +175,7 @@ func (d Deps) op(ctx context.Context, sq interfaces.SQLModule, name, operation, 
 // @Summary List connections (passwords redacted)
 // @Param engine path string true "engine family (sql, memcache, mongodb)"
 // @Success 200 {object} object{connections=[]entity.Connection}
-// @Router /v1/{engine}/connections [get]
+// @Router /v1/engine/{engine}/connections [get]
 func ListConnections(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		mod, err := d.engine(r)
@@ -191,7 +192,7 @@ func ListConnections(w http.ResponseWriter, r *http.Request) {
 // @Param body body entity.Connection true "connection (omit password to keep the stored one)"
 // @Success 200 {object} entity.Connection
 // @Failure 400 {object} map[string]string
-// @Router /v1/{engine}/connections [post]
+// @Router /v1/engine/{engine}/connections [post]
 func SaveConnection(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		mod, err := d.engine(r)
@@ -211,7 +212,7 @@ func SaveConnection(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Success 200 {object} entity.Connection
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name} [get]
+// @Router /v1/engine/{engine}/connections/{name} [get]
 func GetConnection(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		mod, err := d.engine(r)
@@ -227,7 +228,7 @@ func GetConnection(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Success 204 "deleted"
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name} [delete]
+// @Router /v1/engine/{engine}/connections/{name} [delete]
 func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 	handleNoContent(w, r, func(ctx context.Context, d Deps) error {
 		mod, err := d.engine(r)
@@ -243,7 +244,7 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Success 200 {object} object{status=string}
 // @Failure 400 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/test [post]
+// @Router /v1/engine/{engine}/connections/{name}/test [post]
 func TestConnection(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		mod, err := d.engine(r)
@@ -263,7 +264,7 @@ func TestConnection(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} object{tables=[]sql.Table}
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/schema [get]
+// @Router /v1/engine/{engine}/connections/{name}/schema [get]
 func GetSchema(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		sq, err := d.engineSQL(r)
@@ -284,7 +285,7 @@ func GetSchema(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/tables/{table}/rows [get]
+// @Router /v1/engine/{engine}/connections/{name}/tables/{table}/rows [get]
 func GetRows(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		sq, err := d.engineSQL(r)
@@ -303,7 +304,7 @@ func GetRows(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/query [post]
+// @Router /v1/engine/{engine}/connections/{name}/query [post]
 func PostQuery(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 // @Summary Apply a write directly (DML or DDL)
@@ -313,7 +314,7 @@ func PostQuery(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/alter [post]
+// @Router /v1/engine/{engine}/connections/{name}/alter [post]
 func PostAlter(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 // @Summary Dry-run statements inside a transaction that always rolls back
@@ -323,7 +324,7 @@ func PostAlter(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/rollback [post]
+// @Router /v1/engine/{engine}/connections/{name}/rollback [post]
 func PostRollback(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 // @Summary Refresh planner statistics for a table
@@ -333,7 +334,7 @@ func PostRollback(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/analyze [post]
+// @Router /v1/engine/{engine}/connections/{name}/analyze [post]
 func PostAnalyze(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 type opBody struct {
@@ -343,10 +344,10 @@ type opBody struct {
 
 // opRoutes pins each op route to its op name.
 var opRoutes = map[string]string{
-	"POST /v1/{engine}/connections/{name}/query":    constants.OpQuery,
-	"POST /v1/{engine}/connections/{name}/alter":    constants.OpAlter,
-	"POST /v1/{engine}/connections/{name}/rollback": constants.OpRollback,
-	"POST /v1/{engine}/connections/{name}/analyze":  constants.OpAnalyze,
+	"POST /v1/engine/{engine}/connections/{name}/query":    constants.OpQuery,
+	"POST /v1/engine/{engine}/connections/{name}/alter":    constants.OpAlter,
+	"POST /v1/engine/{engine}/connections/{name}/rollback": constants.OpRollback,
+	"POST /v1/engine/{engine}/connections/{name}/analyze":  constants.OpAnalyze,
 }
 
 func doOp(w http.ResponseWriter, r *http.Request) {

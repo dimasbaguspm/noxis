@@ -194,7 +194,7 @@ func (d Deps) sqlChange(ctx context.Context, id string) (*entity.Change, error) 
 // @Param engine path string true "engine family (sql, mongodb)"
 // @Success 200 {object} object{changes=[]entity.Change}
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/changes [get]
+// @Router /v1/engine/{engine}/changes [get]
 func ListChanges(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		mod, err := d.engine(r)
@@ -219,7 +219,7 @@ func ListChanges(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/changes [post]
+// @Router /v1/engine/{engine}/changes [post]
 func SubmitChange(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		mod, err := d.engine(r)
@@ -249,7 +249,7 @@ func SubmitChange(w http.ResponseWriter, r *http.Request) {
 // @Param id path string true "change id"
 // @Success 200 {object} entity.Change
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/changes/{id} [get]
+// @Router /v1/engine/{engine}/changes/{id} [get]
 func GetChange(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		mod, err := d.engine(r)
@@ -272,7 +272,7 @@ func GetChange(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/changes/{id}/approve [post]
+// @Router /v1/engine/{engine}/changes/{id}/approve [post]
 func ApproveChange(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		mod, err := d.engine(r)
@@ -301,7 +301,7 @@ func ApproveChange(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/changes/{id}/apply [post]
+// @Router /v1/engine/{engine}/changes/{id}/apply [post]
 func ApplyChange(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		mod, err := d.engine(r)
@@ -327,7 +327,7 @@ func ApplyChange(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/changes/{id}/reject [post]
+// @Router /v1/engine/{engine}/changes/{id}/reject [post]
 func RejectChange(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		mod, err := d.engine(r)

@@ -10,6 +10,7 @@ import "./app.css";
 
 // route-level splitting: monaco (query/changes) loads with the page that needs it
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
+const InstanceDetailPage = lazy(() => import("@/pages/instance-detail"));
 const QueryPage = lazy(() => import("@/pages/query"));
 const DmlPage = lazy(() => import("@/pages/dml"));
 const DdlPage = lazy(() => import("@/pages/ddl"));
@@ -33,6 +34,7 @@ const router = createBrowserRouter([
     element: <AppShell />,
     children: [
       { index: true, element: <DashboardPage /> },
+      { path: routePath(PAGE_ROUTES.INSTANCE_DETAIL(":id")), element: <InstanceDetailPage /> },
       { path: routePath(PAGE_ROUTES.SQL.QUERY), element: <QueryPage /> },
       { path: routePath(PAGE_ROUTES.SQL.DML), element: <DmlPage /> },
       { path: `${routePath(PAGE_ROUTES.SQL.DML)}/:id`, element: <ChangeDetail kind="dml" /> },

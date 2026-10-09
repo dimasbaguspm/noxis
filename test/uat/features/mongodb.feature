@@ -1,5 +1,5 @@
 Feature: MongoDB exploration, requests and stats
-  The /v1/mongodb namespace explores a live server: databases and collections
+  The /v1/engine/mongodb namespace explores a live server: databases and collections
   with their sizes, CRUD requests with the filter and the value kept apart, and
   the metrics worth watching. Requests run directly, so the guards are the op
   allowlist and the refusal to update or delete without a filter.

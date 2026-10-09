@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"noxis/internal/common/idgen"
 	"noxis/internal/interfaces"
 
 	// modernc SQLite driver: pure-Go, cgo-free (interface is database/sql).
@@ -54,6 +55,17 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	for _, ddl := range migrations {
 		_, _ = db.Exec(ddl)
 	}
+	// instance ids were added after the first release: backfill existing rows,
+	// then enforce uniqueness (an index over the not-yet-filled column would
+	// collide on the empty default).
+	if err := backfillConnectionIDs(ctx, db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("backfill connection ids: %w", err)
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS connections_id ON connections(id)`); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("connection id index: %w", err)
+	}
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	if err := db.PingContext(ctx); err != nil {
@@ -76,6 +88,35 @@ var migrations = []string{
 	`ALTER TABLE changes ADD COLUMN affected_columns TEXT NOT NULL DEFAULT '[]'`,
 	`ALTER TABLE changes ADD COLUMN scheduled_at INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE changes ADD COLUMN batch_id TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE connections ADD COLUMN id TEXT NOT NULL DEFAULT ''`,
+}
+
+// backfillConnectionIDs gives every pre-migration row a stable id. New rows
+// get one in Save; this only touches legacy volumes.
+func backfillConnectionIDs(ctx context.Context, db *sql.DB) error {
+	rows, err := db.QueryContext(ctx, `SELECT name FROM connections WHERE id = '' OR id IS NULL`)
+	if err != nil {
+		return err
+	}
+	var names []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			rows.Close()
+			return err
+		}
+		names = append(names, name)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, name := range names {
+		if _, err := db.ExecContext(ctx, `UPDATE connections SET id = ? WHERE name = ?`, idgen.UUID(), name); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 const schema = `
@@ -104,6 +145,7 @@ CREATE TABLE IF NOT EXISTS changes (
 
 CREATE TABLE IF NOT EXISTS connections (
   name       TEXT PRIMARY KEY,
+  id         TEXT NOT NULL DEFAULT '',
   driver     TEXT NOT NULL,
   host       TEXT NOT NULL,
   port       INTEGER NOT NULL,

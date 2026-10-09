@@ -128,7 +128,7 @@ which instance, at what level*. No user store, no roles — one policy table.
 - **Policy:** `connection_grants(connection, group_name, level)` with
   `read < write < admin`, default deny, effective level = strongest matching
   grant. Managed by global admins at
-  `/v1/{engine}/connections/{name}/grants`. Open mode and global admins bypass
+  `/v1/engine/{engine}/connections/{name}/grants`. Open mode and global admins bypass
   the per-connection check.
 - **Enforcement:** `controller.raw(ctx, mod, name, level)` is the single gate;
   list endpoints hide what the caller cannot read. Level map: read = browse,

@@ -46,25 +46,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  /v1/me:
-    get:
-      summary: The authenticated caller and its per-connection levels
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/controller.MeResponse"
-        "401":
-          description: Unauthorized
-          content:
-            "*/*":
-              schema:
-                type: object
-                additionalProperties:
-                  type: string
-  "/v1/{engine}/changes":
+  "/v1/engine/{engine}/changes":
     get:
       summary: List proposed changes for an engine (newest first)
       parameters:
@@ -133,7 +115,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/changes/batch":
+  "/v1/engine/{engine}/changes/batch":
     post:
       summary: Submit a batch of .sql files as changes sharing a batch id
       parameters:
@@ -165,7 +147,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/changes/{id}":
+  "/v1/engine/{engine}/changes/{id}":
     get:
       summary: Get one change
       parameters:
@@ -196,7 +178,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/changes/{id}/apply":
+  "/v1/engine/{engine}/changes/{id}/apply":
     post:
       summary: Apply an approved change
       parameters:
@@ -235,7 +217,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/changes/{id}/approve":
+  "/v1/engine/{engine}/changes/{id}/approve":
     post:
       summary: Approve a validated change (self-approval allowed)
       parameters:
@@ -274,7 +256,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/changes/{id}/reject":
+  "/v1/engine/{engine}/changes/{id}/reject":
     post:
       summary: Reject a change (kept as an artifact, never deleted)
       parameters:
@@ -313,7 +295,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections":
+  "/v1/engine/{engine}/connections":
     get:
       summary: List connections (passwords redacted)
       parameters:
@@ -366,7 +348,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}":
+  "/v1/engine/{engine}/connections/{name}":
     get:
       summary: Get one connection (password redacted)
       parameters:
@@ -423,7 +405,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/alter":
+  "/v1/engine/{engine}/connections/{name}/alter":
     post:
       summary: Apply a write directly (DML or DDL)
       parameters:
@@ -464,7 +446,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/analyze":
+  "/v1/engine/{engine}/connections/{name}/analyze":
     post:
       summary: Refresh planner statistics for a table
       parameters:
@@ -510,7 +492,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/collections":
+  "/v1/engine/{engine}/connections/{name}/collections":
     get:
       summary: List a database's collections with their sizes
       parameters:
@@ -560,7 +542,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/databases":
+  "/v1/engine/{engine}/connections/{name}/databases":
     get:
       summary: List databases with their sizes
       parameters:
@@ -604,7 +586,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/flush":
+  "/v1/engine/{engine}/connections/{name}/flush":
     post:
       summary: Empty the connected database (FLUSHDB, never FLUSHALL)
       parameters:
@@ -653,7 +635,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/grants":
+  "/v1/engine/{engine}/connections/{name}/grants":
     get:
       summary: List a connection's group grants
       parameters:
@@ -814,7 +796,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/keys":
+  "/v1/engine/{engine}/connections/{name}/keys":
     get:
       summary: Browse keys by pattern (bounded scan, with type, TTL and size)
       parameters:
@@ -911,7 +893,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/query":
+  "/v1/engine/{engine}/connections/{name}/query":
     post:
       summary: Run a SQL console op (query | alter | rollback | analytics)
       parameters:
@@ -957,7 +939,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/requests":
+  "/v1/engine/{engine}/connections/{name}/requests":
     post:
       summary: Run a read request (find | aggregate | count)
       parameters:
@@ -1003,7 +985,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/rollback":
+  "/v1/engine/{engine}/connections/{name}/rollback":
     post:
       summary: Dry-run statements inside a transaction that always rolls back
       parameters:
@@ -1044,7 +1026,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/schema":
+  "/v1/engine/{engine}/connections/{name}/schema":
     get:
       summary: Introspect a connection's tables and columns
       parameters:
@@ -1088,7 +1070,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/tables/{table}/rows":
+  "/v1/engine/{engine}/connections/{name}/tables/{table}/rows":
     get:
       summary: Preview a table's rows
       parameters:
@@ -1143,7 +1125,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/test":
+  "/v1/engine/{engine}/connections/{name}/test":
     post:
       summary: Test that a connection answers
       parameters:
@@ -1177,7 +1159,7 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
-  "/v1/{engine}/connections/{name}/value":
+  "/v1/engine/{engine}/connections/{name}/value":
     get:
       summary: Inspect one key's value (rendered per its type)
       parameters:
@@ -1216,6 +1198,79 @@ paths:
                   type: string
         "404":
           description: Not Found
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/instances/{id}":
+    get:
+      summary: Get one instance across engine families (password redacted)
+      parameters:
+        - description: instance id
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.Connection"
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/instances/{id}/changes":
+    get:
+      summary: List the changes raised for one instance (newest first)
+      parameters:
+        - description: instance id
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                type: object
+                properties:
+                  changes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/entity.Change"
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  /v1/me:
+    get:
+      summary: The authenticated caller and its per-connection levels
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/controller.MeResponse"
+        "401":
+          description: Unauthorized
           content:
             "*/*":
               schema:
@@ -1433,7 +1488,17 @@ components:
         driver:
           description: postgres | mysql (mariadb aliases mysql)
           type: string
+        family:
+          description: |-
+            Family names the engine family that serves the driver. It is not
+            stored: the cross-family routes set it when serving.
+          type: string
         host:
+          type: string
+        id:
+          description: |-
+            ID is the stable instance identifier used by the cross-family
+            /v1/instances routes. Grants and changes still link by Name.
           type: string
         name:
           type: string
