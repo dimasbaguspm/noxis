@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"noxis/internal/common/idgen"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -91,12 +92,23 @@ func (d Deps) saveConnection(ctx context.Context, mod interfaces.Module, c entit
 	existing, err := d.Connections.Get(ctx, c.Name)
 	switch {
 	case err == nil:
+		// identity is fixed at registration: a different driver, host,
+		// database or user is a different instance, not an edit. The password
+		// rotates through its own action (rotatePassword).
+		if c.Driver != existing.Driver || c.Host != existing.Host ||
+			c.Database != existing.Database || c.User != existing.User {
+			return entity.Connection{}, errors.New(
+				"driver, host, database and user cannot be changed after registration; " +
+					"rotate the password or register a new connection")
+		}
 		if c.Password == "" {
 			c.Password = existing.Password
 		}
 		c.CreatedAt = existing.CreatedAt
+		c.ID = existing.ID
 	case errors.Is(err, interfaces.ErrNotFound):
 		c.CreatedAt = time.Now().Unix()
+		c.ID = idgen.UUID()
 	default:
 		return entity.Connection{}, err
 	}

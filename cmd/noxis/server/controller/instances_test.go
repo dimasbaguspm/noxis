@@ -112,3 +112,37 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("by host = %+v, want 2", byHost)
 	}
 }
+
+// Identity is fixed after registration; only the password rotates.
+func TestIdentityLockedAndRotation(t *testing.T) {
+	d, _, conns := newDeps(&fakeSQL{})
+	ctx := context.Background()
+	mod := d.Modules[constants.FamilySQL]
+
+	c := conns.conns["demo"]
+	c.ID = "abc"
+	c.Password = "old"
+	conns.conns["demo"] = c
+
+	changed := c
+	changed.Host = "elsewhere"
+	if _, err := d.saveConnection(ctx, mod, changed); err == nil {
+		t.Fatal("changing host must be rejected")
+	}
+	if conns.conns["demo"].Host != "db" {
+		t.Fatal("stored instance must be unchanged")
+	}
+
+	if err := d.rotatePassword(ctx, "abc", "new"); err != nil {
+		t.Fatalf("rotate: %v", err)
+	}
+	if conns.conns["demo"].Password != "new" {
+		t.Fatal("password not rotated")
+	}
+	if err := d.rotatePassword(ctx, "abc", ""); err == nil {
+		t.Fatal("empty password must be rejected")
+	}
+	if err := d.rotatePassword(ctx, "missing", "x"); !errors.Is(err, interfaces.ErrNotFound) {
+		t.Fatalf("missing id: err=%v want not found", err)
+	}
+}

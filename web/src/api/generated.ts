@@ -1990,6 +1990,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/instances/{id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate an instance's password (identity fields stay locked) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description instance id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description new password */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["controller.passwordBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            status?: string;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me": {
         parameters: {
             query?: never;
@@ -2099,6 +2167,9 @@ export interface components {
         "controller.opBody": {
             sql?: string;
             table?: string;
+        };
+        "controller.passwordBody": {
+            password?: string;
         };
         "entity.Change": {
             affectedColumns?: string[];

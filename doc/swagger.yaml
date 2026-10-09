@@ -1302,6 +1302,49 @@ paths:
                 type: object
                 additionalProperties:
                   type: string
+  "/v1/instances/{id}/password":
+    post:
+      summary: Rotate an instance's password (identity fields stay locked)
+      parameters:
+        - description: instance id
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/controller.passwordBody"
+        description: new password
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+        "403":
+          description: Forbidden
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
   /v1/me:
     get:
       summary: The authenticated caller and its per-connection levels
@@ -1443,6 +1486,11 @@ components:
         sql:
           type: string
         table:
+          type: string
+    controller.passwordBody:
+      type: object
+      properties:
+        password:
           type: string
     entity.Change:
       type: object
