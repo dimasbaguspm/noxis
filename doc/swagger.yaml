@@ -68,6 +68,11 @@ paths:
           required: true
           schema:
             type: string
+        - description: substring match on connection name
+          name: connection
+          in: query
+          schema:
+            type: string
       responses:
         "200":
           description: OK
@@ -284,6 +289,52 @@ paths:
           required: true
           schema:
             type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.Change"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+  "/v1/engine/{engine}/changes/{id}/schedule":
+    post:
+      summary: Schedule or unschedule an approved change
+      parameters:
+        - description: engine family (sql, mongodb)
+          name: engine
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: change id
+          name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/controller.scheduleBody"
+        description: scheduledAt unix seconds; 0 clears the schedule
+        required: true
       responses:
         "200":
           description: OK
@@ -1462,6 +1513,11 @@ components:
       properties:
         password:
           type: string
+    controller.scheduleBody:
+      type: object
+      properties:
+        scheduledAt:
+          type: integer
     entity.Change:
       type: object
       required:

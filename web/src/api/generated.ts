@@ -170,7 +170,10 @@ export interface paths {
         /** List proposed changes for an engine (newest first) */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description substring match on connection name */
+                    connection?: string;
+                };
                 header?: never;
                 path: {
                     /** @description engine family (sql, mongodb) */
@@ -518,6 +521,74 @@ export interface paths {
                 cookie?: never;
             };
             requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Change"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/engine/{engine}/changes/{id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Schedule or unschedule an approved change */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description engine family (sql, mongodb) */
+                    engine: string;
+                    /** @description change id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            /** @description scheduledAt unix seconds; 0 clears the schedule */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["controller.scheduleBody"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -2118,6 +2189,9 @@ export interface components {
         };
         "controller.passwordBody": {
             password?: string;
+        };
+        "controller.scheduleBody": {
+            scheduledAt?: number;
         };
         "entity.Change": {
             affectedColumns?: string[];
