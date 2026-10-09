@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"noxis/internal/common/idgen"
@@ -89,6 +90,31 @@ func (d Deps) approve(ctx context.Context, id string) (out entity.Change, err er
 		return *ch, fmt.Errorf("change is %s, not validated — cannot approve", ch.Status)
 	}
 	ch.Status, ch.ApprovedAt = constants.ChangeApproved, time.Now().Unix()
+	if err := d.Changes.SaveChange(ctx, *ch); err != nil {
+		return entity.Change{}, err
+	}
+	return *ch, nil
+}
+
+// schedule sets (or clears) the slot an approved change should run at. Only an
+// approved change can be scheduled; 0 clears the schedule (apply by hand).
+func (d Deps) schedule(ctx context.Context, id string, at int64) (out entity.Change, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
+	ch, err := d.Changes.GetChange(ctx, id)
+	if err != nil {
+		return entity.Change{}, err
+	}
+	if err := d.authorize(ctx, ch.Connection, entity.LevelAdmin); err != nil {
+		return entity.Change{}, err
+	}
+	if ch.Status != constants.ChangeApproved {
+		return *ch, fmt.Errorf("change is %s, not approved — cannot schedule", ch.Status)
+	}
+	if at > 0 && at <= time.Now().Unix() {
+		return *ch, errors.New("scheduled time must be in the future")
+	}
+	ch.ScheduledAt = at
 	if err := d.Changes.SaveChange(ctx, *ch); err != nil {
 		return entity.Change{}, err
 	}
@@ -192,6 +218,7 @@ func (d Deps) sqlChange(ctx context.Context, id string) (*entity.Change, error) 
 
 // @Summary List proposed changes for an engine (newest first)
 // @Param engine path string true "engine family (sql, mongodb)"
+// @Param connection query string false "substring match on connection name"
 // @Success 200 {object} object{changes=[]entity.Change}
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/changes [get]
@@ -201,16 +228,36 @@ func ListChanges(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, err
 		}
+		var changes []entity.Change
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			changes, err := d.sqlChanges(ctx)
-			return map[string]any{"changes": changes}, err
+			changes, err = d.sqlChanges(ctx)
 		case interfaces.MongoModule:
-			changes, err := d.mongoChanges(ctx)
-			return map[string]any{"changes": changes}, err
+			changes, err = d.mongoChanges(ctx)
+		default:
+			return nil, unsupported(mod, "changes")
 		}
-		return nil, unsupported(mod, "changes")
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"changes": filterByConnection(changes, r.URL.Query().Get("connection"))}, nil
 	})
+}
+
+// filterByConnection keeps the changes whose connection name contains the
+// case-insensitive needle; an empty needle keeps everything.
+func filterByConnection(changes []entity.Change, needle string) []entity.Change {
+	needle = strings.TrimSpace(strings.ToLower(needle))
+	if needle == "" {
+		return changes
+	}
+	out := make([]entity.Change, 0, len(changes))
+	for i := range changes {
+		if strings.Contains(strings.ToLower(changes[i].Connection), needle) {
+			out = append(out, changes[i])
+		}
+	}
+	return out
 }
 
 // @Summary Submit a change (validates before recording)
@@ -347,6 +394,44 @@ func RejectChange(w http.ResponseWriter, r *http.Request) {
 			return d.reject(ctx, r.PathValue("id"))
 		}
 		return nil, unsupported(mod, "changes")
+	})
+}
+
+type scheduleBody struct {
+	ScheduledAt int64 `json:"scheduledAt"`
+}
+
+// @Summary Schedule or unschedule an approved change
+// @Param engine path string true "engine family (sql, mongodb)"
+// @Param id path string true "change id"
+// @Param body body scheduleBody true "scheduledAt unix seconds; 0 clears the schedule"
+// @Success 200 {object} entity.Change
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /v1/engine/{engine}/changes/{id}/schedule [post]
+func ScheduleChange(w http.ResponseWriter, r *http.Request) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
+		mod, err := d.engine(r)
+		if err != nil {
+			return nil, err
+		}
+		var body scheduleBody
+		if err := decode(r, &body); err != nil {
+			return nil, err
+		}
+		switch mod.(type) {
+		case interfaces.SQLModule:
+			if _, err := d.sqlChange(ctx, r.PathValue("id")); err != nil {
+				return nil, err
+			}
+		case interfaces.MongoModule:
+			if _, err := d.mongoChange(ctx, r.PathValue("id")); err != nil {
+				return nil, err
+			}
+		default:
+			return nil, unsupported(mod, "changes")
+		}
+		return d.schedule(ctx, r.PathValue("id"), body.ScheduledAt)
 	})
 }
 

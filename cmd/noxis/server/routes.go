@@ -84,6 +84,7 @@ func newHandler(deps controller.Deps, verifier interfaces.Verifier) http.Handler
 	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/approve", controller.ApproveChange)
 	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/apply", controller.ApplyChange)
 	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/reject", controller.RejectChange)
+	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/schedule", controller.ScheduleChange)
 
 	// Memory-cache-only: keys, values, removal and emptying the database.
 	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/keys", controller.ListKeys)
@@ -108,7 +109,6 @@ func newHandler(deps controller.Deps, verifier interfaces.Verifier) http.Handler
 	// collide with the {engine} wildcard.
 	mux.HandleFunc("GET /v1/instances", controller.ListInstances)
 	mux.HandleFunc("GET /v1/instances/{id}", controller.GetInstance)
-	mux.HandleFunc("GET /v1/instances/{id}/changes", controller.ListInstanceChanges)
 	mux.HandleFunc("POST /v1/instances/{id}/password", controller.RotatePassword)
 
 	return withMiddleware(withAuth(verifier, controller.WithDeps(mux, deps)), deps.Log)

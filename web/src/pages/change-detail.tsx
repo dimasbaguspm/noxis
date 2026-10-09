@@ -1,9 +1,26 @@
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { title } from "radash";
-import { ArrowLeft, Check, CircleHelp, FileWarning, Loader2, Play, Undo2 } from "lucide-react";
+import { ArrowLeft, CalendarClock, Check, CircleHelp, FileWarning, Loader2, Play, Undo2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChangeActivity } from "@/components/changes/change-activity";
@@ -12,6 +29,7 @@ import { SqlEditor } from "@/components/sql/sql-editor";
 import { useApp } from "@/app/app-provider";
 import { useSchema } from "@/hooks/use-connection";
 import { useChanges, type ChangeKind } from "@/hooks/use-data";
+import { type Change } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +48,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { can } = useApp();
-  const { changes, loading, approve, apply, reject, submit } = useChanges(kind);
+  const { changes, loading, approve, apply, reject, submit, schedule } = useChanges(kind);
   const change = changes.find((c) => c.id === id);
   const { tables } = useSchema(change?.connection);
 
@@ -73,9 +91,12 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
           </Button>
         )}
         {canApply && (
-          <Button size="sm" onClick={act(apply.run)}>
-            <Play /> Apply
-          </Button>
+          <>
+            <ScheduleMenu change={change} onSchedule={(at) => void schedule.run(id, at)} />
+            <Button size="sm" onClick={act(apply.run)}>
+              <Play /> Apply
+            </Button>
+          </>
         )}
         {canReject && (
           <Button size="sm" variant="ghost" onClick={act(reject.run)}>
@@ -189,6 +210,67 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ScheduleMenu is the approved-change schedule control: Immediate clears the
+// slot, Schedule it opens a small picker for a future time.
+function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const [when, setWhen] = useState("");
+  const slot = when ? Math.floor(new Date(when).getTime() / 1000) : 0;
+  const valid = slot > Math.floor(Date.now() / 1000);
+  const scheduled = (change.scheduledAt ?? 0) > 0;
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button size="sm" variant="outline" />}>
+          <CalendarClock /> {scheduled ? "Scheduled" : "Schedule"}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => onSchedule(0)}>Immediate</DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              setWhen("");
+              setOpen(true);
+            }}
+          >
+            Schedule it…
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Schedule change</DialogTitle>
+            <DialogDescription>Pick when the scheduler should apply this approved change.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-1.5">
+            <Label htmlFor="schedule-at">Run at</Label>
+            <Input
+              id="schedule-at"
+              type="datetime-local"
+              value={when}
+              onChange={(e) => setWhen(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              size="sm"
+              disabled={!valid}
+              onClick={() => {
+                onSchedule(slot);
+                setOpen(false);
+              }}
+            >
+              Schedule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

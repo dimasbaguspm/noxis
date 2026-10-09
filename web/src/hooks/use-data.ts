@@ -5,20 +5,20 @@ import { classify } from "@/lib/statements";
 
 export type ChangeKind = "dml" | "ddl";
 
-// useChanges lists changes (optionally filtered by kind) and exposes the
-// workflow actions, reloading the list after each one.
-export function useChanges(kind?: ChangeKind) {
+// useChanges lists changes (optionally filtered by kind and by connection
+// name) and exposes the workflow actions, reloading the list after each one.
+export function useChanges(kind?: ChangeKind, connection?: string) {
   const [changes, setChanges] = useState<Change[]>([]);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
     try {
-      const { changes: list } = await api.changes.list();
+      const { changes: list } = await api.changes.list(connection);
       setChanges(list ?? []);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [connection]);
 
   useEffect(() => {
     void reload();
@@ -41,6 +41,10 @@ export function useChanges(kind?: ChangeKind) {
     await api.changes.reject(id);
     await reload();
   });
+  const schedule = useAction(async (id: string, scheduledAt: number) => {
+    await api.changes.schedule(id, scheduledAt);
+    await reload();
+  });
 
   // rows recorded before the server knew the kind fall back to the pure
   // classifier, so nothing disappears from both tabs
@@ -49,7 +53,7 @@ export function useChanges(kind?: ChangeKind) {
     return changes.filter((c) => (c.kind || classify(c.query ?? "")) === kind);
   }, [changes, kind]);
 
-  return { changes: visible, all: changes, total: changes.length, loading, reload, submit, approve, apply, reject };
+  return { changes: visible, all: changes, total: changes.length, loading, reload, submit, approve, apply, reject, schedule };
 }
 
 // useTableRows previews a table's rows for the active connection.
