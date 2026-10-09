@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAction } from "@/hooks/use-action";
 import { useApp } from "@/app/app-provider";
+import { useAuth } from "@/app/auth-provider";
 import { api, type Connection } from "@/lib/api";
 import { FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
@@ -21,7 +22,8 @@ import { PAGE_ROUTES } from "@/lib/routes";
 export default function InstanceDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { isAdmin, reload } = useApp();
+  const { isAdmin } = useAuth();
+  const { reload } = useApp();
   const [instance, setInstance] = useState<Connection>();
   const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState<string>();

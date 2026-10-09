@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useApp } from "@/app/app-provider";
+import { useAuth } from "@/app/auth-provider";
 import { useMongoChanges, useMongoConnections } from "@/hooks/use-mongodb";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,8 @@ import { cn } from "@/lib/utils";
 // MongoRequestsPage is the review queue: every write request waits here until
 // someone approves and applies it. Reads never appear (they run in Explore).
 export default function MongoRequestsPage() {
-  const { can, registry } = useApp();
+  const { can } = useAuth();
+  const { registry } = useApp();
   const { connections } = useMongoConnections();
   const { changes, loading, reload } = useMongoChanges();
   const mayWrite = registry.mongodb.connections.some((c) => can(c.name, "write"));

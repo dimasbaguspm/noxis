@@ -2,6 +2,7 @@ import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { AppProvider } from "@/app/app-provider";
+import { AuthProvider } from "@/app/auth-provider";
 import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -52,13 +53,15 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AppProvider>
-      <TooltipProvider>
+    <AuthProvider>
+      <AppProvider>
+        <TooltipProvider>
         <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">loading…</div>}>
           <RouterProvider router={router} />
         </Suspense>
       </TooltipProvider>
-      <Toaster position="bottom-right" />
-    </AppProvider>
+        <Toaster position="bottom-right" />
+      </AppProvider>
+    </AuthProvider>
   </StrictMode>,
 );

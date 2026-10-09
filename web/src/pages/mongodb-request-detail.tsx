@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { JsonEditor } from "@/components/sql/json-editor";
 import { ChangeActivity } from "@/components/changes/change-activity";
-import { useApp } from "@/app/app-provider";
+import { useAuth } from "@/app/auth-provider";
 import { useMongoChanges } from "@/hooks/use-mongodb";
 import type { MongoRequest } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 // no rollback exists for a document change.
 export default function MongoRequestDetailPage() {
   const { id = "" } = useParams();
-  const { can } = useApp();
+  const { can } = useAuth();
   const { changes, loading, approve, apply, reject } = useMongoChanges();
   const change = changes.find((c) => c.id === id);
 

@@ -29,7 +29,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ChangeActivity } from "@/components/changes/change-activity";
 import { ChangeSubmitDialog } from "@/components/changes/change-submit-dialog";
 import { SqlEditor } from "@/components/sql/sql-editor";
-import { useApp } from "@/app/app-provider";
+import { useAuth } from "@/app/auth-provider";
 import { useSchema } from "@/hooks/use-connection";
 import { useChanges, type ChangeKind } from "@/hooks/use-data";
 import { api, type Change } from "@/lib/api";
@@ -50,7 +50,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { can } = useApp();
+  const { can } = useAuth();
   const { approve, apply, reject, submit, schedule } = useChanges(kind);
   // the queues are paginated, so a detail page reads its change by id
   const [change, setChange] = useState<Change>();

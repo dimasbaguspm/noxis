@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ResultTable } from "@/components/sql/result-table";
-import { useApp } from "@/app/app-provider";
+import { useAuth } from "@/app/auth-provider";
 import { useAction } from "@/hooks/use-action";
 import { useMemcacheConnections, useMemcacheKeys, useMemcacheValue } from "@/hooks/use-memcache";
 import { api } from "@/lib/api";
@@ -39,7 +39,7 @@ interface Row {
 // emptying the database behind a typed confirmation. New instances are
 // registered from the dashboard, the single entry point.
 export default function MemcachePage() {
-  const { can } = useApp();
+  const { can } = useAuth();
   const { connections, connection, pick } = useMemcacheConnections();
   // removing keys and emptying the database are admin actions on the instance
   const mayAdmin = can(connection, "admin");

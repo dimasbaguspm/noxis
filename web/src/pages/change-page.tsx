@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApp } from "@/app/app-provider";
+import { useAuth } from "@/app/auth-provider";
 import { useDebounce } from "@/hooks/use-debounce";
 import { CreateChangeSheet } from "@/components/changes/create-change-sheet";
 import { ChangeTable } from "@/components/changes/change-table";
@@ -17,7 +18,8 @@ const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 // ChangePage is the shared DML/DDL queue: raise inline, filter by instance,
 // review the paginated single list.
 export function ChangePage({ kind }: { kind: ChangeKind }) {
-  const { can, registry } = useApp();
+  const { can } = useAuth();
+  const { registry } = useApp();
   const [filter, setFilter] = useState("");
   const query = useDebounce(filter.trim());
   const [page, setPage] = useState(1);
