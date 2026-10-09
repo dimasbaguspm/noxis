@@ -10,6 +10,8 @@ export interface SqlEditorProps {
   height?: string;
   tables?: Table[];
   placeholder?: string;
+  // onRun is bound to Ctrl/Cmd+Enter (monaco, and the loading fallback).
+  onRun?: () => void;
 }
 
 // SqlEditor is the console's SQL input: monaco (lazy-loaded, schema-aware
@@ -21,6 +23,7 @@ export function SqlEditor({
   height = "10rem",
   tables = [],
   placeholder,
+  onRun,
 }: SqlEditorProps) {
   return (
     <div className="overflow-hidden rounded-md border border-border" style={{ height }}>
@@ -31,6 +34,12 @@ export function SqlEditor({
             value={value}
             placeholder={placeholder}
             onChange={(e) => onChange?.(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                e.preventDefault();
+                onRun?.();
+              }
+            }}
             className="size-full resize-none bg-background p-2 font-mono text-xs outline-none"
           />
         }
@@ -43,6 +52,7 @@ export function SqlEditor({
           language="sql"
           tables={tables}
           placeholder={placeholder}
+          onRun={onRun}
         />
       </Suspense>
     </div>

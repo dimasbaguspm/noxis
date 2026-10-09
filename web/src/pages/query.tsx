@@ -98,6 +98,9 @@ export default function QueryPage() {
                     tables={tables}
                     height="100%"
                     placeholder="SELECT …"
+                    onRun={() => {
+                      if (!loading && connection) void execute(sql);
+                    }}
                   />
                   <div className="flex items-center gap-2">
                     <Button onClick={() => void execute(sql)} disabled={loading || !connection}>
