@@ -41,6 +41,10 @@ export function useChanges(kind?: ChangeKind, connection?: string) {
     await api.changes.reject(id);
     await reload();
   });
+  const schedule = useAction(async (id: string, scheduledAt: number) => {
+    await api.changes.schedule(id, scheduledAt);
+    await reload();
+  });
 
   // rows recorded before the server knew the kind fall back to the pure
   // classifier, so nothing disappears from both tabs
@@ -49,7 +53,7 @@ export function useChanges(kind?: ChangeKind, connection?: string) {
     return changes.filter((c) => (c.kind || classify(c.query ?? "")) === kind);
   }, [changes, kind]);
 
-  return { changes: visible, all: changes, total: changes.length, loading, reload, submit, approve, apply, reject };
+  return { changes: visible, all: changes, total: changes.length, loading, reload, submit, approve, apply, reject, schedule };
 }
 
 // useTableRows previews a table's rows for the active connection.

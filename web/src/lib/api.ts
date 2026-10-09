@@ -199,6 +199,8 @@ export const api = {
     approve: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/approve`)),
     apply: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/apply`)),
     reject: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/reject`)),
+    schedule: (id: string, scheduledAt: number) =>
+      request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/schedule`), { scheduledAt }),
   },
   // config is the server's console-facing configuration (hardcoded Go-side).
   config: {
