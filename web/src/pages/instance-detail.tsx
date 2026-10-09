@@ -11,9 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAction } from "@/hooks/use-action";
 import { useInstanceQuery, useRotatePasswordMutation } from "@/hooks/use-instances";
-import { useApp } from "@/app/app-provider";
 import { useAuth } from "@/app/auth-provider";
 import { api } from "@/lib/api";
+import { queryClient } from "@/lib/query-client";
 import { FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
 
@@ -24,7 +24,6 @@ export default function InstanceDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
-  const { reload } = useApp();
   const detail = useInstanceQuery(id);
   const instance = detail.data;
   const error = detail.error instanceof Error ? detail.error.message : undefined;
@@ -43,7 +42,7 @@ export default function InstanceDetailPage() {
     if (!family) return;
     await api.family(family).remove(name);
     toast.success(`deleted ${name}`);
-    await reload(family);
+    void queryClient.invalidateQueries({ queryKey: ["instances"] });
     navigate(PAGE_ROUTES.DASHBOARD);
   });
 

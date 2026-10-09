@@ -5,8 +5,9 @@ import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useApp } from "@/app/app-provider";
 import { useAuth } from "@/app/auth-provider";
+import { useConnections } from "@/hooks/use-connections";
+import { FAMILY } from "@/lib/families";
 import { useDebounce } from "@/hooks/use-debounce";
 import { CreateChangeSheet } from "@/components/changes/create-change-sheet";
 import { ChangeTable } from "@/components/changes/change-table";
@@ -19,7 +20,7 @@ const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 // review the paginated single list.
 export function ChangePage({ kind }: { kind: ChangeKind }) {
   const { can } = useAuth();
-  const { registry } = useApp();
+  const { connections: sqlConnections } = useConnections(FAMILY.SQL);
   const [filter, setFilter] = useState("");
   const query = useDebounce(filter.trim());
   const [page, setPage] = useState(1);
@@ -28,7 +29,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
   const label = kind.toUpperCase();
   // raising a change needs a write grant on some SQL instance; the form still
   // lets the server refuse a specific connection
-  const mayRaise = registry.sql.connections.some((c) => can(c.name, "write"));
+  const mayRaise = sqlConnections.some((c) => can(c.name, "write"));
 
   // a changed filter starts back at the first page
   useEffect(() => setPage(1), [query]);

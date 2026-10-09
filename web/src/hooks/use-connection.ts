@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
-import { api, type Table } from "@/lib/api";
-import { useFamily } from "@/app/app-provider";
+import { useConnections } from "@/hooks/use-connections";
 import { FAMILY } from "@/lib/families";
-import { useAction } from "@/hooks/use-action";
 
 // useConnectionSelection gives a page its own instance choice, seeded from
-// the provider's default (the last one anyone picked) or an explicit seed.
+// the shared active connection (the last one anyone picked) or an explicit
+// seed. The list comes from the cached instances query.
 export function useConnectionSelection(seed?: string) {
-  const { connections, active, setActive, busy } = useFamily(FAMILY.SQL);
+  const { connections, active, setActive, busy } = useConnections(FAMILY.SQL);
   const [connection, setConnection] = useState<string | undefined>(seed ?? active);
 
   useEffect(() => {
@@ -20,23 +19,4 @@ export function useConnectionSelection(seed?: string) {
   }
 
   return { connection, connections, busy, pick };
-}
-
-// useSchema loads the tables of one connection for a page.
-export function useSchema(connection?: string) {
-  const [tables, setTables] = useState<Table[]>([]);
-  const load = useAction(async (name: string) => {
-    const res = await api.connections.schema(name);
-    setTables(res.tables ?? []);
-  });
-
-  useEffect(() => {
-    if (!connection) {
-      setTables([]);
-      return;
-    }
-    void load.run(connection);
-  }, [connection, load.run]);
-
-  return { tables, loading: load.loading };
 }

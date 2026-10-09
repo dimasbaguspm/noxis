@@ -2,8 +2,8 @@ import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { AppProvider } from "@/app/app-provider";
 import { AuthProvider } from "@/app/auth-provider";
+import { ActiveProvider } from "@/hooks/use-connections";
 import { queryClient } from "@/lib/query-client";
 import { AppShell } from "@/components/layout/app-shell";
 import { Toaster } from "@/components/ui/sonner";
@@ -57,14 +57,14 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AppProvider>
-        <TooltipProvider>
+        <ActiveProvider>
+          <TooltipProvider>
         <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">loading…</div>}>
           <RouterProvider router={router} />
         </Suspense>
       </TooltipProvider>
           <Toaster position="bottom-right" />
-        </AppProvider>
+        </ActiveProvider>
       </AuthProvider>
     </QueryClientProvider>
   </StrictMode>,

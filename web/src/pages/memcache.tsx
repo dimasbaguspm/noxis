@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ResultTable } from "@/components/sql/result-table";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useAuth } from "@/app/auth-provider";
 import {
   useFlushMutation,
@@ -48,18 +49,12 @@ export default function MemcachePage() {
   // removing keys and emptying the database are admin actions on the instance
   const mayAdmin = can(connection, "admin");
   const [pattern, setPattern] = useState("*");
-  const [glob, setGlob] = useState("*");
+  const glob = useDebounce(pattern || "*", 300);
   const [selected, setSelected] = useState<string[]>([]);
   const [inspected, setInspected] = useState<string>();
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "name", desc: false });
   const [flushOpen, setFlushOpen] = useState(false);
   const [confirm, setConfirm] = useState("");
-
-  // debounce the pattern so typing does not scan on every keystroke
-  useEffect(() => {
-    const id = window.setTimeout(() => setGlob(pattern || "*"), 300);
-    return () => window.clearTimeout(id);
-  }, [pattern]);
 
   const { page, isFetching: loading, refetch: reloadKeys } = useMemcacheKeysQuery(connection, glob);
   const { result, isFetching: valueLoading } = useMemcacheValueQuery(connection, inspected);
