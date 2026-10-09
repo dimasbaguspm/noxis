@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { useApp } from "@/app/app-provider";
+import { useAuth } from "@/app/auth-provider";
 import { useAction } from "@/hooks/use-action";
 import { useConnectionSelection, useSchema } from "@/hooks/use-connection";
 import { useQuery } from "@/hooks/use-data";
@@ -19,7 +19,7 @@ import { Play } from "lucide-react";
 import { useState } from "react";
 
 export default function QueryPage() {
-  const { can, isAdmin } = useApp();
+  const { can, isAdmin } = useAuth();
   const { connection, connections, busy, pick } = useConnectionSelection();
   const { tables } = useSchema(connection);
   const tabs = useSqlTabs();

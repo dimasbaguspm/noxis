@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { useApp } from "@/app/app-provider";
+import { useAuth } from "@/app/auth-provider";
 import { useDebounce } from "@/hooks/use-debounce";
 import { api, type Connection } from "@/lib/api";
 import { familyByKey, type FamilyKey } from "@/lib/families";
@@ -31,7 +32,8 @@ const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 // DashboardPage filters through the instances API and pages the result, so the
 // server stays the source of truth for what the caller may see.
 export default function DashboardPage() {
-  const { isAdmin, drivers } = useApp();
+  const { isAdmin } = useAuth();
+  const { drivers } = useApp();
   const [instances, setInstances] = useState<Instance[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
