@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ExternalLink, KeyRound, Trash2, Zap } from "lucide-react";
+import { ArrowLeft, Database, ExternalLink, KeyRound, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -68,13 +69,16 @@ export default function InstanceDetailPage() {
   if (error) {
     return (
       <div className="flex flex-col gap-4">
-        <BackLink />
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Instance not found</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-        </Card>
+        <Empty
+          icon={Database}
+          title="Instance not found"
+          description={error}
+          action={
+            <Button size="sm" render={<Link to={PAGE_ROUTES.DASHBOARD} />}>
+              Back to Instances
+            </Button>
+          }
+        />
       </div>
     );
   }

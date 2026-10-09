@@ -5,6 +5,7 @@ import { ArrowLeft, CalendarClock, Check, CircleHelp, FileWarning, Loader2, Play
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Empty } from "@/components/ui/empty";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -274,48 +275,26 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
   );
 }
 
-// Unavailable is the state for an id that is not in the queue: explained,
-// with the way out, instead of a bare "not found".
+// Unavailable is the state for an id that is not in the queue: the shared
+// empty state, centered, with the way out.
 function Unavailable({ kind, id }: { kind: ChangeKind; id: string }) {
   const queue = kind === "ddl" ? PAGE_ROUTES.SQL.DDL : PAGE_ROUTES.SQL.DML;
   return (
-    <Card className="mx-auto max-w-2xl">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <FileWarning className="size-4 text-amber-500" />
-          Change {id.slice(0, 8)} is not available to review
-        </CardTitle>
-        <CardDescription>
-          The queue has no record with this id. Nothing is broken, this is usually one of these:
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
-          <li className="flex gap-2">
-            <span className="text-foreground">1.</span>
-            Validation failed when it was submitted, so it was never recorded. Failed proposals are
-            returned to the submitter with the reason and are not kept.
-          </li>
-          <li className="flex gap-2">
-            <span className="text-foreground">2.</span>
-            The link came from another browser or session. The queue is per noXis instance, not per user.
-          </li>
-          <li className="flex gap-2">
-            <span className="text-foreground">3.</span>
-            The change belongs to a different connection that has since been removed, which also removes
-            its changes.
-          </li>
-        </ul>
-        <div className="flex flex-wrap gap-2">
-          <Button render={<Link to={queue} />} size="sm">
+    <Empty
+      icon={FileWarning}
+      title={`Change ${id.slice(0, 8)} is not available`}
+      description="The queue has no record with this id. It may have failed validation, belong to a removed connection, or come from another session."
+      action={
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button size="sm" render={<Link to={queue} />}>
             Back to {kind.toUpperCase()} queue
           </Button>
-          <Button variant="outline" size="sm" render={<Link to={PAGE_ROUTES.SQL.QUERY} />}>
+          <Button size="sm" variant="outline" render={<Link to={PAGE_ROUTES.SQL.QUERY} />}>
             Go to Query
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      }
+    />
   );
 }
 
