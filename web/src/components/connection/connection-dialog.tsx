@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { BadgeCheck, Boxes, ChevronLeft, Database, Leaf, PlugZap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAction } from "@/hooks/use-action";
 import { useApp } from "@/app/app-provider";
 import { FAMILY, type FamilyKey } from "@/lib/families";
 import { api, type Connection } from "@/lib/api";
@@ -53,7 +53,8 @@ const defaultPort = (driver: string) => DRIVER_PORT[driver] ?? 5432;
 // ConnectionDialog registers an instance. Nothing is kept unless it answers:
 // the probe runs first, and a failed probe removes the registry entry it just
 // wrote. With `wizard` it starts one step earlier, on the family choice, so
-// the console has a single "new connection" entry point.
+// the console has a single "new connection" entry point. react-hook-form owns
+// the instance fields; the driver select writes the driver and its port.
 export function ConnectionDialog({
   trigger = "New connection",
   initial,
@@ -66,15 +67,30 @@ export function ConnectionDialog({
   wizard?: boolean;
 }) {
   const { reload, setActive, drivers } = useApp();
+  const { register, handleSubmit, watch, setValue, reset } = useForm<Connection>({
+    defaultValues: initial ?? BLANK[family],
+  });
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<FamilyKey>(family);
   const [step, setStep] = useState<1 | 2>(wizard && !initial ? 1 : 2);
-  const [form, setForm] = useState<Connection>(initial ?? BLANK[family]);
   const [verified, setVerified] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   const cache = kind === FAMILY.MEMCACHE;
   const mongo = kind === FAMILY.MONGODB;
   const client = api.family(kind);
+
+  // any edit makes a previous "verified" stale until the probe runs again
+  const field = (key: "name" | "host" | "port" | "user" | "password" | "database") => {
+    const r = register(key);
+    return {
+      ...r,
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+        void r.onChange(e);
+        setVerified(false);
+      },
+    };
+  };
 
   // Saving writes to the shared registry, so refresh the family: the dashboard
   // table reads it from the provider, and a new server must show up there
@@ -85,35 +101,38 @@ export function ConnectionDialog({
 
   function choose(next: FamilyKey) {
     setKind(next);
-    setForm(BLANK[next]);
+    reset(BLANK[next]);
     setVerified(false);
     setStep(2);
   }
 
-  const connect = useAction(async () => {
-    const saved = await client.save({ ...form, port: Number(form.port) || defaultPort(form.driver) });
-    const name = saved.name ?? "";
+  const onValid = handleSubmit(async (values) => {
+    const form: Connection = { ...values, port: Number(values.port) || defaultPort(values.driver) };
+    setBusy(true);
     try {
-      await client.test(name);
-    } catch (err) {
-      await client.remove(name).catch(() => undefined);
+      const saved = await client.save(form);
+      const name = saved.name ?? "";
+      try {
+        await client.test(name);
+      } catch (err) {
+        await client.remove(name).catch(() => undefined);
+        await refresh();
+        setVerified(false);
+        throw new Error(`connection refused — not saved: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      setVerified(true);
+      toast.success(`${name}: verified and saved`);
       await refresh();
-      setVerified(false);
-      throw new Error(`connection refused — not saved: ${err instanceof Error ? err.message : String(err)}`);
+      if (!cache) setActive(kind, name);
+      setOpen(false);
+      reset(BLANK[kind]);
+      setStep(wizard ? 1 : 2);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
     }
-    setVerified(true);
-    toast.success(`${name}: verified and saved`);
-    await refresh();
-    if (!cache) setActive(kind, name);
-    setOpen(false);
-    setForm(BLANK[kind]);
-    setStep(wizard ? 1 : 2);
   });
-
-  function update<K extends keyof Connection>(key: K, value: Connection[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    setVerified(false);
-  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -150,24 +169,28 @@ export function ConnectionDialog({
             />
           </div>
         ) : (
-          <>
+          <form onSubmit={onValid} className="grid gap-3">
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Name" value={form.name} onChange={(v) => update("name", v)} placeholder="prod-readonly" />
+              <div className="grid gap-1.5">
+                <Label>Name</Label>
+                <Input placeholder="prod-readonly" {...field("name")} />
+              </div>
               <div className="grid gap-1.5">
                 <Label>Driver</Label>
                 {mongo ? (
                   <Input value="mongo" readOnly disabled />
                 ) : (
                   <Select
-                    value={form.driver}
+                    value={watch("driver")}
                     onValueChange={(v) => {
                       const driver = String(v);
-                      setForm((prev) => ({ ...prev, driver, port: defaultPort(driver) }));
+                      setValue("driver", driver);
+                      setValue("port", defaultPort(driver));
                       setVerified(false);
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="pick a driver" />
                     </SelectTrigger>
                     <SelectContent>
                       {drivers
@@ -181,37 +204,39 @@ export function ConnectionDialog({
                   </Select>
                 )}
               </div>
-              <Field
-                label="Host"
-                value={form.host}
-                onChange={(v) => update("host", v)}
-                placeholder={cache ? "cache.internal" : mongo ? "mongo.internal" : "db.internal"}
-              />
-              <Field
-                label="Port"
-                value={String(form.port)}
-                onChange={(v) => update("port", Number(v))}
-                type="number"
-              />
-              <Field
-                label={cache ? "User (ACL, optional)" : "User"}
-                value={form.user ?? ""}
-                onChange={(v) => update("user", v)}
-                placeholder={cache ? "default" : mongo ? "root" : "postgres"}
-              />
-              <Field
-                label="Password"
-                value={form.password ?? ""}
-                onChange={(v) => update("password", v)}
-                type="password"
-                placeholder={initial ? "unchanged" : ""}
-              />
-              <Field
-                label={cache ? "DB index" : mongo ? "Database (auth)" : "Database"}
-                value={form.database}
-                onChange={(v) => update("database", v)}
-                placeholder={cache ? "0" : mongo ? "admin" : "app"}
-              />
+              <div className="grid gap-1.5">
+                <Label>Host</Label>
+                <Input
+                  placeholder={cache ? "cache.internal" : mongo ? "mongo.internal" : "db.internal"}
+                  {...field("host")}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Port</Label>
+                <Input type="number" {...field("port")} />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>{cache ? "User (ACL, optional)" : "User"}</Label>
+                <Input
+                  placeholder={cache ? "default" : mongo ? "root" : "postgres"}
+                  {...field("user")}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Password</Label>
+                <Input
+                  type="password"
+                  placeholder={initial ? "unchanged" : ""}
+                  {...field("password")}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>{cache ? "DB index" : mongo ? "Database (auth)" : "Database"}</Label>
+                <Input
+                  placeholder={cache ? "0" : mongo ? "admin" : "app"}
+                  {...field("database")}
+                />
+              </div>
             </div>
 
             <p className="text-xs text-muted-foreground">
@@ -229,11 +254,11 @@ export function ConnectionDialog({
                   <BadgeCheck className="size-3.5" /> verified
                 </span>
               )}
-              <Button onClick={() => void connect.run()} disabled={connect.loading}>
+              <Button type="submit" disabled={busy}>
                 <PlugZap /> Save
               </Button>
             </DialogFooter>
-          </>
+          </form>
         )}
       </DialogContent>
     </Dialog>
@@ -265,26 +290,5 @@ function Choice({
         <span className="text-xs text-muted-foreground">{detail}</span>
       </span>
     </button>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  type = "text",
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  placeholder?: string;
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <Label>{label}</Label>
-      <Input value={value} type={type} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
-    </div>
   );
 }
