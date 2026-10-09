@@ -60,8 +60,7 @@ type world struct {
 	database       mongoDatabase   // the mongo database a scenario picked out
 	collection     mongoCollection // the mongo collection a scenario picked out
 	mongoQueueSize int
-	ticked         tickBody  // the last /internal/tick result
-	batch          batchBody // the last batch submit result
+	ticked         tickBody // the last /internal/tick result
 }
 
 // tickBody is the /internal/tick response shape.
@@ -70,18 +69,6 @@ type tickBody struct {
 	Failed  []string `json:"failed"`
 }
 
-// batchBody is the POST /v1/engine/sql/changes/batch response shape.
-type batchBody struct {
-	BatchID string          `json:"batchId"`
-	Results []batchFileBody `json:"results"`
-}
-
-type batchFileBody struct {
-	Name   string     `json:"name"`
-	OK     bool       `json:"ok"`
-	Error  string     `json:"error"`
-	Change changeBody `json:"change"`
-}
 
 // redisSeed runs the CLI inside a compose key-value service: the scenarios
 // need keys to browse, and noxis has no endpoint that writes one. The service

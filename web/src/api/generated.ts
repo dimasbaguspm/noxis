@@ -270,61 +270,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/changes/batch": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Submit a batch of .sql files as changes sharing a batch id */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description engine family (sql) */
-                    engine: string;
-                };
-                cookie?: never;
-            };
-            /** @description connection, notes and one file per statement */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["controller.batchRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["controller.batchResult"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/engine/{engine}/changes/{id}": {
         parameters: {
             query?: never;
@@ -2162,26 +2107,6 @@ export interface components {
             applied?: string[];
             failed?: string[];
         };
-        "controller.batchFile": {
-            name?: string;
-            query?: string;
-            rollback?: string;
-        };
-        "controller.batchFileResult": {
-            change?: components["schemas"]["entity.Change"];
-            error?: string;
-            name?: string;
-            ok?: boolean;
-        };
-        "controller.batchRequest": {
-            connection?: string;
-            files?: components["schemas"]["controller.batchFile"][];
-            notes?: string;
-        };
-        "controller.batchResult": {
-            batchId?: string;
-            results?: components["schemas"]["controller.batchFileResult"][];
-        };
         "controller.grantBody": {
             group?: string;
             level?: string;
@@ -2211,11 +2136,6 @@ export interface components {
             appliedAt?: number;
             appliedDurationMs?: number;
             approvedAt?: number;
-            /**
-             * @description BatchID groups the changes raised together from one multi-file upload;
-             *     empty for a change raised on its own.
-             */
-            batchId?: string;
             checks?: components["schemas"]["entity.ChangeCheck"][];
             connection: string;
             createdAt?: number;
