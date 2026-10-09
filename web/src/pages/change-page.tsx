@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { title } from "radash";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/app/app-provider";
+import { useDebounce } from "@/hooks/use-debounce";
 import { ChangeWizard } from "@/components/changes/change-wizard";
 import { BatchChangeDialog } from "@/components/changes/batch-change-dialog";
 import { ChangeTable } from "@/components/changes/change-table";
@@ -17,15 +18,9 @@ import { useChanges, type ChangeKind } from "@/hooks/use-data";
 export function ChangePage({ kind }: { kind: ChangeKind }) {
   const { can, registry } = useApp();
   const [filter, setFilter] = useState("");
-  const [query, setQuery] = useState("");
+  const query = useDebounce(filter.trim());
   const { changes, all, submit, reload } = useChanges(kind, query || undefined);
   const label = kind.toUpperCase();
-
-  // debounce the name filter so typing issues one request, not one per key
-  useEffect(() => {
-    const handle = setTimeout(() => setQuery(filter.trim()), 200);
-    return () => clearTimeout(handle);
-  }, [filter]);
   // raising a change needs a write grant on some SQL instance; the wizard
   // still lets the server refuse a specific connection
   const mayRaise = registry.sql.connections.some((c) => can(c.name, "write"));
