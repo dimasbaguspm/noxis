@@ -1936,6 +1936,10 @@ export interface paths {
                     driver?: string;
                     /** @description substring match on host */
                     host?: string;
+                    /** @description page number, starting at 1 */
+                    page?: number;
+                    /** @description items per page (default 20, max 100) */
+                    perPage?: number;
                 };
                 header?: never;
                 path?: never;
@@ -1951,6 +1955,7 @@ export interface paths {
                     content: {
                         "*/*": {
                             instances?: components["schemas"]["entity.Connection"][];
+                            total?: number;
                         };
                     };
                 };

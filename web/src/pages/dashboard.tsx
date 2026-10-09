@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { title } from "radash";
-import { Search } from "lucide-react";
+import { Boxes, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
+import { Pagination } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { useApp } from "@/app/app-provider";
@@ -22,16 +25,22 @@ interface Instance extends Connection {
 }
 
 const ALL_DRIVERS = "all";
+const PER_PAGE = 20;
 
-// DashboardPage filters through the instances API, not in the browser, so the
+// DashboardPage filters through the instances API and pages the result, so the
 // server stays the source of truth for what the caller may see.
 export default function DashboardPage() {
   const { isAdmin, drivers } = useApp();
   const [instances, setInstances] = useState<Instance[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const [driver, setDriver] = useState(ALL_DRIVERS);
+  const [page, setPage] = useState(1);
   const query = useDebounce(filter);
+
+  // a changed filter starts back at the first page
+  useEffect(() => setPage(1), [query, driver]);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,13 +49,19 @@ export default function DashboardPage() {
       .list({
         name: query.trim() || undefined,
         driver: driver === ALL_DRIVERS ? undefined : driver,
+        page,
+        perPage: PER_PAGE,
       })
       .then((res) => {
         if (cancelled) return;
         setInstances((res.instances ?? []).map((c) => ({ ...c, family: c.family as FamilyKey })));
+        setTotal(res.total ?? 0);
       })
       .catch(() => {
-        if (!cancelled) setInstances([]);
+        if (!cancelled) {
+          setInstances([]);
+          setTotal(0);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -54,7 +69,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [query, driver]);
+  }, [query, driver, page]);
 
   const filtering = filter.trim() !== "" || driver !== ALL_DRIVERS;
 
@@ -66,7 +81,7 @@ export default function DashboardPage() {
             <div>
               <CardTitle className="text-base">Instances</CardTitle>
               <CardDescription>
-                {loading ? "loading…" : filtering ? `${instances.length} shown` : `${instances.length} registered`}
+                {loading ? "loading…" : filtering ? `${total} shown` : `${total} registered`}
               </CardDescription>
             </div>
             {isAdmin && <ConnectionDialog trigger="New connection" wizard />}
@@ -97,46 +112,59 @@ export default function DashboardPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {instances.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {loading ? "loading…" : filtering ? "no match" : "none registered yet"}
-            </p>
-          ) : (
-            <div className="rounded-md border border-border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{title("name")}</TableHead>
-                    <TableHead>{title("driver")}</TableHead>
-                    <TableHead className="w-[110px]">{title("action")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {instances.map((c) => (
-                    <TableRow key={`${c.family}:${c.name}`}>
-                      <TableCell>
-                        <span className="flex items-center gap-2 text-sm">
-                          <FamilyIcon family={c.family} className="size-3.5 text-muted-foreground" />
-                          {c.name}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{c.driver}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {c.id ? (
-                          <Button size="xs" variant="outline" render={<Link to={PAGE_ROUTES.INSTANCE_DETAIL(c.id)} />}>
-                            Detail
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+          {loading ? (
+            <div className="flex flex-col gap-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-11 w-full" />
+              ))}
             </div>
+          ) : total === 0 ? (
+            <Empty
+              icon={Boxes}
+              title={filtering ? "no match" : "none registered yet"}
+              description={filtering ? "try another name or driver" : "register an instance to see it here"}
+            />
+          ) : (
+            <>
+              <div className="rounded-md border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{title("name")}</TableHead>
+                      <TableHead>{title("driver")}</TableHead>
+                      <TableHead className="w-[110px]">{title("action")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {instances.map((c) => (
+                      <TableRow key={`${c.family}:${c.name}`}>
+                        <TableCell>
+                          <span className="flex items-center gap-2 text-sm">
+                            <FamilyIcon family={c.family} className="size-3.5 text-muted-foreground" />
+                            {c.name}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{c.driver}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {c.id ? (
+                            <Button size="xs" variant="outline" render={<Link to={PAGE_ROUTES.INSTANCE_DETAIL(c.id)} />}>
+                              Detail
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {total > PER_PAGE && (
+                <Pagination page={page} perPage={PER_PAGE} total={total} onChange={setPage} className="mt-4" />
+              )}
+            </>
           )}
         </CardContent>
       </Card>

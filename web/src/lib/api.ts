@@ -35,6 +35,8 @@ export interface InstanceQuery {
   name?: string;
   driver?: string;
   host?: string;
+  page?: number;
+  perPage?: number;
 }
 
 export interface Column {
@@ -126,8 +128,10 @@ export const api = {
       if (query.name) params.set("name", query.name);
       if (query.driver) params.set("driver", query.driver);
       if (query.host) params.set("host", query.host);
+      if (query.page && query.page > 1) params.set("page", String(query.page));
+      if (query.perPage) params.set("perPage", String(query.perPage));
       const qs = params.toString();
-      return request<{ instances: Connection[] }>("GET", `/v1/instances${qs ? `?${qs}` : ""}`);
+      return request<{ instances: Connection[]; total: number }>("GET", `/v1/instances${qs ? `?${qs}` : ""}`);
     },
     get: (id: string) => request<Connection>("GET", `/v1/instances/${encodeURIComponent(id)}`),
     rotatePassword: (id: string, password: string) =>
