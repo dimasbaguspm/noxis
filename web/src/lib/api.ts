@@ -189,7 +189,11 @@ export const api = {
     },
   },
   changes: {
-    list: () => request<{ changes: Change[] }>("GET", v1(FAMILY.SQL, "changes")),
+    list: (connection?: string) =>
+      request<{ changes: Change[] }>(
+        "GET",
+        v1(FAMILY.SQL, "changes") + (connection ? `?connection=${encodeURIComponent(connection)}` : ""),
+      ),
     submit: (input: ChangeInput) => request<Change>("POST", v1(FAMILY.SQL, "changes"), input),
     submitBatch: (input: BatchInput) => request<BatchResult>("POST", v1(FAMILY.SQL, "changes/batch"), input),
     approve: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/approve`)),

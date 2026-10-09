@@ -170,7 +170,10 @@ export interface paths {
         /** List proposed changes for an engine (newest first) */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description substring match on connection name */
+                    connection?: string;
+                };
                 header?: never;
                 path: {
                     /** @description engine family (sql, mongodb) */

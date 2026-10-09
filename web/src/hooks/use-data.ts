@@ -5,20 +5,20 @@ import { classify } from "@/lib/statements";
 
 export type ChangeKind = "dml" | "ddl";
 
-// useChanges lists changes (optionally filtered by kind) and exposes the
-// workflow actions, reloading the list after each one.
-export function useChanges(kind?: ChangeKind) {
+// useChanges lists changes (optionally filtered by kind and by connection
+// name) and exposes the workflow actions, reloading the list after each one.
+export function useChanges(kind?: ChangeKind, connection?: string) {
   const [changes, setChanges] = useState<Change[]>([]);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
     try {
-      const { changes: list } = await api.changes.list();
+      const { changes: list } = await api.changes.list(connection);
       setChanges(list ?? []);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [connection]);
 
   useEffect(() => {
     void reload();

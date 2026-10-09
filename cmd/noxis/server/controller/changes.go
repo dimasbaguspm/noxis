@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"noxis/internal/common/idgen"
@@ -192,6 +193,7 @@ func (d Deps) sqlChange(ctx context.Context, id string) (*entity.Change, error) 
 
 // @Summary List proposed changes for an engine (newest first)
 // @Param engine path string true "engine family (sql, mongodb)"
+// @Param connection query string false "substring match on connection name"
 // @Success 200 {object} object{changes=[]entity.Change}
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/changes [get]
@@ -201,16 +203,36 @@ func ListChanges(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, err
 		}
+		var changes []entity.Change
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			changes, err := d.sqlChanges(ctx)
-			return map[string]any{"changes": changes}, err
+			changes, err = d.sqlChanges(ctx)
 		case interfaces.MongoModule:
-			changes, err := d.mongoChanges(ctx)
-			return map[string]any{"changes": changes}, err
+			changes, err = d.mongoChanges(ctx)
+		default:
+			return nil, unsupported(mod, "changes")
 		}
-		return nil, unsupported(mod, "changes")
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{"changes": filterByConnection(changes, r.URL.Query().Get("connection"))}, nil
 	})
+}
+
+// filterByConnection keeps the changes whose connection name contains the
+// case-insensitive needle; an empty needle keeps everything.
+func filterByConnection(changes []entity.Change, needle string) []entity.Change {
+	needle = strings.TrimSpace(strings.ToLower(needle))
+	if needle == "" {
+		return changes
+	}
+	out := make([]entity.Change, 0, len(changes))
+	for i := range changes {
+		if strings.Contains(strings.ToLower(changes[i].Connection), needle) {
+			out = append(out, changes[i])
+		}
+	}
+	return out
 }
 
 // @Summary Submit a change (validates before recording)
