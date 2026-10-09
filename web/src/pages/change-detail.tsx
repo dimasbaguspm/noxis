@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { title } from "radash";
 import { ArrowLeft, CalendarClock, Check, CircleHelp, FileWarning, Loader2, Play, Undo2 } from "lucide-react";
+import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,6 +106,21 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
           </Button>
         )}
       </div>
+
+      {change.scheduledAt && change.scheduledAt > Math.floor(Date.now() / 1000) ? (
+        <Alert variant="warning" title="Scheduled">
+          The scheduler will apply this change at{" "}
+          {new Date(change.scheduledAt * 1000).toLocaleString()}. Apply stays refused until then.
+        </Alert>
+      ) : change.status === "failed" ? (
+        <Alert variant="destructive" title="Apply failed">
+          The last apply attempt failed and was recorded on this change.
+        </Alert>
+      ) : change.status === "approved" ? (
+        <Alert variant="success" title="Approved">
+          Ready to apply now, or schedule it for later.
+        </Alert>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-4">
@@ -237,7 +253,7 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
               setOpen(true);
             }}
           >
-            Schedule it…
+            Schedule it
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

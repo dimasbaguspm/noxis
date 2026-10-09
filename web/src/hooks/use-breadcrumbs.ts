@@ -29,6 +29,14 @@ export function useBreadcrumbs(): Crumb[] {
   if (group) crumbs.push({ label: group });
   if (item) crumbs.push({ label: item.label, to: direct.item ? undefined : target });
   else crumbs.push({ label: segments.at(-1) ?? "" });
-  if (!direct.item && id) crumbs.push({ label: id.slice(0, 8) });
+  if (!direct.item && id) {
+    // a detail page gets its section name instead of the raw id hash
+    const leaf =
+      segments[1] === "sql" && segments[2] === "dml" ? "DML Detail" :
+      segments[1] === "sql" && segments[2] === "ddl" ? "DDL Detail" :
+      segments[1] === "mongodb" && segments[2] === "requests" ? "Request Detail" :
+      id.slice(0, 8);
+    crumbs.push({ label: leaf });
+  }
   return crumbs;
 }
