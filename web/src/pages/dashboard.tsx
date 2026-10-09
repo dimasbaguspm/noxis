@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { useApp } from "@/app/app-provider";
+import { useDebounce } from "@/hooks/use-debounce";
 import { api, type Connection } from "@/lib/api";
 import { familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
@@ -30,33 +31,30 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const [driver, setDriver] = useState(ALL_DRIVERS);
+  const query = useDebounce(filter);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    // debounce the input so a fast typist issues one request, not one per key
-    const handle = setTimeout(() => {
-      api.instances
-        .list({
-          name: filter.trim() || undefined,
-          driver: driver === ALL_DRIVERS ? undefined : driver,
-        })
-        .then((res) => {
-          if (cancelled) return;
-          setInstances((res.instances ?? []).map((c) => ({ ...c, family: c.family as FamilyKey })));
-        })
-        .catch(() => {
-          if (!cancelled) setInstances([]);
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
-    }, 200);
+    api.instances
+      .list({
+        name: query.trim() || undefined,
+        driver: driver === ALL_DRIVERS ? undefined : driver,
+      })
+      .then((res) => {
+        if (cancelled) return;
+        setInstances((res.instances ?? []).map((c) => ({ ...c, family: c.family as FamilyKey })));
+      })
+      .catch(() => {
+        if (!cancelled) setInstances([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
-      clearTimeout(handle);
     };
-  }, [filter, driver]);
+  }, [query, driver]);
 
   const filtering = filter.trim() !== "" || driver !== ALL_DRIVERS;
 
