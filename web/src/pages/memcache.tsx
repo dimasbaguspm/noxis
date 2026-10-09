@@ -18,9 +18,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ResultTable } from "@/components/sql/result-table";
 import { useAuth } from "@/app/auth-provider";
-import { useAction } from "@/hooks/use-action";
-import { useMemcacheConnections, useMemcacheKeys, useMemcacheValue } from "@/hooks/use-memcache";
-import { api } from "@/lib/api";
+import {
+  useFlushMutation,
+  useMemcacheConnections,
+  useMemcacheKeysQuery,
+  useMemcacheValueQuery,
+  useRemoveKeysMutation,
+} from "@/hooks/use-memcache";
 import { cn } from "@/lib/utils";
 
 type SortKey = "name" | "type" | "ttl" | "size";
@@ -57,8 +61,8 @@ export default function MemcachePage() {
     return () => window.clearTimeout(id);
   }, [pattern]);
 
-  const { page, loading, reload: reloadKeys } = useMemcacheKeys(connection, glob);
-  const { result, loading: valueLoading } = useMemcacheValue(connection, inspected);
+  const { page, isFetching: loading, refetch: reloadKeys } = useMemcacheKeysQuery(connection, glob);
+  const { result, isFetching: valueLoading } = useMemcacheValueQuery(connection, inspected);
 
   useEffect(() => {
     setSelected([]);
@@ -82,25 +86,25 @@ export default function MemcachePage() {
     });
   }, [page.keys, sort]);
 
-  const removeKeys = useAction(async () => {
+  const removeKeys = useRemoveKeysMutation();
+  const onRemoveKeys = async () => {
     if (!connection || selected.length === 0) return;
-    const res = await api.memcache.removeKeys(connection, selected);
+    const res = await removeKeys.mutateAsync({ connection, keys: selected });
     toast.success(`${res.deleted} key(s) removed`);
     setSelected([]);
     if (inspected && selected.includes(inspected)) setInspected(undefined);
-    reloadKeys();
-  });
+  };
 
-  const flush = useAction(async () => {
+  const flush = useFlushMutation();
+  const onFlush = async () => {
     if (!connection) return;
-    await api.memcache.flush(connection);
+    await flush.mutateAsync(connection);
     toast.success(`${connection}: database emptied`);
     setFlushOpen(false);
     setConfirm("");
     setSelected([]);
     setInspected(undefined);
-    reloadKeys();
-  });
+  };
 
   function toggle(key: string) {
     setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
@@ -144,7 +148,7 @@ export default function MemcachePage() {
             className="w-64"
           />
         </div>
-        <Button variant="outline" size="sm" onClick={reloadKeys} disabled={loading || !connection}>
+        <Button variant="outline" size="sm" onClick={() => void reloadKeys()} disabled={loading || !connection}>
           <RefreshCw className={cn(loading && "animate-spin")} /> Refresh
         </Button>
         <Badge variant="outline">{page.total} key(s) in db</Badge>
@@ -171,8 +175,8 @@ export default function MemcachePage() {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={selected.length === 0 || removeKeys.loading}
-                onClick={() => void removeKeys.run()}
+                disabled={selected.length === 0 || removeKeys.isPending}
+                onClick={() => void onRemoveKeys()}
               >
                 <Trash2 /> Remove selected
               </Button>
@@ -271,8 +275,8 @@ export default function MemcachePage() {
           <DialogFooter>
             <Button
               variant="destructive"
-              disabled={confirm !== connection || flush.loading}
-              onClick={() => void flush.run()}
+              disabled={confirm !== connection || flush.isPending}
+              onClick={() => void onFlush()}
             >
               <Eraser /> Empty database
             </Button>

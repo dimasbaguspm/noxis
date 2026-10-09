@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { JsonEditor } from "@/components/sql/json-editor";
 import { ResultTable } from "@/components/sql/result-table";
 import { JsonTree } from "@/components/mongodb/json-tree";
-import { useMongoCollections, useMongoConnections, useMongoDatabases, useMongoRead } from "@/hooks/use-mongodb";
+import { useMongoCollectionsQuery, useMongoConnections, useMongoDatabasesQuery, useMongoRunMutation } from "@/hooks/use-mongodb";
 import { bytes, compact } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,7 @@ type View = "json" | "raw" | "tree";
 // and the documents render as JSON, as a grid or as a tree.
 export default function MongoExplorePage() {
   const { connections, connection, pick } = useMongoConnections();
-  const { databases, loading: loadingDbs, reload: reloadDbs } = useMongoDatabases(connection);
+  const { databases, isFetching: loadingDbs, refetch: reloadDbs } = useMongoDatabasesQuery(connection);
   const [database, setDatabase] = useState<string>();
   const [filter, setFilter] = useState("");
   const [collection, setCollection] = useState<string>();
@@ -31,8 +31,8 @@ export default function MongoExplorePage() {
     if (!database && databases.length > 0) setDatabase(databases[0]?.name);
   }, [database, databases]);
 
-  const { collections, loading: loadingColls, reload: reloadColls } = useMongoCollections(connection, database);
-  const read = useMongoRead();
+  const { collections, isFetching: loadingColls, refetch: reloadColls } = useMongoCollectionsQuery(connection, database);
+  const read = useMongoRunMutation();
 
   // a new collection starts from an empty filter: reads run straight away
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function MongoExplorePage() {
     : collections;
 
   const selected = collections.find((c) => c.name === collection);
-  const documents = (read.result?.documents ?? []).map((doc) => {
+  const documents = (read.data?.documents ?? []).map((doc) => {
     try {
       return JSON.parse(doc) as unknown;
     } catch {
@@ -57,13 +57,7 @@ export default function MongoExplorePage() {
 
   function query() {
     if (!connection || !database || !collection) return;
-    void read.run.run(connection, {
-      op: "find",
-      database,
-      collection,
-      filter,
-      limit: 50,
-    });
+    read.mutate({ connection, body: { op: "find", database, collection, filter, limit: 50 } });
   }
 
   return (
@@ -248,20 +242,20 @@ export default function MongoExplorePage() {
                     value={filter.startsWith("{") ? filter : "{}"}
                     onChange={setFilter}
                     height="6rem"
-                    fields={read.result?.columns ?? []}
+                    fields={read.data?.columns ?? []}
                     placeholder="{}"
                   />
                 </div>
-                <Button onClick={query} disabled={read.loading || !collection} className="mt-1">
+                <Button onClick={query} disabled={read.isPending || !collection} className="mt-1">
                   <Play /> Run
                 </Button>
               </div>
 
               <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border">
-                {!read.result ? (
+                {!read.data ? (
                   <p className="p-3 text-sm text-muted-foreground">no documents loaded yet</p>
                 ) : view === "raw" ? (
-                  <ResultTable result={read.result} title={`${database}.${collection}`} />
+                  <ResultTable result={read.data} title={`${database}.${collection}`} />
                 ) : view === "json" ? (
                   <pre className="p-3 font-mono text-xs whitespace-pre-wrap">
                     {JSON.stringify(documents, null, 2)}
@@ -273,9 +267,9 @@ export default function MongoExplorePage() {
                 )}
               </div>
 
-              {read.result && (
+              {read.data && (
                 <p className="text-xs text-muted-foreground">
-                  {read.result.message} · {read.result.durationMs ?? 0} ms
+                  {read.data.message} · {read.data.durationMs ?? 0} ms
                 </p>
               )}
             </CardContent>

@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useApp } from "@/app/app-provider";
 import { useAuth } from "@/app/auth-provider";
-import { useMongoChanges, useMongoConnections } from "@/hooks/use-mongodb";
+import { useMongoChangesListQuery, useMongoConnections } from "@/hooks/use-mongodb";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +17,7 @@ export default function MongoRequestsPage() {
   const { can } = useAuth();
   const { registry } = useApp();
   const { connections } = useMongoConnections();
-  const { changes, loading, reload } = useMongoChanges();
+  const { changes, isFetching: loading, refetch: reload } = useMongoChangesListQuery();
   const mayWrite = registry.mongodb.connections.some((c) => can(c.name, "write"));
 
   return (
@@ -29,7 +29,7 @@ export default function MongoRequestsPage() {
             : "writes are validated on a scratch collection, then reviewed here"}
         </span>
         <span className="flex-1" />
-        <Button variant="outline" size="sm" onClick={reload} disabled={loading}>
+        <Button variant="outline" size="sm" onClick={() => void reload()} disabled={loading}>
           <RefreshCw className={cn(loading && "animate-spin")} /> Refresh
         </Button>
         {mayWrite && (
