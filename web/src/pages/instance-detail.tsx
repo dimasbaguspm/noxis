@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Database, ExternalLink, KeyRound, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAction } from "@/hooks/use-action";
+import { useInstanceQuery, useRotatePasswordMutation } from "@/hooks/use-instances";
 import { useApp } from "@/app/app-provider";
 import { useAuth } from "@/app/auth-provider";
-import { api, type Connection } from "@/lib/api";
+import { api } from "@/lib/api";
 import { FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
 
@@ -24,26 +25,10 @@ export default function InstanceDetailPage() {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { reload } = useApp();
-  const [instance, setInstance] = useState<Connection>();
+  const detail = useInstanceQuery(id);
+  const instance = detail.data;
+  const error = detail.error instanceof Error ? detail.error.message : undefined;
   const [newPassword, setNewPassword] = useState("");
-  const [error, setError] = useState<string>();
-
-  useEffect(() => {
-    let cancelled = false;
-    setInstance(undefined);
-    setError(undefined);
-    api.instances
-      .get(id)
-      .then((c) => {
-        if (!cancelled) setInstance(c);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
 
   const family = instance?.family as FamilyKey | undefined;
   const name = instance?.name ?? "";
@@ -62,11 +47,7 @@ export default function InstanceDetailPage() {
     navigate(PAGE_ROUTES.DASHBOARD);
   });
 
-  const rotate = useAction(async () => {
-    await api.instances.rotatePassword(id, newPassword);
-    setNewPassword("");
-    toast.success("password rotated");
-  });
+  const rotate = useRotatePasswordMutation();
 
   if (error) {
     return (
@@ -181,8 +162,12 @@ export default function InstanceDetailPage() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => void rotate.run()}
-                disabled={rotate.loading || newPassword === ""}
+                onClick={() => {
+                  rotate.mutate({ id, password: newPassword });
+                  setNewPassword("");
+                  toast.success("password rotated");
+                }}
+                disabled={rotate.isPending || newPassword === ""}
               >
                 <KeyRound /> Rotate
               </Button>

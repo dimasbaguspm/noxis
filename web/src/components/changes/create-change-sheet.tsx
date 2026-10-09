@@ -11,7 +11,8 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { SqlEditor } from "@/components/sql/sql-editor";
 import { SqlFileInput } from "@/components/changes/sql-file-input";
-import { useConnectionSelection, useSchema } from "@/hooks/use-connection";
+import { useConnectionSelection } from "@/hooks/use-connection";
+import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { classify } from "@/lib/statements";
 
 type Choice = { connection: string; notes: string; query: string; rollback: string };
@@ -31,7 +32,7 @@ export function CreateChangeSheet({
   onSubmit: (input: Choice) => Promise<Outcome>;
 }) {
   const { connection, pick } = useConnectionSelection();
-  const { tables } = useSchema(connection);
+  const { data: tables } = useConnectionSchemaQuery(connection);
   const {
     register,
     handleSubmit,
