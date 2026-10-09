@@ -99,7 +99,9 @@ type fakeSQL struct {
 	writeErr    error
 }
 
-func (f *fakeSQL) Supports(string) bool { return true }
+func (f *fakeSQL) Supports(driver string) bool {
+	return driver == constants.DriverPostgres || driver == constants.DriverMySQL
+}
 
 func (f *fakeSQL) Family() string { return constants.FamilySQL }
 

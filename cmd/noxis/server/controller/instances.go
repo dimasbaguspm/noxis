@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -37,6 +38,46 @@ func (d Deps) instance(ctx context.Context, id string) (out entity.Connection, e
 	return c.Redacted(), nil
 }
 
+// instances lists every readable instance across families. Filters are
+// optional: name and host match as substrings, driver matches exactly.
+func (d Deps) instances(ctx context.Context, name, driver, host string) (out []entity.Connection, err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
+	list, err := d.Connections.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	needle := strings.ToLower(name)
+	hostNeedle := strings.ToLower(host)
+	out = make([]entity.Connection, 0, len(list))
+	for i := range list {
+		c := &list[i]
+		mod, ok := d.moduleByDriver(c.Driver)
+		if !ok {
+			continue
+		}
+		if needle != "" && !strings.Contains(strings.ToLower(c.Name), needle) {
+			continue
+		}
+		if driver != "" && !strings.EqualFold(c.Driver, driver) {
+			continue
+		}
+		if hostNeedle != "" && !strings.Contains(strings.ToLower(c.Host), hostNeedle) {
+			continue
+		}
+		readable, err := d.canRead(ctx, c.Name)
+		if err != nil {
+			return nil, err
+		}
+		if !readable {
+			continue
+		}
+		c.Family = mod.Family()
+		out = append(out, c.Redacted())
+	}
+	return out, nil
+}
+
 // instanceChanges lists the changes raised for one instance. Grouping by kind
 // and status is a console concern.
 func (d Deps) instanceChanges(ctx context.Context, id string) (out []entity.Change, err error) {
@@ -55,6 +96,20 @@ func (d Deps) instanceChanges(ctx context.Context, id string) (out []entity.Chan
 		}
 	}
 	return out, nil
+}
+
+// @Summary List instances across engine families (passwords redacted)
+// @Param name query string false "substring match on name"
+// @Param driver query string false "exact driver match"
+// @Param host query string false "substring match on host"
+// @Success 200 {object} object{instances=[]entity.Connection}
+// @Router /v1/instances [get]
+func ListInstances(w http.ResponseWriter, r *http.Request) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
+		q := r.URL.Query()
+		instances, err := d.instances(ctx, q.Get("name"), q.Get("driver"), q.Get("host"))
+		return map[string]any{"instances": instances}, err
+	})
 }
 
 // @Summary Get one instance across engine families (password redacted)

@@ -39,6 +39,17 @@ const BLANK: Record<FamilyKey, Connection> = {
   [FAMILY.MONGODB]: MONGO_EMPTY,
 };
 
+// port follows the driver; the list itself comes from the server catalog.
+const DRIVER_PORT: Record<string, number> = {
+  postgres: 5432,
+  mysql: 3306,
+  redis: 6379,
+  valkey: 6379,
+  mongo: 27017,
+};
+
+const defaultPort = (driver: string) => DRIVER_PORT[driver] ?? 5432;
+
 // ConnectionDialog registers an instance. Nothing is kept unless it answers:
 // the probe runs first, and a failed probe removes the registry entry it just
 // wrote. With `wizard` it starts one step earlier, on the family choice, so
@@ -54,7 +65,7 @@ export function ConnectionDialog({
   family?: FamilyKey;
   wizard?: boolean;
 }) {
-  const { reload, setActive } = useApp();
+  const { reload, setActive, drivers } = useApp();
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<FamilyKey>(family);
   const [step, setStep] = useState<1 | 2>(wizard && !initial ? 1 : 2);
@@ -80,8 +91,7 @@ export function ConnectionDialog({
   }
 
   const connect = useAction(async () => {
-    const fallback = cache ? 6379 : mongo ? 27017 : 5432;
-    const saved = await client.save({ ...form, port: Number(form.port) || fallback });
+    const saved = await client.save({ ...form, port: Number(form.port) || defaultPort(form.driver) });
     const name = saved.name ?? "";
     try {
       await client.test(name);
@@ -147,28 +157,12 @@ export function ConnectionDialog({
                 <Label>Driver</Label>
                 {mongo ? (
                   <Input value="mongo" readOnly disabled />
-                ) : cache ? (
-                  <Select
-                    value={form.driver}
-                    onValueChange={(v) => {
-                      update("driver", String(v));
-                      update("port", 6379);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="redis">redis</SelectItem>
-                      <SelectItem value="valkey">valkey (redis-compatible)</SelectItem>
-                    </SelectContent>
-                  </Select>
                 ) : (
                   <Select
                     value={form.driver}
                     onValueChange={(v) => {
                       const driver = String(v);
-                      setForm((prev) => ({ ...prev, driver, port: driver === "mysql" ? 3306 : 5432 }));
+                      setForm((prev) => ({ ...prev, driver, port: defaultPort(driver) }));
                       setVerified(false);
                     }}
                   >
@@ -176,8 +170,13 @@ export function ConnectionDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="postgres">postgres</SelectItem>
-                      <SelectItem value="mysql">mysql / mariadb</SelectItem>
+                      {drivers
+                        .filter((d) => d.family === kind)
+                        .map((d) => (
+                          <SelectItem key={d.driver} value={d.driver}>
+                            {d.label}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 )}

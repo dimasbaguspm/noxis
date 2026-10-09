@@ -51,6 +51,7 @@ func newHandler(deps controller.Deps, verifier interfaces.Verifier) http.Handler
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", controller.GetHealthz)
+	mux.HandleFunc("GET /v1/config/drivers", controller.ListDrivers)
 	mux.HandleFunc("GET /auth/config", controller.GetAuthConfig)
 	mux.HandleFunc("GET /v1/me", controller.GetMe)
 
@@ -105,6 +106,7 @@ func newHandler(deps controller.Deps, verifier interfaces.Verifier) http.Handler
 	// Instances address a connection by its stable id, across families. The
 	// family routes live under /v1/engine/{engine}/..., so these paths never
 	// collide with the {engine} wildcard.
+	mux.HandleFunc("GET /v1/instances", controller.ListInstances)
 	mux.HandleFunc("GET /v1/instances/{id}", controller.GetInstance)
 	mux.HandleFunc("GET /v1/instances/{id}/changes", controller.ListInstanceChanges)
 
