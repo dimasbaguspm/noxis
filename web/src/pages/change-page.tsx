@@ -21,7 +21,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
   const [filter, setFilter] = useState("");
   const query = useDebounce(filter.trim());
   const [page, setPage] = useState(1);
-  const { changes, total, loading, submit, reload } = useChanges(kind, query || undefined, page);
+  const { changes, total, loading, submit } = useChanges(kind, query || undefined, page);
   const label = kind.toUpperCase();
   // raising a change needs a write grant on some SQL instance; the form still
   // lets the server refuse a specific connection
@@ -44,7 +44,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
         </div>
         <span className="flex-1" />
         {mayRaise && (
-          <CreateChangeSheet kind={kind} onSubmit={(input) => submit.run(input)} onSubmitted={() => void reload()} />
+          <CreateChangeSheet kind={kind} onSubmit={(input) => submit.run(input)} />
         )}
       </div>
 

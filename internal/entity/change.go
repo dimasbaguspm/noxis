@@ -27,9 +27,6 @@ type Change struct {
 	// ScheduledAt is the unix time the change should run; 0 means execute
 	// immediately (on manual apply, as before).
 	ScheduledAt int64 `json:"scheduledAt,omitempty"`
-	// BatchID groups the changes raised together from one multi-file upload;
-	// empty for a change raised on its own.
-	BatchID string `json:"batchId,omitempty"`
 }
 
 // ChangeCheck is one validation outcome.

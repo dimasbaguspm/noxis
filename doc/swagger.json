@@ -234,58 +234,6 @@
                 }
             }
         },
-        "/v1/engine/{engine}/changes/batch": {
-            "post": {
-                "summary": "Submit a batch of .sql files as changes sharing a batch id",
-                "parameters": [
-                    {
-                        "description": "engine family (sql)",
-                        "name": "engine",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/controller.batchRequest"
-                            }
-                        }
-                    },
-                    "description": "connection, notes and one file per statement",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/controller.batchResult"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/v1/engine/{engine}/changes/{id}": {
             "get": {
                 "summary": "Get one change",
@@ -2357,68 +2305,6 @@
                     }
                 }
             },
-            "controller.batchFile": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string"
-                    },
-                    "query": {
-                        "type": "string"
-                    },
-                    "rollback": {
-                        "type": "string"
-                    }
-                }
-            },
-            "controller.batchFileResult": {
-                "type": "object",
-                "properties": {
-                    "change": {
-                        "$ref": "#/components/schemas/entity.Change"
-                    },
-                    "error": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "ok": {
-                        "type": "boolean"
-                    }
-                }
-            },
-            "controller.batchRequest": {
-                "type": "object",
-                "properties": {
-                    "connection": {
-                        "type": "string"
-                    },
-                    "files": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/controller.batchFile"
-                        }
-                    },
-                    "notes": {
-                        "type": "string"
-                    }
-                }
-            },
-            "controller.batchResult": {
-                "type": "object",
-                "properties": {
-                    "batchId": {
-                        "type": "string"
-                    },
-                    "results": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/controller.batchFileResult"
-                        }
-                    }
-                }
-            },
             "controller.grantBody": {
                 "type": "object",
                 "properties": {
@@ -2512,10 +2398,6 @@
                     },
                     "approvedAt": {
                         "type": "integer"
-                    },
-                    "batchId": {
-                        "description": "BatchID groups the changes raised together from one multi-file upload;\nempty for a change raised on its own.",
-                        "type": "string"
                     },
                     "checks": {
                         "type": "array",
