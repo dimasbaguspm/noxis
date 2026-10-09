@@ -34,7 +34,7 @@ const router = createBrowserRouter([
     element: <AppShell />,
     children: [
       { index: true, element: <DashboardPage /> },
-      { path: "instances/:id", element: <InstanceDetailPage /> },
+      { path: routePath(PAGE_ROUTES.INSTANCE_DETAIL(":id")), element: <InstanceDetailPage /> },
       { path: routePath(PAGE_ROUTES.SQL.QUERY), element: <QueryPage /> },
       { path: routePath(PAGE_ROUTES.SQL.DML), element: <DmlPage /> },
       { path: `${routePath(PAGE_ROUTES.SQL.DML)}/:id`, element: <ChangeDetail kind="dml" /> },
