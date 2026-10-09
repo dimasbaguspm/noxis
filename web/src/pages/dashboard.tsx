@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { debounce, title } from "radash";
+import { title } from "radash";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { useApp } from "@/app/app-provider";
-import { type Connection } from "@/lib/api";
-import { FAMILIES, familyByKey, type FamilyKey } from "@/lib/families";
+import { api, type Connection } from "@/lib/api";
+import { familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
 
 // One row per instance, whichever family it belongs to: the table shows only
@@ -22,29 +22,43 @@ interface Instance extends Connection {
 
 const ALL_DRIVERS = "all";
 
+// DashboardPage filters through the instances API, not in the browser, so the
+// server stays the source of truth for what the caller may see.
 export default function DashboardPage() {
-  const { registry, isAdmin, drivers } = useApp();
-
-  const instances = useMemo<Instance[]>(
-    () => FAMILIES.flatMap((family) => registry[family.key].connections.map((c) => ({ ...c, family: family.key }))),
-    [registry],
-  );
-
+  const { isAdmin, drivers } = useApp();
+  const [instances, setInstances] = useState<Instance[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
-  const [query, setQuery] = useState("");
-  const setFilterDebounced = useMemo(() => debounce({ delay: 200 }, (v: string) => setQuery(v)), []);
   const [driver, setDriver] = useState(ALL_DRIVERS);
 
-  const visible = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    return instances.filter((c) => {
-      if (driver !== ALL_DRIVERS && c.driver !== driver) return false;
-      if (!needle) return true;
-      return [c.name, c.driver, c.host, familyByKey[c.family].label].some((v) =>
-        (v ?? "").toLowerCase().includes(needle),
-      );
-    });
-  }, [instances, query, driver]);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    // debounce the input so a fast typist issues one request, not one per key
+    const handle = setTimeout(() => {
+      api.instances
+        .list({
+          name: filter.trim() || undefined,
+          driver: driver === ALL_DRIVERS ? undefined : driver,
+        })
+        .then((res) => {
+          if (cancelled) return;
+          setInstances((res.instances ?? []).map((c) => ({ ...c, family: c.family as FamilyKey })));
+        })
+        .catch(() => {
+          if (!cancelled) setInstances([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [filter, driver]);
+
+  const filtering = filter.trim() !== "" || driver !== ALL_DRIVERS;
 
   return (
     <div className="flex flex-col gap-4">
@@ -53,7 +67,9 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <CardTitle className="text-base">Instances</CardTitle>
-              <CardDescription>{instances.length} registered</CardDescription>
+              <CardDescription>
+                {loading ? "loading…" : filtering ? `${instances.length} shown` : `${instances.length} registered`}
+              </CardDescription>
             </div>
             {isAdmin && <ConnectionDialog trigger="New connection" wizard />}
           </div>
@@ -64,10 +80,7 @@ export default function DashboardPage() {
                 className="pl-7"
                 placeholder="search by name"
                 value={filter}
-                onChange={(e) => {
-                  setFilter(e.target.value);
-                  void setFilterDebounced(e.target.value);
-                }}
+                onChange={(e) => setFilter(e.target.value)}
               />
             </div>
             <Select value={driver} onValueChange={(v) => setDriver(String(v))}>
@@ -86,9 +99,9 @@ export default function DashboardPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {visible.length === 0 ? (
+          {instances.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              {instances.length === 0 ? "none registered yet" : "no match"}
+              {loading ? "loading…" : filtering ? "no match" : "none registered yet"}
             </p>
           ) : (
             <div className="rounded-md border border-border">
@@ -101,7 +114,7 @@ export default function DashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {visible.map((c) => (
+                  {instances.map((c) => (
                     <TableRow key={`${c.family}:${c.name}`}>
                       <TableCell>
                         <span className="flex items-center gap-2 text-sm">
