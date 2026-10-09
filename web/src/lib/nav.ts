@@ -13,7 +13,7 @@ export interface NavGroup {
 // page only has to be added there once.
 export const NAV: NavGroup[] = [
   {
-    items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard, end: true }],
+    items: [{ to: "/", label: "Instances", icon: LayoutDashboard, end: true }],
   },
   ...FAMILIES.map((family) => ({ label: family.label, items: family.nav })),
 ];
