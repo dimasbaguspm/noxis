@@ -50,7 +50,8 @@ func (d Deps) instances(ctx context.Context, name, driver, host string) (out []e
 	needle := strings.ToLower(name)
 	hostNeedle := strings.ToLower(host)
 	out = make([]entity.Connection, 0, len(list))
-	for _, c := range list {
+	for i := range list {
+		c := &list[i]
 		mod, ok := d.moduleByDriver(c.Driver)
 		if !ok {
 			continue
