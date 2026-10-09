@@ -57,16 +57,10 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
       </div>
 
       <Group
-        heading={title("immediate")}
-        hint="runs when applied"
-        changes={immediate}
-        emptyHint={`no immediate ${label} changes`}
-      />
-      <Group
-        heading={title("scheduled")}
-        hint="runs when its slot passes"
-        changes={scheduled}
-        emptyHint={`no scheduled ${label} changes`}
+        heading={`${label} changes`}
+        hint="immediate and scheduled in one list"
+        changes={changes}
+        emptyHint={`no ${label.toLowerCase()} changes`}
       />
     </div>
   );
