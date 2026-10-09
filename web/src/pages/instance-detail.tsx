@@ -195,7 +195,7 @@ export default function InstanceDetailPage() {
 function BackLink() {
   return (
     <Button size="sm" variant="ghost" className="w-fit" render={<Link to={PAGE_ROUTES.DASHBOARD} />}>
-      <ArrowLeft /> Dashboard
+      <ArrowLeft /> Instances
     </Button>
   );
 }
