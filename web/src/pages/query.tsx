@@ -6,6 +6,7 @@ import { SqlTabs } from "@/components/sql/sql-tabs";
 import { TableBrowser } from "@/components/sql/table-browser";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useApp } from "@/app/app-provider";
 import { useAction } from "@/hooks/use-action";
@@ -62,7 +63,10 @@ export default function QueryPage() {
         <ResizablePanel defaultSize={16} minSize={12}>
           <Card className="mr-2 h-full min-h-0 min-w-0">
             <CardContent className="flex min-h-0 min-w-0 flex-col gap-2">
-              <ConnectionSelect value={connection} onChange={pick} className="w-full" />
+              <div className="grid gap-1.5">
+                <Label>Instance</Label>
+                <ConnectionSelect value={connection} onChange={pick} className="w-full" />
+              </div>
               <div className="min-h-0 flex-1">
                 <TableBrowser
                   tables={tables}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { debounce, group, title } from "radash";
 import { Activity, ChevronDown, ChevronRight, ListTree, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { RowMenu } from "@/components/ui/row-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -42,7 +43,9 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <Select value={schemaFilter} onValueChange={(next) => setSchemaFilter(String(next))}>
+      <div className="grid gap-1.5">
+        <Label>Schema</Label>
+        <Select value={schemaFilter} onValueChange={(next) => setSchemaFilter(String(next))}>
         <SelectTrigger className="w-full" aria-label="schema">
           <SelectValue placeholder="pick a schema" />
         </SelectTrigger>
@@ -54,8 +57,11 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
           ))}
         </SelectContent>
       </Select>
+      </div>
 
-      <div className="relative">
+      <div className="grid gap-1.5">
+        <Label>Search tables</Label>
+        <div className="relative">
         <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           className="pl-7"
@@ -66,6 +72,7 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
             void setFilterDebounced(e.target.value);
           }}
         />
+        </div>
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
