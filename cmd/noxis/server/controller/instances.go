@@ -79,26 +79,6 @@ func (d Deps) instances(ctx context.Context, name, driver, host string) (out []e
 	return out, nil
 }
 
-// instanceChanges lists the changes raised for one instance. Grouping by kind
-// and status is a console concern.
-func (d Deps) instanceChanges(ctx context.Context, id string) (out []entity.Change, err error) {
-	c, err := d.instance(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	all, err := d.Changes.ListChanges(ctx)
-	if err != nil {
-		return nil, err
-	}
-	out = make([]entity.Change, 0, len(all))
-	for i := range all {
-		if all[i].Connection == c.Name {
-			out = append(out, all[i])
-		}
-	}
-	return out, nil
-}
-
 // @Summary List instances across engine families (passwords redacted)
 // @Param name query string false "substring match on name"
 // @Param driver query string false "exact driver match"
@@ -168,16 +148,4 @@ func (d Deps) rotatePassword(ctx context.Context, id, password string) (err erro
 
 type passwordBody struct {
 	Password string `json:"password"`
-}
-
-// @Summary List the changes raised for one instance (newest first)
-// @Param id path string true "instance id"
-// @Success 200 {object} object{changes=[]entity.Change}
-// @Failure 404 {object} map[string]string
-// @Router /v1/instances/{id}/changes [get]
-func ListInstanceChanges(w http.ResponseWriter, r *http.Request) {
-	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
-		changes, err := d.instanceChanges(ctx, r.PathValue("id"))
-		return map[string]any{"changes": changes}, err
-	})
 }
