@@ -187,11 +187,18 @@ export const api = {
     },
   },
   changes: {
-    list: (connection?: string) =>
-      request<{ changes: Change[] }>(
+    list: (connection?: string, page?: number, perPage?: number) => {
+      const params = new URLSearchParams();
+      if (connection) params.set("connection", connection);
+      if (page && page > 1) params.set("page", String(page));
+      if (perPage) params.set("perPage", String(perPage));
+      const qs = params.toString();
+      return request<{ changes: Change[]; total: number }>(
         "GET",
-        v1(FAMILY.SQL, "changes") + (connection ? `?connection=${encodeURIComponent(connection)}` : ""),
-      ),
+        v1(FAMILY.SQL, "changes") + (qs ? `?${qs}` : ""),
+      );
+    },
+    get: (id: string) => request<Change>("GET", v1(FAMILY.SQL, `changes/${id}`)),
     submit: (input: ChangeInput) => request<Change>("POST", v1(FAMILY.SQL, "changes"), input),
     submitBatch: (input: BatchInput) => request<BatchResult>("POST", v1(FAMILY.SQL, "changes/batch"), input),
     approve: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/approve`)),

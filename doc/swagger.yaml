@@ -73,6 +73,16 @@ paths:
           in: query
           schema:
             type: string
+        - description: page number, starting at 1
+          name: page
+          in: query
+          schema:
+            type: integer
+        - description: items per page (default 20, max 100)
+          name: perPage
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: OK
@@ -85,6 +95,8 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/entity.Change"
+                  total:
+                    type: integer
         "404":
           description: Not Found
           content:

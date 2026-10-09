@@ -5,20 +5,23 @@ import { classify } from "@/lib/statements";
 
 export type ChangeKind = "dml" | "ddl";
 
-// useChanges lists changes (optionally filtered by kind and by connection
-// name) and exposes the workflow actions, reloading the list after each one.
-export function useChanges(kind?: ChangeKind, connection?: string) {
+// useChanges lists a page of changes (optionally filtered by kind and by
+// connection name) and exposes the workflow actions, reloading after each one.
+// The detail page ignores the list and reads the change by id itself.
+export function useChanges(kind?: ChangeKind, connection?: string, page = 1) {
   const [changes, setChanges] = useState<Change[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
     try {
-      const { changes: list } = await api.changes.list(connection);
-      setChanges(list ?? []);
+      const res = await api.changes.list(connection, page);
+      setChanges(res.changes ?? []);
+      setTotal(res.total ?? 0);
     } finally {
       setLoading(false);
     }
-  }, [connection]);
+  }, [connection, page]);
 
   useEffect(() => {
     void reload();
@@ -53,7 +56,7 @@ export function useChanges(kind?: ChangeKind, connection?: string) {
     return changes.filter((c) => (c.kind || classify(c.query ?? "")) === kind);
   }, [changes, kind]);
 
-  return { changes: visible, all: changes, total: changes.length, loading, reload, submit, approve, apply, reject, schedule };
+  return { changes: visible, all: changes, total, loading, reload, submit, approve, apply, reject, schedule };
 }
 
 // useTableRows previews a table's rows for the active connection.
