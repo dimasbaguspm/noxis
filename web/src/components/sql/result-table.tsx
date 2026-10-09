@@ -15,7 +15,7 @@ export function ResultTable({ result, title = "result" }: { result: Result | nul
   const rows = result.rows ?? [];
 
   return (
-    <div className="flex min-w-0 flex-col gap-2">
+    <div className="flex min-w-0 flex-1 flex-col gap-2">
       <div className="flex min-w-0 items-center gap-2">
         <p className="flex min-w-0 flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
           <span className="break-words">{result.message}</span>
@@ -37,7 +37,7 @@ export function ResultTable({ result, title = "result" }: { result: Result | nul
       </div>
 
       {columns.length > 0 && (
-        <div className="max-h-[28rem] min-w-0 overflow-auto rounded-md border border-border">
+        <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border">
           <Table>
             <TableHeader className="sticky top-0 bg-card">
               <TableRow>

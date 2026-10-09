@@ -62,7 +62,6 @@ export default function QueryPage() {
   return (
     <div className="flex h-[calc(100svh-7rem)] flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
-        <ConnectionSelect value={connection} onChange={pick} />
         <Badge variant={kind === "read" ? "secondary" : "destructive"}>{title(kind)}</Badge>
         <Tooltip>
           <TooltipTrigger render={<span className="text-muted-foreground" />}>
@@ -75,25 +74,28 @@ export default function QueryPage() {
       </div>
 
       <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-        <ResizablePanel defaultSize={24} minSize={16}>
+        <ResizablePanel defaultSize={16} minSize={12}>
           <Card className="mr-2 h-full min-h-0 min-w-0">
-            <CardContent className="min-h-0 flex-1">
-              <TableBrowser
-                tables={tables}
-                onRecords={(t) => tabs.add(`SELECT * FROM ${t.schema}.${t.name} LIMIT 100;`)}
-                onAnalyze={can(connection, "write") ? (t) => void analyze.run(t) : undefined}
-              />
+            <CardContent className="flex min-h-0 min-w-0 flex-col gap-2">
+              <ConnectionSelect value={connection} onChange={pick} className="w-full" />
+              <div className="min-h-0 flex-1">
+                <TableBrowser
+                  tables={tables}
+                  onRecords={(t) => tabs.add(`SELECT * FROM ${t.schema}.${t.name} LIMIT 100;`)}
+                  onAnalyze={can(connection, "write") ? (t) => void analyze.run(t) : undefined}
+                />
+              </div>
             </CardContent>
           </Card>
         </ResizablePanel>
 
         <ResizableHandle withHandle />
 
-        <ResizablePanel defaultSize={76}>
-          <ResizablePanelGroup orientation="vertical" className="ml-2">
+        <ResizablePanel defaultSize={84} minSize={50} className="min-w-0 overflow-hidden">
+          <ResizablePanelGroup orientation="vertical" className="ml-2 min-w-0">
             <ResizablePanel defaultSize={45} minSize={20}>
               <Card className="flex h-full min-w-0 flex-col">
-                <CardContent className="flex min-h-0 flex-1 flex-col gap-2">
+                <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden">
                   <SqlTabs
                     tabs={tabs.tabs}
                     activeId={tabs.activeId}
@@ -129,10 +131,10 @@ export default function QueryPage() {
 
             <ResizablePanel defaultSize={55} minSize={20}>
               <Card className="mt-2 flex h-full min-h-0 min-w-0 flex-col">
-                <CardHeader>
+                <CardHeader className="shrink-0">
                   <CardTitle className="text-base">Result</CardTitle>
                 </CardHeader>
-                <CardContent className="min-h-0 min-w-0 overflow-auto">
+                <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col">
                   <ResultTable result={result} title={tabs.active?.title ?? "query"} />
                 </CardContent>
               </Card>
