@@ -26,6 +26,7 @@ interface Instance extends Connection {
 
 const ALL_DRIVERS = "all";
 const PER_PAGE = 20;
+const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 
 // DashboardPage filters through the instances API and pages the result, so the
 // server stays the source of truth for what the caller may see.
@@ -114,8 +115,8 @@ export default function DashboardPage() {
         <CardContent>
           {loading ? (
             <div className="flex flex-col gap-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-11 w-full" />
+              {SKELETON_ROWS.map((n) => (
+                <Skeleton key={n} className="h-11 w-full" />
               ))}
             </div>
           ) : total === 0 ? (
