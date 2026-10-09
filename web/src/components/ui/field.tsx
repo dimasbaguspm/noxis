@@ -27,6 +27,18 @@ export function Field({ children, className }: { children: ReactNode; className?
   return <div className={cn("grid gap-1.5", className)}>{children}</div>;
 }
 
+// FieldLayout spaces a row of fields uniformly. In a form, wrap each Field in
+// a layout so stacked and two-column groups keep the same rhythm.
+export function FieldLayout({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("grid gap-3", className)}>{children}</div>;
+}
+
+// FieldRow is a FieldLayout that puts short sibling fields side by side on
+// wide screens (e.g. host/port, user/password).
+export function FieldRow({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("grid gap-3 sm:grid-cols-2", className)}>{children}</div>;
+}
+
 export function FieldLabel({ htmlFor, children, className }: { htmlFor?: string; children: ReactNode; className?: string }) {
   return (
     <label htmlFor={htmlFor} className={cn("text-sm font-medium", className)}>
