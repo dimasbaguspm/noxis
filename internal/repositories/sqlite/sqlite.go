@@ -100,7 +100,6 @@ var migrations = []string{
 	`ALTER TABLE changes ADD COLUMN affected_tables TEXT NOT NULL DEFAULT '[]'`,
 	`ALTER TABLE changes ADD COLUMN affected_columns TEXT NOT NULL DEFAULT '[]'`,
 	`ALTER TABLE changes ADD COLUMN scheduled_at INTEGER NOT NULL DEFAULT 0`,
-	`ALTER TABLE changes ADD COLUMN batch_id TEXT NOT NULL DEFAULT ''`,
 	`ALTER TABLE connections ADD COLUMN id TEXT NOT NULL DEFAULT ''`,
 }
 
@@ -152,8 +151,7 @@ CREATE TABLE IF NOT EXISTS changes (
   applied_duration_ms INTEGER NOT NULL DEFAULT 0,
   scheduled_at INTEGER NOT NULL DEFAULT 0,
   affected_tables  TEXT NOT NULL DEFAULT '[]',
-  affected_columns TEXT NOT NULL DEFAULT '[]',
-  batch_id    TEXT NOT NULL DEFAULT ''
+  affected_columns TEXT NOT NULL DEFAULT '[]'
 );
 
 CREATE TABLE IF NOT EXISTS connections (

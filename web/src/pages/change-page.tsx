@@ -7,8 +7,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApp } from "@/app/app-provider";
 import { useDebounce } from "@/hooks/use-debounce";
-import { CreateChangeForm } from "@/components/changes/create-change-form";
-import { BatchChangeDialog } from "@/components/changes/batch-change-dialog";
+import { CreateChangeSheet } from "@/components/changes/create-change-sheet";
 import { ChangeTable } from "@/components/changes/change-table";
 import { useChanges, type ChangeKind } from "@/hooks/use-data";
 
@@ -22,7 +21,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
   const [filter, setFilter] = useState("");
   const query = useDebounce(filter.trim());
   const [page, setPage] = useState(1);
-  const { changes, total, loading, submit, reload } = useChanges(kind, query || undefined, page);
+  const { changes, total, loading, submit } = useChanges(kind, query || undefined, page);
   const label = kind.toUpperCase();
   // raising a change needs a write grant on some SQL instance; the form still
   // lets the server refuse a specific connection
@@ -44,10 +43,10 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
           />
         </div>
         <span className="flex-1" />
-        {mayRaise && <BatchChangeDialog onSubmitted={() => void reload()} />}
+        {mayRaise && (
+          <CreateChangeSheet kind={kind} onSubmit={(input) => submit.run(input)} />
+        )}
       </div>
-
-      {mayRaise && <CreateChangeForm kind={kind} onSubmit={(input) => submit.run(input)} />}
 
       <Card>
         <CardContent className="flex flex-col gap-3 pt-4">
