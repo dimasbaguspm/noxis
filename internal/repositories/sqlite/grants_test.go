@@ -12,7 +12,7 @@ import (
 // ordering, rejection of an unknown level, and deletion.
 func TestGrantsRoundTrip(t *testing.T) {
 	ctx := context.Background()
-	store, err := Open(ctx, filepath.Join(t.TempDir(), "noxis.db"))
+	store, err := Open(ctx, filepath.Join(t.TempDir(), "noxis.db"), "")
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}

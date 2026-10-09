@@ -32,11 +32,16 @@ func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
 	if err := cfg.Require(entity.EnvListen, entity.EnvDB); err != nil {
 		return err
 	}
-	store, err := sqlite.Open(ctx, cfg.DB)
+	store, err := sqlite.Open(ctx, cfg.DB, cfg.SecretKey)
 	if err != nil {
 		return err
 	}
 	defer store.Close()
+	if cfg.SecretKey == "" {
+		log.WarnContext(ctx, "NOXIS_SECRET_KEY is not set; connection passwords are stored in plaintext")
+	} else {
+		log.InfoContext(ctx, "connection passwords are encrypted at rest")
+	}
 
 	verifier, err := newVerifier(ctx, cfg)
 	if err != nil {

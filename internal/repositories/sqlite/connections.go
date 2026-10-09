@@ -25,6 +25,10 @@ func (s *Store) Save(ctx context.Context, c entity.Connection) (err error) {
 	if err != nil {
 		return fmt.Errorf("encode params: %w", err)
 	}
+	password, err := s.secret.Encrypt(c.Password)
+	if err != nil {
+		return fmt.Errorf("encrypt password for %s: %w", c.Name, err)
+	}
 	if c.ID == "" {
 		c.ID = idgen.UUID()
 	}
@@ -34,7 +38,7 @@ func (s *Store) Save(ctx context.Context, c entity.Connection) (err error) {
 			driver=excluded.driver, host=excluded.host, port=excluded.port,
 			user=excluded.user, password=excluded.password, database=excluded.database,
 			params=excluded.params`,
-		c.ID, c.Name, c.Driver, c.Host, c.Port, c.User, c.Password, c.Database, string(params), time.Now().Unix()); err != nil {
+		c.ID, c.Name, c.Driver, c.Host, c.Port, c.User, password, c.Database, string(params), time.Now().Unix()); err != nil {
 		return fmt.Errorf("save connection %s: %w", c.Name, err)
 	}
 	return nil
@@ -44,7 +48,7 @@ func (s *Store) Save(ctx context.Context, c entity.Connection) (err error) {
 func (s *Store) List(ctx context.Context) (out []entity.Connection, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	return queryRows(ctx, s.db, `SELECT `+connColumns+` FROM connections ORDER BY name`, scanConnection)
+	return queryRows(ctx, s.db, `SELECT `+connColumns+` FROM connections ORDER BY name`, s.scanConnection)
 }
 
 // Get returns one connection, or interfaces.ErrNotFound.
@@ -62,7 +66,7 @@ func (s *Store) GetByID(ctx context.Context, id string) (c *entity.Connection, e
 }
 
 func (s *Store) getOne(ctx context.Context, q string, arg any) (*entity.Connection, error) {
-	conn, err := scanConnection(s.db.QueryRowContext(ctx, q, arg))
+	conn, err := s.scanConnection(s.db.QueryRowContext(ctx, q, arg))
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("connection %v: %w", arg, interfaces.ErrNotFound)
 	}
@@ -91,7 +95,7 @@ func (s *Store) Delete(ctx context.Context, name string) (err error) {
 	})
 }
 
-func scanConnection(row scanner) (entity.Connection, error) {
+func (s *Store) scanConnection(row scanner) (entity.Connection, error) {
 	var (
 		c      entity.Connection
 		params string
@@ -99,6 +103,11 @@ func scanConnection(row scanner) (entity.Connection, error) {
 	if err := row.Scan(&c.ID, &c.Name, &c.Driver, &c.Host, &c.Port, &c.User, &c.Password, &c.Database, &params, &c.CreatedAt); err != nil {
 		return c, err
 	}
+	plain, err := s.secret.Decrypt(c.Password)
+	if err != nil {
+		return c, fmt.Errorf("connection %s: %w", c.Name, err)
+	}
+	c.Password = plain
 	if params != "" {
 		if err := json.Unmarshal([]byte(params), &c.Params); err != nil {
 			return c, fmt.Errorf("decode params for %s: %w", c.Name, err)
