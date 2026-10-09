@@ -13,6 +13,7 @@ import { ChangeTable } from "@/components/changes/change-table";
 import { useChanges, type ChangeKind } from "@/hooks/use-data";
 
 const PER_PAGE = 20;
+const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 
 // ChangePage is the shared DML/DDL queue: raise inline, filter by instance,
 // review the paginated single list.
@@ -59,8 +60,8 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
 
           {loading ? (
             <div className="flex flex-col gap-2">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-9 w-full" />
+              {SKELETON_ROWS.map((n) => (
+                <Skeleton key={n} className="h-9 w-full" />
               ))}
             </div>
           ) : total === 0 ? (

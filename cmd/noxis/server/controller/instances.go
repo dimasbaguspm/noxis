@@ -83,13 +83,22 @@ func (d Deps) instances(ctx context.Context, name, driver, host string) (out []e
 // @Param name query string false "substring match on name"
 // @Param driver query string false "exact driver match"
 // @Param host query string false "substring match on host"
-// @Success 200 {object} object{instances=[]entity.Connection}
+// @Param page query int false "page number, starting at 1"
+// @Param perPage query int false "items per page (default 20, max 100)"
+// @Success 200 {object} object{instances=[]entity.Connection,total=int}
 // @Router /v1/instances [get]
 func ListInstances(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		q := r.URL.Query()
 		instances, err := d.instances(ctx, q.Get("name"), q.Get("driver"), q.Get("host"))
-		return map[string]any{"instances": instances}, err
+		if err != nil {
+			return nil, err
+		}
+		page, perPage := readPagination(r, 20)
+		return map[string]any{
+			"instances": pageSlice(instances, page, perPage),
+			"total":     len(instances),
+		}, nil
 	})
 }
 
