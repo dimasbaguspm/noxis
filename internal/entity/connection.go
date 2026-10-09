@@ -7,12 +7,18 @@ import (
 	"noxis/internal/constants"
 )
 
-// Connection is a registered SQL database. noxis connects to databases that
-// already exist; it does not create them.
+// Connection is a registered database instance. noxis connects to databases
+// that already exist; it does not create them.
 //
 // ponytail: the password is stored as-is (single-operator trust model) and
 // never leaves the API; encrypt at rest when this box stops being yours.
 type Connection struct {
+	// ID is the stable instance identifier used by the cross-family
+	// /v1/instances routes. Grants and changes still link by Name.
+	ID string `json:"id,omitempty"`
+	// Family names the engine family that serves the driver. It is not
+	// stored: the cross-family routes set it when serving.
+	Family    string            `json:"family,omitempty"`
 	Name      string            `json:"name" validate:"required"`
 	Driver    string            `json:"driver" validate:"required"` // postgres | mysql (mariadb aliases mysql)
 	Host      string            `json:"host" validate:"required"`

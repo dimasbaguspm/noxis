@@ -41,6 +41,15 @@ func (f *fakeConns) Get(_ context.Context, name string) (*entity.Connection, err
 	return &c, nil
 }
 
+func (f *fakeConns) GetByID(_ context.Context, id string) (*entity.Connection, error) {
+	for _, c := range f.conns {
+		if c.ID == id {
+			return &c, nil
+		}
+	}
+	return nil, interfaces.ErrNotFound
+}
+
 func (f *fakeConns) Save(_ context.Context, c entity.Connection) error {
 	f.conns[c.Name] = c
 	return nil

@@ -102,5 +102,14 @@ func newHandler(deps controller.Deps, verifier interfaces.Verifier) http.Handler
 	// changes through the same handler.
 	mux.HandleFunc("POST /internal/tick", controller.PostTick)
 
-	return withMiddleware(withAuth(verifier, controller.WithDeps(mux, deps)), deps.Log)
+	// Instance routes address a connection by its stable id, across families.
+	// They cannot share the mux above: Go's ServeMux cannot disambiguate
+	// /v1/instances/{id} from /v1/{engine}/connections, so they sit on an outer
+	// mux that claims the path before the family-generic table sees it.
+	root := http.NewServeMux()
+	root.HandleFunc("GET /v1/instances/{id}", controller.GetInstance)
+	root.HandleFunc("GET /v1/instances/{id}/changes", controller.ListInstanceChanges)
+	root.Handle("/", mux)
+
+	return withMiddleware(withAuth(verifier, controller.WithDeps(root, deps)), deps.Log)
 }

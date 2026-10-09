@@ -1,27 +1,17 @@
 import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { debounce, title } from "radash";
-import { Search, Trash2, Zap } from "lucide-react";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { useApp } from "@/app/app-provider";
-import { useAction } from "@/hooks/use-action";
 import { useChanges } from "@/hooks/use-data";
-import { api, type Connection } from "@/lib/api";
-import { FAMILIES, FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
+import { type Connection } from "@/lib/api";
+import { FAMILIES, familyByKey, type FamilyKey } from "@/lib/families";
+import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 // One row per instance, whichever family it belongs to: the table shows only
@@ -31,7 +21,7 @@ interface Instance extends Connection {
 }
 
 export default function DashboardPage() {
-  const { registry, reload, isAdmin } = useApp();
+  const { registry, isAdmin } = useApp();
   const { changes } = useChanges();
 
   const instances = useMemo<Instance[]>(
@@ -42,7 +32,6 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState("");
   const [query, setQuery] = useState("");
   const setFilterDebounced = useMemo(() => debounce({ delay: 200 }, (v: string) => setQuery(v)), []);
-  const [detail, setDetail] = useState<Instance>();
 
   const ddl = changes.filter((c) => c.kind === "ddl" && c.status === "applied").length;
   const dml = changes.filter((c) => c.kind === "dml" && c.status === "applied").length;
@@ -59,22 +48,6 @@ export default function DashboardPage() {
       ),
     );
   }, [instances, query]);
-
-  const client = (family: FamilyKey) => api.family(family);
-
-  const refresh = (family: FamilyKey) => reload(family);
-
-  const test = useAction(async (c: Instance) => {
-    await client(c.family).test(c.name ?? "");
-    toast.success(`${c.name}: reachable`);
-  });
-
-  const remove = useAction(async (c: Instance) => {
-    await client(c.family).remove(c.name ?? "");
-    toast.success(`deleted ${c.name}`);
-    await refresh(c.family);
-    setDetail(undefined);
-  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -146,9 +119,13 @@ export default function DashboardPage() {
                         {c.host}:{c.port}
                       </TableCell>
                       <TableCell>
-                        <Button size="xs" variant="outline" onClick={() => setDetail(c)}>
-                          Detail
-                        </Button>
+                        {c.id ? (
+                          <Button size="xs" variant="outline" render={<Link to={PAGE_ROUTES.INSTANCE_DETAIL(c.id)} />}>
+                            Detail
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -159,69 +136,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={detail !== undefined} onOpenChange={(open) => !open && setDetail(undefined)}>
-        <DialogContent className="sm:max-w-md">
-          {detail && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <FamilyIcon family={detail.family} className="size-4 text-muted-foreground" />
-                  {detail.name}
-                </DialogTitle>
-                <DialogDescription>{familyByKey[detail.family].label}</DialogDescription>
-              </DialogHeader>
-
-              <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
-                <dt className="text-muted-foreground">Driver</dt>
-                <dd>
-                  <Badge variant="secondary">{detail.driver}</Badge>
-                </dd>
-                <dt className="text-muted-foreground">Endpoint</dt>
-                <dd className="font-mono text-xs">
-                  {detail.host}:{detail.port}
-                </dd>
-                <dt className="text-muted-foreground">
-                  {detail.family === FAMILY.SQL ? "Database" : detail.family === FAMILY.MONGODB ? "Database (auth)" : "DB index"}
-                </dt>
-                <dd>{detail.database}</dd>
-                {detail.user && (
-                  <>
-                    <dt className="text-muted-foreground">User</dt>
-                    <dd>{detail.user}</dd>
-                  </>
-                )}
-                <dt className="text-muted-foreground">Registered</dt>
-                <dd className="text-xs">
-                  {detail.createdAt ? new Date(detail.createdAt * 1000).toLocaleString() : "—"}
-                </dd>
-              </dl>
-
-              <DialogFooter className="items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  render={<Link to={familyByKey[detail.family].page} />}
-                >
-                  {familyByKey[detail.family].openLabel}
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => void test.run(detail)}>
-                  <Zap /> Test
-                </Button>
-                {isAdmin && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-destructive"
-                    onClick={() => void remove.run(detail)}
-                  >
-                    <Trash2 /> Delete
-                  </Button>
-                )}
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

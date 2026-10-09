@@ -104,6 +104,13 @@ function connectionOps(family: FamilyKey) {
 
 export const api = {
   me: () => request<Identity>("GET", "/v1/me"),
+  // instances are the cross-family view: one connection addressed by its
+  // stable id, whatever family serves it.
+  instances: {
+    get: (id: string) => request<Connection>("GET", `/v1/instances/${encodeURIComponent(id)}`),
+    changes: (id: string) =>
+      request<{ changes: Change[] }>("GET", `/v1/instances/${encodeURIComponent(id)}/changes`),
+  },
   connections: {
     ...connectionOps(FAMILY.SQL),
     schema: (name: string) => request<{ tables: Table[] }>("GET", connPath(FAMILY.SQL, name, "/schema")),
