@@ -70,7 +70,7 @@ type tickBody struct {
 	Failed  []string `json:"failed"`
 }
 
-// batchBody is the POST /v1/sql/changes/batch response shape.
+// batchBody is the POST /v1/engine/sql/changes/batch response shape.
 type batchBody struct {
 	BatchID string          `json:"batchId"`
 	Results []batchFileBody `json:"results"`

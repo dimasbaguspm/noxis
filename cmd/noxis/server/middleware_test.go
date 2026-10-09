@@ -32,7 +32,7 @@ func okHandler() http.Handler {
 // TestWithAuthOpenMode: a nil verifier means no authentication.
 func TestWithAuthOpenMode(t *testing.T) {
 	rec := httptest.NewRecorder()
-	withAuth(nil, okHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/sql/connections", http.NoBody))
+	withAuth(nil, okHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("open mode status=%d", rec.Code)
 	}
@@ -50,9 +50,9 @@ func TestWithAuthGuardsAPI(t *testing.T) {
 		header string
 		want   int
 	}{
-		{"api missing token", "/v1/sql/connections", "", http.StatusUnauthorized},
-		{"api bad scheme", "/v1/sql/connections", "Token abc", http.StatusUnauthorized},
-		{"api invalid token", "/v1/sql/connections", "Bearer nope", http.StatusUnauthorized},
+		{"api missing token", "/v1/engine/sql/connections", "", http.StatusUnauthorized},
+		{"api bad scheme", "/v1/engine/sql/connections", "Token abc", http.StatusUnauthorized},
+		{"api invalid token", "/v1/engine/sql/connections", "Bearer nope", http.StatusUnauthorized},
 		{"console open", "/", "", http.StatusOK},
 		{"health open", "/healthz", "", http.StatusOK},
 	}

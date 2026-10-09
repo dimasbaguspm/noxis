@@ -27,7 +27,7 @@ volume, no docker socket.
   there is no validated change queue for it: keys can be browsed, inspected and
   removed, and every operation is a typed client call (no command text to
   inject). `FLUSHALL` is deliberately unreachable.
-- **Namespaced API** — `/v1/sql/...`, `/v1/memcache/...` and `/v1/mongodb/...`;
+- **Namespaced API** — `/v1/engine/sql/...`, `/v1/engine/memcache/...` and `/v1/engine/mongodb/...`;
   each family serves only its own drivers, so a memory-cache connection is
   invisible to the SQL routes and vice versa. The console follows the same
   split: one dashboard table for every instance with a detail dialog, and a
@@ -79,7 +79,7 @@ client, no secret) and refreshes its own token.
 | `NOXIS_OIDC_ADMIN_GROUP` | members are global admins (manage connections and grants) |
 
 Access is per connection — `read` < `write` < `admin` — granted to OIDC groups
-through `/v1/{engine}/connections/{name}/grants`. Default deny: a user with no
+through `/v1/engine/{engine}/connections/{name}/grants`. Default deny: a user with no
 grant sees nothing. `GET /v1/me` reports the caller and its effective level per
 connection (`GET /auth/config` is the public console bootstrap).
 
@@ -98,23 +98,23 @@ connection (`GET /auth/config` is the public console bootstrap).
 make dev          # noxis + a throwaway postgres to play with
 open http://localhost:9000
 # or drive the API:
-curl -s -X POST localhost:9000/v1/sql/connections -H 'Content-Type: application/json' \
+curl -s -X POST localhost:9000/v1/engine/sql/connections -H 'Content-Type: application/json' \
   -d '{"name":"demo","driver":"postgres","host":"db","port":5432,
        "user":"postgres","password":"noxis","database":"demo"}'
-curl -s -X POST localhost:9000/v1/sql/connections/demo/query \
+curl -s -X POST localhost:9000/v1/engine/sql/connections/demo/query \
   -H 'Content-Type: application/json' -d '{"sql":"SELECT 6*6 AS n"}'
 
 # mongodb: register the compose server, explore, run a request
-curl -s -X POST localhost:9000/v1/mongodb/connections -H 'Content-Type: application/json' \
+curl -s -X POST localhost:9000/v1/engine/mongodb/connections -H 'Content-Type: application/json' \
   -d '{"name":"docs","driver":"mongo","host":"mongo","port":27017,"user":"root",
        "password":"noxis","database":"admin"}'
-curl -s "localhost:9000/v1/mongodb/connections/docs/collections?database=demo"
-curl -s -X POST localhost:9000/v1/mongodb/connections/docs/requests \
+curl -s "localhost:9000/v1/engine/mongodb/connections/docs/collections?database=demo"
+curl -s -X POST localhost:9000/v1/engine/mongodb/connections/docs/requests \
   -H 'Content-Type: application/json' \
   -d '{"op":"find","database":"demo","collection":"items","filter":"{\"sku\": \"a\"}"}'
 
 # memory cache: register the compose server, browse keys
-curl -s -X POST localhost:9000/v1/memcache/connections -H 'Content-Type: application/json' \
+curl -s -X POST localhost:9000/v1/engine/memcache/connections -H 'Content-Type: application/json' \
   -d '{"name":"cache","driver":"redis","host":"redis","port":6379,"database":"0"}'
-curl -s "localhost:9000/v1/memcache/connections/cache/keys?pattern=*"
+curl -s "localhost:9000/v1/engine/memcache/connections/cache/keys?pattern=*"
 ```

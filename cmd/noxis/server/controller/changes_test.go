@@ -286,11 +286,11 @@ func TestSecretsStayRedacted(t *testing.T) {
 func TestHandlersRespond(t *testing.T) {
 	d, _, _ := newDeps(&fakeSQL{})
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/{engine}/connections", ListConnections)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections", ListConnections)
 	h := WithDeps(mux, d)
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/sql/connections", http.NoBody))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -304,17 +304,17 @@ func TestHandlersRespond(t *testing.T) {
 func TestEngineGating(t *testing.T) {
 	d, _, _ := newDeps(&fakeSQL{})
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/{engine}/connections", ListConnections)
-	mux.HandleFunc("GET /v1/{engine}/connections/{name}/keys", ListKeys)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections", ListConnections)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/keys", ListKeys)
 	h := WithDeps(mux, d)
 
 	cases := []struct {
 		path string
 		want int
 	}{
-		{"/v1/nope/connections", http.StatusNotFound},
-		{"/v1/sql/connections/demo/keys", http.StatusNotFound},
-		{"/v1/sql/connections", http.StatusOK},
+		{"/v1/engine/nope/connections", http.StatusNotFound},
+		{"/v1/engine/sql/connections/demo/keys", http.StatusNotFound},
+		{"/v1/engine/sql/connections", http.StatusOK},
 	}
 	for _, tc := range cases {
 		rec := httptest.NewRecorder()
@@ -428,11 +428,11 @@ func TestChangeKindGated(t *testing.T) {
 	changes.changes["m1"] = entity.Change{ID: "m1", Kind: constants.KindMongo, Status: constants.ChangeValidated, Connection: "mongo"}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /v1/{engine}/changes/{id}/approve", ApproveChange)
-	mux.HandleFunc("POST /v1/{engine}/changes/{id}/reject", RejectChange)
+	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/approve", ApproveChange)
+	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/reject", RejectChange)
 	h := WithDeps(mux, d)
 
-	for _, path := range []string{"/v1/sql/changes/m1/approve", "/v1/sql/changes/m1/reject"} {
+	for _, path := range []string{"/v1/engine/sql/changes/m1/approve", "/v1/engine/sql/changes/m1/reject"} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, http.NoBody))
 		if rec.Code != http.StatusBadRequest {

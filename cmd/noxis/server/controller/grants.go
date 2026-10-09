@@ -72,7 +72,7 @@ type grantBody struct {
 // @Failure 401 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/grants [get]
+// @Router /v1/engine/{engine}/connections/{name}/grants [get]
 func ListGrants(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		mod, err := d.engine(r)
@@ -93,7 +93,7 @@ func ListGrants(w http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/grants [put]
+// @Router /v1/engine/{engine}/connections/{name}/grants [put]
 func SetGrant(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		mod, err := d.engine(r)
@@ -116,7 +116,7 @@ func SetGrant(w http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/grants [delete]
+// @Router /v1/engine/{engine}/connections/{name}/grants [delete]
 func DeleteGrant(w http.ResponseWriter, r *http.Request) {
 	handleNoContent(w, r, func(ctx context.Context, d Deps) error {
 		mod, err := d.engine(r)

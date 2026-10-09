@@ -28,7 +28,7 @@ import (
 // @Success 200 {object} object{databases=[]mongodb.Database}
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/databases [get]
+// @Router /v1/engine/{engine}/connections/{name}/databases [get]
 func ListDatabases(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		m, err := d.engineMongo(r)
@@ -51,7 +51,7 @@ func ListDatabases(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} object{collections=[]mongodb.Collection}
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/collections [get]
+// @Router /v1/engine/{engine}/connections/{name}/collections [get]
 func ListCollections(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		m, err := d.engineMongo(r)
@@ -74,7 +74,7 @@ func ListCollections(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} mongodb.Result
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
-// @Router /v1/{engine}/connections/{name}/requests [post]
+// @Router /v1/engine/{engine}/connections/{name}/requests [post]
 func PostRequest(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		var req interfaces.MongoRequest

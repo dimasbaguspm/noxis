@@ -119,7 +119,7 @@ func firstCheckError(checks []entity.ChangeCheck) string {
 // @Param body body batchRequest true "connection, notes and one file per statement"
 // @Success 200 {object} batchResult
 // @Failure 400 {object} map[string]string
-// @Router /v1/{engine}/changes/batch [post]
+// @Router /v1/engine/{engine}/changes/batch [post]
 func SubmitChangeBatch(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		sq, err := d.engineSQL(r)

@@ -63,7 +63,7 @@ export interface BatchResult {
 
 // v1 builds an endpoint from the engine family, so no call hardcodes a family
 // URL prefix: the family is the server's generic route parameter.
-const v1 = (family: FamilyKey, path: string) => `/v1/${family}/${path}`;
+const v1 = (family: FamilyKey, path: string) => `/v1/engine/${family}/${path}`;
 
 // connPath is the connection-scoped path; the name is URL-encoded so a name
 // with a space or slash cannot break the route.

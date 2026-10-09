@@ -124,156 +124,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/instances/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get one instance across engine families (password redacted) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description instance id */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Connection"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/instances/{id}/changes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List the changes raised for one instance (newest first) */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description instance id */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            changes?: components["schemas"]["entity.Change"][];
-                        };
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The authenticated caller and its per-connection levels */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["controller.MeResponse"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/{engine}/changes": {
+    "/v1/engine/{engine}/changes": {
         parameters: {
             query?: never;
             header?: never;
@@ -375,7 +226,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/changes/batch": {
+    "/v1/engine/{engine}/changes/batch": {
         parameters: {
             query?: never;
             header?: never;
@@ -430,7 +281,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/changes/{id}": {
+    "/v1/engine/{engine}/changes/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -482,7 +333,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/changes/{id}/apply": {
+    "/v1/engine/{engine}/changes/{id}/apply": {
         parameters: {
             query?: never;
             header?: never;
@@ -545,7 +396,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/changes/{id}/approve": {
+    "/v1/engine/{engine}/changes/{id}/approve": {
         parameters: {
             query?: never;
             header?: never;
@@ -608,7 +459,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/changes/{id}/reject": {
+    "/v1/engine/{engine}/changes/{id}/reject": {
         parameters: {
             query?: never;
             header?: never;
@@ -671,7 +522,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections": {
+    "/v1/engine/{engine}/connections": {
         parameters: {
             query?: never;
             header?: never;
@@ -751,7 +602,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}": {
+    "/v1/engine/{engine}/connections/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -837,7 +688,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/alter": {
+    "/v1/engine/{engine}/connections/{name}/alter": {
         parameters: {
             query?: never;
             header?: never;
@@ -900,7 +751,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/analyze": {
+    "/v1/engine/{engine}/connections/{name}/analyze": {
         parameters: {
             query?: never;
             header?: never;
@@ -968,7 +819,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/collections": {
+    "/v1/engine/{engine}/connections/{name}/collections": {
         parameters: {
             query?: never;
             header?: never;
@@ -1036,7 +887,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/databases": {
+    "/v1/engine/{engine}/connections/{name}/databases": {
         parameters: {
             query?: never;
             header?: never;
@@ -1101,7 +952,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/flush": {
+    "/v1/engine/{engine}/connections/{name}/flush": {
         parameters: {
             query?: never;
             header?: never;
@@ -1171,7 +1022,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/grants": {
+    "/v1/engine/{engine}/connections/{name}/grants": {
         parameters: {
             query?: never;
             header?: never;
@@ -1380,7 +1231,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/keys": {
+    "/v1/engine/{engine}/connections/{name}/keys": {
         parameters: {
             query?: never;
             header?: never;
@@ -1502,7 +1353,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/query": {
+    "/v1/engine/{engine}/connections/{name}/query": {
         parameters: {
             query?: never;
             header?: never;
@@ -1570,7 +1421,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/requests": {
+    "/v1/engine/{engine}/connections/{name}/requests": {
         parameters: {
             query?: never;
             header?: never;
@@ -1638,7 +1489,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/rollback": {
+    "/v1/engine/{engine}/connections/{name}/rollback": {
         parameters: {
             query?: never;
             header?: never;
@@ -1701,7 +1552,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/schema": {
+    "/v1/engine/{engine}/connections/{name}/schema": {
         parameters: {
             query?: never;
             header?: never;
@@ -1766,7 +1617,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/tables/{table}/rows": {
+    "/v1/engine/{engine}/connections/{name}/tables/{table}/rows": {
         parameters: {
             query?: never;
             header?: never;
@@ -1836,7 +1687,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/test": {
+    "/v1/engine/{engine}/connections/{name}/test": {
         parameters: {
             query?: never;
             header?: never;
@@ -1890,7 +1741,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/{engine}/connections/{name}/value": {
+    "/v1/engine/{engine}/connections/{name}/value": {
         parameters: {
             query?: never;
             header?: never;
@@ -1937,6 +1788,155 @@ export interface paths {
                 };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/instances/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one instance across engine families (password redacted) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description instance id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Connection"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/instances/{id}/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the changes raised for one instance (newest first) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description instance id */
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            changes?: components["schemas"]["entity.Change"][];
+                        };
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The authenticated caller and its per-connection levels */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["controller.MeResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
                     headers: {
                         [name: string]: unknown;
                     };

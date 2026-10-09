@@ -56,44 +56,44 @@ func newHandler(deps controller.Deps, verifier interfaces.Verifier) http.Handler
 
 	// Connections: one generic handler per route, gated by the {engine} path
 	// parameter through the module registry.
-	mux.HandleFunc("GET /v1/{engine}/connections", controller.ListConnections)
-	mux.HandleFunc("POST /v1/{engine}/connections", controller.SaveConnection)
-	mux.HandleFunc("GET /v1/{engine}/connections/{name}", controller.GetConnection)
-	mux.HandleFunc("DELETE /v1/{engine}/connections/{name}", controller.DeleteConnection)
-	mux.HandleFunc("POST /v1/{engine}/connections/{name}/test", controller.TestConnection)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections", controller.ListConnections)
+	mux.HandleFunc("POST /v1/engine/{engine}/connections", controller.SaveConnection)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}", controller.GetConnection)
+	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}", controller.DeleteConnection)
+	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/test", controller.TestConnection)
 
 	// Grants: per-connection RBAC policy, managed by global admins only.
-	mux.HandleFunc("GET /v1/{engine}/connections/{name}/grants", controller.ListGrants)
-	mux.HandleFunc("PUT /v1/{engine}/connections/{name}/grants", controller.SetGrant)
-	mux.HandleFunc("DELETE /v1/{engine}/connections/{name}/grants", controller.DeleteGrant)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/grants", controller.ListGrants)
+	mux.HandleFunc("PUT /v1/engine/{engine}/connections/{name}/grants", controller.SetGrant)
+	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}/grants", controller.DeleteGrant)
 
 	// SQL-only: schema, row preview and the console ops.
-	mux.HandleFunc("GET /v1/{engine}/connections/{name}/schema", controller.GetSchema)
-	mux.HandleFunc("GET /v1/{engine}/connections/{name}/tables/{table}/rows", controller.GetRows)
-	mux.HandleFunc("POST /v1/{engine}/connections/{name}/query", controller.PostQuery)
-	mux.HandleFunc("POST /v1/{engine}/connections/{name}/alter", controller.PostAlter)
-	mux.HandleFunc("POST /v1/{engine}/connections/{name}/rollback", controller.PostRollback)
-	mux.HandleFunc("POST /v1/{engine}/connections/{name}/analyze", controller.PostAnalyze)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/schema", controller.GetSchema)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/tables/{table}/rows", controller.GetRows)
+	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/query", controller.PostQuery)
+	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/alter", controller.PostAlter)
+	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/rollback", controller.PostRollback)
+	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/analyze", controller.PostAnalyze)
 
 	// Changes: SQL and MongoDB keep separate queues behind one route.
-	mux.HandleFunc("GET /v1/{engine}/changes", controller.ListChanges)
-	mux.HandleFunc("POST /v1/{engine}/changes", controller.SubmitChange)
-	mux.HandleFunc("POST /v1/{engine}/changes/batch", controller.SubmitChangeBatch)
-	mux.HandleFunc("GET /v1/{engine}/changes/{id}", controller.GetChange)
-	mux.HandleFunc("POST /v1/{engine}/changes/{id}/approve", controller.ApproveChange)
-	mux.HandleFunc("POST /v1/{engine}/changes/{id}/apply", controller.ApplyChange)
-	mux.HandleFunc("POST /v1/{engine}/changes/{id}/reject", controller.RejectChange)
+	mux.HandleFunc("GET /v1/engine/{engine}/changes", controller.ListChanges)
+	mux.HandleFunc("POST /v1/engine/{engine}/changes", controller.SubmitChange)
+	mux.HandleFunc("POST /v1/engine/{engine}/changes/batch", controller.SubmitChangeBatch)
+	mux.HandleFunc("GET /v1/engine/{engine}/changes/{id}", controller.GetChange)
+	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/approve", controller.ApproveChange)
+	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/apply", controller.ApplyChange)
+	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/reject", controller.RejectChange)
 
 	// Memory-cache-only: keys, values, removal and emptying the database.
-	mux.HandleFunc("GET /v1/{engine}/connections/{name}/keys", controller.ListKeys)
-	mux.HandleFunc("DELETE /v1/{engine}/connections/{name}/keys", controller.DeleteKeys)
-	mux.HandleFunc("GET /v1/{engine}/connections/{name}/value", controller.GetValue)
-	mux.HandleFunc("POST /v1/{engine}/connections/{name}/flush", controller.FlushDB)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/keys", controller.ListKeys)
+	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}/keys", controller.DeleteKeys)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/value", controller.GetValue)
+	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/flush", controller.FlushDB)
 
 	// MongoDB-only: databases, collections and read requests.
-	mux.HandleFunc("GET /v1/{engine}/connections/{name}/databases", controller.ListDatabases)
-	mux.HandleFunc("GET /v1/{engine}/connections/{name}/collections", controller.ListCollections)
-	mux.HandleFunc("POST /v1/{engine}/connections/{name}/requests", controller.PostRequest)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/databases", controller.ListDatabases)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/collections", controller.ListCollections)
+	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/requests", controller.PostRequest)
 
 	mux.Handle("GET /assets/", http.HandlerFunc(controller.GetAssets)) // embedded FS keeps the assets/ prefix
 	mux.HandleFunc("GET /", controller.GetConsole)                     // the operator console (SPA shell)
@@ -102,14 +102,11 @@ func newHandler(deps controller.Deps, verifier interfaces.Verifier) http.Handler
 	// changes through the same handler.
 	mux.HandleFunc("POST /internal/tick", controller.PostTick)
 
-	// Instance routes address a connection by its stable id, across families.
-	// They cannot share the mux above: Go's ServeMux cannot disambiguate
-	// /v1/instances/{id} from /v1/{engine}/connections, so they sit on an outer
-	// mux that claims the path before the family-generic table sees it.
-	root := http.NewServeMux()
-	root.HandleFunc("GET /v1/instances/{id}", controller.GetInstance)
-	root.HandleFunc("GET /v1/instances/{id}/changes", controller.ListInstanceChanges)
-	root.Handle("/", mux)
+	// Instances address a connection by its stable id, across families. The
+	// family routes live under /v1/engine/{engine}/..., so these paths never
+	// collide with the {engine} wildcard.
+	mux.HandleFunc("GET /v1/instances/{id}", controller.GetInstance)
+	mux.HandleFunc("GET /v1/instances/{id}/changes", controller.ListInstanceChanges)
 
-	return withMiddleware(withAuth(verifier, controller.WithDeps(root, deps)), deps.Log)
+	return withMiddleware(withAuth(verifier, controller.WithDeps(mux, deps)), deps.Log)
 }
