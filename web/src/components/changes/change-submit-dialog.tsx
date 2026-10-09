@@ -6,14 +6,14 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConnectionSelect } from "@/components/connection/connection-select";
@@ -92,20 +92,20 @@ export function ChangeSubmitDialog({
   const detected = classify(watch("query"));
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={setOpen}>
       {trigger ? (
-        <DialogTrigger render={trigger} />
+        <SheetTrigger render={trigger} />
       ) : (
-        <DialogTrigger render={<Button />}>Create {kind.toUpperCase()} change</DialogTrigger>
+        <SheetTrigger render={<Button />}>Create {kind.toUpperCase()} change</SheetTrigger>
       )}
-      <DialogContent className="sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>Submit {kind.toUpperCase()} change</DialogTitle>
-          <DialogDescription>
+      <SheetContent className="sm:max-w-3xl">
+        <SheetHeader>
+          <SheetTitle>Submit {kind.toUpperCase()} change</SheetTitle>
+          <SheetDescription>
             The query and its rollback are dry-run together in a transaction that always rolls back —
             nothing changes until a reviewer approves and applies it.
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         <form onSubmit={onValid} className="grid gap-3">
           <div className="grid gap-1.5">
@@ -155,17 +155,17 @@ export function ChangeSubmitDialog({
             </div>
           )}
 
-          <DialogFooter className="items-center">
+          <SheetFooter className="items-center">
             <p className="mr-auto text-xs text-muted-foreground">
               validation runs on submit: syntax and dry run against the instance
             </p>
             <Button type="submit" disabled={busy}>
               Submit for review
             </Button>
-          </DialogFooter>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 
