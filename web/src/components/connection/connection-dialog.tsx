@@ -214,6 +214,10 @@ export function ConnectionDialog({
               />
             </div>
 
+            <p className="text-xs text-muted-foreground">
+              Driver, host, database and user are fixed once saved. The password can be rotated later from the instance page.
+            </p>
+
             <DialogFooter className="items-center gap-2">
               {wizard && (
                 <Button variant="ghost" className="mr-auto" onClick={() => setStep(1)}>

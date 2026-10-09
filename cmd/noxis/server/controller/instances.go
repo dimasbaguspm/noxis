@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -112,6 +113,26 @@ func ListInstances(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// @Summary Rotate an instance's password (identity fields stay locked)
+// @Param id path string true "instance id"
+// @Param body body passwordBody true "new password"
+// @Success 200 {object} object{status=string}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Router /v1/instances/{id}/password [post]
+func RotatePassword(w http.ResponseWriter, r *http.Request) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
+		var body passwordBody
+		if err := decode(r, &body); err != nil {
+			return nil, err
+		}
+		if err := d.rotatePassword(ctx, r.PathValue("id"), body.Password); err != nil {
+			return nil, err
+		}
+		return map[string]string{"status": "ok"}, nil
+	})
+}
+
 // @Summary Get one instance across engine families (password redacted)
 // @Param id path string true "instance id"
 // @Success 200 {object} entity.Connection
@@ -121,6 +142,32 @@ func GetInstance(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
 		return d.instance(ctx, r.PathValue("id"))
 	})
+}
+
+// rotatePassword replaces an instance's password. Identity fields are locked,
+// so this is the only way to update a credential; it is a global-admin action.
+func (d Deps) rotatePassword(ctx context.Context, id, password string) (err error) {
+	ctx, end := d.span(ctx)
+	defer func() { end(err) }()
+	if err := d.requireAdmin(ctx); err != nil {
+		return err
+	}
+	if password == "" {
+		return errors.New("password is required")
+	}
+	c, err := d.Connections.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if _, ok := d.moduleByDriver(c.Driver); !ok {
+		return interfaces.ErrUnsupported
+	}
+	c.Password = password
+	return d.Connections.Save(ctx, *c)
+}
+
+type passwordBody struct {
+	Password string `json:"password"`
 }
 
 // @Summary List the changes raised for one instance (newest first)

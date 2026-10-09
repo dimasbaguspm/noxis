@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ExternalLink, Trash2, Zap } from "lucide-react";
+import { ArrowLeft, ExternalLink, KeyRound, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAction } from "@/hooks/use-action";
@@ -50,6 +52,7 @@ export default function InstanceDetailPage() {
   const { isAdmin, reload } = useApp();
   const [instance, setInstance] = useState<Connection>();
   const [changes, setChanges] = useState<Change[]>([]);
+  const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState<string>();
 
   useEffect(() => {
@@ -85,6 +88,12 @@ export default function InstanceDetailPage() {
     toast.success(`deleted ${name}`);
     await reload(family);
     navigate(PAGE_ROUTES.DASHBOARD);
+  });
+
+  const rotate = useAction(async () => {
+    await api.instances.rotatePassword(id, newPassword);
+    setNewPassword("");
+    toast.success("password rotated");
   });
 
   if (error) {
@@ -179,6 +188,31 @@ export default function InstanceDetailPage() {
               {instance.createdAt ? new Date(instance.createdAt * 1000).toLocaleString() : "—"}
             </dd>
           </dl>
+          <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
+            Driver, host, database and user are fixed once registered. Only the password can be rotated.
+          </p>
+          {isAdmin && (
+            <div className="mt-3 flex items-end gap-2">
+              <div className="grid flex-1 gap-1.5">
+                <Label htmlFor="rotate-password">New password</Label>
+                <Input
+                  id="rotate-password"
+                  type="password"
+                  value={newPassword}
+                  placeholder="rotate the stored password"
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void rotate.run()}
+                disabled={rotate.loading || newPassword === ""}
+              >
+                <KeyRound /> Rotate
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

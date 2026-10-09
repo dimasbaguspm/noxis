@@ -132,6 +132,8 @@ export const api = {
     get: (id: string) => request<Connection>("GET", `/v1/instances/${encodeURIComponent(id)}`),
     changes: (id: string) =>
       request<{ changes: Change[] }>("GET", `/v1/instances/${encodeURIComponent(id)}/changes`),
+    rotatePassword: (id: string, password: string) =>
+      request<{ status: string }>("POST", `/v1/instances/${encodeURIComponent(id)}/password`, { password }),
   },
   connections: {
     ...connectionOps(FAMILY.SQL),
