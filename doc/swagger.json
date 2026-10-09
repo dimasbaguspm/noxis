@@ -107,6 +107,14 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    {
+                        "description": "substring match on connection name",
+                        "name": "connection",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 ],
                 "responses": {

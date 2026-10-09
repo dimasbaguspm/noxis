@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import { title } from "radash";
+import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useApp } from "@/app/app-provider";
 import { ChangeWizard } from "@/components/changes/change-wizard";
 import { BatchChangeDialog } from "@/components/changes/batch-change-dialog";
@@ -13,8 +16,16 @@ import { useChanges, type ChangeKind } from "@/hooks/use-data";
 // kind mix at a glance, and keep immediate work apart from scheduled work.
 export function ChangePage({ kind }: { kind: ChangeKind }) {
   const { can, registry } = useApp();
-  const { changes, all, submit, reload } = useChanges(kind);
+  const [filter, setFilter] = useState("");
+  const [query, setQuery] = useState("");
+  const { changes, all, submit, reload } = useChanges(kind, query || undefined);
   const label = kind.toUpperCase();
+
+  // debounce the name filter so typing issues one request, not one per key
+  useEffect(() => {
+    const handle = setTimeout(() => setQuery(filter.trim()), 200);
+    return () => clearTimeout(handle);
+  }, [filter]);
   // raising a change needs a write grant on some SQL instance; the wizard
   // still lets the server refuse a specific connection
   const mayRaise = registry.sql.connections.some((c) => can(c.name, "write"));
@@ -32,6 +43,15 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
         <Stat label={title("scheduled")} value={scheduled.length} />
         <Stat label="DML" value={dml} />
         <Stat label="DDL" value={ddl} />
+        <div className="relative min-w-56">
+          <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-7"
+            placeholder="filter by instance"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+        </div>
         <span className="flex-1" />
         {mayRaise && (
           <>
