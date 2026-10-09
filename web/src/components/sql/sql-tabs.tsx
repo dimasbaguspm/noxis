@@ -31,17 +31,25 @@ export function SqlTabs({
                 : "border-border text-muted-foreground hover:bg-accent/50",
             )}
           >
-            <button className="max-w-40 truncate" onClick={() => onSelect(tab.id)} title={tab.title}>
+            <Button
+              variant="ghost"
+              size="xs"
+              className="max-w-40 truncate px-1"
+              onClick={() => onSelect(tab.id)}
+              title={tab.title}
+            >
               {tab.title}
-            </button>
+            </Button>
             {tabs.length > 1 && (
-              <button
+              <Button
+                variant="ghost"
+                size="icon-xs"
                 aria-label={`close ${tab.title}`}
                 className="text-muted-foreground hover:text-destructive"
                 onClick={() => onClose(tab.id)}
               >
                 <X className="size-3" />
-              </button>
+              </Button>
             )}
           </span>
         ))}

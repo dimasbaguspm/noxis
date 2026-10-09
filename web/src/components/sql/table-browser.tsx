@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { debounce, group, title } from "radash";
 import { Activity, ChevronDown, ChevronRight, ListTree, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RowMenu } from "@/components/ui/row-menu";
@@ -94,8 +95,10 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
                       "hover:bg-accent hover:text-accent-foreground",
                     )}
                   >
-                    <button
-                      className="flex min-w-0 flex-1 items-center gap-1 text-left"
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex min-w-0 flex-1 items-center gap-1 justify-start px-1"
                       onClick={() => setExpanded(open ? null : key)}
                     >
                       {open ? (
@@ -105,7 +108,7 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
                       )}
                       <span className="truncate">{t.name}</span>
                       <span className="ml-1 text-xs text-muted-foreground">{t.columns.length}</span>
-                    </button>
+                    </Button>
                     <RowMenu
                       label={`actions for ${t.name}`}
                       items={[

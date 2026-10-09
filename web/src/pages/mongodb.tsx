@@ -107,18 +107,20 @@ export default function MongoExplorePage() {
                   </p>
                 )}
                 {databases.map((db) => (
-                  <button
+                  <Button
                     key={db.name}
-                    onClick={() => setDatabase(db.name)}
+                    variant="ghost"
+                    size="sm"
                     className={cn(
-                      "flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm",
-                      db.name === database ? "bg-accent text-accent-foreground" : "hover:bg-accent/50",
+                      "h-auto w-full justify-start gap-2 px-2 py-2",
+                      db.name === database ? "bg-accent text-accent-foreground hover:bg-accent" : "hover:bg-accent/50",
                     )}
+                    onClick={() => setDatabase(db.name)}
                   >
                     <Database className="size-3.5 shrink-0 text-muted-foreground" />
                     <span className="truncate">{db.name}</span>
                     <span className="ml-auto shrink-0 text-xs text-muted-foreground">{bytes(db.sizeBytes ?? 0)}</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </CardContent>
