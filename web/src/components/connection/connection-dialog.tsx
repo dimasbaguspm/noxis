@@ -7,6 +7,7 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetBody,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -148,7 +149,7 @@ export function ConnectionDialog({
         </SheetHeader>
 
         {step === 1 ? (
-          <div className="grid gap-3">
+          <SheetBody className="grid gap-3">
             <Choice
               icon={<Database className="size-4" />}
               title="SQL database"
@@ -167,9 +168,10 @@ export function ConnectionDialog({
               detail="MongoDB. Explore databases and collections, run CRUD requests."
               onClick={() => choose(FAMILY.MONGODB)}
             />
-          </div>
+          </SheetBody>
         ) : (
-          <form onSubmit={onValid} className="grid gap-3">
+          <form onSubmit={onValid} className="flex flex-1 flex-col">
+            <SheetBody className="grid gap-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="grid gap-1.5">
                 <Label>Name</Label>
@@ -242,6 +244,7 @@ export function ConnectionDialog({
             <p className="text-xs text-muted-foreground">
               Driver, host, database and user are fixed once saved. The password can be rotated later from the instance page.
             </p>
+            </SheetBody>
 
             <SheetFooter className="items-center gap-2">
               {wizard && (
