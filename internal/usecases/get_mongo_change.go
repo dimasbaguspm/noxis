@@ -1,0 +1,26 @@
+package usecases
+
+import (
+	"context"
+	"fmt"
+	"noxis/internal/constants"
+	"noxis/internal/entity"
+)
+
+// MongoChange is the "MongoChange" use case.
+type MongoChange struct{ Base }
+
+// Serve runs it.
+func (uc MongoChange) Serve(ctx context.Context, id string) (*entity.Change, error) {
+	ch, err := uc.Changes.GetChange(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if ch.Kind != constants.KindMongo {
+		return nil, fmt.Errorf("change %s is %s, not a mongodb request", id, ch.Kind)
+	}
+	if err := uc.Authorize(ctx, ch.Connection, entity.LevelRead); err != nil {
+		return nil, err
+	}
+	return ch, nil
+}

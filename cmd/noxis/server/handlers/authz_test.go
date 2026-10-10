@@ -11,14 +11,14 @@ import (
 	"noxis/internal/usecases"
 )
 
-func authzApp(grants ...entity.Grant) (*usecases.App, interfaces.Module) {
-	app, _, _ := newApp(&fakeSQL{})
+func authzBase(grants ...entity.Grant) (usecases.Base, interfaces.Module) {
+	base, _, _ := newTestBase(&fakeSQL{})
 	store := &fakeGrants{grants: map[string]entity.Grant{}}
 	for _, g := range grants {
 		store.grants[g.Group] = g
 	}
-	app.Grants = store
-	return app, app.Modules[constants.FamilySQL]
+	base.Grants = store
+	return base, base.Modules[constants.FamilySQL]
 }
 
 func asPrincipal(principal entity.Identity) context.Context {
@@ -26,7 +26,7 @@ func asPrincipal(principal entity.Identity) context.Context {
 }
 
 func TestAuthorizeByEffectiveLevel(t *testing.T) {
-	app, _ := authzApp(
+	base, _ := authzBase(
 		entity.Grant{Connection: "demo", Group: "readers", Level: entity.LevelRead},
 		entity.Grant{Connection: "demo", Group: "writers", Level: entity.LevelWrite},
 	)
@@ -46,7 +46,7 @@ func TestAuthorizeByEffectiveLevel(t *testing.T) {
 	}
 	for _, tc := range cases {
 		ctx := asPrincipal(entity.Identity{Subject: "alice", Groups: tc.groups})
-		err := app.Authorize(ctx, "demo", tc.need)
+		err := base.Authorize(ctx, "demo", tc.need)
 		if tc.ok && err != nil {
 			t.Errorf("%s: err=%v want allowed", tc.name, err)
 		}
@@ -59,12 +59,12 @@ func TestAuthorizeByEffectiveLevel(t *testing.T) {
 // TestAuthorizeOpenModeAndAdmin: no principal (auth off) and a global admin
 // both bypass the per-connection check.
 func TestAuthorizeOpenModeAndAdmin(t *testing.T) {
-	app, _ := authzApp()
-	if err := app.Authorize(context.Background(), "demo", entity.LevelAdmin); err != nil {
+	base, _ := authzBase()
+	if err := base.Authorize(context.Background(), "demo", entity.LevelAdmin); err != nil {
 		t.Fatalf("open mode: %v", err)
 	}
 	ctx := asPrincipal(entity.Identity{Subject: "root", Groups: []string{"whatever"}, Admin: true})
-	if err := app.Authorize(ctx, "demo", entity.LevelAdmin); err != nil {
+	if err := base.Authorize(ctx, "demo", entity.LevelAdmin); err != nil {
 		t.Fatalf("global admin: %v", err)
 	}
 }
@@ -72,14 +72,14 @@ func TestAuthorizeOpenModeAndAdmin(t *testing.T) {
 // TestConnectionsListHidesUnreadable: a caller without a read grant does not
 // see the instance.
 func TestConnectionsListHidesUnreadable(t *testing.T) {
-	app, mod := authzApp(entity.Grant{Connection: "demo", Group: "readers", Level: entity.LevelRead})
+	base, mod := authzBase(entity.Grant{Connection: "demo", Group: "readers", Level: entity.LevelRead})
 
-	visible, err := app.ConnectionList(asPrincipal(entity.Identity{Groups: []string{"readers"}}), mod)
+	visible, err := (usecases.Connections{Base: base}).ConnectionList(asPrincipal(entity.Identity{Groups: []string{"readers"}}), mod)
 	if err != nil || len(visible) != 1 {
 		t.Fatalf("granted reader: list=%v err=%v", visible, err)
 	}
 
-	hidden, err := app.ConnectionList(asPrincipal(entity.Identity{Groups: []string{"strangers"}}), mod)
+	hidden, err := (usecases.Connections{Base: base}).ConnectionList(asPrincipal(entity.Identity{Groups: []string{"strangers"}}), mod)
 	if err != nil || len(hidden) != 0 {
 		t.Fatalf("stranger: list=%v err=%v", hidden, err)
 	}

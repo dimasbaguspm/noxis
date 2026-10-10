@@ -21,11 +21,11 @@ import (
 func ListConnections(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		conns, err := d.App.ConnectionList(ctx, mod)
+		conns, err := d.Connections.ConnectionList(ctx, mod)
 		return map[string]any{"connections": conns}, err
 	})
 }
@@ -39,7 +39,7 @@ func ListConnections(w http.ResponseWriter, r *http.Request) {
 func SaveConnection(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -47,7 +47,7 @@ func SaveConnection(w http.ResponseWriter, r *http.Request) {
 		if err := decode(r, &c); err != nil {
 			return nil, err
 		}
-		return d.App.SaveConnection(ctx, mod, c)
+		return d.Connections.SaveConnection(ctx, mod, c)
 	})
 }
 
@@ -60,11 +60,11 @@ func SaveConnection(w http.ResponseWriter, r *http.Request) {
 func GetConnection(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		return d.App.Connection(ctx, mod, r.PathValue("name"))
+		return d.Connections.Connection(ctx, mod, r.PathValue("name"))
 	})
 }
 
@@ -77,11 +77,11 @@ func GetConnection(w http.ResponseWriter, r *http.Request) {
 func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handleNoContent(w, r, func(ctx context.Context) error {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return err
 		}
-		return d.App.DeleteConnection(ctx, mod, r.PathValue("name"))
+		return d.Connections.DeleteConnection(ctx, mod, r.PathValue("name"))
 	})
 }
 
@@ -94,11 +94,11 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 func TestConnection(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		if err := d.App.TestConnection(ctx, mod, r.PathValue("name")); err != nil {
+		if err := d.Connections.TestConnection(ctx, mod, r.PathValue("name")); err != nil {
 			return nil, err
 		}
 		return entity.StatusResponse{Status: "ok"}, nil
@@ -115,11 +115,11 @@ func TestConnection(w http.ResponseWriter, r *http.Request) {
 func GetSchema(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		sq, err := d.App.EngineSQL(r.PathValue("engine"))
+		sq, err := d.Engines.EngineSQL(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		tables, err := d.App.Schema(ctx, sq, r.PathValue("name"))
+		tables, err := d.Connections.Schema(ctx, sq, r.PathValue("name"))
 		return map[string]any{"tables": tables}, err
 	})
 }
@@ -137,12 +137,12 @@ func GetSchema(w http.ResponseWriter, r *http.Request) {
 func GetRows(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		sq, err := d.App.EngineSQL(r.PathValue("engine"))
+		sq, err := d.Engines.EngineSQL(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-		return d.App.Rows(ctx, sq, r.PathValue("name"), r.URL.Query().Get("schema"), r.PathValue("table"), limit)
+		return d.Connections.Rows(ctx, sq, r.PathValue("name"), r.URL.Query().Get("schema"), r.PathValue("table"), limit)
 	})
 }
 
@@ -202,7 +202,7 @@ var opRoutes = map[string]string{
 func doOp(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		sq, err := d.App.EngineSQL(r.PathValue("engine"))
+		sq, err := d.Engines.EngineSQL(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -210,6 +210,6 @@ func doOp(w http.ResponseWriter, r *http.Request) {
 		if err := decode(r, &body); err != nil {
 			return nil, err
 		}
-		return d.App.Op(ctx, sq, r.PathValue("name"), opRoutes[r.Pattern], body.SQL, body.Table)
+		return d.Connections.Op(ctx, sq, r.PathValue("name"), opRoutes[r.Pattern], body.SQL, body.Table)
 	})
 }

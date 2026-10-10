@@ -36,10 +36,11 @@ func TestGetMeServesPrincipal(t *testing.T) {
 }
 
 func TestGetMeIncludesLevels(t *testing.T) {
-	deps, app, _, _ := newTestDeps(&fakeSQL{})
-	app.Grants = &fakeGrants{grants: map[string]entity.Grant{
+	deps, base, _, _ := newTestDeps(&fakeSQL{})
+	base.Grants = &fakeGrants{grants: map[string]entity.Grant{
 		"dev": {Connection: "demo", Group: "readers", Level: entity.LevelRead},
 	}}
+	deps.Me = usecases.Me{Base: base}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/me", GetMe)
 

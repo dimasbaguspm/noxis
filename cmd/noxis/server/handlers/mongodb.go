@@ -28,11 +28,11 @@ import (
 func ListDatabases(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		m, err := d.App.EngineMongo(r.PathValue("engine"))
+		m, err := d.Engines.EngineMongo(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.App.Raw(ctx, m, r.PathValue("name"), entity.LevelRead)
+		c, err := d.Connections.Raw(ctx, m, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -52,11 +52,11 @@ func ListDatabases(w http.ResponseWriter, r *http.Request) {
 func ListCollections(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		m, err := d.App.EngineMongo(r.PathValue("engine"))
+		m, err := d.Engines.EngineMongo(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.App.Raw(ctx, m, r.PathValue("name"), entity.LevelRead)
+		c, err := d.Connections.Raw(ctx, m, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -80,7 +80,7 @@ func PostRequest(w http.ResponseWriter, r *http.Request) {
 		if err := decode(r, &req); err != nil {
 			return nil, err
 		}
-		m, err := d.App.EngineMongo(r.PathValue("engine"))
+		m, err := d.Engines.EngineMongo(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -90,7 +90,7 @@ func PostRequest(w http.ResponseWriter, r *http.Request) {
 		if mongodb.IsWrite(req.Op) {
 			level = entity.LevelWrite
 		}
-		c, err := d.App.Raw(ctx, m, r.PathValue("name"), level)
+		c, err := d.Connections.Raw(ctx, m, r.PathValue("name"), level)
 		if err != nil {
 			return nil, err
 		}

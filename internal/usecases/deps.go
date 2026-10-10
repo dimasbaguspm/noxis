@@ -14,10 +14,16 @@ import (
 // seeded into the base request context; handlers consume it with From. It is
 // never rebuilt per request.
 type Deps struct {
-	App   *App
-	Log   *slog.Logger
-	Cache *cache.Cache
-	Auth  config.AuthInfo
+	Engines     EngineWorkflows
+	Changes     ChangesWorkflows
+	Connections ConnectionsWorkflows
+	Mongo       MongoWorkflows
+	Instances   InstanceWorkflows
+	Grants      GrantWorkflows
+	Me          MeWorkflows
+	Log         *slog.Logger
+	Cache       *cache.Cache
+	Auth        config.AuthInfo
 }
 
 type depsKey struct{}

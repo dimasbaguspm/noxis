@@ -29,11 +29,11 @@ import (
 func ListKeys(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mc, err := d.App.EngineMemcache(r.PathValue("engine"))
+		mc, err := d.Engines.EngineMemcache(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.App.Raw(ctx, mc, r.PathValue("name"), entity.LevelRead)
+		c, err := d.Connections.Raw(ctx, mc, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -57,11 +57,11 @@ func GetValue(w http.ResponseWriter, r *http.Request) {
 		if key == "" {
 			return nil, fmt.Errorf("key is required")
 		}
-		mc, err := d.App.EngineMemcache(r.PathValue("engine"))
+		mc, err := d.Engines.EngineMemcache(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.App.Raw(ctx, mc, r.PathValue("name"), entity.LevelRead)
+		c, err := d.Connections.Raw(ctx, mc, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -88,11 +88,11 @@ func DeleteKeys(w http.ResponseWriter, r *http.Request) {
 		if err := decode(r, &body); err != nil {
 			return nil, err
 		}
-		mc, err := d.App.EngineMemcache(r.PathValue("engine"))
+		mc, err := d.Engines.EngineMemcache(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.App.Raw(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
+		c, err := d.Connections.Raw(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
 		if err != nil {
 			return nil, err
 		}
@@ -120,11 +120,11 @@ func FlushDB(w http.ResponseWriter, r *http.Request) {
 		if err := decode(r, &body); err != nil {
 			return nil, err
 		}
-		mc, err := d.App.EngineMemcache(r.PathValue("engine"))
+		mc, err := d.Engines.EngineMemcache(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.App.Raw(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
+		c, err := d.Connections.Raw(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
 		if err != nil {
 			return nil, err
 		}

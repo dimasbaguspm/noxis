@@ -8,12 +8,13 @@ import (
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
+	"noxis/internal/usecases"
 )
 
 // The cross-family lookup must decorate an instance with its family, never
 // leak the password, and 404 an id that does not exist.
 func TestInstanceLookup(t *testing.T) {
-	app, _, conns := newApp(&fakeSQL{})
+	base, _, conns := newTestBase(&fakeSQL{})
 	ctx := context.Background()
 
 	c := conns.conns["demo"]
@@ -21,7 +22,7 @@ func TestInstanceLookup(t *testing.T) {
 	c.Password = "secret"
 	conns.conns["demo"] = c
 
-	got, err := app.Instance(ctx, "abc")
+	got, err := (usecases.Instances{Base: base}).Instance(ctx, "abc")
 	if err != nil {
 		t.Fatalf("instance: %v", err)
 	}
@@ -32,7 +33,7 @@ func TestInstanceLookup(t *testing.T) {
 		t.Fatal("password must be redacted")
 	}
 
-	if _, err := app.Instance(ctx, "missing"); !errors.Is(err, interfaces.ErrNotFound) {
+	if _, err := (usecases.Instances{Base: base}).Instance(ctx, "missing"); !errors.Is(err, interfaces.ErrNotFound) {
 		t.Fatalf("missing id: err=%v want not found", err)
 	}
 }
@@ -50,7 +51,7 @@ func (fakeMemcache) Supports(driver string) bool {
 // The list is cross-family and its filters are name/host substrings plus an
 // exact driver match.
 func TestInstanceSearch(t *testing.T) {
-	app, _, conns := newApp(&fakeSQL{})
+	base, _, conns := newTestBase(&fakeSQL{})
 	ctx := context.Background()
 	conns.conns["prod-db"] = entity.Connection{
 		Name: "prod-db", Driver: constants.DriverPostgres, Host: "db.internal", Port: 5432,
@@ -59,9 +60,9 @@ func TestInstanceSearch(t *testing.T) {
 	conns.conns["cache"] = entity.Connection{
 		Name: "cache", Driver: constants.DriverRedis, Host: "redis.internal", Port: 6379, Database: "0",
 	}
-	app.Modules[constants.FamilyMemcache] = &fakeMemcache{}
+	base.Modules[constants.FamilyMemcache] = &fakeMemcache{}
 
-	all, err := app.Instances(ctx, "", "", "")
+	all, err := (usecases.Instances{Base: base}).Instances(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -69,7 +70,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("all = %d, want 3", len(all))
 	}
 
-	byName, err := app.Instances(ctx, "PROD", "", "")
+	byName, err := (usecases.Instances{Base: base}).Instances(ctx, "PROD", "", "")
 	if err != nil {
 		t.Fatalf("by name: %v", err)
 	}
@@ -77,7 +78,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("by name = %+v", byName)
 	}
 
-	byDriver, err := app.Instances(ctx, "", constants.DriverRedis, "")
+	byDriver, err := (usecases.Instances{Base: base}).Instances(ctx, "", constants.DriverRedis, "")
 	if err != nil {
 		t.Fatalf("by driver: %v", err)
 	}
@@ -85,7 +86,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("by driver = %+v", byDriver)
 	}
 
-	byHost, err := app.Instances(ctx, "", "", "internal")
+	byHost, err := (usecases.Instances{Base: base}).Instances(ctx, "", "", "internal")
 	if err != nil {
 		t.Fatalf("by host: %v", err)
 	}
@@ -96,9 +97,9 @@ func TestInstanceSearch(t *testing.T) {
 
 // Identity is fixed after registration; only the password rotates.
 func TestIdentityLockedAndRotation(t *testing.T) {
-	app, _, conns := newApp(&fakeSQL{})
+	base, _, conns := newTestBase(&fakeSQL{})
 	ctx := context.Background()
-	mod := app.Modules[constants.FamilySQL]
+	mod := base.Modules[constants.FamilySQL]
 
 	c := conns.conns["demo"]
 	c.ID = "abc"
@@ -107,23 +108,23 @@ func TestIdentityLockedAndRotation(t *testing.T) {
 
 	changed := c
 	changed.Host = "elsewhere"
-	if _, err := app.SaveConnection(ctx, mod, changed); err == nil {
+	if _, err := (usecases.Connections{Base: base}).SaveConnection(ctx, mod, changed); err == nil {
 		t.Fatal("changing host must be rejected")
 	}
 	if conns.conns["demo"].Host != "db" {
 		t.Fatal("stored instance must be unchanged")
 	}
 
-	if err := app.RotatePassword(ctx, "abc", "new"); err != nil {
+	if err := (usecases.Instances{Base: base}).RotatePassword(ctx, "abc", "new"); err != nil {
 		t.Fatalf("rotate: %v", err)
 	}
 	if conns.conns["demo"].Password != "new" {
 		t.Fatal("password not rotated")
 	}
-	if err := app.RotatePassword(ctx, "abc", ""); err == nil {
+	if err := (usecases.Instances{Base: base}).RotatePassword(ctx, "abc", ""); err == nil {
 		t.Fatal("empty password must be rejected")
 	}
-	if err := app.RotatePassword(ctx, "missing", "x"); !errors.Is(err, interfaces.ErrNotFound) {
+	if err := (usecases.Instances{Base: base}).RotatePassword(ctx, "missing", "x"); !errors.Is(err, interfaces.ErrNotFound) {
 		t.Fatalf("missing id: err=%v want not found", err)
 	}
 }
