@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { title } from "radash";
 import { ArrowLeft, CalendarClock, Check, CircleHelp, FileWarning, Loader2, Play, Undo2 } from "lucide-react";
@@ -23,7 +26,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChangeActivity } from "@/components/changes/change-activity";
@@ -254,14 +257,36 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   );
 }
 
+const scheduleSchema = z.object({
+  when: z
+    .string()
+    .min(1, "pick a moment")
+    .refine((v) => {
+      const slot = Date.parse(v);
+      return !Number.isNaN(slot) && slot > Date.now();
+    }, "pick a future moment"),
+});
+type ScheduleForm = z.infer<typeof scheduleSchema>;
+
 // ScheduleMenu is the approved-change schedule control: Immediate clears the
 // slot, Schedule it opens a small picker for a future time.
 function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at: number) => void }) {
   const [open, setOpen] = useState(false);
-  const [when, setWhen] = useState("");
-  const slot = when ? Math.floor(new Date(when).getTime() / 1000) : 0;
-  const valid = slot > Math.floor(Date.now() / 1000);
   const scheduled = (change.scheduledAt ?? 0) > 0;
+
+  const {
+    register,
+    handleSubmit,
+    reset: resetForm,
+    formState: { errors },
+  } = useForm<ScheduleForm>({
+    defaultValues: { when: "" },
+    resolver: zodResolver(scheduleSchema),
+  });
+  const onValid = handleSubmit((values) => {
+    onSchedule(Math.floor(Date.parse(values.when) / 1000));
+    setOpen(false);
+  });
 
   return (
     <>
@@ -273,7 +298,7 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
           <DropdownMenuItem onClick={() => onSchedule(0)}>Immediate</DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
-              setWhen("");
+              resetForm({ when: "" });
               setOpen(true);
             }}
           >
@@ -289,28 +314,17 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
             <SheetDescription>Pick when the scheduler should apply this approved change.</SheetDescription>
           </SheetHeader>
           <SheetBody>
-            <form
-              id="schedule-change"
-              onSubmit={(e) => {
-                e.preventDefault();
-                onSchedule(slot);
-                setOpen(false);
-              }}
-            >
+            <form id="schedule-change" onSubmit={onValid}>
               <Field>
                 <FieldLabel htmlFor="schedule-at">Run at</FieldLabel>
-                <Input
-                  id="schedule-at"
-                  type="datetime-local"
-                  value={when}
-                  onChange={(e) => setWhen(e.target.value)}
-                />
+                <Input id="schedule-at" type="datetime-local" {...register("when")} />
                 <FieldDescription>a future moment; the scheduler applies the change once.</FieldDescription>
+                <FieldError>{errors.when?.message}</FieldError>
               </Field>
             </form>
           </SheetBody>
           <SheetFooter>
-            <Button size="sm" type="submit" form="schedule-change" disabled={!valid}>
+            <Button size="sm" type="submit" form="schedule-change">
               Schedule
             </Button>
           </SheetFooter>

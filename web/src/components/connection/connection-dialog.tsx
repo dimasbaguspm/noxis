@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { BadgeCheck, Boxes, ChevronLeft, Database, Leaf, PlugZap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,7 +15,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Field, FieldLabel, FieldRow } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSetActiveConnection } from "@/hooks/use-connections";
@@ -21,6 +23,19 @@ import { useDriversQuery } from "@/hooks/use-config";
 import { queryClient } from "@/lib/query-client";
 import { FAMILY, type FamilyKey } from "@/lib/families";
 import { api, type Connection } from "@/lib/api";
+
+// connectionSchema is the client-side contract for the registration form;
+// the server still enforces driver specifics on probe.
+const connectionSchema = z.object({
+  name: z.string().trim().min(1, "name is required"),
+  host: z.string().trim().min(1, "host is required"),
+  port: z.coerce.number().int().min(1, "port must be between 1 and 65535").max(65535, "port must be between 1 and 65535"),
+  user: z.string().trim().min(1, "user is required"),
+  password: z.string().optional(),
+  database: z.string().trim().min(1, "database is required"),
+  driver: z.string().optional(),
+});
+type ConnectionForm = z.infer<typeof connectionSchema>;
 
 const SQL_EMPTY: Connection = {
   name: "",
@@ -70,8 +85,11 @@ export function ConnectionDialog({
 }) {
   const setActive = useSetActiveConnection();
   const { data: drivers = [] } = useDriversQuery();
-  const { register, handleSubmit, watch, setValue, reset } = useForm<Connection>({
-    defaultValues: initial ?? BLANK[family],
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ConnectionForm>({
+    defaultValues: (initial ?? BLANK[family]) as unknown as ConnectionForm,
+    // z.coerce makes the schema's input type differ from its output type;
+    // the resolver is cast so the form values are the coerced shape.
+    resolver: zodResolver(connectionSchema) as unknown as Resolver<ConnectionForm>,
   });
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<FamilyKey>(family);
@@ -109,7 +127,7 @@ export function ConnectionDialog({
   }
 
   const onValid = handleSubmit(async (values) => {
-    const form: Connection = { ...values, port: Number(values.port) || defaultPort(values.driver) };
+    const form: Connection = { ...values, family: kind } as unknown as Connection;
     setBusy(true);
     try {
       const saved = await client.save(form);
@@ -178,6 +196,7 @@ export function ConnectionDialog({
               <Field>
                 <FieldLabel htmlFor="conn-name">Name</FieldLabel>
                 <Input id="conn-name" placeholder="prod-readonly" {...field("name")} />
+                <FieldError>{errors.name?.message}</FieldError>
               </Field>
               <Field>
                 <FieldLabel>Driver</FieldLabel>
@@ -215,10 +234,12 @@ export function ConnectionDialog({
                   placeholder={cache ? "cache.internal" : mongo ? "mongo.internal" : "db.internal"}
                   {...field("host")}
                 />
+                <FieldError>{errors.host?.message}</FieldError>
               </Field>
               <Field>
                 <FieldLabel htmlFor="conn-port">Port</FieldLabel>
                 <Input id="conn-port" type="number" {...field("port")} />
+                <FieldError>{errors.port?.message}</FieldError>
               </Field>
               <Field>
                 <FieldLabel htmlFor="conn-user">{cache ? "User (ACL, optional)" : "User"}</FieldLabel>
@@ -227,6 +248,7 @@ export function ConnectionDialog({
                   placeholder={cache ? "default" : mongo ? "root" : "postgres"}
                   {...field("user")}
                 />
+                <FieldError>{errors.user?.message}</FieldError>
               </Field>
               <Field>
                 <FieldLabel htmlFor="conn-password">Password</FieldLabel>
@@ -245,6 +267,7 @@ export function ConnectionDialog({
                   placeholder={cache ? "0" : mongo ? "admin" : "app"}
                   {...field("database")}
                 />
+                <FieldError>{errors.database?.message}</FieldError>
               </Field>
 
               <p className="text-xs text-muted-foreground">

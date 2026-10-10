@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Database, ExternalLink, KeyRound, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
@@ -27,7 +29,6 @@ export default function InstanceDetailPage() {
   const detail = useInstanceQuery(id);
   const instance = detail.data;
   const error = detail.error instanceof Error ? detail.error.message : undefined;
-  const [newPassword, setNewPassword] = useState("");
 
   const family = instance?.family as FamilyKey | undefined;
   const name = instance?.name ?? "";
@@ -47,6 +48,22 @@ export default function InstanceDetailPage() {
   });
 
   const rotate = useRotatePasswordMutation();
+  const {
+    register,
+    handleSubmit,
+    reset: resetPassword,
+    formState: { errors },
+  } = useForm<{ password: string }>({
+    defaultValues: { password: "" },
+    resolver: zodResolver(
+      z.object({ password: z.string().min(1, "new password is required") }),
+    ),
+  });
+  const onRotate = handleSubmit(async ({ password }) => {
+    await rotate.mutateAsync({ id, password });
+    resetPassword();
+    toast.success("password rotated");
+  });
 
   if (error) {
     return (
@@ -148,29 +165,22 @@ export default function InstanceDetailPage() {
           </p>
           {isAdmin && (
             <div className="mt-3 flex items-end gap-2">
-              <Field className="flex-1">
-                <FieldLabel htmlFor="rotate-password">New password</FieldLabel>
-                <Input
-                  id="rotate-password"
-                  type="password"
-                  value={newPassword}
-                  placeholder="rotate the stored password"
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <FieldError>
-                  {rotate.isError ? (rotate.error instanceof Error ? rotate.error.message : "rotation failed") : undefined}
-                </FieldError>
-              </Field>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  rotate.mutate({ id, password: newPassword });
-                  setNewPassword("");
-                  toast.success("password rotated");
-                }}
-                disabled={rotate.isPending || newPassword === ""}
-              >
+              <form id="rotate-password" onSubmit={onRotate} className="flex-1">
+                <Field>
+                  <FieldLabel htmlFor="rotate-password">New password</FieldLabel>
+                  <Input
+                    id="rotate-password"
+                    type="password"
+                    placeholder="rotate the stored password"
+                    {...register("password")}
+                  />
+                  <FieldError>
+                    {errors.password?.message ??
+                      (rotate.isError ? (rotate.error instanceof Error ? rotate.error.message : "rotation failed") : undefined)}
+                  </FieldError>
+                </Field>
+              </form>
+              <Button size="sm" variant="outline" type="submit" form="rotate-password" disabled={rotate.isPending}>
                 <KeyRound /> Rotate
               </Button>
             </div>

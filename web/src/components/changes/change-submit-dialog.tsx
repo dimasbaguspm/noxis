@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { title } from "radash";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -15,7 +17,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Field, FieldLabel, FieldLayout } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel, FieldLayout } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { SqlEditor } from "@/components/sql/sql-editor";
@@ -23,7 +25,13 @@ import { useConnectionSelection } from "@/hooks/use-connection";
 import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { classify } from "@/lib/statements";
 
-type FormValues = { notes: string; query: string; rollback: string };
+const submitSchema = z.object({
+  notes: z.string().trim().min(1, "notes are required"),
+  query: z.string().min(1, "original query is required"),
+  rollback: z.string().min(1, "rollback query is required"),
+});
+
+type FormValues = z.infer<typeof submitSchema>;
 
 // ChangeSubmitDialog collects {notes, query, rollback} and closes as soon as
 // the change is recorded — validation results live on the detail page, so the
@@ -54,8 +62,16 @@ export function ChangeSubmitDialog({
   // the instance is part of the change, so it is chosen here, not on the page
   const { connection, pick } = useConnectionSelection(initial?.connection);
   const { data: tables } = useConnectionSchemaQuery(connection); // completion follows the chosen instance
-  const { register, handleSubmit, watch, setValue, reset } = useForm<FormValues>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm<FormValues>({
     defaultValues: { notes: "", query: "", rollback: "" },
+    resolver: zodResolver(submitSchema),
   });
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -69,10 +85,6 @@ export function ChangeSubmitDialog({
   const onValid = handleSubmit(async (values) => {
     if (!connection) {
       toast.error("pick the instance this change targets");
-      return;
-    }
-    if (!values.notes.trim() || !values.query.trim() || !values.rollback.trim()) {
-      toast.error("notes, query and rollback are all required");
       return;
     }
     setBusy(true);
@@ -123,6 +135,7 @@ export function ChangeSubmitDialog({
               {title("notes")} <Required />
             </FieldLabel>
             <Input id="change-notes" placeholder="what and why" {...register("notes")} />
+            <FieldError>{errors.notes?.message}</FieldError>
           </Field>
 
           <Field>
@@ -133,6 +146,8 @@ export function ChangeSubmitDialog({
               )}
             </FieldLabel>
             <SqlEditor value={watch("query")} onChange={(sql) => setValue("query", sql)} tables={tables} height="12rem" />
+            <input type="hidden" aria-hidden {...register("query")} />
+            <FieldError>{errors.query?.message}</FieldError>
           </Field>
 
           <Field>
@@ -140,6 +155,8 @@ export function ChangeSubmitDialog({
               {title("rollback query")} <Required />
             </FieldLabel>
             <SqlEditor value={watch("rollback")} onChange={(sql) => setValue("rollback", sql)} tables={tables} height="9rem" />
+            <input type="hidden" aria-hidden {...register("rollback")} />
+            <FieldError>{errors.rollback?.message}</FieldError>
           </Field>
           </FieldLayout>
           {failure.length > 0 && (

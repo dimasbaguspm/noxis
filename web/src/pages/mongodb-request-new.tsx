@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, CircleHelp, Send, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
@@ -6,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -29,6 +32,28 @@ const SAMPLES: Record<string, { filter: string; value: string }> = {
   delete: { filter: '{ "name": "example" }', value: "" },
 };
 
+function isJson(value: string): boolean {
+  if (value.trim() === "") return true;
+  try {
+    JSON.parse(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const requestSchema = z.object({
+  connection: z.string().min(1, "choose a connection"),
+  database: z.string().min(1, "choose a database"),
+  collection: z.string().min(1, "choose a collection"),
+  op: z.enum(["insert", "update", "delete"]),
+  notes: z.string().optional(),
+  filter: z.string().refine(isJson, "filter must be valid JSON"),
+  value: z.string().refine(isJson, "value must be valid JSON"),
+  many: z.boolean(),
+});
+type RequestForm = z.infer<typeof requestSchema>;
+
 // MongoRequestNewPage is the request wizard: pick the database, pick the
 // collection, write the filter and the value, submit for review. Nothing is
 // applied here — validation runs on a scratch collection and the request waits
@@ -38,48 +63,64 @@ export default function MongoRequestNewPage() {
   const { connections, connection, pick } = useMongoConnections();
   const { databases } = useMongoDatabasesQuery(connection);
   const [step, setStep] = useState(1);
-  const [database, setDatabase] = useState<string>();
-  const [collection, setCollection] = useState<string>();
-  const [op, setOp] = useState<string>("update");
-  const [notes, setNotes] = useState("");
-  const [filter, setFilter] = useState(SAMPLES.update?.filter ?? "");
-  const [value, setValue] = useState(SAMPLES.update?.value ?? "");
-  const [many, setMany] = useState(false);
   const [failure, setFailure] = useState<Change>();
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    trigger,
+    formState: { errors },
+  } = useForm<RequestForm>({
+    defaultValues: {
+      connection: "",
+      database: "",
+      collection: "",
+      op: "update",
+      notes: "",
+      filter: SAMPLES.update?.filter ?? "",
+      value: SAMPLES.update?.value ?? "",
+      many: false,
+    },
+    resolver: zodResolver(requestSchema),
+  });
 
-  const { collections } = useMongoCollectionsQuery(connection, database);
+  const databaseValue = watch("database");
+  const collectionValue = watch("collection");
+  const opValue = watch("op");
+  const { collections } = useMongoCollectionsQuery(connection, databaseValue);
   const submit = useMongoSubmitChangeMutation();
 
   useEffect(() => {
-    if (!database && databases.length > 0) setDatabase(databases[0]?.name);
-  }, [database, databases]);
+    if (!databaseValue && databases.length > 0) setValue("database", databases[0]?.name ?? "", { shouldValidate: false });
+  }, [databaseValue, databases, setValue]);
   useEffect(() => {
-    if (collection && collections.some((c) => c.name === collection)) return;
-    setCollection(collections[0]?.name);
-  }, [collection, collections]);
+    if (collectionValue && collections.some((c) => c.name === collectionValue)) return;
+    setValue("collection", collections[0]?.name ?? "", { shouldValidate: false });
+  }, [collectionValue, collections, setValue]);
 
-  const spec = WRITES.find((w) => w.value === op);
+  const spec = WRITES.find((w) => w.value === opValue);
 
   function chooseOp(next: string) {
-    setOp(next);
-    setFilter(SAMPLES[next]?.filter ?? "");
-    setValue(SAMPLES[next]?.value ?? "");
-    setMany(false);
+    const selected = next as RequestForm["op"];
+    setValue("op", selected);
+    setValue("filter", SAMPLES[selected]?.filter ?? "", { shouldValidate: false });
+    setValue("value", SAMPLES[selected]?.value ?? "", { shouldValidate: false });
+    setValue("many", false);
   }
 
-  async function send() {
-    if (!connection || !database || !collection) return;
+  const onSend = handleSubmit(async (values) => {
     setFailure(undefined);
     try {
       const change = (await submit.mutateAsync({
-        connection,
-        notes: notes.trim() || `${op} on ${database}.${collection}`,
-        op,
-        database,
-        collection,
-        filter,
-        value,
-        many,
+        connection: values.connection,
+        notes: (values.notes ?? "").trim() || `${values.op} on ${values.database}.${values.collection}`,
+        op: values.op,
+        database: values.database,
+        collection: values.collection,
+        filter: values.filter,
+        value: values.value,
+        many: values.many,
       })) as Change;
       if (change.status === "failed") {
         // a failed validation is a rejected proposal: it is not in the queue
@@ -92,7 +133,7 @@ export default function MongoRequestNewPage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
-  }
+  });
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
@@ -112,7 +153,14 @@ export default function MongoRequestNewPage() {
           <CardContent className="flex flex-col gap-3">
             <Field>
               <FieldLabel>Connection</FieldLabel>
-              <Select value={connection ?? ""} onValueChange={(v) => pick(String(v))}>
+              <Select
+                value={watch("connection")}
+                onValueChange={(v) => {
+                  const name = String(v);
+                  setValue("connection", name);
+                  pick(name);
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="no mongodb registered" />
                 </SelectTrigger>
@@ -124,10 +172,11 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError>{errors.connection?.message}</FieldError>
             </Field>
             <Field>
               <FieldLabel>Database</FieldLabel>
-              <Select value={database ?? ""} onValueChange={(v) => setDatabase(String(v))}>
+              <Select value={watch("database")} onValueChange={(v) => setValue("database", String(v))}>
                 <SelectTrigger>
                   <SelectValue placeholder="pick a database" />
                 </SelectTrigger>
@@ -139,9 +188,14 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError>{errors.database?.message}</FieldError>
             </Field>
             <div className="flex justify-end">
-              <Button disabled={!connection || !database} onClick={() => setStep(2)}>
+              <Button
+                onClick={async () => {
+                  if (await trigger(["connection", "database"])) setStep(2);
+                }}
+              >
                 Next <ChevronRight />
               </Button>
             </div>
@@ -154,15 +208,15 @@ export default function MongoRequestNewPage() {
           <CardHeader>
             <CardTitle className="text-base">Which collection, and what kind of write?</CardTitle>
             <CardDescription>
-              {collection
-                ? `${collections.find((c) => c.name === collection)?.count ?? 0} document(s) currently`
+              {collectionValue
+                ? `${collections.find((c) => c.name === collectionValue)?.count ?? 0} document(s) currently`
                 : "pick the collection the request targets"}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <Field>
               <FieldLabel>Collection</FieldLabel>
-              <Select value={collection ?? ""} onValueChange={(v) => setCollection(String(v))}>
+              <Select value={watch("collection")} onValueChange={(v) => setValue("collection", String(v))}>
                 <SelectTrigger>
                   <SelectValue placeholder="pick a collection" />
                 </SelectTrigger>
@@ -174,10 +228,11 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError>{errors.collection?.message}</FieldError>
             </Field>
             <Field>
               <FieldLabel>Operation</FieldLabel>
-              <Select value={op} onValueChange={(v) => chooseOp(String(v))}>
+              <Select value={opValue} onValueChange={(v) => chooseOp(String(v))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -194,7 +249,11 @@ export default function MongoRequestNewPage() {
               <Button variant="ghost" onClick={() => setStep(1)}>
                 <ChevronLeft /> Back
               </Button>
-              <Button disabled={!collection} onClick={() => setStep(3)}>
+              <Button
+                onClick={async () => {
+                  if (await trigger(["collection"])) setStep(3);
+                }}
+              >
                 Next <ChevronRight />
               </Button>
             </div>
@@ -206,7 +265,7 @@ export default function MongoRequestNewPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              {op} on {database}.{collection}
+              {opValue} on {watch("database")}.{watch("collection")}
             </CardTitle>
             <CardDescription>
               {spec?.hint}. Validation copies the matching documents into a scratch collection, applies the write
@@ -218,37 +277,38 @@ export default function MongoRequestNewPage() {
               <FieldLabel htmlFor="notes">Notes (why)</FieldLabel>
               <Input
                 id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder={`${op} on ${database}.${collection}`}
+                placeholder={`${opValue} on ${watch("database")}.${watch("collection")}`}
+                {...register("notes")}
               />
             </Field>
 
             <Field>
               <FieldLabel>Filter</FieldLabel>
               <JsonEditor
-                value={filter}
-                onChange={setFilter}
+                value={watch("filter")}
+                onChange={(v) => setValue("filter", v)}
                 height="10rem"
                 fields={[]}
                 placeholder="{}"
               />
+              <FieldError>{errors.filter?.message}</FieldError>
             </Field>
 
             <Field>
               <FieldLabel>Value</FieldLabel>
               <JsonEditor
-                value={value}
-                onChange={setValue}
+                value={watch("value")}
+                onChange={(v) => setValue("value", v)}
                 height="10rem"
                 fields={[]}
-                placeholder={op === "delete" ? "—" : '{ "$set": { "field": "value" } }'}
-                readOnly={op === "delete"}
+                placeholder={opValue === "delete" ? "—" : '{ "$set": { "field": "value" } }'}
+                readOnly={opValue === "delete"}
               />
+              <FieldError>{errors.value?.message}</FieldError>
             </Field>
 
             <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={many} onCheckedChange={() => setMany((v) => !v)} />
+              <Checkbox checked={watch("many")} onCheckedChange={() => setValue("many", !watch("many"))} />
               many (update/delete every match, insert an array)
             </label>
 
@@ -260,7 +320,7 @@ export default function MongoRequestNewPage() {
               <span className="flex items-center gap-1.5 text-xs text-amber-500">
                 <ShieldAlert className="size-3.5" /> no rollback exists for document changes
               </span>
-              <Button onClick={() => void send()} disabled={submit.isPending}>
+              <Button onClick={() => void onSend()} disabled={submit.isPending}>
                 <Send /> Submit for review
               </Button>
             </div>

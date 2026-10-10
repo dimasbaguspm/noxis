@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { ArrowDown, ArrowUp, Eraser, RefreshCw, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -56,7 +59,21 @@ export default function MemcachePage() {
   const [inspected, setInspected] = useState<string>();
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "name", desc: false });
   const [flushOpen, setFlushOpen] = useState(false);
-  const [confirm, setConfirm] = useState("");
+  const {
+    register,
+    handleSubmit,
+    reset: resetFlush,
+    formState: { errors: flushErrors },
+  } = useForm<{ confirm: string }>({
+    defaultValues: { confirm: "" },
+    resolver: zodResolver(
+      z.object({ confirm: z.string() }).superRefine((v, ctx) => {
+        if (connection && v.confirm !== connection) {
+          ctx.addIssue({ code: "custom", path: ["confirm"], message: "the name does not match — nothing is emptied" });
+        }
+      }),
+    ),
+  });
 
   const { page, isFetching: loading, refetch: reloadKeys } = useMemcacheKeysQuery(connection, glob);
   const { result, isFetching: valueLoading } = useMemcacheValueQuery(connection, inspected);
@@ -93,15 +110,15 @@ export default function MemcachePage() {
   };
 
   const flush = useFlushMutation();
-  const onFlush = async () => {
+  const onFlush = handleSubmit(async () => {
     if (!connection) return;
     await flush.mutateAsync(connection);
     toast.success(`${connection}: database emptied`);
     setFlushOpen(false);
-    setConfirm("");
+    resetFlush();
     setSelected([]);
     setInspected(undefined);
-  };
+  });
 
   function toggle(key: string) {
     setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
@@ -256,7 +273,10 @@ export default function MemcachePage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={flushOpen} onOpenChange={setFlushOpen}>
+      <Dialog open={flushOpen} onOpenChange={(open) => {
+        setFlushOpen(open);
+        if (!open) resetFlush();
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Empty the database</DialogTitle>
@@ -265,24 +285,19 @@ export default function MemcachePage() {
               servers are untouched, and this cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <Field>
-            <FieldLabel htmlFor="flush-confirm">Confirm by typing the connection name</FieldLabel>
-            <Input
-              id="flush-confirm"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder={connection ?? "the connection name"}
-            />
-            <FieldError>
-              {confirm && connection && confirm !== connection ? "the name does not match — nothing is emptied" : undefined}
-            </FieldError>
-          </Field>
+          <form id="flush-confirm" onSubmit={onFlush}>
+            <Field>
+              <FieldLabel htmlFor="flush-confirm">Confirm by typing the connection name</FieldLabel>
+              <Input
+                id="flush-confirm"
+                placeholder={connection ?? "the connection name"}
+                {...register("confirm")}
+              />
+              <FieldError>{flushErrors.confirm?.message}</FieldError>
+            </Field>
+          </form>
           <DialogFooter>
-            <Button
-              variant="destructive"
-              disabled={confirm !== connection || flush.isPending}
-              onClick={() => void onFlush()}
-            >
+            <Button variant="destructive" type="submit" form="flush-confirm" disabled={flush.isPending}>
               <Eraser /> Empty database
             </Button>
           </DialogFooter>
