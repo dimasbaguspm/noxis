@@ -16,7 +16,7 @@ export const PAGE_ROUTES = {
     KEYS: "/memcache",
   },
   MONGODB: {
-    EXPLORE: "/mongodb",
+    EXPLORE: "/mongodb/explore",
     REQUESTS: "/mongodb/requests",
     REQUEST_NEW: "/mongodb/requests/new",
     REQUEST_DETAIL: (id: string) => `/mongodb/requests/${id}`,
