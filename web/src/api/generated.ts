@@ -27,7 +27,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["api.AuthInfo"];
+                        "*/*": components["schemas"]["usecases.AuthInfo"];
                     };
                 };
             };
@@ -147,7 +147,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["api.DriverInfo"][];
+                        "*/*": components["schemas"]["handlers.DriverInfo"][];
                     };
                 };
             };
@@ -587,7 +587,7 @@ export interface paths {
             /** @description scheduledAt unix seconds; 0 clears the schedule */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["api.scheduleBody"];
+                    "application/json": components["schemas"]["handlers.scheduleBody"];
                 };
             };
             responses: {
@@ -818,7 +818,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["api.opBody"];
+            requestBody: components["requestBodies"]["handlers.opBody"];
             responses: {
                 /** @description OK */
                 200: {
@@ -884,7 +884,7 @@ export interface paths {
             /** @description table */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["api.opBody"];
+                    "application/json": components["schemas"]["handlers.opBody"];
                 };
             };
             responses: {
@@ -1085,7 +1085,7 @@ export interface paths {
             /** @description confirm must repeat the connection name */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["api.memcacheFlushBody"];
+                    "application/json": components["schemas"]["handlers.memcacheFlushBody"];
                 };
             };
             responses: {
@@ -1214,7 +1214,7 @@ export interface paths {
             /** @description group and level */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["api.grantBody"];
+                    "application/json": components["schemas"]["handlers.grantBody"];
                 };
             };
             responses: {
@@ -1417,7 +1417,7 @@ export interface paths {
             /** @description keys to remove */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["api.memcacheKeysBody"];
+                    "application/json": components["schemas"]["handlers.memcacheKeysBody"];
                 };
             };
             responses: {
@@ -1486,7 +1486,7 @@ export interface paths {
             /** @description sql (or table for analytics) */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["api.opBody"];
+                    "application/json": components["schemas"]["handlers.opBody"];
                 };
             };
             responses: {
@@ -1619,7 +1619,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["api.opBody"];
+            requestBody: components["requestBodies"]["handlers.opBody"];
             responses: {
                 /** @description OK */
                 200: {
@@ -2038,7 +2038,7 @@ export interface paths {
             /** @description new password */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["api.passwordBody"];
+                    "application/json": components["schemas"]["handlers.passwordBody"];
                 };
             };
             responses: {
@@ -2106,7 +2106,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["api.MeResponse"];
+                        "*/*": components["schemas"]["handlers.MeResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2134,48 +2134,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "api.AuthInfo": {
-            clientId?: string;
-            enabled?: boolean;
-            issuer?: string;
-        };
-        "api.DriverInfo": {
-            driver?: string;
-            family?: string;
-            label?: string;
-        };
-        "api.MeResponse": {
-            /** @description Admin reports membership of the configured global-admin group. */
-            admin?: boolean;
-            connections?: {
-                [key: string]: string;
-            };
-            email?: string;
-            groups?: string[];
-            name?: string;
-            sub?: string;
-        };
-        "api.grantBody": {
-            group?: string;
-            level?: string;
-        };
-        "api.memcacheFlushBody": {
-            confirm?: string;
-        };
-        "api.memcacheKeysBody": {
-            keys?: string[];
-        };
-        "api.mongoChangeBody": Record<string, never>;
-        "api.opBody": {
-            sql?: string;
-            table?: string;
-        };
-        "api.passwordBody": {
-            password?: string;
-        };
-        "api.scheduleBody": {
-            scheduledAt?: number;
-        };
         "entity.Change": {
             affectedColumns?: string[];
             /** @description what the batch touches (keyword-anchored, best effort) */
@@ -2260,6 +2218,43 @@ export interface components {
              */
             scratchSchema?: string;
         };
+        "handlers.DriverInfo": {
+            driver?: string;
+            family?: string;
+            label?: string;
+        };
+        "handlers.MeResponse": {
+            /** @description Admin reports membership of the configured global-admin group. */
+            admin?: boolean;
+            connections?: {
+                [key: string]: string;
+            };
+            email?: string;
+            groups?: string[];
+            name?: string;
+            sub?: string;
+        };
+        "handlers.grantBody": {
+            group?: string;
+            level?: string;
+        };
+        "handlers.memcacheFlushBody": {
+            confirm?: string;
+        };
+        "handlers.memcacheKeysBody": {
+            keys?: string[];
+        };
+        "handlers.mongoChangeBody": Record<string, never>;
+        "handlers.opBody": {
+            sql?: string;
+            table?: string;
+        };
+        "handlers.passwordBody": {
+            password?: string;
+        };
+        "handlers.scheduleBody": {
+            scheduledAt?: number;
+        };
         "memcache.Key": {
             name?: string;
             sizeBytes?: number;
@@ -2330,6 +2325,11 @@ export interface components {
             name?: string;
             schema?: string;
         };
+        "usecases.AuthInfo": {
+            clientId?: string;
+            enabled?: boolean;
+            issuer?: string;
+        };
         /** @description applied and failed change ids from one tick. */
         "usecases.TickResult": {
             applied?: string[];
@@ -2340,9 +2340,9 @@ export interface components {
     parameters: never;
     requestBodies: {
         /** @description sql */
-        "api.opBody": {
+        "handlers.opBody": {
             content: {
-                "application/json": components["schemas"]["api.opBody"];
+                "application/json": components["schemas"]["handlers.opBody"];
             };
         };
     };

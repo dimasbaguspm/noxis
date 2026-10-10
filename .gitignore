@@ -9,5 +9,5 @@ web/.vite/
 web/dist/
 *.tsbuildinfo
 .pnpm-store/
-cmd/noxis/server/api/static/index.html
-cmd/noxis/server/api/static/assets/
+cmd/noxis/server/handlers/static/index.html
+cmd/noxis/server/handlers/static/assets/

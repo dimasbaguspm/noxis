@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/usecases"
 )
 
 // The connection handlers are family-agnostic: the module named by the
@@ -17,13 +18,14 @@ import (
 // @Param engine path string true "engine family (sql, memcache, mongodb)"
 // @Success 200 {object} object{connections=[]entity.Connection}
 // @Router /v1/engine/{engine}/connections [get]
-func (s *Server) ListConnections(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := s.engine(r)
+func ListConnections(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		conns, err := s.App.ConnectionList(ctx, mod)
+		conns, err := d.App.ConnectionList(ctx, mod)
 		return map[string]any{"connections": conns}, err
 	})
 }
@@ -34,9 +36,10 @@ func (s *Server) ListConnections(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Connection
 // @Failure 400 {object} map[string]string
 // @Router /v1/engine/{engine}/connections [post]
-func (s *Server) SaveConnection(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := s.engine(r)
+func SaveConnection(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -44,7 +47,7 @@ func (s *Server) SaveConnection(w http.ResponseWriter, r *http.Request) {
 		if err := decode(r, &c); err != nil {
 			return nil, err
 		}
-		return s.App.SaveConnection(ctx, mod, c)
+		return d.App.SaveConnection(ctx, mod, c)
 	})
 }
 
@@ -54,13 +57,14 @@ func (s *Server) SaveConnection(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Connection
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name} [get]
-func (s *Server) GetConnection(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := s.engine(r)
+func GetConnection(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		return s.App.Connection(ctx, mod, r.PathValue("name"))
+		return d.App.Connection(ctx, mod, r.PathValue("name"))
 	})
 }
 
@@ -70,13 +74,14 @@ func (s *Server) GetConnection(w http.ResponseWriter, r *http.Request) {
 // @Success 204 "deleted"
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name} [delete]
-func (s *Server) DeleteConnection(w http.ResponseWriter, r *http.Request) {
-	s.handleNoContent(w, r, func(ctx context.Context) error {
-		mod, err := s.engine(r)
+func DeleteConnection(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handleNoContent(w, r, func(ctx context.Context) error {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return err
 		}
-		return s.App.DeleteConnection(ctx, mod, r.PathValue("name"))
+		return d.App.DeleteConnection(ctx, mod, r.PathValue("name"))
 	})
 }
 
@@ -86,13 +91,14 @@ func (s *Server) DeleteConnection(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} object{status=string}
 // @Failure 400 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/test [post]
-func (s *Server) TestConnection(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := s.engine(r)
+func TestConnection(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		if err := s.App.TestConnection(ctx, mod, r.PathValue("name")); err != nil {
+		if err := d.App.TestConnection(ctx, mod, r.PathValue("name")); err != nil {
 			return nil, err
 		}
 		return map[string]string{"status": "ok"}, nil
@@ -106,13 +112,14 @@ func (s *Server) TestConnection(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/schema [get]
-func (s *Server) GetSchema(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		sq, err := s.engineSQL(r)
+func GetSchema(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		sq, err := d.App.EngineSQL(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		tables, err := s.App.Schema(ctx, sq, r.PathValue("name"))
+		tables, err := d.App.Schema(ctx, sq, r.PathValue("name"))
 		return map[string]any{"tables": tables}, err
 	})
 }
@@ -127,14 +134,15 @@ func (s *Server) GetSchema(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/tables/{table}/rows [get]
-func (s *Server) GetRows(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		sq, err := s.engineSQL(r)
+func GetRows(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		sq, err := d.App.EngineSQL(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-		return s.App.Rows(ctx, sq, r.PathValue("name"), r.URL.Query().Get("schema"), r.PathValue("table"), limit)
+		return d.App.Rows(ctx, sq, r.PathValue("name"), r.URL.Query().Get("schema"), r.PathValue("table"), limit)
 	})
 }
 
@@ -146,7 +154,7 @@ func (s *Server) GetRows(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/query [post]
-func (s *Server) PostQuery(w http.ResponseWriter, r *http.Request) { s.doOp(w, r) }
+func PostQuery(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 // @Summary Apply a write directly (DML or DDL)
 // @Param engine path string true "engine family (sql)"
@@ -156,7 +164,7 @@ func (s *Server) PostQuery(w http.ResponseWriter, r *http.Request) { s.doOp(w, r
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/alter [post]
-func (s *Server) PostAlter(w http.ResponseWriter, r *http.Request) { s.doOp(w, r) }
+func PostAlter(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 // @Summary Dry-run statements inside a transaction that always rolls back
 // @Param engine path string true "engine family (sql)"
@@ -166,7 +174,7 @@ func (s *Server) PostAlter(w http.ResponseWriter, r *http.Request) { s.doOp(w, r
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/rollback [post]
-func (s *Server) PostRollback(w http.ResponseWriter, r *http.Request) { s.doOp(w, r) }
+func PostRollback(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 // @Summary Refresh planner statistics for a table
 // @Param engine path string true "engine family (sql)"
@@ -176,7 +184,7 @@ func (s *Server) PostRollback(w http.ResponseWriter, r *http.Request) { s.doOp(w
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/analyze [post]
-func (s *Server) PostAnalyze(w http.ResponseWriter, r *http.Request) { s.doOp(w, r) }
+func PostAnalyze(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 type opBody struct {
 	SQL   string `json:"sql,omitempty"`
@@ -191,9 +199,10 @@ var opRoutes = map[string]string{
 	"POST /v1/engine/{engine}/connections/{name}/analyze":  constants.OpAnalyze,
 }
 
-func (s *Server) doOp(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		sq, err := s.engineSQL(r)
+func doOp(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		sq, err := d.App.EngineSQL(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -201,6 +210,6 @@ func (s *Server) doOp(w http.ResponseWriter, r *http.Request) {
 		if err := decode(r, &body); err != nil {
 			return nil, err
 		}
-		return s.App.Op(ctx, sq, r.PathValue("name"), opRoutes[r.Pattern], body.SQL, body.Table)
+		return d.App.Op(ctx, sq, r.PathValue("name"), opRoutes[r.Pattern], body.SQL, body.Table)
 	})
 }

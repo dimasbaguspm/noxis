@@ -1,4 +1,4 @@
-package api
+package handlers
 
 // Documentation-only annotation carriers. The change-submit route takes either
 // a SQL change or a MongoDB request; swag cannot express that polymorphism on a

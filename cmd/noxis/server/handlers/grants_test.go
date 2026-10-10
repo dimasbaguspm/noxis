@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"noxis/internal/usecases"
 	"noxis/internal/entity"
+	"noxis/internal/usecases"
 )
 
 type fakeGrants struct {
@@ -46,13 +46,13 @@ func (f *fakeGrants) ListGroupNames(_ context.Context) ([]string, error) {
 }
 
 func grantRouter() http.Handler {
-	srv, app, _, _ := newTestServer(&fakeSQL{})
+	deps, app, _, _ := newTestDeps(&fakeSQL{})
 	app.Grants = &fakeGrants{grants: map[string]entity.Grant{}}
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/grants", srv.ListGrants)
-	mux.HandleFunc("PUT /v1/engine/{engine}/connections/{name}/grants", srv.SetGrant)
-	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}/grants", srv.DeleteGrant)
-	return mux
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/grants", ListGrants)
+	mux.HandleFunc("PUT /v1/engine/{engine}/connections/{name}/grants", SetGrant)
+	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}/grants", DeleteGrant)
+	return depsHandler(mux, deps)
 }
 
 func request(t *testing.T, h http.Handler, method, path, body string, admin bool) *httptest.ResponseRecorder {

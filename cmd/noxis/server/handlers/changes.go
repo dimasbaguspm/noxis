@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"context"
@@ -8,11 +8,17 @@ import (
 
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
+	"noxis/internal/usecases"
 )
 
 // The change routes are shared by SQL and MongoDB, each with its own queue:
 // the {engine} path parameter decides which flow runs, and a memory cache
 // serves no changes at all.
+
+// unsupportedChangeFlow reports a family that serves no changes queue.
+func unsupportedChangeFlow(mod interfaces.Module) error {
+	return fmt.Errorf("%w: engine %q does not serve changes", interfaces.ErrUnsupported, mod.Family())
+}
 
 // @Summary List proposed changes for an engine (newest first)
 // @Param engine path string true "engine family (sql, mongodb)"
@@ -23,20 +29,21 @@ import (
 // @Success 200 {object} object{changes=[]entity.Change,total=int}
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/changes [get]
-func (s *Server) ListChanges(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := s.engine(r)
+func ListChanges(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		var changes []entity.Change
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			changes, err = s.App.SQLChanges(ctx)
+			changes, err = d.App.SQLChanges(ctx)
 		case interfaces.MongoModule:
-			changes, err = s.App.MongoChanges(ctx)
+			changes, err = d.App.MongoChanges(ctx)
 		default:
-			return nil, unsupported(mod, "changes")
+			return nil, unsupportedChangeFlow(mod)
 		}
 		if err != nil {
 			return nil, err
@@ -90,9 +97,10 @@ func filterByStatus(changes []entity.Change, status string) []entity.Change {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/changes [post]
-func (s *Server) SubmitChange(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := s.engine(r)
+func SubmitChange(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -102,15 +110,15 @@ func (s *Server) SubmitChange(w http.ResponseWriter, r *http.Request) {
 			if err := decode(r, &ch); err != nil {
 				return nil, err
 			}
-			return s.App.SubmitChange(ctx, m, ch)
+			return d.App.SubmitChange(ctx, m, ch)
 		case interfaces.MongoModule:
 			var body mongoChangeBody
 			if err := decode(r, &body); err != nil {
 				return nil, err
 			}
-			return s.App.SubmitMongoChange(ctx, m, body.Connection, body.Notes, body.MongoRequest)
+			return d.App.SubmitMongoChange(ctx, m, body.Connection, body.Notes, body.MongoRequest)
 		}
-		return nil, unsupported(mod, "changes")
+		return nil, unsupportedChangeFlow(mod)
 	})
 }
 
@@ -120,19 +128,20 @@ func (s *Server) SubmitChange(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Change
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/changes/{id} [get]
-func (s *Server) GetChange(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := s.engine(r)
+func GetChange(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			return s.App.SQLChange(ctx, r.PathValue("id"))
+			return d.App.SQLChange(ctx, r.PathValue("id"))
 		case interfaces.MongoModule:
-			return s.App.MongoChange(ctx, r.PathValue("id"))
+			return d.App.MongoChange(ctx, r.PathValue("id"))
 		}
-		return nil, unsupported(mod, "changes")
+		return nil, unsupportedChangeFlow(mod)
 	})
 }
 
@@ -143,25 +152,26 @@ func (s *Server) GetChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/changes/{id}/approve [post]
-func (s *Server) ApproveChange(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := s.engine(r)
+func ApproveChange(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			if _, err := s.App.SQLChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.App.SQLChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return s.App.Approve(ctx, r.PathValue("id"))
+			return d.App.Approve(ctx, r.PathValue("id"))
 		case interfaces.MongoModule:
-			if _, err := s.App.MongoChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.App.MongoChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return s.App.Approve(ctx, r.PathValue("id"))
+			return d.App.Approve(ctx, r.PathValue("id"))
 		}
-		return nil, unsupported(mod, "changes")
+		return nil, unsupportedChangeFlow(mod)
 	})
 }
 
@@ -172,22 +182,23 @@ func (s *Server) ApproveChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/changes/{id}/apply [post]
-func (s *Server) ApplyChange(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := s.engine(r)
+func ApplyChange(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		switch m := mod.(type) {
 		case interfaces.SQLModule:
-			if _, err := s.App.SQLChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.App.SQLChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return s.App.Apply(ctx, m, r.PathValue("id"))
+			return d.App.Apply(ctx, m, r.PathValue("id"))
 		case interfaces.MongoModule:
-			return s.App.ApplyMongo(ctx, m, r.PathValue("id"))
+			return d.App.ApplyMongo(ctx, m, r.PathValue("id"))
 		}
-		return nil, unsupported(mod, "changes")
+		return nil, unsupportedChangeFlow(mod)
 	})
 }
 
@@ -198,25 +209,26 @@ func (s *Server) ApplyChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/changes/{id}/reject [post]
-func (s *Server) RejectChange(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := s.engine(r)
+func RejectChange(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			if _, err := s.App.SQLChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.App.SQLChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return s.App.Reject(ctx, r.PathValue("id"))
+			return d.App.Reject(ctx, r.PathValue("id"))
 		case interfaces.MongoModule:
-			if _, err := s.App.MongoChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.App.MongoChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return s.App.Reject(ctx, r.PathValue("id"))
+			return d.App.Reject(ctx, r.PathValue("id"))
 		}
-		return nil, unsupported(mod, "changes")
+		return nil, unsupportedChangeFlow(mod)
 	})
 }
 
@@ -232,9 +244,10 @@ type scheduleBody struct {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/changes/{id}/schedule [post]
-func (s *Server) ScheduleChange(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := s.engine(r)
+func ScheduleChange(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -244,17 +257,17 @@ func (s *Server) ScheduleChange(w http.ResponseWriter, r *http.Request) {
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			if _, err := s.App.SQLChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.App.SQLChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
 		case interfaces.MongoModule:
-			if _, err := s.App.MongoChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.App.MongoChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
 		default:
-			return nil, unsupported(mod, "changes")
+			return nil, unsupportedChangeFlow(mod)
 		}
-		return s.App.Schedule(ctx, r.PathValue("id"), body.ScheduledAt)
+		return d.App.Schedule(ctx, r.PathValue("id"), body.ScheduledAt)
 	})
 }
 
@@ -263,14 +276,15 @@ func (s *Server) ScheduleChange(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} usecases.TickResult
 // @Failure 401 {object} map[string]string
 // @Router /internal/tick [post]
-func (s *Server) PostTick(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		if s.TickKey == "" {
+func PostTick(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		if d.TickKey == "" {
 			return nil, fmt.Errorf("%w: scheduling is not configured (set %s)", interfaces.ErrUnsupported, entity.EnvTickKey)
 		}
-		if r.Header.Get("X-API-Key") != s.TickKey {
+		if r.Header.Get("X-API-Key") != d.TickKey {
 			return nil, errUnauthorized
 		}
-		return s.App.Tick(ctx)
+		return d.App.Tick(ctx)
 	})
 }

@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"context"
@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"noxis/internal/usecases"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules/sql"
+	"noxis/internal/usecases"
 )
 
 // The seam pays off here: the whole change workflow (submit → validate →
@@ -124,8 +124,8 @@ func (f *fakeSQL) Apply(context.Context, entity.Connection, string) (interfaces.
 	return interfaces.Result{Message: "applied: 1 statement(s)"}, nil
 }
 
-// newApp builds the application against fakes; newTestServer adds the
-// transport around it.
+// newApp builds the application against fakes; newTestDeps adds the
+// transport-level deps around it.
 func newApp(sq interfaces.SQLModule) (*usecases.App, *fakeChanges, *fakeConns) {
 	conns := &fakeConns{conns: map[string]entity.Connection{
 		"demo": {Name: "demo", Driver: constants.DriverPostgres, Host: "db", Port: 5432, User: "postgres", Database: "demo"},
@@ -141,11 +141,11 @@ func newApp(sq interfaces.SQLModule) (*usecases.App, *fakeChanges, *fakeConns) {
 	}, changes, conns
 }
 
-// newTestServer wires the transport with a fresh app; the app is returned for
-// direct workflow calls and store inspection.
-func newTestServer(sq interfaces.SQLModule) (*Server, *usecases.App, *fakeChanges, *fakeConns) {
+// newTestDeps wires the transport deps with a fresh app; the app is returned
+// for direct workflow calls and store inspection.
+func newTestDeps(sq interfaces.SQLModule) (usecases.Deps, *usecases.App, *fakeChanges, *fakeConns) {
 	app, changes, conns := newApp(sq)
-	return &Server{App: app, Log: app.Log}, app, changes, conns
+	return usecases.Deps{App: app, Log: app.Log}, app, changes, conns
 }
 
 func sampleChange() entity.Change {
@@ -297,12 +297,12 @@ func TestSecretsStayRedacted(t *testing.T) {
 // TestHandlersRespond exercises the HTTP path (handle → span → JSON): a
 // self-calling span closure once turned this into a stack overflow.
 func TestHandlersRespond(t *testing.T) {
-	srv, _, _, _ := newTestServer(&fakeSQL{})
+	deps, _, _, _ := newTestDeps(&fakeSQL{})
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/engine/{engine}/connections", srv.ListConnections)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections", ListConnections)
 
 	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody))
+	depsHandler(mux, deps).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -314,10 +314,10 @@ func TestHandlersRespond(t *testing.T) {
 // TestEngineGating locks the generic route contract: an unknown engine and a
 // sub-resource the engine does not serve are 404, never routed elsewhere.
 func TestEngineGating(t *testing.T) {
-	srv, _, _, _ := newTestServer(&fakeSQL{})
+	deps, _, _, _ := newTestDeps(&fakeSQL{})
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/engine/{engine}/connections", srv.ListConnections)
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/keys", srv.ListKeys)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections", ListConnections)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/keys", ListKeys)
 
 	cases := []struct {
 		path string
@@ -329,7 +329,7 @@ func TestEngineGating(t *testing.T) {
 	}
 	for _, tc := range cases {
 		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, http.NoBody))
+		depsHandler(mux, deps).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, http.NoBody))
 		if rec.Code != tc.want {
 			t.Fatalf("%s: status=%d want=%d body=%s", tc.path, rec.Code, tc.want, rec.Body.String())
 		}
@@ -404,10 +404,10 @@ func TestTickAppliesDueScheduledChange(t *testing.T) {
 
 // TestTickEndpointRequiresKey locks the key guard on the external tick path.
 func TestTickEndpointRequiresKey(t *testing.T) {
-	srv, _, _, _ := newTestServer(&fakeSQL{})
-	srv.TickKey = "s3cret"
+	deps, _, _, _ := newTestDeps(&fakeSQL{})
+	deps.TickKey = "s3cret"
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /internal/tick", srv.PostTick)
+	mux.HandleFunc("POST /internal/tick", PostTick)
 
 	cases := []struct {
 		key  string
@@ -423,7 +423,7 @@ func TestTickEndpointRequiresKey(t *testing.T) {
 			req.Header.Set("X-API-Key", tc.key)
 		}
 		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, req)
+		depsHandler(mux, deps).ServeHTTP(rec, req.WithContext(usecases.WithDeps(req.Context(), deps)))
 		if rec.Code != tc.want {
 			t.Fatalf("key=%q status=%d want=%d body=%s", tc.key, rec.Code, tc.want, rec.Body.String())
 		}
@@ -434,16 +434,16 @@ func TestTickEndpointRequiresKey(t *testing.T) {
 // SQL engine URL cannot approve or reject a MongoDB request (direct id), and
 // the reverse is guarded by MongoChange.
 func TestChangeKindGated(t *testing.T) {
-	srv, _, changes, _ := newTestServer(&fakeSQL{})
+	deps, _, changes, _ := newTestDeps(&fakeSQL{})
 	changes.changes["m1"] = entity.Change{ID: "m1", Kind: constants.KindMongo, Status: constants.ChangeValidated, Connection: "mongo"}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/approve", srv.ApproveChange)
-	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/reject", srv.RejectChange)
+	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/approve", ApproveChange)
+	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/reject", RejectChange)
 
 	for _, path := range []string{"/v1/engine/sql/changes/m1/approve", "/v1/engine/sql/changes/m1/reject"} {
 		rec := httptest.NewRecorder()
-		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, http.NoBody))
+		depsHandler(mux, deps).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, http.NoBody))
 		if rec.Code != http.StatusBadRequest {
 			t.Fatalf("%s: status=%d want=400 body=%s", path, rec.Code, rec.Body.String())
 		}

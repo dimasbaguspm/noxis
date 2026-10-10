@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"noxis/internal/entity"
+	"noxis/internal/usecases"
 )
 
 // The memory-cache operations. Connection CRUD is shared generically with the
@@ -25,13 +26,14 @@ import (
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/keys [get]
-func (s *Server) ListKeys(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mc, err := s.engineMemcache(r)
+func ListKeys(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mc, err := d.App.EngineMemcache(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := s.App.Raw(ctx, mc, r.PathValue("name"), entity.LevelRead)
+		c, err := d.App.Raw(ctx, mc, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -48,17 +50,18 @@ func (s *Server) ListKeys(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/value [get]
-func (s *Server) GetValue(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
+func GetValue(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
 		key := r.URL.Query().Get("key")
 		if key == "" {
 			return nil, fmt.Errorf("key is required")
 		}
-		mc, err := s.engineMemcache(r)
+		mc, err := d.App.EngineMemcache(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := s.App.Raw(ctx, mc, r.PathValue("name"), entity.LevelRead)
+		c, err := d.App.Raw(ctx, mc, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -78,17 +81,18 @@ type memcacheKeysBody struct {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/keys [delete]
-func (s *Server) DeleteKeys(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
+func DeleteKeys(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
 		var body memcacheKeysBody
 		if err := decode(r, &body); err != nil {
 			return nil, err
 		}
-		mc, err := s.engineMemcache(r)
+		mc, err := d.App.EngineMemcache(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := s.App.Raw(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
+		c, err := d.App.Raw(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
 		if err != nil {
 			return nil, err
 		}
@@ -109,17 +113,18 @@ type memcacheFlushBody struct {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/flush [post]
-func (s *Server) FlushDB(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
+func FlushDB(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
 		var body memcacheFlushBody
 		if err := decode(r, &body); err != nil {
 			return nil, err
 		}
-		mc, err := s.engineMemcache(r)
+		mc, err := d.App.EngineMemcache(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := s.App.Raw(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
+		c, err := d.App.Raw(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
 		if err != nil {
 			return nil, err
 		}

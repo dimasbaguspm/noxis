@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"context"
@@ -25,10 +25,10 @@ var driverCatalog = []DriverInfo{
 }
 
 // @Summary List the drivers the console can register
-// @Success 200 {array} api.DriverInfo
+// @Success 200 {array} handlers.DriverInfo
 // @Router /v1/config/drivers [get]
-func (s *Server) ListDrivers(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(context.Context) (any, error) {
+func ListDrivers(w http.ResponseWriter, r *http.Request) {
+	handle(w, r, func(context.Context) (any, error) {
 		return driverCatalog, nil
 	})
 }

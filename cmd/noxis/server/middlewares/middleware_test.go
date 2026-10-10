@@ -1,4 +1,4 @@
-package server
+package middlewares
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"noxis/internal/usecases"
 	"noxis/internal/entity"
+	"noxis/internal/usecases"
 )
 
 type fakeVerifier struct {
@@ -32,7 +32,7 @@ func okHandler() http.Handler {
 // TestWithAuthOpenMode: a nil verifier means no authentication.
 func TestWithAuthOpenMode(t *testing.T) {
 	rec := httptest.NewRecorder()
-	withAuth(nil, okHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody))
+	WithAuth(nil, okHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("open mode status=%d", rec.Code)
 	}
@@ -42,7 +42,7 @@ func TestWithAuthOpenMode(t *testing.T) {
 // (console shell, health) does not.
 func TestWithAuthGuardsAPI(t *testing.T) {
 	verifier := &fakeVerifier{err: errors.New("bad token")}
-	h := withAuth(verifier, okHandler())
+	h := WithAuth(verifier, okHandler())
 
 	cases := []struct {
 		name   string
@@ -81,7 +81,7 @@ func TestWithAuthAttachesPrincipal(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody)
 	req.Header.Set("Authorization", "Bearer good-token")
 	rec := httptest.NewRecorder()
-	withAuth(verifier, inner).ServeHTTP(rec, req)
+	WithAuth(verifier, inner).ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK || got.Subject != "alice" || !got.Admin {
 		t.Fatalf("status=%d principal=%+v", rec.Code, got)
 	}

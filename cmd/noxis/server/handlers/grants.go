@@ -1,17 +1,19 @@
-package api
+package handlers
 
 import (
 	"context"
 	"net/http"
+	"noxis/internal/usecases"
 )
 
 // @Summary The known group names for grant editing
 // @Success 200 {object} object{groups=[]string}
 // @Failure 403 {object} map[string]string
 // @Router /v1/config/groups [get]
-func (s *Server) ListConfigGroups(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		groups, err := s.App.Groups(ctx)
+func ListConfigGroups(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		groups, err := d.App.Groups(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -36,13 +38,14 @@ type grantBody struct {
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/grants [get]
-func (s *Server) ListGrants(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := s.engine(r)
+func ListGrants(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		out, err := s.App.ListGrants(ctx, mod, r.PathValue("name"))
+		out, err := d.App.ListGrants(ctx, mod, r.PathValue("name"))
 		return map[string]any{"grants": out}, err
 	})
 }
@@ -57,9 +60,10 @@ func (s *Server) ListGrants(w http.ResponseWriter, r *http.Request) {
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/grants [put]
-func (s *Server) SetGrant(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := s.engine(r)
+func SetGrant(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +71,7 @@ func (s *Server) SetGrant(w http.ResponseWriter, r *http.Request) {
 		if err := decode(r, &body); err != nil {
 			return nil, err
 		}
-		return s.App.SetGrant(ctx, mod, r.PathValue("name"), body.Group, body.Level)
+		return d.App.SetGrant(ctx, mod, r.PathValue("name"), body.Group, body.Level)
 	})
 }
 
@@ -80,12 +84,13 @@ func (s *Server) SetGrant(w http.ResponseWriter, r *http.Request) {
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/grants [delete]
-func (s *Server) DeleteGrant(w http.ResponseWriter, r *http.Request) {
-	s.handleNoContent(w, r, func(ctx context.Context) error {
-		mod, err := s.engine(r)
+func DeleteGrant(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handleNoContent(w, r, func(ctx context.Context) error {
+		mod, err := d.App.Engine(r.PathValue("engine"))
 		if err != nil {
 			return err
 		}
-		return s.App.DeleteGrant(ctx, mod, r.PathValue("name"), r.URL.Query().Get("group"))
+		return d.App.DeleteGrant(ctx, mod, r.PathValue("name"), r.URL.Query().Get("group"))
 	})
 }
