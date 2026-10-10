@@ -12,6 +12,7 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 )
 
 const (
@@ -27,6 +28,9 @@ func New() *DB { return &DB{} }
 // Result is the shared operation outcome; SQL fills Columns/Rows for reads
 // and EstimatedRows from EXPLAIN when the driver allows it.
 type Result = entity.Result
+
+// Satisfier.
+var _ interfaces.SQLModule = (*DB)(nil)
 
 // withDB opens a short-lived pool (control-plane rates) for one operation.
 func withDB[T any](c entity.Connection, fn func(db *stdsql.DB) (T, error)) (T, error) {

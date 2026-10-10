@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"noxis/internal/entity"
-	memcachesvc "noxis/internal/modules/memcache"
 )
 
 // Redis key shapes are shared wire types.
@@ -26,4 +25,3 @@ type MemcacheModule interface {
 }
 
 // Satisfier.
-var _ MemcacheModule = (*memcachesvc.DB)(nil)

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"noxis/internal/entity"
-	sqlsvc "noxis/internal/modules/sql"
 )
 
 // SQL shapes are shared wire types; the result grid is shared with MongoDB.
@@ -42,4 +41,3 @@ type SQLModule interface {
 }
 
 // Satisfier.
-var _ SQLModule = (*sqlsvc.DB)(nil)

@@ -3,8 +3,6 @@ package entity
 import (
 	"errors"
 	"strings"
-
-	"noxis/internal/constants"
 )
 
 // Connection is a registered database instance. noxis connects to databases
@@ -47,7 +45,7 @@ func (c Connection) Validate() error {
 
 func isKeyValueDriver(driver string) bool {
 	switch strings.ToLower(driver) {
-	case constants.DriverRedis, constants.DriverValkey:
+	case "redis", "valkey": // memcache-family drivers need no user
 		return true
 	}
 	return false

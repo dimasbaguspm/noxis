@@ -26,6 +26,7 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 )
 
 const (
@@ -48,6 +49,9 @@ const (
 type DB struct{}
 
 func New() *DB { return &DB{} }
+
+// Satisfier.
+var _ interfaces.MongoModule = (*DB)(nil)
 
 // Family is the namespace this module serves.
 func (m *DB) Family() string { return constants.FamilyMongo }

@@ -17,6 +17,7 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 )
 
 const (
@@ -39,6 +40,9 @@ type Result = entity.Result
 type DB struct{}
 
 func New() *DB { return &DB{} }
+
+// Satisfier.
+var _ interfaces.MemcacheModule = (*DB)(nil)
 
 // Family is the namespace this module serves.
 func (r *DB) Family() string { return constants.FamilyMemcache }
