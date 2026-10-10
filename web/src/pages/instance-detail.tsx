@@ -170,6 +170,7 @@ export default function InstanceDetailPage() {
             <dt className="text-muted-foreground">Registered</dt>
             <dd className="text-xs">
               {instance.createdAt ? new Date(instance.createdAt * 1000).toLocaleString() : "—"}
+              {instance.createdBy ? ` · by ${instance.createdBy}` : ""}
             </dd>
           </dl>
           <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">

@@ -35,6 +35,14 @@ func (d Deps) effectiveLevel(ctx context.Context, connection string, groups []st
 	return entity.StrongestLevel(levels...), nil
 }
 
+// actor returns the caller's subject for attribution; empty in open mode.
+func actor(ctx context.Context) string {
+	if p, ok := Principal(ctx); ok {
+		return p.Subject
+	}
+	return ""
+}
+
 // authorize enforces need on a connection. Open mode and global admins pass
 // without a per-connection check; everyone else needs a matching grant.
 func (d Deps) authorize(ctx context.Context, connection, need string) error {

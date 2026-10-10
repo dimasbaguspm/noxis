@@ -14,7 +14,7 @@ import (
 	"noxis/internal/interfaces"
 )
 
-const connColumns = `id, name, driver, host, port, user, password, database, params, created_at`
+const connColumns = `id, name, driver, host, port, user, password, database, params, created_at, created_by`
 
 // Save upserts a connection (created_at is set on first insert). The id is
 // generated when missing and never overwritten on update (name is the key).
@@ -33,12 +33,12 @@ func (s *Store) Save(ctx context.Context, c entity.Connection) (err error) {
 		c.ID = idgen.UUID()
 	}
 	if _, err := s.db.ExecContext(ctx, `
-		INSERT INTO connections (`+connColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO connections (`+connColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(name) DO UPDATE SET
 			driver=excluded.driver, host=excluded.host, port=excluded.port,
 			user=excluded.user, password=excluded.password, database=excluded.database,
-			params=excluded.params`,
-		c.ID, c.Name, c.Driver, c.Host, c.Port, c.User, password, c.Database, string(params), time.Now().Unix()); err != nil {
+			params=excluded.params, created_by=excluded.created_by`,
+		c.ID, c.Name, c.Driver, c.Host, c.Port, c.User, password, c.Database, string(params), time.Now().Unix(), c.CreatedBy); err != nil {
 		return fmt.Errorf("save connection %s: %w", c.Name, err)
 	}
 	return nil
@@ -100,7 +100,7 @@ func (s *Store) scanConnection(row scanner) (entity.Connection, error) {
 		c      entity.Connection
 		params string
 	)
-	if err := row.Scan(&c.ID, &c.Name, &c.Driver, &c.Host, &c.Port, &c.User, &c.Password, &c.Database, &params, &c.CreatedAt); err != nil {
+	if err := row.Scan(&c.ID, &c.Name, &c.Driver, &c.Host, &c.Port, &c.User, &c.Password, &c.Database, &params, &c.CreatedAt, &c.CreatedBy); err != nil {
 		return c, err
 	}
 	plain, err := s.secret.Decrypt(c.Password)

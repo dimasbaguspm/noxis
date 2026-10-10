@@ -13,7 +13,13 @@ type Step = {
 // status — the timeline a reviewer needs.
 export function ChangeActivity({ change }: { change: Change }) {
   const steps: Step[] = [
-    { label: "Created", at: change.createdAt, icon: CircleDot, tone: "text-muted-foreground" },
+    {
+      label: "Created",
+      at: change.createdAt,
+      icon: CircleDot,
+      tone: "text-muted-foreground",
+      hint: change.createdBy ? `by ${change.createdBy}` : undefined,
+    },
     {
       label: "Validated",
       at: change.createdAt,

@@ -1509,6 +1509,8 @@ components:
           type: string
         createdAt:
           type: integer
+        createdBy:
+          type: string
         estAffected:
           type: integer
         estDurationMs:
@@ -1560,6 +1562,8 @@ components:
       properties:
         createdAt:
           type: integer
+        createdBy:
+          type: string
         database:
           type: string
         driver:

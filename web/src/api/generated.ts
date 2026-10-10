@@ -2141,6 +2141,7 @@ export interface components {
             checks?: components["schemas"]["entity.ChangeCheck"][];
             connection: string;
             createdAt?: number;
+            createdBy?: string;
             estAffected?: number;
             /** @description measured on the dry run (estimates) and on apply (actuals) */
             estDurationMs?: number;
@@ -2169,6 +2170,7 @@ export interface components {
         };
         "entity.Connection": {
             createdAt?: number;
+            createdBy?: string;
             database: string;
             /** @description postgres | mysql (mariadb aliases mysql) */
             driver: string;

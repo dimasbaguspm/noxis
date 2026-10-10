@@ -29,6 +29,7 @@ type Connection struct {
 	Database  string            `json:"database" validate:"required"`
 	Params    map[string]string `json:"params,omitempty"` // extra DSN params (sslmode, ...)
 	CreatedAt int64             `json:"createdAt"`
+	CreatedBy string            `json:"createdBy,omitempty"`
 }
 
 // Validate checks the required fields. A user is required for SQL servers;

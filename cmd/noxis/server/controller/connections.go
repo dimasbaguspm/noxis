@@ -105,9 +105,11 @@ func (d Deps) saveConnection(ctx context.Context, mod interfaces.Module, c entit
 			c.Password = existing.Password
 		}
 		c.CreatedAt = existing.CreatedAt
+		c.CreatedBy = existing.CreatedBy
 		c.ID = existing.ID
 	case errors.Is(err, interfaces.ErrNotFound):
 		c.CreatedAt = time.Now().Unix()
+		c.CreatedBy = actor(ctx)
 		c.ID = idgen.UUID()
 	default:
 		return entity.Connection{}, err

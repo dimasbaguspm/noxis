@@ -12,6 +12,7 @@ type Change struct {
 	Status     string        `json:"status"` // validated | unverified | failed | approved | applied | rejected
 	Checks     []ChangeCheck `json:"checks,omitempty"`
 	CreatedAt  int64         `json:"createdAt"`
+	CreatedBy  string        `json:"createdBy,omitempty"`
 	ApprovedAt int64         `json:"approvedAt,omitempty"`
 	AppliedAt  int64         `json:"appliedAt,omitempty"`
 	RejectedAt int64         `json:"rejectedAt,omitempty"`

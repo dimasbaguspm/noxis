@@ -2419,6 +2419,9 @@
                     "createdAt": {
                         "type": "integer"
                     },
+                    "createdBy": {
+                        "type": "string"
+                    },
                     "estAffected": {
                         "type": "integer"
                     },
@@ -2488,6 +2491,9 @@
                 "properties": {
                     "createdAt": {
                         "type": "integer"
+                    },
+                    "createdBy": {
+                        "type": "string"
                     },
                     "database": {
                         "type": "string"

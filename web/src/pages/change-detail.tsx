@@ -105,6 +105,9 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
         <Badge variant={STATUS_VARIANT[change.status ?? ""] ?? "outline"}>{change.status}</Badge>
         <span className="font-mono text-xs text-muted-foreground">{change.id?.slice(0, 8)}</span>
         <span className="text-sm text-muted-foreground">{change.connection}</span>
+        {change.createdBy && (
+          <span className="text-xs text-muted-foreground/70">by {change.createdBy}</span>
+        )}
         <span className="flex-1" />
         {canApprove && (
           <Button size="sm" variant="secondary" onClick={act(approve.mutate)}>

@@ -35,6 +35,7 @@ func (d Deps) submitChange(ctx context.Context, sq interfaces.SQLModule, ch enti
 	}
 	ch.ID = idgen.UUID()
 	ch.CreatedAt = time.Now().Unix()
+	ch.CreatedBy = actor(ctx)
 	ch.Kind = sq.Kind(ch.Query)
 	ch.AffectedTables, ch.AffectedColumns = sql.Referenced(ch.Query)
 	ch.Status = constants.ChangeValidated
