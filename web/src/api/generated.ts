@@ -2150,7 +2150,9 @@ export interface components {
             connections?: {
                 [key: string]: string;
             };
+            email?: string;
             groups?: string[];
+            name?: string;
             sub?: string;
         };
         /** @description applied and failed change ids from one tick. */

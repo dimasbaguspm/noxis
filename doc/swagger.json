@@ -2322,11 +2322,17 @@
                             "type": "string"
                         }
                     },
+                    "email": {
+                        "type": "string"
+                    },
                     "groups": {
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "name": {
+                        "type": "string"
                     },
                     "sub": {
                         "type": "string"
