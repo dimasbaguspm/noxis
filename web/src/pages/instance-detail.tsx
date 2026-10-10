@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,6 +11,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Empty } from "@/components/ui/empty";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAction } from "@/hooks/use-action";
 import { useInstanceQuery, useRotatePasswordMutation } from "@/hooks/use-instances";
@@ -26,6 +36,7 @@ export default function InstanceDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const [rotateOpen, setRotateOpen] = useState(false);
   const detail = useInstanceQuery(id);
   const instance = detail.data;
   const error = detail.error instanceof Error ? detail.error.message : undefined;
@@ -62,6 +73,7 @@ export default function InstanceDetailPage() {
   const onRotate = handleSubmit(async ({ password }) => {
     await rotate.mutateAsync({ id, password });
     resetPassword();
+    setRotateOpen(false);
     toast.success("password rotated");
   });
 
@@ -164,29 +176,53 @@ export default function InstanceDetailPage() {
             Driver, host, database and user are fixed once registered. Only the password can be rotated.
           </p>
           {isAdmin && (
-            <div className="mt-3 flex items-end gap-2">
-              <form id="rotate-password" onSubmit={onRotate} className="flex-1">
-                <Field>
-                  <FieldLabel htmlFor="rotate-password">New password</FieldLabel>
-                  <Input
-                    id="rotate-password"
-                    type="password"
-                    placeholder="rotate the stored password"
-                    {...register("password")}
-                  />
-                  <FieldError>
-                    {errors.password?.message ??
-                      (rotate.isError ? (rotate.error instanceof Error ? rotate.error.message : "rotation failed") : undefined)}
-                  </FieldError>
-                </Field>
-              </form>
-              <Button size="sm" variant="outline" type="submit" form="rotate-password" disabled={rotate.isPending}>
-                <KeyRound /> Rotate
+            <div className="mt-3">
+              <Button size="sm" variant="outline" onClick={() => setRotateOpen(true)}>
+                <KeyRound /> Rotate password
               </Button>
             </div>
           )}
         </CardContent>
       </Card>
+
+      <Sheet
+        open={rotateOpen}
+        onOpenChange={(open) => {
+          setRotateOpen(open);
+          if (!open) resetPassword();
+        }}
+      >
+        <SheetContent className="sm:max-w-sm">
+          <SheetHeader>
+            <SheetTitle>Rotate the password</SheetTitle>
+            <SheetDescription>
+              Store a new password for {name}. The old one stops working as soon as the change is saved.
+            </SheetDescription>
+          </SheetHeader>
+          <SheetBody>
+            <form id="rotate-password" onSubmit={onRotate}>
+              <Field>
+                <FieldLabel htmlFor="rotate-password-input">New password</FieldLabel>
+                <Input
+                  id="rotate-password-input"
+                  type="password"
+                  placeholder="the new stored password"
+                  {...register("password")}
+                />
+                <FieldError>
+                  {errors.password?.message ??
+                    (rotate.isError ? (rotate.error instanceof Error ? rotate.error.message : "rotation failed") : undefined)}
+                </FieldError>
+              </Field>
+            </form>
+          </SheetBody>
+          <SheetFooter>
+            <Button size="sm" type="submit" form="rotate-password" disabled={rotate.isPending}>
+              <KeyRound /> Rotate
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
