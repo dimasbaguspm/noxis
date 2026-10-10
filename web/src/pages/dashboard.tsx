@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,18 +59,25 @@ export default function DashboardPage() {
           <CardDescription>
             {loading ? "loading…" : filtering ? `${total} shown` : `${total} registered`}
           </CardDescription>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative min-w-56 flex-1">
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4 pt-0">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="instance-search">Search by name</Label>
+            <div className="relative">
               <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
+                id="instance-search"
                 className="pl-7"
-                placeholder="search by name"
+                placeholder="type to filter…"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
               />
             </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Driver</Label>
             <Select value={driver} onValueChange={(v) => setDriver(String(v))}>
-              <SelectTrigger className="w-[190px]">
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -82,7 +90,7 @@ export default function DashboardPage() {
               </SelectContent>
             </Select>
           </div>
-        </CardHeader>
+        </CardContent>
       </Card>
 
       {isAdmin && (
