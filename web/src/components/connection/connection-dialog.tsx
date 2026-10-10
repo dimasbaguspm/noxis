@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { BadgeCheck, Boxes, ChevronLeft, Database, Leaf, PlugZap } from "lucide-react";
+import { BadgeCheck, ChevronLeft, PlugZap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +15,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Field, FieldError, FieldLabel, FieldRow } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { SingleSelect } from "@/components/ui/single-select";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSetActiveConnection } from "@/hooks/use-connections";
@@ -168,31 +169,34 @@ export function ConnectionDialog({
         </SheetHeader>
 
         {step === 1 ? (
-          <SheetBody className="grid gap-3">
-            <Choice
-              icon={<Database className="size-4" />}
-              title="SQL database"
-              detail="Postgres, MySQL or MariaDB. Read and change data through the validated workflow."
-              onClick={() => choose(FAMILY.SQL)}
-            />
-            <Choice
-              icon={<Boxes className="size-4" />}
-              title="Memory cache"
-              detail="Redis or Valkey. Browse keys, inspect values, remove keys."
-              onClick={() => choose(FAMILY.MEMCACHE)}
-            />
-            <Choice
-              icon={<Leaf className="size-4" />}
-              title="Document database"
-              detail="MongoDB. Explore databases and collections, run CRUD requests."
-              onClick={() => choose(FAMILY.MONGODB)}
+          <SheetBody>
+            <SingleSelect
+              name="kind"
+              value={kind}
+              onChange={(value) => choose(value)}
+              options={[
+                {
+                  value: FAMILY.SQL,
+                  label: "SQL database",
+                  detail: "Postgres, MySQL or MariaDB. Read and change data through the validated workflow.",
+                },
+                {
+                  value: FAMILY.MEMCACHE,
+                  label: "Memory cache",
+                  detail: "Redis or Valkey. Browse keys, inspect values, remove keys.",
+                },
+                {
+                  value: FAMILY.MONGODB,
+                  label: "Document database",
+                  detail: "MongoDB. Explore databases and collections, run CRUD requests.",
+                },
+              ]}
             />
           </SheetBody>
         ) : (
           <>
             <SheetBody className="grid gap-4">
               <form id="connection-save" onSubmit={onValid} className="grid gap-4">
-            <FieldRow>
               <Field>
                 <FieldLabel htmlFor="conn-name">Name</FieldLabel>
                 <Input id="conn-name" placeholder="prod-readonly" {...field("name")} />
@@ -259,7 +263,6 @@ export function ConnectionDialog({
                   {...field("password")}
                 />
               </Field>
-            </FieldRow>
               <Field>
                 <FieldLabel htmlFor="conn-database">{cache ? "DB index" : mongo ? "Database (auth)" : "Database"}</FieldLabel>
                 <Input
@@ -270,9 +273,6 @@ export function ConnectionDialog({
                 <FieldError>{errors.database?.message}</FieldError>
               </Field>
 
-              <p className="text-xs text-muted-foreground">
-                Driver, host, database and user are fixed once saved. The password can be rotated later from the instance page.
-              </p>
               </form>
             </SheetBody>
 
@@ -295,32 +295,5 @@ export function ConnectionDialog({
         )}
       </SheetContent>
     </Sheet>
-  );
-}
-
-function Choice({
-  icon,
-  title,
-  detail,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  detail: string;
-  onClick: () => void;
-}) {
-  return (
-    <Button
-      variant="outline"
-      size="lg"
-      onClick={onClick}
-      className="h-auto w-full items-start justify-start gap-3 rounded-md p-3"
-    >
-      <span className="mt-0.5 text-muted-foreground">{icon}</span>
-      <span className="grid gap-0.5">
-        <span className="text-sm font-medium">{title}</span>
-        <span className="text-xs text-muted-foreground">{detail}</span>
-      </span>
-    </Button>
   );
 }
