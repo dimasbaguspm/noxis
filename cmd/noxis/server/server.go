@@ -35,25 +35,27 @@ func newVerifier(ctx context.Context, cfg config.Config) (interfaces.Verifier, e
 	return oidc, nil
 }
 
-// newApp wires the shared stores and the engine-family registry into the
-// use cases.
-func newApp(store *sqlite.Store) *usecases.App {
-	return &usecases.App{
+// newDeps assembles the boot-time use cases once over the shared stores and
+// engine registry, plus the transport-global values (public OIDC config and
+// the shared cache). It is seeded into the base request context in Run, never
+// rebuilt per request.
+func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config) usecases.Deps {
+	base := usecases.Base{
 		Connections: store,
 		Changes:     store,
 		Grants:      store,
 		Modules:     modules.Default(),
 	}
-}
-
-// newDeps assembles the boot-time dependencies once: the use cases, the
-// shared cache and the transport-global values. Run seeds them into the base
-// request context; no per-request rebuild happens.
-func newDeps(app *usecases.App, log *slog.Logger, cfg config.Config) usecases.Deps {
 	return usecases.Deps{
-		App:   app,
-		Log:   log,
-		Cache: cache.New(),
+		Engines:     usecases.Engines{Base: base},
+		Changes:     usecases.Changes{Base: base},
+		Connections: usecases.Connections{Base: base},
+		Mongo:       usecases.Mongo{Base: base},
+		Instances:   usecases.Instances{Base: base},
+		Grants:      usecases.Grants{Base: base},
+		Me:          usecases.Me{Base: base},
+		Log:         log,
+		Cache:       cache.New(),
 		Auth: config.AuthInfo{
 			Enabled:  cfg.OIDCIssuer != "",
 			Issuer:   cfg.OIDCIssuer,
@@ -153,8 +155,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 
 	log.InfoContext(ctx, "noxis serving", "addr", cfg.Listen, "db", cfg.DB)
 
-	app := newApp(store)
-	deps := newDeps(app, log, cfg)
+	deps := newDeps(store, log, cfg)
 
 	// CORS, then authentication (when a verifier is configured), then request
 	// logging + span: the request log and its span run after the principal is

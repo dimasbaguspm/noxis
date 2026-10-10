@@ -26,7 +26,7 @@ func ListInstances(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
 		q := r.URL.Query()
-		instances, err := d.App.Instances(ctx, q.Get("name"), q.Get("driver"), q.Get("host"))
+		instances, err := d.Instances.Instances(ctx, q.Get("name"), q.Get("driver"), q.Get("host"))
 		if err != nil {
 			return nil, err
 		}
@@ -52,7 +52,7 @@ func RotatePassword(w http.ResponseWriter, r *http.Request) {
 		if err := decode(r, &body); err != nil {
 			return nil, err
 		}
-		if err := d.App.RotatePassword(ctx, r.PathValue("id"), body.Password); err != nil {
+		if err := d.Instances.RotatePassword(ctx, r.PathValue("id"), body.Password); err != nil {
 			return nil, err
 		}
 		return entity.StatusResponse{Status: "ok"}, nil
@@ -67,7 +67,7 @@ func RotatePassword(w http.ResponseWriter, r *http.Request) {
 func GetInstance(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		return d.App.Instance(ctx, r.PathValue("id"))
+		return d.Instances.Instance(ctx, r.PathValue("id"))
 	})
 }
 

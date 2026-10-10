@@ -13,7 +13,7 @@ import (
 func ListConfigGroups(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		groups, err := d.App.Groups(ctx)
+		groups, err := d.Grants.Groups(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -41,11 +41,11 @@ type grantBody struct {
 func ListGrants(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		out, err := d.App.ListGrants(ctx, mod, r.PathValue("name"))
+		out, err := d.Grants.ListGrants(ctx, mod, r.PathValue("name"))
 		return map[string]any{"grants": out}, err
 	})
 }
@@ -63,7 +63,7 @@ func ListGrants(w http.ResponseWriter, r *http.Request) {
 func SetGrant(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -71,7 +71,7 @@ func SetGrant(w http.ResponseWriter, r *http.Request) {
 		if err := decode(r, &body); err != nil {
 			return nil, err
 		}
-		return d.App.SetGrant(ctx, mod, r.PathValue("name"), body.Group, body.Level)
+		return d.Grants.SetGrant(ctx, mod, r.PathValue("name"), body.Group, body.Level)
 	})
 }
 
@@ -87,10 +87,10 @@ func SetGrant(w http.ResponseWriter, r *http.Request) {
 func DeleteGrant(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handleNoContent(w, r, func(ctx context.Context) error {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return err
 		}
-		return d.App.DeleteGrant(ctx, mod, r.PathValue("name"), r.URL.Query().Get("group"))
+		return d.Grants.DeleteGrant(ctx, mod, r.PathValue("name"), r.URL.Query().Get("group"))
 	})
 }

@@ -34,16 +34,16 @@ func unsupportedChangeFlow(mod interfaces.Module) error {
 func ListChanges(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		var changes []entity.Change
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			changes, err = d.App.SQLChanges(ctx)
+			changes, err = d.Changes.SQLChanges(ctx)
 		case interfaces.MongoModule:
-			changes, err = d.App.MongoChanges(ctx)
+			changes, err = d.Mongo.MongoChanges(ctx)
 		default:
 			return nil, unsupportedChangeFlow(mod)
 		}
@@ -102,7 +102,7 @@ func filterByStatus(changes []entity.Change, status string) []entity.Change {
 func SubmitChange(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -112,13 +112,13 @@ func SubmitChange(w http.ResponseWriter, r *http.Request) {
 			if err := decode(r, &ch); err != nil {
 				return nil, err
 			}
-			return d.App.SubmitChange(ctx, m, ch)
+			return d.Changes.SubmitChange(ctx, m, ch)
 		case interfaces.MongoModule:
 			var body mongoChangeBody
 			if err := decode(r, &body); err != nil {
 				return nil, err
 			}
-			return d.App.SubmitMongoChange(ctx, m, body.Connection, body.Notes, body.MongoRequest)
+			return d.Mongo.SubmitMongoChange(ctx, m, body.Connection, body.Notes, body.MongoRequest)
 		}
 		return nil, unsupportedChangeFlow(mod)
 	})
@@ -133,15 +133,15 @@ func SubmitChange(w http.ResponseWriter, r *http.Request) {
 func GetChange(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			return d.App.SQLChange(ctx, r.PathValue("id"))
+			return d.Changes.SQLChange(ctx, r.PathValue("id"))
 		case interfaces.MongoModule:
-			return d.App.MongoChange(ctx, r.PathValue("id"))
+			return d.Mongo.MongoChange(ctx, r.PathValue("id"))
 		}
 		return nil, unsupportedChangeFlow(mod)
 	})
@@ -157,21 +157,21 @@ func GetChange(w http.ResponseWriter, r *http.Request) {
 func ApproveChange(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			if _, err := d.App.SQLChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.Changes.SQLChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return d.App.Approve(ctx, r.PathValue("id"))
+			return d.Changes.Approve(ctx, r.PathValue("id"))
 		case interfaces.MongoModule:
-			if _, err := d.App.MongoChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.Mongo.MongoChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return d.App.Approve(ctx, r.PathValue("id"))
+			return d.Changes.Approve(ctx, r.PathValue("id"))
 		}
 		return nil, unsupportedChangeFlow(mod)
 	})
@@ -187,18 +187,18 @@ func ApproveChange(w http.ResponseWriter, r *http.Request) {
 func ApplyChange(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		switch m := mod.(type) {
 		case interfaces.SQLModule:
-			if _, err := d.App.SQLChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.Changes.SQLChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return d.App.Apply(ctx, m, r.PathValue("id"))
+			return d.Changes.Apply(ctx, m, r.PathValue("id"))
 		case interfaces.MongoModule:
-			return d.App.ApplyMongo(ctx, m, r.PathValue("id"))
+			return d.Mongo.ApplyMongo(ctx, m, r.PathValue("id"))
 		}
 		return nil, unsupportedChangeFlow(mod)
 	})
@@ -214,21 +214,21 @@ func ApplyChange(w http.ResponseWriter, r *http.Request) {
 func RejectChange(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			if _, err := d.App.SQLChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.Changes.SQLChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return d.App.Reject(ctx, r.PathValue("id"))
+			return d.Changes.Reject(ctx, r.PathValue("id"))
 		case interfaces.MongoModule:
-			if _, err := d.App.MongoChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.Mongo.MongoChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return d.App.Reject(ctx, r.PathValue("id"))
+			return d.Changes.Reject(ctx, r.PathValue("id"))
 		}
 		return nil, unsupportedChangeFlow(mod)
 	})
@@ -249,7 +249,7 @@ type scheduleBody struct {
 func ScheduleChange(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.App.Engine(r.PathValue("engine"))
+		mod, err := d.Engines.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -259,17 +259,17 @@ func ScheduleChange(w http.ResponseWriter, r *http.Request) {
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			if _, err := d.App.SQLChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.Changes.SQLChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
 		case interfaces.MongoModule:
-			if _, err := d.App.MongoChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.Mongo.MongoChange(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
 		default:
 			return nil, unsupportedChangeFlow(mod)
 		}
-		return d.App.Schedule(ctx, r.PathValue("id"), body.ScheduledAt)
+		return d.Changes.Schedule(ctx, r.PathValue("id"), body.ScheduledAt)
 	})
 }
 
@@ -279,6 +279,6 @@ func ScheduleChange(w http.ResponseWriter, r *http.Request) {
 func PostScheduler(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		return d.App.Tick(ctx)
+		return d.Changes.Tick(ctx)
 	})
 }

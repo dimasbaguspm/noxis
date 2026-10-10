@@ -40,33 +40,3 @@ func actor(ctx context.Context) string {
 	}
 	return ""
 }
-
-// ConnectionLevels is the effective level per connection for the caller. A
-// global admin holds admin everywhere; everyone else only appears with a
-// matching grant, so an absent connection means no access.
-func (a *App) ConnectionLevels(ctx context.Context) (map[string]string, error) {
-	p, ok := Principal(ctx)
-	if !ok {
-		return map[string]string{}, nil
-	}
-	list, err := a.Connections.List(ctx)
-	if err != nil {
-		return nil, err
-	}
-	out := make(map[string]string, len(list))
-	for i := range list {
-		c := &list[i]
-		if p.Admin {
-			out[c.Name] = entity.LevelAdmin
-			continue
-		}
-		level, err := a.EffectiveLevel(ctx, c.Name, p.Groups)
-		if err != nil {
-			return nil, err
-		}
-		if level != "" {
-			out[c.Name] = level
-		}
-	}
-	return out, nil
-}

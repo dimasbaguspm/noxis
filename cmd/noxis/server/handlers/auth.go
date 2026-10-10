@@ -36,7 +36,7 @@ func GetMe(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			return nil, errUnauthorized
 		}
-		levels, err := d.App.ConnectionLevels(ctx)
+		levels, err := d.Me.ConnectionLevels(ctx)
 		if err != nil {
 			return nil, err
 		}
