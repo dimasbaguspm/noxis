@@ -54,7 +54,6 @@ Feature: changes — submit, validate, approve, apply
     Then the change is "validated"
     And I approve the change
     Then the change is "approved"
-    And a tick without the key is rejected
-    And a tick with the key applies the due change
+    And a scheduler tick applies the due change
     Then the change is "applied"
     And the schema lists table "uat_sched"

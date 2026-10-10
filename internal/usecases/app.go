@@ -6,10 +6,6 @@
 package usecases
 
 import (
-	"context"
-	"log/slog"
-
-	"noxis/internal/common/logging"
 	"noxis/internal/interfaces"
 )
 
@@ -21,7 +17,6 @@ type App struct {
 	Changes     interfaces.ChangeRepository
 	Grants      interfaces.GrantRepository
 	Modules     map[string]interfaces.Module
-	Log         *slog.Logger
 }
 
 // moduleByDriver resolves the family that serves a driver through the
@@ -33,22 +28,4 @@ func (a *App) moduleByDriver(driver string) (interfaces.Module, bool) {
 		}
 	}
 	return nil, false
-}
-
-// span opens the span for the calling method (the name derives from the
-// caller) and logs its outcome.
-func (a *App) span(ctx context.Context) (ctxOut context.Context, end func(error)) {
-	return a.spanNamed(ctx, logging.CallerName(1))
-}
-
-func (a *App) spanNamed(ctx context.Context, name string) (ctxOut context.Context, end func(error)) {
-	ctxOut, endSpan := logging.StartSpan(ctx, name)
-	return ctxOut, func(err error) {
-		if err != nil {
-			a.Log.WarnContext(ctxOut, name, "error", err.Error())
-		} else {
-			a.Log.InfoContext(ctxOut, name)
-		}
-		endSpan(err)
-	}
 }

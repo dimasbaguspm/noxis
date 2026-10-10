@@ -44,7 +44,7 @@ func Bootstrap() error {
 		}})
 	run.AddCommand(&cobra.Command{
 		Use:   "ticker",
-		Short: "Run the standalone scheduler (POSTs /internal/tick on an interval)",
+		Short: "Run the standalone scheduler (POSTs /internal/callback/scheduler on an interval)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return ticker.Run(cmd.Context(), log, cfg)
 		}})

@@ -25,7 +25,8 @@ func TestRunPostsOnInterval(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	cfg := entity.Config{TickURL: srv.URL, TickKey: "k", TickInterval: "10ms"}
+	schedulerURL = srv.URL
+	cfg := entity.Config{TickInterval: "10ms"}
 	done := make(chan error, 1)
 	go func() { done <- Run(ctx, slog.New(slog.NewTextHandler(io.Discard, nil)), cfg) }()
 
@@ -41,17 +42,14 @@ func TestRunPostsOnInterval(t *testing.T) {
 	if err := <-done; err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if key.Load() != "k" {
-		t.Fatalf("api key header = %v", key.Load())
+	if key.Load() != "" {
+		t.Fatalf("ticker sent api key header = %q; key support was removed", key.Load())
 	}
 }
 
 func TestRunRequiresURLAndKey(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	if err := Run(context.Background(), log, entity.Config{}); err == nil {
-		t.Fatal("Run must require the tick URL and key")
-	}
-	if err := Run(context.Background(), log, entity.Config{TickURL: "http://x", TickKey: "k", TickInterval: "nope"}); err == nil {
+	if err := Run(context.Background(), log, entity.Config{TickInterval: "nope"}); err == nil {
 		t.Fatal("Run must reject an unparseable interval")
 	}
 }

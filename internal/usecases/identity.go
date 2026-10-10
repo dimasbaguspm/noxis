@@ -9,7 +9,9 @@ import (
 type principalKey struct{}
 
 // WithPrincipal carries the authenticated caller on the request context. The
-// auth middleware (in cmd/noxis/server) attaches it; workflows read it.
+// contract: the auth middleware sets the principal once per request; usecases
+// read it (actor, LogAttrs) for authorization and attribution; modules and
+// repositories never read it — policy is applied before they run.
 func WithPrincipal(ctx context.Context, p entity.Principal) context.Context {
 	return context.WithValue(ctx, principalKey{}, p)
 }
@@ -18,6 +20,17 @@ func WithPrincipal(ctx context.Context, p entity.Principal) context.Context {
 func Principal(ctx context.Context) (entity.Principal, bool) {
 	p, ok := ctx.Value(principalKey{}).(entity.Principal)
 	return p, ok
+}
+
+// LogAttrs renders the authenticated caller for structured logs: the subject
+// as user_id, the admin flag and the full group list. Open mode (no principal)
+// returns nil so logs stay unattributed rather than empty.
+func LogAttrs(ctx context.Context) []any {
+	p, ok := Principal(ctx)
+	if !ok {
+		return nil
+	}
+	return []any{"user_id", p.Subject, "admin", p.Admin, "groups", p.Groups}
 }
 
 // actor returns the caller's subject for attribution; empty in open mode.

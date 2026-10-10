@@ -272,19 +272,11 @@ func ScheduleChange(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Apply every due scheduled change (external cron / scheduler)
-// @Param X-API-Key header string true "NOXIS_TICK_KEY"
 // @Success 200 {object} usecases.TickResult
-// @Failure 401 {object} map[string]string
-// @Router /internal/tick [post]
-func PostTick(w http.ResponseWriter, r *http.Request) {
+// @Router /internal/callback/scheduler [post]
+func PostScheduler(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		if d.TickKey == "" {
-			return nil, fmt.Errorf("%w: scheduling is not configured (set %s)", interfaces.ErrUnsupported, entity.EnvTickKey)
-		}
-		if r.Header.Get("X-API-Key") != d.TickKey {
-			return nil, errUnauthorized
-		}
 		return d.App.Tick(ctx)
 	})
 }

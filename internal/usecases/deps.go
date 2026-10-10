@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"noxis/internal/repositories/in-memory-cache"
+	cache "noxis/internal/repositories/in-memory-cache"
 )
 
 // Deps is everything a transport handler reads through the request context:
@@ -13,11 +13,10 @@ import (
 // seeded into the base request context; handlers consume it with From. It is
 // never rebuilt per request.
 type Deps struct {
-	App     *App
-	Log     *slog.Logger
-	Cache   *cache.Cache
-	Auth    AuthInfo
-	TickKey string
+	App   *App
+	Log   *slog.Logger
+	Cache *cache.Cache
+	Auth  AuthInfo
 }
 
 // AuthInfo is the public OIDC configuration the console needs to start login.

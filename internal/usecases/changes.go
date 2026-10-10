@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"noxis/internal/common/idgen"
+	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -18,7 +19,7 @@ import (
 // in one rolled-back transaction — proving the rollback undoes the change.
 // Nothing persists on submit.
 func (a *App) SubmitChange(ctx context.Context, sq interfaces.SQLModule, ch entity.Change) (out entity.Change, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := ch.Validate(); err != nil {
 		return entity.Change{}, err
@@ -72,7 +73,7 @@ func (a *App) SubmitChange(ctx context.Context, sq interfaces.SQLModule, ch enti
 
 // Approve signs off a validated change; self-approval is fine here.
 func (a *App) Approve(ctx context.Context, id string) (out entity.Change, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	ch, err := a.Changes.GetChange(ctx, id)
 	if err != nil {
@@ -94,7 +95,7 @@ func (a *App) Approve(ctx context.Context, id string) (out entity.Change, err er
 // Schedule sets (or clears) the slot an approved change should run at. Only an
 // approved change can be scheduled; 0 clears the schedule (apply by hand).
 func (a *App) Schedule(ctx context.Context, id string, at int64) (out entity.Change, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	ch, err := a.Changes.GetChange(ctx, id)
 	if err != nil {
@@ -119,7 +120,7 @@ func (a *App) Schedule(ctx context.Context, id string, at int64) (out entity.Cha
 // Apply executes an approved change transactionally; a failure is recorded
 // on the change, not just returned.
 func (a *App) Apply(ctx context.Context, sq interfaces.SQLModule, id string) (out entity.Change, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	ch, err := a.Changes.GetChange(ctx, id)
 	if err != nil {
@@ -155,7 +156,7 @@ func (a *App) Apply(ctx context.Context, sq interfaces.SQLModule, id string) (ou
 // Reject marks a change rejected — records are artifacts, never deleted, so
 // the review trail survives.
 func (a *App) Reject(ctx context.Context, id string) (out entity.Change, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	ch, err := a.Changes.GetChange(ctx, id)
 	if err != nil {
@@ -176,7 +177,7 @@ func (a *App) Reject(ctx context.Context, id string) (out entity.Change, err err
 
 // SQLChanges lists only SQL changes (DML/DDL): the queue is per family.
 func (a *App) SQLChanges(ctx context.Context) (out []entity.Change, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	all, err := a.Changes.ListChanges(ctx)
 	if err != nil {
@@ -228,10 +229,11 @@ func dueChange(ch entity.Change, now int64) bool {
 }
 
 // Tick applies every due change through its own engine. The in-process
-// scheduler and POST /internal/tick both call it, so a change applied at 14:00
+// scheduler and POST /internal/callback/scheduler both call it, so a change
+// applied at 14:00
 // does not care who knocked.
 func (a *App) Tick(ctx context.Context) (res TickResult, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	all, err := a.Changes.ListChanges(ctx)
 	if err != nil {

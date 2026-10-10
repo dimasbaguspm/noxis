@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"noxis/internal/common/idgen"
+	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -17,7 +18,7 @@ import (
 // records it for review. Like the SQL flow, a request that fails validation is
 // returned with its checks and never recorded.
 func (a *App) SubmitMongoChange(ctx context.Context, m interfaces.MongoModule, conn, notes string, req interfaces.MongoRequest) (out entity.Change, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	raw, err := a.Raw(ctx, m, conn, entity.LevelWrite)
 	if err != nil {
@@ -90,7 +91,7 @@ func (a *App) MongoChange(ctx context.Context, id string) (*entity.Change, error
 // ApplyMongo executes an approved request; a failure is recorded on the
 // change, and there is no rollback to fall back on.
 func (a *App) ApplyMongo(ctx context.Context, m interfaces.MongoModule, id string) (out entity.Change, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	ch, err := a.MongoChange(ctx, id)
 	if err != nil {
@@ -125,7 +126,7 @@ func (a *App) ApplyMongo(ctx context.Context, m interfaces.MongoModule, id strin
 
 // MongoChanges lists only MongoDB requests: each family keeps its own queue.
 func (a *App) MongoChanges(ctx context.Context) (out []entity.Change, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	all, err := a.Changes.ListChanges(ctx)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"noxis/internal/common/idgen"
+	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -15,7 +16,7 @@ import (
 // ConnectionList lists a family's connections, gated by readability and the
 // family's driver set.
 func (a *App) ConnectionList(ctx context.Context, mod interfaces.Module) (out []entity.Connection, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	list, err := a.Connections.List(ctx)
 	if err != nil {
@@ -40,7 +41,7 @@ func (a *App) ConnectionList(ctx context.Context, mod interfaces.Module) (out []
 
 // Connection returns one connection of a family, redacted.
 func (a *App) Connection(ctx context.Context, mod interfaces.Module, name string) (out entity.Connection, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	c, err := a.Raw(ctx, mod, name, entity.LevelRead)
 	if err != nil {
@@ -75,7 +76,7 @@ func (a *App) Raw(ctx context.Context, mod interfaces.Module, name, level string
 // SaveConnection upserts; an update that omits the password keeps the stored
 // one (the console never sees it).
 func (a *App) SaveConnection(ctx context.Context, mod interfaces.Module, c entity.Connection) (out entity.Connection, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := a.RequireAdmin(ctx); err != nil {
 		return entity.Connection{}, err
@@ -121,7 +122,7 @@ func (a *App) SaveConnection(ctx context.Context, mod interfaces.Module, c entit
 // connection belongs to this family, so one namespace cannot delete another
 // family's server by name.
 func (a *App) DeleteConnection(ctx context.Context, mod interfaces.Module, name string) (err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := a.RequireAdmin(ctx); err != nil {
 		return err
@@ -134,7 +135,7 @@ func (a *App) DeleteConnection(ctx context.Context, mod interfaces.Module, name 
 
 // TestConnection pings a connection through its module.
 func (a *App) TestConnection(ctx context.Context, mod interfaces.Module, name string) (err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	c, err := a.Raw(ctx, mod, name, entity.LevelRead)
 	if err != nil {
@@ -145,7 +146,7 @@ func (a *App) TestConnection(ctx context.Context, mod interfaces.Module, name st
 
 // Schema introspects a SQL connection's tables and columns.
 func (a *App) Schema(ctx context.Context, sq interfaces.SQLModule, name string) (out []interfaces.Table, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	c, err := a.Raw(ctx, sq, name, entity.LevelRead)
 	if err != nil {
@@ -156,7 +157,7 @@ func (a *App) Schema(ctx context.Context, sq interfaces.SQLModule, name string) 
 
 // Rows previews a table's rows.
 func (a *App) Rows(ctx context.Context, sq interfaces.SQLModule, name, schema, table string, limit int) (out interfaces.Result, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	c, err := a.Raw(ctx, sq, name, entity.LevelRead)
 	if err != nil {
@@ -167,7 +168,7 @@ func (a *App) Rows(ctx context.Context, sq interfaces.SQLModule, name, schema, t
 
 // Op dispatches one direct SQL operation.
 func (a *App) Op(ctx context.Context, sq interfaces.SQLModule, name, operation, sqlText, table string) (out interfaces.Result, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	c, err := a.Raw(ctx, sq, name, OpLevel(operation))
 	if err != nil {

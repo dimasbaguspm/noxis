@@ -47,8 +47,7 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	sc.Step("I approve the change", w.approve)
 	sc.Step("I apply the change", w.apply)
 	sc.Step(`^I submit a change scheduled at now with query "([^"]*)" and rollback "([^"]*)"$`, w.submitScheduledChange)
-	sc.Step("a tick without the key is rejected", w.tickWithoutKey)
-	sc.Step("a tick with the key applies the due change", w.tickWithKey)
+	sc.Step("a scheduler tick applies the due change", w.tickScheduler)
 	sc.Step("applying is rejected", w.applyRejected)
 	sc.Step("I reject the change", w.rejectChange)
 	sc.Step("the change list still contains it", w.changeStillPresent)
@@ -229,35 +228,22 @@ func (w *world) submitScheduledChange(ctx context.Context, query, rollback strin
 	return nil
 }
 
-func (w *world) tickWithoutKey(ctx context.Context) error {
-	if err := w.tick(ctx, ""); err != nil {
-		return err
-	}
-	if w.code != http.StatusUnauthorized {
-		return fmt.Errorf("tick without key: status %d want 401", w.code)
-	}
-	return nil
-}
-
-func (w *world) tickWithKey(ctx context.Context) error {
-	if err := w.tick(ctx, tickKey); err != nil {
+func (w *world) tickScheduler(ctx context.Context) error {
+	if err := w.tick(ctx); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
-		return fmt.Errorf("tick with key: status %d body %s", w.code, w.body)
+		return fmt.Errorf("scheduler tick: status %d body %s", w.code, w.body)
 	}
 	return nil
 }
 
-// tick drives POST /internal/tick with an optional key and, on success,
-// reloads the change under test so the next status assertion sees the result.
-func (w *world) tick(ctx context.Context, key string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/internal/tick", http.NoBody)
+// tick drives POST /internal/callback/scheduler and, on success, reloads the
+// change under test so the next status assertion sees the result.
+func (w *world) tick(ctx context.Context) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/internal/callback/scheduler", http.NoBody)
 	if err != nil {
 		return err
-	}
-	if key != "" {
-		req.Header.Set("X-API-Key", key)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
