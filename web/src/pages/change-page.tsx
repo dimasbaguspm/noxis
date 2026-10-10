@@ -44,34 +44,38 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-56">
-          <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-7"
-            placeholder="filter by instance"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          />
-        </div>
-        <Select value={status} onValueChange={(v) => setStatus(String(v))}>
-          <SelectTrigger className="w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} value={s}>
-                {s[0]!.toUpperCase() + s.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <span className="flex-1" />
-        {mayRaise && (
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-2 pt-4">
+          <div className="relative min-w-56 flex-1">
+            <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-7"
+              placeholder="filter by instance"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            />
+          </div>
+          <Select value={status} onValueChange={(v) => setStatus(String(v))}>
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s[0]!.toUpperCase() + s.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {mayRaise && (
+        <div className="flex justify-end">
           <CreateChangeSheet kind={kind} onSubmit={(input) => submit.mutateAsync(input)} />
-        )}
-      </div>
+        </div>
+      )}
 
       <Card>
         <CardContent className="flex flex-col gap-3 pt-4">
