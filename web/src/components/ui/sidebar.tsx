@@ -177,10 +177,18 @@ export function SidebarMenuButton({
           className={cn(sidebarMenuButtonVariants, sizes[size], className)}
           {...(asChild ? {} : props)}
         >
-          {isMobile || state === "collapsed" ? (
-            <span className="sr-only">{typeof children === "string" ? children : undefined}</span>
-          ) : null}
-          {children}
+          {// Slot needs exactly one element child; the sr-only label only exists
+          // for icon-only buttons, so asChild links keep theirs as-is.
+          asChild ? (
+            children
+          ) : (
+            <>
+              {isMobile || state === "collapsed" ? (
+                <span className="sr-only">{typeof children === "string" ? children : undefined}</span>
+              ) : null}
+              {children}
+            </>
+          )}
         </Comp>
       </TooltipTrigger>
       <TooltipContent side="right" hidden={isMobile || state !== "collapsed"}>
