@@ -4,6 +4,7 @@ import (
 	"embed"
 	"io/fs"
 	"net/http"
+	"noxis/internal/entity"
 	"strings"
 )
 
@@ -19,7 +20,7 @@ var consoleStatic embed.FS
 // fail loudly, not hand the caller an HTML page with 200.
 func GetConsole(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.URL.Path, "/v1/") {
-		writeJSON(w, http.StatusNotFound, map[string]string{"error": "no such endpoint: " + r.URL.Path})
+		writeJSON(w, http.StatusNotFound, entity.ErrorResponse{Error: "no such endpoint: " + r.URL.Path})
 		return
 	}
 	for _, name := range []string{"static/index.html", "static/placeholder.html"} {

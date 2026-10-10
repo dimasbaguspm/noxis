@@ -34,7 +34,7 @@ func ListConnections(w http.ResponseWriter, r *http.Request) {
 // @Param engine path string true "engine family (sql, memcache, mongodb)"
 // @Param body body entity.Connection true "connection (omit password to keep the stored one)"
 // @Success 200 {object} entity.Connection
-// @Failure 400 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections [post]
 func SaveConnection(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -55,7 +55,7 @@ func SaveConnection(w http.ResponseWriter, r *http.Request) {
 // @Param engine path string true "engine family (sql, memcache, mongodb)"
 // @Param name path string true "connection name"
 // @Success 200 {object} entity.Connection
-// @Failure 404 {object} map[string]string
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name} [get]
 func GetConnection(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -72,7 +72,7 @@ func GetConnection(w http.ResponseWriter, r *http.Request) {
 // @Param engine path string true "engine family (sql, memcache, mongodb)"
 // @Param name path string true "connection name"
 // @Success 204 "deleted"
-// @Failure 404 {object} map[string]string
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name} [delete]
 func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -88,8 +88,8 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 // @Summary Test that a connection answers
 // @Param engine path string true "engine family (sql, memcache, mongodb)"
 // @Param name path string true "connection name"
-// @Success 200 {object} object{status=string}
-// @Failure 400 {object} map[string]string
+// @Success 200 {object} entity.StatusResponse
+// @Failure 400 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/test [post]
 func TestConnection(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -101,16 +101,16 @@ func TestConnection(w http.ResponseWriter, r *http.Request) {
 		if err := d.App.TestConnection(ctx, mod, r.PathValue("name")); err != nil {
 			return nil, err
 		}
-		return map[string]string{"status": "ok"}, nil
+		return entity.StatusResponse{Status: "ok"}, nil
 	})
 }
 
 // @Summary Introspect a connection's tables and columns
 // @Param engine path string true "engine family (sql)"
 // @Param name path string true "connection name"
-// @Success 200 {object} object{tables=[]sql.Table}
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Success 200 {object} object{tables=[]entity.Table}
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/schema [get]
 func GetSchema(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -131,8 +131,8 @@ func GetSchema(w http.ResponseWriter, r *http.Request) {
 // @Param schema query string false "schema (defaults to the driver's)"
 // @Param limit query int false "row cap (default 100, max 500)"
 // @Success 200 {object} entity.Result
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/tables/{table}/rows [get]
 func GetRows(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -151,8 +151,8 @@ func GetRows(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Param body body opBody true "sql (or table for analytics)"
 // @Success 200 {object} entity.Result
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/query [post]
 func PostQuery(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
@@ -161,8 +161,8 @@ func PostQuery(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Param name path string true "connection name"
 // @Param body body opBody true "sql"
 // @Success 200 {object} entity.Result
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/alter [post]
 func PostAlter(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
@@ -171,8 +171,8 @@ func PostAlter(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Param name path string true "connection name"
 // @Param body body opBody true "sql"
 // @Success 200 {object} entity.Result
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/rollback [post]
 func PostRollback(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
@@ -181,8 +181,8 @@ func PostRollback(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Param name path string true "connection name"
 // @Param body body opBody true "table"
 // @Success 200 {object} entity.Result
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/analyze [post]
 func PostAnalyze(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 

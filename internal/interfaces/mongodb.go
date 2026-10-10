@@ -7,12 +7,12 @@ import (
 	mongosvc "noxis/internal/modules/mongodb"
 )
 
-// MongoDB operation shapes live with the module; the result grid is shared.
+// MongoDB shapes are shared wire types; the result grid is the shared Result.
 type (
-	MongoDatabase   = mongosvc.Database
-	MongoCollection = mongosvc.Collection
-	MongoRequest    = mongosvc.Request
-	MongoResult     = mongosvc.Result
+	MongoDatabase   = entity.Database
+	MongoCollection = entity.Collection
+	MongoRequest    = entity.MongoRequest
+	MongoResult     = entity.Result
 )
 
 // MongoModule is the console's only route to a MongoDB server. Reads run

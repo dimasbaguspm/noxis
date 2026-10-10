@@ -7,11 +7,11 @@ import (
 	sqlsvc "noxis/internal/modules/sql"
 )
 
-// SQL operation shapes live with the module; the result grid is shared.
+// SQL shapes are shared wire types; the result grid is shared with MongoDB.
 type (
 	Result = entity.Result
-	Table  = sqlsvc.Table
-	Column = sqlsvc.Column
+	Table  = entity.Table
+	Column = entity.Column
 )
 
 // Module is what any engine family must provide for a connection to be

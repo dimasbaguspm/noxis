@@ -7,10 +7,10 @@ import (
 	memcachesvc "noxis/internal/modules/memcache"
 )
 
-// Redis operation shapes live with the module; the result grid is shared.
+// Redis key shapes are shared wire types.
 type (
-	Key     = memcachesvc.Key
-	KeyPage = memcachesvc.KeyPage
+	Key     = entity.Key
+	KeyPage = entity.KeyPage
 )
 
 // MemcacheModule is the console's only route to a memory-cache server (Redis

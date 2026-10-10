@@ -12,13 +12,13 @@ type principalKey struct{}
 // contract: the auth middleware sets the principal once per request; usecases
 // read it (actor, LogAttrs) for authorization and attribution; modules and
 // repositories never read it — policy is applied before they run.
-func WithPrincipal(ctx context.Context, p entity.Principal) context.Context {
+func WithPrincipal(ctx context.Context, p entity.Identity) context.Context {
 	return context.WithValue(ctx, principalKey{}, p)
 }
 
 // Principal returns the authenticated caller, or false when there is none.
-func Principal(ctx context.Context) (entity.Principal, bool) {
-	p, ok := ctx.Value(principalKey{}).(entity.Principal)
+func Principal(ctx context.Context) (entity.Identity, bool) {
+	p, ok := ctx.Value(principalKey{}).(entity.Identity)
 	return p, ok
 }
 

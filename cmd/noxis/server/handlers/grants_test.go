@@ -58,7 +58,7 @@ func grantRouter() http.Handler {
 func request(t *testing.T, h http.Handler, method, path, body string, admin bool) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
-	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Principal{Subject: "alice", Admin: admin}))
+	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Identity{Subject: "alice", Admin: admin}))
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	return rec

@@ -6,6 +6,7 @@ import (
 
 	"noxis/internal/common/pagination"
 	"noxis/internal/constants"
+	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
 
@@ -40,9 +41,9 @@ func ListInstances(w http.ResponseWriter, r *http.Request) {
 // @Summary Rotate an instance's password (identity fields stay locked)
 // @Param id path string true "instance id"
 // @Param body body passwordBody true "new password"
-// @Success 200 {object} object{status=string}
-// @Failure 400 {object} map[string]string
-// @Failure 403 {object} map[string]string
+// @Success 200 {object} entity.StatusResponse
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 403 {object} entity.ErrorResponse
 // @Router /v1/instances/{id}/password [post]
 func RotatePassword(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -54,14 +55,14 @@ func RotatePassword(w http.ResponseWriter, r *http.Request) {
 		if err := d.App.RotatePassword(ctx, r.PathValue("id"), body.Password); err != nil {
 			return nil, err
 		}
-		return map[string]string{"status": "ok"}, nil
+		return entity.StatusResponse{Status: "ok"}, nil
 	})
 }
 
 // @Summary Get one instance across engine families (password redacted)
 // @Param id path string true "instance id"
 // @Success 200 {object} entity.Connection
-// @Failure 404 {object} map[string]string
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/instances/{id} [get]
 func GetInstance(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())

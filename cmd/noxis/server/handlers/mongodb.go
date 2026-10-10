@@ -21,9 +21,9 @@ import (
 // @Summary List databases with their sizes
 // @Param engine path string true "engine family (mongodb)"
 // @Param name path string true "connection name"
-// @Success 200 {object} object{databases=[]mongodb.Database}
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Success 200 {object} object{databases=[]entity.Database}
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/databases [get]
 func ListDatabases(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -45,9 +45,9 @@ func ListDatabases(w http.ResponseWriter, r *http.Request) {
 // @Param engine path string true "engine family (mongodb)"
 // @Param name path string true "connection name"
 // @Param database query string true "database name"
-// @Success 200 {object} object{collections=[]mongodb.Collection}
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Success 200 {object} object{collections=[]entity.Collection}
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/collections [get]
 func ListCollections(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -68,10 +68,10 @@ func ListCollections(w http.ResponseWriter, r *http.Request) {
 // @Summary Run a read request (find | aggregate | count)
 // @Param engine path string true "engine family (mongodb)"
 // @Param name path string true "connection name"
-// @Param body body mongodb.Request true "op, database, collection, filter and value as Extended JSON"
-// @Success 200 {object} mongodb.Result
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Param body body entity.MongoRequest true "op, database, collection, filter and value as Extended JSON"
+// @Success 200 {object} entity.Result
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/requests [post]
 func PostRequest(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())

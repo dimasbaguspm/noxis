@@ -16,7 +16,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/usecases.AuthInfo"
+                                    "$ref": "#/components/schemas/config.AuthInfo"
                                 }
                             }
                         }
@@ -98,10 +98,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -182,10 +179,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -232,10 +226,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -245,10 +236,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -295,10 +283,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -345,10 +330,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -358,10 +340,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -408,10 +387,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -421,10 +397,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -471,10 +444,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -484,10 +454,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -545,10 +512,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -558,10 +522,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -644,10 +605,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -694,10 +652,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -735,10 +690,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -788,10 +740,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -801,10 +750,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -862,10 +808,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -875,10 +818,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -929,7 +869,7 @@
                                         "collections": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/mongodb.Collection"
+                                                "$ref": "#/components/schemas/entity.Collection"
                                             }
                                         }
                                     }
@@ -942,10 +882,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -955,10 +892,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1000,7 +934,7 @@
                                         "databases": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/mongodb.Database"
+                                                "$ref": "#/components/schemas/entity.Database"
                                             }
                                         }
                                     }
@@ -1013,10 +947,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1026,10 +957,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1077,12 +1005,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "status": {
-                                            "type": "string"
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/entity.StatusResponse"
                                 }
                             }
                         }
@@ -1092,10 +1015,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1105,10 +1025,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1163,10 +1080,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1176,10 +1090,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1189,10 +1100,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1248,10 +1156,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1261,10 +1166,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1274,10 +1176,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1287,10 +1186,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1337,10 +1233,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1350,10 +1243,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1363,10 +1253,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1419,7 +1306,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/memcache.KeyPage"
+                                    "$ref": "#/components/schemas/entity.KeyPage"
                                 }
                             }
                         }
@@ -1429,10 +1316,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1442,10 +1326,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1506,10 +1387,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1519,10 +1397,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1580,10 +1455,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1593,10 +1465,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1631,7 +1500,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/mongodb.Request"
+                                "$ref": "#/components/schemas/entity.MongoRequest"
                             }
                         }
                     },
@@ -1644,7 +1513,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/mongodb.Result"
+                                    "$ref": "#/components/schemas/entity.Result"
                                 }
                             }
                         }
@@ -1654,10 +1523,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1667,10 +1533,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1720,10 +1583,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1733,10 +1593,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1778,7 +1635,7 @@
                                         "tables": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/sql.Table"
+                                                "$ref": "#/components/schemas/entity.Table"
                                             }
                                         }
                                     }
@@ -1791,10 +1648,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1804,10 +1658,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1879,10 +1730,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1892,10 +1740,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -1932,12 +1777,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "status": {
-                                            "type": "string"
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/entity.StatusResponse"
                                 }
                             }
                         }
@@ -1947,10 +1787,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -2006,10 +1843,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -2019,10 +1853,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -2130,10 +1961,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -2172,12 +2000,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "status": {
-                                            "type": "string"
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/entity.StatusResponse"
                                 }
                             }
                         }
@@ -2187,10 +2010,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -2200,10 +2020,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -2230,10 +2047,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -2257,6 +2071,20 @@
             }
         },
         "schemas": {
+            "config.AuthInfo": {
+                "type": "object",
+                "properties": {
+                    "clientId": {
+                        "type": "string"
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "issuer": {
+                        "type": "string"
+                    }
+                }
+            },
             "entity.Change": {
                 "type": "object",
                 "required": [
@@ -2363,6 +2191,53 @@
                     }
                 }
             },
+            "entity.Collection": {
+                "type": "object",
+                "properties": {
+                    "avgObjectSizeBytes": {
+                        "type": "integer"
+                    },
+                    "capped": {
+                        "type": "boolean"
+                    },
+                    "count": {
+                        "type": "integer"
+                    },
+                    "indexSizeBytes": {
+                        "type": "integer"
+                    },
+                    "indexes": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "sizeBytes": {
+                        "type": "integer"
+                    },
+                    "storageBytes": {
+                        "type": "integer"
+                    },
+                    "type": {
+                        "description": "collection | view | timeseries",
+                        "type": "string"
+                    }
+                }
+            },
+            "entity.Column": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "nullable": {
+                        "type": "boolean"
+                    },
+                    "type": {
+                        "type": "string"
+                    }
+                }
+            },
             "entity.Connection": {
                 "type": "object",
                 "required": [
@@ -2418,6 +2293,40 @@
                     }
                 }
             },
+            "entity.Database": {
+                "type": "object",
+                "properties": {
+                    "avgObjectSizeBytes": {
+                        "type": "integer"
+                    },
+                    "collections": {
+                        "type": "integer"
+                    },
+                    "indexSizeBytes": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "objects": {
+                        "type": "integer"
+                    },
+                    "sizeBytes": {
+                        "type": "integer"
+                    },
+                    "storageBytes": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "entity.ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
             "entity.Grant": {
                 "type": "object",
                 "required": [
@@ -2441,6 +2350,72 @@
                     }
                 }
             },
+            "entity.Key": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "sizeBytes": {
+                        "type": "integer"
+                    },
+                    "ttlMs": {
+                        "type": "integer"
+                    },
+                    "type": {
+                        "type": "string"
+                    }
+                }
+            },
+            "entity.KeyPage": {
+                "type": "object",
+                "properties": {
+                    "keys": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/entity.Key"
+                        }
+                    },
+                    "pattern": {
+                        "type": "string"
+                    },
+                    "total": {
+                        "type": "integer"
+                    },
+                    "truncated": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "entity.MongoRequest": {
+                "type": "object",
+                "properties": {
+                    "collection": {
+                        "type": "string"
+                    },
+                    "database": {
+                        "type": "string"
+                    },
+                    "filter": {
+                        "type": "string"
+                    },
+                    "limit": {
+                        "type": "integer"
+                    },
+                    "many": {
+                        "type": "boolean"
+                    },
+                    "op": {
+                        "type": "string"
+                    },
+                    "sort": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                }
+            },
             "entity.Result": {
                 "type": "object",
                 "properties": {
@@ -2448,6 +2423,13 @@
                         "type": "integer"
                     },
                     "columns": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "documents": {
+                        "description": "Documents carries raw engine output as Extended JSON (MongoDB reads).",
                         "type": "array",
                         "items": {
                             "type": "string"
@@ -2476,6 +2458,31 @@
                     },
                     "scratchSchema": {
                         "description": "ScratchSchema is set by change validation: the throwaway schema the\nchange was verified against, if any.",
+                        "type": "string"
+                    }
+                }
+            },
+            "entity.StatusResponse": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "entity.Table": {
+                "type": "object",
+                "properties": {
+                    "columns": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/entity.Column"
+                        }
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "schema": {
                         "type": "string"
                     }
                 }
@@ -2555,7 +2562,39 @@
                 }
             },
             "handlers.mongoChangeBody": {
-                "type": "object"
+                "type": "object",
+                "properties": {
+                    "collection": {
+                        "type": "string"
+                    },
+                    "connection": {
+                        "type": "string"
+                    },
+                    "database": {
+                        "type": "string"
+                    },
+                    "filter": {
+                        "type": "string"
+                    },
+                    "limit": {
+                        "type": "integer"
+                    },
+                    "many": {
+                        "type": "boolean"
+                    },
+                    "notes": {
+                        "type": "string"
+                    },
+                    "op": {
+                        "type": "string"
+                    },
+                    "sort": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                }
             },
             "handlers.opBody": {
                 "type": "object",
@@ -2581,223 +2620,6 @@
                 "properties": {
                     "scheduledAt": {
                         "type": "integer"
-                    }
-                }
-            },
-            "memcache.Key": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string"
-                    },
-                    "sizeBytes": {
-                        "type": "integer"
-                    },
-                    "ttlMs": {
-                        "type": "integer"
-                    },
-                    "type": {
-                        "type": "string"
-                    }
-                }
-            },
-            "memcache.KeyPage": {
-                "type": "object",
-                "properties": {
-                    "keys": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/memcache.Key"
-                        }
-                    },
-                    "pattern": {
-                        "type": "string"
-                    },
-                    "total": {
-                        "type": "integer"
-                    },
-                    "truncated": {
-                        "type": "boolean"
-                    }
-                }
-            },
-            "mongodb.Collection": {
-                "type": "object",
-                "properties": {
-                    "avgObjectSizeBytes": {
-                        "type": "integer"
-                    },
-                    "capped": {
-                        "type": "boolean"
-                    },
-                    "count": {
-                        "type": "integer"
-                    },
-                    "indexSizeBytes": {
-                        "type": "integer"
-                    },
-                    "indexes": {
-                        "type": "integer"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "sizeBytes": {
-                        "type": "integer"
-                    },
-                    "storageBytes": {
-                        "type": "integer"
-                    },
-                    "type": {
-                        "description": "collection | view | timeseries",
-                        "type": "string"
-                    }
-                }
-            },
-            "mongodb.Database": {
-                "type": "object",
-                "properties": {
-                    "avgObjectSizeBytes": {
-                        "type": "integer"
-                    },
-                    "collections": {
-                        "type": "integer"
-                    },
-                    "indexSizeBytes": {
-                        "type": "integer"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "objects": {
-                        "type": "integer"
-                    },
-                    "sizeBytes": {
-                        "description": "uncompressed data",
-                        "type": "integer"
-                    },
-                    "storageBytes": {
-                        "description": "on-disk",
-                        "type": "integer"
-                    }
-                }
-            },
-            "mongodb.Request": {
-                "type": "object",
-                "properties": {
-                    "collection": {
-                        "type": "string"
-                    },
-                    "database": {
-                        "type": "string"
-                    },
-                    "filter": {
-                        "type": "string"
-                    },
-                    "limit": {
-                        "type": "integer"
-                    },
-                    "many": {
-                        "type": "boolean"
-                    },
-                    "op": {
-                        "type": "string"
-                    },
-                    "sort": {
-                        "type": "string"
-                    },
-                    "value": {
-                        "type": "string"
-                    }
-                }
-            },
-            "mongodb.Result": {
-                "type": "object",
-                "properties": {
-                    "affected": {
-                        "type": "integer"
-                    },
-                    "columns": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "documents": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "durationMs": {
-                        "type": "integer"
-                    },
-                    "estimatedRows": {
-                        "type": "integer"
-                    },
-                    "message": {
-                        "type": "string"
-                    },
-                    "rows": {
-                        "type": "array",
-                        "items": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "rowsReturned": {
-                        "type": "integer"
-                    },
-                    "scratchSchema": {
-                        "description": "ScratchSchema is set by change validation: the throwaway schema the\nchange was verified against, if any.",
-                        "type": "string"
-                    }
-                }
-            },
-            "sql.Column": {
-                "type": "object",
-                "properties": {
-                    "name": {
-                        "type": "string"
-                    },
-                    "nullable": {
-                        "type": "boolean"
-                    },
-                    "type": {
-                        "type": "string"
-                    }
-                }
-            },
-            "sql.Table": {
-                "type": "object",
-                "properties": {
-                    "columns": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/sql.Column"
-                        }
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "schema": {
-                        "type": "string"
-                    }
-                }
-            },
-            "usecases.AuthInfo": {
-                "type": "object",
-                "properties": {
-                    "clientId": {
-                        "type": "string"
-                    },
-                    "enabled": {
-                        "type": "boolean"
-                    },
-                    "issuer": {
-                        "type": "string"
                     }
                 }
             },

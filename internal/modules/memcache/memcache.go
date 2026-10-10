@@ -40,23 +40,6 @@ type DB struct{}
 
 func New() *DB { return &DB{} }
 
-// Key is one entry of a browse: its name, type and TTL (-1 = no expiry).
-type Key struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-	TTL  int64  `json:"ttlMs"`
-	Size int64  `json:"sizeBytes"`
-}
-
-// KeyPage is a browse result. Truncated reports that the keyspace held more
-// keys than the limit, so the counts are a lower bound.
-type KeyPage struct {
-	Keys      []Key  `json:"keys"`
-	Total     int64  `json:"total"`
-	Truncated bool   `json:"truncated"`
-	Pattern   string `json:"pattern"`
-}
-
 // Family is the namespace this module serves.
 func (r *DB) Family() string { return constants.FamilyMemcache }
 
@@ -87,7 +70,7 @@ func (r *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 // ponytail: this is a bounded full scan, not a cursor walk, so the console can
 // sort by TTL truthfully instead of sorting one page. Raise constants.MaxScanLimit or
 // add cursor paging when a keyspace outgrows 5000 keys.
-func (r *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limit int) (page KeyPage, err error) {
+func (r *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limit int) (page entity.KeyPage, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if pattern == "" {
@@ -100,7 +83,7 @@ func (r *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limi
 		limit = constants.MaxScanLimit
 	}
 	page.Pattern = pattern
-	page.Keys = []Key{}
+	page.Keys = []entity.Key{}
 
 	_, err = withClient(ctx, c, func(ctx context.Context, cl *goredis.Client) (struct{}, error) {
 		ctx, cancel := context.WithTimeout(ctx, opTimeout)
@@ -145,7 +128,7 @@ func (r *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limi
 		_, _ = pipe.Exec(ctx)
 
 		for i, name := range names {
-			key := Key{Name: name, Type: types[i].Val(), TTL: -1}
+			key := entity.Key{Name: name, Type: types[i].Val(), TTL: -1}
 			if ttl, err := ttls[i].Result(); err == nil {
 				// go-redis reports a missing key as -2 and "no expiry" as -1.
 				switch {

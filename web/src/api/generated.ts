@@ -27,7 +27,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["usecases.AuthInfo"];
+                        "*/*": components["schemas"]["config.AuthInfo"];
                     };
                 };
             };
@@ -180,9 +180,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -242,9 +240,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -283,9 +279,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -294,9 +288,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -344,9 +336,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -398,9 +388,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -409,9 +397,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -461,9 +447,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -472,9 +456,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -524,9 +506,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -535,9 +515,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -592,9 +570,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -603,9 +579,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -683,9 +657,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -733,9 +705,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -770,9 +740,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -821,9 +789,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -832,9 +798,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -889,9 +853,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -900,9 +862,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -945,7 +905,7 @@ export interface paths {
                     };
                     content: {
                         "*/*": {
-                            collections?: components["schemas"]["mongodb.Collection"][];
+                            collections?: components["schemas"]["entity.Collection"][];
                         };
                     };
                 };
@@ -955,9 +915,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -966,9 +924,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1010,7 +966,7 @@ export interface paths {
                     };
                     content: {
                         "*/*": {
-                            databases?: components["schemas"]["mongodb.Database"][];
+                            databases?: components["schemas"]["entity.Database"][];
                         };
                     };
                 };
@@ -1020,9 +976,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1031,9 +985,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1081,9 +1033,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            status?: string;
-                        };
+                        "*/*": components["schemas"]["entity.StatusResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -1092,9 +1042,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1103,9 +1051,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1155,9 +1101,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Forbidden */
@@ -1166,9 +1110,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1177,9 +1119,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1219,9 +1159,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1230,9 +1168,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Forbidden */
@@ -1241,9 +1177,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1252,9 +1186,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1291,9 +1223,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Forbidden */
@@ -1302,9 +1232,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1313,9 +1241,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1358,7 +1284,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["memcache.KeyPage"];
+                        "*/*": components["schemas"]["entity.KeyPage"];
                     };
                 };
                 /** @description Bad Request */
@@ -1367,9 +1293,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1378,9 +1302,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1424,9 +1346,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1435,9 +1355,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1491,9 +1409,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1502,9 +1418,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1540,7 +1454,7 @@ export interface paths {
             /** @description op, database, collection, filter and value as Extended JSON */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["mongodb.Request"];
+                    "application/json": components["schemas"]["entity.MongoRequest"];
                 };
             };
             responses: {
@@ -1550,7 +1464,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["mongodb.Result"];
+                        "*/*": components["schemas"]["entity.Result"];
                     };
                 };
                 /** @description Bad Request */
@@ -1559,9 +1473,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1570,9 +1482,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1622,9 +1532,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1633,9 +1541,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1675,7 +1581,7 @@ export interface paths {
                     };
                     content: {
                         "*/*": {
-                            tables?: components["schemas"]["sql.Table"][];
+                            tables?: components["schemas"]["entity.Table"][];
                         };
                     };
                 };
@@ -1685,9 +1591,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1696,9 +1600,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1755,9 +1657,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1766,9 +1666,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1811,9 +1709,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            status?: string;
-                        };
+                        "*/*": components["schemas"]["entity.StatusResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -1822,9 +1718,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1875,9 +1769,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Not Found */
@@ -1886,9 +1778,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -1986,9 +1876,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -2034,9 +1922,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            status?: string;
-                        };
+                        "*/*": components["schemas"]["entity.StatusResponse"];
                     };
                 };
                 /** @description Bad Request */
@@ -2045,9 +1931,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
                 /** @description Forbidden */
@@ -2056,9 +1940,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -2101,9 +1983,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
             };
@@ -2120,6 +2000,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        "config.AuthInfo": {
+            clientId?: string;
+            enabled?: boolean;
+            issuer?: string;
+        };
         "entity.Change": {
             affectedColumns?: string[];
             /** @description what the batch touches (keyword-anchored, best effort) */
@@ -2158,6 +2043,23 @@ export interface components {
             /** @description query | rollback */
             target?: string;
         };
+        "entity.Collection": {
+            avgObjectSizeBytes?: number;
+            capped?: boolean;
+            count?: number;
+            indexSizeBytes?: number;
+            indexes?: number;
+            name?: string;
+            sizeBytes?: number;
+            storageBytes?: number;
+            /** @description collection | view | timeseries */
+            type?: string;
+        };
+        "entity.Column": {
+            name?: string;
+            nullable?: boolean;
+            type?: string;
+        };
         "entity.Connection": {
             createdAt?: number;
             createdBy?: string;
@@ -2184,15 +2086,51 @@ export interface components {
             port: number;
             user?: string;
         };
+        "entity.Database": {
+            avgObjectSizeBytes?: number;
+            collections?: number;
+            indexSizeBytes?: number;
+            name?: string;
+            objects?: number;
+            sizeBytes?: number;
+            storageBytes?: number;
+        };
+        "entity.ErrorResponse": {
+            error?: string;
+        };
         "entity.Grant": {
             connection?: string;
             group: string;
             /** @enum {string} */
             level: "read" | "write" | "admin";
         };
+        "entity.Key": {
+            name?: string;
+            sizeBytes?: number;
+            ttlMs?: number;
+            type?: string;
+        };
+        "entity.KeyPage": {
+            keys?: components["schemas"]["entity.Key"][];
+            pattern?: string;
+            total?: number;
+            truncated?: boolean;
+        };
+        "entity.MongoRequest": {
+            collection?: string;
+            database?: string;
+            filter?: string;
+            limit?: number;
+            many?: boolean;
+            op?: string;
+            sort?: string;
+            value?: string;
+        };
         "entity.Result": {
             affected?: number;
             columns?: string[];
+            /** @description Documents carries raw engine output as Extended JSON (MongoDB reads). */
+            documents?: string[];
             durationMs?: number;
             estimatedRows?: number;
             message?: string;
@@ -2203,6 +2141,14 @@ export interface components {
              *     change was verified against, if any.
              */
             scratchSchema?: string;
+        };
+        "entity.StatusResponse": {
+            status?: string;
+        };
+        "entity.Table": {
+            columns?: components["schemas"]["entity.Column"][];
+            name?: string;
+            schema?: string;
         };
         "handlers.DriverInfo": {
             driver?: string;
@@ -2230,7 +2176,18 @@ export interface components {
         "handlers.memcacheKeysBody": {
             keys?: string[];
         };
-        "handlers.mongoChangeBody": Record<string, never>;
+        "handlers.mongoChangeBody": {
+            collection?: string;
+            connection?: string;
+            database?: string;
+            filter?: string;
+            limit?: number;
+            many?: boolean;
+            notes?: string;
+            op?: string;
+            sort?: string;
+            value?: string;
+        };
         "handlers.opBody": {
             sql?: string;
             table?: string;
@@ -2240,81 +2197,6 @@ export interface components {
         };
         "handlers.scheduleBody": {
             scheduledAt?: number;
-        };
-        "memcache.Key": {
-            name?: string;
-            sizeBytes?: number;
-            ttlMs?: number;
-            type?: string;
-        };
-        "memcache.KeyPage": {
-            keys?: components["schemas"]["memcache.Key"][];
-            pattern?: string;
-            total?: number;
-            truncated?: boolean;
-        };
-        "mongodb.Collection": {
-            avgObjectSizeBytes?: number;
-            capped?: boolean;
-            count?: number;
-            indexSizeBytes?: number;
-            indexes?: number;
-            name?: string;
-            sizeBytes?: number;
-            storageBytes?: number;
-            /** @description collection | view | timeseries */
-            type?: string;
-        };
-        "mongodb.Database": {
-            avgObjectSizeBytes?: number;
-            collections?: number;
-            indexSizeBytes?: number;
-            name?: string;
-            objects?: number;
-            /** @description uncompressed data */
-            sizeBytes?: number;
-            /** @description on-disk */
-            storageBytes?: number;
-        };
-        "mongodb.Request": {
-            collection?: string;
-            database?: string;
-            filter?: string;
-            limit?: number;
-            many?: boolean;
-            op?: string;
-            sort?: string;
-            value?: string;
-        };
-        "mongodb.Result": {
-            affected?: number;
-            columns?: string[];
-            documents?: string[];
-            durationMs?: number;
-            estimatedRows?: number;
-            message?: string;
-            rows?: string[][];
-            rowsReturned?: number;
-            /**
-             * @description ScratchSchema is set by change validation: the throwaway schema the
-             *     change was verified against, if any.
-             */
-            scratchSchema?: string;
-        };
-        "sql.Column": {
-            name?: string;
-            nullable?: boolean;
-            type?: string;
-        };
-        "sql.Table": {
-            columns?: components["schemas"]["sql.Column"][];
-            name?: string;
-            schema?: string;
-        };
-        "usecases.AuthInfo": {
-            clientId?: string;
-            enabled?: boolean;
-            issuer?: string;
         };
         /** @description applied and failed change ids from one tick. */
         "usecases.TickResult": {
