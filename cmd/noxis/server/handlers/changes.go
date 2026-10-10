@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"noxis/internal/common/pagination"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
@@ -50,9 +52,9 @@ func ListChanges(w http.ResponseWriter, r *http.Request) {
 		}
 		changes = filterByConnection(changes, r.URL.Query().Get("connection"))
 		changes = filterByStatus(changes, r.URL.Query().Get("status"))
-		page, perPage := readPagination(r, 20)
+		page, perPage := pagination.Params(r.URL.Query().Get("page"), r.URL.Query().Get("perPage"), constants.DefaultPageSize)
 		return map[string]any{
-			"changes": pageSlice(changes, page, perPage),
+			"changes": pagination.Slice(changes, page, perPage),
 			"total":   len(changes),
 		}, nil
 	})

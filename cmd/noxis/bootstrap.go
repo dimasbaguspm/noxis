@@ -12,8 +12,8 @@ import (
 
 	"noxis/cmd/noxis/server"
 	"noxis/cmd/noxis/ticker"
+	"noxis/internal/common/config"
 	"noxis/internal/common/logging"
-	"noxis/internal/entity"
 )
 
 // Bootstrap wires env -> config -> logger -> one root CLI (run/register).
@@ -21,12 +21,13 @@ func Bootstrap() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	cfg := entity.LoadConfig()
+	cfg := config.LoadConfig()
 	log, shutdown, err := logging.New(ctx, cfg)
 
 	if err != nil {
 		return err
 	}
+	config.LogState(ctx, log, cfg)
 
 	defer func() {
 		_ = shutdown(ctx)

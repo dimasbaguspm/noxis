@@ -6,18 +6,15 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"noxis/internal/common/config"
 	"os"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"go.opentelemetry.io/otel/trace"
-
-	"noxis/internal/entity"
 )
 
 // Log attribute keys.
@@ -31,7 +28,7 @@ const (
 // Shutdown flushes telemetry; call on process exit.
 type Shutdown func(context.Context) error
 
-func New(ctx context.Context, cfg entity.Config) (*slog.Logger, Shutdown, error) {
+func New(ctx context.Context, cfg config.Config) (*slog.Logger, Shutdown, error) {
 	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
 	logger := slog.New(&ctxHandler{inner: jsonHandler})
 	slog.SetDefault(logger)
@@ -54,20 +51,8 @@ func New(ctx context.Context, cfg entity.Config) (*slog.Logger, Shutdown, error)
 	tp := sdkTrace.NewTracerProvider(sdkTrace.WithBatcher(traceExp), sdkTrace.WithResource(res))
 	otel.SetTracerProvider(tp)
 
-	metricExp, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithEndpoint(cfg.OTELCollector), otlpmetricgrpc.WithInsecure())
-	if err != nil {
-		return nil, nil, fmt.Errorf("otel metric exporter: %w", err)
-	}
-	mp := metric.NewMeterProvider(metric.WithReader(metric.NewPeriodicReader(metricExp)), metric.WithResource(res))
-	otel.SetMeterProvider(mp)
-
 	logger.InfoContext(ctx, "telemetry connected", attrCollector, cfg.OTELCollector, attrService, service)
-	return logger, func(ctx context.Context) error {
-		if err := tp.Shutdown(ctx); err != nil {
-			return err
-		}
-		return mp.Shutdown(ctx)
-	}, nil
+	return logger, tp.Shutdown, nil
 }
 
 // ctxHandler injects the active span's ids into every record whose context

@@ -11,6 +11,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 
+	"noxis/internal/common/config"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
@@ -30,7 +31,7 @@ var _ interfaces.Verifier = (*OIDC)(nil)
 
 // New discovers the issuer and builds a verifier. An empty issuer returns
 // (nil, nil): the caller decides whether to run open.
-func New(ctx context.Context, cfg entity.Config) (*OIDC, error) {
+func New(ctx context.Context, cfg config.Config) (*OIDC, error) {
 	issuer := strings.TrimSpace(cfg.OIDCIssuer)
 	if issuer == "" {
 		return nil, nil

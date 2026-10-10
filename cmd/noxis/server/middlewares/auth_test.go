@@ -29,7 +29,7 @@ func okHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
 }
 
-// TestWithAuthOpenMode: a nil verifier means no authentication.
+// WithAuth in open mode (nil verifier) passes everything through.
 func TestWithAuthOpenMode(t *testing.T) {
 	rec := httptest.NewRecorder()
 	WithAuth(nil, okHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody))
@@ -38,8 +38,8 @@ func TestWithAuthOpenMode(t *testing.T) {
 	}
 }
 
-// TestWithAuthGuardsAPI: the API needs a valid bearer token, everything else
-// (console shell, health) does not.
+// WithAuth guards /v1/* with a bearer token; the console shell, assets and
+// health stay reachable so login can happen.
 func TestWithAuthGuardsAPI(t *testing.T) {
 	verifier := &fakeVerifier{err: errors.New("bad token")}
 	h := WithAuth(verifier, okHandler())
@@ -69,8 +69,7 @@ func TestWithAuthGuardsAPI(t *testing.T) {
 	}
 }
 
-// TestWithAuthAttachesPrincipal: a verified token reaches the handler as the
-// request's principal.
+// A verified token reaches the handler as the request's principal.
 func TestWithAuthAttachesPrincipal(t *testing.T) {
 	verifier := &fakeVerifier{principal: entity.Principal{Subject: "alice", Groups: []string{"dev"}, Admin: true}}
 	var got entity.Principal

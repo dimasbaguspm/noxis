@@ -1,9 +1,11 @@
-// Package entity is the shared data model across store, wire and REST.
-package entity
+// Package config reads and validates the process environment.
+package config
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -14,6 +16,7 @@ import (
 const (
 	EnvListen        = "NOXIS_LISTEN"         // REST listen addr
 	EnvDB            = "NOXIS_DB"             // sqlite path (connection registry)
+	EnvTickHost      = "NOXIS_TICK_HOST"      // standalone ticker: the server base URL it drives (required)
 	EnvTickInterval  = "NOXIS_TICK_INTERVAL"  // standalone ticker: how often to tick (e.g. 30s)
 	EnvSecretKey     = "NOXIS_SECRET_KEY"     // AES key for passwords at rest (64 hex chars; empty = plaintext)
 	EnvOTELCollector = "NOXIS_OTEL_COLLECTOR" // OTLP endpoint (optional)
@@ -32,6 +35,7 @@ const (
 type Config struct {
 	Listen        string `validate:"required"`
 	DB            string `validate:"required"`
+	TickHost      string
 	TickInterval  string
 	SecretKey     string
 	OTELCollector string
@@ -51,6 +55,7 @@ func LoadConfig() Config {
 	return Config{
 		Listen:        os.Getenv(EnvListen),
 		DB:            os.Getenv(EnvDB),
+		TickHost:      os.Getenv(EnvTickHost),
 		TickInterval:  os.Getenv(EnvTickInterval),
 		SecretKey:     os.Getenv(EnvSecretKey),
 		OTELCollector: os.Getenv(EnvOTELCollector),
@@ -83,6 +88,8 @@ func fieldOf(c Config, env string) string {
 		return c.DB
 	case EnvTickInterval:
 		return c.TickInterval
+	case EnvTickHost:
+		return c.TickHost
 	case EnvSecretKey:
 		return c.SecretKey
 	case EnvOTELCollector:
@@ -107,6 +114,7 @@ func (c Config) String() string {
 	return strings.Join([]string{
 		EnvListen + "=" + c.Listen,
 		EnvDB + "=" + c.DB,
+		EnvTickHost + "=" + c.TickHost,
 		EnvTickInterval + "=" + c.TickInterval,
 		EnvSecretKey + "=" + c.SecretKey,
 		EnvOTELCollector + "=" + c.OTELCollector,
@@ -117,4 +125,20 @@ func (c Config) String() string {
 		EnvOIDCGroupsClaim + "=" + c.OIDCGroupsClaim,
 		EnvOIDCAdminGroup + "=" + c.OIDCAdminGroup,
 	}, " ")
+}
+
+// LogState logs the deployment-relevant facts once, at boot: how secrets and
+// auth are configured. Field-level warnings live here, not in command code, so
+// a config decision is decided in exactly one place.
+func LogState(ctx context.Context, log *slog.Logger, c Config) {
+	if c.SecretKey == "" {
+		log.WarnContext(ctx, "NOXIS_SECRET_KEY is not set; connection passwords are stored in plaintext")
+	} else {
+		log.InfoContext(ctx, "connection passwords are encrypted at rest")
+	}
+	if c.OIDCIssuer == "" {
+		log.WarnContext(ctx, "NOXIS_OIDC_ISSUER is not set; the API is unauthenticated")
+	} else {
+		log.InfoContext(ctx, "OIDC authentication enabled", "issuer", c.OIDCIssuer, "adminGroup", c.OIDCAdminGroup)
+	}
 }

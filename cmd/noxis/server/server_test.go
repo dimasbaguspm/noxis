@@ -2,15 +2,14 @@ package server
 
 import (
 	"context"
+	"noxis/internal/common/config"
 	"testing"
-
-	"noxis/internal/entity"
 )
 
 // TestNewVerifierOpenMode: an unset issuer must yield a nil interface, not a
 // typed-nil *auth.OIDC (which would silently keep auth on).
 func TestNewVerifierOpenMode(t *testing.T) {
-	verifier, err := newVerifier(context.Background(), entity.Config{})
+	verifier, err := newVerifier(context.Background(), config.Config{})
 	if err != nil {
 		t.Fatalf("open mode must not error: %v", err)
 	}

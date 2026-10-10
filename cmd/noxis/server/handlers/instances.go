@@ -3,6 +3,9 @@ package handlers
 import (
 	"context"
 	"net/http"
+
+	"noxis/internal/common/pagination"
+	"noxis/internal/constants"
 	"noxis/internal/usecases"
 )
 
@@ -26,9 +29,9 @@ func ListInstances(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, err
 		}
-		page, perPage := readPagination(r, 20)
+		page, perPage := pagination.Params(r.URL.Query().Get("page"), r.URL.Query().Get("perPage"), constants.DefaultPageSize)
 		return map[string]any{
-			"instances": pageSlice(instances, page, perPage),
+			"instances": pagination.Slice(instances, page, perPage),
 			"total":     len(instances),
 		}, nil
 	})

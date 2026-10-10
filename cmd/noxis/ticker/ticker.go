@@ -11,9 +11,10 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
-	"noxis/internal/entity"
+	"noxis/internal/common/config"
 )
 
 const (
@@ -23,24 +24,26 @@ const (
 
 // Run ticks until ctx is done. The first tick runs immediately, so overdue
 // changes are picked up on start (e.g. after a restart).
-// schedulerURL is the server the ticker drives. The deployment assumption: a
-// single compose stack names the API service "noxis" on port 9000. Tests
-// override it; any other deployment edits this constant.
-var schedulerURL = "http://noxis:9000/internal/callback/scheduler"
+// schedulerPath is the server endpoint the ticker drives; the server address
+// (host) is configured with NOXIS_TICK_HOST.
+const schedulerPath = "/internal/callback/scheduler"
 
-func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
+func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
+	if err := cfg.Require(config.EnvTickHost); err != nil {
+		return err
+	}
 	interval := defaultInterval
 	if cfg.TickInterval != "" {
 		d, err := time.ParseDuration(cfg.TickInterval)
 		if err != nil {
-			return fmt.Errorf("%s %q: %w", entity.EnvTickInterval, cfg.TickInterval, err)
+			return fmt.Errorf("%s %q: %w", config.EnvTickInterval, cfg.TickInterval, err)
 		}
 		if d <= 0 {
-			return fmt.Errorf("%s must be positive", entity.EnvTickInterval)
+			return fmt.Errorf("%s must be positive", config.EnvTickInterval)
 		}
 		interval = d
 	}
-	log.InfoContext(ctx, "ticker started", "url", schedulerURL, "interval", interval.String())
+	log.InfoContext(ctx, "ticker started", "url", strings.TrimSuffix(cfg.TickHost, "/")+schedulerPath, "interval", interval.String())
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -56,10 +59,10 @@ func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
 
 // tick POSTs once and logs the outcome; a failure is logged and retried on the
 // next interval, never fatal.
-func tick(ctx context.Context, log *slog.Logger, cfg entity.Config) {
+func tick(ctx context.Context, log *slog.Logger, cfg config.Config) {
 	ctx, cancel := context.WithTimeout(ctx, requestTimeout)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, schedulerURL, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimSuffix(cfg.TickHost, "/")+schedulerPath, http.NoBody)
 	if err != nil {
 		log.WarnContext(ctx, "ticker request", "error", err.Error())
 		return

@@ -6,11 +6,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"noxis/internal/common/config"
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"noxis/internal/entity"
 )
 
 func TestRunPostsOnInterval(t *testing.T) {
@@ -25,8 +24,7 @@ func TestRunPostsOnInterval(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	schedulerURL = srv.URL
-	cfg := entity.Config{TickInterval: "10ms"}
+	cfg := config.Config{TickHost: srv.URL, TickInterval: "10ms"}
 	done := make(chan error, 1)
 	go func() { done <- Run(ctx, slog.New(slog.NewTextHandler(io.Discard, nil)), cfg) }()
 
@@ -49,7 +47,10 @@ func TestRunPostsOnInterval(t *testing.T) {
 
 func TestRunRequiresURLAndKey(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	if err := Run(context.Background(), log, entity.Config{TickInterval: "nope"}); err == nil {
+	if err := Run(context.Background(), log, config.Config{TickHost: "http://x", TickInterval: "nope"}); err == nil {
 		t.Fatal("Run must reject an unparseable interval")
+	}
+	if err := Run(context.Background(), log, config.Config{}); err == nil {
+		t.Fatal("Run must require the tick host")
 	}
 }
