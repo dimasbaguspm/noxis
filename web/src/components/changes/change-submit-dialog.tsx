@@ -112,7 +112,7 @@ export function ChangeSubmitDialog({
       ) : (
         <SheetTrigger render={<Button />}>Create {kind.toUpperCase()} change</SheetTrigger>
       )}
-      <SheetContent className="sm:max-w-3xl">
+      <SheetContent>
         <SheetHeader>
           <SheetTitle>Submit {kind.toUpperCase()} change</SheetTitle>
           <SheetDescription>
