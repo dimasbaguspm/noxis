@@ -77,9 +77,26 @@ func principalFromClaims(subject string, claims map[string]any, groupsClaim, adm
 	groups := stringSlice(claims[groupsClaim])
 	return entity.Principal{
 		Subject: subject,
-		Groups:  groups,
-		Admin:   adminGroup != "" && slices.Contains(groups, adminGroup),
+		// display name: "name", falling back to the username claim
+		Name:   firstNonEmpty(stringClaim(claims["name"]), stringClaim(claims["preferred_username"])),
+		Email:  stringClaim(claims["email"]),
+		Groups: groups,
+		Admin:  adminGroup != "" && slices.Contains(groups, adminGroup),
 	}
+}
+
+func stringClaim(value any) string {
+	s, _ := value.(string)
+	return s
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 func stringSlice(value any) []string {

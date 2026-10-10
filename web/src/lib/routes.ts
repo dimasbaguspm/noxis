@@ -5,6 +5,7 @@
 export const PAGE_ROUTES = {
   DASHBOARD: "/",
   SETTINGS: "/settings",
+  PROFILE: "/profile",
   INSTANCE_DETAIL: (id: string) => `/instances/${id}`,
   SQL: {
     QUERY: "/sql/query",

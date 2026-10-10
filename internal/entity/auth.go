@@ -5,6 +5,8 @@ package entity
 // issuer, and the groups drive the per-connection grants.
 type Principal struct {
 	Subject string   `json:"sub"`
+	Name    string   `json:"name,omitempty"`
+	Email   string   `json:"email,omitempty"`
 	Groups  []string `json:"groups"`
 	// Admin reports membership of the configured global-admin group.
 	Admin bool `json:"admin"`

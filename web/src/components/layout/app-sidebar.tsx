@@ -4,9 +4,11 @@ import { ChevronRight, GalleryVerticalEnd, LayoutDashboard, ShieldCheck } from "
 import { cn } from "@/lib/utils";
 import { FAMILIES, type Family } from "@/lib/families";
 import { usePagedInstancesQuery } from "@/hooks/use-instances";
+import { NavUser } from "@/components/layout/nav-user";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
@@ -152,6 +154,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <NavUser />
+      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );
