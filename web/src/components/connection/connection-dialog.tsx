@@ -98,6 +98,18 @@ export function ConnectionDialog({
   const [verified, setVerified] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  // closing never keeps a half-filled form: the next visit starts over at the
+  // kind choice with pristine values for the dialog's own family
+  function onOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setKind(family);
+      reset(BLANK[family]);
+      setVerified(false);
+      setStep(wizard && !initial ? 1 : 2);
+    }
+  }
+
   const cache = kind === FAMILY.MEMCACHE;
   const mongo = kind === FAMILY.MONGODB;
   const client = api.family(kind);
@@ -156,7 +168,7 @@ export function ConnectionDialog({
   });
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger render={<Button />}>{trigger}</SheetTrigger>
       <SheetContent className="sm:max-w-lg">
         <SheetHeader>
