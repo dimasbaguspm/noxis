@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -109,13 +110,15 @@ export default function MemcachePage() {
   function head(key: SortKey, label: string) {
     const active = sort.key === key;
     return (
-      <button
-        className={cn("flex items-center gap-1", active && "text-foreground")}
+      <Button
+        variant="ghost"
+        size="sm"
+        className={cn("flex items-center gap-1 px-1", active && "text-foreground")}
         onClick={() => setSort((prev) => ({ key, desc: prev.key === key ? !prev.desc : false }))}
       >
         {label}
         {active && (sort.desc ? <ArrowDown className="size-3" /> : <ArrowUp className="size-3" />)}
-      </button>
+      </Button>
     );
   }
 
@@ -212,11 +215,10 @@ export default function MemcachePage() {
                   onClick={() => setInspected(key.name)}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       aria-label={`select ${key.name}`}
                       checked={selected.includes(key.name)}
-                      onChange={() => toggle(key.name)}
+                      onCheckedChange={() => toggle(key.name)}
                     />
                   </TableCell>
                   <TableCell className="max-w-96 truncate font-mono text-xs" title={key.name}>

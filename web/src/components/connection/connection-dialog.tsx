@@ -21,7 +21,6 @@ import { useDriversQuery } from "@/hooks/use-config";
 import { queryClient } from "@/lib/query-client";
 import { FAMILY, type FamilyKey } from "@/lib/families";
 import { api, type Connection } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
 const SQL_EMPTY: Connection = {
   name: "",
@@ -286,18 +285,17 @@ function Choice({
   onClick: () => void;
 }) {
   return (
-    <button
+    <Button
+      variant="outline"
+      size="lg"
       onClick={onClick}
-      className={cn(
-        "flex items-start gap-3 rounded-md border border-border p-3 text-left",
-        "transition-colors hover:border-primary/40 hover:bg-accent/50",
-      )}
+      className="h-auto w-full items-start justify-start gap-3 rounded-md p-3"
     >
       <span className="mt-0.5 text-muted-foreground">{icon}</span>
       <span className="grid gap-0.5">
         <span className="text-sm font-medium">{title}</span>
         <span className="text-xs text-muted-foreground">{detail}</span>
       </span>
-    </button>
+    </Button>
   );
 }

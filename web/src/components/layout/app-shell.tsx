@@ -1,5 +1,6 @@
 import { NavLink, Outlet, Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { NavSearch } from "@/components/layout/nav-search";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
@@ -22,10 +23,12 @@ export function AppShell() {
           return (
             <div key={group.label ?? `group-${i}`} className={cn("flex flex-col", i > 0 && "mt-1")}>
               {group.label ? (
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   aria-expanded={open}
                   onClick={() => toggle(group.label)}
-                  className="flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium tracking-wider text-muted-foreground uppercase hover:bg-accent hover:text-accent-foreground"
+                  className="flex h-auto items-center gap-1 px-2 text-[11px] font-medium tracking-wider text-muted-foreground uppercase"
                 >
                   <ChevronRight className={cn("size-3.5 transition-transform", open && "rotate-90")} />
                   {group.label}
@@ -34,7 +37,7 @@ export function AppShell() {
                       soon
                     </Badge>
                   )}
-                </button>
+                </Button>
               ) : null}
 
               {open &&
