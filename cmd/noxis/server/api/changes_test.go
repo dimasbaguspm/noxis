@@ -1,4 +1,4 @@
-package controller
+package api
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"noxis/internal/application"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -123,18 +124,28 @@ func (f *fakeSQL) Apply(context.Context, entity.Connection, string) (interfaces.
 	return interfaces.Result{Message: "applied: 1 statement(s)"}, nil
 }
 
-func newDeps(sq interfaces.SQLModule) (Deps, *fakeChanges, *fakeConns) {
+// newApp builds the application against fakes; newTestServer adds the
+// transport around it.
+func newApp(sq interfaces.SQLModule) (*application.App, *fakeChanges, *fakeConns) {
 	conns := &fakeConns{conns: map[string]entity.Connection{
 		"demo": {Name: "demo", Driver: constants.DriverPostgres, Host: "db", Port: 5432, User: "postgres", Database: "demo"},
 	}}
 	changes := &fakeChanges{changes: map[string]entity.Change{}}
-	return Deps{
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	return &application.App{
 		Connections: conns,
 		Changes:     changes,
 		Grants:      &fakeGrants{grants: map[string]entity.Grant{}},
 		Modules:     map[string]interfaces.Module{constants.FamilySQL: sq},
-		Log:         slog.New(slog.NewTextHandler(io.Discard, nil)),
+		Log:         log,
 	}, changes, conns
+}
+
+// newTestServer wires the transport with a fresh app; the app is returned for
+// direct workflow calls and store inspection.
+func newTestServer(sq interfaces.SQLModule) (*Server, *application.App, *fakeChanges, *fakeConns) {
+	app, changes, conns := newApp(sq)
+	return &Server{App: app, Log: app.Log}, app, changes, conns
 }
 
 func sampleChange() entity.Change {
@@ -148,10 +159,10 @@ func sampleChange() entity.Change {
 
 func TestChangeWorkflow(t *testing.T) {
 	sq := &fakeSQL{}
-	d, _, _ := newDeps(sq)
+	app, _, _ := newApp(sq)
 	ctx := context.Background()
 
-	submitted, err := d.submitChange(ctx, sq, sampleChange())
+	submitted, err := app.SubmitChange(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
@@ -163,11 +174,11 @@ func TestChangeWorkflow(t *testing.T) {
 	}
 
 	// apply before approval is refused
-	if _, err := d.apply(ctx, sq, submitted.ID); err == nil {
+	if _, err := app.Apply(ctx, sq, submitted.ID); err == nil {
 		t.Fatal("apply must require approval")
 	}
 
-	approved, err := d.approve(ctx, submitted.ID)
+	approved, err := app.Approve(ctx, submitted.ID)
 	if err != nil {
 		t.Fatalf("approve: %v", err)
 	}
@@ -175,7 +186,7 @@ func TestChangeWorkflow(t *testing.T) {
 		t.Fatalf("approve result: %+v", approved)
 	}
 
-	applied, err := d.apply(ctx, sq, submitted.ID)
+	applied, err := app.Apply(ctx, sq, submitted.ID)
 	if err != nil {
 		t.Fatalf("apply: %v", err)
 	}
@@ -189,22 +200,22 @@ func TestChangeValidationFailures(t *testing.T) {
 
 	// a read on the change path is refused up front
 	sq := &fakeSQL{writeErr: errors.New(`statement "SELECT" not allowed here`)}
-	d, _, _ := newDeps(sq)
-	bad, err := d.submitChange(ctx, sq, sampleChange())
+	app, _, _ := newApp(sq)
+	bad, err := app.SubmitChange(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
 	if bad.Status != constants.ChangeFailed {
 		t.Fatalf("status=%q want failed", bad.Status)
 	}
-	if _, err := d.approve(ctx, bad.ID); err == nil {
+	if _, err := app.Approve(ctx, bad.ID); err == nil {
 		t.Fatal("failed change must not be approvable")
 	}
 
 	// a dry-run failure also lands as failed with the reason recorded
 	sq2 := &fakeSQL{validateErr: errors.New("rollback statement 1: syntax error")}
-	d2, _, _ := newDeps(sq2)
-	failed, err := d2.submitChange(ctx, sq2, sampleChange())
+	app2, _, _ := newApp(sq2)
+	failed, err := app2.SubmitChange(ctx, sq2, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
@@ -217,31 +228,31 @@ func TestChangeValidationFailures(t *testing.T) {
 
 	// mysql DDL cannot be dry-run: unverified, still approvable
 	sq3 := &fakeSQL{validateErr: sql.ErrUnverifiable}
-	d3, _, _ := newDeps(sq3)
-	unv, err := d3.submitChange(ctx, sq3, sampleChange())
+	app3, _, _ := newApp(sq3)
+	unv, err := app3.SubmitChange(ctx, sq3, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
 	if unv.Status != constants.ChangeUnverified {
 		t.Fatalf("status=%q want unverified", unv.Status)
 	}
-	if _, err := d3.approve(ctx, unv.ID); err != nil {
+	if _, err := app3.Approve(ctx, unv.ID); err != nil {
 		t.Fatalf("unverified change must be approvable: %v", err)
 	}
 }
 
 func TestApplyFailureIsRecorded(t *testing.T) {
 	sq := &fakeSQL{applyErr: errors.New("statement 1: duplicate key")}
-	d, changes, _ := newDeps(sq)
+	app, changes, _ := newApp(sq)
 	ctx := context.Background()
-	ch, err := d.submitChange(ctx, sq, sampleChange())
+	ch, err := app.SubmitChange(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
-	if _, err := d.approve(ctx, ch.ID); err != nil {
+	if _, err := app.Approve(ctx, ch.ID); err != nil {
 		t.Fatalf("approve: %v", err)
 	}
-	if _, err := d.apply(ctx, sq, ch.ID); err == nil {
+	if _, err := app.Apply(ctx, sq, ch.ID); err == nil {
 		t.Fatal("apply must surface the failure")
 	}
 	stored, ok := changes.changes[ch.ID]
@@ -255,21 +266,21 @@ func TestApplyFailureIsRecorded(t *testing.T) {
 }
 
 func TestSecretsStayRedacted(t *testing.T) {
-	d, _, conns := newDeps(&fakeSQL{})
-	mod := d.Modules[constants.FamilySQL]
+	app, _, conns := newApp(&fakeSQL{})
+	mod := app.Modules[constants.FamilySQL]
 	ctx := context.Background()
 	c, _ := conns.Get(ctx, "demo")
 	c.Password = "supersecret"
 	_ = conns.Save(ctx, *c)
 
-	got, err := d.connection(ctx, mod, "demo")
+	got, err := app.Connection(ctx, mod, "demo")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
 	if got.Password != "" {
 		t.Fatalf("password leaked: %q", got.Password)
 	}
-	list, err := d.connections(ctx, mod)
+	list, err := app.ConnectionList(ctx, mod)
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -278,7 +289,7 @@ func TestSecretsStayRedacted(t *testing.T) {
 			t.Fatalf("password leaked in list: %q", x.Password)
 		}
 	}
-	if raw, err := d.raw(ctx, mod, "demo", entity.LevelRead); err != nil || raw.Password != "supersecret" {
+	if raw, err := app.Raw(ctx, mod, "demo", entity.LevelRead); err != nil || raw.Password != "supersecret" {
 		t.Fatalf("internal path must still see the password: %v", err)
 	}
 }
@@ -286,13 +297,12 @@ func TestSecretsStayRedacted(t *testing.T) {
 // TestHandlersRespond exercises the HTTP path (handle → span → JSON): a
 // self-calling span closure once turned this into a stack overflow.
 func TestHandlersRespond(t *testing.T) {
-	d, _, _ := newDeps(&fakeSQL{})
+	srv, _, _, _ := newTestServer(&fakeSQL{})
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/engine/{engine}/connections", ListConnections)
-	h := WithDeps(mux, d)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections", srv.ListConnections)
 
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody))
+	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -304,11 +314,10 @@ func TestHandlersRespond(t *testing.T) {
 // TestEngineGating locks the generic route contract: an unknown engine and a
 // sub-resource the engine does not serve are 404, never routed elsewhere.
 func TestEngineGating(t *testing.T) {
-	d, _, _ := newDeps(&fakeSQL{})
+	srv, _, _, _ := newTestServer(&fakeSQL{})
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/engine/{engine}/connections", ListConnections)
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/keys", ListKeys)
-	h := WithDeps(mux, d)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections", srv.ListConnections)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/keys", srv.ListKeys)
 
 	cases := []struct {
 		path string
@@ -320,7 +329,7 @@ func TestEngineGating(t *testing.T) {
 	}
 	for _, tc := range cases {
 		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, http.NoBody))
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, http.NoBody))
 		if rec.Code != tc.want {
 			t.Fatalf("%s: status=%d want=%d body=%s", tc.path, rec.Code, tc.want, rec.Body.String())
 		}
@@ -332,20 +341,20 @@ func TestEngineGating(t *testing.T) {
 func TestScheduledChangeWaitsForItsSlot(t *testing.T) {
 	ctx := context.Background()
 	sq := &fakeSQL{}
-	d, changes, _ := newDeps(sq)
+	app, changes, _ := newApp(sq)
 	in := sampleChange()
 	in.ScheduledAt = time.Now().Add(time.Hour).Unix()
-	ch, err := d.submitChange(ctx, sq, in)
+	ch, err := app.SubmitChange(ctx, sq, in)
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
-	if _, err := d.approve(ctx, ch.ID); err != nil {
+	if _, err := app.Approve(ctx, ch.ID); err != nil {
 		t.Fatalf("approve: %v", err)
 	}
-	if _, err := d.apply(ctx, sq, ch.ID); err == nil {
+	if _, err := app.Apply(ctx, sq, ch.ID); err == nil {
 		t.Fatal("apply before the scheduled time must be refused")
 	}
-	res, err := d.Tick(ctx)
+	res, err := app.Tick(ctx)
 	if err != nil {
 		t.Fatalf("tick: %v", err)
 	}
@@ -362,23 +371,23 @@ func TestScheduledChangeWaitsForItsSlot(t *testing.T) {
 func TestTickAppliesDueScheduledChange(t *testing.T) {
 	ctx := context.Background()
 	sq := &fakeSQL{}
-	d, changes, _ := newDeps(sq)
+	app, changes, _ := newApp(sq)
 	in := sampleChange()
 	in.ScheduledAt = time.Now().Add(-time.Minute).Unix()
-	ch, err := d.submitChange(ctx, sq, in)
+	ch, err := app.SubmitChange(ctx, sq, in)
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
-	immediate, err := d.submitChange(ctx, sq, sampleChange())
+	immediate, err := app.SubmitChange(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit immediate: %v", err)
 	}
 	for _, id := range []string{ch.ID, immediate.ID} {
-		if _, err := d.approve(ctx, id); err != nil {
+		if _, err := app.Approve(ctx, id); err != nil {
 			t.Fatalf("approve %s: %v", id, err)
 		}
 	}
-	res, err := d.Tick(ctx)
+	res, err := app.Tick(ctx)
 	if err != nil {
 		t.Fatalf("tick: %v", err)
 	}
@@ -395,11 +404,10 @@ func TestTickAppliesDueScheduledChange(t *testing.T) {
 
 // TestTickEndpointRequiresKey locks the key guard on the external tick path.
 func TestTickEndpointRequiresKey(t *testing.T) {
-	d, _, _ := newDeps(&fakeSQL{})
-	d.TickKey = "s3cret"
+	srv, _, _, _ := newTestServer(&fakeSQL{})
+	srv.TickKey = "s3cret"
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /internal/tick", PostTick)
-	h := WithDeps(mux, d)
+	mux.HandleFunc("POST /internal/tick", srv.PostTick)
 
 	cases := []struct {
 		key  string
@@ -415,7 +423,7 @@ func TestTickEndpointRequiresKey(t *testing.T) {
 			req.Header.Set("X-API-Key", tc.key)
 		}
 		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, req)
+		mux.ServeHTTP(rec, req)
 		if rec.Code != tc.want {
 			t.Fatalf("key=%q status=%d want=%d body=%s", tc.key, rec.Code, tc.want, rec.Body.String())
 		}
@@ -424,22 +432,20 @@ func TestTickEndpointRequiresKey(t *testing.T) {
 
 // TestChangeKindGated locks the family guard on the shared change routes: a
 // SQL engine URL cannot approve or reject a MongoDB request (direct id), and
-// the reverse is guarded by mongoChange.
+// the reverse is guarded by MongoChange.
 func TestChangeKindGated(t *testing.T) {
-	d, changes, _ := newDeps(&fakeSQL{})
+	srv, _, changes, _ := newTestServer(&fakeSQL{})
 	changes.changes["m1"] = entity.Change{ID: "m1", Kind: constants.KindMongo, Status: constants.ChangeValidated, Connection: "mongo"}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/approve", ApproveChange)
-	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/reject", RejectChange)
-	h := WithDeps(mux, d)
+	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/approve", srv.ApproveChange)
+	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/reject", srv.RejectChange)
 
 	for _, path := range []string{"/v1/engine/sql/changes/m1/approve", "/v1/engine/sql/changes/m1/reject"} {
 		rec := httptest.NewRecorder()
-		h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, http.NoBody))
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, http.NoBody))
 		if rec.Code != http.StatusBadRequest {
 			t.Fatalf("%s: status=%d want=400 body=%s", path, rec.Code, rec.Body.String())
 		}
 	}
 }
-

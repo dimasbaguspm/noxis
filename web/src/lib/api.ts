@@ -3,7 +3,7 @@ import { FAMILY, type FamilyKey } from "@/lib/families";
 import { accessToken, authEnabled } from "@/lib/auth";
 
 export type Level = "read" | "write" | "admin";
-export type Identity = components["schemas"]["controller.MeResponse"];
+export type Identity = components["schemas"]["api.MeResponse"];
 
 export type Connection = components["schemas"]["entity.Connection"];
 export type Change = components["schemas"]["entity.Change"];

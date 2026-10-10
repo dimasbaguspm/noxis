@@ -1,0 +1,68 @@
+package api
+
+import (
+	"context"
+	"net/http"
+)
+
+// The instance routes are the cross-family view of a connection: any family's
+// instance is addressable by its stable id, with the serving family resolved
+// from the driver instead of named in the path.
+
+// @Summary List instances across engine families (passwords redacted)
+// @Param name query string false "substring match on name"
+// @Param driver query string false "exact driver match"
+// @Param host query string false "substring match on host"
+// @Param page query int false "page number, starting at 1"
+// @Param perPage query int false "items per page (default 20, max 100)"
+// @Success 200 {object} object{instances=[]entity.Connection,total=int}
+// @Router /v1/instances [get]
+func (s *Server) ListInstances(w http.ResponseWriter, r *http.Request) {
+	s.handle(w, r, func(ctx context.Context) (any, error) {
+		q := r.URL.Query()
+		instances, err := s.App.Instances(ctx, q.Get("name"), q.Get("driver"), q.Get("host"))
+		if err != nil {
+			return nil, err
+		}
+		page, perPage := readPagination(r, 20)
+		return map[string]any{
+			"instances": pageSlice(instances, page, perPage),
+			"total":     len(instances),
+		}, nil
+	})
+}
+
+// @Summary Rotate an instance's password (identity fields stay locked)
+// @Param id path string true "instance id"
+// @Param body body passwordBody true "new password"
+// @Success 200 {object} object{status=string}
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Router /v1/instances/{id}/password [post]
+func (s *Server) RotatePassword(w http.ResponseWriter, r *http.Request) {
+	s.handle(w, r, func(ctx context.Context) (any, error) {
+		var body passwordBody
+		if err := decode(r, &body); err != nil {
+			return nil, err
+		}
+		if err := s.App.RotatePassword(ctx, r.PathValue("id"), body.Password); err != nil {
+			return nil, err
+		}
+		return map[string]string{"status": "ok"}, nil
+	})
+}
+
+// @Summary Get one instance across engine families (password redacted)
+// @Param id path string true "instance id"
+// @Success 200 {object} entity.Connection
+// @Failure 404 {object} map[string]string
+// @Router /v1/instances/{id} [get]
+func (s *Server) GetInstance(w http.ResponseWriter, r *http.Request) {
+	s.handle(w, r, func(ctx context.Context) (any, error) {
+		return s.App.Instance(ctx, r.PathValue("id"))
+	})
+}
+
+type passwordBody struct {
+	Password string `json:"password"`
+}

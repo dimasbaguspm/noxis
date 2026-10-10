@@ -1,4 +1,4 @@
-package controller
+package api
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 // The cross-family lookup must decorate an instance with its family, never
 // leak the password, and 404 an id that does not exist.
 func TestInstanceLookup(t *testing.T) {
-	d, _, conns := newDeps(&fakeSQL{})
+	app, _, conns := newApp(&fakeSQL{})
 	ctx := context.Background()
 
 	c := conns.conns["demo"]
@@ -21,7 +21,7 @@ func TestInstanceLookup(t *testing.T) {
 	c.Password = "secret"
 	conns.conns["demo"] = c
 
-	got, err := d.instance(ctx, "abc")
+	got, err := app.Instance(ctx, "abc")
 	if err != nil {
 		t.Fatalf("instance: %v", err)
 	}
@@ -32,7 +32,7 @@ func TestInstanceLookup(t *testing.T) {
 		t.Fatal("password must be redacted")
 	}
 
-	if _, err := d.instance(ctx, "missing"); !errors.Is(err, interfaces.ErrNotFound) {
+	if _, err := app.Instance(ctx, "missing"); !errors.Is(err, interfaces.ErrNotFound) {
 		t.Fatalf("missing id: err=%v want not found", err)
 	}
 }
@@ -50,7 +50,7 @@ func (fakeMemcache) Supports(driver string) bool {
 // The list is cross-family and its filters are name/host substrings plus an
 // exact driver match.
 func TestInstanceSearch(t *testing.T) {
-	d, _, conns := newDeps(&fakeSQL{})
+	app, _, conns := newApp(&fakeSQL{})
 	ctx := context.Background()
 	conns.conns["prod-db"] = entity.Connection{
 		Name: "prod-db", Driver: constants.DriverPostgres, Host: "db.internal", Port: 5432,
@@ -59,10 +59,9 @@ func TestInstanceSearch(t *testing.T) {
 	conns.conns["cache"] = entity.Connection{
 		Name: "cache", Driver: constants.DriverRedis, Host: "redis.internal", Port: 6379, Database: "0",
 	}
-	memcache := &fakeMemcache{}
-	d.Modules[constants.FamilyMemcache] = memcache
+	app.Modules[constants.FamilyMemcache] = &fakeMemcache{}
 
-	all, err := d.instances(ctx, "", "", "")
+	all, err := app.Instances(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -70,7 +69,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("all = %d, want 3", len(all))
 	}
 
-	byName, err := d.instances(ctx, "PROD", "", "")
+	byName, err := app.Instances(ctx, "PROD", "", "")
 	if err != nil {
 		t.Fatalf("by name: %v", err)
 	}
@@ -78,7 +77,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("by name = %+v", byName)
 	}
 
-	byDriver, err := d.instances(ctx, "", constants.DriverRedis, "")
+	byDriver, err := app.Instances(ctx, "", constants.DriverRedis, "")
 	if err != nil {
 		t.Fatalf("by driver: %v", err)
 	}
@@ -86,7 +85,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("by driver = %+v", byDriver)
 	}
 
-	byHost, err := d.instances(ctx, "", "", "internal")
+	byHost, err := app.Instances(ctx, "", "", "internal")
 	if err != nil {
 		t.Fatalf("by host: %v", err)
 	}
@@ -97,9 +96,9 @@ func TestInstanceSearch(t *testing.T) {
 
 // Identity is fixed after registration; only the password rotates.
 func TestIdentityLockedAndRotation(t *testing.T) {
-	d, _, conns := newDeps(&fakeSQL{})
+	app, _, conns := newApp(&fakeSQL{})
 	ctx := context.Background()
-	mod := d.Modules[constants.FamilySQL]
+	mod := app.Modules[constants.FamilySQL]
 
 	c := conns.conns["demo"]
 	c.ID = "abc"
@@ -108,23 +107,23 @@ func TestIdentityLockedAndRotation(t *testing.T) {
 
 	changed := c
 	changed.Host = "elsewhere"
-	if _, err := d.saveConnection(ctx, mod, changed); err == nil {
+	if _, err := app.SaveConnection(ctx, mod, changed); err == nil {
 		t.Fatal("changing host must be rejected")
 	}
 	if conns.conns["demo"].Host != "db" {
 		t.Fatal("stored instance must be unchanged")
 	}
 
-	if err := d.rotatePassword(ctx, "abc", "new"); err != nil {
+	if err := app.RotatePassword(ctx, "abc", "new"); err != nil {
 		t.Fatalf("rotate: %v", err)
 	}
 	if conns.conns["demo"].Password != "new" {
 		t.Fatal("password not rotated")
 	}
-	if err := d.rotatePassword(ctx, "abc", ""); err == nil {
+	if err := app.RotatePassword(ctx, "abc", ""); err == nil {
 		t.Fatal("empty password must be rejected")
 	}
-	if err := d.rotatePassword(ctx, "missing", "x"); !errors.Is(err, interfaces.ErrNotFound) {
+	if err := app.RotatePassword(ctx, "missing", "x"); !errors.Is(err, interfaces.ErrNotFound) {
 		t.Fatalf("missing id: err=%v want not found", err)
 	}
 }
