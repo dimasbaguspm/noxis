@@ -13,7 +13,7 @@ export function AppShell() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="h-svh overflow-hidden">
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <SidebarTrigger className="-ms-2" />
           <nav aria-label="breadcrumb" className="min-w-0">
@@ -35,7 +35,7 @@ export function AppShell() {
           <span className="flex-1" />
           <NavSearch />
         </header>
-        <main className="min-h-0 flex-1 p-4">
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4">
           <Outlet />
         </main>
       </SidebarInset>
