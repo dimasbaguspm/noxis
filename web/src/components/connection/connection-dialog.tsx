@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { BadgeCheck, ChevronLeft, PlugZap } from "lucide-react";
+import { BadgeCheck, ChevronLeft, ChevronRight, PlugZap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -181,30 +181,37 @@ export function ConnectionDialog({
         </SheetHeader>
 
         {step === 1 ? (
-          <SheetBody>
-            <SingleSelect
-              name="kind"
-              value={kind}
-              onChange={(value) => choose(value)}
-              options={[
-                {
-                  value: FAMILY.SQL,
-                  label: "SQL database",
-                  detail: "Postgres, MySQL or MariaDB. Read and change data through the validated workflow.",
-                },
-                {
-                  value: FAMILY.MEMCACHE,
-                  label: "Memory cache",
-                  detail: "Redis or Valkey. Browse keys, inspect values, remove keys.",
-                },
-                {
-                  value: FAMILY.MONGODB,
-                  label: "Document database",
-                  detail: "MongoDB. Explore databases and collections, run CRUD requests.",
-                },
-              ]}
-            />
-          </SheetBody>
+          <>
+            <SheetBody>
+              <SingleSelect
+                name="kind"
+                value={kind}
+                onChange={(value) => choose(value)}
+                options={[
+                  {
+                    value: FAMILY.SQL,
+                    label: "SQL database",
+                    detail: "Postgres, MySQL or MariaDB. Read and change data through the validated workflow.",
+                  },
+                  {
+                    value: FAMILY.MEMCACHE,
+                    label: "Memory cache",
+                    detail: "Redis or Valkey. Browse keys, inspect values, remove keys.",
+                  },
+                  {
+                    value: FAMILY.MONGODB,
+                    label: "Document database",
+                    detail: "MongoDB. Explore databases and collections, run CRUD requests.",
+                  },
+                ]}
+              />
+            </SheetBody>
+            <SheetFooter>
+              <Button className="ml-auto" onClick={() => setStep(2)}>
+                Next <ChevronRight className="size-4" />
+              </Button>
+            </SheetFooter>
+          </>
         ) : (
           <>
             <SheetBody>
