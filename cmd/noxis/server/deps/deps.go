@@ -1,7 +1,7 @@
-// Package deps is the runtime dependency container of the server: the
-// repositories, the engine registry and the bound use cases a request can
-// call. The initiator lives here — in cmd, not in the use cases: Init binds
-// every use case once, WithDeps fills a use case's fields from the sources.
+// Package deps is the runtime dependency container of the server. Deps holds
+// the sources the initiator provides — repositories and the engine registry
+// — and Init binds the use cases that consume them into a Uses. Deps itself
+// never lists a use case.
 package deps
 
 import (
@@ -12,13 +12,11 @@ import (
 	"noxis/internal/interfaces"
 	"noxis/internal/modules"
 	"noxis/internal/repositories/in-memory-cache"
-	"noxis/internal/usecases"
 )
 
-// Deps is what a request carries: the runtime sources (repositories, engine
-// registry, transport values) plus the use cases bound to them at boot.
+// Deps is what the initiator provides: the repositories, the engine registry
+// and the transport values. WithDeps fills a use case from it by field type.
 type Deps struct {
-	// Sources: what the initiator provides and WithDeps injects from.
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
 	Grants      interfaces.GrantRepository
@@ -26,53 +24,22 @@ type Deps struct {
 	Log         *slog.Logger
 	Cache       *cache.Cache
 	Auth        config.AuthInfo
-
-	// Bound use cases (filled by Init).
-	SubmitChange     usecases.SubmitChange
-	Approve          usecases.Approve
-	Schedule         usecases.Schedule
-	Apply            usecases.Apply
-	Reject           usecases.Reject
-	SQLChanges       usecases.SQLChanges
-	SQLChange        usecases.SQLChange
-	Tick             usecases.Tick
-	ConnectionList   usecases.ConnectionList
-	Connection       usecases.Connection
-	Raw              usecases.Raw
-	SaveConnection   usecases.SaveConnection
-	DeleteConnection usecases.DeleteConnection
-	TestConnection   usecases.TestConnection
-	Schema           usecases.Schema
-	Rows             usecases.Rows
-	Op               usecases.Op
-	SubmitMongo      usecases.SubmitMongoChange
-	MongoChange      usecases.MongoChange
-	ApplyMongo       usecases.ApplyMongo
-	MongoChanges     usecases.MongoChanges
-	Instance         usecases.Instance
-	Instances        usecases.ListInstances
-	RotatePassword   usecases.RotatePassword
-	ListGrants       usecases.ListGrants
-	SetGrant         usecases.SetGrant
-	DeleteGrant      usecases.DeleteGrant
-	Groups           usecases.Groups
-	ConnectionLevels usecases.ConnectionLevels
 }
 
-type depsKey struct{}
+type usesKey struct{}
 
-// Seed returns a context carrying the boot-time deps.
-func Seed(ctx context.Context, d Deps) context.Context {
-	return context.WithValue(ctx, depsKey{}, d)
+// Seed returns a context carrying the boot-time uses.
+func Seed(ctx context.Context, u Uses) context.Context {
+	return context.WithValue(ctx, usesKey{}, u)
 }
 
-// From returns the deps carried by the context. It panics when the context
-// was not seeded: a handler without deps is a wiring bug and must surface at
+// From returns the uses carried by the context. It panics when the context
+// was not seeded: a handler without uses is a wiring bug and must surface at
 // the first request, not quietly act on zero values.
-func From(ctx context.Context) Deps {
-	d, ok := ctx.Value(depsKey{}).(Deps)
+func From(ctx context.Context) Uses {
+	u, ok := ctx.Value(usesKey{}).(Uses)
 	if !ok {
-		panic("deps.From: deps missing from context (seed with deps.Seed at boot)")
+		panic("deps.From: uses missing from context (seed with deps.Seed at boot)")
 	}
-	return d
+	return u
 }

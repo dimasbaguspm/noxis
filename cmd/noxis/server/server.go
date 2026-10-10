@@ -37,7 +37,7 @@ func newVerifier(ctx context.Context, cfg config.Config) (interfaces.Verifier, e
 
 // newDeps assembles the runtime container once: the stores, the engine
 // registry and the transport values, then binds every use case to them.
-func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config) deps.Deps {
+func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config) deps.Uses {
 	return deps.Init(deps.Deps{
 		Connections: store,
 		Changes:     store,

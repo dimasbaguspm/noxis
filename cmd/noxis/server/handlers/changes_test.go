@@ -150,7 +150,7 @@ func newTestBase(sq interfaces.SQLModule) (testBase, *fakeChanges, *fakeConns) {
 
 // newTestDeps binds the use cases against fresh fakes, exactly like the
 // initiator does at boot; the fakes are returned for store inspection.
-func newTestDeps(sq interfaces.SQLModule) (deps.Deps, *fakeChanges, *fakeConns) {
+func newTestDeps(sq interfaces.SQLModule) (deps.Uses, *fakeChanges, *fakeConns) {
 	base, changes, conns := newTestBase(sq)
 	return deps.Init(deps.Deps{
 		Connections: base.Connections,

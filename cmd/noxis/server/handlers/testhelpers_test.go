@@ -13,7 +13,7 @@ import (
 
 // depsHandler wraps h so every request carries the test deps + registry,
 // mirroring how the real server seeds the base request context in Run.
-func depsHandler(h http.Handler, d deps.Deps) http.Handler {
+func depsHandler(h http.Handler, d deps.Uses) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := deps.Seed(r.Context(), d)
 		h.ServeHTTP(w, r.WithContext(modules.WithRegistry(ctx, d.Modules)))
