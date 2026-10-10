@@ -44,6 +44,26 @@ func (d Deps) setGrant(ctx context.Context, mod interfaces.Module, name, group, 
 	return g, nil
 }
 
+// @Summary The known group names for grant editing
+// @Success 200 {object} object{groups=[]string}
+// @Failure 403 {object} map[string]string
+// @Router /v1/config/groups [get]
+func ListConfigGroups(w http.ResponseWriter, r *http.Request) {
+	handle(w, r, func(ctx context.Context, d Deps) (any, error) {
+		if err := d.requireAdmin(ctx); err != nil {
+			return nil, err
+		}
+		groups, err := d.Grants.ListGroupNames(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if groups == nil {
+			groups = []string{}
+		}
+		return map[string]any{"groups": groups}, nil
+	})
+}
+
 func (d Deps) deleteGrant(ctx context.Context, mod interfaces.Module, name, group string) (err error) {
 	ctx, end := d.span(ctx)
 	defer func() { end(err) }()

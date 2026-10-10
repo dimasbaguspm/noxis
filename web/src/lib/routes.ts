@@ -4,6 +4,7 @@
 
 export const PAGE_ROUTES = {
   DASHBOARD: "/",
+  SETTINGS: "/settings",
   INSTANCE_DETAIL: (id: string) => `/instances/${id}`,
   SQL: {
     QUERY: "/sql/query",

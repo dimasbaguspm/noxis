@@ -33,6 +33,9 @@ type GrantRepository interface {
 	SetGrant(ctx context.Context, g entity.Grant) error
 	// DeleteGrant removes one group's grant from a connection.
 	DeleteGrant(ctx context.Context, connection, group string) error
+	// ListGroupNames returns every distinct group that appears in any grant,
+	// so the console can suggest groups for new grants.
+	ListGroupNames(ctx context.Context) ([]string, error)
 }
 
 // ChangeRepository persists proposed changes (names carry the noun because

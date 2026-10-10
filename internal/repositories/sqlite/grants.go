@@ -45,6 +45,26 @@ func (s *Store) SetGrant(ctx context.Context, g entity.Grant) (err error) {
 	return nil
 }
 
+// ListGroupNames returns the distinct groups that ever received a grant.
+func (s *Store) ListGroupNames(ctx context.Context) (out []string, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT DISTINCT group_name FROM connection_grants ORDER BY group_name`)
+	if err != nil {
+		return nil, fmt.Errorf("list grant groups: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var group string
+		if err := rows.Scan(&group); err != nil {
+			return nil, err
+		}
+		out = append(out, group)
+	}
+	return out, rows.Err()
+}
+
 // DeleteGrant removes one group's grant from a connection.
 func (s *Store) DeleteGrant(ctx context.Context, connection, group string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
