@@ -47,6 +47,7 @@ services:
       dockerfile: Dockerfile
     command: run ticker
     environment:
+      NOXIS_TICK_HOST: http://noxis:9000
       NOXIS_TICK_INTERVAL: 30s
     depends_on:
       noxis:

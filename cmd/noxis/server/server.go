@@ -16,7 +16,7 @@ import (
 
 	"noxis/cmd/noxis/server/handlers"
 	"noxis/cmd/noxis/server/middlewares"
-	"noxis/internal/entity"
+	"noxis/internal/common/config"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules"
 	"noxis/internal/modules/auth"
@@ -27,7 +27,7 @@ import (
 
 const shutdownTimeout = 10 * time.Second
 
-func newVerifier(ctx context.Context, cfg entity.Config) (interfaces.Verifier, error) {
+func newVerifier(ctx context.Context, cfg config.Config) (interfaces.Verifier, error) {
 	oidc, err := auth.New(ctx, cfg)
 	if err != nil || oidc == nil {
 		return nil, err
@@ -49,7 +49,7 @@ func newApp(store *sqlite.Store) *usecases.App {
 // newDeps assembles the boot-time dependencies once: the use cases, the
 // shared cache and the transport-global values. Run seeds them into the base
 // request context; no per-request rebuild happens.
-func newDeps(app *usecases.App, log *slog.Logger, cfg entity.Config) usecases.Deps {
+func newDeps(app *usecases.App, log *slog.Logger, cfg config.Config) usecases.Deps {
 	return usecases.Deps{
 		App:   app,
 		Log:   log,
@@ -136,8 +136,8 @@ func newHandler(verifier interfaces.Verifier) http.Handler {
 	return mux
 }
 
-func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
-	if err := cfg.Require(entity.EnvListen, entity.EnvDB); err != nil {
+func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
+	if err := cfg.Require(config.EnvListen, config.EnvDB); err != nil {
 		return err
 	}
 	store, err := sqlite.Open(ctx, cfg.DB, cfg.SecretKey)
@@ -145,20 +145,10 @@ func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
 		return err
 	}
 	defer store.Close()
-	if cfg.SecretKey == "" {
-		log.WarnContext(ctx, "NOXIS_SECRET_KEY is not set; connection passwords are stored in plaintext")
-	} else {
-		log.InfoContext(ctx, "connection passwords are encrypted at rest")
-	}
 
 	verifier, err := newVerifier(ctx, cfg)
 	if err != nil {
 		return err
-	}
-	if verifier == nil {
-		log.WarnContext(ctx, "NOXIS_OIDC_ISSUER is not set; the API is unauthenticated")
-	} else {
-		log.InfoContext(ctx, "OIDC authentication enabled", "issuer", cfg.OIDCIssuer, "adminGroup", cfg.OIDCAdminGroup)
 	}
 
 	log.InfoContext(ctx, "noxis serving", "addr", cfg.Listen, "db", cfg.DB)

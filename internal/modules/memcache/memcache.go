@@ -23,11 +23,6 @@ const (
 	pingTimeout = 10 * time.Second
 	opTimeout   = 30 * time.Second
 
-	// ScanLimit bounds a browse, and MaxScanLimit the caller's ask. A keyspace
-	// larger than the limit comes back with Truncated set instead of hanging.
-	ScanLimit    = 500
-	MaxScanLimit = 5000
-
 	// maxKeysPerDelete bounds one delete call.
 	maxKeysPerDelete = 500
 
@@ -90,7 +85,7 @@ func (r *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 // key's type, TTL and size in one pipeline.
 //
 // ponytail: this is a bounded full scan, not a cursor walk, so the console can
-// sort by TTL truthfully instead of sorting one page. Raise MaxScanLimit or
+// sort by TTL truthfully instead of sorting one page. Raise constants.MaxScanLimit or
 // add cursor paging when a keyspace outgrows 5000 keys.
 func (r *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limit int) (page KeyPage, err error) {
 	ctx, end := logging.StartSpan(ctx)
@@ -99,10 +94,10 @@ func (r *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limi
 		pattern = "*"
 	}
 	if limit <= 0 {
-		limit = ScanLimit
+		limit = constants.ScanLimit
 	}
-	if limit > MaxScanLimit {
-		limit = MaxScanLimit
+	if limit > constants.MaxScanLimit {
+		limit = constants.MaxScanLimit
 	}
 	page.Pattern = pattern
 	page.Keys = []Key{}
