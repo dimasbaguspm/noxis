@@ -11,6 +11,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
@@ -139,33 +140,37 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Console</SidebarGroupLabel>
-          <SidebarMenu>
-            <InstancesMenu pathname={pathname} />
-            {FAMILIES.map((family) => (
-              <FamilyMenu key={family.key} family={family} pathname={pathname} />
-            ))}
-          </SidebarMenu>
+          <SidebarGroupContent className="flex flex-col gap-2">
+            <SidebarMenu>
+              <InstancesMenu pathname={pathname} />
+              {FAMILIES.map((family) => (
+                <FamilyMenu key={family.key} family={family} pathname={pathname} />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Account</SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === PAGE_ROUTES.PROFILE}>
-                <Link to={PAGE_ROUTES.PROFILE}>
-                  <UserRound />
-                  <span>Profile</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === PAGE_ROUTES.SETTINGS}>
-                <Link to={PAGE_ROUTES.SETTINGS}>
-                  <Settings />
-                  <span>Settings</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
+          <SidebarGroupContent className="flex flex-col gap-2">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === PAGE_ROUTES.PROFILE}>
+                  <Link to={PAGE_ROUTES.PROFILE}>
+                    <UserRound />
+                    <span>Profile</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === PAGE_ROUTES.SETTINGS}>
+                  <Link to={PAGE_ROUTES.SETTINGS}>
+                    <Settings />
+                    <span>Settings</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
