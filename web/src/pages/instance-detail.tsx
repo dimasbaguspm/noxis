@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAction } from "@/hooks/use-action";
 import { useInstanceQuery, useRotatePasswordMutation } from "@/hooks/use-instances";
@@ -148,8 +148,8 @@ export default function InstanceDetailPage() {
           </p>
           {isAdmin && (
             <div className="mt-3 flex items-end gap-2">
-              <div className="grid flex-1 gap-1.5">
-                <Label htmlFor="rotate-password">New password</Label>
+              <Field className="flex-1">
+                <FieldLabel htmlFor="rotate-password">New password</FieldLabel>
                 <Input
                   id="rotate-password"
                   type="password"
@@ -157,7 +157,10 @@ export default function InstanceDetailPage() {
                   placeholder="rotate the stored password"
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
-              </div>
+                <FieldError>
+                  {rotate.isError ? (rotate.error instanceof Error ? rotate.error.message : "rotation failed") : undefined}
+                </FieldError>
+              </Field>
               <Button
                 size="sm"
                 variant="outline"

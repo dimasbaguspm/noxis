@@ -23,7 +23,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChangeActivity } from "@/components/changes/change-activity";
@@ -288,14 +288,17 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
             <SheetTitle>Schedule change</SheetTitle>
             <SheetDescription>Pick when the scheduler should apply this approved change.</SheetDescription>
           </SheetHeader>
-          <SheetBody className="grid gap-1.5">
-            <Label htmlFor="schedule-at">Run at</Label>
-            <Input
-              id="schedule-at"
-              type="datetime-local"
-              value={when}
-              onChange={(e) => setWhen(e.target.value)}
-            />
+          <SheetBody>
+            <Field>
+              <FieldLabel htmlFor="schedule-at">Run at</FieldLabel>
+              <Input
+                id="schedule-at"
+                type="datetime-local"
+                value={when}
+                onChange={(e) => setWhen(e.target.value)}
+              />
+              <FieldDescription>a future moment; the scheduler applies the change once.</FieldDescription>
+            </Field>
           </SheetBody>
           <SheetFooter>
             <Button

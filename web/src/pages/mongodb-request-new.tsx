@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { JsonEditor } from "@/components/sql/json-editor";
@@ -109,8 +109,8 @@ export default function MongoRequestNewPage() {
             <CardDescription>the request is validated against this database</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <div className="grid gap-1.5">
-              <Label>Connection</Label>
+            <Field>
+              <FieldLabel>Connection</FieldLabel>
               <Select value={connection ?? ""} onValueChange={(v) => pick(String(v))}>
                 <SelectTrigger>
                   <SelectValue placeholder="no mongodb registered" />
@@ -123,9 +123,9 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Database</Label>
+            </Field>
+            <Field>
+              <FieldLabel>Database</FieldLabel>
               <Select value={database ?? ""} onValueChange={(v) => setDatabase(String(v))}>
                 <SelectTrigger>
                   <SelectValue placeholder="pick a database" />
@@ -138,7 +138,7 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </Field>
             <div className="flex justify-end">
               <Button disabled={!connection || !database} onClick={() => setStep(2)}>
                 Next <ChevronRight />
@@ -159,8 +159,8 @@ export default function MongoRequestNewPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <div className="grid gap-1.5">
-              <Label>Collection</Label>
+            <Field>
+              <FieldLabel>Collection</FieldLabel>
               <Select value={collection ?? ""} onValueChange={(v) => setCollection(String(v))}>
                 <SelectTrigger>
                   <SelectValue placeholder="pick a collection" />
@@ -173,9 +173,9 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Operation</Label>
+            </Field>
+            <Field>
+              <FieldLabel>Operation</FieldLabel>
               <Select value={op} onValueChange={(v) => chooseOp(String(v))}>
                 <SelectTrigger>
                   <SelectValue />
@@ -188,7 +188,7 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </Field>
             <div className="flex items-center justify-between">
               <Button variant="ghost" onClick={() => setStep(1)}>
                 <ChevronLeft /> Back
@@ -213,18 +213,18 @@ export default function MongoRequestNewPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="grid gap-1.5">
-              <Label htmlFor="notes">Notes (why)</Label>
+            <Field>
+              <FieldLabel htmlFor="notes">Notes (why)</FieldLabel>
               <Input
                 id="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder={`${op} on ${database}.${collection}`}
               />
-            </div>
+            </Field>
 
-            <div className="grid gap-1.5">
-              <Label>Filter</Label>
+            <Field>
+              <FieldLabel>Filter</FieldLabel>
               <JsonEditor
                 value={filter}
                 onChange={setFilter}
@@ -232,10 +232,10 @@ export default function MongoRequestNewPage() {
                 fields={[]}
                 placeholder="{}"
               />
-            </div>
+            </Field>
 
-            <div className="grid gap-1.5">
-              <Label>Value</Label>
+            <Field>
+              <FieldLabel>Value</FieldLabel>
               <JsonEditor
                 value={value}
                 onChange={setValue}
@@ -244,7 +244,7 @@ export default function MongoRequestNewPage() {
                 placeholder={op === "delete" ? "—" : '{ "$set": { "field": "value" } }'}
                 readOnly={op === "delete"}
               />
-            </div>
+            </Field>
 
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={many} onChange={() => setMany((v) => !v)} />

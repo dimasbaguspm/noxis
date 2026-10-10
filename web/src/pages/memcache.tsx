@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -262,11 +263,18 @@ export default function MemcachePage() {
               servers are untouched, and this cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <Input
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            placeholder={`type ${connection ?? "the connection name"} to confirm`}
-          />
+          <Field>
+            <FieldLabel htmlFor="flush-confirm">Confirm by typing the connection name</FieldLabel>
+            <Input
+              id="flush-confirm"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder={connection ?? "the connection name"}
+            />
+            <FieldError>
+              {confirm && connection && confirm !== connection ? "the name does not match — nothing is emptied" : undefined}
+            </FieldError>
+          </Field>
           <DialogFooter>
             <Button
               variant="destructive"

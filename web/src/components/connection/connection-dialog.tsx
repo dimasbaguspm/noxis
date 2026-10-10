@@ -13,8 +13,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Field, FieldLabel, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSetActiveConnection } from "@/hooks/use-connections";
 import { useDriversQuery } from "@/hooks/use-config";
@@ -173,14 +173,14 @@ export function ConnectionDialog({
           </SheetBody>
         ) : (
           <form onSubmit={onValid} className="flex flex-1 flex-col">
-            <SheetBody className="grid gap-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label>Name</Label>
-                <Input placeholder="prod-readonly" {...field("name")} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Driver</Label>
+            <SheetBody className="grid gap-4">
+            <FieldRow>
+              <Field>
+                <FieldLabel htmlFor="conn-name">Name</FieldLabel>
+                <Input id="conn-name" placeholder="prod-readonly" {...field("name")} />
+              </Field>
+              <Field>
+                <FieldLabel>Driver</FieldLabel>
                 {mongo ? (
                   <Input value="mongo" readOnly disabled />
                 ) : (
@@ -207,41 +207,45 @@ export function ConnectionDialog({
                     </SelectContent>
                   </Select>
                 )}
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Host</Label>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="conn-host">Host</FieldLabel>
                 <Input
+                  id="conn-host"
                   placeholder={cache ? "cache.internal" : mongo ? "mongo.internal" : "db.internal"}
                   {...field("host")}
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Port</Label>
-                <Input type="number" {...field("port")} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>{cache ? "User (ACL, optional)" : "User"}</Label>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="conn-port">Port</FieldLabel>
+                <Input id="conn-port" type="number" {...field("port")} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="conn-user">{cache ? "User (ACL, optional)" : "User"}</FieldLabel>
                 <Input
+                  id="conn-user"
                   placeholder={cache ? "default" : mongo ? "root" : "postgres"}
                   {...field("user")}
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Password</Label>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="conn-password">Password</FieldLabel>
                 <Input
+                  id="conn-password"
                   type="password"
                   placeholder={initial ? "unchanged" : ""}
                   {...field("password")}
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>{cache ? "DB index" : mongo ? "Database (auth)" : "Database"}</Label>
+              </Field>
+            </FieldRow>
+              <Field>
+                <FieldLabel htmlFor="conn-database">{cache ? "DB index" : mongo ? "Database (auth)" : "Database"}</FieldLabel>
                 <Input
+                  id="conn-database"
                   placeholder={cache ? "0" : mongo ? "admin" : "app"}
                   {...field("database")}
                 />
-              </div>
-            </div>
+              </Field>
 
             <p className="text-xs text-muted-foreground">
               Driver, host, database and user are fixed once saved. The password can be rotated later from the instance page.
