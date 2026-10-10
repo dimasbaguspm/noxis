@@ -22,6 +22,7 @@ export interface MongoChangeInput extends MongoRequest {
 }
 export type MemcacheKey = components["schemas"]["memcache.Key"];
 export type MemcacheKeyPage = components["schemas"]["memcache.KeyPage"];
+export type Grant = components["schemas"]["entity.Grant"];
 
 // DriverInfo is one entry of the server's hardcoded driver catalog.
 export interface DriverInfo {
@@ -193,8 +194,21 @@ export const api = {
       request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/schedule`), { scheduledAt }),
   },
   // config is the server's console-facing configuration (hardcoded Go-side).
+  // grants: per-connection RBAC policy, managed by global admins.
+  grants: {
+    list: (family: FamilyKey, name: string) =>
+      request<{ grants: Grant[] }>("GET", v1(family, `connections/${encodeURIComponent(name)}/grants`)),
+    set: (family: FamilyKey, name: string, group: string, level: string) =>
+      request<Grant>("PUT", v1(family, `connections/${encodeURIComponent(name)}/grants`), { group, level }),
+    remove: (family: FamilyKey, name: string, group: string) =>
+      request<null>(
+        "DELETE",
+        v1(family, `connections/${encodeURIComponent(name)}/grants?group=${encodeURIComponent(group)}`),
+      ),
+  },
   config: {
     drivers: () => request<DriverInfo[]>("GET", "/v1/config/drivers"),
+    groups: () => request<{ groups: string[] }>("GET", "/v1/config/groups"),
   },
   // family returns the shared connection lifecycle for any engine family.
   family: connectionOps,

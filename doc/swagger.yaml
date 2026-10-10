@@ -58,6 +58,29 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/controller.DriverInfo"
+  /v1/config/groups:
+    get:
+      summary: The known group names for grant editing
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      type: string
+        "403":
+          description: Forbidden
+          content:
+            "*/*":
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
   "/v1/engine/{engine}/changes":
     get:
       summary: List proposed changes for an engine (newest first)

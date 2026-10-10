@@ -32,6 +32,18 @@ func (f *fakeGrants) DeleteGrant(_ context.Context, _, group string) error {
 	return nil
 }
 
+func (f *fakeGrants) ListGroupNames(_ context.Context) ([]string, error) {
+	seen := map[string]struct{}{}
+	for _, g := range f.grants {
+		seen[g.Group] = struct{}{}
+	}
+	out := make([]string, 0, len(seen))
+	for group := range seen {
+		out = append(out, group)
+	}
+	return out, nil
+}
+
 func grantRouter() http.Handler {
 	d, _, _ := newDeps(&fakeSQL{})
 	d.Grants = &fakeGrants{grants: map[string]entity.Grant{}}

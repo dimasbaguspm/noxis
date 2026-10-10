@@ -64,6 +64,7 @@ func newHandler(deps controller.Deps, verifier interfaces.Verifier) http.Handler
 	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/test", controller.TestConnection)
 
 	// Grants: per-connection RBAC policy, managed by global admins only.
+	mux.HandleFunc("GET /v1/config/groups", controller.ListConfigGroups)
 	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/grants", controller.ListGrants)
 	mux.HandleFunc("PUT /v1/engine/{engine}/connections/{name}/grants", controller.SetGrant)
 	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}/grants", controller.DeleteGrant)

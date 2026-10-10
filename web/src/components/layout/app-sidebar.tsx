@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight, GalleryVerticalEnd, LayoutDashboard } from "lucide-react";
+import { ChevronRight, GalleryVerticalEnd, LayoutDashboard, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FAMILIES, type Family } from "@/lib/families";
 import { usePagedInstancesQuery } from "@/hooks/use-instances";
@@ -141,6 +141,14 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             {FAMILIES.map((family) => (
               <FamilyMenu key={family.key} family={family} pathname={pathname} />
             ))}
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === "/settings"}>
+                <Link to="/settings">
+                  <ShieldCheck />
+                  <span>Access</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
