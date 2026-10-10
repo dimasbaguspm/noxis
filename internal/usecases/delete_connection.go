@@ -8,16 +8,20 @@ import (
 )
 
 // DeleteConnection is the "DeleteConnection" use case.
-type DeleteConnection struct{ Base }
+type DeleteConnection struct {
+	Connections interfaces.ConnectionRepository
+	Grants      interfaces.GrantRepository
+	Modules     map[string]interfaces.Module
+}
 
 // Serve runs it.
 func (uc DeleteConnection) Serve(ctx context.Context, mod interfaces.Module, name string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	if err := uc.RequireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return err
 	}
-	if _, err := uc.Raw(ctx, mod, name, entity.LevelRead); err != nil {
+	if _, err := Raw(ctx, uc.Connections, uc.Grants, uc.Modules, mod, name, entity.LevelRead); err != nil {
 		return err
 	}
 	return uc.Connections.Delete(ctx, name)

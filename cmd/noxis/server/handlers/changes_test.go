@@ -124,15 +124,24 @@ func (f *fakeSQL) Apply(context.Context, entity.Connection, string) (interfaces.
 	return interfaces.Result{Message: "applied: 1 statement(s)"}, nil
 }
 
-// newTestBase builds the shared base against fakes; newTestDeps adds the
-// transport-level deps around it. Tests then wire the workflow seam they
-// exercise: usecases.Changes{Base: base}, usecases.Connections{Base: base}, ...
-func newTestBase(sq interfaces.SQLModule) (usecases.Base, *fakeChanges, *fakeConns) {
+// testBase is the explicit dependency bundle the tests hand to the gateway
+// constructors; every gateway field is filled from it.
+type testBase struct {
+	Connections interfaces.ConnectionRepository
+	Changes     interfaces.ChangeRepository
+	Grants      interfaces.GrantRepository
+	Modules     map[string]interfaces.Module
+}
+
+// newTestBase builds the dependency bundle against fakes; newTestDeps adds
+// the transport-level deps around it. Tests then wire the workflow seam they
+// exercise.
+func newTestBase(sq interfaces.SQLModule) (testBase, *fakeChanges, *fakeConns) {
 	conns := &fakeConns{conns: map[string]entity.Connection{
 		"demo": {Name: "demo", Driver: constants.DriverPostgres, Host: "db", Port: 5432, User: "postgres", Database: "demo"},
 	}}
 	changes := &fakeChanges{changes: map[string]entity.Change{}}
-	return usecases.Base{
+	return testBase{
 		Connections: conns,
 		Changes:     changes,
 		Grants:      &fakeGrants{grants: map[string]entity.Grant{}},
@@ -142,17 +151,17 @@ func newTestBase(sq interfaces.SQLModule) (usecases.Base, *fakeChanges, *fakeCon
 
 // newTestDeps wires the transport deps with a fresh base; the base is
 // returned for direct workflow calls and store inspection.
-func newTestDeps(sq interfaces.SQLModule) (usecases.Deps, usecases.Base, *fakeChanges, *fakeConns) {
+func newTestDeps(sq interfaces.SQLModule) (usecases.Deps, testBase, *fakeChanges, *fakeConns) {
 	base, changes, conns := newTestBase(sq)
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	return usecases.Deps{
-		Engines:     usecases.Engines{Base: base},
-		Changes:     usecases.Changes{Base: base},
-		Connections: usecases.Connections{Base: base},
-		Mongo:       usecases.Mongo{Base: base},
-		Instances:   usecases.Instances{Base: base},
-		Grants:      usecases.Grants{Base: base},
-		Me:          usecases.Me{Base: base},
+		Engines:     usecases.Engines{Modules: base.Modules},
+		Changes:     usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules},
+		Connections: usecases.Connections{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules},
+		Mongo:       usecases.Mongo{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules},
+		Instances:   usecases.Instances{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules},
+		Grants:      usecases.Grants{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules},
+		Me:          usecases.Me{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules},
 		Log:         log,
 	}, base, changes, conns
 }
@@ -169,7 +178,7 @@ func sampleChange() entity.Change {
 func TestChangeWorkflow(t *testing.T) {
 	sq := &fakeSQL{}
 	base, _, _ := newTestBase(sq)
-	gw := usecases.Changes{Base: base}
+	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
 	ctx := context.Background()
 
 	submitted, err := gw.SubmitChange(ctx, sq, sampleChange())
@@ -211,7 +220,7 @@ func TestChangeValidationFailures(t *testing.T) {
 	// a read on the change path is refused up front
 	sq := &fakeSQL{writeErr: errors.New(`statement "SELECT" not allowed here`)}
 	base, _, _ := newTestBase(sq)
-	gw := usecases.Changes{Base: base}
+	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
 	bad, err := gw.SubmitChange(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
@@ -226,7 +235,7 @@ func TestChangeValidationFailures(t *testing.T) {
 	// a dry-run failure also lands as failed with the reason recorded
 	sq2 := &fakeSQL{validateErr: errors.New("rollback statement 1: syntax error")}
 	base2, _, _ := newTestBase(sq2)
-	failed, err := (usecases.Changes{Base: base2}).SubmitChange(ctx, sq2, sampleChange())
+	failed, err := (usecases.Changes{Connections: base2.Connections, Changes: base2.Changes, Grants: base2.Grants, Modules: base2.Modules}).SubmitChange(ctx, sq2, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
@@ -240,14 +249,14 @@ func TestChangeValidationFailures(t *testing.T) {
 	// mysql DDL cannot be dry-run: unverified, still approvable
 	sq3 := &fakeSQL{validateErr: sql.ErrUnverifiable}
 	base3, _, _ := newTestBase(sq3)
-	unv, err := (usecases.Changes{Base: base3}).SubmitChange(ctx, sq3, sampleChange())
+	unv, err := (usecases.Changes{Connections: base3.Connections, Changes: base3.Changes, Grants: base3.Grants, Modules: base3.Modules}).SubmitChange(ctx, sq3, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
 	if unv.Status != constants.ChangeUnverified {
 		t.Fatalf("status=%q want unverified", unv.Status)
 	}
-	if _, err := (usecases.Changes{Base: base3}).Approve(ctx, unv.ID); err != nil {
+	if _, err := (usecases.Changes{Connections: base3.Connections, Changes: base3.Changes, Grants: base3.Grants, Modules: base3.Modules}).Approve(ctx, unv.ID); err != nil {
 		t.Fatalf("unverified change must be approvable: %v", err)
 	}
 }
@@ -255,7 +264,7 @@ func TestChangeValidationFailures(t *testing.T) {
 func TestApplyFailureIsRecorded(t *testing.T) {
 	sq := &fakeSQL{applyErr: errors.New("statement 1: duplicate key")}
 	base, store, _ := newTestBase(sq)
-	gw := usecases.Changes{Base: base}
+	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
 	ctx := context.Background()
 	ch, err := gw.SubmitChange(ctx, sq, sampleChange())
 	if err != nil {
@@ -280,7 +289,7 @@ func TestApplyFailureIsRecorded(t *testing.T) {
 func TestSecretsStayRedacted(t *testing.T) {
 	base, _, conns := newTestBase(&fakeSQL{})
 	mod := base.Modules[constants.FamilySQL]
-	connsGW := usecases.Connections{Base: base}
+	connsGW := usecases.Connections{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
 	ctx := context.Background()
 	c, _ := conns.Get(ctx, "demo")
 	c.Password = "supersecret"
@@ -302,7 +311,7 @@ func TestSecretsStayRedacted(t *testing.T) {
 			t.Fatalf("password leaked in list: %q", x.Password)
 		}
 	}
-	if raw, err := base.Raw(ctx, mod, "demo", entity.LevelRead); err != nil || raw.Password != "supersecret" {
+	if raw, err := usecases.Raw(ctx, base.Connections, base.Grants, base.Modules, mod, "demo", entity.LevelRead); err != nil || raw.Password != "supersecret" {
 		t.Fatalf("internal path must still see the password: %v", err)
 	}
 }
@@ -355,7 +364,7 @@ func TestScheduledChangeWaitsForItsSlot(t *testing.T) {
 	ctx := context.Background()
 	sq := &fakeSQL{}
 	base, store, _ := newTestBase(sq)
-	gw := usecases.Changes{Base: base}
+	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
 	in := sampleChange()
 	in.ScheduledAt = time.Now().Add(time.Hour).Unix()
 	ch, err := gw.SubmitChange(ctx, sq, in)
@@ -386,7 +395,7 @@ func TestTickAppliesDueScheduledChange(t *testing.T) {
 	ctx := context.Background()
 	sq := &fakeSQL{}
 	base, store, _ := newTestBase(sq)
-	gw := usecases.Changes{Base: base}
+	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
 	in := sampleChange()
 	in.ScheduledAt = time.Now().Add(-time.Minute).Unix()
 	ch, err := gw.SubmitChange(ctx, sq, in)

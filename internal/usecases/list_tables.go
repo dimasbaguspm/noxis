@@ -8,13 +8,17 @@ import (
 )
 
 // Schema is the "Schema" use case.
-type Schema struct{ Base }
+type Schema struct {
+	Connections interfaces.ConnectionRepository
+	Grants      interfaces.GrantRepository
+	Modules     map[string]interfaces.Module
+}
 
 // Serve runs it.
 func (uc Schema) Serve(ctx context.Context, sq interfaces.SQLModule, name string) (out []interfaces.Table, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	c, err := uc.Raw(ctx, sq, name, entity.LevelRead)
+	c, err := Raw(ctx, uc.Connections, uc.Grants, uc.Modules, sq, name, entity.LevelRead)
 	if err != nil {
 		return nil, err
 	}

@@ -13,7 +13,12 @@ import (
 )
 
 // SubmitChange is the "SubmitChange" use case.
-type SubmitChange struct{ Base }
+type SubmitChange struct {
+	Connections interfaces.ConnectionRepository
+	Changes     interfaces.ChangeRepository
+	Grants      interfaces.GrantRepository
+	Modules     map[string]interfaces.Module
+}
 
 // Serve runs it.
 func (uc SubmitChange) Serve(ctx context.Context, sq interfaces.SQLModule, ch entity.Change) (out entity.Change, err error) {
@@ -22,7 +27,7 @@ func (uc SubmitChange) Serve(ctx context.Context, sq interfaces.SQLModule, ch en
 	if err := ch.Validate(); err != nil {
 		return entity.Change{}, err
 	}
-	conn, err := uc.Raw(ctx, sq, ch.Connection, entity.LevelWrite)
+	conn, err := Raw(ctx, uc.Connections, uc.Grants, uc.Modules, sq, ch.Connection, entity.LevelWrite)
 	if err != nil {
 		return entity.Change{}, err
 	}

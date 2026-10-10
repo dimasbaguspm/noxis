@@ -5,10 +5,15 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 )
 
 // MongoChanges is the "MongoChanges" use case.
-type MongoChanges struct{ Base }
+type MongoChanges struct {
+	Connections interfaces.ConnectionRepository
+	Changes     interfaces.ChangeRepository
+	Grants      interfaces.GrantRepository
+}
 
 // Serve runs it.
 func (uc MongoChanges) Serve(ctx context.Context) (out []entity.Change, err error) {
@@ -18,7 +23,7 @@ func (uc MongoChanges) Serve(ctx context.Context) (out []entity.Change, err erro
 	if err != nil {
 		return nil, err
 	}
-	readable, err := uc.readableConnections(ctx)
+	readable, err := readableConnections(ctx, uc.Connections, uc.Grants)
 	if err != nil {
 		return nil, err
 	}

@@ -7,9 +7,9 @@ import (
 	"noxis/internal/interfaces"
 )
 
-// The workflow seams handlers depend on. Each gateway implements its seam by
-// delegating to the individual use cases; a handler never sees a bigger
-// surface than the routes it serves.
+// The workflow seams handlers depend on. Each gateway owns the shared stores
+// and constructs the per-op use cases with the fields each flow reads; a
+// handler never sees a bigger surface than the routes it serves.
 type (
 	// EngineWorkflows resolves the engine a route's {engine} parameter names.
 	EngineWorkflows interface {
@@ -75,114 +75,156 @@ type (
 	}
 )
 
-// The gateways: one struct per seam, delegating to the individual use cases
-// over a shared Base.
+// The gateways own the shared stores and construct the per-op use cases with
+// the fields each flow reads.
 type (
-	Engines     struct{ Base }
-	Changes     struct{ Base }
-	Connections struct{ Base }
-	Mongo       struct{ Base }
-	Instances   struct{ Base }
-	Grants      struct{ Base }
-	Me          struct{ Base }
+	Engines struct{ Modules map[string]interfaces.Module }
+
+	Changes struct {
+		Connections interfaces.ConnectionRepository
+		Changes     interfaces.ChangeRepository
+		Grants      interfaces.GrantRepository
+		Modules     map[string]interfaces.Module
+	}
+
+	Connections struct {
+		Connections interfaces.ConnectionRepository
+		Changes     interfaces.ChangeRepository
+		Grants      interfaces.GrantRepository
+		Modules     map[string]interfaces.Module
+	}
+
+	Mongo struct {
+		Connections interfaces.ConnectionRepository
+		Changes     interfaces.ChangeRepository
+		Grants      interfaces.GrantRepository
+		Modules     map[string]interfaces.Module
+	}
+
+	Instances struct {
+		Connections interfaces.ConnectionRepository
+		Changes     interfaces.ChangeRepository
+		Grants      interfaces.GrantRepository
+		Modules     map[string]interfaces.Module
+	}
+
+	Grants struct {
+		Connections interfaces.ConnectionRepository
+		Changes     interfaces.ChangeRepository
+		Grants      interfaces.GrantRepository
+		Modules     map[string]interfaces.Module
+	}
+
+	Me struct {
+		Connections interfaces.ConnectionRepository
+		Changes     interfaces.ChangeRepository
+		Grants      interfaces.GrantRepository
+		Modules     map[string]interfaces.Module
+	}
 )
 
-func (g Engines) Engine(name string) (interfaces.Module, error)       { return g.Base.Engine(name) }
-func (g Engines) EngineSQL(name string) (interfaces.SQLModule, error) { return g.Base.EngineSQL(name) }
+func (g Engines) Engine(name string) (interfaces.Module, error) { return Engine(g.Modules, name) }
+func (g Engines) EngineSQL(name string) (interfaces.SQLModule, error) {
+	return EngineSQL(g.Modules, name)
+}
 func (g Engines) EngineMongo(name string) (interfaces.MongoModule, error) {
-	return g.Base.EngineMongo(name)
+	return EngineMongo(g.Modules, name)
 }
 func (g Engines) EngineMemcache(name string) (interfaces.MemcacheModule, error) {
-	return g.Base.EngineMemcache(name)
+	return EngineMemcache(g.Modules, name)
 }
 
 func (g Changes) SubmitChange(ctx context.Context, sq interfaces.SQLModule, ch entity.Change) (entity.Change, error) {
 	return (SubmitChange(g)).Serve(ctx, sq, ch)
 }
 func (g Changes) Approve(ctx context.Context, id string) (entity.Change, error) {
-	return (Approve(g)).Serve(ctx, id)
+	return (Approve{Changes: g.Changes, Grants: g.Grants}).Serve(ctx, id)
 }
 func (g Changes) Schedule(ctx context.Context, id string, at int64) (entity.Change, error) {
-	return (Schedule(g)).Serve(ctx, id, at)
+	return (Schedule{Changes: g.Changes, Grants: g.Grants}).Serve(ctx, id, at)
 }
 func (g Changes) Apply(ctx context.Context, sq interfaces.SQLModule, id string) (entity.Change, error) {
 	return (Apply(g)).Serve(ctx, sq, id)
 }
 func (g Changes) Reject(ctx context.Context, id string) (entity.Change, error) {
-	return (Reject(g)).Serve(ctx, id)
+	return (Reject{Changes: g.Changes, Grants: g.Grants}).Serve(ctx, id)
 }
 func (g Changes) SQLChanges(ctx context.Context) ([]entity.Change, error) {
-	return (SQLChanges(g)).Serve(ctx)
+	return (SQLChanges{Connections: g.Connections, Changes: g.Changes, Grants: g.Grants}).Serve(ctx)
 }
 func (g Changes) SQLChange(ctx context.Context, id string) (*entity.Change, error) {
-	return (SQLChange(g)).Serve(ctx, id)
+	return (SQLChange{Changes: g.Changes, Grants: g.Grants}).Serve(ctx, id)
 }
-func (g Changes) Tick(ctx context.Context) (TickResult, error) { return (Tick(g)).Serve(ctx) }
+func (g Changes) Tick(ctx context.Context) (TickResult, error) {
+	return (Tick(g)).Serve(ctx)
+}
 
 func (g Connections) ConnectionList(ctx context.Context, mod interfaces.Module) ([]entity.Connection, error) {
-	return (ConnectionList(g)).Serve(ctx, mod)
+	return (ConnectionList{Connections: g.Connections, Grants: g.Grants}).Serve(ctx, mod)
 }
 func (g Connections) Connection(ctx context.Context, mod interfaces.Module, name string) (entity.Connection, error) {
-	return (Connection(g)).Serve(ctx, mod, name)
+	return (Connection{Connections: g.Connections, Grants: g.Grants, Modules: g.Modules}).Serve(ctx, mod, name)
 }
 func (g Connections) Raw(ctx context.Context, mod interfaces.Module, name, level string) (*entity.Connection, error) {
-	return g.Base.Raw(ctx, mod, name, level)
+	return Raw(ctx, g.Connections, g.Grants, g.Modules, mod, name, level)
 }
 func (g Connections) SaveConnection(ctx context.Context, mod interfaces.Module, c entity.Connection) (entity.Connection, error) {
-	return (SaveConnection(g)).Serve(ctx, mod, c)
+	return (SaveConnection{Connections: g.Connections}).Serve(ctx, mod, c)
 }
 func (g Connections) DeleteConnection(ctx context.Context, mod interfaces.Module, name string) error {
-	return (DeleteConnection(g)).Serve(ctx, mod, name)
+	return (DeleteConnection{Connections: g.Connections, Grants: g.Grants, Modules: g.Modules}).Serve(ctx, mod, name)
 }
 func (g Connections) TestConnection(ctx context.Context, mod interfaces.Module, name string) error {
-	return (TestConnection(g)).Serve(ctx, mod, name)
+	return (TestConnection{Connections: g.Connections, Grants: g.Grants, Modules: g.Modules}).Serve(ctx, mod, name)
 }
 func (g Connections) Schema(ctx context.Context, sq interfaces.SQLModule, name string) ([]interfaces.Table, error) {
-	return (Schema(g)).Serve(ctx, sq, name)
+	return (Schema{Connections: g.Connections, Grants: g.Grants, Modules: g.Modules}).Serve(ctx, sq, name)
 }
 func (g Connections) Rows(ctx context.Context, sq interfaces.SQLModule, name, schema, table string, limit int) (interfaces.Result, error) {
-	return (Rows(g)).Serve(ctx, sq, name, schema, table, limit)
+	return (Rows{Connections: g.Connections, Grants: g.Grants, Modules: g.Modules}).Serve(ctx, sq, name, schema, table, limit)
 }
 func (g Connections) Op(ctx context.Context, sq interfaces.SQLModule, name, operation, sqlText, table string) (interfaces.Result, error) {
-	return (Op(g)).Serve(ctx, sq, name, operation, sqlText, table)
+	return (Op{Connections: g.Connections, Grants: g.Grants, Modules: g.Modules}).Serve(ctx, sq, name, operation, sqlText, table)
 }
 
 func (g Mongo) SubmitMongoChange(ctx context.Context, m interfaces.MongoModule, conn, notes string, req interfaces.MongoRequest) (entity.Change, error) {
 	return (SubmitMongoChange(g)).Serve(ctx, m, conn, notes, req)
 }
 func (g Mongo) MongoChange(ctx context.Context, id string) (*entity.Change, error) {
-	return (MongoChange(g)).Serve(ctx, id)
+	return (MongoChange{Changes: g.Changes, Grants: g.Grants}).Serve(ctx, id)
 }
 func (g Mongo) ApplyMongo(ctx context.Context, m interfaces.MongoModule, id string) (entity.Change, error) {
 	return (ApplyMongo(g)).Serve(ctx, m, id)
 }
 func (g Mongo) MongoChanges(ctx context.Context) ([]entity.Change, error) {
-	return (MongoChanges(g)).Serve(ctx)
+	return (MongoChanges{Connections: g.Connections, Changes: g.Changes, Grants: g.Grants}).Serve(ctx)
 }
 
 func (g Instances) Instance(ctx context.Context, id string) (entity.Connection, error) {
-	return (Instance(g)).Serve(ctx, id)
+	return (Instance{Connections: g.Connections, Grants: g.Grants, Modules: g.Modules}).Serve(ctx, id)
 }
 func (g Instances) Instances(ctx context.Context, name, driver, host string) ([]entity.Connection, error) {
-	return (ListInstances(g)).Serve(ctx, name, driver, host)
+	return (ListInstances{Connections: g.Connections, Grants: g.Grants, Modules: g.Modules}).Serve(ctx, name, driver, host)
 }
 func (g Instances) RotatePassword(ctx context.Context, id, password string) error {
-	return (RotatePassword(g)).Serve(ctx, id, password)
+	return (RotatePassword{Connections: g.Connections, Modules: g.Modules}).Serve(ctx, id, password)
 }
 
 func (g Grants) ListGrants(ctx context.Context, mod interfaces.Module, name string) ([]entity.Grant, error) {
-	return (ListGrants(g)).Serve(ctx, mod, name)
+	return (ListGrants{Connections: g.Connections, Grants: g.Grants, Modules: g.Modules}).Serve(ctx, mod, name)
 }
 func (g Grants) SetGrant(ctx context.Context, mod interfaces.Module, name, group, level string) (entity.Grant, error) {
-	return (SetGrant(g)).Serve(ctx, mod, name, group, level)
+	return (SetGrant{Connections: g.Connections, Grants: g.Grants, Modules: g.Modules}).Serve(ctx, mod, name, group, level)
 }
 func (g Grants) DeleteGrant(ctx context.Context, mod interfaces.Module, name, group string) error {
-	return (DeleteGrant(g)).Serve(ctx, mod, name, group)
+	return (DeleteGrant{Connections: g.Connections, Grants: g.Grants, Modules: g.Modules}).Serve(ctx, mod, name, group)
 }
-func (g Grants) Groups(ctx context.Context) ([]string, error) { return (Groups(g)).Serve(ctx) }
+func (g Grants) Groups(ctx context.Context) ([]string, error) {
+	return (Groups{Grants: g.Grants}).Serve(ctx)
+}
 
 func (g Me) ConnectionLevels(ctx context.Context) (map[string]string, error) {
-	return (ConnectionLevels(g)).Serve(ctx)
+	return (ConnectionLevels{Connections: g.Connections, Grants: g.Grants}).Serve(ctx)
 }
 
 // Satisfiers: the gateways implement their seams.

@@ -40,20 +40,15 @@ func newVerifier(ctx context.Context, cfg config.Config) (interfaces.Verifier, e
 // the shared cache). It is seeded into the base request context in Run, never
 // rebuilt per request.
 func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config) usecases.Deps {
-	base := usecases.Base{
-		Connections: store,
-		Changes:     store,
-		Grants:      store,
-		Modules:     modules.Default(),
-	}
+	mods := modules.Default()
 	return usecases.Deps{
-		Engines:     usecases.Engines{Base: base},
-		Changes:     usecases.Changes{Base: base},
-		Connections: usecases.Connections{Base: base},
-		Mongo:       usecases.Mongo{Base: base},
-		Instances:   usecases.Instances{Base: base},
-		Grants:      usecases.Grants{Base: base},
-		Me:          usecases.Me{Base: base},
+		Engines:     usecases.Engines{Modules: mods},
+		Changes:     usecases.Changes{Connections: store, Changes: store, Grants: store, Modules: mods},
+		Connections: usecases.Connections{Connections: store, Changes: store, Grants: store, Modules: mods},
+		Mongo:       usecases.Mongo{Connections: store, Changes: store, Grants: store, Modules: mods},
+		Instances:   usecases.Instances{Connections: store, Changes: store, Grants: store, Modules: mods},
+		Grants:      usecases.Grants{Connections: store, Changes: store, Grants: store, Modules: mods},
+		Me:          usecases.Me{Connections: store, Changes: store, Grants: store, Modules: mods},
 		Log:         log,
 		Cache:       cache.New(),
 		Auth: config.AuthInfo{

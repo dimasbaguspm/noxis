@@ -1,13 +1,18 @@
 package usecases
 
-import "context"
+import (
+	"context"
+	"noxis/internal/interfaces"
+)
 
 // Groups is the "Groups" use case.
-type Groups struct{ Base }
+type Groups struct {
+	Grants interfaces.GrantRepository
+}
 
 // Serve runs it.
 func (uc Groups) Serve(ctx context.Context) ([]string, error) {
-	if err := uc.RequireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
 	return uc.Grants.ListGroupNames(ctx)

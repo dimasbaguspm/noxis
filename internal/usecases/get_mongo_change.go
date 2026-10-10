@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 )
 
 // MongoChange is the "MongoChange" use case.
-type MongoChange struct{ Base }
+type MongoChange struct {
+	Changes interfaces.ChangeRepository
+	Grants  interfaces.GrantRepository
+}
 
 // Serve runs it.
 func (uc MongoChange) Serve(ctx context.Context, id string) (*entity.Change, error) {
@@ -19,7 +23,7 @@ func (uc MongoChange) Serve(ctx context.Context, id string) (*entity.Change, err
 	if ch.Kind != constants.KindMongo {
 		return nil, fmt.Errorf("change %s is %s, not a mongodb request", id, ch.Kind)
 	}
-	if err := uc.Authorize(ctx, ch.Connection, entity.LevelRead); err != nil {
+	if err := Authorize(ctx, uc.Grants, ch.Connection, entity.LevelRead); err != nil {
 		return nil, err
 	}
 	return ch, nil

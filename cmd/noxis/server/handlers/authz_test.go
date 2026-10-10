@@ -11,7 +11,7 @@ import (
 	"noxis/internal/usecases"
 )
 
-func authzBase(grants ...entity.Grant) (usecases.Base, interfaces.Module) {
+func authzBase(grants ...entity.Grant) (testBase, interfaces.Module) {
 	base, _, _ := newTestBase(&fakeSQL{})
 	store := &fakeGrants{grants: map[string]entity.Grant{}}
 	for _, g := range grants {
@@ -46,7 +46,7 @@ func TestAuthorizeByEffectiveLevel(t *testing.T) {
 	}
 	for _, tc := range cases {
 		ctx := asPrincipal(entity.Identity{Subject: "alice", Groups: tc.groups})
-		err := base.Authorize(ctx, "demo", tc.need)
+		err := usecases.Authorize(ctx, base.Grants, "demo", tc.need)
 		if tc.ok && err != nil {
 			t.Errorf("%s: err=%v want allowed", tc.name, err)
 		}
@@ -60,11 +60,11 @@ func TestAuthorizeByEffectiveLevel(t *testing.T) {
 // both bypass the per-connection check.
 func TestAuthorizeOpenModeAndAdmin(t *testing.T) {
 	base, _ := authzBase()
-	if err := base.Authorize(context.Background(), "demo", entity.LevelAdmin); err != nil {
+	if err := usecases.Authorize(context.Background(), base.Grants, "demo", entity.LevelAdmin); err != nil {
 		t.Fatalf("open mode: %v", err)
 	}
 	ctx := asPrincipal(entity.Identity{Subject: "root", Groups: []string{"whatever"}, Admin: true})
-	if err := base.Authorize(ctx, "demo", entity.LevelAdmin); err != nil {
+	if err := usecases.Authorize(ctx, base.Grants, "demo", entity.LevelAdmin); err != nil {
 		t.Fatalf("global admin: %v", err)
 	}
 }
@@ -74,12 +74,12 @@ func TestAuthorizeOpenModeAndAdmin(t *testing.T) {
 func TestConnectionsListHidesUnreadable(t *testing.T) {
 	base, mod := authzBase(entity.Grant{Connection: "demo", Group: "readers", Level: entity.LevelRead})
 
-	visible, err := (usecases.Connections{Base: base}).ConnectionList(asPrincipal(entity.Identity{Groups: []string{"readers"}}), mod)
+	visible, err := (usecases.Connections{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}).ConnectionList(asPrincipal(entity.Identity{Groups: []string{"readers"}}), mod)
 	if err != nil || len(visible) != 1 {
 		t.Fatalf("granted reader: list=%v err=%v", visible, err)
 	}
 
-	hidden, err := (usecases.Connections{Base: base}).ConnectionList(asPrincipal(entity.Identity{Groups: []string{"strangers"}}), mod)
+	hidden, err := (usecases.Connections{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}).ConnectionList(asPrincipal(entity.Identity{Groups: []string{"strangers"}}), mod)
 	if err != nil || len(hidden) != 0 {
 		t.Fatalf("stranger: list=%v err=%v", hidden, err)
 	}

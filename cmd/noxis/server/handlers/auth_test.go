@@ -40,7 +40,7 @@ func TestGetMeIncludesLevels(t *testing.T) {
 	base.Grants = &fakeGrants{grants: map[string]entity.Grant{
 		"dev": {Connection: "demo", Group: "readers", Level: entity.LevelRead},
 	}}
-	deps.Me = usecases.Me{Base: base}
+	deps.Me = usecases.Me{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/me", GetMe)
 

@@ -8,16 +8,20 @@ import (
 )
 
 // SetGrant is the "SetGrant" use case.
-type SetGrant struct{ Base }
+type SetGrant struct {
+	Connections interfaces.ConnectionRepository
+	Grants      interfaces.GrantRepository
+	Modules     map[string]interfaces.Module
+}
 
 // Serve runs it.
 func (uc SetGrant) Serve(ctx context.Context, mod interfaces.Module, name, group, level string) (out entity.Grant, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	if err := uc.RequireAdmin(ctx); err != nil {
+	if err := RequireAdmin(ctx); err != nil {
 		return entity.Grant{}, err
 	}
-	if _, err := uc.Raw(ctx, mod, name, entity.LevelRead); err != nil {
+	if _, err := Raw(ctx, uc.Connections, uc.Grants, uc.Modules, mod, name, entity.LevelRead); err != nil {
 		return entity.Grant{}, err
 	}
 	g := entity.Grant{Connection: name, Group: group, Level: level}

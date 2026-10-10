@@ -14,7 +14,7 @@ import (
 // the schedule.
 func TestScheduleApprovedChange(t *testing.T) {
 	base, store, _ := newTestBase(&fakeSQL{})
-	gw := usecases.Changes{Base: base}
+	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
 	ctx := context.Background()
 	store.changes["x"] = entity.Change{ID: "x", Connection: "demo", Kind: constants.KindDML, Status: constants.ChangeValidated}
 

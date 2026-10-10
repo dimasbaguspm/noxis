@@ -5,10 +5,15 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 )
 
 // SQLChanges is the "SQLChanges" use case.
-type SQLChanges struct{ Base }
+type SQLChanges struct {
+	Connections interfaces.ConnectionRepository
+	Changes     interfaces.ChangeRepository
+	Grants      interfaces.GrantRepository
+}
 
 // Serve runs it.
 func (uc SQLChanges) Serve(ctx context.Context) (out []entity.Change, err error) {
@@ -18,7 +23,7 @@ func (uc SQLChanges) Serve(ctx context.Context) (out []entity.Change, err error)
 	if err != nil {
 		return nil, err
 	}
-	readable, err := uc.readableConnections(ctx)
+	readable, err := readableConnections(ctx, uc.Connections, uc.Grants)
 	if err != nil {
 		return nil, err
 	}
