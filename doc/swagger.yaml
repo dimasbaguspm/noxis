@@ -73,6 +73,12 @@ paths:
           in: query
           schema:
             type: string
+        - description: exact status match (unverified, validated, approved, applied,
+            failed, rejected)
+          name: status
+          in: query
+          schema:
+            type: string
         - description: page number, starting at 1
           name: page
           in: query

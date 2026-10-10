@@ -7,11 +7,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Change } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
 
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const STATUS_VARIANT: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline" | "success" | "warning"
+> = {
   validated: "secondary",
-  unverified: "outline",
+  unverified: "warning",
   approved: "default",
-  applied: "default",
+  applied: "success",
   failed: "destructive",
   rejected: "outline",
 };
@@ -43,7 +46,9 @@ export function ChangeTable({ changes, emptyHint }: { changes: Change[]; emptyHi
             return (
               <TableRow key={id} className="cursor-pointer">
                 <TableCell>
-                  <Badge variant={STATUS_VARIANT[change.status ?? ""] ?? "outline"}>{change.status}</Badge>
+                  <Badge variant={STATUS_VARIANT[change.status ?? ""] ?? "outline"}>
+                    {title(change.status ?? "")}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Link to={href} className="text-sm hover:underline">
