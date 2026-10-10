@@ -171,8 +171,9 @@ export function ConnectionDialog({
             />
           </SheetBody>
         ) : (
-          <form onSubmit={onValid} className="flex flex-1 flex-col">
+          <>
             <SheetBody className="grid gap-4">
+              <form id="connection-save" onSubmit={onValid} className="grid gap-4">
             <FieldRow>
               <Field>
                 <FieldLabel htmlFor="conn-name">Name</FieldLabel>
@@ -246,9 +247,10 @@ export function ConnectionDialog({
                 />
               </Field>
 
-            <p className="text-xs text-muted-foreground">
-              Driver, host, database and user are fixed once saved. The password can be rotated later from the instance page.
-            </p>
+              <p className="text-xs text-muted-foreground">
+                Driver, host, database and user are fixed once saved. The password can be rotated later from the instance page.
+              </p>
+              </form>
             </SheetBody>
 
             <SheetFooter className="items-center gap-2">
@@ -262,11 +264,11 @@ export function ConnectionDialog({
                   <BadgeCheck className="size-3.5" /> verified
                 </span>
               )}
-              <Button type="submit" disabled={busy}>
+              <Button type="submit" form="connection-save" disabled={busy}>
                 <PlugZap /> Save
               </Button>
             </SheetFooter>
-          </form>
+          </>
         )}
       </SheetContent>
     </Sheet>

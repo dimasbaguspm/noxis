@@ -91,8 +91,8 @@ export function CreateChangeSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={onValid} className="flex flex-1 flex-col">
-          <SheetBody className="grid gap-4">
+        <SheetBody>
+          <form id="create-change" onSubmit={onValid} className="grid gap-4">
           <Field>
             <FieldLabel>{title("instance")} *</FieldLabel>
             <ConnectionSelect value={connection} onChange={pick} className="w-full" />
@@ -125,15 +125,14 @@ export function CreateChangeSheet({
             <input type="hidden" aria-hidden {...register("rollback", { required: "rollback query is required" })} />
             <FieldError>{errors.rollback?.message}</FieldError>
           </Field>
+          </form>
+        </SheetBody>
 
-          </SheetBody>
-
-          <SheetFooter>
-            <Button type="submit" disabled={busy}>
-              <PlugZap /> Submit
-            </Button>
-          </SheetFooter>
-        </form>
+        <SheetFooter>
+          <Button type="submit" form="create-change" disabled={busy}>
+            <PlugZap /> Submit
+          </Button>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );
