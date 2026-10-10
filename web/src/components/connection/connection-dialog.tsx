@@ -207,7 +207,7 @@ export function ConnectionDialog({
           </SheetBody>
         ) : (
           <>
-            <SheetBody className="grid gap-4">
+            <SheetBody>
               <form id="connection-save" onSubmit={onValid} className="grid gap-4">
               <Field>
                 <FieldLabel htmlFor="conn-name">Name</FieldLabel>
