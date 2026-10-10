@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"noxis/internal/entity"
-	sqlsvc "noxis/internal/services/sql"
+	sqlsvc "noxis/internal/modules/sql"
 )
 
 // SQL operation shapes live with the module; the result grid is shared.

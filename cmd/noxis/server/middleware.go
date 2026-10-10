@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"noxis/internal/application"
+	"noxis/internal/usecases"
 	"noxis/internal/interfaces"
 )
 
@@ -51,7 +51,7 @@ func withAuth(verifier interfaces.Verifier, next http.Handler) http.Handler {
 			writeUnauthorized(w, "invalid or expired token")
 			return
 		}
-		next.ServeHTTP(w, r.WithContext(application.WithPrincipal(r.Context(), principal)))
+		next.ServeHTTP(w, r.WithContext(usecases.WithPrincipal(r.Context(), principal)))
 	})
 }
 

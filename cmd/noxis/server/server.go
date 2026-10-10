@@ -15,15 +15,12 @@ import (
 	"time"
 
 	"noxis/cmd/noxis/server/api"
-	"noxis/internal/application"
-	"noxis/internal/constants"
+	"noxis/internal/modules"
+	"noxis/internal/modules/auth"
+	"noxis/internal/usecases"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/repositories/sqlite"
-	"noxis/internal/services/auth"
-	"noxis/internal/services/memcache"
-	"noxis/internal/services/mongodb"
-	"noxis/internal/services/sql"
 )
 
 const shutdownTimeout = 10 * time.Second
@@ -38,23 +35,19 @@ func newVerifier(ctx context.Context, cfg entity.Config) (interfaces.Verifier, e
 
 // newApp wires the shared stores and the engine-family registry into the
 // application use cases.
-func newApp(store *sqlite.Store, log *slog.Logger) *application.App {
-	return &application.App{
+func newApp(store *sqlite.Store, log *slog.Logger) *usecases.App {
+	return &usecases.App{
 		Connections: store,
 		Changes:     store,
 		Grants:      store,
-		Modules: map[string]interfaces.Module{
-			constants.FamilySQL:      sql.New(),
-			constants.FamilyMemcache: memcache.New(),
-			constants.FamilyMongo:    mongodb.New(),
-		},
-		Log: log,
+		Modules:     modules.Default(),
+		Log:         log,
 	}
 }
 
 // newServer wires the transport: the application plus the transport-only
 // config (public OIDC info and the tick key).
-func newServer(app *application.App, log *slog.Logger, cfg entity.Config) *api.Server {
+func newServer(app *usecases.App, log *slog.Logger, cfg entity.Config) *api.Server {
 	return &api.Server{
 		App:     app,
 		Log:     log,

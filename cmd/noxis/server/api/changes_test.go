@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"noxis/internal/application"
+	"noxis/internal/usecases"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/services/sql"
+	"noxis/internal/modules/sql"
 )
 
 // The seam pays off here: the whole change workflow (submit → validate →
@@ -126,13 +126,13 @@ func (f *fakeSQL) Apply(context.Context, entity.Connection, string) (interfaces.
 
 // newApp builds the application against fakes; newTestServer adds the
 // transport around it.
-func newApp(sq interfaces.SQLModule) (*application.App, *fakeChanges, *fakeConns) {
+func newApp(sq interfaces.SQLModule) (*usecases.App, *fakeChanges, *fakeConns) {
 	conns := &fakeConns{conns: map[string]entity.Connection{
 		"demo": {Name: "demo", Driver: constants.DriverPostgres, Host: "db", Port: 5432, User: "postgres", Database: "demo"},
 	}}
 	changes := &fakeChanges{changes: map[string]entity.Change{}}
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return &application.App{
+	return &usecases.App{
 		Connections: conns,
 		Changes:     changes,
 		Grants:      &fakeGrants{grants: map[string]entity.Grant{}},
@@ -143,7 +143,7 @@ func newApp(sq interfaces.SQLModule) (*application.App, *fakeChanges, *fakeConns
 
 // newTestServer wires the transport with a fresh app; the app is returned for
 // direct workflow calls and store inspection.
-func newTestServer(sq interfaces.SQLModule) (*Server, *application.App, *fakeChanges, *fakeConns) {
+func newTestServer(sq interfaces.SQLModule) (*Server, *usecases.App, *fakeChanges, *fakeConns) {
 	app, changes, conns := newApp(sq)
 	return &Server{App: app, Log: app.Log}, app, changes, conns
 }

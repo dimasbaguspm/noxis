@@ -102,7 +102,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["application.TickResult"];
+                        "*/*": components["schemas"]["usecases.TickResult"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2176,11 +2176,6 @@ export interface components {
         "api.scheduleBody": {
             scheduledAt?: number;
         };
-        /** @description applied and failed change ids from one tick. */
-        "application.TickResult": {
-            applied?: string[];
-            failed?: string[];
-        };
         "entity.Change": {
             affectedColumns?: string[];
             /** @description what the batch touches (keyword-anchored, best effort) */
@@ -2334,6 +2329,11 @@ export interface components {
             columns?: components["schemas"]["sql.Column"][];
             name?: string;
             schema?: string;
+        };
+        /** @description applied and failed change ids from one tick. */
+        "usecases.TickResult": {
+            applied?: string[];
+            failed?: string[];
         };
     };
     responses: never;

@@ -6,8 +6,8 @@ import "testing"
 func TestFormatSpanName(t *testing.T) {
 	cases := map[string]string{
 		"noxis/internal/repositories/sqlite.(*Store).List":    "Repository.Sqlite.Store.List",
-		"noxis/internal/application.(*App).SubmitChange":        "Application.App.SubmitChange",
-		"noxis/internal/services/sql.(*DB).query":              "Services.Sql.DB.query",
+		"noxis/internal/usecases.(*App).SubmitChange":        "Usecases.App.SubmitChange",
+		"noxis/internal/modules/sql.(*DB).query":              "Modules.Sql.DB.query",
 		"noxis/internal/common/logging.StartSpan":              "Common.Logging.StartSpan",
 		"noxis/internal/entity.(*Connection).Redacted":         "Entity.Connection.Redacted",
 		"noxis/cmd/noxis/server/api.(*Server).handle.func1":    "Noxis.Api.Server.handle.func1",

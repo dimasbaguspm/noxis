@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"noxis/internal/entity"
-	memcachesvc "noxis/internal/services/memcache"
+	memcachesvc "noxis/internal/modules/memcache"
 )
 
 // Redis operation shapes live with the module; the result grid is shared.
