@@ -1,33 +1,32 @@
-package controller
+package api
 
 import (
 	"context"
 	"errors"
 	"testing"
 
+	"noxis/internal/application"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
 
-func authzDeps(grants ...entity.Grant) (Deps, interfaces.Module) {
-	d, _, _ := newDeps(&fakeSQL{})
+func authzApp(grants ...entity.Grant) (*application.App, interfaces.Module) {
+	app, _, _ := newApp(&fakeSQL{})
 	store := &fakeGrants{grants: map[string]entity.Grant{}}
 	for _, g := range grants {
 		store.grants[g.Group] = g
 	}
-	d.Grants = store
-	return d, d.Modules[constants.FamilySQL]
+	app.Grants = store
+	return app, app.Modules[constants.FamilySQL]
 }
 
-func as(principal entity.Principal) context.Context {
-	return WithPrincipal(context.Background(), principal)
+func asPrincipal(principal entity.Principal) context.Context {
+	return application.WithPrincipal(context.Background(), principal)
 }
 
-// TestAuthorizeByEffectiveLevel: the strongest matching grant decides, and a
-// read grant never reaches a write or an admin op.
 func TestAuthorizeByEffectiveLevel(t *testing.T) {
-	d, _ := authzDeps(
+	app, _ := authzApp(
 		entity.Grant{Connection: "demo", Group: "readers", Level: entity.LevelRead},
 		entity.Grant{Connection: "demo", Group: "writers", Level: entity.LevelWrite},
 	)
@@ -46,12 +45,12 @@ func TestAuthorizeByEffectiveLevel(t *testing.T) {
 		{"strongest wins", []string{"readers", "writers"}, entity.LevelWrite, true},
 	}
 	for _, tc := range cases {
-		ctx := as(entity.Principal{Subject: "alice", Groups: tc.groups})
-		err := d.authorize(ctx, "demo", tc.need)
+		ctx := asPrincipal(entity.Principal{Subject: "alice", Groups: tc.groups})
+		err := app.Authorize(ctx, "demo", tc.need)
 		if tc.ok && err != nil {
-			t.Errorf("%s: unexpected error %v", tc.name, err)
+			t.Errorf("%s: err=%v want allowed", tc.name, err)
 		}
-		if !tc.ok && !errors.Is(err, errForbidden) {
+		if !tc.ok && !errors.Is(err, application.ErrForbidden) {
 			t.Errorf("%s: err=%v want forbidden", tc.name, err)
 		}
 	}
@@ -60,12 +59,12 @@ func TestAuthorizeByEffectiveLevel(t *testing.T) {
 // TestAuthorizeOpenModeAndAdmin: no principal (auth off) and a global admin
 // both bypass the per-connection check.
 func TestAuthorizeOpenModeAndAdmin(t *testing.T) {
-	d, _ := authzDeps()
-	if err := d.authorize(context.Background(), "demo", entity.LevelAdmin); err != nil {
+	app, _ := authzApp()
+	if err := app.Authorize(context.Background(), "demo", entity.LevelAdmin); err != nil {
 		t.Fatalf("open mode: %v", err)
 	}
-	ctx := as(entity.Principal{Subject: "root", Groups: []string{"whatever"}, Admin: true})
-	if err := d.authorize(ctx, "demo", entity.LevelAdmin); err != nil {
+	ctx := asPrincipal(entity.Principal{Subject: "root", Groups: []string{"whatever"}, Admin: true})
+	if err := app.Authorize(ctx, "demo", entity.LevelAdmin); err != nil {
 		t.Fatalf("global admin: %v", err)
 	}
 }
@@ -73,14 +72,14 @@ func TestAuthorizeOpenModeAndAdmin(t *testing.T) {
 // TestConnectionsListHidesUnreadable: a caller without a read grant does not
 // see the instance.
 func TestConnectionsListHidesUnreadable(t *testing.T) {
-	d, mod := authzDeps(entity.Grant{Connection: "demo", Group: "readers", Level: entity.LevelRead})
+	app, mod := authzApp(entity.Grant{Connection: "demo", Group: "readers", Level: entity.LevelRead})
 
-	visible, err := d.connections(as(entity.Principal{Groups: []string{"readers"}}), mod)
+	visible, err := app.ConnectionList(asPrincipal(entity.Principal{Groups: []string{"readers"}}), mod)
 	if err != nil || len(visible) != 1 {
 		t.Fatalf("granted reader: list=%v err=%v", visible, err)
 	}
 
-	hidden, err := d.connections(as(entity.Principal{Groups: []string{"strangers"}}), mod)
+	hidden, err := app.ConnectionList(asPrincipal(entity.Principal{Groups: []string{"strangers"}}), mod)
 	if err != nil || len(hidden) != 0 {
 		t.Fatalf("stranger: list=%v err=%v", hidden, err)
 	}

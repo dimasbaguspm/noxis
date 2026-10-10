@@ -16,7 +16,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/controller.AuthInfo"
+                                    "$ref": "#/components/schemas/api.AuthInfo"
                                 }
                             }
                         }
@@ -54,7 +54,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/controller.TickResult"
+                                    "$ref": "#/components/schemas/application.TickResult"
                                 }
                             }
                         }
@@ -86,7 +86,7 @@
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/controller.DriverInfo"
+                                        "$ref": "#/components/schemas/api.DriverInfo"
                                     }
                                 }
                             }
@@ -546,7 +546,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/controller.scheduleBody"
+                                "$ref": "#/components/schemas/api.scheduleBody"
                             }
                         }
                     },
@@ -794,7 +794,7 @@
                     }
                 ],
                 "requestBody": {
-                    "$ref": "#/components/requestBodies/controller.opBody"
+                    "$ref": "#/components/requestBodies/api.opBody"
                 },
                 "responses": {
                     "200": {
@@ -863,7 +863,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/controller.opBody"
+                                "$ref": "#/components/schemas/api.opBody"
                             }
                         }
                     },
@@ -1088,7 +1088,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/controller.memcacheFlushBody"
+                                "$ref": "#/components/schemas/api.memcacheFlushBody"
                             }
                         }
                     },
@@ -1249,7 +1249,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/controller.grantBody"
+                                "$ref": "#/components/schemas/api.grantBody"
                             }
                         }
                     },
@@ -1502,7 +1502,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/controller.memcacheKeysBody"
+                                "$ref": "#/components/schemas/api.memcacheKeysBody"
                             }
                         }
                     },
@@ -1581,7 +1581,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/controller.opBody"
+                                "$ref": "#/components/schemas/api.opBody"
                             }
                         }
                     },
@@ -1726,7 +1726,7 @@
                     }
                 ],
                 "requestBody": {
-                    "$ref": "#/components/requestBodies/controller.opBody"
+                    "$ref": "#/components/requestBodies/api.opBody"
                 },
                 "responses": {
                     "200": {
@@ -2183,7 +2183,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/controller.passwordBody"
+                                "$ref": "#/components/schemas/api.passwordBody"
                             }
                         }
                     },
@@ -2244,7 +2244,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/controller.MeResponse"
+                                    "$ref": "#/components/schemas/api.MeResponse"
                                 }
                             }
                         }
@@ -2268,11 +2268,11 @@
     },
     "components": {
         "requestBodies": {
-            "controller.opBody": {
+            "api.opBody": {
                 "content": {
                     "application/json": {
                         "schema": {
-                            "$ref": "#/components/schemas/controller.opBody"
+                            "$ref": "#/components/schemas/api.opBody"
                         }
                     }
                 },
@@ -2281,7 +2281,7 @@
             }
         },
         "schemas": {
-            "controller.AuthInfo": {
+            "api.AuthInfo": {
                 "type": "object",
                 "properties": {
                     "clientId": {
@@ -2295,7 +2295,7 @@
                     }
                 }
             },
-            "controller.DriverInfo": {
+            "api.DriverInfo": {
                 "type": "object",
                 "properties": {
                     "driver": {
@@ -2309,7 +2309,7 @@
                     }
                 }
             },
-            "controller.MeResponse": {
+            "api.MeResponse": {
                 "type": "object",
                 "properties": {
                     "admin": {
@@ -2339,7 +2339,67 @@
                     }
                 }
             },
-            "controller.TickResult": {
+            "api.grantBody": {
+                "type": "object",
+                "properties": {
+                    "group": {
+                        "type": "string"
+                    },
+                    "level": {
+                        "type": "string"
+                    }
+                }
+            },
+            "api.memcacheFlushBody": {
+                "type": "object",
+                "properties": {
+                    "confirm": {
+                        "type": "string"
+                    }
+                }
+            },
+            "api.memcacheKeysBody": {
+                "type": "object",
+                "properties": {
+                    "keys": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "api.mongoChangeBody": {
+                "type": "object"
+            },
+            "api.opBody": {
+                "type": "object",
+                "properties": {
+                    "sql": {
+                        "type": "string"
+                    },
+                    "table": {
+                        "type": "string"
+                    }
+                }
+            },
+            "api.passwordBody": {
+                "type": "object",
+                "properties": {
+                    "password": {
+                        "type": "string"
+                    }
+                }
+            },
+            "api.scheduleBody": {
+                "type": "object",
+                "properties": {
+                    "scheduledAt": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "application.TickResult": {
                 "description": "applied and failed change ids from one tick.",
                 "type": "object",
                 "properties": {
@@ -2354,66 +2414,6 @@
                         "items": {
                             "type": "string"
                         }
-                    }
-                }
-            },
-            "controller.grantBody": {
-                "type": "object",
-                "properties": {
-                    "group": {
-                        "type": "string"
-                    },
-                    "level": {
-                        "type": "string"
-                    }
-                }
-            },
-            "controller.memcacheFlushBody": {
-                "type": "object",
-                "properties": {
-                    "confirm": {
-                        "type": "string"
-                    }
-                }
-            },
-            "controller.memcacheKeysBody": {
-                "type": "object",
-                "properties": {
-                    "keys": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                }
-            },
-            "controller.mongoChangeBody": {
-                "type": "object"
-            },
-            "controller.opBody": {
-                "type": "object",
-                "properties": {
-                    "sql": {
-                        "type": "string"
-                    },
-                    "table": {
-                        "type": "string"
-                    }
-                }
-            },
-            "controller.passwordBody": {
-                "type": "object",
-                "properties": {
-                    "password": {
-                        "type": "string"
-                    }
-                }
-            },
-            "controller.scheduleBody": {
-                "type": "object",
-                "properties": {
-                    "scheduledAt": {
-                        "type": "integer"
                     }
                 }
             },

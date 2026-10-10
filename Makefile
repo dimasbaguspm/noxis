@@ -8,8 +8,8 @@ build:
 web:  ## build the React console (web/, pnpm) into the embedded static dir
 	cd web && pnpm install --frozen-lockfile && pnpm build
 	# keep placeholder.html: go:embed needs a file, and a bare `go build` stays valid
-	rm -rf cmd/noxis/server/controller/static/assets cmd/noxis/server/controller/static/index.html
-	cp -r bin/dist/* cmd/noxis/server/controller/static/
+	rm -rf cmd/noxis/server/api/static/assets cmd/noxis/server/api/static/index.html
+	cp -r bin/dist/* cmd/noxis/server/api/static/
 
 test:
 	go test ./...
@@ -24,7 +24,7 @@ lint:  ## run golangci-lint (installs it on first use)
 
 swagger:  ## regenerate doc/swagger.yaml|json (OpenAPI 3) from handler annotations
 	go install github.com/swaggo/swag/cmd/swag@latest
-	swag init -g cmd/noxis/server/routes.go --output ./doc
+	swag init -g cmd/noxis/server/server.go --output ./doc
 	rm -f doc/docs.go
 	# swag emits Swagger 2.0; convert to OpenAPI 3 for Postman
 	npx --yes swagger2openapi -y doc/swagger.json -o doc/openapi3.yaml

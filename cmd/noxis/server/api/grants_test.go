@@ -1,4 +1,4 @@
-package controller
+package api
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"noxis/internal/application"
 	"noxis/internal/entity"
 )
 
@@ -45,25 +46,24 @@ func (f *fakeGrants) ListGroupNames(_ context.Context) ([]string, error) {
 }
 
 func grantRouter() http.Handler {
-	d, _, _ := newDeps(&fakeSQL{})
-	d.Grants = &fakeGrants{grants: map[string]entity.Grant{}}
+	srv, app, _, _ := newTestServer(&fakeSQL{})
+	app.Grants = &fakeGrants{grants: map[string]entity.Grant{}}
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/grants", ListGrants)
-	mux.HandleFunc("PUT /v1/engine/{engine}/connections/{name}/grants", SetGrant)
-	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}/grants", DeleteGrant)
-	return WithDeps(mux, d)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/grants", srv.ListGrants)
+	mux.HandleFunc("PUT /v1/engine/{engine}/connections/{name}/grants", srv.SetGrant)
+	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}/grants", srv.DeleteGrant)
+	return mux
 }
 
 func request(t *testing.T, h http.Handler, method, path, body string, admin bool) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(method, path, strings.NewReader(body))
-	req = req.WithContext(WithPrincipal(req.Context(), entity.Principal{Subject: "alice", Admin: admin}))
+	req = req.WithContext(application.WithPrincipal(req.Context(), entity.Principal{Subject: "alice", Admin: admin}))
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	return rec
 }
 
-// TestGrantsRequireGlobalAdmin: managing policy is not a per-connection right.
 func TestGrantsRequireGlobalAdmin(t *testing.T) {
 	h := grantRouter()
 	if rec := request(t, h, http.MethodGet, "/v1/engine/sql/connections/demo/grants", "", false); rec.Code != http.StatusForbidden {
@@ -74,7 +74,6 @@ func TestGrantsRequireGlobalAdmin(t *testing.T) {
 	}
 }
 
-// TestGrantsCRUDAsAdmin: the happy path, plus an unknown level refused as 400.
 func TestGrantsCRUDAsAdmin(t *testing.T) {
 	h := grantRouter()
 

@@ -27,7 +27,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["controller.AuthInfo"];
+                        "*/*": components["schemas"]["api.AuthInfo"];
                     };
                 };
             };
@@ -102,7 +102,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["controller.TickResult"];
+                        "*/*": components["schemas"]["application.TickResult"];
                     };
                 };
                 /** @description Unauthorized */
@@ -147,7 +147,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["controller.DriverInfo"][];
+                        "*/*": components["schemas"]["api.DriverInfo"][];
                     };
                 };
             };
@@ -587,7 +587,7 @@ export interface paths {
             /** @description scheduledAt unix seconds; 0 clears the schedule */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["controller.scheduleBody"];
+                    "application/json": components["schemas"]["api.scheduleBody"];
                 };
             };
             responses: {
@@ -818,7 +818,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["controller.opBody"];
+            requestBody: components["requestBodies"]["api.opBody"];
             responses: {
                 /** @description OK */
                 200: {
@@ -884,7 +884,7 @@ export interface paths {
             /** @description table */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["controller.opBody"];
+                    "application/json": components["schemas"]["api.opBody"];
                 };
             };
             responses: {
@@ -1085,7 +1085,7 @@ export interface paths {
             /** @description confirm must repeat the connection name */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["controller.memcacheFlushBody"];
+                    "application/json": components["schemas"]["api.memcacheFlushBody"];
                 };
             };
             responses: {
@@ -1214,7 +1214,7 @@ export interface paths {
             /** @description group and level */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["controller.grantBody"];
+                    "application/json": components["schemas"]["api.grantBody"];
                 };
             };
             responses: {
@@ -1417,7 +1417,7 @@ export interface paths {
             /** @description keys to remove */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["controller.memcacheKeysBody"];
+                    "application/json": components["schemas"]["api.memcacheKeysBody"];
                 };
             };
             responses: {
@@ -1486,7 +1486,7 @@ export interface paths {
             /** @description sql (or table for analytics) */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["controller.opBody"];
+                    "application/json": components["schemas"]["api.opBody"];
                 };
             };
             responses: {
@@ -1619,7 +1619,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["controller.opBody"];
+            requestBody: components["requestBodies"]["api.opBody"];
             responses: {
                 /** @description OK */
                 200: {
@@ -2038,7 +2038,7 @@ export interface paths {
             /** @description new password */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["controller.passwordBody"];
+                    "application/json": components["schemas"]["api.passwordBody"];
                 };
             };
             responses: {
@@ -2106,7 +2106,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["controller.MeResponse"];
+                        "*/*": components["schemas"]["api.MeResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2134,17 +2134,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "controller.AuthInfo": {
+        "api.AuthInfo": {
             clientId?: string;
             enabled?: boolean;
             issuer?: string;
         };
-        "controller.DriverInfo": {
+        "api.DriverInfo": {
             driver?: string;
             family?: string;
             label?: string;
         };
-        "controller.MeResponse": {
+        "api.MeResponse": {
             /** @description Admin reports membership of the configured global-admin group. */
             admin?: boolean;
             connections?: {
@@ -2155,31 +2155,31 @@ export interface components {
             name?: string;
             sub?: string;
         };
-        /** @description applied and failed change ids from one tick. */
-        "controller.TickResult": {
-            applied?: string[];
-            failed?: string[];
-        };
-        "controller.grantBody": {
+        "api.grantBody": {
             group?: string;
             level?: string;
         };
-        "controller.memcacheFlushBody": {
+        "api.memcacheFlushBody": {
             confirm?: string;
         };
-        "controller.memcacheKeysBody": {
+        "api.memcacheKeysBody": {
             keys?: string[];
         };
-        "controller.mongoChangeBody": Record<string, never>;
-        "controller.opBody": {
+        "api.mongoChangeBody": Record<string, never>;
+        "api.opBody": {
             sql?: string;
             table?: string;
         };
-        "controller.passwordBody": {
+        "api.passwordBody": {
             password?: string;
         };
-        "controller.scheduleBody": {
+        "api.scheduleBody": {
             scheduledAt?: number;
+        };
+        /** @description applied and failed change ids from one tick. */
+        "application.TickResult": {
+            applied?: string[];
+            failed?: string[];
         };
         "entity.Change": {
             affectedColumns?: string[];
@@ -2340,9 +2340,9 @@ export interface components {
     parameters: never;
     requestBodies: {
         /** @description sql */
-        "controller.opBody": {
+        "api.opBody": {
             content: {
-                "application/json": components["schemas"]["controller.opBody"];
+                "application/json": components["schemas"]["api.opBody"];
             };
         };
     };

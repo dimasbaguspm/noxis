@@ -5,10 +5,9 @@ docker/db.sqlite
 
 doc/docs.go
 web/node_modules/
-cmd/noxis/master/controller/static/assets/
 web/.vite/
 web/dist/
 *.tsbuildinfo
 .pnpm-store/
-cmd/noxis/server/controller/static/index.html
-cmd/noxis/server/controller/static/assets/
+cmd/noxis/server/api/static/index.html
+cmd/noxis/server/api/static/assets/
