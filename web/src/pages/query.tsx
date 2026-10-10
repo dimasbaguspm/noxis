@@ -8,32 +8,35 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { useApp } from "@/app/app-provider";
-import { useAction } from "@/hooks/use-action";
-import { useConnectionSelection, useSchema } from "@/hooks/use-connection";
-import { useQuery } from "@/hooks/use-data";
+import { useAuth } from "@/app/auth-provider";
+import { useConnectionSelection } from "@/hooks/use-connection";
+import { useAnalyzeMutation, useConnectionSchemaQuery, useRunQueryMutation } from "@/hooks/use-sql";
 import { useSqlTabs } from "@/hooks/use-sql-tabs";
-import { api, type Result } from "@/lib/api";
 import { classify } from "@/lib/statements";
 import { Play } from "lucide-react";
-import { useState } from "react";
 
 export default function QueryPage() {
-  const { can, isAdmin } = useApp();
+  const { can, isAdmin } = useAuth();
   const { connection, connections, busy, pick } = useConnectionSelection();
-  const { tables } = useSchema(connection);
-  const tabs = useSqlTabs();
-  const [analyzed, setAnalyzed] = useState<Result | null>(null);
-  const { result: readResult, execute, loading } = useQuery(connection);
 
-  const analyze = useAction(async (table: { schema: string; name: string }) => {
+  const tabs = useSqlTabs();
+  const tables = useConnectionSchemaQuery(connection).data ?? [];
+  const run = useRunQueryMutation();
+  const readResult = run.data;
+  const loading = run.isPending;
+  const execute = (sql: string) => {
     if (!connection) return;
-    setAnalyzed(await api.ops.analyze(connection, `${table.schema}.${table.name}`));
-  });
+    void run.mutateAsync({ connection, sql });
+  };
+
+  const analyze = useAnalyzeMutation();
+  const analyzed = analyze.data;
+  const onAnalyze = (table: { schema: string; name: string }) =>
+    connection ? analyze.mutate({ connection, table: `${table.schema}.${table.name}` }) : undefined;
 
   const sql = tabs.active?.sql ?? "";
   const kind = classify(sql);
-  const result = analyzed ?? readResult;
+  const result = analyzed ?? readResult ?? null;
 
   // No SQL connection to query: explain it and offer the way in, instead of
   // rendering empty panes.
@@ -71,7 +74,7 @@ export default function QueryPage() {
                 <TableBrowser
                   tables={tables}
                   onRecords={(t) => tabs.add(`SELECT * FROM ${t.schema}.${t.name} LIMIT 100;`)}
-                  onAnalyze={can(connection, "write") ? (t) => void analyze.run(t) : undefined}
+                  onAnalyze={can(connection, "write") ? onAnalyze : undefined}
                 />
               </div>
             </CardContent>

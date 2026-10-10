@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Check, CornerDownLeft, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -89,7 +90,7 @@ export function NavSearch() {
 
         <div className="flex items-center gap-2 border-b border-border px-3 py-2">
           <Search className="size-4 shrink-0 text-muted-foreground" />
-          <input
+          <Input
             autoFocus
             value={filter}
             onChange={(e) => {
@@ -98,7 +99,7 @@ export function NavSearch() {
             }}
             onKeyDown={onInputKey}
             placeholder="search pages — query, dml, redis…"
-            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="h-7 border-0 bg-transparent p-0 shadow-none outline-none placeholder:text-muted-foreground"
           />
           <kbd className="flex items-center gap-1 rounded border border-border px-1.5 text-[10px] text-muted-foreground">
             esc
@@ -113,13 +114,15 @@ export function NavSearch() {
             const active = entry.item.to === current.item?.to;
             const selected = i === cursor;
             return (
-              <button
+              <Button
                 key={entry.item.to}
+                variant="ghost"
+                size="sm"
                 onMouseEnter={() => setCursor(i)}
                 onClick={() => go(entry)}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm",
-                  selected && "bg-accent text-accent-foreground",
+                  "flex h-auto w-full items-center justify-start gap-2 px-2 py-2 text-left text-sm",
+                  selected && "bg-accent text-accent-foreground hover:bg-accent",
                 )}
               >
                 <entry.item.icon className="size-4 shrink-0 text-muted-foreground" />
@@ -134,7 +137,7 @@ export function NavSearch() {
                   {active && <Check className="size-3.5" />}
                   {selected && <CornerDownLeft className="size-3.5" />}
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>

@@ -12,18 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
-import { useApp } from "@/app/app-provider";
+import { useAuth } from "@/app/auth-provider";
+import { useDriversQuery } from "@/hooks/use-config";
+import { usePagedInstancesQuery } from "@/hooks/use-instances";
 import { useDebounce } from "@/hooks/use-debounce";
-import { api, type Connection } from "@/lib/api";
 import { familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
 
 // One row per instance, whichever family it belongs to: the table shows only
 // what they have in common, and the detail page carries the rest.
-interface Instance extends Connection {
-  family: FamilyKey;
-}
-
 const ALL_DRIVERS = "all";
 const PER_PAGE = 20;
 const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
@@ -31,10 +28,8 @@ const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 // DashboardPage filters through the instances API and pages the result, so the
 // server stays the source of truth for what the caller may see.
 export default function DashboardPage() {
-  const { isAdmin, drivers } = useApp();
-  const [instances, setInstances] = useState<Instance[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const { isAdmin } = useAuth();
+  const { data: drivers = [] } = useDriversQuery();
   const [filter, setFilter] = useState("");
   const [driver, setDriver] = useState(ALL_DRIVERS);
   const [page, setPage] = useState(1);
@@ -43,34 +38,15 @@ export default function DashboardPage() {
   // a changed filter starts back at the first page
   useEffect(() => setPage(1), [query, driver]);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    api.instances
-      .list({
-        name: query.trim() || undefined,
-        driver: driver === ALL_DRIVERS ? undefined : driver,
-        page,
-        perPage: PER_PAGE,
-      })
-      .then((res) => {
-        if (cancelled) return;
-        setInstances((res.instances ?? []).map((c) => ({ ...c, family: c.family as FamilyKey })));
-        setTotal(res.total ?? 0);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setInstances([]);
-          setTotal(0);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [query, driver, page]);
+  const list = usePagedInstancesQuery({
+    name: query.trim() || undefined,
+    driver: driver === ALL_DRIVERS ? undefined : driver,
+    page,
+    perPage: PER_PAGE,
+  });
+  const instances = (list.data?.instances ?? []).map((c) => ({ ...c, family: c.family as FamilyKey }));
+  const total = list.data?.total ?? 0;
+  const loading = list.isPending || list.isFetching;
 
   const filtering = filter.trim() !== "" || driver !== ALL_DRIVERS;
 

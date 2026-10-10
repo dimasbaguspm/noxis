@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Database, ExternalLink, KeyRound, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
@@ -6,12 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAction } from "@/hooks/use-action";
-import { useApp } from "@/app/app-provider";
-import { api, type Connection } from "@/lib/api";
+import { useInstanceQuery, useRotatePasswordMutation } from "@/hooks/use-instances";
+import { useAuth } from "@/app/auth-provider";
+import { api } from "@/lib/api";
+import { queryClient } from "@/lib/query-client";
 import { FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
 
@@ -21,27 +23,11 @@ import { PAGE_ROUTES } from "@/lib/routes";
 export default function InstanceDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { isAdmin, reload } = useApp();
-  const [instance, setInstance] = useState<Connection>();
+  const { isAdmin } = useAuth();
+  const detail = useInstanceQuery(id);
+  const instance = detail.data;
+  const error = detail.error instanceof Error ? detail.error.message : undefined;
   const [newPassword, setNewPassword] = useState("");
-  const [error, setError] = useState<string>();
-
-  useEffect(() => {
-    let cancelled = false;
-    setInstance(undefined);
-    setError(undefined);
-    api.instances
-      .get(id)
-      .then((c) => {
-        if (!cancelled) setInstance(c);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
 
   const family = instance?.family as FamilyKey | undefined;
   const name = instance?.name ?? "";
@@ -56,15 +42,11 @@ export default function InstanceDetailPage() {
     if (!family) return;
     await api.family(family).remove(name);
     toast.success(`deleted ${name}`);
-    await reload(family);
+    void queryClient.invalidateQueries({ queryKey: ["instances"] });
     navigate(PAGE_ROUTES.DASHBOARD);
   });
 
-  const rotate = useAction(async () => {
-    await api.instances.rotatePassword(id, newPassword);
-    setNewPassword("");
-    toast.success("password rotated");
-  });
+  const rotate = useRotatePasswordMutation();
 
   if (error) {
     return (
@@ -166,8 +148,8 @@ export default function InstanceDetailPage() {
           </p>
           {isAdmin && (
             <div className="mt-3 flex items-end gap-2">
-              <div className="grid flex-1 gap-1.5">
-                <Label htmlFor="rotate-password">New password</Label>
+              <Field className="flex-1">
+                <FieldLabel htmlFor="rotate-password">New password</FieldLabel>
                 <Input
                   id="rotate-password"
                   type="password"
@@ -175,12 +157,19 @@ export default function InstanceDetailPage() {
                   placeholder="rotate the stored password"
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
-              </div>
+                <FieldError>
+                  {rotate.isError ? (rotate.error instanceof Error ? rotate.error.message : "rotation failed") : undefined}
+                </FieldError>
+              </Field>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => void rotate.run()}
-                disabled={rotate.loading || newPassword === ""}
+                onClick={() => {
+                  rotate.mutate({ id, password: newPassword });
+                  setNewPassword("");
+                  toast.success("password rotated");
+                }}
+                disabled={rotate.isPending || newPassword === ""}
               >
                 <KeyRound /> Rotate
               </Button>

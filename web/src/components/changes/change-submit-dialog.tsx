@@ -9,16 +9,18 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetBody,
   SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Field, FieldLabel, FieldLayout } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { SqlEditor } from "@/components/sql/sql-editor";
-import { useConnectionSelection, useSchema } from "@/hooks/use-connection";
+import { useConnectionSelection } from "@/hooks/use-connection";
+import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { classify } from "@/lib/statements";
 
 type FormValues = { notes: string; query: string; rollback: string };
@@ -51,7 +53,7 @@ export function ChangeSubmitDialog({
 }) {
   // the instance is part of the change, so it is chosen here, not on the page
   const { connection, pick } = useConnectionSelection(initial?.connection);
-  const { tables } = useSchema(connection); // completion follows the chosen instance
+  const { data: tables } = useConnectionSchemaQuery(connection); // completion follows the chosen instance
   const { register, handleSubmit, watch, setValue, reset } = useForm<FormValues>({
     defaultValues: { notes: "", query: "", rollback: "" },
   });
@@ -107,36 +109,39 @@ export function ChangeSubmitDialog({
           </SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={onValid} className="grid gap-3">
-          <div className="grid gap-1.5">
-            <Label>
+        <form onSubmit={onValid} className="flex flex-1 flex-col">
+          <SheetBody className="grid gap-4">
+          <FieldLayout>
+          <Field>
+            <FieldLabel>
               {title("instance")} <Required />
-            </Label>
+            </FieldLabel>
             <ConnectionSelect value={connection} onChange={pick} className="w-full" />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="change-notes">
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="change-notes">
               {title("notes")} <Required />
-            </Label>
+            </FieldLabel>
             <Input id="change-notes" placeholder="what and why" {...register("notes")} />
-          </div>
+          </Field>
 
-          <div className="grid gap-1.5">
-            <Label className="flex items-center gap-2">
+          <Field>
+            <FieldLabel className="flex items-center gap-2">
               {title("original query")} <Required />
               {watch("query").trim() && (
                 <Badge variant={detected === kind ? "secondary" : "destructive"}>{title(detected)}</Badge>
               )}
-            </Label>
+            </FieldLabel>
             <SqlEditor value={watch("query")} onChange={(sql) => setValue("query", sql)} tables={tables} height="12rem" />
-          </div>
+          </Field>
 
-          <div className="grid gap-1.5">
-            <Label>
+          <Field>
+            <FieldLabel>
               {title("rollback query")} <Required />
-            </Label>
+            </FieldLabel>
             <SqlEditor value={watch("rollback")} onChange={(sql) => setValue("rollback", sql)} tables={tables} height="9rem" />
-          </div>
+          </Field>
+          </FieldLayout>
           {failure.length > 0 && (
             <div className="grid gap-1 rounded-md border border-destructive/40 p-3">
               {failure.map((check) => (
@@ -154,6 +159,7 @@ export function ChangeSubmitDialog({
               ))}
             </div>
           )}
+          </SheetBody>
 
           <SheetFooter className="items-center">
             <p className="mr-auto text-xs text-muted-foreground">

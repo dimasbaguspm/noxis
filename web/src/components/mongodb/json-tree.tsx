@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 // JsonTree renders documents as a collapsible tree: objects and arrays open,
@@ -46,9 +47,11 @@ function Branch({
   const [open, setOpen] = useState(true);
   return (
     <div className="font-mono text-xs">
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 rounded px-1 py-0.5 hover:bg-accent/50"
+        className="flex items-center gap-1 rounded px-1"
       >
         <ChevronRight className={cn("size-3 transition-transform", open && "rotate-90")} />
         <span className="text-muted-foreground">{label}</span>
@@ -57,7 +60,7 @@ function Branch({
           {count}
           {bracket[1]}
         </span>
-      </button>
+      </Button>
       {open && <div className="ml-3 border-l border-border pl-1">{children}</div>}
     </div>
   );

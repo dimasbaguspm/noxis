@@ -6,12 +6,13 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { SqlEditor } from "@/components/sql/sql-editor";
 import { SqlFileInput } from "@/components/changes/sql-file-input";
-import { useConnectionSelection, useSchema } from "@/hooks/use-connection";
+import { useConnectionSelection } from "@/hooks/use-connection";
+import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { classify } from "@/lib/statements";
 
 type Choice = { connection: string; notes: string; query: string; rollback: string };
@@ -31,7 +32,7 @@ export function CreateChangeSheet({
   onSubmit: (input: Choice) => Promise<Outcome>;
 }) {
   const { connection, pick } = useConnectionSelection();
-  const { tables } = useSchema(connection);
+  const { data: tables } = useConnectionSchemaQuery(connection);
   const {
     register,
     handleSubmit,
@@ -90,7 +91,8 @@ export function CreateChangeSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={onValid} className="grid gap-4">
+        <form onSubmit={onValid} className="flex flex-1 flex-col">
+          <SheetBody className="grid gap-4">
           <Field>
             <FieldLabel>{title("instance")} *</FieldLabel>
             <ConnectionSelect value={connection} onChange={pick} className="w-full" />
@@ -123,6 +125,8 @@ export function CreateChangeSheet({
             <input type="hidden" aria-hidden {...register("rollback", { required: "rollback query is required" })} />
             <FieldError>{errors.rollback?.message}</FieldError>
           </Field>
+
+          </SheetBody>
 
           <SheetFooter>
             <Button type="submit" disabled={busy}>

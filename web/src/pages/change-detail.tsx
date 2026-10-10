@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { title } from "radash";
 import { ArrowLeft, CalendarClock, Check, CircleHelp, FileWarning, Loader2, Play, Undo2 } from "lucide-react";
@@ -16,22 +16,31 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetBody,
   SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChangeActivity } from "@/components/changes/change-activity";
 import { ChangeSubmitDialog } from "@/components/changes/change-submit-dialog";
 import { SqlEditor } from "@/components/sql/sql-editor";
-import { useApp } from "@/app/app-provider";
-import { useSchema } from "@/hooks/use-connection";
-import { useChanges, type ChangeKind } from "@/hooks/use-data";
-import { api, type Change } from "@/lib/api";
+import { useAuth } from "@/app/auth-provider";
+import { useConnectionSchemaQuery } from "@/hooks/use-sql";
+import {
+  useApproveChangeMutation,
+  useApplyChangeMutation,
+  useChangeGetQuery,
+  useRejectChangeMutation,
+  useScheduleChangeMutation,
+  useSubmitChangeMutation,
+  type ChangeKind,
+} from "@/hooks/use-changes";
+import type { Change } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -49,29 +58,17 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { can } = useApp();
-  const { approve, apply, reject, submit, schedule } = useChanges(kind);
-  // the queues are paginated, so a detail page reads its change by id
-  const [change, setChange] = useState<Change>();
-  const [gone, setGone] = useState(false);
-  const [fetching, setFetching] = useState(true);
-  const { tables } = useSchema(change?.connection);
-
-  const refresh = useCallback(async () => {
-    setFetching(true);
-    try {
-      setChange(await api.changes.get(id));
-      setGone(false);
-    } catch {
-      setGone(true);
-    } finally {
-      setFetching(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const { can } = useAuth();
+  const detail = useChangeGetQuery(id);
+  const change = detail.data;
+  const gone = detail.isError;
+  const fetching = detail.isPending;
+  const { data: tables } = useConnectionSchemaQuery(change?.connection);
+  const approve = useApproveChangeMutation();
+  const apply = useApplyChangeMutation();
+  const reject = useRejectChangeMutation();
+  const submit = useSubmitChangeMutation();
+  const schedule = useScheduleChangeMutation();
 
   if (fetching && !change) {
     return (
@@ -89,8 +86,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   if (gone || !change) return <Unavailable kind={kind} id={id} />;
 
   const queue = kind === "ddl" ? PAGE_ROUTES.SQL.DDL : PAGE_ROUTES.SQL.DML;
-  const act = (fn: (id: string) => Promise<unknown>) => () =>
-    void fn(id).finally(() => void refresh());
+  const act = (fn: (id: string) => void) => () => fn(id);
   const mayReview = can(change.connection, "admin");
   const mayWrite = can(change.connection, "write");
   const canApprove = mayReview && (change.status === "validated" || change.status === "unverified");
@@ -108,7 +104,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
         <span className="text-sm text-muted-foreground">{change.connection}</span>
         <span className="flex-1" />
         {canApprove && (
-          <Button size="sm" variant="secondary" onClick={act(approve.run)}>
+          <Button size="sm" variant="secondary" onClick={act(approve.mutate)}>
             <Check /> Approve
           </Button>
         )}
@@ -116,15 +112,15 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
           <>
             <ScheduleMenu
               change={change}
-              onSchedule={(at) => void schedule.run(id, at).finally(() => void refresh())}
+              onSchedule={(at) => void schedule.mutate({ id, scheduledAt: at })}
             />
-            <Button size="sm" onClick={act(apply.run)}>
+            <Button size="sm" onClick={act(apply.mutate)}>
               <Play /> Apply
             </Button>
           </>
         )}
         {canReject && (
-          <Button size="sm" variant="ghost" onClick={act(reject.run)}>
+          <Button size="sm" variant="ghost" onClick={act(reject.mutate)}>
             <Undo2 /> Reject
           </Button>
         )}
@@ -163,7 +159,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
                 {mayWrite && (
                   <ChangeSubmitDialog
                     kind={kind}
-                    onSubmit={(input) => submit.run(input)}
+                    onSubmit={(input) => submit.mutateAsync(input)}
                     initial={{
                       connection: change.connection,
                       notes: change.notes ? `[Rollback] ${change.notes}` : "[Rollback]",
@@ -292,15 +288,18 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
             <SheetTitle>Schedule change</SheetTitle>
             <SheetDescription>Pick when the scheduler should apply this approved change.</SheetDescription>
           </SheetHeader>
-          <div className="grid gap-1.5">
-            <Label htmlFor="schedule-at">Run at</Label>
-            <Input
-              id="schedule-at"
-              type="datetime-local"
-              value={when}
-              onChange={(e) => setWhen(e.target.value)}
-            />
-          </div>
+          <SheetBody>
+            <Field>
+              <FieldLabel htmlFor="schedule-at">Run at</FieldLabel>
+              <Input
+                id="schedule-at"
+                type="datetime-local"
+                value={when}
+                onChange={(e) => setWhen(e.target.value)}
+              />
+              <FieldDescription>a future moment; the scheduler applies the change once.</FieldDescription>
+            </Field>
+          </SheetBody>
           <SheetFooter>
             <Button
               size="sm"

@@ -7,8 +7,13 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { JsonEditor } from "@/components/sql/json-editor";
 import { ChangeActivity } from "@/components/changes/change-activity";
-import { useApp } from "@/app/app-provider";
-import { useMongoChanges } from "@/hooks/use-mongodb";
+import { useAuth } from "@/app/auth-provider";
+import {
+  useMongoApproveChangeMutation,
+  useMongoApplyChangeMutation,
+  useMongoChangeGetQuery,
+  useMongoRejectChangeMutation,
+} from "@/hooks/use-mongodb";
 import type { MongoRequest } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -18,9 +23,11 @@ import { cn } from "@/lib/utils";
 // no rollback exists for a document change.
 export default function MongoRequestDetailPage() {
   const { id = "" } = useParams();
-  const { can } = useApp();
-  const { changes, loading, approve, apply, reject } = useMongoChanges();
-  const change = changes.find((c) => c.id === id);
+  const { can } = useAuth();
+  const { data: change, isPending: loading } = useMongoChangeGetQuery(id);
+  const approve = useMongoApproveChangeMutation();
+  const apply = useMongoApplyChangeMutation();
+  const reject = useMongoRejectChangeMutation();
 
   if (loading && !change) {
     return (
@@ -37,7 +44,7 @@ export default function MongoRequestDetailPage() {
   if (!change) return <Unavailable id={id} />;
 
   const request = parseRequest(change.query);
-  const act = (fn: (id: string) => Promise<unknown>) => () => void fn(id);
+  const act = (fn: (id: string) => void) => () => fn(id);
   const mayReview = can(change.connection, "admin");
   const canApprove = mayReview && (change.status === "validated" || change.status === "unverified");
   const canApply = mayReview && change.status === "approved";
@@ -54,17 +61,17 @@ export default function MongoRequestDetailPage() {
         <span className="text-sm text-muted-foreground">{change.connection}</span>
         <span className="flex-1" />
         {canApprove && (
-          <Button size="sm" variant="secondary" onClick={act(approve.run)}>
+          <Button size="sm" variant="secondary" onClick={act(approve.mutate)}>
             <Check /> Approve
           </Button>
         )}
         {canApply && (
-          <Button size="sm" onClick={act(apply.run)}>
+          <Button size="sm" onClick={act(apply.mutate)}>
             <Play /> Apply
           </Button>
         )}
         {canReject && (
-          <Button size="sm" variant="ghost" onClick={act(reject.run)}>
+          <Button size="sm" variant="ghost" onClick={act(reject.mutate)}>
             <Undo2 /> Reject
           </Button>
         )}

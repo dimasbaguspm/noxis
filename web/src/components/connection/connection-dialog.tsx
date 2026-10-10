@@ -7,18 +7,20 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetBody,
   SheetFooter,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { Field, FieldLabel, FieldRow } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useApp } from "@/app/app-provider";
+import { useSetActiveConnection } from "@/hooks/use-connections";
+import { useDriversQuery } from "@/hooks/use-config";
+import { queryClient } from "@/lib/query-client";
 import { FAMILY, type FamilyKey } from "@/lib/families";
 import { api, type Connection } from "@/lib/api";
-import { cn } from "@/lib/utils";
 
 const SQL_EMPTY: Connection = {
   name: "",
@@ -66,7 +68,8 @@ export function ConnectionDialog({
   family?: FamilyKey;
   wizard?: boolean;
 }) {
-  const { reload, setActive, drivers } = useApp();
+  const setActive = useSetActiveConnection();
+  const { data: drivers = [] } = useDriversQuery();
   const { register, handleSubmit, watch, setValue, reset } = useForm<Connection>({
     defaultValues: initial ?? BLANK[family],
   });
@@ -92,11 +95,10 @@ export function ConnectionDialog({
     };
   };
 
-  // Saving writes to the shared registry, so refresh the family: the dashboard
-  // table reads it from the provider, and a new server must show up there
-  // without a reload.
+  // Saving writes a connection; the instances query already caches the list,
+  // so invalidating it is all a refresh takes.
   async function refresh() {
-    await reload(kind);
+    await queryClient.invalidateQueries({ queryKey: ["instances"] });
   }
 
   function choose(next: FamilyKey) {
@@ -148,7 +150,7 @@ export function ConnectionDialog({
         </SheetHeader>
 
         {step === 1 ? (
-          <div className="grid gap-3">
+          <SheetBody className="grid gap-3">
             <Choice
               icon={<Database className="size-4" />}
               title="SQL database"
@@ -167,16 +169,17 @@ export function ConnectionDialog({
               detail="MongoDB. Explore databases and collections, run CRUD requests."
               onClick={() => choose(FAMILY.MONGODB)}
             />
-          </div>
+          </SheetBody>
         ) : (
-          <form onSubmit={onValid} className="grid gap-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="grid gap-1.5">
-                <Label>Name</Label>
-                <Input placeholder="prod-readonly" {...field("name")} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Driver</Label>
+          <form onSubmit={onValid} className="flex flex-1 flex-col">
+            <SheetBody className="grid gap-4">
+            <FieldRow>
+              <Field>
+                <FieldLabel htmlFor="conn-name">Name</FieldLabel>
+                <Input id="conn-name" placeholder="prod-readonly" {...field("name")} />
+              </Field>
+              <Field>
+                <FieldLabel>Driver</FieldLabel>
                 {mongo ? (
                   <Input value="mongo" readOnly disabled />
                 ) : (
@@ -203,45 +206,50 @@ export function ConnectionDialog({
                     </SelectContent>
                   </Select>
                 )}
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Host</Label>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="conn-host">Host</FieldLabel>
                 <Input
+                  id="conn-host"
                   placeholder={cache ? "cache.internal" : mongo ? "mongo.internal" : "db.internal"}
                   {...field("host")}
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Port</Label>
-                <Input type="number" {...field("port")} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>{cache ? "User (ACL, optional)" : "User"}</Label>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="conn-port">Port</FieldLabel>
+                <Input id="conn-port" type="number" {...field("port")} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="conn-user">{cache ? "User (ACL, optional)" : "User"}</FieldLabel>
                 <Input
+                  id="conn-user"
                   placeholder={cache ? "default" : mongo ? "root" : "postgres"}
                   {...field("user")}
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Password</Label>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="conn-password">Password</FieldLabel>
                 <Input
+                  id="conn-password"
                   type="password"
                   placeholder={initial ? "unchanged" : ""}
                   {...field("password")}
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>{cache ? "DB index" : mongo ? "Database (auth)" : "Database"}</Label>
+              </Field>
+            </FieldRow>
+              <Field>
+                <FieldLabel htmlFor="conn-database">{cache ? "DB index" : mongo ? "Database (auth)" : "Database"}</FieldLabel>
                 <Input
+                  id="conn-database"
                   placeholder={cache ? "0" : mongo ? "admin" : "app"}
                   {...field("database")}
                 />
-              </div>
-            </div>
+              </Field>
 
             <p className="text-xs text-muted-foreground">
               Driver, host, database and user are fixed once saved. The password can be rotated later from the instance page.
             </p>
+            </SheetBody>
 
             <SheetFooter className="items-center gap-2">
               {wizard && (
@@ -277,18 +285,17 @@ function Choice({
   onClick: () => void;
 }) {
   return (
-    <button
+    <Button
+      variant="outline"
+      size="lg"
       onClick={onClick}
-      className={cn(
-        "flex items-start gap-3 rounded-md border border-border p-3 text-left",
-        "transition-colors hover:border-primary/40 hover:bg-accent/50",
-      )}
+      className="h-auto w-full items-start justify-start gap-3 rounded-md p-3"
     >
       <span className="mt-0.5 text-muted-foreground">{icon}</span>
       <span className="grid gap-0.5">
         <span className="text-sm font-medium">{title}</span>
         <span className="text-xs text-muted-foreground">{detail}</span>
       </span>
-    </button>
+    </Button>
   );
 }
