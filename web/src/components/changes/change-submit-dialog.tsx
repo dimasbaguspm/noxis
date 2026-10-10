@@ -109,8 +109,8 @@ export function ChangeSubmitDialog({
           </SheetDescription>
         </SheetHeader>
 
-        <form onSubmit={onValid} className="flex flex-1 flex-col">
-          <SheetBody className="grid gap-4">
+        <SheetBody>
+          <form id="submit-change" onSubmit={onValid} className="grid gap-4">
           <FieldLayout>
           <Field>
             <FieldLabel>
@@ -159,17 +159,17 @@ export function ChangeSubmitDialog({
               ))}
             </div>
           )}
-          </SheetBody>
+          </form>
+        </SheetBody>
 
-          <SheetFooter className="items-center">
+        <SheetFooter className="items-center">
             <p className="mr-auto text-xs text-muted-foreground">
               validation runs on submit: syntax and dry run against the instance
             </p>
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" form="submit-change" disabled={busy}>
               Submit for review
             </Button>
           </SheetFooter>
-        </form>
       </SheetContent>
     </Sheet>
   );

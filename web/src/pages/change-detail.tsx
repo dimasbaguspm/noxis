@@ -289,26 +289,28 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
             <SheetDescription>Pick when the scheduler should apply this approved change.</SheetDescription>
           </SheetHeader>
           <SheetBody>
-            <Field>
-              <FieldLabel htmlFor="schedule-at">Run at</FieldLabel>
-              <Input
-                id="schedule-at"
-                type="datetime-local"
-                value={when}
-                onChange={(e) => setWhen(e.target.value)}
-              />
-              <FieldDescription>a future moment; the scheduler applies the change once.</FieldDescription>
-            </Field>
-          </SheetBody>
-          <SheetFooter>
-            <Button
-              size="sm"
-              disabled={!valid}
-              onClick={() => {
+            <form
+              id="schedule-change"
+              onSubmit={(e) => {
+                e.preventDefault();
                 onSchedule(slot);
                 setOpen(false);
               }}
             >
+              <Field>
+                <FieldLabel htmlFor="schedule-at">Run at</FieldLabel>
+                <Input
+                  id="schedule-at"
+                  type="datetime-local"
+                  value={when}
+                  onChange={(e) => setWhen(e.target.value)}
+                />
+                <FieldDescription>a future moment; the scheduler applies the change once.</FieldDescription>
+              </Field>
+            </form>
+          </SheetBody>
+          <SheetFooter>
+            <Button size="sm" type="submit" form="schedule-change" disabled={!valid}>
               Schedule
             </Button>
           </SheetFooter>
