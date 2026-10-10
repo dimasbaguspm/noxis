@@ -54,15 +54,10 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader className="gap-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <CardTitle className="text-base">Instances</CardTitle>
-              <CardDescription>
-                {loading ? "loading…" : filtering ? `${total} shown` : `${total} registered`}
-              </CardDescription>
-            </div>
-            {isAdmin && <ConnectionDialog trigger="New connection" wizard />}
-          </div>
+          <CardTitle className="text-base">Instances</CardTitle>
+          <CardDescription>
+            {loading ? "loading…" : filtering ? `${total} shown` : `${total} registered`}
+          </CardDescription>
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative min-w-56 flex-1">
               <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -88,6 +83,15 @@ export default function DashboardPage() {
             </Select>
           </div>
         </CardHeader>
+      </Card>
+
+      {isAdmin && (
+        <div className="flex justify-end">
+          <ConnectionDialog trigger="New connection" wizard />
+        </div>
+      )}
+
+      <Card>
         <CardContent>
           {loading ? (
             <div className="flex flex-col gap-2">
