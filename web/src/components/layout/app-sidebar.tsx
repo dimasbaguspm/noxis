@@ -37,15 +37,15 @@ function SiteTitle() {
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton size="lg" asChild>
+          <SidebarMenuButton
+            asChild
+            size="lg"
+            className="data-[slot=sidebar-menu-button]:p-1.5!"
+          >
             <Link to="/">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <GalleryVerticalEnd className="size-4" />
-              </div>
-              <div className="flex flex-col gap-0.5 leading-none">
-                <span className="font-semibold">noXis</span>
-                <span className="">{VERSION}</span>
-              </div>
+              <GalleryVerticalEnd className="size-5!" />
+              <span className="text-base font-semibold">noXis</span>
+              <span className="ml-auto text-xs text-muted-foreground">{VERSION}</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
