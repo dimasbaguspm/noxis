@@ -1,15 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
-import {
-  api,
-  type Change,
-  type MongoChangeInput,
-  type MongoCollection,
-  type MongoDatabase,
-  type MongoResult,
-} from "@/lib/api";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { api, type MongoChangeInput } from "@/lib/api";
 import { useFamily } from "@/app/app-provider";
 import { FAMILY } from "@/lib/families";
-import { useAction } from "@/hooks/use-action";
+import { queryClient, queryKeys } from "@/lib/query-client";
 
 // useMongoConnections reads the MongoDB registry from the provider, so the
 // dashboard and these pages never disagree.
@@ -18,93 +11,81 @@ export function useMongoConnections() {
   return { connections, connection, pick, reload };
 }
 
-// useMongoDatabases lists the databases with their sizes.
-export function useMongoDatabases(connection?: string) {
-  const [databases, setDatabases] = useState<MongoDatabase[]>([]);
-  const load = useAction(async (name: string) => {
-    const res = await api.mongodb.databases(name);
-    setDatabases(res.databases ?? []);
+export function useMongoDatabasesQuery(connection?: string) {
+  const query = useQuery({
+    queryKey: queryKeys.mongodb.databases(connection),
+    queryFn: () => api.mongodb.databases(connection as string),
+    enabled: !!connection,
+    select: (res) => res.databases,
   });
-
-  useEffect(() => {
-    if (!connection) {
-      setDatabases([]);
-      return;
-    }
-    void load.run(connection);
-  }, [connection, load.run]);
-
-  return { databases, loading: load.loading, reload: () => connection && void load.run(connection) };
+  return { ...query, databases: query.data ?? [] };
 }
 
-// useMongoCollections lists a database's collections with their sizes.
-export function useMongoCollections(connection?: string, database?: string) {
-  const [collections, setCollections] = useState<MongoCollection[]>([]);
-  const load = useAction(async (name: string, db: string) => {
-    const res = await api.mongodb.collections(name, db);
-    setCollections(res.collections ?? []);
+export function useMongoCollectionsQuery(connection?: string, database?: string) {
+  const query = useQuery({
+    queryKey: queryKeys.mongodb.collections(connection, database),
+    queryFn: () => api.mongodb.collections(connection as string, database as string),
+    enabled: !!connection && !!database,
+    select: (res) => res.collections,
   });
-
-  useEffect(() => {
-    if (!connection || !database) {
-      setCollections([]);
-      return;
-    }
-    void load.run(connection, database);
-  }, [connection, database, load.run]);
-
-  return { collections, loading: load.loading, reload: () => connection && database && void load.run(connection, database) };
+  return { ...query, collections: query.data ?? [] };
 }
 
-// useMongoRead runs one read request (find, aggregate, count) and keeps its
-// result. Writes are not accepted here: they belong in the request queue.
-export function useMongoRead() {
-  const [result, setResult] = useState<MongoResult | null>(null);
-  const run = useAction(async (name: string, body: Parameters<typeof api.mongodb.run>[1]) => {
-    setResult(await api.mongodb.run(name, body));
+// useMongoRunMutation executes one read (find, aggregate, count); writes are
+// not accepted here and belong in the request queue.
+export function useMongoRunMutation() {
+  return useMutation({
+    mutationFn: ({ connection, body }: { connection: string; body: Parameters<typeof api.mongodb.run>[1] }) =>
+      api.mongodb.run(connection, body),
   });
-  return { result, run, loading: run.loading, reset: () => setResult(null) };
 }
 
-// useMongoChanges is the request queue: submit validates, approve signs off,
-// apply runs (there is no rollback to fall back on).
-export function useMongoChanges() {
-  const [changes, setChanges] = useState<Change[]>([]);
-  const [loading, setLoading] = useState(true);
+// Request queue: list, detail and the review actions. Every action invalidates
+// the queue so the list and detail refetch by themselves.
+function invalidateRequests() {
+  void queryClient.invalidateQueries({ queryKey: queryKeys.mongodb.requests.list() });
+}
 
-  const reload = useCallback(async () => {
-    try {
-      const { changes: list } = await api.mongodb.changes.list();
-      setChanges(list ?? []);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+export function useMongoChangesListQuery() {
+  const query = useQuery({
+    queryKey: queryKeys.mongodb.requests.list(),
+    queryFn: () => api.mongodb.changes.list(),
+  });
+  return { ...query, changes: query.data?.changes ?? [] };
+}
 
-  const submit = useAction(async (input: MongoChangeInput) => {
-    const change = await api.mongodb.changes.submit(input);
-    await reload();
-    return change;
+export function useMongoChangeGetQuery(id?: string) {
+  return useQuery({
+    queryKey: queryKeys.mongodb.requests.get(id ?? ""),
+    queryFn: () => api.mongodb.changes.get(id as string),
+    enabled: !!id,
   });
-  const approve = useAction(async (id: string) => {
-    const change = await api.mongodb.changes.approve(id);
-    await reload();
-    return change;
-  });
-  const apply = useAction(async (id: string) => {
-    const change = await api.mongodb.changes.apply(id);
-    await reload();
-    return change;
-  });
-  const reject = useAction(async (id: string) => {
-    const change = await api.mongodb.changes.reject(id);
-    await reload();
-    return change;
-  });
+}
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+export function useMongoSubmitChangeMutation() {
+  return useMutation({
+    mutationFn: (input: MongoChangeInput) => api.mongodb.changes.submit(input),
+    onSuccess: invalidateRequests,
+  });
+}
 
-  return { changes, loading, reload, submit, approve, apply, reject };
+export function useMongoApproveChangeMutation() {
+  return useMutation({
+    mutationFn: (id: string) => api.mongodb.changes.approve(id),
+    onSuccess: invalidateRequests,
+  });
+}
+
+export function useMongoApplyChangeMutation() {
+  return useMutation({
+    mutationFn: (id: string) => api.mongodb.changes.apply(id),
+    onSuccess: invalidateRequests,
+  });
+}
+
+export function useMongoRejectChangeMutation() {
+  return useMutation({
+    mutationFn: (id: string) => api.mongodb.changes.reject(id),
+    onSuccess: invalidateRequests,
+  });
 }

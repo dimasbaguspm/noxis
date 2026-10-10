@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { JsonEditor } from "@/components/sql/json-editor";
-import { useMongoCollections, useMongoConnections, useMongoDatabases, useMongoChanges } from "@/hooks/use-mongodb";
+import { useMongoCollectionsQuery, useMongoConnections, useMongoDatabasesQuery, useMongoSubmitChangeMutation } from "@/hooks/use-mongodb";
 import type { Change } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -35,7 +35,7 @@ const SAMPLES: Record<string, { filter: string; value: string }> = {
 export default function MongoRequestNewPage() {
   const navigate = useNavigate();
   const { connections, connection, pick } = useMongoConnections();
-  const { databases } = useMongoDatabases(connection);
+  const { databases } = useMongoDatabasesQuery(connection);
   const [step, setStep] = useState(1);
   const [database, setDatabase] = useState<string>();
   const [collection, setCollection] = useState<string>();
@@ -46,8 +46,8 @@ export default function MongoRequestNewPage() {
   const [many, setMany] = useState(false);
   const [failure, setFailure] = useState<Change>();
 
-  const { collections } = useMongoCollections(connection, database);
-  const { submit } = useMongoChanges();
+  const { collections } = useMongoCollectionsQuery(connection, database);
+  const submit = useMongoSubmitChangeMutation();
 
   useEffect(() => {
     if (!database && databases.length > 0) setDatabase(databases[0]?.name);
@@ -70,7 +70,7 @@ export default function MongoRequestNewPage() {
     if (!connection || !database || !collection) return;
     setFailure(undefined);
     try {
-      const change = (await submit.run({
+      const change = (await submit.mutateAsync({
         connection,
         notes: notes.trim() || `${op} on ${database}.${collection}`,
         op,
@@ -259,7 +259,7 @@ export default function MongoRequestNewPage() {
               <span className="flex items-center gap-1.5 text-xs text-amber-500">
                 <ShieldAlert className="size-3.5" /> no rollback exists for document changes
               </span>
-              <Button onClick={() => void send()} disabled={submit.loading}>
+              <Button onClick={() => void send()} disabled={submit.isPending}>
                 <Send /> Submit for review
               </Button>
             </div>
