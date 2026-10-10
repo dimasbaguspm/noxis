@@ -4,12 +4,16 @@ import (
 	"context"
 
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 )
 
 // ConnectionLevels is the effective level per connection for the caller. A
 // global admin holds admin everywhere; everyone else only appears with a
 // matching grant, so an absent connection means no access.
-type ConnectionLevels struct{ Base }
+type ConnectionLevels struct {
+	Connections interfaces.ConnectionRepository
+	Grants      interfaces.GrantRepository
+}
 
 // Serve runs it.
 func (uc ConnectionLevels) Serve(ctx context.Context) (map[string]string, error) {
@@ -28,7 +32,7 @@ func (uc ConnectionLevels) Serve(ctx context.Context) (map[string]string, error)
 			out[c.Name] = entity.LevelAdmin
 			continue
 		}
-		level, err := uc.EffectiveLevel(ctx, c.Name, p.Groups)
+		level, err := EffectiveLevel(ctx, uc.Grants, c.Name, p.Groups)
 		if err != nil {
 			return nil, err
 		}

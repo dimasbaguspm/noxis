@@ -8,7 +8,10 @@ import (
 )
 
 // ConnectionList is the "ConnectionList" use case.
-type ConnectionList struct{ Base }
+type ConnectionList struct {
+	Connections interfaces.ConnectionRepository
+	Grants      interfaces.GrantRepository
+}
 
 // Serve runs it.
 func (uc ConnectionList) Serve(ctx context.Context, mod interfaces.Module) (out []entity.Connection, err error) {
@@ -24,7 +27,7 @@ func (uc ConnectionList) Serve(ctx context.Context, mod interfaces.Module) (out 
 		if !mod.Supports(c.Driver) {
 			continue
 		}
-		ok, err := uc.CanRead(ctx, c.Name)
+		ok, err := CanRead(ctx, uc.Grants, c.Name)
 		if err != nil {
 			return nil, err
 		}

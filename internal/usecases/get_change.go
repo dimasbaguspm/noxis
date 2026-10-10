@@ -2,25 +2,19 @@ package usecases
 
 import (
 	"context"
-	"fmt"
-	"noxis/internal/constants"
+
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 )
 
-// SQLChange is the "SQLChange" use case.
-type SQLChange struct{ Base }
+// SQLChange loads a change and insists it is a SQL one, so a MongoDB request
+// cannot be opened through the SQL flow.
+type SQLChange struct {
+	Changes interfaces.ChangeRepository
+	Grants  interfaces.GrantRepository
+}
 
 // Serve runs it.
 func (uc SQLChange) Serve(ctx context.Context, id string) (*entity.Change, error) {
-	ch, err := uc.Changes.GetChange(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if ch.Kind != constants.KindDML && ch.Kind != constants.KindDDL {
-		return nil, fmt.Errorf("change %s is %s, not a sql change", id, ch.Kind)
-	}
-	if err := uc.Authorize(ctx, ch.Connection, entity.LevelRead); err != nil {
-		return nil, err
-	}
-	return ch, nil
+	return sqlChange(ctx, uc.Changes, uc.Grants, id)
 }

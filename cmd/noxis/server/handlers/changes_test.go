@@ -3,19 +3,18 @@ package handlers
 import (
 	"context"
 	"errors"
-	"io"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"noxis/cmd/noxis/server/deps"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
+	"noxis/internal/modules"
 	"noxis/internal/modules/sql"
-	"noxis/internal/usecases"
 )
 
 // The seam pays off here: the whole change workflow (submit → validate →
@@ -124,15 +123,24 @@ func (f *fakeSQL) Apply(context.Context, entity.Connection, string) (interfaces.
 	return interfaces.Result{Message: "applied: 1 statement(s)"}, nil
 }
 
-// newTestBase builds the shared base against fakes; newTestDeps adds the
-// transport-level deps around it. Tests then wire the workflow seam they
-// exercise: usecases.Changes{Base: base}, usecases.Connections{Base: base}, ...
-func newTestBase(sq interfaces.SQLModule) (usecases.Base, *fakeChanges, *fakeConns) {
+// testBase is the explicit dependency bundle the tests hand to the gateway
+// constructors; every gateway field is filled from it.
+type testBase struct {
+	Connections interfaces.ConnectionRepository
+	Changes     interfaces.ChangeRepository
+	Grants      interfaces.GrantRepository
+	Modules     map[string]interfaces.Module
+}
+
+// newTestBase builds the dependency bundle against fakes; newTestDeps adds
+// the transport-level deps around it. Tests then wire the workflow seam they
+// exercise.
+func newTestBase(sq interfaces.SQLModule) (testBase, *fakeChanges, *fakeConns) {
 	conns := &fakeConns{conns: map[string]entity.Connection{
 		"demo": {Name: "demo", Driver: constants.DriverPostgres, Host: "db", Port: 5432, User: "postgres", Database: "demo"},
 	}}
 	changes := &fakeChanges{changes: map[string]entity.Change{}}
-	return usecases.Base{
+	return testBase{
 		Connections: conns,
 		Changes:     changes,
 		Grants:      &fakeGrants{grants: map[string]entity.Grant{}},
@@ -140,21 +148,17 @@ func newTestBase(sq interfaces.SQLModule) (usecases.Base, *fakeChanges, *fakeCon
 	}, changes, conns
 }
 
-// newTestDeps wires the transport deps with a fresh base; the base is
-// returned for direct workflow calls and store inspection.
-func newTestDeps(sq interfaces.SQLModule) (usecases.Deps, usecases.Base, *fakeChanges, *fakeConns) {
+// newTestDeps binds the use cases against fresh fakes, exactly like the
+// initiator does at boot; the fakes are returned for store inspection.
+func newTestDeps(sq interfaces.SQLModule) (deps.Uses, *fakeChanges, *fakeConns) {
 	base, changes, conns := newTestBase(sq)
-	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return usecases.Deps{
-		Engines:     usecases.Engines{Base: base},
-		Changes:     usecases.Changes{Base: base},
-		Connections: usecases.Connections{Base: base},
-		Mongo:       usecases.Mongo{Base: base},
-		Instances:   usecases.Instances{Base: base},
-		Grants:      usecases.Grants{Base: base},
-		Me:          usecases.Me{Base: base},
-		Log:         log,
-	}, base, changes, conns
+	return deps.Init(deps.Deps{
+		Connections: base.Connections,
+		Changes:     base.Changes,
+		Grants:      base.Grants,
+		Modules:     modules.New(base.Modules),
+		Log:         discardLog(),
+	}), changes, conns
 }
 
 func sampleChange() entity.Change {
@@ -168,11 +172,10 @@ func sampleChange() entity.Change {
 
 func TestChangeWorkflow(t *testing.T) {
 	sq := &fakeSQL{}
-	base, _, _ := newTestBase(sq)
-	gw := usecases.Changes{Base: base}
-	ctx := context.Background()
+	d, _, _ := newTestDeps(sq)
+	ctx := modules.WithRegistry(context.Background(), d.Modules)
 
-	submitted, err := gw.SubmitChange(ctx, sq, sampleChange())
+	submitted, err := d.SubmitChange.Serve(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
@@ -184,11 +187,11 @@ func TestChangeWorkflow(t *testing.T) {
 	}
 
 	// apply before approval is refused
-	if _, err := gw.Apply(ctx, sq, submitted.ID); err == nil {
+	if _, err := d.Apply.Serve(ctx, sq, submitted.ID); err == nil {
 		t.Fatal("apply must require approval")
 	}
 
-	approved, err := gw.Approve(ctx, submitted.ID)
+	approved, err := d.Approve.Serve(ctx, submitted.ID)
 	if err != nil {
 		t.Fatalf("approve: %v", err)
 	}
@@ -196,7 +199,7 @@ func TestChangeWorkflow(t *testing.T) {
 		t.Fatalf("approve result: %+v", approved)
 	}
 
-	applied, err := gw.Apply(ctx, sq, submitted.ID)
+	applied, err := d.Apply.Serve(ctx, sq, submitted.ID)
 	if err != nil {
 		t.Fatalf("apply: %v", err)
 	}
@@ -210,23 +213,22 @@ func TestChangeValidationFailures(t *testing.T) {
 
 	// a read on the change path is refused up front
 	sq := &fakeSQL{writeErr: errors.New(`statement "SELECT" not allowed here`)}
-	base, _, _ := newTestBase(sq)
-	gw := usecases.Changes{Base: base}
-	bad, err := gw.SubmitChange(ctx, sq, sampleChange())
+	d, _, _ := newTestDeps(sq)
+	bad, err := d.SubmitChange.Serve(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
 	if bad.Status != constants.ChangeFailed {
 		t.Fatalf("status=%q want failed", bad.Status)
 	}
-	if _, err := gw.Approve(ctx, bad.ID); err == nil {
+	if _, err := d.Approve.Serve(ctx, bad.ID); err == nil {
 		t.Fatal("failed change must not be approvable")
 	}
 
 	// a dry-run failure also lands as failed with the reason recorded
 	sq2 := &fakeSQL{validateErr: errors.New("rollback statement 1: syntax error")}
-	base2, _, _ := newTestBase(sq2)
-	failed, err := (usecases.Changes{Base: base2}).SubmitChange(ctx, sq2, sampleChange())
+	d2, _, _ := newTestDeps(sq2)
+	failed, err := d2.SubmitChange.Serve(ctx, sq2, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
@@ -239,32 +241,31 @@ func TestChangeValidationFailures(t *testing.T) {
 
 	// mysql DDL cannot be dry-run: unverified, still approvable
 	sq3 := &fakeSQL{validateErr: sql.ErrUnverifiable}
-	base3, _, _ := newTestBase(sq3)
-	unv, err := (usecases.Changes{Base: base3}).SubmitChange(ctx, sq3, sampleChange())
+	d3, _, _ := newTestDeps(sq3)
+	unv, err := d3.SubmitChange.Serve(ctx, sq3, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
 	if unv.Status != constants.ChangeUnverified {
 		t.Fatalf("status=%q want unverified", unv.Status)
 	}
-	if _, err := (usecases.Changes{Base: base3}).Approve(ctx, unv.ID); err != nil {
+	if _, err := d3.Approve.Serve(ctx, unv.ID); err != nil {
 		t.Fatalf("unverified change must be approvable: %v", err)
 	}
 }
 
 func TestApplyFailureIsRecorded(t *testing.T) {
 	sq := &fakeSQL{applyErr: errors.New("statement 1: duplicate key")}
-	base, store, _ := newTestBase(sq)
-	gw := usecases.Changes{Base: base}
-	ctx := context.Background()
-	ch, err := gw.SubmitChange(ctx, sq, sampleChange())
+	d, store, _ := newTestDeps(sq)
+	ctx := modules.WithRegistry(context.Background(), d.Modules)
+	ch, err := d.SubmitChange.Serve(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
-	if _, err := gw.Approve(ctx, ch.ID); err != nil {
+	if _, err := d.Approve.Serve(ctx, ch.ID); err != nil {
 		t.Fatalf("approve: %v", err)
 	}
-	if _, err := gw.Apply(ctx, sq, ch.ID); err == nil {
+	if _, err := d.Apply.Serve(ctx, sq, ch.ID); err == nil {
 		t.Fatal("apply must surface the failure")
 	}
 	stored, ok := store.changes[ch.ID]
@@ -278,22 +279,21 @@ func TestApplyFailureIsRecorded(t *testing.T) {
 }
 
 func TestSecretsStayRedacted(t *testing.T) {
-	base, _, conns := newTestBase(&fakeSQL{})
-	mod := base.Modules[constants.FamilySQL]
-	connsGW := usecases.Connections{Base: base}
-	ctx := context.Background()
+	d, _, conns := newTestDeps(&fakeSQL{})
+	mod, _ := d.Modules.Engine(constants.FamilySQL)
+	ctx := modules.WithRegistry(context.Background(), d.Modules)
 	c, _ := conns.Get(ctx, "demo")
 	c.Password = "supersecret"
 	_ = conns.Save(ctx, *c)
 
-	got, err := connsGW.Connection(ctx, mod, "demo")
+	got, err := d.Connection.Serve(ctx, mod, "demo")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
 	if got.Password != "" {
 		t.Fatalf("password leaked: %q", got.Password)
 	}
-	list, err := connsGW.ConnectionList(ctx, mod)
+	list, err := d.ConnectionList.Serve(ctx, mod)
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -302,7 +302,7 @@ func TestSecretsStayRedacted(t *testing.T) {
 			t.Fatalf("password leaked in list: %q", x.Password)
 		}
 	}
-	if raw, err := base.Raw(ctx, mod, "demo", entity.LevelRead); err != nil || raw.Password != "supersecret" {
+	if raw, err := d.Raw.Serve(ctx, mod, "demo", entity.LevelRead); err != nil || raw.Password != "supersecret" {
 		t.Fatalf("internal path must still see the password: %v", err)
 	}
 }
@@ -310,12 +310,12 @@ func TestSecretsStayRedacted(t *testing.T) {
 // TestHandlersRespond exercises the HTTP path (handle → span → JSON): a
 // self-calling span closure once turned this into a stack overflow.
 func TestHandlersRespond(t *testing.T) {
-	deps, _, _, _ := newTestDeps(&fakeSQL{})
+	d, _, _ := newTestDeps(&fakeSQL{})
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/engine/{engine}/connections", ListConnections)
 
 	rec := httptest.NewRecorder()
-	depsHandler(mux, deps).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody))
+	depsHandler(mux, d).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -327,7 +327,7 @@ func TestHandlersRespond(t *testing.T) {
 // TestEngineGating locks the generic route contract: an unknown engine and a
 // sub-resource the engine does not serve are 404, never routed elsewhere.
 func TestEngineGating(t *testing.T) {
-	deps, _, _, _ := newTestDeps(&fakeSQL{})
+	d, _, _ := newTestDeps(&fakeSQL{})
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/engine/{engine}/connections", ListConnections)
 	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/keys", ListKeys)
@@ -342,7 +342,7 @@ func TestEngineGating(t *testing.T) {
 	}
 	for _, tc := range cases {
 		rec := httptest.NewRecorder()
-		depsHandler(mux, deps).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, http.NoBody))
+		depsHandler(mux, d).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, http.NoBody))
 		if rec.Code != tc.want {
 			t.Fatalf("%s: status=%d want=%d body=%s", tc.path, rec.Code, tc.want, rec.Body.String())
 		}
@@ -352,23 +352,22 @@ func TestEngineGating(t *testing.T) {
 // TestScheduledChangeWaitsForItsSlot: a change scheduled in the future is not
 // applicable by hand and is skipped by a tick before its time.
 func TestScheduledChangeWaitsForItsSlot(t *testing.T) {
-	ctx := context.Background()
 	sq := &fakeSQL{}
-	base, store, _ := newTestBase(sq)
-	gw := usecases.Changes{Base: base}
+	d, store, _ := newTestDeps(sq)
+	ctx := modules.WithRegistry(context.Background(), d.Modules)
 	in := sampleChange()
 	in.ScheduledAt = time.Now().Add(time.Hour).Unix()
-	ch, err := gw.SubmitChange(ctx, sq, in)
+	ch, err := d.SubmitChange.Serve(ctx, sq, in)
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
-	if _, err := gw.Approve(ctx, ch.ID); err != nil {
+	if _, err := d.Approve.Serve(ctx, ch.ID); err != nil {
 		t.Fatalf("approve: %v", err)
 	}
-	if _, err := gw.Apply(ctx, sq, ch.ID); err == nil {
+	if _, err := d.Apply.Serve(ctx, sq, ch.ID); err == nil {
 		t.Fatal("apply before the scheduled time must be refused")
 	}
-	res, err := gw.Tick(ctx)
+	res, err := d.Tick.Serve(ctx)
 	if err != nil {
 		t.Fatalf("tick: %v", err)
 	}
@@ -383,26 +382,25 @@ func TestScheduledChangeWaitsForItsSlot(t *testing.T) {
 // TestTickAppliesDueScheduledChange: an approved change whose time has passed
 // is applied by the tick; an immediate change is left for the operator.
 func TestTickAppliesDueScheduledChange(t *testing.T) {
-	ctx := context.Background()
 	sq := &fakeSQL{}
-	base, store, _ := newTestBase(sq)
-	gw := usecases.Changes{Base: base}
+	d, store, _ := newTestDeps(sq)
+	ctx := modules.WithRegistry(context.Background(), d.Modules)
 	in := sampleChange()
 	in.ScheduledAt = time.Now().Add(-time.Minute).Unix()
-	ch, err := gw.SubmitChange(ctx, sq, in)
+	ch, err := d.SubmitChange.Serve(ctx, sq, in)
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
-	immediate, err := gw.SubmitChange(ctx, sq, sampleChange())
+	immediate, err := d.SubmitChange.Serve(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit immediate: %v", err)
 	}
 	for _, id := range []string{ch.ID, immediate.ID} {
-		if _, err := gw.Approve(ctx, id); err != nil {
+		if _, err := d.Approve.Serve(ctx, id); err != nil {
 			t.Fatalf("approve %s: %v", id, err)
 		}
 	}
-	res, err := gw.Tick(ctx)
+	res, err := d.Tick.Serve(ctx)
 	if err != nil {
 		t.Fatalf("tick: %v", err)
 	}
@@ -419,7 +417,7 @@ func TestTickAppliesDueScheduledChange(t *testing.T) {
 
 // TestSchedulerEndpoint runs the keyless external scheduler hook.
 func TestSchedulerEndpoint(t *testing.T) {
-	deps, _, fakeStore, _ := newTestDeps(&fakeSQL{})
+	d, fakeStore, _ := newTestDeps(&fakeSQL{})
 	fakeStore.changes["due"] = entity.Change{ID: "due", Kind: constants.KindDDL, Status: constants.ChangeApproved, Connection: "demo"}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /internal/callback/scheduler", PostScheduler)
@@ -430,7 +428,7 @@ func TestSchedulerEndpoint(t *testing.T) {
 	} {
 		req := httptest.NewRequest(http.MethodPost, path, http.NoBody)
 		rec := httptest.NewRecorder()
-		depsHandler(mux, deps).ServeHTTP(rec, req.WithContext(usecases.WithDeps(req.Context(), deps)))
+		depsHandler(mux, d).ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK {
 			t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 		}
@@ -441,7 +439,7 @@ func TestSchedulerEndpoint(t *testing.T) {
 // SQL engine URL cannot approve or reject a MongoDB request (direct id), and
 // the reverse is guarded by MongoChange.
 func TestChangeKindGated(t *testing.T) {
-	deps, _, fakeStore, _ := newTestDeps(&fakeSQL{})
+	d, fakeStore, _ := newTestDeps(&fakeSQL{})
 	fakeStore.changes["m1"] = entity.Change{ID: "m1", Kind: constants.KindMongo, Status: constants.ChangeValidated, Connection: "mongo"}
 
 	mux := http.NewServeMux()
@@ -450,7 +448,7 @@ func TestChangeKindGated(t *testing.T) {
 
 	for _, path := range []string{"/v1/engine/sql/changes/m1/approve", "/v1/engine/sql/changes/m1/reject"} {
 		rec := httptest.NewRecorder()
-		depsHandler(mux, deps).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, http.NoBody))
+		depsHandler(mux, d).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, http.NoBody))
 		if rec.Code != http.StatusBadRequest {
 			t.Fatalf("%s: status=%d want=400 body=%s", path, rec.Code, rec.Body.String())
 		}

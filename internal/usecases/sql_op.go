@@ -9,13 +9,16 @@ import (
 )
 
 // Op is the "Op" use case.
-type Op struct{ Base }
+type Op struct {
+	Connections interfaces.ConnectionRepository
+	Grants      interfaces.GrantRepository
+}
 
 // Serve runs it.
 func (uc Op) Serve(ctx context.Context, sq interfaces.SQLModule, name, operation, sqlText, table string) (out interfaces.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	c, err := uc.Raw(ctx, sq, name, OpLevel(operation))
+	c, err := rawConn(ctx, uc.Connections, uc.Grants, sq, name, OpLevel(operation))
 	if err != nil {
 		return interfaces.Result{}, err
 	}

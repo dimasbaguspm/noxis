@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
+	"noxis/cmd/noxis/server/deps"
 	"noxis/internal/common/pagination"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/usecases"
 )
 
 // The instance routes are the cross-family view of a connection: any family's
@@ -23,10 +23,10 @@ import (
 // @Success 200 {object} object{instances=[]entity.Connection,total=int}
 // @Router /v1/instances [get]
 func ListInstances(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
 		q := r.URL.Query()
-		instances, err := d.Instances.Instances(ctx, q.Get("name"), q.Get("driver"), q.Get("host"))
+		instances, err := d.Instances.Serve(ctx, q.Get("name"), q.Get("driver"), q.Get("host"))
 		if err != nil {
 			return nil, err
 		}
@@ -46,13 +46,13 @@ func ListInstances(w http.ResponseWriter, r *http.Request) {
 // @Failure 403 {object} entity.ErrorResponse
 // @Router /v1/instances/{id}/password [post]
 func RotatePassword(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
 		var body passwordBody
 		if err := decode(r, &body); err != nil {
 			return nil, err
 		}
-		if err := d.Instances.RotatePassword(ctx, r.PathValue("id"), body.Password); err != nil {
+		if err := d.RotatePassword.Serve(ctx, r.PathValue("id"), body.Password); err != nil {
 			return nil, err
 		}
 		return entity.StatusResponse{Status: "ok"}, nil
@@ -65,9 +65,9 @@ func RotatePassword(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/instances/{id} [get]
 func GetInstance(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		return d.Instances.Instance(ctx, r.PathValue("id"))
+		return d.Instance.Serve(ctx, r.PathValue("id"))
 	})
 }
 

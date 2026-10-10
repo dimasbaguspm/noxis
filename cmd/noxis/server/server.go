@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"time"
 
+	"noxis/cmd/noxis/server/deps"
 	"noxis/cmd/noxis/server/handlers"
 	"noxis/cmd/noxis/server/middlewares"
 	"noxis/internal/common/config"
@@ -22,7 +23,6 @@ import (
 	"noxis/internal/modules/auth"
 	cache "noxis/internal/repositories/in-memory-cache"
 	"noxis/internal/repositories/sqlite"
-	"noxis/internal/usecases"
 )
 
 const shutdownTimeout = 10 * time.Second
@@ -35,25 +35,14 @@ func newVerifier(ctx context.Context, cfg config.Config) (interfaces.Verifier, e
 	return oidc, nil
 }
 
-// newDeps assembles the boot-time use cases once over the shared stores and
-// engine registry, plus the transport-global values (public OIDC config and
-// the shared cache). It is seeded into the base request context in Run, never
-// rebuilt per request.
-func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config) usecases.Deps {
-	base := usecases.Base{
+// newDeps assembles the runtime container once: the stores, the engine
+// registry and the transport values, then binds every use case to them.
+func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config) deps.Uses {
+	return deps.Init(deps.Deps{
 		Connections: store,
 		Changes:     store,
 		Grants:      store,
 		Modules:     modules.Default(),
-	}
-	return usecases.Deps{
-		Engines:     usecases.Engines{Base: base},
-		Changes:     usecases.Changes{Base: base},
-		Connections: usecases.Connections{Base: base},
-		Mongo:       usecases.Mongo{Base: base},
-		Instances:   usecases.Instances{Base: base},
-		Grants:      usecases.Grants{Base: base},
-		Me:          usecases.Me{Base: base},
 		Log:         log,
 		Cache:       cache.New(),
 		Auth: config.AuthInfo{
@@ -61,7 +50,7 @@ func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config) usecases.
 			Issuer:   cfg.OIDCIssuer,
 			ClientID: cfg.OIDCClientID,
 		},
-	}
+	})
 }
 
 // newHandler wires routes to plain handlers. Every request context carries
@@ -155,7 +144,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 
 	log.InfoContext(ctx, "noxis serving", "addr", cfg.Listen, "db", cfg.DB)
 
-	deps := newDeps(store, log, cfg)
+	d := newDeps(store, log, cfg)
 
 	// CORS, then authentication (when a verifier is configured), then request
 	// logging + span: the request log and its span run after the principal is
@@ -164,7 +153,9 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 	handler := middlewares.CORS(middlewares.WithAuth(verifier, middlewares.RequestLog(newHandler(verifier), log)))
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler}
 	// every request ctx descends from ours, seeded once with the deps
-	srv.BaseContext = func(net.Listener) context.Context { return usecases.WithDeps(ctx, deps) }
+	srv.BaseContext = func(net.Listener) context.Context {
+		return deps.Seed(modules.WithRegistry(ctx, d.Modules), d)
+	}
 
 	errCh := make(chan error, 1)
 	go func() { errCh <- srv.ListenAndServe() }()

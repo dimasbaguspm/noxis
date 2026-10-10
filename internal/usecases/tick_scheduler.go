@@ -2,7 +2,6 @@ package usecases
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"noxis/internal/common/logging"
@@ -30,7 +29,11 @@ func dueChange(ch entity.Change, now int64) bool {
 // Tick is the scheduler-pass use case: every due change runs through its own
 // engine. The in-process scheduler and POST /internal/callback/scheduler both
 // call it, so a change applied at 14:00 does not care who knocked.
-type Tick struct{ Base }
+type Tick struct {
+	Connections interfaces.ConnectionRepository
+	Changes     interfaces.ChangeRepository
+	Grants      interfaces.GrantRepository
+}
 
 // Serve runs it.
 func (uc Tick) Serve(ctx context.Context) (res TickResult, err error) {
@@ -45,31 +48,11 @@ func (uc Tick) Serve(ctx context.Context) (res TickResult, err error) {
 		if !dueChange(all[i], now) {
 			continue
 		}
-		if _, err := uc.applyChange(ctx, all[i]); err != nil {
+		if _, err := applyChange(ctx, uc.Changes, uc.Connections, uc.Grants, all[i]); err != nil {
 			res.Failed = append(res.Failed, all[i].ID)
 			continue
 		}
 		res.Applied = append(res.Applied, all[i].ID)
 	}
 	return res, nil
-}
-
-// applyChange resolves a change's engine from its connection's driver and
-// applies it through the matching family, so the tick is family-agnostic.
-func (uc Tick) applyChange(ctx context.Context, ch entity.Change) (entity.Change, error) {
-	conn, err := uc.Connections.Get(ctx, ch.Connection)
-	if err != nil {
-		return ch, err
-	}
-	mod, ok := uc.moduleByDriver(conn.Driver)
-	if !ok {
-		return ch, fmt.Errorf("no engine serves driver %q", conn.Driver)
-	}
-	switch m := mod.(type) {
-	case interfaces.SQLModule:
-		return (Apply(uc)).Serve(ctx, m, ch.ID)
-	case interfaces.MongoModule:
-		return (ApplyMongo(uc)).Serve(ctx, m, ch.ID)
-	}
-	return ch, fmt.Errorf("driver %q cannot be applied", conn.Driver)
 }

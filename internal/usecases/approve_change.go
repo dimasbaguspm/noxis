@@ -6,11 +6,15 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 	"time"
 )
 
 // Approve is the "Approve" use case.
-type Approve struct{ Base }
+type Approve struct {
+	Changes interfaces.ChangeRepository
+	Grants  interfaces.GrantRepository
+}
 
 // Serve runs it.
 func (uc Approve) Serve(ctx context.Context, id string) (out entity.Change, err error) {
@@ -20,7 +24,7 @@ func (uc Approve) Serve(ctx context.Context, id string) (out entity.Change, err 
 	if err != nil {
 		return entity.Change{}, err
 	}
-	if err := uc.Authorize(ctx, ch.Connection, entity.LevelAdmin); err != nil {
+	if err := Authorize(ctx, uc.Grants, ch.Connection, entity.LevelAdmin); err != nil {
 		return entity.Change{}, err
 	}
 	if ch.Status != constants.ChangeValidated && ch.Status != constants.ChangeUnverified {

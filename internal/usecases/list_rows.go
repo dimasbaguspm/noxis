@@ -8,13 +8,16 @@ import (
 )
 
 // Rows is the "Rows" use case.
-type Rows struct{ Base }
+type Rows struct {
+	Connections interfaces.ConnectionRepository
+	Grants      interfaces.GrantRepository
+}
 
 // Serve runs it.
 func (uc Rows) Serve(ctx context.Context, sq interfaces.SQLModule, name, schema, table string, limit int) (out interfaces.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	c, err := uc.Raw(ctx, sq, name, entity.LevelRead)
+	c, err := rawConn(ctx, uc.Connections, uc.Grants, sq, name, entity.LevelRead)
 	if err != nil {
 		return interfaces.Result{}, err
 	}

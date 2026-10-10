@@ -14,13 +14,17 @@ import (
 )
 
 // SubmitMongoChange is the "SubmitMongoChange" use case.
-type SubmitMongoChange struct{ Base }
+type SubmitMongoChange struct {
+	Connections interfaces.ConnectionRepository
+	Changes     interfaces.ChangeRepository
+	Grants      interfaces.GrantRepository
+}
 
 // Serve runs it.
 func (uc SubmitMongoChange) Serve(ctx context.Context, m interfaces.MongoModule, conn, notes string, req interfaces.MongoRequest) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	raw, err := uc.Raw(ctx, m, conn, entity.LevelWrite)
+	raw, err := rawConn(ctx, uc.Connections, uc.Grants, m, conn, entity.LevelWrite)
 	if err != nil {
 		return entity.Change{}, err
 	}

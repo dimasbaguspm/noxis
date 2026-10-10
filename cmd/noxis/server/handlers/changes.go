@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strings"
 
+	"noxis/cmd/noxis/server/deps"
 	"noxis/internal/common/pagination"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/usecases"
 )
 
 // The change routes are shared by SQL and MongoDB, each with its own queue:
@@ -32,18 +32,18 @@ func unsupportedChangeFlow(mod interfaces.Module) error {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes [get]
 func ListChanges(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.Engines.Engine(r.PathValue("engine"))
+		mod, err := d.Modules.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		var changes []entity.Change
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			changes, err = d.Changes.SQLChanges(ctx)
+			changes, err = d.SQLChanges.Serve(ctx)
 		case interfaces.MongoModule:
-			changes, err = d.Mongo.MongoChanges(ctx)
+			changes, err = d.MongoChanges.Serve(ctx)
 		default:
 			return nil, unsupportedChangeFlow(mod)
 		}
@@ -100,9 +100,9 @@ func filterByStatus(changes []entity.Change, status string) []entity.Change {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes [post]
 func SubmitChange(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.Engines.Engine(r.PathValue("engine"))
+		mod, err := d.Modules.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -112,13 +112,13 @@ func SubmitChange(w http.ResponseWriter, r *http.Request) {
 			if err := decode(r, &ch); err != nil {
 				return nil, err
 			}
-			return d.Changes.SubmitChange(ctx, m, ch)
+			return d.SubmitChange.Serve(ctx, m, ch)
 		case interfaces.MongoModule:
 			var body mongoChangeBody
 			if err := decode(r, &body); err != nil {
 				return nil, err
 			}
-			return d.Mongo.SubmitMongoChange(ctx, m, body.Connection, body.Notes, body.MongoRequest)
+			return d.SubmitMongo.Serve(ctx, m, body.Connection, body.Notes, body.MongoRequest)
 		}
 		return nil, unsupportedChangeFlow(mod)
 	})
@@ -131,17 +131,17 @@ func SubmitChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes/{id} [get]
 func GetChange(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.Engines.Engine(r.PathValue("engine"))
+		mod, err := d.Modules.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			return d.Changes.SQLChange(ctx, r.PathValue("id"))
+			return d.SQLChange.Serve(ctx, r.PathValue("id"))
 		case interfaces.MongoModule:
-			return d.Mongo.MongoChange(ctx, r.PathValue("id"))
+			return d.MongoChange.Serve(ctx, r.PathValue("id"))
 		}
 		return nil, unsupportedChangeFlow(mod)
 	})
@@ -155,23 +155,23 @@ func GetChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes/{id}/approve [post]
 func ApproveChange(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.Engines.Engine(r.PathValue("engine"))
+		mod, err := d.Modules.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			if _, err := d.Changes.SQLChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.SQLChange.Serve(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return d.Changes.Approve(ctx, r.PathValue("id"))
+			return d.Approve.Serve(ctx, r.PathValue("id"))
 		case interfaces.MongoModule:
-			if _, err := d.Mongo.MongoChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.MongoChange.Serve(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return d.Changes.Approve(ctx, r.PathValue("id"))
+			return d.Approve.Serve(ctx, r.PathValue("id"))
 		}
 		return nil, unsupportedChangeFlow(mod)
 	})
@@ -185,20 +185,20 @@ func ApproveChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes/{id}/apply [post]
 func ApplyChange(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.Engines.Engine(r.PathValue("engine"))
+		mod, err := d.Modules.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		switch m := mod.(type) {
 		case interfaces.SQLModule:
-			if _, err := d.Changes.SQLChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.SQLChange.Serve(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return d.Changes.Apply(ctx, m, r.PathValue("id"))
+			return d.Apply.Serve(ctx, m, r.PathValue("id"))
 		case interfaces.MongoModule:
-			return d.Mongo.ApplyMongo(ctx, m, r.PathValue("id"))
+			return d.ApplyMongo.Serve(ctx, m, r.PathValue("id"))
 		}
 		return nil, unsupportedChangeFlow(mod)
 	})
@@ -212,23 +212,23 @@ func ApplyChange(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes/{id}/reject [post]
 func RejectChange(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.Engines.Engine(r.PathValue("engine"))
+		mod, err := d.Modules.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			if _, err := d.Changes.SQLChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.SQLChange.Serve(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return d.Changes.Reject(ctx, r.PathValue("id"))
+			return d.Reject.Serve(ctx, r.PathValue("id"))
 		case interfaces.MongoModule:
-			if _, err := d.Mongo.MongoChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.MongoChange.Serve(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
-			return d.Changes.Reject(ctx, r.PathValue("id"))
+			return d.Reject.Serve(ctx, r.PathValue("id"))
 		}
 		return nil, unsupportedChangeFlow(mod)
 	})
@@ -247,9 +247,9 @@ type scheduleBody struct {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes/{id}/schedule [post]
 func ScheduleChange(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.Engines.Engine(r.PathValue("engine"))
+		mod, err := d.Modules.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -259,17 +259,17 @@ func ScheduleChange(w http.ResponseWriter, r *http.Request) {
 		}
 		switch mod.(type) {
 		case interfaces.SQLModule:
-			if _, err := d.Changes.SQLChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.SQLChange.Serve(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
 		case interfaces.MongoModule:
-			if _, err := d.Mongo.MongoChange(ctx, r.PathValue("id")); err != nil {
+			if _, err := d.MongoChange.Serve(ctx, r.PathValue("id")); err != nil {
 				return nil, err
 			}
 		default:
 			return nil, unsupportedChangeFlow(mod)
 		}
-		return d.Changes.Schedule(ctx, r.PathValue("id"), body.ScheduledAt)
+		return d.Schedule.Serve(ctx, r.PathValue("id"), body.ScheduledAt)
 	})
 }
 
@@ -277,8 +277,8 @@ func ScheduleChange(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} usecases.TickResult
 // @Router /internal/callback/scheduler [post]
 func PostScheduler(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		return d.Changes.Tick(ctx)
+		return d.Tick.Serve(ctx)
 	})
 }

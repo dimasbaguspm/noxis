@@ -4,11 +4,16 @@ import (
 	"context"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
+	"noxis/internal/modules"
 	"strings"
 )
 
 // Instances is the "Instances" use case.
-type ListInstances struct{ Base }
+type ListInstances struct {
+	Connections interfaces.ConnectionRepository
+	Grants      interfaces.GrantRepository
+}
 
 // Serve runs it.
 func (uc ListInstances) Serve(ctx context.Context, name, driver, host string) (out []entity.Connection, err error) {
@@ -23,7 +28,7 @@ func (uc ListInstances) Serve(ctx context.Context, name, driver, host string) (o
 	out = make([]entity.Connection, 0, len(list))
 	for i := range list {
 		c := &list[i]
-		mod, ok := uc.moduleByDriver(c.Driver)
+		mod, ok := modules.RegistryFrom(ctx).Serves(c.Driver)
 		if !ok {
 			continue
 		}
@@ -36,7 +41,7 @@ func (uc ListInstances) Serve(ctx context.Context, name, driver, host string) (o
 		if hostNeedle != "" && !strings.Contains(strings.ToLower(c.Host), hostNeedle) {
 			continue
 		}
-		readable, err := uc.CanRead(ctx, c.Name)
+		readable, err := CanRead(ctx, uc.Grants, c.Name)
 		if err != nil {
 			return nil, err
 		}
