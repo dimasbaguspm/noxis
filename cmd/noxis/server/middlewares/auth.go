@@ -1,38 +1,18 @@
-package server
+package middlewares
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"strings"
-	"time"
 
-	"noxis/internal/usecases"
 	"noxis/internal/interfaces"
+	"noxis/internal/usecases"
 )
 
-// withMiddleware adds CORS and request logging.
-func withMiddleware(next http.Handler, log *slog.Logger) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		next.ServeHTTP(w, r)
-		log.InfoContext(r.Context(), "http",
-			"method", r.Method, "path", r.URL.Path,
-			"dur", time.Since(start).String())
-	})
-}
-
-// withAuth requires a valid bearer token on the API when a verifier is
+// WithAuth requires a valid bearer token on the API when a verifier is
 // configured. A nil verifier means authentication is disabled (open mode); the
 // console shell, assets and /healthz stay reachable so login can happen.
-func withAuth(verifier interfaces.Verifier, next http.Handler) http.Handler {
+func WithAuth(verifier interfaces.Verifier, next http.Handler) http.Handler {
 	if verifier == nil {
 		return next
 	}

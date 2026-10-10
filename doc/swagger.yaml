@@ -14,7 +14,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/api.AuthInfo"
+                $ref: "#/components/schemas/usecases.AuthInfo"
   /healthz:
     get:
       summary: Liveness probe
@@ -57,7 +57,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/api.DriverInfo"
+                  $ref: "#/components/schemas/handlers.DriverInfo"
   /v1/config/groups:
     get:
       summary: The known group names for grant editing
@@ -341,7 +341,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/api.scheduleBody"
+              $ref: "#/components/schemas/handlers.scheduleBody"
         description: scheduledAt unix seconds; 0 clears the schedule
         required: true
       responses:
@@ -494,7 +494,7 @@ paths:
           schema:
             type: string
       requestBody:
-        $ref: "#/components/requestBodies/api.opBody"
+        $ref: "#/components/requestBodies/handlers.opBody"
       responses:
         "200":
           description: OK
@@ -538,7 +538,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/api.opBody"
+              $ref: "#/components/schemas/handlers.opBody"
         description: table
         required: true
       responses:
@@ -678,7 +678,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/api.memcacheFlushBody"
+              $ref: "#/components/schemas/handlers.memcacheFlushBody"
         description: confirm must repeat the connection name
         required: true
       responses:
@@ -778,7 +778,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/api.grantBody"
+              $ref: "#/components/schemas/handlers.grantBody"
         description: group and level
         required: true
       responses:
@@ -936,7 +936,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/api.memcacheKeysBody"
+              $ref: "#/components/schemas/handlers.memcacheKeysBody"
         description: keys to remove
         required: true
       responses:
@@ -985,7 +985,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/api.opBody"
+              $ref: "#/components/schemas/handlers.opBody"
         description: sql (or table for analytics)
         required: true
       responses:
@@ -1074,7 +1074,7 @@ paths:
           schema:
             type: string
       requestBody:
-        $ref: "#/components/requestBodies/api.opBody"
+        $ref: "#/components/requestBodies/handlers.opBody"
       responses:
         "200":
           description: OK
@@ -1358,7 +1358,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/api.passwordBody"
+              $ref: "#/components/schemas/handlers.passwordBody"
         description: new password
         required: true
       responses:
@@ -1396,7 +1396,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/api.MeResponse"
+                $ref: "#/components/schemas/handlers.MeResponse"
         "401":
           description: Unauthorized
           content:
@@ -1407,90 +1407,14 @@ paths:
                   type: string
 components:
   requestBodies:
-    api.opBody:
+    handlers.opBody:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/api.opBody"
+            $ref: "#/components/schemas/handlers.opBody"
       description: sql
       required: true
   schemas:
-    api.AuthInfo:
-      type: object
-      properties:
-        clientId:
-          type: string
-        enabled:
-          type: boolean
-        issuer:
-          type: string
-    api.DriverInfo:
-      type: object
-      properties:
-        driver:
-          type: string
-        family:
-          type: string
-        label:
-          type: string
-    api.MeResponse:
-      type: object
-      properties:
-        admin:
-          description: Admin reports membership of the configured global-admin group.
-          type: boolean
-        connections:
-          type: object
-          additionalProperties:
-            type: string
-        email:
-          type: string
-        groups:
-          type: array
-          items:
-            type: string
-        name:
-          type: string
-        sub:
-          type: string
-    api.grantBody:
-      type: object
-      properties:
-        group:
-          type: string
-        level:
-          type: string
-    api.memcacheFlushBody:
-      type: object
-      properties:
-        confirm:
-          type: string
-    api.memcacheKeysBody:
-      type: object
-      properties:
-        keys:
-          type: array
-          items:
-            type: string
-    api.mongoChangeBody:
-      type: object
-    api.opBody:
-      type: object
-      properties:
-        sql:
-          type: string
-        table:
-          type: string
-    api.passwordBody:
-      type: object
-      properties:
-        password:
-          type: string
-    api.scheduleBody:
-      type: object
-      properties:
-        scheduledAt:
-          type: integer
     entity.Change:
       type: object
       required:
@@ -1653,6 +1577,73 @@ components:
             ScratchSchema is set by change validation: the throwaway schema the
             change was verified against, if any.
           type: string
+    handlers.DriverInfo:
+      type: object
+      properties:
+        driver:
+          type: string
+        family:
+          type: string
+        label:
+          type: string
+    handlers.MeResponse:
+      type: object
+      properties:
+        admin:
+          description: Admin reports membership of the configured global-admin group.
+          type: boolean
+        connections:
+          type: object
+          additionalProperties:
+            type: string
+        email:
+          type: string
+        groups:
+          type: array
+          items:
+            type: string
+        name:
+          type: string
+        sub:
+          type: string
+    handlers.grantBody:
+      type: object
+      properties:
+        group:
+          type: string
+        level:
+          type: string
+    handlers.memcacheFlushBody:
+      type: object
+      properties:
+        confirm:
+          type: string
+    handlers.memcacheKeysBody:
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            type: string
+    handlers.mongoChangeBody:
+      type: object
+    handlers.opBody:
+      type: object
+      properties:
+        sql:
+          type: string
+        table:
+          type: string
+    handlers.passwordBody:
+      type: object
+      properties:
+        password:
+          type: string
+    handlers.scheduleBody:
+      type: object
+      properties:
+        scheduledAt:
+          type: integer
     memcache.Key:
       type: object
       properties:
@@ -1788,6 +1779,15 @@ components:
         name:
           type: string
         schema:
+          type: string
+    usecases.AuthInfo:
+      type: object
+      properties:
+        clientId:
+          type: string
+        enabled:
+          type: boolean
+        issuer:
           type: string
     usecases.TickResult:
       description: applied and failed change ids from one tick.

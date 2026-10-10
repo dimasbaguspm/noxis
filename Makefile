@@ -8,8 +8,8 @@ build:
 web:  ## build the React console (web/, pnpm) into the embedded static dir
 	cd web && pnpm install --frozen-lockfile && pnpm build
 	# keep placeholder.html: go:embed needs a file, and a bare `go build` stays valid
-	rm -rf cmd/noxis/server/api/static/assets cmd/noxis/server/api/static/index.html
-	cp -r bin/dist/* cmd/noxis/server/api/static/
+	rm -rf cmd/noxis/server/handlers/static/assets cmd/noxis/server/handlers/static/index.html
+	cp -r bin/dist/* cmd/noxis/server/handlers/static/
 
 test:
 	go test ./...

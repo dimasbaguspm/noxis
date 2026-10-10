@@ -1,8 +1,9 @@
-package api
+package handlers
 
 import (
 	"context"
 	"net/http"
+	"noxis/internal/usecases"
 )
 
 // The instance routes are the cross-family view of a connection: any family's
@@ -17,10 +18,11 @@ import (
 // @Param perPage query int false "items per page (default 20, max 100)"
 // @Success 200 {object} object{instances=[]entity.Connection,total=int}
 // @Router /v1/instances [get]
-func (s *Server) ListInstances(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
+func ListInstances(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
 		q := r.URL.Query()
-		instances, err := s.App.Instances(ctx, q.Get("name"), q.Get("driver"), q.Get("host"))
+		instances, err := d.App.Instances(ctx, q.Get("name"), q.Get("driver"), q.Get("host"))
 		if err != nil {
 			return nil, err
 		}
@@ -39,13 +41,14 @@ func (s *Server) ListInstances(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Router /v1/instances/{id}/password [post]
-func (s *Server) RotatePassword(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
+func RotatePassword(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
 		var body passwordBody
 		if err := decode(r, &body); err != nil {
 			return nil, err
 		}
-		if err := s.App.RotatePassword(ctx, r.PathValue("id"), body.Password); err != nil {
+		if err := d.App.RotatePassword(ctx, r.PathValue("id"), body.Password); err != nil {
 			return nil, err
 		}
 		return map[string]string{"status": "ok"}, nil
@@ -57,9 +60,10 @@ func (s *Server) RotatePassword(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Connection
 // @Failure 404 {object} map[string]string
 // @Router /v1/instances/{id} [get]
-func (s *Server) GetInstance(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		return s.App.Instance(ctx, r.PathValue("id"))
+func GetInstance(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		return d.App.Instance(ctx, r.PathValue("id"))
 	})
 }
 

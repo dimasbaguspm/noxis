@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules/mongodb"
+	"noxis/internal/usecases"
 )
 
 // The MongoDB operations. Connection CRUD and the change routes are shared
@@ -24,13 +25,14 @@ import (
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/databases [get]
-func (s *Server) ListDatabases(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		m, err := s.engineMongo(r)
+func ListDatabases(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		m, err := d.App.EngineMongo(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := s.App.Raw(ctx, m, r.PathValue("name"), entity.LevelRead)
+		c, err := d.App.Raw(ctx, m, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -47,13 +49,14 @@ func (s *Server) ListDatabases(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/collections [get]
-func (s *Server) ListCollections(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
-		m, err := s.engineMongo(r)
+func ListCollections(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
+		m, err := d.App.EngineMongo(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := s.App.Raw(ctx, m, r.PathValue("name"), entity.LevelRead)
+		c, err := d.App.Raw(ctx, m, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -70,13 +73,14 @@ func (s *Server) ListCollections(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /v1/engine/{engine}/connections/{name}/requests [post]
-func (s *Server) PostRequest(w http.ResponseWriter, r *http.Request) {
-	s.handle(w, r, func(ctx context.Context) (any, error) {
+func PostRequest(w http.ResponseWriter, r *http.Request) {
+	d := usecases.From(r.Context())
+	handle(w, r, func(ctx context.Context) (any, error) {
 		var req interfaces.MongoRequest
 		if err := decode(r, &req); err != nil {
 			return nil, err
 		}
-		m, err := s.engineMongo(r)
+		m, err := d.App.EngineMongo(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +90,7 @@ func (s *Server) PostRequest(w http.ResponseWriter, r *http.Request) {
 		if mongodb.IsWrite(req.Op) {
 			level = entity.LevelWrite
 		}
-		c, err := s.App.Raw(ctx, m, r.PathValue("name"), level)
+		c, err := d.App.Raw(ctx, m, r.PathValue("name"), level)
 		if err != nil {
 			return nil, err
 		}

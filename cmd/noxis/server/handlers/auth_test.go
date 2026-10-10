@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"net/http"
@@ -6,14 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"noxis/internal/usecases"
 	"noxis/internal/entity"
+	"noxis/internal/usecases"
 )
 
 func TestGetMeServesPrincipal(t *testing.T) {
-	srv, _, _, _ := newTestServer(&fakeSQL{})
+	deps, _, _, _ := newTestDeps(&fakeSQL{})
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/me", srv.GetMe)
+	mux.HandleFunc("GET /v1/me", GetMe)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody)
 	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Principal{
@@ -22,7 +22,7 @@ func TestGetMeServesPrincipal(t *testing.T) {
 		Admin:   true,
 	}))
 	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
+	depsHandler(mux, deps).ServeHTTP(rec, req.WithContext(usecases.WithDeps(req.Context(), deps)))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
@@ -35,17 +35,17 @@ func TestGetMeServesPrincipal(t *testing.T) {
 }
 
 func TestGetMeIncludesLevels(t *testing.T) {
-	srv, app, _, _ := newTestServer(&fakeSQL{})
+	deps, app, _, _ := newTestDeps(&fakeSQL{})
 	app.Grants = &fakeGrants{grants: map[string]entity.Grant{
 		"dev": {Connection: "demo", Group: "readers", Level: entity.LevelRead},
 	}}
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/me", srv.GetMe)
+	mux.HandleFunc("GET /v1/me", GetMe)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody)
 	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Principal{Subject: "bob", Groups: []string{"readers"}}))
 	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
+	depsHandler(mux, deps).ServeHTTP(rec, req.WithContext(usecases.WithDeps(req.Context(), deps)))
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
@@ -56,25 +56,25 @@ func TestGetMeIncludesLevels(t *testing.T) {
 }
 
 func TestGetAuthConfig(t *testing.T) {
-	srv, _, _, _ := newTestServer(&fakeSQL{})
-	srv.Auth = AuthInfo{Enabled: false}
+	deps, _, _, _ := newTestDeps(&fakeSQL{})
+	deps.Auth = usecases.AuthInfo{Enabled: false}
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /auth/config", srv.GetAuthConfig)
+	mux.HandleFunc("GET /auth/config", GetAuthConfig)
 
 	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/config", http.NoBody))
+	depsHandler(mux, deps).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/config", http.NoBody))
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"enabled":false`) {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
 }
 
 func TestGetMeUnauthenticated(t *testing.T) {
-	srv, _, _, _ := newTestServer(&fakeSQL{})
+	deps, _, _, _ := newTestDeps(&fakeSQL{})
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/me", srv.GetMe)
+	mux.HandleFunc("GET /v1/me", GetMe)
 
 	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody))
+	depsHandler(mux, deps).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody))
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status=%d want 401", rec.Code)
 	}

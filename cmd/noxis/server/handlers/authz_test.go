@@ -1,14 +1,14 @@
-package api
+package handlers
 
 import (
 	"context"
 	"errors"
 	"testing"
 
-	"noxis/internal/usecases"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
+	"noxis/internal/usecases"
 )
 
 func authzApp(grants ...entity.Grant) (*usecases.App, interfaces.Module) {
