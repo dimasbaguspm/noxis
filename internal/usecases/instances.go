@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
@@ -13,7 +14,7 @@ import (
 // when the caller may read it. A caller without read access gets not-found, so
 // the id space never leaks an instance the caller cannot see.
 func (a *App) Instance(ctx context.Context, id string) (out entity.Connection, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	c, err := a.Connections.GetByID(ctx, id)
 	if err != nil {
@@ -37,7 +38,7 @@ func (a *App) Instance(ctx context.Context, id string) (out entity.Connection, e
 // Instances lists every readable instance across families. Filters are
 // optional: name and host match as substrings, driver matches exactly.
 func (a *App) Instances(ctx context.Context, name, driver, host string) (out []entity.Connection, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	list, err := a.Connections.List(ctx)
 	if err != nil {
@@ -77,7 +78,7 @@ func (a *App) Instances(ctx context.Context, name, driver, host string) (out []e
 // RotatePassword replaces an instance's password. Identity fields are locked,
 // so this is the only way to update a credential; it is a global-admin action.
 func (a *App) RotatePassword(ctx context.Context, id, password string) (err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := a.RequireAdmin(ctx); err != nil {
 		return err

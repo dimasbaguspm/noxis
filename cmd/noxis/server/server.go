@@ -36,14 +36,13 @@ func newVerifier(ctx context.Context, cfg entity.Config) (interfaces.Verifier, e
 }
 
 // newApp wires the shared stores and the engine-family registry into the
-// application use cases.
-func newApp(store *sqlite.Store, log *slog.Logger) *usecases.App {
+// use cases.
+func newApp(store *sqlite.Store) *usecases.App {
 	return &usecases.App{
 		Connections: store,
 		Changes:     store,
 		Grants:      store,
 		Modules:     modules.Default(),
-		Log:         log,
 	}
 }
 
@@ -60,7 +59,6 @@ func newDeps(app *usecases.App, log *slog.Logger, cfg entity.Config) usecases.De
 			Issuer:   cfg.OIDCIssuer,
 			ClientID: cfg.OIDCClientID,
 		},
-		TickKey: cfg.TickKey,
 	}
 }
 
@@ -126,7 +124,7 @@ func newHandler(verifier interfaces.Verifier) http.Handler {
 
 	// Scheduling: an external cron (or the in-process scheduler) drives due
 	// changes through the same handler.
-	mux.HandleFunc("POST /internal/tick", handlers.PostTick)
+	mux.HandleFunc("POST /internal/callback/scheduler", handlers.PostScheduler)
 
 	// Instances address a connection by its stable id, across families. The
 	// family routes live under /v1/engine/{engine}/..., so these paths never
@@ -165,12 +163,14 @@ func Run(ctx context.Context, log *slog.Logger, cfg entity.Config) error {
 
 	log.InfoContext(ctx, "noxis serving", "addr", cfg.Listen, "db", cfg.DB)
 
-	app := newApp(store, log)
+	app := newApp(store)
 	deps := newDeps(app, log, cfg)
 
-	// authentication (when a verifier is configured), then CORS + request
-	// logging around the route table
-	handler := middlewares.WithMiddleware(middlewares.WithAuth(verifier, newHandler(verifier)), log)
+	// CORS, then authentication (when a verifier is configured), then request
+	// logging + span: the request log and its span run after the principal is
+	// attached, so the user's trace attributes and log fields are set once,
+	// in the middleware layer.
+	handler := middlewares.CORS(middlewares.WithAuth(verifier, middlewares.RequestLog(newHandler(verifier), log)))
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler}
 	// every request ctx descends from ours, seeded once with the deps
 	srv.BaseContext = func(net.Listener) context.Context { return usecases.WithDeps(ctx, deps) }

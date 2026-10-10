@@ -131,13 +131,11 @@ func newApp(sq interfaces.SQLModule) (*usecases.App, *fakeChanges, *fakeConns) {
 		"demo": {Name: "demo", Driver: constants.DriverPostgres, Host: "db", Port: 5432, User: "postgres", Database: "demo"},
 	}}
 	changes := &fakeChanges{changes: map[string]entity.Change{}}
-	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	return &usecases.App{
 		Connections: conns,
 		Changes:     changes,
 		Grants:      &fakeGrants{grants: map[string]entity.Grant{}},
 		Modules:     map[string]interfaces.Module{constants.FamilySQL: sq},
-		Log:         log,
 	}, changes, conns
 }
 
@@ -145,7 +143,8 @@ func newApp(sq interfaces.SQLModule) (*usecases.App, *fakeChanges, *fakeConns) {
 // for direct workflow calls and store inspection.
 func newTestDeps(sq interfaces.SQLModule) (usecases.Deps, *usecases.App, *fakeChanges, *fakeConns) {
 	app, changes, conns := newApp(sq)
-	return usecases.Deps{App: app, Log: app.Log}, app, changes, conns
+	log := slog.New(slog.NewTextHandler(io.Discard, nil))
+	return usecases.Deps{App: app, Log: log}, app, changes, conns
 }
 
 func sampleChange() entity.Change {
@@ -402,30 +401,22 @@ func TestTickAppliesDueScheduledChange(t *testing.T) {
 	}
 }
 
-// TestTickEndpointRequiresKey locks the key guard on the external tick path.
-func TestTickEndpointRequiresKey(t *testing.T) {
-	deps, _, _, _ := newTestDeps(&fakeSQL{})
-	deps.TickKey = "s3cret"
+// TestSchedulerEndpoint runs the keyless external scheduler hook.
+func TestSchedulerEndpoint(t *testing.T) {
+	deps, _, changes, _ := newTestDeps(&fakeSQL{})
+	changes.changes["due"] = entity.Change{ID: "due", Kind: constants.KindDDL, Status: constants.ChangeApproved, Connection: "demo"}
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /internal/tick", PostTick)
+	mux.HandleFunc("POST /internal/callback/scheduler", PostScheduler)
 
-	cases := []struct {
-		key  string
-		want int
-	}{
-		{"", http.StatusUnauthorized},
-		{"wrong", http.StatusUnauthorized},
-		{"s3cret", http.StatusOK},
-	}
-	for _, tc := range cases {
-		req := httptest.NewRequest(http.MethodPost, "/internal/tick", http.NoBody)
-		if tc.key != "" {
-			req.Header.Set("X-API-Key", tc.key)
-		}
+	for _, path := range []string{
+		"/internal/callback/scheduler",
+		"/internal/callback/scheduler",
+	} {
+		req := httptest.NewRequest(http.MethodPost, path, http.NoBody)
 		rec := httptest.NewRecorder()
 		depsHandler(mux, deps).ServeHTTP(rec, req.WithContext(usecases.WithDeps(req.Context(), deps)))
-		if rec.Code != tc.want {
-			t.Fatalf("key=%q status=%d want=%d body=%s", tc.key, rec.Code, tc.want, rec.Body.String())
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 		}
 	}
 }

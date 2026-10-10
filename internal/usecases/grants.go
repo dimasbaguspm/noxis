@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
 
 // ListGrants lists a connection's group grants; a global-admin action.
 func (a *App) ListGrants(ctx context.Context, mod interfaces.Module, name string) (out []entity.Grant, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := a.RequireAdmin(ctx); err != nil {
 		return nil, err
@@ -24,7 +25,7 @@ func (a *App) ListGrants(ctx context.Context, mod interfaces.Module, name string
 // SetGrant grants an OIDC group a level on a connection; a global-admin
 // action.
 func (a *App) SetGrant(ctx context.Context, mod interfaces.Module, name, group, level string) (out entity.Grant, err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := a.RequireAdmin(ctx); err != nil {
 		return entity.Grant{}, err
@@ -44,7 +45,7 @@ func (a *App) SetGrant(ctx context.Context, mod interfaces.Module, name, group, 
 
 // DeleteGrant revokes a group's grant on a connection; a global-admin action.
 func (a *App) DeleteGrant(ctx context.Context, mod interfaces.Module, name, group string) (err error) {
-	ctx, end := a.span(ctx)
+	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := a.RequireAdmin(ctx); err != nil {
 		return err

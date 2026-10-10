@@ -2,14 +2,41 @@ package logging
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 	"strings"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const modulePrefix = "noxis/"
+
+// Attach sets attributes on the current span from key/value pairs (string,
+// bool and []string values; other types render with fmt). It is a no-op when
+// there is no recording span, so callers (the middleware layer) set request
+// attributes without caring whether tracing is enabled.
+func Attach(ctx context.Context, keyValues ...any) {
+	span := trace.SpanFromContext(ctx)
+	if !span.IsRecording() || len(keyValues) == 0 {
+		return
+	}
+	attrs := make([]attribute.KeyValue, 0, len(keyValues)/2)
+	for i := 0; i+1 < len(keyValues); i += 2 {
+		key := attribute.Key(fmt.Sprint(keyValues[i]))
+		switch v := keyValues[i+1].(type) {
+		case bool:
+			attrs = append(attrs, key.Bool(v))
+		case []string:
+			attrs = append(attrs, key.StringSlice(v))
+		default:
+			attrs = append(attrs, key.String(fmt.Sprint(v)))
+		}
+	}
+	span.SetAttributes(attrs...)
+}
 
 // StartSpan opens a span for the calling function. Name it explicitly, or let
 // it derive the project convention: <Module>.<Package>.<Type>.<Method>

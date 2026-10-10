@@ -14,7 +14,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 
 	"noxis/internal/common/logging"
@@ -22,25 +21,10 @@ import (
 	"noxis/internal/usecases"
 )
 
-// spanNamed opens a span with an explicit name and logs its outcome; the
-// handler helpers pass the caller's name.
-func spanNamed(ctx context.Context, log *slog.Logger, name string) (ctxOut context.Context, end func(error)) {
-	ctxOut, endSpan := logging.StartSpan(ctx, name)
-	return ctxOut, func(err error) {
-		if err != nil {
-			log.WarnContext(ctxOut, name, "error", err.Error())
-		} else {
-			log.InfoContext(ctxOut, name)
-		}
-		endSpan(err)
-	}
-}
-
-// handle runs one handler body: deps from the request context, span (named
-// after the handler), error mapping, JSON response.
+// handle runs one handler body: span (named after the handler; StartSpan
+// derives the name from the caller), error mapping, JSON response.
 func handle(w http.ResponseWriter, r *http.Request, fn func(ctx context.Context) (any, error)) {
-	d := usecases.From(r.Context())
-	ctx, end := spanNamed(r.Context(), d.Log, logging.CallerName(1))
+	ctx, end := logging.StartSpan(r.Context(), logging.CallerName(1))
 	v, err := fn(ctx)
 	end(err)
 	if err != nil {
@@ -52,8 +36,7 @@ func handle(w http.ResponseWriter, r *http.Request, fn func(ctx context.Context)
 
 // handleNoContent is handle for operations with an empty response.
 func handleNoContent(w http.ResponseWriter, r *http.Request, fn func(ctx context.Context) error) {
-	d := usecases.From(r.Context())
-	ctx, end := spanNamed(r.Context(), d.Log, logging.CallerName(1))
+	ctx, end := logging.StartSpan(r.Context(), logging.CallerName(1))
 	err := fn(ctx)
 	end(err)
 	if err != nil {

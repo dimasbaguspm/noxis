@@ -34,20 +34,9 @@
                 }
             }
         },
-        "/internal/tick": {
+        "/internal/callback/scheduler": {
             "post": {
                 "summary": "Apply every due scheduled change (external cron / scheduler)",
-                "parameters": [
-                    {
-                        "description": "NOXIS_TICK_KEY",
-                        "name": "X-API-Key",
-                        "in": "header",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -55,19 +44,6 @@
                             "*/*": {
                                 "schema": {
                                     "$ref": "#/components/schemas/usecases.TickResult"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "additionalProperties": {
-                                        "type": "string"
-                                    }
                                 }
                             }
                         }

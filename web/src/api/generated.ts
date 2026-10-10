@@ -74,7 +74,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/internal/tick": {
+    "/internal/callback/scheduler": {
         parameters: {
             query?: never;
             header?: never;
@@ -87,10 +87,7 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header: {
-                    /** @description NOXIS_TICK_KEY */
-                    "X-API-Key": string;
-                };
+                header?: never;
                 path?: never;
                 cookie?: never;
             };
@@ -103,17 +100,6 @@ export interface paths {
                     };
                     content: {
                         "*/*": components["schemas"]["usecases.TickResult"];
-                    };
-                };
-                /** @description Unauthorized */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": {
-                            [key: string]: string;
-                        };
                     };
                 };
             };
