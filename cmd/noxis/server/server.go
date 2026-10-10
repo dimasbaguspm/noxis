@@ -54,7 +54,7 @@ func newDeps(app *usecases.App, log *slog.Logger, cfg config.Config) usecases.De
 		App:   app,
 		Log:   log,
 		Cache: cache.New(),
-		Auth: usecases.AuthInfo{
+		Auth: config.AuthInfo{
 			Enabled:  cfg.OIDCIssuer != "",
 			Issuer:   cfg.OIDCIssuer,
 			ClientID: cfg.OIDCClientID,

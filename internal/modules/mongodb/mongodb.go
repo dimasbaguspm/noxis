@@ -49,50 +49,6 @@ type DB struct{}
 
 func New() *DB { return &DB{} }
 
-// Result is the shared operation outcome plus the documents as Extended JSON,
-// so the console can render them as a grid, as JSON or as a tree.
-type Result struct {
-	entity.Result
-	Documents []string `json:"documents,omitempty"`
-}
-
-// Database is one database with its size, as `dbStats` reports it.
-type Database struct {
-	Name           string `json:"name"`
-	SizeBytes      int64  `json:"sizeBytes"`      // uncompressed data
-	StorageBytes   int64  `json:"storageBytes"`   // on-disk
-	IndexSizeBytes int64  `json:"indexSizeBytes"` //
-	Collections    int64  `json:"collections"`
-	Objects        int64  `json:"objects"`
-	AvgObjectSize  int64  `json:"avgObjectSizeBytes"`
-}
-
-// Collection is one collection with its size, as `collStats` reports it.
-type Collection struct {
-	Name           string `json:"name"`
-	Type           string `json:"type"` // collection | view | timeseries
-	Count          int64  `json:"count"`
-	SizeBytes      int64  `json:"sizeBytes"`
-	StorageBytes   int64  `json:"storageBytes"`
-	AvgObjectSize  int64  `json:"avgObjectSizeBytes"`
-	Indexes        int64  `json:"indexes"`
-	IndexSizeBytes int64  `json:"indexSizeBytes"`
-	Capped         bool   `json:"capped"`
-}
-
-// Request is one CRUD request: the filter and the value are separate
-// documents, both written as MongoDB Extended JSON.
-type Request struct {
-	Op         string `json:"op"`
-	Database   string `json:"database"`
-	Collection string `json:"collection"`
-	Filter     string `json:"filter,omitempty"`
-	Value      string `json:"value,omitempty"`
-	Sort       string `json:"sort,omitempty"`
-	Limit      int64  `json:"limit,omitempty"`
-	Many       bool   `json:"many,omitempty"`
-}
-
 // Family is the namespace this module serves.
 func (m *DB) Family() string { return constants.FamilyMongo }
 
@@ -116,7 +72,7 @@ func (m *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 }
 
 // Databases lists the databases with their sizes.
-func (m *DB) Databases(ctx context.Context, c entity.Connection) (out []Database, err error) {
+func (m *DB) Databases(ctx context.Context, c entity.Connection) (out []entity.Database, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	err = withClient(ctx, c, func(ctx context.Context, cl *mongo.Client) error {
@@ -126,9 +82,9 @@ func (m *DB) Databases(ctx context.Context, c entity.Connection) (out []Database
 		if err != nil {
 			return fmt.Errorf("list databases on %s: %w", c.Name, err)
 		}
-		out = make([]Database, 0, len(names))
+		out = make([]entity.Database, 0, len(names))
 		for _, name := range names {
-			db := Database{Name: name}
+			db := entity.Database{Name: name}
 			var stats bson.M
 			if err := cl.Database(name).RunCommand(ctx, bson.D{{Key: "dbStats", Value: 1}}).Decode(&stats); err == nil {
 				db.SizeBytes = number(stats["dataSize"])
@@ -148,7 +104,7 @@ func (m *DB) Databases(ctx context.Context, c entity.Connection) (out []Database
 }
 
 // Collections lists a database's collections with their sizes.
-func (m *DB) Collections(ctx context.Context, c entity.Connection, database string) (out []Collection, err error) {
+func (m *DB) Collections(ctx context.Context, c entity.Connection, database string) (out []entity.Collection, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if database == "" {
@@ -163,13 +119,13 @@ func (m *DB) Collections(ctx context.Context, c entity.Connection, database stri
 		}
 		defer func() { _ = cursor.Close(ctx) }()
 
-		var described []Collection
+		var described []entity.Collection
 		for cursor.Next(ctx) {
 			var doc bson.M
 			if err := cursor.Decode(&doc); err != nil {
 				return fmt.Errorf("decode collection: %w", err)
 			}
-			collection := Collection{Name: stringOf(doc["name"]), Type: stringOf(doc["type"])}
+			collection := entity.Collection{Name: stringOf(doc["name"]), Type: stringOf(doc["type"])}
 			if collection.Type == "" {
 				collection.Type = "collection"
 			}
@@ -207,11 +163,11 @@ func IsWrite(op string) bool {
 
 // Run executes one read request. Writes are refused here on purpose: they go
 // through ValidateRequest and the review queue.
-func (m *DB) Run(ctx context.Context, c entity.Connection, req Request) (res Result, err error) {
+func (m *DB) Run(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if IsWrite(req.Op) {
-		return Result{}, fmt.Errorf("op %q changes documents: submit it as a request for review", req.Op)
+		return entity.Result{}, fmt.Errorf("op %q changes documents: submit it as a request for review", req.Op)
 	}
 	return m.run(ctx, c, req)
 }
@@ -224,11 +180,11 @@ func (m *DB) Run(ctx context.Context, c entity.Connection, req Request) (res Res
 //
 // ponytail: a scratch copy, not a transaction (transactions need a replica
 // set). Switch to a real transaction when the server is one.
-func (m *DB) ValidateRequest(ctx context.Context, c entity.Connection, req Request) (res Result, err error) {
+func (m *DB) ValidateRequest(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	if err := req.validate(); err != nil {
-		return Result{}, err
+	if err := validateRequest(req); err != nil {
+		return entity.Result{}, err
 	}
 	started := time.Now()
 	defer func() { res.DurationMs = time.Since(started).Milliseconds() }()
@@ -253,11 +209,11 @@ func (m *DB) ValidateRequest(ctx context.Context, c entity.Connection, req Reque
 }
 
 // Apply runs a write for real, after review.
-func (m *DB) Apply(ctx context.Context, c entity.Connection, req Request) (res Result, err error) {
+func (m *DB) Apply(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	if err := req.validate(); err != nil {
-		return Result{}, err
+	if err := validateRequest(req); err != nil {
+		return entity.Result{}, err
 	}
 	return m.run(ctx, c, req)
 }
@@ -265,7 +221,7 @@ func (m *DB) Apply(ctx context.Context, c entity.Connection, req Request) (res R
 // applyOn copies the documents a request matches into target and applies the
 // write there. It is the body of the dry run, and the only difference from a
 // real apply is which collection it writes to.
-func applyOn(ctx context.Context, source, target *mongo.Collection, req Request) (int64, error) {
+func applyOn(ctx context.Context, source, target *mongo.Collection, req entity.MongoRequest) (int64, error) {
 	if req.Op == constants.MongoInsert {
 		doc, err := parseValue(req.Value)
 		if err != nil {
@@ -361,14 +317,14 @@ func randSuffix() string {
 }
 
 // run executes a request against the real collection.
-func (m *DB) run(ctx context.Context, c entity.Connection, req Request) (res Result, err error) {
+func (m *DB) run(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	started := time.Now()
 	defer func() { res.DurationMs = time.Since(started).Milliseconds() }()
 
-	if err := req.validate(); err != nil {
-		return Result{}, err
+	if err := validateRequest(req); err != nil {
+		return entity.Result{}, err
 	}
 	err = withClient(ctx, c, func(ctx context.Context, cl *mongo.Client) error {
 		ctx, cancel := context.WithTimeout(ctx, opTimeout)
@@ -405,10 +361,10 @@ func (m *DB) run(ctx context.Context, c entity.Connection, req Request) (res Res
 	return res, err
 }
 
-// validate keeps the request honest: a known op, a target, and no update or
-// delete without a filter (an empty filter would rewrite or empty the whole
-// collection).
-func (r Request) validate() error {
+// validateRequest keeps the request honest: a known op, a target, and no
+// update or delete without a filter (an empty filter would rewrite or empty
+// the whole collection).
+func validateRequest(r entity.MongoRequest) error {
 	if r.Database == "" || r.Collection == "" {
 		return fmt.Errorf("database and collection are required")
 	}
@@ -437,7 +393,7 @@ func (r Request) validate() error {
 	return nil
 }
 
-func find(ctx context.Context, collection *mongo.Collection, req Request, res *Result) error {
+func find(ctx context.Context, collection *mongo.Collection, req entity.MongoRequest, res *entity.Result) error {
 	filter, err := parseFilter(req.Filter)
 	if err != nil {
 		return err
@@ -462,7 +418,7 @@ func find(ctx context.Context, collection *mongo.Collection, req Request, res *R
 	return renderCursor(ctx, cursor, res)
 }
 
-func aggregate(ctx context.Context, collection *mongo.Collection, req Request, res *Result) error {
+func aggregate(ctx context.Context, collection *mongo.Collection, req entity.MongoRequest, res *entity.Result) error {
 	if strings.TrimSpace(req.Filter) == "" {
 		return fmt.Errorf("aggregate needs a pipeline in the filter box, e.g. [{$match: {}}]")
 	}
@@ -477,7 +433,7 @@ func aggregate(ctx context.Context, collection *mongo.Collection, req Request, r
 	return renderCursor(ctx, cursor, res)
 }
 
-func insert(ctx context.Context, collection *mongo.Collection, req Request, res *Result) error {
+func insert(ctx context.Context, collection *mongo.Collection, req entity.MongoRequest, res *entity.Result) error {
 	doc, err := parseValue(req.Value)
 	if err != nil {
 		return err
@@ -507,7 +463,7 @@ func insert(ctx context.Context, collection *mongo.Collection, req Request, res 
 	return nil
 }
 
-func update(ctx context.Context, collection *mongo.Collection, req Request, res *Result) error {
+func update(ctx context.Context, collection *mongo.Collection, req entity.MongoRequest, res *entity.Result) error {
 	filter, err := parseFilter(req.Filter)
 	if err != nil {
 		return err
@@ -534,7 +490,7 @@ func update(ctx context.Context, collection *mongo.Collection, req Request, res 
 	return nil
 }
 
-func remove(ctx context.Context, collection *mongo.Collection, req Request, res *Result) error {
+func remove(ctx context.Context, collection *mongo.Collection, req entity.MongoRequest, res *entity.Result) error {
 	filter, err := parseFilter(req.Filter)
 	if err != nil {
 		return err
@@ -559,7 +515,7 @@ func remove(ctx context.Context, collection *mongo.Collection, req Request, res 
 
 // renderCursor turns documents into the shared grid: the columns are the union
 // of top-level keys, values are Extended JSON.
-func renderCursor(ctx context.Context, cursor *mongo.Cursor, res *Result) error {
+func renderCursor(ctx context.Context, cursor *mongo.Cursor, res *entity.Result) error {
 	defer func() { _ = cursor.Close(ctx) }()
 	docs := make([]bson.M, 0, maxGridRows)
 	seen := map[string]bool{}
@@ -602,8 +558,8 @@ func renderCursor(ctx context.Context, cursor *mongo.Cursor, res *Result) error 
 }
 
 // describeAll fills in the stats of every collection, with bounded workers.
-func describeAll(ctx context.Context, database *mongo.Database, collections []Collection) []Collection {
-	out := make([]Collection, len(collections))
+func describeAll(ctx context.Context, database *mongo.Database, collections []entity.Collection) []entity.Collection {
+	out := make([]entity.Collection, len(collections))
 	sem := make(chan struct{}, collStatWorkers)
 	done := make(chan int, len(collections))
 	for i, collection := range collections {
@@ -622,8 +578,8 @@ func describeAll(ctx context.Context, database *mongo.Database, collections []Co
 
 // describeOne asks for one collection's stats; a refused collection keeps its
 // name so the list is still usable.
-func describeOne(ctx context.Context, database *mongo.Database, name string) Collection {
-	out := Collection{Name: name, Type: "collection"}
+func describeOne(ctx context.Context, database *mongo.Database, name string) entity.Collection {
+	out := entity.Collection{Name: name, Type: "collection"}
 	var stats bson.M
 	if err := database.RunCommand(ctx, bson.D{{Key: "collStats", Value: name}}).Decode(&stats); err != nil {
 		return out

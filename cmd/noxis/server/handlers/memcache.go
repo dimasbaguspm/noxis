@@ -22,9 +22,9 @@ import (
 // @Param name path string true "connection name"
 // @Param pattern query string false "glob pattern (default *)"
 // @Param limit query int false "scan cap (default 500, max 5000)"
-// @Success 200 {object} memcache.KeyPage
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Success 200 {object} entity.KeyPage
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/keys [get]
 func ListKeys(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -47,8 +47,8 @@ func ListKeys(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Param key query string true "key name"
 // @Success 200 {object} entity.Result
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/value [get]
 func GetValue(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -78,8 +78,8 @@ type memcacheKeysBody struct {
 // @Param name path string true "connection name"
 // @Param body body memcacheKeysBody true "keys to remove"
 // @Success 200 {object} object{deleted=int}
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/keys [delete]
 func DeleteKeys(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -109,9 +109,9 @@ type memcacheFlushBody struct {
 // @Param engine path string true "engine family (memcache)"
 // @Param name path string true "connection name"
 // @Param body body memcacheFlushBody true "confirm must repeat the connection name"
-// @Success 200 {object} object{status=string}
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Success 200 {object} entity.StatusResponse
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/flush [post]
 func FlushDB(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -134,6 +134,6 @@ func FlushDB(w http.ResponseWriter, r *http.Request) {
 		if err := mc.Flush(ctx, *c); err != nil {
 			return nil, err
 		}
-		return map[string]string{"status": "flushed"}, nil
+		return entity.StatusResponse{Status: "flushed"}, nil
 	})
 }

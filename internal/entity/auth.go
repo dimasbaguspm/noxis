@@ -1,9 +1,9 @@
 package entity
 
-// Principal is the authenticated caller, derived from the OIDC token on every
+// Identity is the authenticated caller, derived from the OIDC token on every
 // request. Noxis stores no users: identity and group membership come from the
 // issuer, and the groups drive the per-connection grants.
-type Principal struct {
+type Identity struct {
 	Subject string   `json:"sub"`
 	Name    string   `json:"name,omitempty"`
 	Email   string   `json:"email,omitempty"`

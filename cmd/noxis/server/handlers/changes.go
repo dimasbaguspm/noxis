@@ -29,7 +29,7 @@ func unsupportedChangeFlow(mod interfaces.Module) error {
 // @Param page query int false "page number, starting at 1"
 // @Param perPage query int false "items per page (default 20, max 100)"
 // @Success 200 {object} object{changes=[]entity.Change,total=int}
-// @Failure 404 {object} map[string]string
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes [get]
 func ListChanges(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -96,8 +96,8 @@ func filterByStatus(changes []entity.Change, status string) []entity.Change {
 // @Param engine path string true "engine family (sql, mongodb)"
 // @Param body body entity.Change true "connection, notes, query, rollback (sql) or the request (mongodb)"
 // @Success 200 {object} entity.Change
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes [post]
 func SubmitChange(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -128,7 +128,7 @@ func SubmitChange(w http.ResponseWriter, r *http.Request) {
 // @Param engine path string true "engine family (sql, mongodb)"
 // @Param id path string true "change id"
 // @Success 200 {object} entity.Change
-// @Failure 404 {object} map[string]string
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes/{id} [get]
 func GetChange(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -151,8 +151,8 @@ func GetChange(w http.ResponseWriter, r *http.Request) {
 // @Param engine path string true "engine family (sql, mongodb)"
 // @Param id path string true "change id"
 // @Success 200 {object} entity.Change
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes/{id}/approve [post]
 func ApproveChange(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -181,8 +181,8 @@ func ApproveChange(w http.ResponseWriter, r *http.Request) {
 // @Param engine path string true "engine family (sql, mongodb)"
 // @Param id path string true "change id"
 // @Success 200 {object} entity.Change
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes/{id}/apply [post]
 func ApplyChange(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -208,8 +208,8 @@ func ApplyChange(w http.ResponseWriter, r *http.Request) {
 // @Param engine path string true "engine family (sql, mongodb)"
 // @Param id path string true "change id"
 // @Success 200 {object} entity.Change
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes/{id}/reject [post]
 func RejectChange(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -243,8 +243,8 @@ type scheduleBody struct {
 // @Param id path string true "change id"
 // @Param body body scheduleBody true "scheduledAt unix seconds; 0 clears the schedule"
 // @Success 200 {object} entity.Change
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/changes/{id}/schedule [post]
 func ScheduleChange(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())

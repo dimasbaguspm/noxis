@@ -9,7 +9,7 @@ import (
 )
 
 // @Summary Public OIDC configuration (console bootstrap)
-// @Success 200 {object} usecases.AuthInfo
+// @Success 200 {object} config.AuthInfo
 // @Router /auth/config [get]
 func GetAuthConfig(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -21,13 +21,13 @@ func GetAuthConfig(w http.ResponseWriter, r *http.Request) {
 // MeResponse is the caller plus the effective level it holds on each readable
 // connection, so the console can gate actions without guessing.
 type MeResponse struct {
-	entity.Principal
+	entity.Identity
 	Connections map[string]string `json:"connections"`
 }
 
 // @Summary The authenticated caller and its per-connection levels
 // @Success 200 {object} MeResponse
-// @Failure 401 {object} map[string]string
+// @Failure 401 {object} entity.ErrorResponse
 // @Router /v1/me [get]
 func GetMe(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -40,6 +40,6 @@ func GetMe(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return nil, err
 		}
-		return MeResponse{Principal: p, Connections: levels}, nil
+		return MeResponse{Identity: p, Connections: levels}, nil
 	})
 }

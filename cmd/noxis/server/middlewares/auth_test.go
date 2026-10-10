@@ -12,15 +12,15 @@ import (
 )
 
 type fakeVerifier struct {
-	principal entity.Principal
+	principal entity.Identity
 	err       error
 	calls     int
 }
 
-func (f *fakeVerifier) Verify(context.Context, string) (entity.Principal, error) {
+func (f *fakeVerifier) Verify(context.Context, string) (entity.Identity, error) {
 	f.calls++
 	if f.err != nil {
-		return entity.Principal{}, f.err
+		return entity.Identity{}, f.err
 	}
 	return f.principal, nil
 }
@@ -71,8 +71,8 @@ func TestWithAuthGuardsAPI(t *testing.T) {
 
 // A verified token reaches the handler as the request's principal.
 func TestWithAuthAttachesPrincipal(t *testing.T) {
-	verifier := &fakeVerifier{principal: entity.Principal{Subject: "alice", Groups: []string{"dev"}, Admin: true}}
-	var got entity.Principal
+	verifier := &fakeVerifier{principal: entity.Identity{Subject: "alice", Groups: []string{"dev"}, Admin: true}}
+	var got entity.Identity
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got, _ = usecases.Principal(r.Context())
 		w.WriteHeader(http.StatusOK)

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
 )
@@ -48,5 +49,5 @@ func bearerToken(r *http.Request) string {
 func writeUnauthorized(w http.ResponseWriter, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusUnauthorized)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+	_ = json.NewEncoder(w).Encode(entity.ErrorResponse{Error: message})
 }

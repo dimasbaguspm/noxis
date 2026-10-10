@@ -28,19 +28,6 @@ func New() *DB { return &DB{} }
 // and EstimatedRows from EXPLAIN when the driver allows it.
 type Result = entity.Result
 
-// Table is a browsable relation; Column one of its attributes.
-type Table struct {
-	Schema  string   `json:"schema"`
-	Name    string   `json:"name"`
-	Columns []Column `json:"columns"`
-}
-
-type Column struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Nullable bool   `json:"nullable"`
-}
-
 // withDB opens a short-lived pool (control-plane rates) for one operation.
 func withDB[T any](c entity.Connection, fn func(db *stdsql.DB) (T, error)) (T, error) {
 	var zero T
@@ -257,10 +244,10 @@ func (u *DB) Rows(ctx context.Context, c entity.Connection, schema, table string
 }
 
 // Tables lists user relations and their columns.
-func (u *DB) Tables(ctx context.Context, c entity.Connection) (tables []Table, err error) {
+func (u *DB) Tables(ctx context.Context, c entity.Connection) (tables []entity.Table, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	return withDB(c, func(db *stdsql.DB) ([]Table, error) {
+	return withDB(c, func(db *stdsql.DB) ([]entity.Table, error) {
 		return listTables(ctx, db)
 	})
 }

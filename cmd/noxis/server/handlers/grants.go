@@ -8,7 +8,7 @@ import (
 
 // @Summary The known group names for grant editing
 // @Success 200 {object} object{groups=[]string}
-// @Failure 403 {object} map[string]string
+// @Failure 403 {object} entity.ErrorResponse
 // @Router /v1/config/groups [get]
 func ListConfigGroups(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -34,9 +34,9 @@ type grantBody struct {
 // @Param engine path string true "engine family (sql, memcache, mongodb)"
 // @Param name path string true "connection name"
 // @Success 200 {object} object{grants=[]entity.Grant}
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 401 {object} entity.ErrorResponse
+// @Failure 403 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/grants [get]
 func ListGrants(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -55,10 +55,10 @@ func ListGrants(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Param body body grantBody true "group and level"
 // @Success 200 {object} entity.Grant
-// @Failure 400 {object} map[string]string
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 401 {object} entity.ErrorResponse
+// @Failure 403 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/grants [put]
 func SetGrant(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())
@@ -80,9 +80,9 @@ func SetGrant(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Param group query string true "OIDC group name"
 // @Success 204
-// @Failure 401 {object} map[string]string
-// @Failure 403 {object} map[string]string
-// @Failure 404 {object} map[string]string
+// @Failure 401 {object} entity.ErrorResponse
+// @Failure 403 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/grants [delete]
 func DeleteGrant(w http.ResponseWriter, r *http.Request) {
 	d := usecases.From(r.Context())

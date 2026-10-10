@@ -17,6 +17,7 @@ import (
 	"net/http"
 
 	"noxis/internal/common/logging"
+	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
 )
@@ -70,5 +71,5 @@ func writeErr(w http.ResponseWriter, err error) {
 	if errors.Is(err, usecases.ErrForbidden) {
 		code = http.StatusForbidden
 	}
-	writeJSON(w, code, map[string]string{"error": err.Error()})
+	writeJSON(w, code, entity.ErrorResponse{Error: err.Error()})
 }

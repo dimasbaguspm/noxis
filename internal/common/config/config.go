@@ -142,3 +142,11 @@ func LogState(ctx context.Context, log *slog.Logger, c Config) {
 		log.InfoContext(ctx, "OIDC authentication enabled", "issuer", c.OIDCIssuer, "adminGroup", c.OIDCAdminGroup)
 	}
 }
+
+// AuthInfo is the public OIDC configuration the console needs to start login.
+// The issuer and client id are not secrets.
+type AuthInfo struct {
+	Enabled  bool   `json:"enabled"`
+	Issuer   string `json:"issuer,omitempty"`
+	ClientID string `json:"clientId,omitempty"`
+}

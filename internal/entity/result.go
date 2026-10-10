@@ -14,4 +14,6 @@ type Result struct {
 	// ScratchSchema is set by change validation: the throwaway schema the
 	// change was verified against, if any.
 	ScratchSchema string `json:"scratchSchema,omitempty"`
+	// Documents carries raw engine output as Extended JSON (MongoDB reads).
+	Documents []string `json:"documents,omitempty"`
 }

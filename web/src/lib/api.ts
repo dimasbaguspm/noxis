@@ -9,10 +9,10 @@ export type Connection = components["schemas"]["entity.Connection"];
 export type Change = components["schemas"]["entity.Change"];
 export type ChangeCheck = components["schemas"]["entity.ChangeCheck"];
 export type Result = components["schemas"]["entity.Result"];
-export type MongoDatabase = components["schemas"]["mongodb.Database"];
-export type MongoCollection = components["schemas"]["mongodb.Collection"];
-export type MongoRequest = components["schemas"]["mongodb.Request"];
-export type MongoResult = components["schemas"]["mongodb.Result"];
+export type MongoDatabase = components["schemas"]["entity.Database"];
+export type MongoCollection = components["schemas"]["entity.Collection"];
+export type MongoRequest = components["schemas"]["entity.MongoRequest"];
+export type MongoResult = components["schemas"]["entity.Result"];
 
 // MongoChangeInput is one submitted request: the change envelope plus the
 // request itself, flat so the wizard sends a single object.
@@ -20,8 +20,8 @@ export interface MongoChangeInput extends MongoRequest {
   connection: string;
   notes: string;
 }
-export type MemcacheKey = components["schemas"]["memcache.Key"];
-export type MemcacheKeyPage = components["schemas"]["memcache.KeyPage"];
+export type MemcacheKey = components["schemas"]["entity.Key"];
+export type MemcacheKeyPage = components["schemas"]["entity.KeyPage"];
 export type Grant = components["schemas"]["entity.Grant"];
 
 // DriverInfo is one entry of the server's hardcoded driver catalog.

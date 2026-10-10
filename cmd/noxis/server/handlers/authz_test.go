@@ -21,7 +21,7 @@ func authzApp(grants ...entity.Grant) (*usecases.App, interfaces.Module) {
 	return app, app.Modules[constants.FamilySQL]
 }
 
-func asPrincipal(principal entity.Principal) context.Context {
+func asPrincipal(principal entity.Identity) context.Context {
 	return usecases.WithPrincipal(context.Background(), principal)
 }
 
@@ -45,7 +45,7 @@ func TestAuthorizeByEffectiveLevel(t *testing.T) {
 		{"strongest wins", []string{"readers", "writers"}, entity.LevelWrite, true},
 	}
 	for _, tc := range cases {
-		ctx := asPrincipal(entity.Principal{Subject: "alice", Groups: tc.groups})
+		ctx := asPrincipal(entity.Identity{Subject: "alice", Groups: tc.groups})
 		err := app.Authorize(ctx, "demo", tc.need)
 		if tc.ok && err != nil {
 			t.Errorf("%s: err=%v want allowed", tc.name, err)
@@ -63,7 +63,7 @@ func TestAuthorizeOpenModeAndAdmin(t *testing.T) {
 	if err := app.Authorize(context.Background(), "demo", entity.LevelAdmin); err != nil {
 		t.Fatalf("open mode: %v", err)
 	}
-	ctx := asPrincipal(entity.Principal{Subject: "root", Groups: []string{"whatever"}, Admin: true})
+	ctx := asPrincipal(entity.Identity{Subject: "root", Groups: []string{"whatever"}, Admin: true})
 	if err := app.Authorize(ctx, "demo", entity.LevelAdmin); err != nil {
 		t.Fatalf("global admin: %v", err)
 	}
@@ -74,12 +74,12 @@ func TestAuthorizeOpenModeAndAdmin(t *testing.T) {
 func TestConnectionsListHidesUnreadable(t *testing.T) {
 	app, mod := authzApp(entity.Grant{Connection: "demo", Group: "readers", Level: entity.LevelRead})
 
-	visible, err := app.ConnectionList(asPrincipal(entity.Principal{Groups: []string{"readers"}}), mod)
+	visible, err := app.ConnectionList(asPrincipal(entity.Identity{Groups: []string{"readers"}}), mod)
 	if err != nil || len(visible) != 1 {
 		t.Fatalf("granted reader: list=%v err=%v", visible, err)
 	}
 
-	hidden, err := app.ConnectionList(asPrincipal(entity.Principal{Groups: []string{"strangers"}}), mod)
+	hidden, err := app.ConnectionList(asPrincipal(entity.Identity{Groups: []string{"strangers"}}), mod)
 	if err != nil || len(hidden) != 0 {
 		t.Fatalf("stranger: list=%v err=%v", hidden, err)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"noxis/internal/common/config"
 	cache "noxis/internal/repositories/in-memory-cache"
 )
 
@@ -16,15 +17,7 @@ type Deps struct {
 	App   *App
 	Log   *slog.Logger
 	Cache *cache.Cache
-	Auth  AuthInfo
-}
-
-// AuthInfo is the public OIDC configuration the console needs to start login.
-// The issuer and client id are not secrets.
-type AuthInfo struct {
-	Enabled  bool   `json:"enabled"`
-	Issuer   string `json:"issuer,omitempty"`
-	ClientID string `json:"clientId,omitempty"`
+	Auth  config.AuthInfo
 }
 
 type depsKey struct{}

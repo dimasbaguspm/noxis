@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"noxis/internal/common/config"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -16,7 +17,7 @@ func TestGetMeServesPrincipal(t *testing.T) {
 	mux.HandleFunc("GET /v1/me", GetMe)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody)
-	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Principal{
+	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Identity{
 		Subject: "alice",
 		Groups:  []string{"dev", "noxis-admins"},
 		Admin:   true,
@@ -43,7 +44,7 @@ func TestGetMeIncludesLevels(t *testing.T) {
 	mux.HandleFunc("GET /v1/me", GetMe)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody)
-	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Principal{Subject: "bob", Groups: []string{"readers"}}))
+	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Identity{Subject: "bob", Groups: []string{"readers"}}))
 	rec := httptest.NewRecorder()
 	depsHandler(mux, deps).ServeHTTP(rec, req.WithContext(usecases.WithDeps(req.Context(), deps)))
 
@@ -57,7 +58,7 @@ func TestGetMeIncludesLevels(t *testing.T) {
 
 func TestGetAuthConfig(t *testing.T) {
 	deps, _, _, _ := newTestDeps(&fakeSQL{})
-	deps.Auth = usecases.AuthInfo{Enabled: false}
+	deps.Auth = config.AuthInfo{Enabled: false}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /auth/config", GetAuthConfig)
 
