@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"noxis/internal/entity"
-	mongosvc "noxis/internal/modules/mongodb"
 )
 
 // MongoDB shapes are shared wire types; the result grid is the shared Result.
@@ -31,4 +30,3 @@ type MongoModule interface {
 }
 
 // Satisfier.
-var _ MongoModule = (*mongosvc.DB)(nil)
