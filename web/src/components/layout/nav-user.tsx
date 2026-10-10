@@ -1,16 +1,4 @@
-import { useNavigate } from "react-router-dom";
-import { ChevronsUpDown, LogOut, UserRound } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
+import { SidebarMenuItem } from "@/components/ui/sidebar";
 import { useAuth } from "@/app/auth-provider";
 
 function initials(name: string, email: string): string {
@@ -21,39 +9,23 @@ function initials(name: string, email: string): string {
 }
 
 // NavUser is the sidebar's bottom-left identity card: avatar initials, name
-// and email, opening a menu with the profile page and sign-out.
+// and email. Plain markup keeps it free of any dropdown or hover tooltip.
 export function NavUser() {
-  const { identity, authEnabled, signout } = useAuth();
-  const navigate = useNavigate();
+  const { identity, authEnabled } = useAuth();
   const name = identity?.name || identity?.email || "Open mode";
   const email = identity?.email ?? (authEnabled ? "" : "authentication disabled");
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
-            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-accent text-xs font-medium text-sidebar-accent-foreground">
-              {initials(identity?.name ?? "", identity?.email ?? "")}
-            </div>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">{name}</span>
-              <span className="truncate text-xs text-muted-foreground">{email}</span>
-            </div>
-            <ChevronsUpDown className="ml-auto" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" side="top" className="w-56">
-            <DropdownMenuItem onClick={() => navigate("/profile")}>
-              <UserRound className="size-4" /> Profile
-            </DropdownMenuItem>
-            {authEnabled && (
-              <DropdownMenuItem onClick={() => void signout()}>
-                <LogOut className="size-4" /> Sign out
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
+    <SidebarMenuItem>
+      <div className="flex items-center gap-2 rounded-md px-2 py-1">
+        <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent text-xs font-medium text-sidebar-accent-foreground">
+          {initials(identity?.name ?? "", identity?.email ?? "")}
+        </div>
+        <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+          <span className="truncate font-medium">{name}</span>
+          <span className="truncate text-xs text-muted-foreground">{email}</span>
+        </div>
+      </div>
+    </SidebarMenuItem>
   );
 }
