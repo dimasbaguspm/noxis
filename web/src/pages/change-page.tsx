@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import { ChangeTable } from "@/components/changes/change-table";
 import { useChangeListQuery, useSubmitChangeMutation, type ChangeKind } from "@/hooks/use-changes";
 
 const PER_PAGE = 20;
+const STATUS_OPTIONS = ["unverified", "validated", "approved", "applied", "failed", "rejected"];
 const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 
 // ChangePage is the shared DML/DDL queue: raise inline, filter by instance,
@@ -23,8 +25,14 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
   const { connections: sqlConnections } = useConnections(FAMILY.SQL);
   const [filter, setFilter] = useState("");
   const query = useDebounce(filter.trim());
+  const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
-  const { changes = [], total = 0, isPending } = useChangeListQuery(kind, query || undefined, page);
+  const { changes = [], total = 0, isPending } = useChangeListQuery(
+    kind,
+    query || undefined,
+    status === "all" ? undefined : status,
+    page,
+  );
   const submit = useSubmitChangeMutation();
   const label = kind.toUpperCase();
   // raising a change needs a write grant on some SQL instance; the form still
@@ -32,7 +40,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
   const mayRaise = sqlConnections.some((c) => can(c.name, "write"));
 
   // a changed filter starts back at the first page
-  useEffect(() => setPage(1), [query]);
+  useEffect(() => setPage(1), [query, status]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -46,6 +54,19 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
             onChange={(e) => setFilter(e.target.value)}
           />
         </div>
+        <Select value={status} onValueChange={(v) => setStatus(String(v))}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            {STATUS_OPTIONS.map((s) => (
+              <SelectItem key={s} value={s}>
+                {s[0]!.toUpperCase() + s.slice(1)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <span className="flex-1" />
         {mayRaise && (
           <CreateChangeSheet kind={kind} onSubmit={(input) => submit.mutateAsync(input)} />
@@ -56,7 +77,6 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
         <CardContent className="flex flex-col gap-3 pt-4">
           <div className="flex flex-wrap items-baseline gap-2">
             <h2 className="text-sm font-medium">{label} changes</h2>
-            <span className="text-xs text-muted-foreground">immediate and scheduled in one list</span>
             <span className="flex-1" />
             <span className="text-xs text-muted-foreground tabular-nums">{total}</span>
           </div>

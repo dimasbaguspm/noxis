@@ -31,8 +31,8 @@ export const queryKeys = {
     rows: (connection: string | undefined, schema?: string, table?: string) =>
       ["sql", "rows", connection, schema, table] as const,
     changes: {
-      list: (kind?: "dml" | "ddl", connection?: string, page = 1) =>
-        ["sql", "changes", "list", kind, connection, page] as const,
+      list: (kind?: "dml" | "ddl", connection?: string, status?: string, page = 1) =>
+        ["sql", "changes", "list", kind, connection, status, page] as const,
       get: (id: string) => ["sql", "changes", "get", id] as const,
     },
   },

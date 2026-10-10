@@ -173,6 +173,8 @@ export interface paths {
                 query?: {
                     /** @description substring match on connection name */
                     connection?: string;
+                    /** @description exact status match (unverified, validated, approved, applied, failed, rejected) */
+                    status?: string;
                     /** @description page number, starting at 1 */
                     page?: number;
                     /** @description items per page (default 20, max 100) */

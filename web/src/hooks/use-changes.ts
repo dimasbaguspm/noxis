@@ -15,10 +15,15 @@ function invalidateChanges() {
 // useChangeListQuery lists a page of changes (the server returns one list for
 // dml and ddl; the kind filter is applied here, mirroring the pre-query
 // behavior so no change disappears from either tab).
-export function useChangeListQuery(kind?: ChangeKind, connection?: string, page = 1) {
+export function useChangeListQuery(
+  kind?: ChangeKind,
+  connection?: string,
+  status?: string,
+  page = 1,
+) {
   const query = useQuery({
-    queryKey: queryKeys.sql.changes.list(kind, connection, page),
-    queryFn: () => api.changes.list(connection, page),
+    queryKey: queryKeys.sql.changes.list(kind, connection, status, page),
+    queryFn: () => api.changes.list(connection, page, undefined, status),
   });
   const changes = useMemo(() => {
     if (!kind) return query.data?.changes;

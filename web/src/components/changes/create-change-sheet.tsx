@@ -91,7 +91,7 @@ export function CreateChangeSheet({
       setOpen(next);
       setServerError(undefined);
     }}>
-      <SheetTrigger render={<Button />}>Create {kind.toUpperCase()} change</SheetTrigger>
+      <SheetTrigger render={<Button />}>Create</SheetTrigger>
       <SheetContent className="max-w-2xl">
         <SheetHeader>
           <SheetTitle>New {kind.toUpperCase()} change</SheetTitle>

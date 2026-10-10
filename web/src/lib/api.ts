@@ -172,11 +172,12 @@ export const api = {
     },
   },
   changes: {
-    list: (connection?: string, page?: number, perPage?: number) => {
+    list: (connection?: string, page?: number, perPage?: number, status?: string) => {
       const params = new URLSearchParams();
       if (connection) params.set("connection", connection);
       if (page && page > 1) params.set("page", String(page));
       if (perPage) params.set("perPage", String(perPage));
+      if (status) params.set("status", status);
       const qs = params.toString();
       return request<{ changes: Change[]; total: number }>(
         "GET",

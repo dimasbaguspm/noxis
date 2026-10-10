@@ -219,6 +219,7 @@ func (d Deps) sqlChange(ctx context.Context, id string) (*entity.Change, error) 
 // @Summary List proposed changes for an engine (newest first)
 // @Param engine path string true "engine family (sql, mongodb)"
 // @Param connection query string false "substring match on connection name"
+// @Param status query string false "exact status match (unverified, validated, approved, applied, failed, rejected)"
 // @Param page query int false "page number, starting at 1"
 // @Param perPage query int false "items per page (default 20, max 100)"
 // @Success 200 {object} object{changes=[]entity.Change,total=int}
@@ -243,6 +244,7 @@ func ListChanges(w http.ResponseWriter, r *http.Request) {
 			return nil, err
 		}
 		changes = filterByConnection(changes, r.URL.Query().Get("connection"))
+		changes = filterByStatus(changes, r.URL.Query().Get("status"))
 		page, perPage := readPagination(r, 20)
 		return map[string]any{
 			"changes": pageSlice(changes, page, perPage),
@@ -261,6 +263,22 @@ func filterByConnection(changes []entity.Change, needle string) []entity.Change 
 	out := make([]entity.Change, 0, len(changes))
 	for i := range changes {
 		if strings.Contains(strings.ToLower(changes[i].Connection), needle) {
+			out = append(out, changes[i])
+		}
+	}
+	return out
+}
+
+// filterByStatus keeps the changes whose status matches exactly; an empty
+// needle keeps everything.
+func filterByStatus(changes []entity.Change, status string) []entity.Change {
+	status = strings.TrimSpace(status)
+	if status == "" {
+		return changes
+	}
+	out := make([]entity.Change, 0, len(changes))
+	for i := range changes {
+		if changes[i].Status == status {
 			out = append(out, changes[i])
 		}
 	}
