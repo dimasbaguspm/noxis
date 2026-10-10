@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ChevronRight, ChevronsUpDown, GalleryVerticalEnd, LayoutDashboard } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { ChevronRight, GalleryVerticalEnd, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FAMILIES, type Family } from "@/lib/families";
+import { usePagedInstancesQuery } from "@/hooks/use-instances";
 import {
   Sidebar,
   SidebarContent,
@@ -17,12 +18,6 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const VERSION = "v0.1.0";
 
@@ -31,16 +26,15 @@ function isItemActive(pathname: string, url: string): boolean {
   return pathname === url || pathname.startsWith(`${url}/`);
 }
 
-// SiteTitle is the dashboard-01 team-switcher pattern: the console brand and
-// version open a menu that jumps straight into any engine family.
+// SiteTitle is the static brand: icon tile, product name and version. No
+// switcher — the console has one identity, whatever engine family you open.
 function SiteTitle() {
-  const navigate = useNavigate();
   return (
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
-          <DropdownMenu>
-            <DropdownMenuTrigger render={<SidebarMenuButton size="lg" />}>
+          <SidebarMenuButton size="lg" asChild>
+            <Link to="/">
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                 <GalleryVerticalEnd className="size-4" />
               </div>
@@ -48,35 +42,60 @@ function SiteTitle() {
                 <span className="font-semibold">noXis</span>
                 <span className="">{VERSION}</span>
               </div>
-              <ChevronsUpDown className="ml-auto" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              {FAMILIES.map((family) => (
-                <DropdownMenuItem
-                  key={family.key}
-                  onClick={() => navigate(family.nav[0]?.to ?? "/")}
-                >
-                  <family.icon className="size-4" />
-                  {family.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </Link>
+          </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>
   );
 }
 
+// InstancesMenu lists every registered instance from the cached query, with
+// the dashboard first; open by default while on the dashboard or a detail.
+function InstancesMenu({ pathname }: { pathname: string }) {
+  const { data } = usePagedInstancesQuery();
+  const instances = data?.instances ?? [];
+  const onDetail = pathname.startsWith("/instances/");
+  const active = pathname === "/" || onDetail;
+  const [open, setOpen] = useState(active);
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton isActive={active} onClick={() => setOpen((v) => !v)}>
+        <LayoutDashboard />
+        <span>Instances</span>
+        <ChevronRight className={cn("ml-auto transition-transform duration-200", open && "rotate-90")} />
+      </SidebarMenuButton>
+      {open && (
+        <SidebarMenuSub>
+          <SidebarMenuSubItem>
+            <SidebarMenuSubButton asChild isActive={pathname === "/"}>
+              <Link to="/">
+                <span>All instances</span>
+              </Link>
+            </SidebarMenuSubButton>
+          </SidebarMenuSubItem>
+          {instances.map((instance) => (
+            <SidebarMenuSubItem key={instance.id}>
+              <SidebarMenuSubButton
+                asChild
+                isActive={isItemActive(pathname, `/instances/${instance.id}`)}
+              >
+                <Link to={`/instances/${instance.id}`}>
+                  <span>{instance.name}</span>
+                </Link>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          ))}
+        </SidebarMenuSub>
+      )}
+    </SidebarMenuItem>
+  );
+}
+
 // FamilyMenu is the dashboard-01 nav-main item: an icon + label button that
 // expands its sub-menu, open by default while one of its pages is active.
-function FamilyMenu({
-  family,
-  pathname,
-}: {
-  family: Family;
-  pathname: string;
-}) {
+function FamilyMenu({ family, pathname }: { family: Family; pathname: string }) {
   const active = family.nav.some((item) => isItemActive(pathname, item.to));
   const [open, setOpen] = useState(active);
   const Icon = family.icon;
@@ -86,9 +105,7 @@ function FamilyMenu({
       <SidebarMenuButton isActive={active} onClick={() => setOpen((v) => !v)}>
         <Icon />
         <span>{family.label}</span>
-        <ChevronRight
-          className={cn("ml-auto transition-transform duration-200", open && "rotate-90")}
-        />
+        <ChevronRight className={cn("ml-auto transition-transform duration-200", open && "rotate-90")} />
       </SidebarMenuButton>
       {open && (
         <SidebarMenuSub>
@@ -107,8 +124,9 @@ function FamilyMenu({
   );
 }
 
-// AppSidebar renders the dashboard-01 structure: site title on top, one
-// labelled group of items whose engine families expand into sub-menus, rail.
+// AppSidebar renders the dashboard-01 structure: static site title on top,
+// one labelled group of items — the Instances submenu first, then each engine
+// family expanding into its sub-menus — and a rail.
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
 
@@ -119,14 +137,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarGroupLabel>Console</SidebarGroupLabel>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/"}>
-                <Link to="/" className="font-medium">
-                  <LayoutDashboard />
-                  <span>Instances</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            <InstancesMenu pathname={pathname} />
             {FAMILIES.map((family) => (
               <FamilyMenu key={family.key} family={family} pathname={pathname} />
             ))}
