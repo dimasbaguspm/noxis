@@ -125,6 +125,7 @@ func (d Deps) submitMongoChange(ctx context.Context, m interfaces.MongoModule, b
 		Kind:       constants.KindMongo,
 		Status:     constants.ChangeValidated,
 		CreatedAt:  time.Now().Unix(),
+		CreatedBy:  actor(ctx),
 		Rollback:   "",
 	}
 	encoded, err := json.Marshal(req)
