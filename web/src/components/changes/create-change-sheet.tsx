@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { title } from "radash";
 import { PlugZap } from "lucide-react";
 import { toast } from "sonner";
@@ -16,7 +18,13 @@ import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { classify } from "@/lib/statements";
 
 type Choice = { connection: string; notes: string; query: string; rollback: string };
-type FormValues = { notes: string; query: string; rollback: string };
+const createSchema = z.object({
+  notes: z.string().optional(),
+  query: z.string().min(1, "original query is required"),
+  rollback: z.string().min(1, "rollback query is required"),
+});
+
+type FormValues = z.infer<typeof createSchema>;
 type Outcome =
   | { id?: string; status?: string; checks?: { target?: string; ok?: boolean; detail?: string; error?: string }[] }
   | undefined;
@@ -42,6 +50,7 @@ export function CreateChangeSheet({
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: { notes: "", query: "", rollback: "" },
+    resolver: zodResolver(createSchema),
   });
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -61,7 +70,7 @@ export function CreateChangeSheet({
     setBusy(true);
     const change = await onSubmit({
       connection,
-      notes: values.notes.trim() || `manual ${kind} change`,
+      notes: (values.notes ?? "").trim() || `manual ${kind} change`,
       query: values.query,
       rollback: values.rollback,
     });
@@ -111,7 +120,7 @@ export function CreateChangeSheet({
               <SqlFileInput onLoad={(sql) => setValue("query", sql)} />
             </FieldLabel>
             <SqlEditor value={watch("query")} onChange={(sql) => setValue("query", sql)} tables={tables} height="12rem" />
-            <input type="hidden" aria-hidden {...register("query", { required: "original query is required" })} />
+            <input type="hidden" aria-hidden {...register("query")} />
             <FieldError>{serverError ?? errors.query?.message}</FieldError>
           </Field>
 
@@ -122,7 +131,7 @@ export function CreateChangeSheet({
               <SqlFileInput onLoad={(sql) => setValue("rollback", sql)} />
             </FieldLabel>
             <SqlEditor value={watch("rollback")} onChange={(sql) => setValue("rollback", sql)} tables={tables} height="10rem" />
-            <input type="hidden" aria-hidden {...register("rollback", { required: "rollback query is required" })} />
+            <input type="hidden" aria-hidden {...register("rollback")} />
             <FieldError>{errors.rollback?.message}</FieldError>
           </Field>
           </form>
