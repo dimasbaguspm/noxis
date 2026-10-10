@@ -4,7 +4,6 @@ import { ChevronRight, GalleryVerticalEnd, LayoutDashboard, Settings, UserRound 
 import { cn } from "@/lib/utils";
 import { FAMILIES, type Family } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
-import { usePagedInstancesQuery } from "@/hooks/use-instances";
 import { NavUser } from "@/components/layout/nav-user";
 import {
   Sidebar,
@@ -54,45 +53,18 @@ function SiteTitle() {
   );
 }
 
-// InstancesMenu lists every registered instance from the cached query, with
-// the dashboard first; open by default while on the dashboard or a detail.
+// InstancesMenu is a plain link to the instance list; the fleet is big enough
+// that an expanding submenu only adds a level nobody asks for.
 function InstancesMenu({ pathname }: { pathname: string }) {
-  const { data } = usePagedInstancesQuery();
-  const instances = data?.instances ?? [];
-  const onDetail = pathname.startsWith("/instances/");
-  const active = pathname === "/" || onDetail;
-  const [open, setOpen] = useState(active);
-
+  const active = pathname === "/" || pathname.startsWith("/instances/");
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton isActive={active} onClick={() => setOpen((v) => !v)}>
-        <LayoutDashboard />
-        <span>Instances</span>
-        <ChevronRight className={cn("ml-auto transition-transform duration-200", open && "rotate-90")} />
+      <SidebarMenuButton asChild isActive={active}>
+        <Link to="/">
+          <LayoutDashboard />
+          <span>Instances</span>
+        </Link>
       </SidebarMenuButton>
-      {open && (
-        <SidebarMenuSub>
-          <SidebarMenuSubItem>
-            <SidebarMenuSubButton asChild isActive={pathname === "/"}>
-              <Link to="/">
-                <span>All instances</span>
-              </Link>
-            </SidebarMenuSubButton>
-          </SidebarMenuSubItem>
-          {instances.map((instance) => (
-            <SidebarMenuSubItem key={instance.id}>
-              <SidebarMenuSubButton
-                asChild
-                isActive={isItemActive(pathname, `/instances/${instance.id}`)}
-              >
-                <Link to={`/instances/${instance.id}`}>
-                  <span>{instance.name}</span>
-                </Link>
-              </SidebarMenuSubButton>
-            </SidebarMenuSubItem>
-          ))}
-        </SidebarMenuSub>
-      )}
     </SidebarMenuItem>
   );
 }
