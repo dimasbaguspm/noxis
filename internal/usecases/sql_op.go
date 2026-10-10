@@ -12,14 +12,13 @@ import (
 type Op struct {
 	Connections interfaces.ConnectionRepository
 	Grants      interfaces.GrantRepository
-	Modules     map[string]interfaces.Module
 }
 
 // Serve runs it.
 func (uc Op) Serve(ctx context.Context, sq interfaces.SQLModule, name, operation, sqlText, table string) (out interfaces.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	c, err := Raw(ctx, uc.Connections, uc.Grants, uc.Modules, sq, name, OpLevel(operation))
+	c, err := Raw(ctx, uc.Connections, uc.Grants, sq, name, OpLevel(operation))
 	if err != nil {
 		return interfaces.Result{}, err
 	}

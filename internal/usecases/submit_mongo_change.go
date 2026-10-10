@@ -18,14 +18,13 @@ type SubmitMongoChange struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
 	Grants      interfaces.GrantRepository
-	Modules     map[string]interfaces.Module
 }
 
 // Serve runs it.
 func (uc SubmitMongoChange) Serve(ctx context.Context, m interfaces.MongoModule, conn, notes string, req interfaces.MongoRequest) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	raw, err := Raw(ctx, uc.Connections, uc.Grants, uc.Modules, m, conn, entity.LevelWrite)
+	raw, err := Raw(ctx, uc.Connections, uc.Grants, m, conn, entity.LevelWrite)
 	if err != nil {
 		return entity.Change{}, err
 	}

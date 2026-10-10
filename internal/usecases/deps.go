@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"noxis/internal/common/config"
+	"noxis/internal/modules"
 	cache "noxis/internal/repositories/in-memory-cache"
 )
 
@@ -14,7 +15,7 @@ import (
 // seeded into the base request context; handlers consume it with From. It is
 // never rebuilt per request.
 type Deps struct {
-	Engines     EngineWorkflows
+	Engines     modules.Registry
 	Changes     ChangesWorkflows
 	Connections ConnectionsWorkflows
 	Mongo       MongoWorkflows

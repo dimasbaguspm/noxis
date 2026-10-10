@@ -14,6 +14,7 @@ import (
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
+	"noxis/internal/modules"
 	"noxis/internal/modules/sql"
 	"noxis/internal/usecases"
 )
@@ -155,13 +156,13 @@ func newTestDeps(sq interfaces.SQLModule) (usecases.Deps, testBase, *fakeChanges
 	base, changes, conns := newTestBase(sq)
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	return usecases.Deps{
-		Engines:     usecases.Engines{Modules: base.Modules},
-		Changes:     usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules},
-		Connections: usecases.Connections{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules},
-		Mongo:       usecases.Mongo{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules},
-		Instances:   usecases.Instances{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules},
-		Grants:      usecases.Grants{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules},
-		Me:          usecases.Me{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules},
+		Engines:     modules.New(base.Modules),
+		Changes:     usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants},
+		Connections: usecases.Connections{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants},
+		Mongo:       usecases.Mongo{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants},
+		Instances:   usecases.Instances{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants},
+		Grants:      usecases.Grants{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants},
+		Me:          usecases.Me{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants},
 		Log:         log,
 	}, base, changes, conns
 }
@@ -178,7 +179,7 @@ func sampleChange() entity.Change {
 func TestChangeWorkflow(t *testing.T) {
 	sq := &fakeSQL{}
 	base, _, _ := newTestBase(sq)
-	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
+	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}
 	ctx := context.Background()
 
 	submitted, err := gw.SubmitChange(ctx, sq, sampleChange())
@@ -220,7 +221,7 @@ func TestChangeValidationFailures(t *testing.T) {
 	// a read on the change path is refused up front
 	sq := &fakeSQL{writeErr: errors.New(`statement "SELECT" not allowed here`)}
 	base, _, _ := newTestBase(sq)
-	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
+	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}
 	bad, err := gw.SubmitChange(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
@@ -235,7 +236,7 @@ func TestChangeValidationFailures(t *testing.T) {
 	// a dry-run failure also lands as failed with the reason recorded
 	sq2 := &fakeSQL{validateErr: errors.New("rollback statement 1: syntax error")}
 	base2, _, _ := newTestBase(sq2)
-	failed, err := (usecases.Changes{Connections: base2.Connections, Changes: base2.Changes, Grants: base2.Grants, Modules: base2.Modules}).SubmitChange(ctx, sq2, sampleChange())
+	failed, err := (usecases.Changes{Connections: base2.Connections, Changes: base2.Changes, Grants: base2.Grants}).SubmitChange(ctx, sq2, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
@@ -249,14 +250,14 @@ func TestChangeValidationFailures(t *testing.T) {
 	// mysql DDL cannot be dry-run: unverified, still approvable
 	sq3 := &fakeSQL{validateErr: sql.ErrUnverifiable}
 	base3, _, _ := newTestBase(sq3)
-	unv, err := (usecases.Changes{Connections: base3.Connections, Changes: base3.Changes, Grants: base3.Grants, Modules: base3.Modules}).SubmitChange(ctx, sq3, sampleChange())
+	unv, err := (usecases.Changes{Connections: base3.Connections, Changes: base3.Changes, Grants: base3.Grants}).SubmitChange(ctx, sq3, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
 	if unv.Status != constants.ChangeUnverified {
 		t.Fatalf("status=%q want unverified", unv.Status)
 	}
-	if _, err := (usecases.Changes{Connections: base3.Connections, Changes: base3.Changes, Grants: base3.Grants, Modules: base3.Modules}).Approve(ctx, unv.ID); err != nil {
+	if _, err := (usecases.Changes{Connections: base3.Connections, Changes: base3.Changes, Grants: base3.Grants}).Approve(ctx, unv.ID); err != nil {
 		t.Fatalf("unverified change must be approvable: %v", err)
 	}
 }
@@ -264,7 +265,7 @@ func TestChangeValidationFailures(t *testing.T) {
 func TestApplyFailureIsRecorded(t *testing.T) {
 	sq := &fakeSQL{applyErr: errors.New("statement 1: duplicate key")}
 	base, store, _ := newTestBase(sq)
-	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
+	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}
 	ctx := context.Background()
 	ch, err := gw.SubmitChange(ctx, sq, sampleChange())
 	if err != nil {
@@ -289,7 +290,7 @@ func TestApplyFailureIsRecorded(t *testing.T) {
 func TestSecretsStayRedacted(t *testing.T) {
 	base, _, conns := newTestBase(&fakeSQL{})
 	mod := base.Modules[constants.FamilySQL]
-	connsGW := usecases.Connections{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
+	connsGW := usecases.Connections{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}
 	ctx := context.Background()
 	c, _ := conns.Get(ctx, "demo")
 	c.Password = "supersecret"
@@ -311,7 +312,7 @@ func TestSecretsStayRedacted(t *testing.T) {
 			t.Fatalf("password leaked in list: %q", x.Password)
 		}
 	}
-	if raw, err := usecases.Raw(ctx, base.Connections, base.Grants, base.Modules, mod, "demo", entity.LevelRead); err != nil || raw.Password != "supersecret" {
+	if raw, err := usecases.Raw(ctx, base.Connections, base.Grants, mod, "demo", entity.LevelRead); err != nil || raw.Password != "supersecret" {
 		t.Fatalf("internal path must still see the password: %v", err)
 	}
 }
@@ -361,10 +362,10 @@ func TestEngineGating(t *testing.T) {
 // TestScheduledChangeWaitsForItsSlot: a change scheduled in the future is not
 // applicable by hand and is skipped by a tick before its time.
 func TestScheduledChangeWaitsForItsSlot(t *testing.T) {
-	ctx := context.Background()
 	sq := &fakeSQL{}
 	base, store, _ := newTestBase(sq)
-	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
+	ctx := testCtx(base.Modules)
+	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}
 	in := sampleChange()
 	in.ScheduledAt = time.Now().Add(time.Hour).Unix()
 	ch, err := gw.SubmitChange(ctx, sq, in)
@@ -392,10 +393,10 @@ func TestScheduledChangeWaitsForItsSlot(t *testing.T) {
 // TestTickAppliesDueScheduledChange: an approved change whose time has passed
 // is applied by the tick; an immediate change is left for the operator.
 func TestTickAppliesDueScheduledChange(t *testing.T) {
-	ctx := context.Background()
 	sq := &fakeSQL{}
 	base, store, _ := newTestBase(sq)
-	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: base.Modules}
+	ctx := testCtx(base.Modules)
+	gw := usecases.Changes{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}
 	in := sampleChange()
 	in.ScheduledAt = time.Now().Add(-time.Minute).Unix()
 	ch, err := gw.SubmitChange(ctx, sq, in)

@@ -16,7 +16,6 @@ type ApplyMongo struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
 	Grants      interfaces.GrantRepository
-	Modules     map[string]interfaces.Module
 }
 
 // Serve runs it.
@@ -30,7 +29,7 @@ func (uc ApplyMongo) Serve(ctx context.Context, m interfaces.MongoModule, id str
 	if ch.Status != constants.ChangeApproved {
 		return *ch, fmt.Errorf("request is %s, not approved — cannot apply", ch.Status)
 	}
-	conn, err := Raw(ctx, uc.Connections, uc.Grants, uc.Modules, m, ch.Connection, entity.LevelAdmin)
+	conn, err := Raw(ctx, uc.Connections, uc.Grants, m, ch.Connection, entity.LevelAdmin)
 	if err != nil {
 		return entity.Change{}, err
 	}

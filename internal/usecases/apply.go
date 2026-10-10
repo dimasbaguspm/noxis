@@ -9,6 +9,7 @@ import (
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
+	"noxis/internal/modules"
 )
 
 // mongoChange loads a change and insists it is a MongoDB request, so the SQL
@@ -45,7 +46,7 @@ func sqlChange(ctx context.Context, changes interfaces.ChangeRepository, grants 
 
 // applySQL executes an approved change transactionally; a failure is recorded
 // on the change, not just returned.
-func applySQL(ctx context.Context, changes interfaces.ChangeRepository, conns interfaces.ConnectionRepository, grants interfaces.GrantRepository, modules map[string]interfaces.Module, sq interfaces.SQLModule, id string) (out entity.Change, err error) {
+func applySQL(ctx context.Context, changes interfaces.ChangeRepository, conns interfaces.ConnectionRepository, grants interfaces.GrantRepository, sq interfaces.SQLModule, id string) (out entity.Change, err error) {
 	ch, err := changes.GetChange(ctx, id)
 	if err != nil {
 		return entity.Change{}, err
@@ -57,7 +58,7 @@ func applySQL(ctx context.Context, changes interfaces.ChangeRepository, conns in
 		return *ch, fmt.Errorf("change is scheduled for %s — the scheduler will apply it",
 			time.Unix(ch.ScheduledAt, 0).Format(time.RFC3339))
 	}
-	conn, err := Raw(ctx, conns, grants, modules, sq, ch.Connection, entity.LevelAdmin)
+	conn, err := Raw(ctx, conns, grants, sq, ch.Connection, entity.LevelAdmin)
 	if err != nil {
 		return entity.Change{}, err
 	}
@@ -79,7 +80,7 @@ func applySQL(ctx context.Context, changes interfaces.ChangeRepository, conns in
 
 // applyMongo executes an approved request; a failure is recorded on the
 // change, and there is no rollback to fall back on.
-func applyMongo(ctx context.Context, changes interfaces.ChangeRepository, conns interfaces.ConnectionRepository, grants interfaces.GrantRepository, modules map[string]interfaces.Module, m interfaces.MongoModule, id string) (out entity.Change, err error) {
+func applyMongo(ctx context.Context, changes interfaces.ChangeRepository, conns interfaces.ConnectionRepository, grants interfaces.GrantRepository, m interfaces.MongoModule, id string) (out entity.Change, err error) {
 	ch, err := mongoChange(ctx, changes, grants, id)
 	if err != nil {
 		return entity.Change{}, err
@@ -87,7 +88,7 @@ func applyMongo(ctx context.Context, changes interfaces.ChangeRepository, conns 
 	if ch.Status != constants.ChangeApproved {
 		return *ch, fmt.Errorf("request is %s, not approved — cannot apply", ch.Status)
 	}
-	conn, err := Raw(ctx, conns, grants, modules, m, ch.Connection, entity.LevelAdmin)
+	conn, err := Raw(ctx, conns, grants, m, ch.Connection, entity.LevelAdmin)
 	if err != nil {
 		return entity.Change{}, err
 	}
@@ -113,20 +114,20 @@ func applyMongo(ctx context.Context, changes interfaces.ChangeRepository, conns 
 
 // applyChange resolves a change's engine from its connection's driver and
 // applies it through the matching family, so the scheduler is family-agnostic.
-func applyChange(ctx context.Context, changes interfaces.ChangeRepository, conns interfaces.ConnectionRepository, grants interfaces.GrantRepository, modules map[string]interfaces.Module, ch entity.Change) (entity.Change, error) {
+func applyChange(ctx context.Context, changes interfaces.ChangeRepository, conns interfaces.ConnectionRepository, grants interfaces.GrantRepository, ch entity.Change) (entity.Change, error) {
 	conn, err := conns.Get(ctx, ch.Connection)
 	if err != nil {
 		return ch, err
 	}
-	mod, ok := moduleByDriver(modules, conn.Driver)
+	mod, ok := modules.RegistryFrom(ctx).Serves(conn.Driver)
 	if !ok {
 		return ch, fmt.Errorf("no engine serves driver %q", conn.Driver)
 	}
 	switch m := mod.(type) {
 	case interfaces.SQLModule:
-		return applySQL(ctx, changes, conns, grants, modules, m, ch.ID)
+		return applySQL(ctx, changes, conns, grants, m, ch.ID)
 	case interfaces.MongoModule:
-		return applyMongo(ctx, changes, conns, grants, modules, m, ch.ID)
+		return applyMongo(ctx, changes, conns, grants, m, ch.ID)
 	}
 	return ch, fmt.Errorf("driver %q cannot be applied", conn.Driver)
 }

@@ -40,15 +40,14 @@ func newVerifier(ctx context.Context, cfg config.Config) (interfaces.Verifier, e
 // the shared cache). It is seeded into the base request context in Run, never
 // rebuilt per request.
 func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config) usecases.Deps {
-	mods := modules.Default()
 	return usecases.Deps{
-		Engines:     usecases.Engines{Modules: mods},
-		Changes:     usecases.Changes{Connections: store, Changes: store, Grants: store, Modules: mods},
-		Connections: usecases.Connections{Connections: store, Changes: store, Grants: store, Modules: mods},
-		Mongo:       usecases.Mongo{Connections: store, Changes: store, Grants: store, Modules: mods},
-		Instances:   usecases.Instances{Connections: store, Changes: store, Grants: store, Modules: mods},
-		Grants:      usecases.Grants{Connections: store, Changes: store, Grants: store, Modules: mods},
-		Me:          usecases.Me{Connections: store, Changes: store, Grants: store, Modules: mods},
+		Engines:     modules.Default(),
+		Changes:     usecases.Changes{Connections: store, Changes: store, Grants: store},
+		Connections: usecases.Connections{Connections: store, Changes: store, Grants: store},
+		Mongo:       usecases.Mongo{Connections: store, Changes: store, Grants: store},
+		Instances:   usecases.Instances{Connections: store, Changes: store, Grants: store},
+		Grants:      usecases.Grants{Connections: store, Changes: store, Grants: store},
+		Me:          usecases.Me{Connections: store, Changes: store, Grants: store},
 		Log:         log,
 		Cache:       cache.New(),
 		Auth: config.AuthInfo{
@@ -159,7 +158,9 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 	handler := middlewares.CORS(middlewares.WithAuth(verifier, middlewares.RequestLog(newHandler(verifier), log)))
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler}
 	// every request ctx descends from ours, seeded once with the deps
-	srv.BaseContext = func(net.Listener) context.Context { return usecases.WithDeps(ctx, deps) }
+	srv.BaseContext = func(net.Listener) context.Context {
+		return usecases.WithDeps(modules.WithRegistry(ctx, deps.Engines), deps)
+	}
 
 	errCh := make(chan error, 1)
 	go func() { errCh <- srv.ListenAndServe() }()

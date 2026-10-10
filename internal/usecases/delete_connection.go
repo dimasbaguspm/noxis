@@ -11,7 +11,6 @@ import (
 type DeleteConnection struct {
 	Connections interfaces.ConnectionRepository
 	Grants      interfaces.GrantRepository
-	Modules     map[string]interfaces.Module
 }
 
 // Serve runs it.
@@ -21,7 +20,7 @@ func (uc DeleteConnection) Serve(ctx context.Context, mod interfaces.Module, nam
 	if err := RequireAdmin(ctx); err != nil {
 		return err
 	}
-	if _, err := Raw(ctx, uc.Connections, uc.Grants, uc.Modules, mod, name, entity.LevelRead); err != nil {
+	if _, err := Raw(ctx, uc.Connections, uc.Grants, mod, name, entity.LevelRead); err != nil {
 		return err
 	}
 	return uc.Connections.Delete(ctx, name)

@@ -33,7 +33,6 @@ type Tick struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
 	Grants      interfaces.GrantRepository
-	Modules     map[string]interfaces.Module
 }
 
 // Serve runs it.
@@ -49,7 +48,7 @@ func (uc Tick) Serve(ctx context.Context) (res TickResult, err error) {
 		if !dueChange(all[i], now) {
 			continue
 		}
-		if _, err := applyChange(ctx, uc.Changes, uc.Connections, uc.Grants, uc.Modules, all[i]); err != nil {
+		if _, err := applyChange(ctx, uc.Changes, uc.Connections, uc.Grants, all[i]); err != nil {
 			res.Failed = append(res.Failed, all[i].ID)
 			continue
 		}

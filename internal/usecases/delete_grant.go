@@ -12,7 +12,6 @@ import (
 type DeleteGrant struct {
 	Connections interfaces.ConnectionRepository
 	Grants      interfaces.GrantRepository
-	Modules     map[string]interfaces.Module
 }
 
 // Serve runs it.
@@ -25,7 +24,7 @@ func (uc DeleteGrant) Serve(ctx context.Context, mod interfaces.Module, name, gr
 	if group == "" {
 		return fmt.Errorf("group is required")
 	}
-	if _, err := Raw(ctx, uc.Connections, uc.Grants, uc.Modules, mod, name, entity.LevelRead); err != nil {
+	if _, err := Raw(ctx, uc.Connections, uc.Grants, mod, name, entity.LevelRead); err != nil {
 		return err
 	}
 	return uc.Grants.DeleteGrant(ctx, name, group)

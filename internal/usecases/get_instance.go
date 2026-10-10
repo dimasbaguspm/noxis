@@ -5,13 +5,13 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
+	"noxis/internal/modules"
 )
 
 // Instance is the "Instance" use case.
 type Instance struct {
 	Connections interfaces.ConnectionRepository
 	Grants      interfaces.GrantRepository
-	Modules     map[string]interfaces.Module
 }
 
 // Serve runs it.
@@ -22,7 +22,7 @@ func (uc Instance) Serve(ctx context.Context, id string) (out entity.Connection,
 	if err != nil {
 		return entity.Connection{}, err
 	}
-	mod, ok := moduleByDriver(uc.Modules, c.Driver)
+	mod, ok := modules.RegistryFrom(ctx).Serves(c.Driver)
 	if !ok {
 		return entity.Connection{}, interfaces.ErrUnsupported
 	}

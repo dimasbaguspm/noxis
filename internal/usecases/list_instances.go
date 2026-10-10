@@ -5,6 +5,7 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
+	"noxis/internal/modules"
 	"strings"
 )
 
@@ -12,7 +13,6 @@ import (
 type ListInstances struct {
 	Connections interfaces.ConnectionRepository
 	Grants      interfaces.GrantRepository
-	Modules     map[string]interfaces.Module
 }
 
 // Serve runs it.
@@ -28,7 +28,7 @@ func (uc ListInstances) Serve(ctx context.Context, name, driver, host string) (o
 	out = make([]entity.Connection, 0, len(list))
 	for i := range list {
 		c := &list[i]
-		mod, ok := moduleByDriver(uc.Modules, c.Driver)
+		mod, ok := modules.RegistryFrom(ctx).Serves(c.Driver)
 		if !ok {
 			continue
 		}

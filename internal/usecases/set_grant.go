@@ -11,7 +11,6 @@ import (
 type SetGrant struct {
 	Connections interfaces.ConnectionRepository
 	Grants      interfaces.GrantRepository
-	Modules     map[string]interfaces.Module
 }
 
 // Serve runs it.
@@ -21,7 +20,7 @@ func (uc SetGrant) Serve(ctx context.Context, mod interfaces.Module, name, group
 	if err := RequireAdmin(ctx); err != nil {
 		return entity.Grant{}, err
 	}
-	if _, err := Raw(ctx, uc.Connections, uc.Grants, uc.Modules, mod, name, entity.LevelRead); err != nil {
+	if _, err := Raw(ctx, uc.Connections, uc.Grants, mod, name, entity.LevelRead); err != nil {
 		return entity.Grant{}, err
 	}
 	g := entity.Grant{Connection: name, Group: group, Level: level}
