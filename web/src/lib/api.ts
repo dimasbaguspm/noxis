@@ -1,6 +1,6 @@
 import type { components } from "@/api/generated";
 import { FAMILY, type FamilyKey } from "@/lib/families";
-import { accessToken, authEnabled, signin } from "@/lib/auth";
+import { accessToken, authEnabled } from "@/lib/auth";
 
 export type Level = "read" | "write" | "admin";
 export type Identity = components["schemas"]["controller.MeResponse"];
@@ -76,9 +76,10 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     headers: Object.keys(headers).length > 0 ? headers : undefined,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  // an expired or revoked token drops the console back to the sign-in page
+  // an expired or revoked token drops the console to the login page; the
+  // user restarts the OIDC flow from there
   if (res.status === 401 && authEnabled()) {
-    await signin();
+    window.location.assign("/login");
     throw new Error("redirecting to sign-in");
   }
   const text = await res.text();

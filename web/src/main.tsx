@@ -6,6 +6,7 @@ import { AuthProvider } from "@/app/auth-provider";
 import { ActiveProvider } from "@/hooks/use-connections";
 import { queryClient } from "@/lib/query-client";
 import { AppShell } from "@/components/layout/app-shell";
+import { RequireAuth } from "@/components/auth/require-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PAGE_ROUTES, routePath } from "@/lib/routes";
@@ -26,15 +27,21 @@ const ChangeDetail = lazy(() =>
   import("@/pages/change-detail").then((m) => ({ default: m.ChangeDetailPage })),
 );
 const AuthCallbackPage = lazy(() => import("@/pages/auth-callback"));
+const LoginPage = lazy(() => import("@/pages/login"));
 
 // Every page carries its engine family prefix (/sql, /memcache, /mongodb); the
 // dashboard is the only family-less route. Paths come from PAGE_ROUTES.
 const router = createBrowserRouter([
-  // the OIDC redirect target sits outside the shell: it has no chrome and
-  // leaves the page as soon as the code is exchanged
+  // the OIDC redirect target and the login page sit outside the shell: no
+  // chrome, no auth guard on them
   { path: "auth/callback", element: <AuthCallbackPage /> },
+  { path: "login", element: <LoginPage /> },
   {
-    element: <AppShell />,
+    element: (
+      <RequireAuth>
+        <AppShell />
+      </RequireAuth>
+    ),
     children: [
       { index: true, element: <DashboardPage /> },
       { path: routePath(PAGE_ROUTES.INSTANCE_DETAIL(":id")), element: <InstanceDetailPage /> },
