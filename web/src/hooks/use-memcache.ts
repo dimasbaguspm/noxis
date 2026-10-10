@@ -1,14 +1,14 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useFamily } from "@/app/app-provider";
+import { useConnections } from "@/hooks/use-connections";
 import { FAMILY } from "@/lib/families";
 import { queryClient, queryKeys } from "@/lib/query-client";
 
-// useMemcacheConnections reads the memory-cache registry from the provider:
-// the same list the dashboard shows, so the two never disagree.
+// useMemcacheConnections reads the memory-cache list from the cached
+// instances query, so the dashboard and these pages never disagree.
 export function useMemcacheConnections() {
-  const { connections, active: connection, setActive: pick, reload } = useFamily(FAMILY.MEMCACHE);
-  return { connections, connection, pick, reload };
+  const { connections, active, setActive, busy, reload } = useConnections(FAMILY.MEMCACHE);
+  return { connections, connection: active, pick: setActive, busy, reload };
 }
 
 // useMemcacheKeysQuery browses keys by pattern (a bounded full scan server

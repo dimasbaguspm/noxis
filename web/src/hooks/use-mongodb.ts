@@ -1,14 +1,14 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, type MongoChangeInput } from "@/lib/api";
-import { useFamily } from "@/app/app-provider";
+import { useConnections } from "@/hooks/use-connections";
 import { FAMILY } from "@/lib/families";
 import { queryClient, queryKeys } from "@/lib/query-client";
 
-// useMongoConnections reads the MongoDB registry from the provider, so the
-// dashboard and these pages never disagree.
+// useMongoConnections reads the MongoDB list from the cached instances query,
+// so the dashboard and these pages never disagree.
 export function useMongoConnections() {
-  const { connections, active: connection, setActive: pick, reload } = useFamily(FAMILY.MONGODB);
-  return { connections, connection, pick, reload };
+  const { connections, active, setActive, busy, reload } = useConnections(FAMILY.MONGODB);
+  return { connections, connection: active, pick: setActive, busy, reload };
 }
 
 export function useMongoDatabasesQuery(connection?: string) {

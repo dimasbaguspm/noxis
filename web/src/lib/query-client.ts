@@ -17,6 +17,9 @@ export const queryClient = new QueryClient({
 // reads. Add a key here, never string-compare keys by hand.
 export const queryKeys = {
   me: ["me"] as const,
+  config: {
+    drivers: ["config", "drivers"] as const,
+  },
   instances: {
     list: (query?: { name?: string; driver?: string; host?: string; page?: number }) =>
       ["instances", "list", query] as const,

@@ -16,7 +16,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useApp } from "@/app/app-provider";
+import { useSetActiveConnection } from "@/hooks/use-connections";
+import { useDriversQuery } from "@/hooks/use-config";
+import { queryClient } from "@/lib/query-client";
 import { FAMILY, type FamilyKey } from "@/lib/families";
 import { api, type Connection } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -67,7 +69,8 @@ export function ConnectionDialog({
   family?: FamilyKey;
   wizard?: boolean;
 }) {
-  const { reload, setActive, drivers } = useApp();
+  const setActive = useSetActiveConnection();
+  const { data: drivers = [] } = useDriversQuery();
   const { register, handleSubmit, watch, setValue, reset } = useForm<Connection>({
     defaultValues: initial ?? BLANK[family],
   });
@@ -93,11 +96,10 @@ export function ConnectionDialog({
     };
   };
 
-  // Saving writes to the shared registry, so refresh the family: the dashboard
-  // table reads it from the provider, and a new server must show up there
-  // without a reload.
+  // Saving writes a connection; the instances query already caches the list,
+  // so invalidating it is all a refresh takes.
   async function refresh() {
-    await reload(kind);
+    await queryClient.invalidateQueries({ queryKey: ["instances"] });
   }
 
   function choose(next: FamilyKey) {

@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useApp } from "@/app/app-provider";
 import { useAuth } from "@/app/auth-provider";
+import { useConnections } from "@/hooks/use-connections";
 import { useMongoChangesListQuery, useMongoConnections } from "@/hooks/use-mongodb";
+import { FAMILY } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
@@ -15,10 +16,10 @@ import { cn } from "@/lib/utils";
 // someone approves and applies it. Reads never appear (they run in Explore).
 export default function MongoRequestsPage() {
   const { can } = useAuth();
-  const { registry } = useApp();
   const { connections } = useMongoConnections();
+  const { connections: mongoConnections } = useConnections(FAMILY.MONGODB);
   const { changes, isFetching: loading, refetch: reload } = useMongoChangesListQuery();
-  const mayWrite = registry.mongodb.connections.some((c) => can(c.name, "write"));
+  const mayWrite = mongoConnections.some((c) => can(c.name, "write"));
 
   return (
     <div className="flex flex-col gap-4">
