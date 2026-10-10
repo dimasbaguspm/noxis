@@ -17,7 +17,7 @@ type Rows struct {
 func (uc Rows) Serve(ctx context.Context, sq interfaces.SQLModule, name, schema, table string, limit int) (out interfaces.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	c, err := Raw(ctx, uc.Connections, uc.Grants, sq, name, entity.LevelRead)
+	c, err := rawConn(ctx, uc.Connections, uc.Grants, sq, name, entity.LevelRead)
 	if err != nil {
 		return interfaces.Result{}, err
 	}

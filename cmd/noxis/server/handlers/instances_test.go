@@ -21,7 +21,7 @@ func TestInstanceLookup(t *testing.T) {
 	c.Password = "secret"
 	conns.conns["demo"] = c
 
-	got, err := (usecases.Instances{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}).Instance(ctx, "abc")
+	got, err := (usecases.Instance{Connections: base.Connections, Grants: base.Grants}).Serve(ctx, "abc")
 	if err != nil {
 		t.Fatalf("instance: %v", err)
 	}
@@ -32,7 +32,7 @@ func TestInstanceLookup(t *testing.T) {
 		t.Fatal("password must be redacted")
 	}
 
-	if _, err := (usecases.Instances{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}).Instance(ctx, "missing"); !errors.Is(err, interfaces.ErrNotFound) {
+	if _, err := (usecases.Instance{Connections: base.Connections, Grants: base.Grants}).Serve(ctx, "missing"); !errors.Is(err, interfaces.ErrNotFound) {
 		t.Fatalf("missing id: err=%v want not found", err)
 	}
 }
@@ -61,7 +61,7 @@ func TestInstanceSearch(t *testing.T) {
 	}
 	base.Modules[constants.FamilyMemcache] = &fakeMemcache{}
 
-	all, err := (usecases.Instances{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}).Instances(ctx, "", "", "")
+	all, err := (usecases.ListInstances{Connections: base.Connections, Grants: base.Grants}).Serve(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("all = %d, want 3", len(all))
 	}
 
-	byName, err := (usecases.Instances{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}).Instances(ctx, "PROD", "", "")
+	byName, err := (usecases.ListInstances{Connections: base.Connections, Grants: base.Grants}).Serve(ctx, "PROD", "", "")
 	if err != nil {
 		t.Fatalf("by name: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("by name = %+v", byName)
 	}
 
-	byDriver, err := (usecases.Instances{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}).Instances(ctx, "", constants.DriverRedis, "")
+	byDriver, err := (usecases.ListInstances{Connections: base.Connections, Grants: base.Grants}).Serve(ctx, "", constants.DriverRedis, "")
 	if err != nil {
 		t.Fatalf("by driver: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("by driver = %+v", byDriver)
 	}
 
-	byHost, err := (usecases.Instances{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}).Instances(ctx, "", "", "internal")
+	byHost, err := (usecases.ListInstances{Connections: base.Connections, Grants: base.Grants}).Serve(ctx, "", "", "internal")
 	if err != nil {
 		t.Fatalf("by host: %v", err)
 	}
@@ -107,23 +107,23 @@ func TestIdentityLockedAndRotation(t *testing.T) {
 
 	changed := c
 	changed.Host = "elsewhere"
-	if _, err := (usecases.Connections{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}).SaveConnection(ctx, mod, changed); err == nil {
+	if _, err := (usecases.SaveConnection{Connections: base.Connections}).Serve(ctx, mod, changed); err == nil {
 		t.Fatal("changing host must be rejected")
 	}
 	if conns.conns["demo"].Host != "db" {
 		t.Fatal("stored instance must be unchanged")
 	}
 
-	if err := (usecases.Instances{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}).RotatePassword(ctx, "abc", "new"); err != nil {
+	if err := (usecases.RotatePassword{Connections: base.Connections}).Serve(ctx, "abc", "new"); err != nil {
 		t.Fatalf("rotate: %v", err)
 	}
 	if conns.conns["demo"].Password != "new" {
 		t.Fatal("password not rotated")
 	}
-	if err := (usecases.Instances{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}).RotatePassword(ctx, "abc", ""); err == nil {
+	if err := (usecases.RotatePassword{Connections: base.Connections}).Serve(ctx, "abc", ""); err == nil {
 		t.Fatal("empty password must be rejected")
 	}
-	if err := (usecases.Instances{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants}).RotatePassword(ctx, "missing", "x"); !errors.Is(err, interfaces.ErrNotFound) {
+	if err := (usecases.RotatePassword{Connections: base.Connections}).Serve(ctx, "missing", "x"); !errors.Is(err, interfaces.ErrNotFound) {
 		t.Fatalf("missing id: err=%v want not found", err)
 	}
 }

@@ -24,7 +24,7 @@ func (uc DeleteGrant) Serve(ctx context.Context, mod interfaces.Module, name, gr
 	if group == "" {
 		return fmt.Errorf("group is required")
 	}
-	if _, err := Raw(ctx, uc.Connections, uc.Grants, mod, name, entity.LevelRead); err != nil {
+	if _, err := rawConn(ctx, uc.Connections, uc.Grants, mod, name, entity.LevelRead); err != nil {
 		return err
 	}
 	return uc.Grants.DeleteGrant(ctx, name, group)

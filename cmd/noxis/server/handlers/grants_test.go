@@ -46,13 +46,13 @@ func (f *fakeGrants) ListGroupNames(_ context.Context) ([]string, error) {
 }
 
 func grantRouter() http.Handler {
-	deps, app, _, _ := newTestDeps(&fakeSQL{})
-	app.Grants = &fakeGrants{grants: map[string]entity.Grant{}}
+	d, _, _ := newTestDeps(&fakeSQL{})
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/grants", ListGrants)
 	mux.HandleFunc("PUT /v1/engine/{engine}/connections/{name}/grants", SetGrant)
 	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}/grants", DeleteGrant)
-	return depsHandler(mux, deps)
+	return depsHandler(mux, d)
 }
 
 func request(t *testing.T, h http.Handler, method, path, body string, admin bool) *httptest.ResponseRecorder {

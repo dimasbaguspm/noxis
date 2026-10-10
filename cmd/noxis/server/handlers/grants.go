@@ -3,7 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
-	"noxis/internal/usecases"
+	"noxis/cmd/noxis/server/deps"
 )
 
 // @Summary The known group names for grant editing
@@ -11,9 +11,9 @@ import (
 // @Failure 403 {object} entity.ErrorResponse
 // @Router /v1/config/groups [get]
 func ListConfigGroups(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		groups, err := d.Grants.Groups(ctx)
+		groups, err := d.Groups.Serve(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -39,13 +39,13 @@ type grantBody struct {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/grants [get]
 func ListGrants(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.Engines.Engine(r.PathValue("engine"))
+		mod, err := d.Modules.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		out, err := d.Grants.ListGrants(ctx, mod, r.PathValue("name"))
+		out, err := d.ListGrants.Serve(ctx, mod, r.PathValue("name"))
 		return map[string]any{"grants": out}, err
 	})
 }
@@ -61,9 +61,9 @@ func ListGrants(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/grants [put]
 func SetGrant(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		mod, err := d.Engines.Engine(r.PathValue("engine"))
+		mod, err := d.Modules.Engine(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -71,7 +71,7 @@ func SetGrant(w http.ResponseWriter, r *http.Request) {
 		if err := decode(r, &body); err != nil {
 			return nil, err
 		}
-		return d.Grants.SetGrant(ctx, mod, r.PathValue("name"), body.Group, body.Level)
+		return d.SetGrant.Serve(ctx, mod, r.PathValue("name"), body.Group, body.Level)
 	})
 }
 
@@ -85,12 +85,12 @@ func SetGrant(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/grants [delete]
 func DeleteGrant(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handleNoContent(w, r, func(ctx context.Context) error {
-		mod, err := d.Engines.Engine(r.PathValue("engine"))
+		mod, err := d.Modules.Engine(r.PathValue("engine"))
 		if err != nil {
 			return err
 		}
-		return d.Grants.DeleteGrant(ctx, mod, r.PathValue("name"), r.URL.Query().Get("group"))
+		return d.DeleteGrant.Serve(ctx, mod, r.PathValue("name"), r.URL.Query().Get("group"))
 	})
 }

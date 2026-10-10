@@ -29,7 +29,7 @@ func (uc ApplyMongo) Serve(ctx context.Context, m interfaces.MongoModule, id str
 	if ch.Status != constants.ChangeApproved {
 		return *ch, fmt.Errorf("request is %s, not approved — cannot apply", ch.Status)
 	}
-	conn, err := Raw(ctx, uc.Connections, uc.Grants, m, ch.Connection, entity.LevelAdmin)
+	conn, err := rawConn(ctx, uc.Connections, uc.Grants, m, ch.Connection, entity.LevelAdmin)
 	if err != nil {
 		return entity.Change{}, err
 	}

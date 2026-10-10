@@ -4,10 +4,10 @@ import (
 	"context"
 	"net/http"
 
+	"noxis/cmd/noxis/server/deps"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules/mongodb"
-	"noxis/internal/usecases"
 )
 
 // The MongoDB operations. Connection CRUD and the change routes are shared
@@ -26,13 +26,13 @@ import (
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/databases [get]
 func ListDatabases(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		m, err := d.Engines.EngineMongo(r.PathValue("engine"))
+		m, err := d.Modules.EngineMongo(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.Connections.Raw(ctx, m, r.PathValue("name"), entity.LevelRead)
+		c, err := d.Raw.Serve(ctx, m, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -50,13 +50,13 @@ func ListDatabases(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/collections [get]
 func ListCollections(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
-		m, err := d.Engines.EngineMongo(r.PathValue("engine"))
+		m, err := d.Modules.EngineMongo(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
-		c, err := d.Connections.Raw(ctx, m, r.PathValue("name"), entity.LevelRead)
+		c, err := d.Raw.Serve(ctx, m, r.PathValue("name"), entity.LevelRead)
 		if err != nil {
 			return nil, err
 		}
@@ -74,13 +74,13 @@ func ListCollections(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /v1/engine/{engine}/connections/{name}/requests [post]
 func PostRequest(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
 		var req interfaces.MongoRequest
 		if err := decode(r, &req); err != nil {
 			return nil, err
 		}
-		m, err := d.Engines.EngineMongo(r.PathValue("engine"))
+		m, err := d.Modules.EngineMongo(r.PathValue("engine"))
 		if err != nil {
 			return nil, err
 		}
@@ -90,7 +90,7 @@ func PostRequest(w http.ResponseWriter, r *http.Request) {
 		if mongodb.IsWrite(req.Op) {
 			level = entity.LevelWrite
 		}
-		c, err := d.Connections.Raw(ctx, m, r.PathValue("name"), level)
+		c, err := d.Raw.Serve(ctx, m, r.PathValue("name"), level)
 		if err != nil {
 			return nil, err
 		}

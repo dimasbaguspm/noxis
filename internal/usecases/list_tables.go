@@ -17,7 +17,7 @@ type Schema struct {
 func (uc Schema) Serve(ctx context.Context, sq interfaces.SQLModule, name string) (out []interfaces.Table, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	c, err := Raw(ctx, uc.Connections, uc.Grants, sq, name, entity.LevelRead)
+	c, err := rawConn(ctx, uc.Connections, uc.Grants, sq, name, entity.LevelRead)
 	if err != nil {
 		return nil, err
 	}

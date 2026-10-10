@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"noxis/cmd/noxis/server/deps"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -12,7 +13,7 @@ import (
 // @Success 200 {object} config.AuthInfo
 // @Router /auth/config [get]
 func GetAuthConfig(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(context.Context) (any, error) {
 		return d.Auth, nil
 	})
@@ -30,13 +31,13 @@ type MeResponse struct {
 // @Failure 401 {object} entity.ErrorResponse
 // @Router /v1/me [get]
 func GetMe(w http.ResponseWriter, r *http.Request) {
-	d := usecases.From(r.Context())
+	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
 		p, ok := usecases.Principal(ctx)
 		if !ok {
 			return nil, errUnauthorized
 		}
-		levels, err := d.Me.ConnectionLevels(ctx)
+		levels, err := d.ConnectionLevels.Serve(ctx)
 		if err != nil {
 			return nil, err
 		}

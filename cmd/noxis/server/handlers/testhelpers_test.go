@@ -2,19 +2,21 @@ package handlers
 
 import (
 	"context"
+	"io"
+	"log/slog"
 	"net/http"
 
+	"noxis/cmd/noxis/server/deps"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules"
-	"noxis/internal/usecases"
 )
 
-// depsHandler wraps h so every request carries the test deps, mirroring how
-// the real server seeds the base request context in Run.
-func depsHandler(h http.Handler, deps usecases.Deps) http.Handler {
+// depsHandler wraps h so every request carries the test deps + registry,
+// mirroring how the real server seeds the base request context in Run.
+func depsHandler(h http.Handler, d deps.Deps) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := usecases.WithDeps(r.Context(), deps)
-		h.ServeHTTP(w, r.WithContext(modules.WithRegistry(ctx, deps.Engines)))
+		ctx := deps.Seed(r.Context(), d)
+		h.ServeHTTP(w, r.WithContext(modules.WithRegistry(ctx, d.Modules)))
 	})
 }
 
@@ -22,3 +24,6 @@ func depsHandler(h http.Handler, deps usecases.Deps) http.Handler {
 func testCtx(mods map[string]interfaces.Module) context.Context {
 	return modules.WithRegistry(context.Background(), modules.New(mods))
 }
+
+// discardLog is the test logger the container carries.
+func discardLog() *slog.Logger { return slog.New(slog.NewTextHandler(io.Discard, nil)) }

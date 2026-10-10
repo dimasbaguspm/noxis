@@ -32,7 +32,7 @@ func (uc Apply) Serve(ctx context.Context, sq interfaces.SQLModule, id string) (
 		return *ch, fmt.Errorf("change is scheduled for %s — the scheduler will apply it",
 			time.Unix(ch.ScheduledAt, 0).Format(time.RFC3339))
 	}
-	conn, err := Raw(ctx, uc.Connections, uc.Grants, sq, ch.Connection, entity.LevelAdmin)
+	conn, err := rawConn(ctx, uc.Connections, uc.Grants, sq, ch.Connection, entity.LevelAdmin)
 	if err != nil {
 		return entity.Change{}, err
 	}

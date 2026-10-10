@@ -58,7 +58,7 @@ func applySQL(ctx context.Context, changes interfaces.ChangeRepository, conns in
 		return *ch, fmt.Errorf("change is scheduled for %s — the scheduler will apply it",
 			time.Unix(ch.ScheduledAt, 0).Format(time.RFC3339))
 	}
-	conn, err := Raw(ctx, conns, grants, sq, ch.Connection, entity.LevelAdmin)
+	conn, err := rawConn(ctx, conns, grants, sq, ch.Connection, entity.LevelAdmin)
 	if err != nil {
 		return entity.Change{}, err
 	}
@@ -88,7 +88,7 @@ func applyMongo(ctx context.Context, changes interfaces.ChangeRepository, conns 
 	if ch.Status != constants.ChangeApproved {
 		return *ch, fmt.Errorf("request is %s, not approved — cannot apply", ch.Status)
 	}
-	conn, err := Raw(ctx, conns, grants, m, ch.Connection, entity.LevelAdmin)
+	conn, err := rawConn(ctx, conns, grants, m, ch.Connection, entity.LevelAdmin)
 	if err != nil {
 		return entity.Change{}, err
 	}

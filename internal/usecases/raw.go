@@ -9,11 +9,11 @@ import (
 	"noxis/internal/modules"
 )
 
-// Raw returns the password-bearing connection for a module: a connection of
+// rawConn returns the password-bearing connection for a module: a connection of
 // another engine family is not addressable in this namespace. It is the
 // single authorization gate every connection-scoped workflow funnels through:
 // level is the access the operation needs.
-func Raw(ctx context.Context, conns interfaces.ConnectionRepository, grants interfaces.GrantRepository, mod interfaces.Module, name, level string) (*entity.Connection, error) {
+func rawConn(ctx context.Context, conns interfaces.ConnectionRepository, grants interfaces.GrantRepository, mod interfaces.Module, name, level string) (*entity.Connection, error) {
 	c, err := conns.Get(ctx, name)
 	if err != nil {
 		return nil, err
