@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight, GalleryVerticalEnd, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { ChevronRight, GalleryVerticalEnd, LayoutDashboard, Settings, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FAMILIES, type Family } from "@/lib/families";
+import { PAGE_ROUTES } from "@/lib/routes";
 import { usePagedInstancesQuery } from "@/hooks/use-instances";
 import { NavUser } from "@/components/layout/nav-user";
 import {
@@ -143,11 +144,24 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             {FAMILIES.map((family) => (
               <FamilyMenu key={family.key} family={family} pathname={pathname} />
             ))}
+          </SidebarMenu>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/settings"}>
-                <Link to="/settings">
-                  <ShieldCheck />
-                  <span>Access</span>
+              <SidebarMenuButton asChild isActive={pathname === PAGE_ROUTES.PROFILE}>
+                <Link to={PAGE_ROUTES.PROFILE}>
+                  <UserRound />
+                  <span>Profile</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === PAGE_ROUTES.SETTINGS}>
+                <Link to={PAGE_ROUTES.SETTINGS}>
+                  <Settings />
+                  <span>Settings</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
