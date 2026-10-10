@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"noxis/internal/application"
+	"noxis/internal/usecases"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
 
-func authzApp(grants ...entity.Grant) (*application.App, interfaces.Module) {
+func authzApp(grants ...entity.Grant) (*usecases.App, interfaces.Module) {
 	app, _, _ := newApp(&fakeSQL{})
 	store := &fakeGrants{grants: map[string]entity.Grant{}}
 	for _, g := range grants {
@@ -22,7 +22,7 @@ func authzApp(grants ...entity.Grant) (*application.App, interfaces.Module) {
 }
 
 func asPrincipal(principal entity.Principal) context.Context {
-	return application.WithPrincipal(context.Background(), principal)
+	return usecases.WithPrincipal(context.Background(), principal)
 }
 
 func TestAuthorizeByEffectiveLevel(t *testing.T) {
@@ -50,7 +50,7 @@ func TestAuthorizeByEffectiveLevel(t *testing.T) {
 		if tc.ok && err != nil {
 			t.Errorf("%s: err=%v want allowed", tc.name, err)
 		}
-		if !tc.ok && !errors.Is(err, application.ErrForbidden) {
+		if !tc.ok && !errors.Is(err, usecases.ErrForbidden) {
 			t.Errorf("%s: err=%v want forbidden", tc.name, err)
 		}
 	}

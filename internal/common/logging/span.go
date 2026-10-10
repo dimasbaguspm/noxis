@@ -42,9 +42,9 @@ func CallerName(skip int) string {
 // formatSpanName turns a runtime function name into the project convention:
 //
 //	noxis/internal/repositories/sqlite.(*Store).List -> Repository.Sqlite.Store.List
-//	noxis/internal/application.(*App).SubmitChange -> Application.App.SubmitChange
+//	noxis/internal/usecases.(*App).SubmitChange -> Usecases.App.SubmitChange
 //	noxis/cmd/noxis/server/api.(*Server).handle.func1 -> Noxis.Api.Server.handle.func1
-//	noxis/internal/services/sql.(*DB).query -> Services.Sql.DB.query
+//	noxis/internal/modules/sql.(*DB).query -> Modules.Sql.DB.query
 func formatSpanName(full string) string {
 	full = strings.TrimPrefix(full, modulePrefix)
 	slash := strings.LastIndex(full, "/")
@@ -75,8 +75,6 @@ func moduleName(seg string) string {
 	switch seg {
 	case "repositories":
 		return "Repository"
-	case "services":
-		return "Services"
 	case "common":
 		return "Common"
 	}

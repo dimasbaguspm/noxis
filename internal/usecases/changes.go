@@ -1,4 +1,4 @@
-package application
+package usecases
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/services/sql"
+	"noxis/internal/modules/sql"
 )
 
 // SubmitChange validates a change and records it. Validation is the trust

@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"noxis/internal/application"
+	"noxis/internal/usecases"
 	"noxis/internal/entity"
 )
 
@@ -75,7 +75,7 @@ func TestWithAuthAttachesPrincipal(t *testing.T) {
 	verifier := &fakeVerifier{principal: entity.Principal{Subject: "alice", Groups: []string{"dev"}, Admin: true}}
 	var got entity.Principal
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		got, _ = application.Principal(r.Context())
+		got, _ = usecases.Principal(r.Context())
 		w.WriteHeader(http.StatusOK)
 	})
 	req := httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody)

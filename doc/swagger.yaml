@@ -37,7 +37,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/application.TickResult"
+                $ref: "#/components/schemas/usecases.TickResult"
         "401":
           description: Unauthorized
           content:
@@ -1491,18 +1491,6 @@ components:
       properties:
         scheduledAt:
           type: integer
-    application.TickResult:
-      description: applied and failed change ids from one tick.
-      type: object
-      properties:
-        applied:
-          type: array
-          items:
-            type: string
-        failed:
-          type: array
-          items:
-            type: string
     entity.Change:
       type: object
       required:
@@ -1801,3 +1789,15 @@ components:
           type: string
         schema:
           type: string
+    usecases.TickResult:
+      description: applied and failed change ids from one tick.
+      type: object
+      properties:
+        applied:
+          type: array
+          items:
+            type: string
+        failed:
+          type: array
+          items:
+            type: string

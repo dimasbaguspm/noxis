@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"noxis/internal/application"
+	"noxis/internal/usecases"
 	"noxis/internal/entity"
 )
 
@@ -16,7 +16,7 @@ func TestGetMeServesPrincipal(t *testing.T) {
 	mux.HandleFunc("GET /v1/me", srv.GetMe)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody)
-	req = req.WithContext(application.WithPrincipal(req.Context(), entity.Principal{
+	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Principal{
 		Subject: "alice",
 		Groups:  []string{"dev", "noxis-admins"},
 		Admin:   true,
@@ -43,7 +43,7 @@ func TestGetMeIncludesLevels(t *testing.T) {
 	mux.HandleFunc("GET /v1/me", srv.GetMe)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody)
-	req = req.WithContext(application.WithPrincipal(req.Context(), entity.Principal{Subject: "bob", Groups: []string{"readers"}}))
+	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Principal{Subject: "bob", Groups: []string{"readers"}}))
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 

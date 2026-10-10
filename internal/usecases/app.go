@@ -1,9 +1,9 @@
-// Package application holds the use cases of the noise console: the change
+// Package usecases holds the use cases of the noise console: the change
 // lifecycle, connection registry, grants policy and cross-family instance
 // lookup. Transport concerns (HTTP, swagger) live in cmd/noxis/server/api; an
 // App here only speaks to repositories and the engine-family registry it is
 // given, so every workflow is testable without the network.
-package application
+package usecases
 
 import (
 	"context"

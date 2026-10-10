@@ -6,7 +6,7 @@ import (
 
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/services/mongodb"
+	"noxis/internal/modules/mongodb"
 )
 
 // The MongoDB operations. Connection CRUD and the change routes are shared

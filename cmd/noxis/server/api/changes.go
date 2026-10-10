@@ -260,7 +260,7 @@ func (s *Server) ScheduleChange(w http.ResponseWriter, r *http.Request) {
 
 // @Summary Apply every due scheduled change (external cron / scheduler)
 // @Param X-API-Key header string true "NOXIS_TICK_KEY"
-// @Success 200 {object} application.TickResult
+// @Success 200 {object} usecases.TickResult
 // @Failure 401 {object} map[string]string
 // @Router /internal/tick [post]
 func (s *Server) PostTick(w http.ResponseWriter, r *http.Request) {

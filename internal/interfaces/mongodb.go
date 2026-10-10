@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"noxis/internal/entity"
-	mongosvc "noxis/internal/services/mongodb"
+	mongosvc "noxis/internal/modules/mongodb"
 )
 
 // MongoDB operation shapes live with the module; the result grid is shared.

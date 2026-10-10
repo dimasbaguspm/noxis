@@ -1,4 +1,4 @@
-package application
+package usecases
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/services/mongodb"
+	"noxis/internal/modules/mongodb"
 )
 
 // SubmitMongoChange validates a write request on a scratch collection and

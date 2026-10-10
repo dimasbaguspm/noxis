@@ -1,6 +1,6 @@
 // Package api is the transport layer of the noxis REST API: thin HTTP
 // handlers, swag annotations and the engine-family lookup. Workflows live in
-// internal/application; a Server here only parses the request, calls the app
+// internal/usecases; a Server here only parses the request, calls the app
 // and encodes the response.
 //
 // Routes are generic over the engine family: a path parameter `{engine}` names
@@ -16,7 +16,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"noxis/internal/application"
+	"noxis/internal/usecases"
 	"noxis/internal/common/logging"
 	"noxis/internal/interfaces"
 )
@@ -26,7 +26,7 @@ import (
 // endpoint key). Handlers are methods on it, so no dependency rides the
 // request context.
 type Server struct {
-	App *application.App
+	App *usecases.App
 	Log *slog.Logger
 	// Auth is the public OIDC configuration the console reads to start login.
 	Auth AuthInfo
@@ -87,7 +87,7 @@ var errUnauthorized = errors.New("invalid or missing api key")
 
 // ErrForbidden re-exports the application policy error so handlers can check
 // it; writeErr already maps it to 403.
-var ErrForbidden = application.ErrForbidden
+var ErrForbidden = usecases.ErrForbidden
 
 func writeErr(w http.ResponseWriter, err error) {
 	code := http.StatusBadRequest

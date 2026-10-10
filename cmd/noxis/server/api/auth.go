@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"noxis/internal/application"
+	"noxis/internal/usecases"
 	"noxis/internal/entity"
 )
 
@@ -38,7 +38,7 @@ type MeResponse struct {
 // @Router /v1/me [get]
 func (s *Server) GetMe(w http.ResponseWriter, r *http.Request) {
 	s.handle(w, r, func(ctx context.Context) (any, error) {
-		p, ok := application.Principal(ctx)
+		p, ok := usecases.Principal(ctx)
 		if !ok {
 			return nil, errUnauthorized
 		}
