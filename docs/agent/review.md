@@ -31,7 +31,7 @@ repo-specific: the generic review skill covers the rest.
 business logic, no direct repository access, no engine-family literal. Swag
 annotation block updated and `make swagger` run if the route changed.
 
-**Use cases** — one file, one `Serve`, span opened, deps as struct fields.
+**Use cases** — one file, one `Serve(w, r)` + `Run` core, span opened, deps as explicit struct fields.
 Shared logic lives in a package helper, not by calling another use case. Errors
 wrapped with `%w`; sentinel compares with `errors.Is`.
 

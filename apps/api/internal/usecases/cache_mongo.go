@@ -9,42 +9,49 @@ import "noxis/internal/interfaces"
 
 // CacheKeys browses keys by pattern (bounded scan, with type, TTL and size).
 type CacheKeys struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }
 
 // CacheValue inspects one key's value.
 type CacheValue struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }
 
 // CacheDelete removes the selected keys only.
 type CacheDelete struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }
 
 // CacheFlush empties the connected database (FLUSHDB, never FLUSHALL).
 type CacheFlush struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }
 
 // MongoDatabases lists databases with their sizes.
 type MongoDatabases struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }
 
 // MongoCollections lists a database's collections with their sizes.
 type MongoCollections struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }
 
 // MongoRun runs a read request (find | aggregate | count).
 type MongoRun struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }

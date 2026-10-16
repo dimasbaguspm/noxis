@@ -12,6 +12,7 @@ import (
 
 // Apply is the "Apply" use case.
 type Apply struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
 	Permissions interfaces.PermissionRepository
@@ -32,7 +33,7 @@ func (uc Apply) Run(ctx context.Context, sq interfaces.SQLModule, id string) (ou
 		return *ch, fmt.Errorf("change is scheduled for %s — the scheduler will apply it",
 			time.Unix(ch.ScheduledAt, 0).Format(time.RFC3339))
 	}
-	conn, err := rawConn(ctx, uc.Connections, uc.Permissions, sq, ch.Connection, entity.LevelAdmin)
+	conn, err := rawConn(ctx, uc.Connections, uc.Permissions, uc.Modules, sq, ch.Connection, entity.LevelAdmin)
 	if err != nil {
 		return entity.Change{}, err
 	}

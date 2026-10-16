@@ -7,14 +7,13 @@ import (
 
 	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/modules"
 )
 
 // Only an approved change is schedulable, a past slot is refused, and 0 clears
 // the schedule.
 func TestScheduleApprovedChange(t *testing.T) {
 	d, store, _ := newTestDeps(&fakeSQL{})
-	ctx := modules.WithRegistry(context.Background(), d.Modules)
+	ctx := context.Background()
 	store.changes["x"] = entity.Change{ID: "x", Connection: "demo", Kind: constants.KindDML, Status: constants.ChangeValidated}
 
 	if _, err := d.Schedule.Run(ctx, "x", time.Now().Add(time.Hour).Unix()); err == nil {

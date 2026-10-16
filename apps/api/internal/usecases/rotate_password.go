@@ -5,11 +5,11 @@ import (
 	"errors"
 	"noxis/internal/common/logging"
 	"noxis/internal/interfaces"
-	"noxis/internal/modules"
 )
 
 // RotatePassword is the "RotatePassword" use case.
 type RotatePassword struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 }
 
@@ -27,7 +27,7 @@ func (uc RotatePassword) Run(ctx context.Context, id, password string) (err erro
 	if err != nil {
 		return err
 	}
-	if _, ok := modules.RegistryFrom(ctx).Serves(c.Driver); !ok {
+	if _, ok := uc.Modules.Serves(c.Driver); !ok {
 		return interfaces.ErrUnsupported
 	}
 	c.Password = password

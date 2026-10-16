@@ -5,12 +5,12 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/modules"
 	"strings"
 )
 
 // Instances is the "Instances" use case.
 type ListInstances struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }
@@ -28,7 +28,7 @@ func (uc ListInstances) Run(ctx context.Context, name, driver, host string) (out
 	out = make([]entity.Connection, 0, len(list))
 	for i := range list {
 		c := &list[i]
-		mod, ok := modules.RegistryFrom(ctx).Serves(c.Driver)
+		mod, ok := uc.Modules.Serves(c.Driver)
 		if !ok {
 			continue
 		}

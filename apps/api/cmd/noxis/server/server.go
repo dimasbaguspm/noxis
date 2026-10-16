@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"time"
 
-	"noxis/cmd/noxis/server/deps"
 	"noxis/cmd/noxis/server/middlewares"
 	"noxis/internal/common/config"
 	"noxis/internal/constants"
@@ -27,15 +26,14 @@ import (
 const shutdownTimeout = 10 * time.Second
 
 // newDeps assembles the runtime container once: the stores, the registry (with
-// the auth service) and the transport values, then binds every use case to them.
-func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config, authSvc *auth.Service) deps.Uses {
-	return deps.Init(deps.Deps{
+// the auth service) and the transport values, then builds every use case.
+func newDeps(store *sqlite.Store, cfg config.Config, authSvc *auth.Service) app {
+	return newApp(sources{
 		Connections: store,
 		Changes:     store,
 		Permissions: store,
 		Users:       store,
 		Modules:     modules.Default(authSvc),
-		Log:         log,
 		Auth:        cfg.AuthInfo(),
 	})
 }
@@ -48,7 +46,7 @@ func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config, authSvc *
 // every Serve resolves its module from the registry. A family that does not
 // serve a route is refused by the use case (404) instead of reaching the wrong
 // module.
-func newHandler(d deps.Uses, cfg config.Config) http.Handler {
+func newHandler(d app, cfg config.Config) http.Handler {
 	mux := http.NewServeMux()
 	// The public API is versioned and mounted under /external; internal triggers
 	// live under /internal; the console shell and health probes stay at the root.
@@ -147,7 +145,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 
 	log.InfoContext(ctx, "noxis serving", "addr", cfg.Listen, "db", cfg.DB)
 
-	d := newDeps(store, log, cfg, authSvc)
+	d := newDeps(store, cfg, authSvc)
 	if err := d.Modules.Auth().EnsureRoot(ctx, cfg.AdminUsername, cfg.AdminPassword); err != nil {
 		return err
 	}
@@ -157,10 +155,9 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 	// attributes and log fields are set once, in the middleware layer.
 	handler := middlewares.CORS(middlewares.WithAuth(authSvc, middlewares.RequestLog(newHandler(d, cfg), log)))
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler}
-	// every request ctx descends from ours, carrying the engine registry the
-	// use cases resolve {engine} through
+	// every request ctx descends from ours
 	srv.BaseContext = func(net.Listener) context.Context {
-		return modules.WithRegistry(ctx, d.Modules)
+		return ctx
 	}
 
 	errCh := make(chan error, 1)

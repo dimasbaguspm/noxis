@@ -13,6 +13,7 @@ import (
 
 // ApplyMongo is the "ApplyMongo" use case.
 type ApplyMongo struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
 	Permissions interfaces.PermissionRepository
@@ -29,7 +30,7 @@ func (uc ApplyMongo) Run(ctx context.Context, m interfaces.MongoModule, id strin
 	if ch.Status != constants.ChangeApproved {
 		return *ch, fmt.Errorf("request is %s, not approved — cannot apply", ch.Status)
 	}
-	conn, err := rawConn(ctx, uc.Connections, uc.Permissions, m, ch.Connection, entity.LevelAdmin)
+	conn, err := rawConn(ctx, uc.Connections, uc.Permissions, uc.Modules, m, ch.Connection, entity.LevelAdmin)
 	if err != nil {
 		return entity.Change{}, err
 	}

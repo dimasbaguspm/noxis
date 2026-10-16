@@ -50,7 +50,7 @@ func (f *fakePermissions) ListGroupNames(_ context.Context) ([]string, error) {
 
 func permissionRouter() http.Handler {
 	d, _, _ := newTestDeps(&fakeSQL{})
-	return depsHandler(newHandler(d, config.Config{}), d)
+	return newHandler(d, config.Config{})
 }
 
 func request(t *testing.T, h http.Handler, method, path, body string, admin bool) *httptest.ResponseRecorder {

@@ -9,7 +9,6 @@ import (
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/modules"
 	"noxis/internal/modules/mongodb"
 )
 
@@ -20,7 +19,7 @@ import (
 // @Success 200 {object} object{connections=[]entity.Connection}
 // @Router /external/v1/engine/{engine}/connections [get]
 func (uc ConnectionList) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -40,7 +39,7 @@ func (uc ConnectionList) Serve(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections [post]
 func (uc SaveConnection) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -65,7 +64,7 @@ func (uc SaveConnection) Serve(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name} [get]
 func (uc Connection) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -85,7 +84,7 @@ func (uc Connection) Serve(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name} [delete]
 func (uc DeleteConnection) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -104,7 +103,7 @@ func (uc DeleteConnection) Serve(w http.ResponseWriter, r *http.Request) {
 // @Failure 400 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/test [post]
 func (uc TestConnection) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -124,7 +123,7 @@ func (uc TestConnection) Serve(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/schema [get]
 func (uc Schema) Serve(w http.ResponseWriter, r *http.Request) {
-	sq, err := modules.RegistryFrom(r.Context()).EngineSQL(r.PathValue("engine"))
+	sq, err := uc.Modules.EngineSQL(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -148,7 +147,7 @@ func (uc Schema) Serve(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/tables/{table}/rows [get]
 func (uc Rows) Serve(w http.ResponseWriter, r *http.Request) {
-	sq, err := modules.RegistryFrom(r.Context()).EngineSQL(r.PathValue("engine"))
+	sq, err := uc.Modules.EngineSQL(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -180,7 +179,7 @@ var opRoutes = map[string]string{
 }
 
 func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
-	sq, err := modules.RegistryFrom(r.Context()).EngineSQL(r.PathValue("engine"))
+	sq, err := uc.Modules.EngineSQL(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -237,7 +236,7 @@ func (uc Members) Serve(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [get]
 func (uc ListPermissions) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -268,7 +267,7 @@ type permissionBody struct {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [put]
 func (uc SetPermission) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -296,7 +295,7 @@ func (uc SetPermission) Serve(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [delete]
 func (uc DeletePermission) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -423,7 +422,9 @@ type loginResponse struct {
 }
 
 // Login authenticates a local account.
-type Login struct{}
+type Login struct {
+	RegistryDeps
+}
 
 // @Summary Log in with a local account
 // @Accept json
@@ -431,13 +432,13 @@ type Login struct{}
 // @Success 200 {object} loginResponse
 // @Failure 401 {object} entity.ErrorResponse
 // @Router /external/v1/auth/login [post]
-func (Login) Serve(w http.ResponseWriter, r *http.Request) {
+func (uc Login) Serve(w http.ResponseWriter, r *http.Request) {
 	var body loginRequest
 	if err := decode(r, &body); err != nil {
 		fail(w, err)
 		return
 	}
-	token, user, err := modules.RegistryFrom(r.Context()).Auth().Login(r.Context(), body.Username, body.Password)
+	token, user, err := uc.Modules.Auth().Login(r.Context(), body.Username, body.Password)
 	if err != nil {
 		fail(w, err)
 		return
@@ -446,19 +447,21 @@ func (Login) Serve(w http.ResponseWriter, r *http.Request) {
 }
 
 // Logout ends the caller's session.
-type Logout struct{}
+type Logout struct {
+	RegistryDeps
+}
 
 // @Summary Log out the current local account
 // @Success 204
 // @Failure 401 {object} entity.ErrorResponse
 // @Router /external/v1/auth/logout [post]
-func (Logout) Serve(w http.ResponseWriter, r *http.Request) {
+func (uc Logout) Serve(w http.ResponseWriter, r *http.Request) {
 	p, ok := Principal(r.Context())
 	if !ok {
 		fail(w, ErrUnauthorized)
 		return
 	}
-	if err := modules.RegistryFrom(r.Context()).Auth().Logout(r.Context(), p.Subject); err != nil {
+	if err := uc.Modules.Auth().Logout(r.Context(), p.Subject); err != nil {
 		fail(w, err)
 		return
 	}
@@ -472,7 +475,9 @@ type changePasswordRequest struct {
 }
 
 // ChangePassword lets a local account change its own password.
-type ChangePassword struct{}
+type ChangePassword struct {
+	RegistryDeps
+}
 
 // @Summary Change the current local account's password
 // @Accept json
@@ -480,7 +485,7 @@ type ChangePassword struct{}
 // @Success 204
 // @Failure 401 {object} entity.ErrorResponse
 // @Router /external/v1/auth/password [post]
-func (ChangePassword) Serve(w http.ResponseWriter, r *http.Request) {
+func (uc ChangePassword) Serve(w http.ResponseWriter, r *http.Request) {
 	p, ok := Principal(r.Context())
 	if !ok {
 		fail(w, ErrUnauthorized)
@@ -495,7 +500,7 @@ func (ChangePassword) Serve(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	if err := modules.RegistryFrom(r.Context()).Auth().ChangePassword(r.Context(), p.Subject, body.OldPassword, body.NewPassword); err != nil {
+	if err := uc.Modules.Auth().ChangePassword(r.Context(), p.Subject, body.OldPassword, body.NewPassword); err != nil {
 		fail(w, err)
 		return
 	}
@@ -542,12 +547,12 @@ func (Drivers) Serve(w http.ResponseWriter, _ *http.Request) { respond(w, driver
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/keys [get]
 func (uc CacheKeys) Serve(w http.ResponseWriter, r *http.Request) {
-	mc, err := modules.RegistryFrom(r.Context()).EngineMemcache(r.PathValue("engine"))
+	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, mc, r.PathValue("name"), entity.LevelRead)
+	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, mc, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
 		fail(w, err)
 		return
@@ -575,12 +580,12 @@ func (uc CacheValue) Serve(w http.ResponseWriter, r *http.Request) {
 		fail(w, errKeyRequired)
 		return
 	}
-	mc, err := modules.RegistryFrom(r.Context()).EngineMemcache(r.PathValue("engine"))
+	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, mc, r.PathValue("name"), entity.LevelRead)
+	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, mc, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
 		fail(w, err)
 		return
@@ -612,12 +617,12 @@ func (uc CacheDelete) Serve(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	mc, err := modules.RegistryFrom(r.Context()).EngineMemcache(r.PathValue("engine"))
+	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, mc, r.PathValue("name"), entity.LevelAdmin)
+	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, mc, r.PathValue("name"), entity.LevelAdmin)
 	if err != nil {
 		fail(w, err)
 		return
@@ -649,12 +654,12 @@ func (uc CacheFlush) Serve(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	mc, err := modules.RegistryFrom(r.Context()).EngineMemcache(r.PathValue("engine"))
+	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, mc, r.PathValue("name"), entity.LevelAdmin)
+	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, mc, r.PathValue("name"), entity.LevelAdmin)
 	if err != nil {
 		fail(w, err)
 		return
@@ -680,12 +685,12 @@ func (uc CacheFlush) Serve(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/databases [get]
 func (uc MongoDatabases) Serve(w http.ResponseWriter, r *http.Request) {
-	m, err := modules.RegistryFrom(r.Context()).EngineMongo(r.PathValue("engine"))
+	m, err := uc.Modules.EngineMongo(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, m, r.PathValue("name"), entity.LevelRead)
+	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, m, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
 		fail(w, err)
 		return
@@ -707,12 +712,12 @@ func (uc MongoDatabases) Serve(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/collections [get]
 func (uc MongoCollections) Serve(w http.ResponseWriter, r *http.Request) {
-	m, err := modules.RegistryFrom(r.Context()).EngineMongo(r.PathValue("engine"))
+	m, err := uc.Modules.EngineMongo(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, m, r.PathValue("name"), entity.LevelRead)
+	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, m, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
 		fail(w, err)
 		return
@@ -739,7 +744,7 @@ func (uc MongoRun) Serve(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	m, err := modules.RegistryFrom(r.Context()).EngineMongo(r.PathValue("engine"))
+	m, err := uc.Modules.EngineMongo(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -750,7 +755,7 @@ func (uc MongoRun) Serve(w http.ResponseWriter, r *http.Request) {
 	if mongodb.IsWrite(req.Op) {
 		level = entity.LevelWrite
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, m, r.PathValue("name"), level)
+	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, m, r.PathValue("name"), level)
 	if err != nil {
 		fail(w, err)
 		return

@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"noxis/cmd/noxis/server/deps"
 	"noxis/internal/common/config"
 	"noxis/internal/entity"
 	"noxis/internal/modules"
@@ -15,7 +14,7 @@ import (
 
 func TestGetMeServesPrincipal(t *testing.T) {
 	d, _, _ := newTestDeps(&fakeSQL{})
-	h := depsHandler(newHandler(d, config.Config{}), d)
+	h := newHandler(d, config.Config{})
 
 	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
 	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Identity{
@@ -41,8 +40,8 @@ func TestGetMeIncludesLevels(t *testing.T) {
 	base.Permissions = &fakePermissions{permissions: map[string]entity.Permission{
 		"dev": {Connection: "demo", Member: "readers", MemberType: entity.MemberGroup, Level: entity.LevelRead},
 	}}
-	d := deps.Init(deps.Deps{Connections: base.Connections, Changes: base.Changes, Permissions: base.Permissions, Modules: modules.New(base.Modules, nil), Log: discardLog()})
-	h := depsHandler(newHandler(d, config.Config{}), d)
+	d := newApp(sources{Connections: base.Connections, Changes: base.Changes, Permissions: base.Permissions, Modules: modules.New(base.Modules, nil)})
+	h := newHandler(d, config.Config{})
 
 	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
 	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Identity{Subject: "bob", Groups: []string{"readers"}}))
@@ -59,12 +58,12 @@ func TestGetMeIncludesLevels(t *testing.T) {
 
 func TestGetAuthConfig(t *testing.T) {
 	base, _, _ := newTestBase(&fakeSQL{})
-	d := deps.Init(deps.Deps{
+	d := newApp(sources{
 		Connections: base.Connections, Changes: base.Changes, Permissions: base.Permissions,
-		Modules: modules.New(base.Modules, nil), Log: discardLog(),
-		Auth: config.AuthInfo{Local: true},
+		Modules: modules.New(base.Modules, nil),
+		Auth:    config.AuthInfo{Local: true},
 	})
-	h := depsHandler(newHandler(d, config.Config{}), d)
+	h := newHandler(d, config.Config{})
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/auth/config", http.NoBody))
@@ -75,7 +74,7 @@ func TestGetAuthConfig(t *testing.T) {
 
 func TestGetMeUnauthenticated(t *testing.T) {
 	d, _, _ := newTestDeps(&fakeSQL{})
-	h := depsHandler(newHandler(d, config.Config{}), d)
+	h := newHandler(d, config.Config{})
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody))

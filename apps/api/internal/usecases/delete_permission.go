@@ -11,6 +11,7 @@ import (
 
 // DeletePermission is the "DeletePermission" use case.
 type DeletePermission struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }
@@ -25,7 +26,7 @@ func (uc DeletePermission) Run(ctx context.Context, mod interfaces.Module, name,
 	if member == "" {
 		return fmt.Errorf("member is required")
 	}
-	if _, err := rawConn(ctx, uc.Connections, uc.Permissions, mod, name, entity.LevelRead); err != nil {
+	if _, err := rawConn(ctx, uc.Connections, uc.Permissions, uc.Modules, mod, name, entity.LevelRead); err != nil {
 		return err
 	}
 	return uc.Permissions.DeletePermission(ctx, name, member)

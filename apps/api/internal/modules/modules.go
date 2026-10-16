@@ -1,11 +1,10 @@
 // Package modules contains the engine-family adapters (SQL, memory-cache,
 // MongoDB) and the registry that names them. Registry is a single reference
-// interface every layer receives — embedded in the base request context at
-// boot, so any use case can resolve an engine from the ctx it is handed.
+// interface every layer receives — passed explicitly, so a use case resolves
+// an engine from a dependency, never from the request context.
 package modules
 
 import (
-	"context"
 	"fmt"
 
 	"noxis/internal/constants"
@@ -94,25 +93,6 @@ func (r registry) Serves(driver string) (interfaces.Module, bool) {
 		}
 	}
 	return nil, false
-}
-
-type registryKey struct{}
-
-// WithRegistry returns a context carrying the boot-time registry, so any use
-// case can resolve an engine from the ctx it is handed.
-func WithRegistry(ctx context.Context, r Registry) context.Context {
-	return context.WithValue(ctx, registryKey{}, r)
-}
-
-// RegistryFrom returns the registry carried by the context. It panics when
-// the context was not built by WithRegistry: engine resolution without the
-// registry is a wiring bug and must surface, not nil-dereference.
-func RegistryFrom(ctx context.Context) Registry {
-	r, ok := ctx.Value(registryKey{}).(Registry)
-	if !ok {
-		panic("modules.RegistryFrom: registry missing from context (seed with WithRegistry at boot)")
-	}
-	return r
 }
 
 func sqlOf(mod interfaces.Module) (interfaces.SQLModule, error) {
