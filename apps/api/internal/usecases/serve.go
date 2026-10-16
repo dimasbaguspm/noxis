@@ -21,15 +21,15 @@ import (
 func (uc ConnectionList) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	out, err := uc.Run(r.Context(), mod)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, map[string]any{"connections": out})
+	uc.Respond(w, map[string]any{"connections": out})
 }
 
 // @Summary Create or update a connection
@@ -41,20 +41,20 @@ func (uc ConnectionList) Serve(w http.ResponseWriter, r *http.Request) {
 func (uc SaveConnection) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	var c entity.Connection
-	if err := decode(r, &c); err != nil {
-		fail(w, err)
+	if err := uc.Decode(r, &c); err != nil {
+		uc.Fail(w, err)
 		return
 	}
 	out, err := uc.Run(r.Context(), mod, c)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }
 
 // @Summary Get one connection (password redacted)
@@ -66,15 +66,15 @@ func (uc SaveConnection) Serve(w http.ResponseWriter, r *http.Request) {
 func (uc Connection) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	out, err := uc.Run(r.Context(), mod, r.PathValue("name"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }
 
 // @Summary Delete a connection (and its changes)
@@ -86,14 +86,14 @@ func (uc Connection) Serve(w http.ResponseWriter, r *http.Request) {
 func (uc DeleteConnection) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	if err := uc.Run(r.Context(), mod, r.PathValue("name")); err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respondNoContent(w)
+	uc.RespondNoContent(w)
 }
 
 // @Summary Test that a connection answers
@@ -105,14 +105,14 @@ func (uc DeleteConnection) Serve(w http.ResponseWriter, r *http.Request) {
 func (uc TestConnection) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	if err := uc.Run(r.Context(), mod, r.PathValue("name")); err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, entity.StatusResponse{Status: "ok"})
+	uc.Respond(w, entity.StatusResponse{Status: "ok"})
 }
 
 // @Summary Introspect a connection's tables and columns
@@ -125,15 +125,15 @@ func (uc TestConnection) Serve(w http.ResponseWriter, r *http.Request) {
 func (uc Schema) Serve(w http.ResponseWriter, r *http.Request) {
 	sq, err := uc.Modules.EngineSQL(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	out, err := uc.Run(r.Context(), sq, r.PathValue("name"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, map[string]any{"tables": out})
+	uc.Respond(w, map[string]any{"tables": out})
 }
 
 // @Summary Preview a table's rows
@@ -149,17 +149,17 @@ func (uc Schema) Serve(w http.ResponseWriter, r *http.Request) {
 func (uc Rows) Serve(w http.ResponseWriter, r *http.Request) {
 	sq, err := uc.Modules.EngineSQL(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	out, err := uc.Run(r.Context(), sq, r.PathValue("name"),
 		r.URL.Query().Get("schema"), r.PathValue("table"), limit)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }
 
 // opBody is the console op payload: sql for query/alter/rollback, table for
@@ -181,20 +181,20 @@ var opRoutes = map[string]string{
 func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 	sq, err := uc.Modules.EngineSQL(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	var body opBody
-	if err := decode(r, &body); err != nil {
-		fail(w, err)
+	if err := uc.Decode(r, &body); err != nil {
+		uc.Fail(w, err)
 		return
 	}
 	out, err := uc.Run(r.Context(), sq, r.PathValue("name"), opRoutes[r.Pattern], body.SQL, body.Table)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }
 
 // --- permissions ---
@@ -213,7 +213,7 @@ type memberUser struct {
 func (uc Members) Serve(w http.ResponseWriter, r *http.Request) {
 	groups, users, err := uc.Run(r.Context())
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	pickable := make([]memberUser, 0, len(users))
@@ -224,7 +224,7 @@ func (uc Members) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 		pickable = append(pickable, memberUser{Subject: u.Subject, Label: label})
 	}
-	respond(w, map[string]any{"groups": groups, "users": pickable})
+	uc.Respond(w, map[string]any{"groups": groups, "users": pickable})
 }
 
 // @Summary List a connection's permissions
@@ -238,15 +238,15 @@ func (uc Members) Serve(w http.ResponseWriter, r *http.Request) {
 func (uc ListPermissions) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	out, err := uc.Run(r.Context(), mod, r.PathValue("name"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, map[string]any{"permissions": out})
+	uc.Respond(w, map[string]any{"permissions": out})
 }
 
 // permissionBody is the upsert payload: one member at one level.
@@ -269,20 +269,20 @@ type permissionBody struct {
 func (uc SetPermission) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	var body permissionBody
-	if err := decode(r, &body); err != nil {
-		fail(w, err)
+	if err := uc.Decode(r, &body); err != nil {
+		uc.Fail(w, err)
 		return
 	}
 	out, err := uc.Run(r.Context(), mod, r.PathValue("name"), body.Member, body.MemberType, body.Level)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }
 
 // @Summary Revoke a member's permission on a connection
@@ -297,14 +297,14 @@ func (uc SetPermission) Serve(w http.ResponseWriter, r *http.Request) {
 func (uc DeletePermission) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	if err := uc.Run(r.Context(), mod, r.PathValue("name"), r.URL.Query().Get("member")); err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respondNoContent(w)
+	uc.RespondNoContent(w)
 }
 
 // --- instances ---
@@ -321,11 +321,11 @@ func (uc ListInstances) Serve(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	out, err := uc.Run(r.Context(), q.Get("name"), q.Get("driver"), q.Get("host"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	page, perPage := pagination.Params(q.Get("page"), q.Get("perPage"), constants.DefaultPageSize)
-	respond(w, map[string]any{
+	uc.Respond(w, map[string]any{
 		"instances": pagination.Slice(out, page, perPage),
 		"total":     len(out),
 	})
@@ -339,10 +339,10 @@ func (uc ListInstances) Serve(w http.ResponseWriter, r *http.Request) {
 func (uc Instance) Serve(w http.ResponseWriter, r *http.Request) {
 	out, err := uc.Run(r.Context(), r.PathValue("id"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }
 
 // passwordBody is the rotate-password payload.
@@ -359,15 +359,15 @@ type passwordBody struct {
 // @Router /external/v1/instances/{id}/password [post]
 func (uc RotatePassword) Serve(w http.ResponseWriter, r *http.Request) {
 	var body passwordBody
-	if err := decode(r, &body); err != nil {
-		fail(w, err)
+	if err := uc.Decode(r, &body); err != nil {
+		uc.Fail(w, err)
 		return
 	}
 	if err := uc.Run(r.Context(), r.PathValue("id"), body.Password); err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, entity.StatusResponse{Status: "ok"})
+	uc.Respond(w, entity.StatusResponse{Status: "ok"})
 }
 
 // --- identity ---
@@ -386,28 +386,29 @@ type MeResponse struct {
 func (uc ConnectionLevels) Serve(w http.ResponseWriter, r *http.Request) {
 	p, ok := Principal(r.Context())
 	if !ok {
-		fail(w, constants.ErrUnauthorized)
+		uc.Fail(w, constants.ErrUnauthorized)
 		return
 	}
 	levels, err := uc.Run(r.Context())
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, MeResponse{Identity: p, Connections: levels})
+	uc.Respond(w, MeResponse{Identity: p, Connections: levels})
 }
 
 // --- auth ---
 
 // AuthConfig is the public auth configuration the console bootstraps from.
 type AuthConfig struct {
+	RegistryDeps
 	Auth config.AuthInfo
 }
 
 // @Summary Public auth configuration (console bootstrap)
 // @Success 200 {object} config.AuthInfo
 // @Router /external/v1/auth/config [get]
-func (uc AuthConfig) Serve(w http.ResponseWriter, _ *http.Request) { respond(w, uc.Auth) }
+func (uc AuthConfig) Serve(w http.ResponseWriter, _ *http.Request) { uc.Respond(w, uc.Auth) }
 
 // loginRequest is the local credentials payload.
 type loginRequest struct {
@@ -434,16 +435,16 @@ type Login struct {
 // @Router /external/v1/auth/login [post]
 func (uc Login) Serve(w http.ResponseWriter, r *http.Request) {
 	var body loginRequest
-	if err := decode(r, &body); err != nil {
-		fail(w, err)
+	if err := uc.Decode(r, &body); err != nil {
+		uc.Fail(w, err)
 		return
 	}
 	token, user, err := uc.Modules.Auth().Login(r.Context(), body.Username, body.Password)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, loginResponse{Token: token, User: user})
+	uc.Respond(w, loginResponse{Token: token, User: user})
 }
 
 // Logout ends the caller's session.
@@ -458,14 +459,14 @@ type Logout struct {
 func (uc Logout) Serve(w http.ResponseWriter, r *http.Request) {
 	p, ok := Principal(r.Context())
 	if !ok {
-		fail(w, constants.ErrUnauthorized)
+		uc.Fail(w, constants.ErrUnauthorized)
 		return
 	}
 	if err := uc.Modules.Auth().Logout(r.Context(), p.Subject); err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respondNoContent(w)
+	uc.RespondNoContent(w)
 }
 
 // changePasswordRequest is the self-serve password payload.
@@ -488,23 +489,23 @@ type ChangePassword struct {
 func (uc ChangePassword) Serve(w http.ResponseWriter, r *http.Request) {
 	p, ok := Principal(r.Context())
 	if !ok {
-		fail(w, constants.ErrUnauthorized)
+		uc.Fail(w, constants.ErrUnauthorized)
 		return
 	}
 	if entity.LocalUsername(p.Subject) == "" {
-		fail(w, errLocalAccountRequired)
+		uc.Fail(w, errLocalAccountRequired)
 		return
 	}
 	var body changePasswordRequest
-	if err := decode(r, &body); err != nil {
-		fail(w, err)
+	if err := uc.Decode(r, &body); err != nil {
+		uc.Fail(w, err)
 		return
 	}
 	if err := uc.Modules.Auth().ChangePassword(r.Context(), p.Subject, body.OldPassword, body.NewPassword); err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respondNoContent(w)
+	uc.RespondNoContent(w)
 }
 
 // --- configuration ---
@@ -528,12 +529,14 @@ var driverCatalog = []DriverInfo{
 }
 
 // Drivers serves the driver catalog.
-type Drivers struct{}
+type Drivers struct {
+	RegistryDeps
+}
 
 // @Summary List the drivers the console can register
 // @Success 200 {array} DriverInfo
 // @Router /external/v1/config/drivers [get]
-func (Drivers) Serve(w http.ResponseWriter, _ *http.Request) { respond(w, driverCatalog) }
+func (uc Drivers) Serve(w http.ResponseWriter, _ *http.Request) { uc.Respond(w, driverCatalog) }
 
 // --- memory cache ---
 
@@ -549,21 +552,21 @@ func (Drivers) Serve(w http.ResponseWriter, _ *http.Request) { respond(w, driver
 func (uc CacheKeys) Serve(w http.ResponseWriter, r *http.Request) {
 	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, mc, r.PathValue("name"), entity.LevelRead)
+	c, err := uc.RawConn(r.Context(), mc, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	out, err := mc.Keys(r.Context(), *c, r.URL.Query().Get("pattern"), limit)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }
 
 // @Summary Inspect one key's value (rendered per its type)
@@ -577,25 +580,25 @@ func (uc CacheKeys) Serve(w http.ResponseWriter, r *http.Request) {
 func (uc CacheValue) Serve(w http.ResponseWriter, r *http.Request) {
 	key := r.URL.Query().Get("key")
 	if key == "" {
-		fail(w, errKeyRequired)
+		uc.Fail(w, errKeyRequired)
 		return
 	}
 	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, mc, r.PathValue("name"), entity.LevelRead)
+	c, err := uc.RawConn(r.Context(), mc, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	out, err := mc.Value(r.Context(), *c, key)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }
 
 // cacheKeysBody is the remove-keys payload.
@@ -613,26 +616,26 @@ type cacheKeysBody struct {
 // @Router /external/v1/engine/{engine}/connections/{name}/keys [delete]
 func (uc CacheDelete) Serve(w http.ResponseWriter, r *http.Request) {
 	var body cacheKeysBody
-	if err := decode(r, &body); err != nil {
-		fail(w, err)
+	if err := uc.Decode(r, &body); err != nil {
+		uc.Fail(w, err)
 		return
 	}
 	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, mc, r.PathValue("name"), entity.LevelAdmin)
+	c, err := uc.RawConn(r.Context(), mc, r.PathValue("name"), entity.LevelAdmin)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	deleted, err := mc.Delete(r.Context(), *c, body.Keys)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, map[string]any{"deleted": deleted})
+	uc.Respond(w, map[string]any{"deleted": deleted})
 }
 
 // cacheFlushBody is the flush payload: confirm must repeat the connection name.
@@ -650,29 +653,29 @@ type cacheFlushBody struct {
 // @Router /external/v1/engine/{engine}/connections/{name}/flush [post]
 func (uc CacheFlush) Serve(w http.ResponseWriter, r *http.Request) {
 	var body cacheFlushBody
-	if err := decode(r, &body); err != nil {
-		fail(w, err)
+	if err := uc.Decode(r, &body); err != nil {
+		uc.Fail(w, err)
 		return
 	}
 	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, mc, r.PathValue("name"), entity.LevelAdmin)
+	c, err := uc.RawConn(r.Context(), mc, r.PathValue("name"), entity.LevelAdmin)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	if body.Confirm != c.Name {
-		fail(w, errFlushConfirm(c.Name))
+		uc.Fail(w, errFlushConfirm(c.Name))
 		return
 	}
 	if err := mc.Flush(r.Context(), *c); err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, entity.StatusResponse{Status: "flushed"})
+	uc.Respond(w, entity.StatusResponse{Status: "flushed"})
 }
 
 // --- mongodb explorer ---
@@ -687,20 +690,20 @@ func (uc CacheFlush) Serve(w http.ResponseWriter, r *http.Request) {
 func (uc MongoDatabases) Serve(w http.ResponseWriter, r *http.Request) {
 	m, err := uc.Modules.EngineMongo(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, m, r.PathValue("name"), entity.LevelRead)
+	c, err := uc.RawConn(r.Context(), m, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	out, err := m.Databases(r.Context(), *c)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, map[string]any{"databases": out})
+	uc.Respond(w, map[string]any{"databases": out})
 }
 
 // @Summary List a database's collections with their sizes
@@ -714,20 +717,20 @@ func (uc MongoDatabases) Serve(w http.ResponseWriter, r *http.Request) {
 func (uc MongoCollections) Serve(w http.ResponseWriter, r *http.Request) {
 	m, err := uc.Modules.EngineMongo(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, m, r.PathValue("name"), entity.LevelRead)
+	c, err := uc.RawConn(r.Context(), m, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	out, err := m.Collections(r.Context(), *c, r.URL.Query().Get("database"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, map[string]any{"collections": out})
+	uc.Respond(w, map[string]any{"collections": out})
 }
 
 // @Summary Run a read request (find | aggregate | count)
@@ -740,13 +743,13 @@ func (uc MongoCollections) Serve(w http.ResponseWriter, r *http.Request) {
 // @Router /external/v1/engine/{engine}/connections/{name}/requests [post]
 func (uc MongoRun) Serve(w http.ResponseWriter, r *http.Request) {
 	var req interfaces.MongoRequest
-	if err := decode(r, &req); err != nil {
-		fail(w, err)
+	if err := uc.Decode(r, &req); err != nil {
+		uc.Fail(w, err)
 		return
 	}
 	m, err := uc.Modules.EngineMongo(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	// a write op is refused by Run, but it must still not be handed to a
@@ -755,15 +758,15 @@ func (uc MongoRun) Serve(w http.ResponseWriter, r *http.Request) {
 	if mongodb.IsWrite(req.Op) {
 		level = entity.LevelWrite
 	}
-	c, err := rawConn(r.Context(), uc.Connections, uc.Permissions, uc.Modules, m, r.PathValue("name"), level)
+	c, err := uc.RawConn(r.Context(), m, r.PathValue("name"), level)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	out, err := m.Run(r.Context(), *c, req)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }

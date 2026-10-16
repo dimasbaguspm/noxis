@@ -16,10 +16,10 @@ type DeleteConnection struct {
 func (uc DeleteConnection) Run(ctx context.Context, mod interfaces.Module, name string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	if err := RequireAdmin(ctx); err != nil {
+	if err := uc.RequireAdmin(ctx); err != nil {
 		return err
 	}
-	if _, err := rawConn(ctx, uc.Connections, uc.Permissions, uc.Modules, mod, name, entity.LevelRead); err != nil {
+	if _, err := uc.RawConn(ctx, mod, name, entity.LevelRead); err != nil {
 		return err
 	}
 	return uc.Connections.Delete(ctx, name)

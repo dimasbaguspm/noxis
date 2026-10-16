@@ -21,7 +21,7 @@ type SaveConnection struct {
 func (uc SaveConnection) Run(ctx context.Context, mod interfaces.Module, c entity.Connection) (out entity.Connection, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	if err := RequireAdmin(ctx); err != nil {
+	if err := uc.RequireAdmin(ctx); err != nil {
 		return entity.Connection{}, err
 	}
 	if !mod.Supports(c.Driver) {

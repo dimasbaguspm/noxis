@@ -26,7 +26,7 @@ func (uc ConnectionList) Run(ctx context.Context, mod interfaces.Module) (out []
 		if !mod.Supports(c.Driver) {
 			continue
 		}
-		ok, err := CanRead(ctx, uc.Permissions, c.Name)
+		ok, err := uc.CanRead(ctx, c.Name)
 		if err != nil {
 			return nil, err
 		}

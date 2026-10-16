@@ -23,7 +23,7 @@ func (uc Schedule) Run(ctx context.Context, id string, at int64) (out entity.Cha
 	if err != nil {
 		return entity.Change{}, err
 	}
-	if err := Authorize(ctx, uc.Permissions, ch.Connection, entity.LevelAdmin); err != nil {
+	if err := uc.Authorize(ctx, ch.Connection, entity.LevelAdmin); err != nil {
 		return entity.Change{}, err
 	}
 	if ch.Status != constants.ChangeApproved {

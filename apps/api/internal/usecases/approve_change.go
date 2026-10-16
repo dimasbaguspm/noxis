@@ -22,7 +22,7 @@ func (uc Approve) Run(ctx context.Context, id string) (out entity.Change, err er
 	if err != nil {
 		return entity.Change{}, err
 	}
-	if err := Authorize(ctx, uc.Permissions, ch.Connection, entity.LevelAdmin); err != nil {
+	if err := uc.Authorize(ctx, ch.Connection, entity.LevelAdmin); err != nil {
 		return entity.Change{}, err
 	}
 	if ch.Status != constants.ChangeValidated && ch.Status != constants.ChangeUnverified {
