@@ -7,7 +7,6 @@ import (
 	"noxis/internal/common/config"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules"
-	"noxis/internal/repositories/in-memory-cache"
 )
 
 // WithDeps fills target's dependency fields from the sources in d, by field
@@ -41,8 +40,6 @@ func source(d Deps, t reflect.Type) (reflect.Value, bool) {
 		return reflect.ValueOf(d.Modules), true
 	case reflect.TypeOf((*slog.Logger)(nil)):
 		return reflect.ValueOf(d.Log), true
-	case reflect.TypeOf((*cache.Cache)(nil)):
-		return reflect.ValueOf(d.Cache), true
 	case reflect.TypeOf(config.AuthInfo{}):
 		return reflect.ValueOf(d.Auth), true
 	}
