@@ -19,6 +19,7 @@ type DriverInfo struct {
 var driverCatalog = []DriverInfo{
 	{constants.DriverPostgres, constants.FamilySQL, "PostgreSQL"},
 	{constants.DriverMySQL, constants.FamilySQL, "MySQL / MariaDB"},
+	{constants.DriverSQLite, constants.FamilySQL, "SQLite"},
 	{constants.DriverRedis, constants.FamilyMemcache, "Redis"},
 	{constants.DriverValkey, constants.FamilyMemcache, "Valkey"},
 	{constants.DriverMongo, constants.FamilyMongo, "MongoDB"},

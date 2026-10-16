@@ -26,16 +26,32 @@ import { FAMILY, type FamilyKey } from "@/lib/families";
 import { api, type Connection } from "@/lib/api";
 
 // connectionSchema is the client-side contract for the registration form;
-// the server still enforces driver specifics on probe.
-const connectionSchema = z.object({
-  name: z.string().trim().min(1, "name is required"),
-  host: z.string().trim().min(1, "host is required"),
-  port: z.coerce.number().int().min(1, "port must be between 1 and 65535").max(65535, "port must be between 1 and 65535"),
-  user: z.string().trim().min(1, "user is required"),
-  password: z.string().optional(),
-  database: z.string().trim().min(1, "database is required"),
-  driver: z.string().optional(),
-});
+// the server still enforces driver specifics on probe. A file driver (sqlite)
+// needs only its path; a networked driver needs host, port and user.
+const FILE_DRIVERS = new Set(["sqlite"]);
+const isFileDriver = (driver?: string) => FILE_DRIVERS.has(driver ?? "");
+
+const connectionSchema = z
+  .object({
+    name: z.string().trim().min(1, "name is required"),
+    host: z.string().trim().optional(),
+    port: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .max(65535, "port must be between 1 and 65535")
+      .optional(),
+    user: z.string().trim().optional(),
+    password: z.string().optional(),
+    database: z.string().trim().min(1, "database is required"),
+    driver: z.string().optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (isFileDriver(v.driver)) return;
+    if (!v.host) ctx.addIssue({ code: "custom", path: ["host"], message: "host is required" });
+    if (!v.port) ctx.addIssue({ code: "custom", path: ["port"], message: "port must be between 1 and 65535" });
+    if (!v.user) ctx.addIssue({ code: "custom", path: ["user"], message: "user is required" });
+  });
 type ConnectionForm = z.infer<typeof connectionSchema>;
 
 const SQL_EMPTY: Connection = {
@@ -66,7 +82,7 @@ const DRIVER_PORT: Record<string, number> = {
   mongo: 27017,
 };
 
-const defaultPort = (driver: string) => DRIVER_PORT[driver] ?? 5432;
+const defaultPort = (driver: string) => (isFileDriver(driver) ? 0 : (DRIVER_PORT[driver] ?? 5432));
 
 // ConnectionDialog registers an instance. Nothing is kept unless it answers:
 // the probe runs first, and a failed probe removes the registry entry it just
@@ -112,6 +128,7 @@ export function ConnectionDialog({
 
   const cache = kind === FAMILY.MEMCACHE;
   const mongo = kind === FAMILY.MONGODB;
+  const fileDriver = isFileDriver(watch("driver"));
   const client = api.family(kind);
 
   // any edit makes a previous "verified" stale until the probe runs again
@@ -233,6 +250,10 @@ export function ConnectionDialog({
                       const driver = String(v);
                       setValue("driver", driver);
                       setValue("port", defaultPort(driver));
+                      if (isFileDriver(driver)) {
+                        setValue("host", "");
+                        setValue("user", "");
+                      }
                       setVerified(false);
                     }}
                   >
@@ -251,43 +272,49 @@ export function ConnectionDialog({
                   </Select>
                 )}
               </Field>
+              {!fileDriver && (
+                <>
+                  <Field>
+                    <FieldLabel htmlFor="conn-host">Host</FieldLabel>
+                    <Input
+                      id="conn-host"
+                      placeholder={cache ? "cache.internal" : mongo ? "mongo.internal" : "db.internal"}
+                      {...field("host")}
+                    />
+                    <FieldError>{errors.host?.message}</FieldError>
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="conn-port">Port</FieldLabel>
+                    <Input id="conn-port" type="number" {...field("port")} />
+                    <FieldError>{errors.port?.message}</FieldError>
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="conn-user">{cache ? "User (ACL, optional)" : "User"}</FieldLabel>
+                    <Input
+                      id="conn-user"
+                      placeholder={cache ? "default" : mongo ? "root" : "postgres"}
+                      {...field("user")}
+                    />
+                    <FieldError>{errors.user?.message}</FieldError>
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="conn-password">Password</FieldLabel>
+                    <Input
+                      id="conn-password"
+                      type="password"
+                      placeholder={initial ? "unchanged" : ""}
+                      {...field("password")}
+                    />
+                  </Field>
+                </>
+              )}
               <Field>
-                <FieldLabel htmlFor="conn-host">Host</FieldLabel>
-                <Input
-                  id="conn-host"
-                  placeholder={cache ? "cache.internal" : mongo ? "mongo.internal" : "db.internal"}
-                  {...field("host")}
-                />
-                <FieldError>{errors.host?.message}</FieldError>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="conn-port">Port</FieldLabel>
-                <Input id="conn-port" type="number" {...field("port")} />
-                <FieldError>{errors.port?.message}</FieldError>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="conn-user">{cache ? "User (ACL, optional)" : "User"}</FieldLabel>
-                <Input
-                  id="conn-user"
-                  placeholder={cache ? "default" : mongo ? "root" : "postgres"}
-                  {...field("user")}
-                />
-                <FieldError>{errors.user?.message}</FieldError>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="conn-password">Password</FieldLabel>
-                <Input
-                  id="conn-password"
-                  type="password"
-                  placeholder={initial ? "unchanged" : ""}
-                  {...field("password")}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="conn-database">{cache ? "DB index" : mongo ? "Database (auth)" : "Database"}</FieldLabel>
+                <FieldLabel htmlFor="conn-database">
+                  {fileDriver ? "File path" : cache ? "DB index" : mongo ? "Database (auth)" : "Database"}
+                </FieldLabel>
                 <Input
                   id="conn-database"
-                  placeholder={cache ? "0" : mongo ? "admin" : "app"}
+                  placeholder={fileDriver ? "/data/app.db" : cache ? "0" : mongo ? "admin" : "app"}
                   {...field("database")}
                 />
                 <FieldError>{errors.database?.message}</FieldError>

@@ -19,9 +19,9 @@ type Connection struct {
 	// stored: the cross-family routes set it when serving.
 	Family    string            `json:"family,omitempty"`
 	Name      string            `json:"name" validate:"required"`
-	Driver    string            `json:"driver" validate:"required"` // postgres | mysql (mariadb aliases mysql)
-	Host      string            `json:"host" validate:"required"`
-	Port      int               `json:"port" validate:"required"`
+	Driver    string            `json:"driver" validate:"required"` // postgres | mysql (mariadb aliases mysql) | sqlite
+	Host      string            `json:"host"`
+	Port      int               `json:"port"`
 	User      string            `json:"user"`
 	Password  string            `json:"password,omitempty"`
 	Database  string            `json:"database" validate:"required"`
@@ -32,15 +32,28 @@ type Connection struct {
 
 // Validate checks the required fields. A user is required for SQL servers;
 // Redis and Valkey commonly run without an ACL user, where only the password
-// (or nothing) is set.
+// (or nothing) is set. A file-backed driver (SQLite) needs only its path.
 func (c Connection) Validate() error {
 	if err := validate.Struct(c); err != nil {
 		return err
+	}
+	if isFileDriver(c.Driver) {
+		return nil
+	}
+	if c.Host == "" {
+		return errors.New("host is required")
+	}
+	if c.Port == 0 {
+		return errors.New("port is required")
 	}
 	if c.User == "" && !isKeyValueDriver(c.Driver) {
 		return errors.New("user is required")
 	}
 	return nil
+}
+
+func isFileDriver(driver string) bool {
+	return strings.EqualFold(driver, "sqlite") // the file path is Database
 }
 
 func isKeyValueDriver(driver string) bool {
