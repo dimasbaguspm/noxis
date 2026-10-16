@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"noxis/internal/common/config"
 	"os"
 
 	"go.opentelemetry.io/otel"
@@ -28,30 +27,37 @@ const (
 // Shutdown flushes telemetry; call on process exit.
 type Shutdown func(context.Context) error
 
-func New(ctx context.Context, cfg config.Config) (*slog.Logger, Shutdown, error) {
+// OTLP is the telemetry target logging needs. It is a local struct so this
+// package never imports the config package — a sibling it must not depend on.
+type OTLP struct {
+	Collector string
+	Name      string
+}
+
+func New(ctx context.Context, otlp OTLP) (*slog.Logger, Shutdown, error) {
 	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
 	logger := slog.New(&ctxHandler{inner: jsonHandler})
 	slog.SetDefault(logger)
 
-	if cfg.OTELCollector == "" {
+	if otlp.Collector == "" {
 		noop := func(context.Context) error { return nil }
 		return logger, noop, nil
 	}
 
-	service := firstNonEmpty(cfg.OTELName, serviceFallback)
+	service := firstNonEmpty(otlp.Name, serviceFallback)
 	res := resource.NewWithAttributes(
 		semconv.SchemaURL,
 		semconv.ServiceName(service),
 	)
 
-	traceExp, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpoint(cfg.OTELCollector), otlptracegrpc.WithInsecure())
+	traceExp, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpoint(otlp.Collector), otlptracegrpc.WithInsecure())
 	if err != nil {
 		return nil, nil, fmt.Errorf("otel trace exporter: %w", err)
 	}
 	tp := sdkTrace.NewTracerProvider(sdkTrace.WithBatcher(traceExp), sdkTrace.WithResource(res))
 	otel.SetTracerProvider(tp)
 
-	logger.InfoContext(ctx, "telemetry connected", attrCollector, cfg.OTELCollector, attrService, service)
+	logger.InfoContext(ctx, "telemetry connected", attrCollector, otlp.Collector, attrService, service)
 	return logger, tp.Shutdown, nil
 }
 
