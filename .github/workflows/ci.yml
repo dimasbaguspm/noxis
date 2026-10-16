@@ -62,13 +62,33 @@ jobs:
           cache: true
 
       - name: lint
-        run: cd apps/api && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run ./...
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+          working-directory: apps/api
+
+      - name: setup buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: build (Dockerfile)
-        run: docker build -t noxis:ci .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          tags: noxis:ci
+          cache-from: type=gha,scope=noxis
+          cache-to: type=gha,mode=max,scope=noxis
 
       - name: build (Dockerfile.api)
-        run: docker build -f Dockerfile.api -t noxis-api:ci .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.api
+          push: false
+          tags: noxis-api:ci
+          cache-from: type=gha,scope=noxis-api
+          cache-to: type=gha,mode=max,scope=noxis-api
 
       - name: unit tests
         run: cd apps/api && go test -count=1 $(go list ./... | grep -v /test/uat)

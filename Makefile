@@ -19,7 +19,7 @@ uat:
 	cd apps/api && UAT_TAGS="$${UAT_TAGS:-~@slow}" go test ./test/uat -count=1
 
 lint:  ## run golangci-lint (installs it on first use)
-	command -v golangci-lint >/dev/null 2>&1 || go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+	command -v golangci-lint >/dev/null 2>&1 || go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
 	cd apps/api && golangci-lint run ./...
 
 swagger:  ## regenerate openapi.yaml|json (OpenAPI 3) from handler annotations

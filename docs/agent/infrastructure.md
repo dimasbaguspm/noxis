@@ -107,8 +107,10 @@ compose daemon. Validate edits with a JSON parse and `bash -n post-create.sh`.
 `ci.yml` — path-filtered:
 
 - `changes` job runs `dorny/paths-filter`; heavy jobs run only for their side.
-- `go` (if any `apps/api/** Makefile Dockerfile Dockerfile.api docker-compose.yml .github/workflows/**`): lint → `docker build` (both Dockerfiles) → unit tests (excluding `apps/api/test/uat`) → `make uat`.
+- `go` (if any `apps/api/** Makefile Dockerfile Dockerfile.api docker-compose.yml .github/workflows/**`): lint via `golangci/golangci-lint-action@v9` (pinned `v2.15.0`, prebuilt + cached) → both Docker builds through `docker/build-push-action` with GitHub Actions layer cache → unit tests (excluding `apps/api/test/uat`) → `make uat`.
 - `web` (if `apps/web/**`, `openapi.*` or workflows): `cd apps/web && pnpm install --frozen-lockfile && pnpm lint && pnpm build`.
+
+Never lint with `go run …/golangci-lint@latest`: it compiles the linter from source on every run (~3 min); the action installs a prebuilt binary in ~20s. Keep the version pinned in `.github/workflows/ci.yml` and `Makefile`.
 
 `docker-publish.yml` — on push to `master` (or manual), builds the Dockerfile
 and pushes `ghcr.io/<owner>/noxis:nightly`.
