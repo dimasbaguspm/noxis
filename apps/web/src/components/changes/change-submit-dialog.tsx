@@ -134,7 +134,7 @@ export function ChangeSubmitDialog({
             <FieldLabel htmlFor="change-notes">
               {title("notes")} <Required />
             </FieldLabel>
-            <Input id="change-notes" placeholder="what and why" {...register("notes")} />
+            <Input id="change-notes" placeholder="what and why" aria-invalid={!!errors.notes} {...register("notes")} />
             <FieldError>{errors.notes?.message}</FieldError>
           </Field>
 
