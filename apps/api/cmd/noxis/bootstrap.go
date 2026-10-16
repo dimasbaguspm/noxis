@@ -11,12 +11,11 @@ import (
 	"github.com/spf13/cobra"
 
 	"noxis/cmd/noxis/server"
-	"noxis/cmd/noxis/ticker"
 	"noxis/internal/common/config"
 	"noxis/internal/common/logging"
 )
 
-// Bootstrap wires env -> config -> logger -> one root CLI (run/register).
+// Bootstrap wires env -> config -> logger -> one root CLI (run server).
 func Bootstrap() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -42,12 +41,6 @@ func Bootstrap() error {
 		Short: "Run the noxis server (REST API + console)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return server.Run(cmd.Context(), log, cfg)
-		}})
-	run.AddCommand(&cobra.Command{
-		Use:   "ticker",
-		Short: "Run the standalone scheduler (POSTs /internal/callback/scheduler on an interval)",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			return ticker.Run(cmd.Context(), log, cfg)
 		}})
 
 	root := &cobra.Command{

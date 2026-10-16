@@ -8,9 +8,11 @@ Detail for `AGENTS.md`.
 context, loads config, sets up logging, and runs one cobra root:
 
 - `noxis run server` — REST API + embedded console (`apps/api/cmd/noxis/server.Run`).
-- `noxis run ticker` — standalone scheduler: POSTs
-  `/apps/api/internal/callback/scheduler` on `NOXIS_TICK_INTERVAL`, requires
-  `NOXIS_TICK_HOST`. The server carries no ticker.
+
+There is no ticker process and no in-process scheduler. An external service (operator
+cron) drives due changes by POSTing `/internal/callback/scheduler`, authenticated
+with `NOXIS_SCHEDULER_API_KEY` + `NOXIS_SCHEDULER_SECRET` (bearer key + HMAC over
+`<timestamp>.<body>`).
 
 `server.Run` requires `NOXIS_LISTEN` and `NOXIS_DB`, opens the store, builds the
 OIDC verifier (nil = open mode), assembles `deps.Uses`, seeds it on
@@ -22,9 +24,9 @@ OIDC verifier (nil = open mode), assembles `deps.Uses`, seeds it on
 | --- | --- |
 | `NOXIS_LISTEN` | REST listen addr (**required**) |
 | `NOXIS_DB` | SQLite path (**required**) |
-| `NOXIS_TICK_HOST` | ticker only: server base URL (**required** for ticker) |
-| `NOXIS_TICK_INTERVAL` | ticker only: e.g. `30s` (default 30s) |
 | `NOXIS_SECRET_KEY` | 64 hex chars / 32 bytes; empty = plaintext passwords |
+| `NOXIS_SCHEDULER_API_KEY` | external scheduler: shared api key (bearer) |
+| `NOXIS_SCHEDULER_SECRET` | external scheduler: HMAC secret signing the trigger |
 | `NOXIS_OTEL_COLLECTOR` | OTLP endpoint (optional) |
 | `NOXIS_OTEL_NAME` | OTEL service name (optional) |
 | `NOXIS_OIDC_ISSUER` | empty = open API; set = authenticate every `/v1/*` |
@@ -67,7 +69,6 @@ Both end on alpine:3.20 with the static binary + `ca-certificates`.
 
 - `noxis` — the full image, `:9000`, named volume `noxis-data:/data`,
   healthcheck `/healthz`, waits on all target services healthy.
-- `ticker` — same image, `run ticker`, depends on noxis healthy.
 - `db` postgres:16, `redis` redis:7, `valkey` valkey/valkey:8, `mongo` mongo:7
   (auth on: root/noxis), `mariadb` mariadb:11.
 - `console` — Vite dev server, `profiles: [dev]`, mounts `./apps/web`.

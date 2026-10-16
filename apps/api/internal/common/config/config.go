@@ -14,13 +14,13 @@ import (
 
 // Env is read exactly once, here; nothing else talks to the environment.
 const (
-	EnvListen        = "NOXIS_LISTEN"         // REST listen addr
-	EnvDB            = "NOXIS_DB"             // sqlite path (connection registry)
-	EnvTickHost      = "NOXIS_TICK_HOST"      // standalone ticker: the server base URL it drives (required)
-	EnvTickInterval  = "NOXIS_TICK_INTERVAL"  // standalone ticker: how often to tick (e.g. 30s)
-	EnvSecretKey     = "NOXIS_SECRET_KEY"     // AES key for passwords at rest (64 hex chars; empty = plaintext)
-	EnvOTELCollector = "NOXIS_OTEL_COLLECTOR" // OTLP endpoint (optional)
-	EnvOTELName      = "NOXIS_OTEL_NAME"      // service name reported to OTEL (optional)
+	EnvListen          = "NOXIS_LISTEN"            // REST listen addr
+	EnvDB              = "NOXIS_DB"                // sqlite path (connection registry)
+	EnvSecretKey       = "NOXIS_SECRET_KEY"        // AES key for passwords at rest (64 hex chars; empty = plaintext)
+	EnvSchedulerKey    = "NOXIS_SCHEDULER_API_KEY" // external scheduler: shared api key it presents as a bearer token
+	EnvSchedulerSecret = "NOXIS_SCHEDULER_SECRET"  // external scheduler: HMAC secret signing the trigger request
+	EnvOTELCollector   = "NOXIS_OTEL_COLLECTOR"    // OTLP endpoint (optional)
+	EnvOTELName        = "NOXIS_OTEL_NAME"         // service name reported to OTEL (optional)
 
 	// OIDC: when the issuer is set, the API authenticates every caller against
 	// it; when it is empty, noxis runs open (single-operator default).
@@ -33,13 +33,13 @@ const (
 
 // Config is the process environment; no defaults.
 type Config struct {
-	Listen        string `validate:"required"`
-	DB            string `validate:"required"`
-	TickHost      string
-	TickInterval  string
-	SecretKey     string
-	OTELCollector string
-	OTELName      string
+	Listen          string `validate:"required"`
+	DB              string `validate:"required"`
+	SecretKey       string
+	SchedulerKey    string
+	SchedulerSecret string
+	OTELCollector   string
+	OTELName        string
 
 	OIDCIssuer      string
 	OIDCClientID    string
@@ -53,13 +53,13 @@ var validate = validator.New()
 // LoadConfig reads every env var exactly once, per process.
 func LoadConfig() Config {
 	return Config{
-		Listen:        os.Getenv(EnvListen),
-		DB:            os.Getenv(EnvDB),
-		TickHost:      os.Getenv(EnvTickHost),
-		TickInterval:  os.Getenv(EnvTickInterval),
-		SecretKey:     os.Getenv(EnvSecretKey),
-		OTELCollector: os.Getenv(EnvOTELCollector),
-		OTELName:      os.Getenv(EnvOTELName),
+		Listen:          os.Getenv(EnvListen),
+		DB:              os.Getenv(EnvDB),
+		SecretKey:       os.Getenv(EnvSecretKey),
+		SchedulerKey:    os.Getenv(EnvSchedulerKey),
+		SchedulerSecret: os.Getenv(EnvSchedulerSecret),
+		OTELCollector:   os.Getenv(EnvOTELCollector),
+		OTELName:        os.Getenv(EnvOTELName),
 
 		OIDCIssuer:      os.Getenv(EnvOIDCIssuer),
 		OIDCClientID:    os.Getenv(EnvOIDCClientID),
@@ -86,12 +86,12 @@ func fieldOf(c Config, env string) string {
 		return c.Listen
 	case EnvDB:
 		return c.DB
-	case EnvTickInterval:
-		return c.TickInterval
-	case EnvTickHost:
-		return c.TickHost
 	case EnvSecretKey:
 		return c.SecretKey
+	case EnvSchedulerKey:
+		return c.SchedulerKey
+	case EnvSchedulerSecret:
+		return c.SchedulerSecret
 	case EnvOTELCollector:
 		return c.OTELCollector
 	case EnvOTELName:
@@ -114,9 +114,9 @@ func (c Config) String() string {
 	return strings.Join([]string{
 		EnvListen + "=" + c.Listen,
 		EnvDB + "=" + c.DB,
-		EnvTickHost + "=" + c.TickHost,
-		EnvTickInterval + "=" + c.TickInterval,
-		EnvSecretKey + "=" + c.SecretKey,
+		EnvSecretKey + "=" + redact(c.SecretKey),
+		EnvSchedulerKey + "=" + redact(c.SchedulerKey),
+		EnvSchedulerSecret + "=" + redact(c.SchedulerSecret),
 		EnvOTELCollector + "=" + c.OTELCollector,
 		EnvOTELName + "=" + c.OTELName,
 		EnvOIDCIssuer + "=" + c.OIDCIssuer,
@@ -141,6 +141,19 @@ func LogState(ctx context.Context, log *slog.Logger, c Config) {
 	} else {
 		log.InfoContext(ctx, "OIDC authentication enabled", "issuer", c.OIDCIssuer, "adminGroup", c.OIDCAdminGroup)
 	}
+	if c.SchedulerKey == "" || c.SchedulerSecret == "" {
+		log.InfoContext(ctx, "scheduler trigger disabled; set NOXIS_SCHEDULER_API_KEY and NOXIS_SCHEDULER_SECRET to drive scheduled changes")
+	} else {
+		log.InfoContext(ctx, "scheduler trigger enabled")
+	}
+}
+
+// redact shows presence, never the value: a config dump must not leak a secret.
+func redact(value string) string {
+	if value == "" {
+		return ""
+	}
+	return "<redacted>"
 }
 
 // AuthInfo is the public OIDC configuration the console needs to start login.

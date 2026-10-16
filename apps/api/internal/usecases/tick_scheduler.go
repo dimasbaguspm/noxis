@@ -27,8 +27,8 @@ func dueChange(ch entity.Change, now int64) bool {
 }
 
 // Tick is the scheduler-pass use case: every due change runs through its own
-// engine. The in-process scheduler and POST /internal/callback/scheduler both
-// call it, so a change applied at 14:00 does not care who knocked.
+// engine. The external scheduler trigger (POST /internal/callback/scheduler)
+// calls it, so a change applied at 14:00 does not care who knocked.
 type Tick struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository

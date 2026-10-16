@@ -43,7 +43,7 @@ Inside `apps/api/`:
 
 | Path | Role |
 | --- | --- |
-| `apps/api/cmd/noxis/` | process entry: CLI, server wiring, handlers, middlewares, ticker |
+| `apps/api/cmd/noxis/` | process entry: CLI, server wiring, handlers, middlewares |
 | `apps/api/cmd/noxis/server/deps/` | runtime dependency container + DI (the only wiring) |
 | `apps/api/cmd/noxis/server/handlers/` | thin HTTP handlers + swag annotations + response glue |
 | `apps/api/cmd/noxis/server/middlewares/` | CORS → auth → request-log/span |
