@@ -15,6 +15,9 @@ services:
       NOXIS_OTEL_NAME: noxis
       # dev-only secret; compose values are throwaway
       NOXIS_SECRET_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      # dev root admin, created on first boot; the UAT suite logs in with these
+      NOXIS_ADMIN_USERNAME: admin
+      NOXIS_ADMIN_PASSWORD: noxis-admin
       # dev-only scheduler pair; the external service (UAT, operator cron) signs
       # the trigger with these same values.
       NOXIS_SCHEDULER_API_KEY: noxis-scheduler

@@ -25,11 +25,12 @@ OIDC verifier (nil = open mode), assembles `deps.Uses`, seeds it on
 | `NOXIS_LISTEN` | REST listen addr (default `:9000`) |
 | `NOXIS_DB` | SQLite path (default `/data/noxis.db`) |
 | `NOXIS_SECRET_KEY` | 64 hex chars / 32 bytes; **required** |
+| `NOXIS_ADMIN_USERNAME` / `NOXIS_ADMIN_PASSWORD` | root local admin; required only while no accounts exist |
 | `NOXIS_SCHEDULER_API_KEY` | external scheduler: shared api key (bearer) |
 | `NOXIS_SCHEDULER_SECRET` | external scheduler: HMAC secret signing the trigger |
 | `NOXIS_OTEL_COLLECTOR` | OTLP endpoint (optional) |
 | `NOXIS_OTEL_NAME` | OTEL service name (optional) |
-| `NOXIS_OIDC_ISSUER` | empty = open API; set = authenticate every `/v1/*` |
+| `NOXIS_OIDC_ISSUER` | empty = OIDC off (local accounts still required); set = accept OIDC tokens too |
 | `NOXIS_OIDC_CLIENT_ID` | public PKCE client id |
 | `NOXIS_OIDC_AUDIENCE` | expected `aud`, defaults to client id |
 | `NOXIS_OIDC_GROUPS_CLAIM` | defaults to `groups` |

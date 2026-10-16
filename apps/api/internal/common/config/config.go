@@ -14,6 +14,8 @@ const (
 	EnvListen          = "NOXIS_LISTEN"            // REST listen addr (default :9000)
 	EnvDB              = "NOXIS_DB"                // sqlite path (default /data/noxis.db)
 	EnvSecretKey       = "NOXIS_SECRET_KEY"        // AES key for passwords at rest (64 hex chars; required)
+	EnvAdminUsername   = "NOXIS_ADMIN_USERNAME"    // root local admin, created on first boot when no users exist
+	EnvAdminPassword   = "NOXIS_ADMIN_PASSWORD"    // root local admin password (bcrypt-hashed on create)
 	EnvSchedulerKey    = "NOXIS_SCHEDULER_API_KEY" // external scheduler: shared api key it presents as a bearer token
 	EnvSchedulerSecret = "NOXIS_SCHEDULER_SECRET"  // external scheduler: HMAC secret signing the trigger request
 	EnvOTELCollector   = "NOXIS_OTEL_COLLECTOR"    // OTLP endpoint (optional)
@@ -40,6 +42,8 @@ type Config struct {
 	Listen          string
 	DB              string
 	SecretKey       string
+	AdminUsername   string
+	AdminPassword   string
 	SchedulerKey    string
 	SchedulerSecret string
 	OTELCollector   string
@@ -58,6 +62,8 @@ func LoadConfig() Config {
 		Listen:          firstNonEmpty(os.Getenv(EnvListen), defaultListen),
 		DB:              firstNonEmpty(os.Getenv(EnvDB), defaultDB),
 		SecretKey:       os.Getenv(EnvSecretKey),
+		AdminUsername:   os.Getenv(EnvAdminUsername),
+		AdminPassword:   os.Getenv(EnvAdminPassword),
 		SchedulerKey:    os.Getenv(EnvSchedulerKey),
 		SchedulerSecret: os.Getenv(EnvSchedulerSecret),
 		OTELCollector:   os.Getenv(EnvOTELCollector),
@@ -86,6 +92,8 @@ func (c Config) String() string {
 		EnvListen + "=" + c.Listen,
 		EnvDB + "=" + c.DB,
 		EnvSecretKey + "=" + redact(c.SecretKey),
+		EnvAdminUsername + "=" + c.AdminUsername,
+		EnvAdminPassword + "=" + redact(c.AdminPassword),
 		EnvSchedulerKey + "=" + redact(c.SchedulerKey),
 		EnvSchedulerSecret + "=" + redact(c.SchedulerSecret),
 		EnvOTELCollector + "=" + c.OTELCollector,
@@ -132,10 +140,26 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-// AuthInfo is the public OIDC configuration the console needs to start login.
-// The issuer and client id are not secrets.
+// AuthInfo is the public auth configuration the console bootstraps from: which
+// methods are available and, when OIDC is on, the issuer + client id (neither is
+// a secret). OIDC is omitted when the issuer is unset.
 type AuthInfo struct {
-	Enabled  bool   `json:"enabled"`
-	Issuer   string `json:"issuer,omitempty"`
-	ClientID string `json:"clientId,omitempty"`
+	Local bool      `json:"local"`
+	OIDC  *OIDCInfo `json:"oidc,omitempty"`
+}
+
+// OIDCInfo is the public OIDC client configuration for the console's PKCE flow.
+type OIDCInfo struct {
+	Issuer   string `json:"issuer"`
+	ClientID string `json:"clientId"`
+}
+
+// AuthInfo derives the console's auth bootstrap from the config, so no route or
+// server wiring hardcodes what is available.
+func (c Config) AuthInfo() AuthInfo {
+	info := AuthInfo{Local: true}
+	if c.OIDCIssuer != "" {
+		info.OIDC = &OIDCInfo{Issuer: c.OIDCIssuer, ClientID: c.OIDCClientID}
+	}
+	return info
 }

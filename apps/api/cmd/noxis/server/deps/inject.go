@@ -36,6 +36,8 @@ func source(d Deps, t reflect.Type) (reflect.Value, bool) {
 		return reflect.ValueOf(d.Changes), true
 	case reflect.TypeOf((*interfaces.GrantRepository)(nil)).Elem():
 		return reflect.ValueOf(d.Grants), true
+	case reflect.TypeOf((*interfaces.UserRepository)(nil)).Elem():
+		return reflect.ValueOf(d.Users), true
 	case reflect.TypeOf((*modules.Registry)(nil)).Elem():
 		return reflect.ValueOf(d.Modules), true
 	case reflect.TypeOf((*slog.Logger)(nil)):

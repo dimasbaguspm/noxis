@@ -10,16 +10,17 @@ import (
 	"noxis/internal/usecases"
 )
 
-// WithAuth requires a valid bearer token on the API when a verifier is
-// configured. A nil verifier means authentication is disabled (open mode); the
+// WithAuth requires a valid bearer token on every /v1/* request. There is no
+// open mode: a nil verifier is a wiring bug and denies rather than trusting. The
 // console shell, assets and /healthz stay reachable so login can happen.
 func WithAuth(verifier interfaces.Verifier, next http.Handler) http.Handler {
-	if verifier == nil {
-		return next
-	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, "/v1/") {
 			next.ServeHTTP(w, r)
+			return
+		}
+		if verifier == nil {
+			writeUnauthorized(w, "authentication is not configured")
 			return
 		}
 		raw := bearerToken(r)

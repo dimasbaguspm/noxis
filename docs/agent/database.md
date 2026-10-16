@@ -36,7 +36,13 @@ the approve/apply/reject timestamps.
 
 ### `connection_grants`
 `(connection, group_name, level)` PK, `level` ∈ `read|write|admin`. The only
-policy table. Identity/membership live in the OIDC issuer.
+policy table. Identity/membership come from OIDC or local accounts.
+
+### `users`
+Local accounts. `username` PK, `password` is a **bcrypt hash** (one-way, unlike
+`connections.password`), `groups` JSON, `is_admin`/`disabled` flags, and the
+single active session: `token_hash` (SHA-256 of the raw token) +
+`token_expires_at`. The raw token and password are never stored.
 
 ## Migrations
 
@@ -51,7 +57,7 @@ policy table. Identity/membership live in the OIDC issuer.
 ## Repositories (the pattern)
 
 - Each repository method is a `Store` method in its own file:
-  `connections.go`, `changes.go`, `grants.go`.
+  `connections.go`, `changes.go`, `grants.go`, `users.go`.
 - Shared row iteration lives in `queryRows[T]`; transactions via
   `Store.WithTx(ctx, fn)`.
 - `Store` satisfies all three interfaces (`var _ interfaces.ConnectionRepository = (*Store)(nil)` etc.).
@@ -66,8 +72,8 @@ policy table. Identity/membership live in the OIDC issuer.
 
 - Passwords cannot be hashed (noxis must send them to the DB) → reversible
   encryption at rest.
-- `NOXIS_SECRET_KEY`: 64 hex chars or 32 raw bytes. Empty = plaintext mode and a
-  boot warning.
+- `NOXIS_SECRET_KEY`: 64 hex chars or 32 raw bytes. Required: the server refuses
+to start without it unless `NOXIS_ALLOW_PLAINTEXT=true` (local dev only).
 - Ciphertext carries the `enc:v1:` prefix, so plaintext rows written before the
   key existed stay readable.
 - `Store.encryptLegacyPasswords` re-seals plaintext rows when a key is present

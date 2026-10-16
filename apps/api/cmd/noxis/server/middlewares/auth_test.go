@@ -29,12 +29,12 @@ func okHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
 }
 
-// WithAuth in open mode (nil verifier) passes everything through.
-func TestWithAuthOpenMode(t *testing.T) {
+// WithAuth denies /v1/* when no verifier is wired: there is no open mode.
+func TestWithAuthNilVerifierDenies(t *testing.T) {
 	rec := httptest.NewRecorder()
 	WithAuth(nil, okHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("open mode status=%d", rec.Code)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("nil verifier status=%d want=%d", rec.Code, http.StatusUnauthorized)
 	}
 }
 

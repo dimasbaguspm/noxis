@@ -10,14 +10,15 @@ import (
 
 	"noxis/internal/constants"
 	"noxis/internal/interfaces"
+	"noxis/internal/modules/auth"
 	"noxis/internal/modules/memcache"
 	"noxis/internal/modules/mongodb"
 	"noxis/internal/modules/sql"
 )
 
-// Registry resolves an engine family by its {engine} name and by driver. It
-// is the one handle to the built-in adapters; nothing else declares a module
-// map.
+// Registry resolves an engine family by its {engine} name and by driver, and
+// carries the process auth service. It is the one handle to the built-in
+// adapters and services; nothing else declares a module map.
 type Registry interface {
 	// Engine resolves the module named by an engine family. A family that is
 	// not registered is unsupported (404).
@@ -28,21 +29,31 @@ type Registry interface {
 	// Serves reports the family that serves a driver, rather than a
 	// hardcoded driver-to-family switch.
 	Serves(driver string) (interfaces.Module, bool)
+	// Auth is the process auth service: local accounts plus OIDC.
+	Auth() *auth.Service
 }
 
-// New wraps a family map in a registry (Default builds the built-in set).
-func New(mods map[string]interfaces.Module) Registry { return registry{mods: mods} }
+// New wraps a family map and the auth service in a registry (Default builds the
+// built-in set).
+func New(mods map[string]interfaces.Module, authSvc *auth.Service) Registry {
+	return registry{mods: mods, auth: authSvc}
+}
 
-// Default builds the built-in engine-family registry.
-func Default() Registry {
+// Default builds the built-in engine-family registry with the auth service.
+func Default(authSvc *auth.Service) Registry {
 	return New(map[string]interfaces.Module{
 		constants.FamilySQL:      sql.New(),
 		constants.FamilyMemcache: memcache.New(),
 		constants.FamilyMongo:    mongodb.New(),
-	})
+	}, authSvc)
 }
 
-type registry struct{ mods map[string]interfaces.Module }
+type registry struct {
+	mods map[string]interfaces.Module
+	auth *auth.Service
+}
+
+func (r registry) Auth() *auth.Service { return r.auth }
 
 func (r registry) Engine(name string) (interfaces.Module, error) {
 	mod, ok := r.mods[name]

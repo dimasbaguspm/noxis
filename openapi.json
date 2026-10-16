@@ -9,7 +9,7 @@
     "paths": {
         "/auth/config": {
             "get": {
-                "summary": "Public OIDC configuration (console bootstrap)",
+                "summary": "Public auth configuration (console bootstrap)",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -17,6 +17,44 @@
                             "*/*": {
                                 "schema": {
                                     "$ref": "#/components/schemas/config.AuthInfo"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "summary": "Log in with a local account",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/handlers.loginRequest"
+                            }
+                        }
+                    },
+                    "description": "username and password",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/handlers.loginResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -44,6 +82,57 @@
                             "*/*": {
                                 "schema": {
                                     "$ref": "#/components/schemas/usecases.TickResult"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/logout": {
+            "post": {
+                "summary": "Log out the current local account",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/password": {
+            "post": {
+                "summary": "Change the current local account's password",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/handlers.changePasswordRequest"
+                            }
+                        }
+                    },
+                    "description": "old and new password",
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
                                 }
                             }
                         }
@@ -2074,11 +2163,19 @@
             "config.AuthInfo": {
                 "type": "object",
                 "properties": {
+                    "local": {
+                        "type": "boolean"
+                    },
+                    "oidc": {
+                        "$ref": "#/components/schemas/config.OIDCInfo"
+                    }
+                }
+            },
+            "config.OIDCInfo": {
+                "type": "object",
+                "properties": {
                     "clientId": {
                         "type": "string"
-                    },
-                    "enabled": {
-                        "type": "boolean"
                     },
                     "issuer": {
                         "type": "string"
@@ -2487,6 +2584,32 @@
                     }
                 }
             },
+            "entity.User": {
+                "type": "object",
+                "required": [
+                    "subject"
+                ],
+                "properties": {
+                    "admin": {
+                        "type": "boolean"
+                    },
+                    "disabled": {
+                        "type": "boolean"
+                    },
+                    "groups": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "subject": {
+                        "type": "string"
+                    },
+                    "username": {
+                        "type": "string"
+                    }
+                }
+            },
             "handlers.DriverInfo": {
                 "type": "object",
                 "properties": {
@@ -2531,6 +2654,17 @@
                     }
                 }
             },
+            "handlers.changePasswordRequest": {
+                "type": "object",
+                "properties": {
+                    "newPassword": {
+                        "type": "string"
+                    },
+                    "oldPassword": {
+                        "type": "string"
+                    }
+                }
+            },
             "handlers.grantBody": {
                 "type": "object",
                 "properties": {
@@ -2539,6 +2673,28 @@
                     },
                     "level": {
                         "type": "string"
+                    }
+                }
+            },
+            "handlers.loginRequest": {
+                "type": "object",
+                "properties": {
+                    "password": {
+                        "type": "string"
+                    },
+                    "username": {
+                        "type": "string"
+                    }
+                }
+            },
+            "handlers.loginResponse": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string"
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/entity.User"
                     }
                 }
             },

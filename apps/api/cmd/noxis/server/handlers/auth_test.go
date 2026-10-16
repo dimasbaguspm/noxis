@@ -42,7 +42,7 @@ func TestGetMeIncludesLevels(t *testing.T) {
 	base.Grants = &fakeGrants{grants: map[string]entity.Grant{
 		"dev": {Connection: "demo", Group: "readers", Level: entity.LevelRead},
 	}}
-	d := deps.Init(deps.Deps{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: modules.New(base.Modules), Log: discardLog()})
+	d := deps.Init(deps.Deps{Connections: base.Connections, Changes: base.Changes, Grants: base.Grants, Modules: modules.New(base.Modules, nil), Log: discardLog()})
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/me", GetMe)
 
@@ -61,13 +61,13 @@ func TestGetMeIncludesLevels(t *testing.T) {
 
 func TestGetAuthConfig(t *testing.T) {
 	d, _, _ := newTestDeps(&fakeSQL{})
-	d.Auth = config.AuthInfo{Enabled: false}
+	d.Auth = config.AuthInfo{Local: true}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /auth/config", GetAuthConfig)
 
 	rec := httptest.NewRecorder()
 	depsHandler(mux, d).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/auth/config", http.NoBody))
-	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"enabled":false`) {
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"local":true`) {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
 }
