@@ -5,14 +5,11 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 )
 
 // SQLChanges is the "SQLChanges" use case.
 type SQLChanges struct {
-	Connections interfaces.ConnectionRepository
-	Changes     interfaces.ChangeRepository
-	Permissions interfaces.PermissionRepository
+	RegistryDeps
 }
 
 // Serve runs it.

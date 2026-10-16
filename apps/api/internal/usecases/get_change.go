@@ -4,14 +4,12 @@ import (
 	"context"
 
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 )
 
 // SQLChange loads a change and insists it is a SQL one, so a MongoDB request
 // cannot be opened through the SQL flow.
 type SQLChange struct {
-	Changes     interfaces.ChangeRepository
-	Permissions interfaces.PermissionRepository
+	RegistryDeps
 }
 
 // Serve runs it.

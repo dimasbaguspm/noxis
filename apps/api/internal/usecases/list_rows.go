@@ -10,8 +10,6 @@ import (
 // Rows is the "Rows" use case.
 type Rows struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.

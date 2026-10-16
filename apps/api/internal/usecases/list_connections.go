@@ -10,8 +10,6 @@ import (
 // ConnectionList is the "ConnectionList" use case.
 type ConnectionList struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.

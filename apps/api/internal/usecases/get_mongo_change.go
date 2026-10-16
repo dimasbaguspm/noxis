@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 )
 
 // MongoChange is the "MongoChange" use case.
 type MongoChange struct {
-	Changes     interfaces.ChangeRepository
-	Permissions interfaces.PermissionRepository
+	RegistryDeps
 }
 
 // Serve runs it.

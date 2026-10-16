@@ -16,9 +16,6 @@ import (
 // SubmitMongoChange is the "SubmitMongoChange" use case.
 type SubmitMongoChange struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Changes     interfaces.ChangeRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.

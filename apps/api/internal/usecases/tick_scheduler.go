@@ -7,7 +7,6 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 )
 
 // TickResult is one scheduler pass: the ids it applied and the ids it failed
@@ -31,9 +30,6 @@ func dueChange(ch entity.Change, now int64) bool {
 // calls it, so a change applied at 14:00 does not care who knocked.
 type Tick struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Changes     interfaces.ChangeRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.

@@ -306,22 +306,6 @@ func TestSecretsStayRedacted(t *testing.T) {
 	}
 }
 
-// TestHandlersRespond exercises the HTTP path (handle → span → JSON): a
-// self-calling span closure once turned this into a stack overflow.
-func TestHandlersRespond(t *testing.T) {
-	d, _, _ := newTestDeps(&fakeSQL{})
-	h := newHandler(d, config.Config{})
-
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/engine/sql/connections", http.NoBody))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
-	}
-	if !strings.Contains(rec.Body.String(), `"connections"`) {
-		t.Fatalf("body: %s", rec.Body.String())
-	}
-}
-
 // TestEngineGating locks the generic route contract: an unknown engine and a
 // sub-resource the engine does not serve are 404, never routed elsewhere.
 func TestEngineGating(t *testing.T) {

@@ -12,8 +12,6 @@ import (
 // DeletePermission is the "DeletePermission" use case.
 type DeletePermission struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve removes one member's permission from a connection.

@@ -11,8 +11,6 @@ import (
 // ListPermissions is the "ListPermissions" use case.
 type ListPermissions struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.

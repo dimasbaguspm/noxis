@@ -11,8 +11,6 @@ import (
 // Op is the "Op" use case.
 type Op struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.

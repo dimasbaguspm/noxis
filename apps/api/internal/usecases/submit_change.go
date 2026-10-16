@@ -15,9 +15,6 @@ import (
 // SubmitChange is the "SubmitChange" use case.
 type SubmitChange struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Changes     interfaces.ChangeRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.

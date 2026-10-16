@@ -10,8 +10,6 @@ import (
 // Schema is the "Schema" use case.
 type Schema struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.
