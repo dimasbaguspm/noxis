@@ -156,7 +156,7 @@ func newTestDeps(sq interfaces.SQLModule) (deps.Uses, *fakeChanges, *fakeConns) 
 		Connections: base.Connections,
 		Changes:     base.Changes,
 		Grants:      base.Grants,
-		Modules:     modules.New(base.Modules),
+		Modules:     modules.New(base.Modules, nil),
 		Log:         discardLog(),
 	}), changes, conns
 }

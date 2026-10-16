@@ -19,6 +19,7 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
+	"noxis/internal/modules/auth"
 	"noxis/internal/usecases"
 )
 
@@ -66,6 +67,9 @@ func writeErr(w http.ResponseWriter, err error) {
 		code = http.StatusNotFound
 	}
 	if errors.Is(err, errUnauthorized) {
+		code = http.StatusUnauthorized
+	}
+	if errors.Is(err, auth.ErrInvalidCredentials) {
 		code = http.StatusUnauthorized
 	}
 	if errors.Is(err, usecases.ErrForbidden) {

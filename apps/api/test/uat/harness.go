@@ -50,7 +50,13 @@ var (
 	// must match the noxis service env in docker-compose.yml
 	schedulerKey    = "noxis-scheduler"
 	schedulerSecret = "noxis-scheduler-secret"
+	adminUser       = "admin"
+	adminPassword   = "noxis-admin"
 )
+
+// token is the local session the suite obtains once in BeforeSuite and sends as
+// a bearer token on every /v1 request.
+var token string
 
 // signScheduler authenticates the trigger the way the external service must:
 // api key as bearer + HMAC over "<timestamp>.<body>". Kept independent of the
@@ -125,7 +131,33 @@ func stackUp() error {
 	if err != nil {
 		return fmt.Errorf("compose up: %w\n%s", err, out)
 	}
-	return waitHTTP(baseURL+"/healthz", 10*time.Second)
+	if err := waitHTTP(baseURL+"/healthz", 10*time.Second); err != nil {
+		return err
+	}
+	return login()
+}
+
+// login exchanges the dev root admin for a session token; every /v1 call needs
+// it now that there is no open mode.
+func login() error {
+	body := strings.NewReader(`{"username":"` + adminUser + `","password":"` + adminPassword + `"}`)
+	resp, err := http.Post(baseURL+"/auth/login", "application/json", body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("login: status %d body %s", resp.StatusCode, strings.TrimSpace(string(b)))
+	}
+	var out struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return fmt.Errorf("login decode: %w", err)
+	}
+	token = out.Token
+	return nil
 }
 
 func stackDown() {
@@ -164,6 +196,9 @@ func (w *world) api(method, path string, body any, out any) error {
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
@@ -185,7 +220,14 @@ func (w *world) api(method, path string, body any, out any) error {
 
 // raw returns the response body of a GET (for presence assertions).
 func (w *world) raw(path string) (code int, body string, err error) {
-	resp, err := http.Get(baseURL + path)
+	req, err := http.NewRequest(http.MethodGet, baseURL+path, http.NoBody)
+	if err != nil {
+		return 0, "", err
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return 0, "", err
 	}

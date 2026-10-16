@@ -13,12 +13,14 @@ import (
 	"noxis/internal/modules"
 )
 
-// Deps is what the initiator provides: the repositories, the engine registry
-// and the transport values. WithDeps fills a use case from it by field type.
+// Deps is what the initiator provides: the repositories, the registry (which
+// carries the auth service) and the transport values. WithDeps fills a use case
+// from it by field type.
 type Deps struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
 	Grants      interfaces.GrantRepository
+	Users       interfaces.UserRepository
 	Modules     modules.Registry
 	Log         *slog.Logger
 	Auth        config.AuthInfo

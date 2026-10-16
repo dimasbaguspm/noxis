@@ -26,28 +26,17 @@ import (
 
 const shutdownTimeout = 10 * time.Second
 
-func newVerifier(ctx context.Context, cfg config.Config) (interfaces.Verifier, error) {
-	oidc, err := auth.New(ctx, cfg)
-	if err != nil || oidc == nil {
-		return nil, err
-	}
-	return oidc, nil
-}
-
-// newDeps assembles the runtime container once: the stores, the engine
-// registry and the transport values, then binds every use case to them.
-func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config) deps.Uses {
+// newDeps assembles the runtime container once: the stores, the registry (with
+// the auth service) and the transport values, then binds every use case to them.
+func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config, authSvc *auth.Service) deps.Uses {
 	return deps.Init(deps.Deps{
 		Connections: store,
 		Changes:     store,
 		Grants:      store,
-		Modules:     modules.Default(),
+		Users:       store,
+		Modules:     modules.Default(authSvc),
 		Log:         log,
-		Auth: config.AuthInfo{
-			Enabled:  cfg.OIDCIssuer != "",
-			Issuer:   cfg.OIDCIssuer,
-			ClientID: cfg.OIDCClientID,
-		},
+		Auth:        cfg.AuthInfo(),
 	})
 }
 
@@ -58,13 +47,16 @@ func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config) deps.Uses
 // every handler resolves its module from the registry. A family is registered
 // exactly once, here, and a family that does not serve a route is refused by
 // the handler (404) instead of reaching the wrong module.
-func newHandler(cfg config.Config, verifier interfaces.Verifier) http.Handler {
+func newHandler(cfg config.Config) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", handlers.GetHealthz)
 	mux.HandleFunc("GET /v1/config/drivers", handlers.ListDrivers)
 	mux.HandleFunc("GET /auth/config", handlers.GetAuthConfig)
+	mux.HandleFunc("POST /auth/login", handlers.PostLogin)
 	mux.HandleFunc("GET /v1/me", handlers.GetMe)
+	mux.HandleFunc("POST /v1/auth/logout", handlers.PostLogout)
+	mux.HandleFunc("POST /v1/auth/password", handlers.PostChangePassword)
 
 	// Connections: one generic handler per route, gated by the {engine} path
 	// parameter through the module registry.
@@ -136,20 +128,29 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 	}
 	defer store.Close()
 
-	verifier, err := newVerifier(ctx, cfg)
+	oidc, err := auth.New(ctx, cfg)
 	if err != nil {
 		return err
 	}
+	// pass a nil interface (not a typed-nil *auth.OIDC) so the service knows OIDC
+	// is off
+	var verifier interfaces.Verifier
+	if oidc != nil {
+		verifier = oidc
+	}
+	authSvc := auth.NewService(store, verifier)
 
 	log.InfoContext(ctx, "noxis serving", "addr", cfg.Listen, "db", cfg.DB)
 
-	d := newDeps(store, log, cfg)
+	d := newDeps(store, log, cfg, authSvc)
+	if err := d.Modules.Auth().EnsureRoot(ctx, cfg.AdminUsername, cfg.AdminPassword); err != nil {
+		return err
+	}
 
-	// CORS, then authentication (when a verifier is configured), then request
-	// logging + span: the request log and its span run after the principal is
-	// attached, so the user's trace attributes and log fields are set once,
-	// in the middleware layer.
-	handler := middlewares.CORS(middlewares.WithAuth(verifier, middlewares.RequestLog(newHandler(cfg, verifier), log)))
+	// CORS, then authentication, then request logging + span: the request log
+	// and its span run after the principal is attached, so the user's trace
+	// attributes and log fields are set once, in the middleware layer.
+	handler := middlewares.CORS(middlewares.WithAuth(authSvc, middlewares.RequestLog(newHandler(cfg), log)))
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler}
 	// every request ctx descends from ours, seeded once with the deps
 	srv.BaseContext = func(net.Listener) context.Context {

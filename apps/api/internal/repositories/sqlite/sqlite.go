@@ -28,6 +28,7 @@ var (
 	_ interfaces.ConnectionRepository = (*Store)(nil)
 	_ interfaces.ChangeRepository     = (*Store)(nil)
 	_ interfaces.GrantRepository      = (*Store)(nil)
+	_ interfaces.UserRepository       = (*Store)(nil)
 )
 
 // Open opens the store and verifies it answers a ping. The parent directory
@@ -176,7 +177,25 @@ CREATE TABLE IF NOT EXISTS connection_grants (
   group_name TEXT NOT NULL,
   level      TEXT NOT NULL,
   PRIMARY KEY (connection, group_name)
-);`
+);
+
+CREATE TABLE IF NOT EXISTS users (
+  subject          TEXT PRIMARY KEY,
+  username         TEXT NOT NULL DEFAULT '',
+  password         TEXT NOT NULL DEFAULT '',
+  groups           TEXT NOT NULL DEFAULT '[]',
+  is_admin         INTEGER NOT NULL DEFAULT 0,
+  disabled         INTEGER NOT NULL DEFAULT 0,
+  token_hash       TEXT NOT NULL DEFAULT '',
+  token_expires_at INTEGER NOT NULL DEFAULT 0,
+  created_at       INTEGER NOT NULL,
+  updated_at       INTEGER NOT NULL
+);
+
+-- local accounts log in by name; OIDC reference rows have no username
+CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users(username) WHERE username != '';
+-- one active token per account; empty means logged out
+CREATE UNIQUE INDEX IF NOT EXISTS users_token_hash ON users(token_hash) WHERE token_hash != '';`
 
 // encryptLegacyPasswords seals rows written before a key was set, so a store
 // that gains a key converges to ciphertext. No-op without a key.

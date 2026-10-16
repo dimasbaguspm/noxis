@@ -7,8 +7,9 @@ import (
 )
 
 // Uses is what a request can call: the use cases bound to the boot-time
-// sources, plus the two transport bits a route needs (the engine registry for
-// {engine} resolution and the public OIDC config). Init builds it once.
+// sources, plus the transport bits a route needs (the registry for {engine}
+// resolution and the auth service, and the public auth config). Init builds it
+// once.
 type Uses struct {
 	Modules modules.Registry
 	Auth    config.AuthInfo

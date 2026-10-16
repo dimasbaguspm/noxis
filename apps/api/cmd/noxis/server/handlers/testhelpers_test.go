@@ -22,7 +22,7 @@ func depsHandler(h http.Handler, d deps.Uses) http.Handler {
 
 // testCtx seeds the registry like Run does at boot, over the given families.
 func testCtx(mods map[string]interfaces.Module) context.Context {
-	return modules.WithRegistry(context.Background(), modules.New(mods))
+	return modules.WithRegistry(context.Background(), modules.New(mods, nil))
 }
 
 // discardLog is the test logger the container carries.

@@ -65,14 +65,21 @@ volume, no docker socket.
 
 ## Authentication
 
-By default noxis runs open (single operator). Set `NOXIS_OIDC_ISSUER` to require
-a bearer token on `/v1/*`: the server validates it against the issuer's JWKS,
-and the console runs Authorization Code + PKCE against the same issuer (public
-client, no secret) and refreshes its own token.
+Noxis requires a login: every `/v1/*` call needs a bearer token. There is no
+open mode. On first boot the root admin is created from `NOXIS_ADMIN_USERNAME`
+and `NOXIS_ADMIN_PASSWORD` (required only while no accounts exist; ignored
+after, so a password changed in the console survives restarts).
+
+Accounts are local by default: `POST /auth/login` verifies a bcrypt-hashed
+password and returns a single opaque session token; disabling an account or
+changing its password invalidates that token immediately.
+
+OIDC can be added later and runs alongside local accounts — set
+`NOXIS_OIDC_ISSUER` and noxis accepts the issuer's tokens too:
 
 | env | meaning |
 | --- | --- |
-| `NOXIS_OIDC_ISSUER` | issuer URL; empty keeps the API open |
+| `NOXIS_OIDC_ISSUER` | issuer URL; empty keeps OIDC off |
 | `NOXIS_OIDC_CLIENT_ID` | public client id (PKCE, no secret) |
 | `NOXIS_OIDC_AUDIENCE` | expected `aud`, defaults to the client id |
 | `NOXIS_OIDC_GROUPS_CLAIM` | token claim holding group names, defaults to `groups` |
@@ -81,7 +88,8 @@ client, no secret) and refreshes its own token.
 Access is per connection — `read` < `write` < `admin` — granted to OIDC groups
 through `/v1/engine/{engine}/connections/{name}/grants`. Default deny: a user with no
 grant sees nothing. `GET /v1/me` reports the caller and its effective level per
-connection (`GET /auth/config` is the public console bootstrap).
+connection (`GET /auth/config` is the public console bootstrap, and
+exposes whether local and/or OIDC login is available).
 
 ## Credentials at rest
 
@@ -107,8 +115,14 @@ store opens. Rotate a password from the instance's detail page.
 ```bash
 make dev          # noxis + a throwaway postgres to play with
 open http://localhost:9000
-# or drive the API:
-curl -s -X POST localhost:9000/v1/engine/sql/connections -H 'Content-Type: application/json' \
+
+# the dev stack seeds the root admin admin / noxis-admin; every /v1 call needs
+# the bearer token it returns (the console login form arrives in a later change)
+TOKEN=$(curl -s localhost:9000/auth/login -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"noxis-admin"}' | sed 's/.*"token":"\([^"]*\)".*/\1/')
+
+# or drive the API (add -H "Authorization: Bearer $TOKEN" to each call):
+curl -s -X POST localhost:9000/v1/engine/sql/connections -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"name":"demo","driver":"postgres","host":"db","port":5432,
        "user":"postgres","password":"noxis","database":"demo"}'
 curl -s -X POST localhost:9000/v1/engine/sql/connections/demo/query \
