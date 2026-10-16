@@ -9,6 +9,7 @@ import (
 
 // DeleteConnection is the "DeleteConnection" use case.
 type DeleteConnection struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }
@@ -20,7 +21,7 @@ func (uc DeleteConnection) Run(ctx context.Context, mod interfaces.Module, name 
 	if err := RequireAdmin(ctx); err != nil {
 		return err
 	}
-	if _, err := rawConn(ctx, uc.Connections, uc.Permissions, mod, name, entity.LevelRead); err != nil {
+	if _, err := rawConn(ctx, uc.Connections, uc.Permissions, uc.Modules, mod, name, entity.LevelRead); err != nil {
 		return err
 	}
 	return uc.Connections.Delete(ctx, name)

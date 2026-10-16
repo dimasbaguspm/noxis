@@ -9,7 +9,6 @@ import (
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/modules"
 )
 
 // The change routes are shared by SQL and MongoDB, each with its own queue:
@@ -55,6 +54,7 @@ func filterByStatus(changes []entity.Change, status string) []entity.Change {
 
 // ChangeList lists proposed changes for an engine (newest first).
 type ChangeList struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
 	Permissions interfaces.PermissionRepository
@@ -70,7 +70,7 @@ type ChangeList struct {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes [get]
 func (uc ChangeList) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -78,9 +78,9 @@ func (uc ChangeList) Serve(w http.ResponseWriter, r *http.Request) {
 	var changes []entity.Change
 	switch mod.(type) {
 	case interfaces.SQLModule:
-		changes, err = SQLChanges(uc).Run(r.Context())
+		changes, err = SQLChanges{Connections: uc.Connections, Changes: uc.Changes, Permissions: uc.Permissions}.Run(r.Context())
 	case interfaces.MongoModule:
-		changes, err = MongoChanges(uc).Run(r.Context())
+		changes, err = MongoChanges{Connections: uc.Connections, Changes: uc.Changes, Permissions: uc.Permissions}.Run(r.Context())
 	default:
 		fail(w, unsupportedChangeFlow(mod))
 		return
@@ -109,6 +109,7 @@ type mongoChangeBody struct {
 
 // ChangeSubmit submits a change (validates before recording).
 type ChangeSubmit struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
 	Permissions interfaces.PermissionRepository
@@ -122,7 +123,7 @@ type ChangeSubmit struct {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes [post]
 func (uc ChangeSubmit) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -159,6 +160,7 @@ func (uc ChangeSubmit) Serve(w http.ResponseWriter, r *http.Request) {
 
 // ChangeGet loads one change, insisting it belongs to the engine's family.
 type ChangeGet struct {
+	RegistryDeps
 	Changes     interfaces.ChangeRepository
 	Permissions interfaces.PermissionRepository
 }
@@ -170,7 +172,7 @@ type ChangeGet struct {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes/{id} [get]
 func (uc ChangeGet) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -178,9 +180,9 @@ func (uc ChangeGet) Serve(w http.ResponseWriter, r *http.Request) {
 	var out *entity.Change
 	switch mod.(type) {
 	case interfaces.SQLModule:
-		out, err = SQLChange(uc).Run(r.Context(), r.PathValue("id"))
+		out, err = SQLChange{Changes: uc.Changes, Permissions: uc.Permissions}.Run(r.Context(), r.PathValue("id"))
 	case interfaces.MongoModule:
-		out, err = MongoChange(uc).Run(r.Context(), r.PathValue("id"))
+		out, err = MongoChange{Changes: uc.Changes, Permissions: uc.Permissions}.Run(r.Context(), r.PathValue("id"))
 	default:
 		fail(w, unsupportedChangeFlow(mod))
 		return
@@ -194,6 +196,7 @@ func (uc ChangeGet) Serve(w http.ResponseWriter, r *http.Request) {
 
 // ChangeApprove approves a validated change (self-approval allowed).
 type ChangeApprove struct {
+	RegistryDeps
 	Changes     interfaces.ChangeRepository
 	Permissions interfaces.PermissionRepository
 }
@@ -206,16 +209,16 @@ type ChangeApprove struct {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes/{id}/approve [post]
 func (uc ChangeApprove) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
 	}
 	switch mod.(type) {
 	case interfaces.SQLModule:
-		_, err = SQLChange(uc).Run(r.Context(), r.PathValue("id"))
+		_, err = SQLChange{Changes: uc.Changes, Permissions: uc.Permissions}.Run(r.Context(), r.PathValue("id"))
 	case interfaces.MongoModule:
-		_, err = MongoChange(uc).Run(r.Context(), r.PathValue("id"))
+		_, err = MongoChange{Changes: uc.Changes, Permissions: uc.Permissions}.Run(r.Context(), r.PathValue("id"))
 	default:
 		fail(w, unsupportedChangeFlow(mod))
 		return
@@ -224,7 +227,7 @@ func (uc ChangeApprove) Serve(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	out, err := Approve(uc).Run(r.Context(), r.PathValue("id"))
+	out, err := Approve{Changes: uc.Changes, Permissions: uc.Permissions}.Run(r.Context(), r.PathValue("id"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -234,6 +237,7 @@ func (uc ChangeApprove) Serve(w http.ResponseWriter, r *http.Request) {
 
 // ChangeApply applies an approved change.
 type ChangeApply struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
 	Permissions interfaces.PermissionRepository
@@ -247,7 +251,7 @@ type ChangeApply struct {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes/{id}/apply [post]
 func (uc ChangeApply) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -279,6 +283,7 @@ func (uc ChangeApply) Serve(w http.ResponseWriter, r *http.Request) {
 
 // ChangeReject rejects a change (kept as an artifact, never deleted).
 type ChangeReject struct {
+	RegistryDeps
 	Changes     interfaces.ChangeRepository
 	Permissions interfaces.PermissionRepository
 }
@@ -291,16 +296,16 @@ type ChangeReject struct {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes/{id}/reject [post]
 func (uc ChangeReject) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
 	}
 	switch mod.(type) {
 	case interfaces.SQLModule:
-		_, err = SQLChange(uc).Run(r.Context(), r.PathValue("id"))
+		_, err = SQLChange{Changes: uc.Changes, Permissions: uc.Permissions}.Run(r.Context(), r.PathValue("id"))
 	case interfaces.MongoModule:
-		_, err = MongoChange(uc).Run(r.Context(), r.PathValue("id"))
+		_, err = MongoChange{Changes: uc.Changes, Permissions: uc.Permissions}.Run(r.Context(), r.PathValue("id"))
 	default:
 		fail(w, unsupportedChangeFlow(mod))
 		return
@@ -309,7 +314,7 @@ func (uc ChangeReject) Serve(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	out, err := Reject(uc).Run(r.Context(), r.PathValue("id"))
+	out, err := Reject{Changes: uc.Changes, Permissions: uc.Permissions}.Run(r.Context(), r.PathValue("id"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -324,6 +329,7 @@ type scheduleBody struct {
 
 // ChangeSchedule schedules or unschedules an approved change.
 type ChangeSchedule struct {
+	RegistryDeps
 	Changes     interfaces.ChangeRepository
 	Permissions interfaces.PermissionRepository
 }
@@ -337,7 +343,7 @@ type ChangeSchedule struct {
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes/{id}/schedule [post]
 func (uc ChangeSchedule) Serve(w http.ResponseWriter, r *http.Request) {
-	mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		fail(w, err)
 		return
@@ -349,12 +355,12 @@ func (uc ChangeSchedule) Serve(w http.ResponseWriter, r *http.Request) {
 	}
 	switch mod.(type) {
 	case interfaces.SQLModule:
-		if _, err := SQLChange(uc).Run(r.Context(), r.PathValue("id")); err != nil {
+		if _, err := (SQLChange{Changes: uc.Changes, Permissions: uc.Permissions}).Run(r.Context(), r.PathValue("id")); err != nil {
 			fail(w, err)
 			return
 		}
 	case interfaces.MongoModule:
-		if _, err := MongoChange(uc).Run(r.Context(), r.PathValue("id")); err != nil {
+		if _, err := (MongoChange{Changes: uc.Changes, Permissions: uc.Permissions}).Run(r.Context(), r.PathValue("id")); err != nil {
 			fail(w, err)
 			return
 		}
@@ -362,7 +368,7 @@ func (uc ChangeSchedule) Serve(w http.ResponseWriter, r *http.Request) {
 		fail(w, unsupportedChangeFlow(mod))
 		return
 	}
-	out, err := Schedule(uc).Run(r.Context(), r.PathValue("id"), body.ScheduledAt)
+	out, err := Schedule{Changes: uc.Changes, Permissions: uc.Permissions}.Run(r.Context(), r.PathValue("id"), body.ScheduledAt)
 	if err != nil {
 		fail(w, err)
 		return

@@ -6,7 +6,7 @@ Detail for `AGENTS.md`. Read that first for the map.
 
 ```
 transport   apps/api/cmd/noxis/server         (route table → use case Serve)
-application apps/api/cmd/noxis/server/deps    (DI container: Deps → Uses)
+application apps/api/cmd/noxis/server/app.go   (composition root: newApp)
             apps/api/internal/usecases        (one file per use case; Serve(w, r) + core)
 domain      apps/api/internal/entity             (data model, imports nothing internal)
             apps/api/internal/interfaces          (seams)
@@ -22,21 +22,17 @@ satisfier asserts next to their struct.
 
 ## Dependency injection
 
-Two files do all wiring, at boot, once.
+One file does all wiring, at boot, once: `apps/api/cmd/noxis/server/app.go`.
 
-- `apps/api/cmd/noxis/server/deps/deps.go` — `Deps` holds the **sources**: 3 repositories,
-  `modules.Registry`, `*slog.Logger`, `config.AuthInfo`.
-- `deps/uses.go` — `Uses` lists every bound use case as a named field; `Init(d)`
-  is the single construction point.
-- `deps/inject.go` — `WithDeps[T](d, target)` reflects over the target's fields
-  and fills each by **field type** from `Deps`. A missing dependency stays zero
-  and fails loudly on use.
-- `deps.Seed(ctx, Uses)` / `deps.From(ctx)` — the uses ride the request context;
-  `deps.From` panics if unseeded (wiring bug).
+- `sources` holds the seams: the repositories, `modules.Registry`, `config.AuthInfo`.
+- `app` lists every use case as a named field.
+- `newApp(sources)` builds each use case **explicitly** — the fields it needs are
+  named at the call site. There is no reflection and no dependency container in a
+  request context; the only thing on the context is the authenticated principal.
 
-Add a new use case: create `apps/api/internal/usecases/foo.go` with a `Foo struct` and a
-`Serve` method → add one field to `Uses` and one line to `Init` → call it from a
-handler. No constructor boilerplate.
+Add a new use case: create `apps/api/internal/usecases/foo.go` with a `Foo struct`,
+its `Run` core and a `Serve(w, r)` → add a field to `app` and one line to `newApp`
+→ register its `Serve` in `newHandler`. No constructor boilerplate, no reflection.
 
 ## Engine registry
 
@@ -46,11 +42,10 @@ handler. No constructor boilerplate.
   `EngineMongo`, `EngineMemcache`), and a driver → family (`Serves`).
 - `Default()` builds `{sql, memcache, mongodb}`. **This map is the only place
   families are declared.**
-- The registry is put on the request context at boot (`modules.WithRegistry`),
-  so any use case can resolve an engine from its ctx.
-- `RegistryFrom(ctx)` panics if unseeded.
+- The registry is an explicit dependency: a use case that resolves a family
+  embeds `usecases.RegistryDeps`, so `uc.Modules` is set at the composition root.
 
-Handlers take `{engine}` as a path param and resolve the module; a family that
+Serve methods take `{engine}` as a path param and resolve the module; a family that
 does not serve the route gets `interfaces.ErrUnsupported` → 404, never the wrong
 module. This is why one handler serves all families instead of a copy per family.
 
@@ -88,7 +83,7 @@ engine from the ctx registry, decodes, calls the domain core and writes:
 
 ```go
 func (uc Foo) Serve(w http.ResponseWriter, r *http.Request) {
-    mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+    mod, err := uc.Modules.Engine(r.PathValue("engine"))
     if err != nil { fail(w, err); return }
     out, err := uc.Run(r.Context(), mod, /* path/query/body */)
     if err != nil { fail(w, err); return }

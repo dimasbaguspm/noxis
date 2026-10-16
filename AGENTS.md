@@ -44,7 +44,7 @@ Inside `apps/api/`:
 | Path | Role |
 | --- | --- |
 | `apps/api/cmd/noxis/` | process entry: CLI, server wiring (routes), middlewares |
-| `apps/api/cmd/noxis/server/deps/` | runtime dependency container + DI (the only wiring) |
+| `apps/api/cmd/noxis/server/app.go` | composition root: every use case built explicitly |
 | `apps/api/cmd/noxis/server/static/` | embedded console (built SPA; placeholder committed) |
 | `apps/api/cmd/noxis/server/middlewares/` | CORS → auth → request-log/span |
 | `apps/api/internal/usecases/` | one file = one use case; `Serve(w, r)` HTTP + domain core |
@@ -63,12 +63,11 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 ## Request flow
 
 1. `middlewares.CORS → WithAuth → RequestLog` wrap the `http.ServeMux`.
-2. `srv.BaseContext` seeds every request ctx once with `deps.Seed(modules.WithRegistry(ctx, ...), uses)`.
-3. Handler is a plain `func(w, r)`; it reads deps with `deps.From(r.Context())`.
-4. Handler resolves the engine family via `d.Modules.Engine(r.PathValue("engine"))`.
-5. Handler calls a bound use case `Serve(ctx, ...)` inside `handle(w, r, fn)`, which opens a span and maps errors.
-6. Use case reads repositories/modules from its own struct fields (filled by `deps.WithDeps` reflection), enforces access via `rawConn`/`Authorize`, persists via a repository.
-7. `writeErr` maps `ErrNotFound`/`ErrUnsupported`→404, `ErrForbidden`→403, else 400.
+2. `newHandler(app, cfg)` registers each route straight at a use case `Serve(w, r)`.
+3. `Serve` reads the path/query/body and resolves the engine family via `uc.Modules.Engine(...)`.
+4. It calls its `Run(ctx, ...)` domain core and writes the response with `respond`/`fail`.
+5. The use case reads repositories/modules from its own struct fields (set explicitly in `newApp`), enforces access via `rawConn`/`Authorize`, persists via a repository.
+6. `fail` maps `ErrNotFound`/`ErrUnsupported`→404, `ErrForbidden`→403, bad credentials/`ErrUnauthorized`→401, else 400.
 
 ## Conventions
 

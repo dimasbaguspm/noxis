@@ -30,6 +30,7 @@ func dueChange(ch entity.Change, now int64) bool {
 // engine. The external scheduler trigger (POST /internal/callback/scheduler)
 // calls it, so a change applied at 14:00 does not care who knocked.
 type Tick struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
 	Permissions interfaces.PermissionRepository
@@ -48,7 +49,7 @@ func (uc Tick) Run(ctx context.Context) (res TickResult, err error) {
 		if !dueChange(all[i], now) {
 			continue
 		}
-		if _, err := applyChange(ctx, uc.Changes, uc.Connections, uc.Permissions, all[i]); err != nil {
+		if _, err := applyChange(ctx, uc.Changes, uc.Connections, uc.Permissions, uc.Modules, all[i]); err != nil {
 			res.Failed = append(res.Failed, all[i].ID)
 			continue
 		}

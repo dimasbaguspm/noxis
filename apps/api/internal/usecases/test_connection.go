@@ -9,6 +9,7 @@ import (
 
 // TestConnection is the "TestConnection" use case.
 type TestConnection struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }
@@ -17,7 +18,7 @@ type TestConnection struct {
 func (uc TestConnection) Run(ctx context.Context, mod interfaces.Module, name string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	c, err := rawConn(ctx, uc.Connections, uc.Permissions, mod, name, entity.LevelRead)
+	c, err := rawConn(ctx, uc.Connections, uc.Permissions, uc.Modules, mod, name, entity.LevelRead)
 	if err != nil {
 		return err
 	}

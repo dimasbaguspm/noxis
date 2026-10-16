@@ -10,6 +10,7 @@ import (
 
 // SetPermission is the "SetPermission" use case.
 type SetPermission struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }
@@ -21,7 +22,7 @@ func (uc SetPermission) Run(ctx context.Context, mod interfaces.Module, name, me
 	if err := RequireAdmin(ctx); err != nil {
 		return entity.Permission{}, err
 	}
-	if _, err := rawConn(ctx, uc.Connections, uc.Permissions, mod, name, entity.LevelRead); err != nil {
+	if _, err := rawConn(ctx, uc.Connections, uc.Permissions, uc.Modules, mod, name, entity.LevelRead); err != nil {
 		return entity.Permission{}, err
 	}
 	p := entity.Permission{Connection: name, Member: member, MemberType: memberType, Level: level}

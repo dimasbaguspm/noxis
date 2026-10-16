@@ -1,27 +1,34 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
+	"noxis/internal/modules"
 	"noxis/internal/usecases"
 )
+
+// reg is the explicit registry dep the cross-family use cases carry.
+func reg(base testBase) usecases.RegistryDeps {
+	return usecases.RegistryDeps{Modules: modules.New(base.Modules, nil)}
+}
 
 // The cross-family lookup must decorate an instance with its family, never
 // leak the password, and 404 an id that does not exist.
 func TestInstanceLookup(t *testing.T) {
 	base, _, conns := newTestBase(&fakeSQL{})
-	ctx := testCtx(base.Modules)
+	ctx := context.Background()
 
 	c := conns.conns["demo"]
 	c.ID = "abc"
 	c.Password = "secret"
 	conns.conns["demo"] = c
 
-	got, err := (usecases.Instance{Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "abc")
+	got, err := (usecases.Instance{RegistryDeps: reg(base), Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "abc")
 	if err != nil {
 		t.Fatalf("instance: %v", err)
 	}
@@ -32,7 +39,7 @@ func TestInstanceLookup(t *testing.T) {
 		t.Fatal("password must be redacted")
 	}
 
-	if _, err := (usecases.Instance{Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "missing"); !errors.Is(err, interfaces.ErrNotFound) {
+	if _, err := (usecases.Instance{RegistryDeps: reg(base), Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "missing"); !errors.Is(err, interfaces.ErrNotFound) {
 		t.Fatalf("missing id: err=%v want not found", err)
 	}
 }
@@ -51,7 +58,7 @@ func (fakeMemcache) Supports(driver string) bool {
 // exact driver match.
 func TestInstanceSearch(t *testing.T) {
 	base, _, conns := newTestBase(&fakeSQL{})
-	ctx := testCtx(base.Modules)
+	ctx := context.Background()
 	conns.conns["prod-db"] = entity.Connection{
 		Name: "prod-db", Driver: constants.DriverPostgres, Host: "db.internal", Port: 5432,
 		User: "postgres", Database: "app",
@@ -61,7 +68,7 @@ func TestInstanceSearch(t *testing.T) {
 	}
 	base.Modules[constants.FamilyMemcache] = &fakeMemcache{}
 
-	all, err := (usecases.ListInstances{Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "", "", "")
+	all, err := (usecases.ListInstances{RegistryDeps: reg(base), Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -69,7 +76,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("all = %d, want 3", len(all))
 	}
 
-	byName, err := (usecases.ListInstances{Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "PROD", "", "")
+	byName, err := (usecases.ListInstances{RegistryDeps: reg(base), Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "PROD", "", "")
 	if err != nil {
 		t.Fatalf("by name: %v", err)
 	}
@@ -77,7 +84,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("by name = %+v", byName)
 	}
 
-	byDriver, err := (usecases.ListInstances{Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "", constants.DriverRedis, "")
+	byDriver, err := (usecases.ListInstances{RegistryDeps: reg(base), Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "", constants.DriverRedis, "")
 	if err != nil {
 		t.Fatalf("by driver: %v", err)
 	}
@@ -85,7 +92,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("by driver = %+v", byDriver)
 	}
 
-	byHost, err := (usecases.ListInstances{Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "", "", "internal")
+	byHost, err := (usecases.ListInstances{RegistryDeps: reg(base), Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "", "", "internal")
 	if err != nil {
 		t.Fatalf("by host: %v", err)
 	}
@@ -97,7 +104,7 @@ func TestInstanceSearch(t *testing.T) {
 // Identity is fixed after registration; only the password rotates.
 func TestIdentityLockedAndRotation(t *testing.T) {
 	base, _, conns := newTestBase(&fakeSQL{})
-	ctx := usecases.WithPrincipal(testCtx(base.Modules), entity.Identity{Subject: "root", Admin: true})
+	ctx := usecases.WithPrincipal(context.Background(), entity.Identity{Subject: "root", Admin: true})
 	mod := base.Modules[constants.FamilySQL]
 
 	c := conns.conns["demo"]
@@ -114,16 +121,16 @@ func TestIdentityLockedAndRotation(t *testing.T) {
 		t.Fatal("stored instance must be unchanged")
 	}
 
-	if err := (usecases.RotatePassword{Connections: base.Connections}).Run(ctx, "abc", "new"); err != nil {
+	if err := (usecases.RotatePassword{RegistryDeps: reg(base), Connections: base.Connections}).Run(ctx, "abc", "new"); err != nil {
 		t.Fatalf("rotate: %v", err)
 	}
 	if conns.conns["demo"].Password != "new" {
 		t.Fatal("password not rotated")
 	}
-	if err := (usecases.RotatePassword{Connections: base.Connections}).Run(ctx, "abc", ""); err == nil {
+	if err := (usecases.RotatePassword{RegistryDeps: reg(base), Connections: base.Connections}).Run(ctx, "abc", ""); err == nil {
 		t.Fatal("empty password must be rejected")
 	}
-	if err := (usecases.RotatePassword{Connections: base.Connections}).Run(ctx, "missing", "x"); !errors.Is(err, interfaces.ErrNotFound) {
+	if err := (usecases.RotatePassword{RegistryDeps: reg(base), Connections: base.Connections}).Run(ctx, "missing", "x"); !errors.Is(err, interfaces.ErrNotFound) {
 		t.Fatalf("missing id: err=%v want not found", err)
 	}
 }

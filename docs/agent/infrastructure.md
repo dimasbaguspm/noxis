@@ -15,8 +15,8 @@ with `NOXIS_SCHEDULER_API_KEY` + `NOXIS_SCHEDULER_SECRET` (bearer key + HMAC ove
 `<timestamp>.<body>`).
 
 `server.Run` requires `NOXIS_LISTEN` and `NOXIS_DB`, opens the store, builds the
-OIDC verifier (nil = open mode), assembles `deps.Uses`, seeds it on
-`srv.BaseContext`, and starts the server with a 10s graceful shutdown.
+OIDC verifier (nil when OIDC is off), assembles the use cases (`newApp`),
+registers the routes and starts the server with a 10s graceful shutdown.
 
 ## Environment variables (`apps/api/internal/common/config`)
 

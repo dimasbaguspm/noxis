@@ -10,6 +10,7 @@ import (
 
 // ListPermissions is the "ListPermissions" use case.
 type ListPermissions struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }
@@ -21,7 +22,7 @@ func (uc ListPermissions) Run(ctx context.Context, mod interfaces.Module, name s
 	if err := RequireAdmin(ctx); err != nil {
 		return nil, err
 	}
-	if _, err := rawConn(ctx, uc.Connections, uc.Permissions, mod, name, entity.LevelRead); err != nil {
+	if _, err := rawConn(ctx, uc.Connections, uc.Permissions, uc.Modules, mod, name, entity.LevelRead); err != nil {
 		return nil, err
 	}
 	return uc.Permissions.ListPermissions(ctx, name)

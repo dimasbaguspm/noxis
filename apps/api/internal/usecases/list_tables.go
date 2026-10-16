@@ -9,6 +9,7 @@ import (
 
 // Schema is the "Schema" use case.
 type Schema struct {
+	RegistryDeps
 	Connections interfaces.ConnectionRepository
 	Permissions interfaces.PermissionRepository
 }
@@ -17,7 +18,7 @@ type Schema struct {
 func (uc Schema) Run(ctx context.Context, sq interfaces.SQLModule, name string) (out []interfaces.Table, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	c, err := rawConn(ctx, uc.Connections, uc.Permissions, sq, name, entity.LevelRead)
+	c, err := rawConn(ctx, uc.Connections, uc.Permissions, uc.Modules, sq, name, entity.LevelRead)
 	if err != nil {
 		return nil, err
 	}

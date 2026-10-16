@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"noxis/cmd/noxis/server/deps"
 	"noxis/internal/common/config"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
@@ -151,14 +150,13 @@ func newTestBase(sq interfaces.SQLModule) (testBase, *fakeChanges, *fakeConns) {
 
 // newTestDeps binds the use cases against fresh fakes, exactly like the
 // initiator does at boot; the fakes are returned for store inspection.
-func newTestDeps(sq interfaces.SQLModule) (deps.Uses, *fakeChanges, *fakeConns) {
+func newTestDeps(sq interfaces.SQLModule) (app, *fakeChanges, *fakeConns) {
 	base, changes, conns := newTestBase(sq)
-	return deps.Init(deps.Deps{
+	return newApp(sources{
 		Connections: base.Connections,
 		Changes:     base.Changes,
 		Permissions: base.Permissions,
 		Modules:     modules.New(base.Modules, nil),
-		Log:         discardLog(),
 	}), changes, conns
 }
 
@@ -174,7 +172,7 @@ func sampleChange() entity.Change {
 func TestChangeWorkflow(t *testing.T) {
 	sq := &fakeSQL{}
 	d, _, _ := newTestDeps(sq)
-	ctx := modules.WithRegistry(context.Background(), d.Modules)
+	ctx := context.Background()
 
 	submitted, err := d.SubmitChange.Run(ctx, sq, sampleChange())
 	if err != nil {
@@ -258,7 +256,7 @@ func TestChangeValidationFailures(t *testing.T) {
 func TestApplyFailureIsRecorded(t *testing.T) {
 	sq := &fakeSQL{applyErr: errors.New("statement 1: duplicate key")}
 	d, store, _ := newTestDeps(sq)
-	ctx := modules.WithRegistry(context.Background(), d.Modules)
+	ctx := context.Background()
 	ch, err := d.SubmitChange.Run(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
@@ -282,7 +280,7 @@ func TestApplyFailureIsRecorded(t *testing.T) {
 func TestSecretsStayRedacted(t *testing.T) {
 	d, _, conns := newTestDeps(&fakeSQL{})
 	mod, _ := d.Modules.Engine(constants.FamilySQL)
-	ctx := modules.WithRegistry(context.Background(), d.Modules)
+	ctx := context.Background()
 	c, _ := conns.Get(ctx, "demo")
 	c.Password = "supersecret"
 	_ = conns.Save(ctx, *c)
@@ -312,7 +310,7 @@ func TestSecretsStayRedacted(t *testing.T) {
 // self-calling span closure once turned this into a stack overflow.
 func TestHandlersRespond(t *testing.T) {
 	d, _, _ := newTestDeps(&fakeSQL{})
-	h := depsHandler(newHandler(d, config.Config{}), d)
+	h := newHandler(d, config.Config{})
 
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/engine/sql/connections", http.NoBody))
@@ -328,7 +326,7 @@ func TestHandlersRespond(t *testing.T) {
 // sub-resource the engine does not serve are 404, never routed elsewhere.
 func TestEngineGating(t *testing.T) {
 	d, _, _ := newTestDeps(&fakeSQL{})
-	h := depsHandler(newHandler(d, config.Config{}), d)
+	h := newHandler(d, config.Config{})
 
 	cases := []struct {
 		path string
@@ -352,7 +350,7 @@ func TestEngineGating(t *testing.T) {
 func TestScheduledChangeWaitsForItsSlot(t *testing.T) {
 	sq := &fakeSQL{}
 	d, store, _ := newTestDeps(sq)
-	ctx := modules.WithRegistry(context.Background(), d.Modules)
+	ctx := context.Background()
 	in := sampleChange()
 	in.ScheduledAt = time.Now().Add(time.Hour).Unix()
 	ch, err := d.SubmitChange.Run(ctx, sq, in)
@@ -382,7 +380,7 @@ func TestScheduledChangeWaitsForItsSlot(t *testing.T) {
 func TestTickAppliesDueScheduledChange(t *testing.T) {
 	sq := &fakeSQL{}
 	d, store, _ := newTestDeps(sq)
-	ctx := modules.WithRegistry(context.Background(), d.Modules)
+	ctx := context.Background()
 	in := sampleChange()
 	in.ScheduledAt = time.Now().Add(-time.Minute).Unix()
 	ch, err := d.SubmitChange.Run(ctx, sq, in)
@@ -426,7 +424,7 @@ func TestSchedulerEndpoint(t *testing.T) {
 	} {
 		req := httptest.NewRequest(http.MethodPost, path, http.NoBody)
 		rec := httptest.NewRecorder()
-		depsHandler(mux, d).ServeHTTP(rec, req)
+		mux.ServeHTTP(rec, req)
 		if rec.Code != http.StatusOK {
 			t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 		}
@@ -446,7 +444,7 @@ func TestChangeKindGated(t *testing.T) {
 
 	for _, path := range []string{"/external/v1/engine/sql/changes/m1/approve", "/external/v1/engine/sql/changes/m1/reject"} {
 		rec := httptest.NewRecorder()
-		depsHandler(mux, d).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, http.NoBody))
+		mux.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, path, http.NoBody))
 		if rec.Code != http.StatusBadRequest {
 			t.Fatalf("%s: status=%d want=400 body=%s", path, rec.Code, rec.Body.String())
 		}
