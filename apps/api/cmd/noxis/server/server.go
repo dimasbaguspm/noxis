@@ -58,7 +58,7 @@ func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config) deps.Uses
 // every handler resolves its module from the registry. A family is registered
 // exactly once, here, and a family that does not serve a route is refused by
 // the handler (404) instead of reaching the wrong module.
-func newHandler(verifier interfaces.Verifier) http.Handler {
+func newHandler(cfg config.Config, verifier interfaces.Verifier) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", handlers.GetHealthz)
@@ -111,9 +111,10 @@ func newHandler(verifier interfaces.Verifier) http.Handler {
 	mux.Handle("GET /assets/", http.HandlerFunc(handlers.GetAssets)) // embedded FS keeps the assets/ prefix
 	mux.HandleFunc("GET /", handlers.GetConsole)                     // the operator console (SPA shell)
 
-	// Scheduling: an external cron (or the in-process scheduler) drives due
-	// changes through the same handler.
-	mux.HandleFunc("POST /internal/callback/scheduler", handlers.PostScheduler)
+	// Scheduling: an external service drives due changes through this trigger,
+	// authenticated with the shared scheduler key + secret; there is no in-process
+	// scheduler and no ticker sidecar.
+	mux.Handle("POST /internal/callback/scheduler", middlewares.WithSchedulerAuth(cfg.SchedulerKey, cfg.SchedulerSecret, http.HandlerFunc(handlers.PostScheduler)))
 
 	// Instances address a connection by its stable id, across families. The
 	// family routes live under /v1/engine/{engine}/..., so these paths never
@@ -148,7 +149,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 	// logging + span: the request log and its span run after the principal is
 	// attached, so the user's trace attributes and log fields are set once,
 	// in the middleware layer.
-	handler := middlewares.CORS(middlewares.WithAuth(verifier, middlewares.RequestLog(newHandler(verifier), log)))
+	handler := middlewares.CORS(middlewares.WithAuth(verifier, middlewares.RequestLog(newHandler(cfg, verifier), log)))
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler}
 	// every request ctx descends from ours, seeded once with the deps
 	srv.BaseContext = func(net.Listener) context.Context {

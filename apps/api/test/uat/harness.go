@@ -6,6 +6,9 @@ package uat
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -42,7 +46,25 @@ var (
 
 	connHost = "db"    // the compose postgres target
 	connPass = "noxis" // its password (dev stack only)
+
+	// must match the noxis service env in docker-compose.yml
+	schedulerKey    = "noxis-scheduler"
+	schedulerSecret = "noxis-scheduler-secret"
 )
+
+// signScheduler authenticates the trigger the way the external service must:
+// api key as bearer + HMAC over "<timestamp>.<body>". Kept independent of the
+// server middleware, so the suite cross-checks the scheme rather than reusing it.
+func signScheduler(req *http.Request, body []byte) {
+	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+	mac := hmac.New(sha256.New, []byte(schedulerSecret))
+	_, _ = mac.Write([]byte(timestamp))
+	_, _ = mac.Write([]byte("."))
+	_, _ = mac.Write(body)
+	req.Header.Set("Authorization", "Bearer "+schedulerKey)
+	req.Header.Set("X-Noxis-Timestamp", timestamp)
+	req.Header.Set("X-Noxis-Signature", hex.EncodeToString(mac.Sum(nil)))
+}
 
 // world carries state between steps; godog runs scenarios sequentially and
 // hands each one a fresh world.

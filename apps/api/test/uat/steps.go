@@ -245,6 +245,7 @@ func (w *world) tick(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	signScheduler(req, nil)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
