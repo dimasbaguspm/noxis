@@ -28,6 +28,11 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_PROXY_TARGET ?? "http://localhost:9000",
           changeOrigin: true,
         },
+        // /auth/* (config, login) is not under /v1 but is served by the same API
+        "/auth": {
+          target: env.VITE_PROXY_TARGET ?? "http://localhost:9000",
+          changeOrigin: true,
+        },
       },
     },
   };

@@ -1,13 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, type Identity, type Level } from "@/lib/api";
-import { currentUser, initAuth, loadAuthConfig, signout as oidcSignout } from "@/lib/auth";
+import { accessToken, initAuth, loadAuthConfig, signout as doSignout } from "@/lib/auth";
 
-// AuthProvider owns the OIDC bootstrap and the console's permission view: in
-// open mode authEnabled is false and every permission is granted; the server
-// stays the enforcement point either way.
+// AuthProvider owns the auth bootstrap (local account and/or OIDC) and the
+// console's permission view. The server is the enforcement point either way;
+// this only decides what the console shows.
 
 interface AuthState {
   authEnabled: boolean;
+  localEnabled: boolean;
+  oidcEnabled: boolean;
   authenticated: boolean;
   isAdmin: boolean;
   identity: Identity | null;
@@ -22,6 +24,8 @@ const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authOn, setAuthOn] = useState(false);
+  const [localOn, setLocalOn] = useState(false);
+  const [oidcOn, setOidcOn] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [ready, setReady] = useState(false);
@@ -31,27 +35,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (async () => {
       const config = await loadAuthConfig();
       initAuth(config);
-      setAuthOn(config.enabled);
-      if (!config.enabled) {
-        setAuthenticated(true);
-        setReady(true);
-        return;
-      }
-      // the callback route owns its own auth; bootstrapping here would fire
+      setAuthOn(Boolean(config.local || config.oidc));
+      setLocalOn(Boolean(config.local));
+      setOidcOn(Boolean(config.oidc));
+      // the callback route owns its own exchange; bootstrapping here would fire
       // unauthenticated /v1/* fetches and bounce back mid-exchange
       if (isCallback) return;
-      const user = await currentUser();
-      if (!user || user.expired) {
-        // no valid session: the router shows the login page; the user starts
-        // the OIDC flow from there, so no silent redirect off the console
-        setReady(true);
-        return;
-      }
-      try {
-        setIdentity(await api.me());
-        setAuthenticated(true);
-      } catch {
-        /* request() sends a 401 to the login page */
+      const token = await accessToken();
+      if (token) {
+        try {
+          setIdentity(await api.me());
+          setAuthenticated(true);
+        } catch {
+          /* request() sends a 401 to the login page */
+        }
       }
       setReady(true);
     })();
@@ -72,12 +69,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signout = useCallback(async () => {
-    await oidcSignout();
+    await doSignout();
   }, []);
 
   const value = useMemo(
-    () => ({ authEnabled: authOn, authenticated, isAdmin, identity, ready, can, signout }),
-    [authOn, authenticated, identity, isAdmin, ready, can, signout],
+    () => ({
+      authEnabled: authOn,
+      localEnabled: localOn,
+      oidcEnabled: oidcOn,
+      authenticated,
+      isAdmin,
+      identity,
+      ready,
+      can,
+      signout,
+    }),
+    [authOn, localOn, oidcOn, authenticated, identity, isAdmin, ready, can, signout],
   );
 
   if (!ready && !isCallback) {

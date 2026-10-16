@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Empty } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/app/auth-provider";
+import { AccountActions } from "@/components/auth/account-actions";
 import { usePagedInstancesQuery } from "@/hooks/use-instances";
 import { familyByKey, type FamilyKey } from "@/lib/families";
 
@@ -113,6 +114,8 @@ export default function ProfilePage() {
           </Table>
         </CardContent>
       </Card>
+
+      <AccountActions />
     </div>
   );
 }
