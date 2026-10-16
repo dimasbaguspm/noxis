@@ -56,7 +56,7 @@ func writeJSON(w http.ResponseWriter, code int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-// errUnauthorized maps to 401: the tick endpoint is key-guarded and /v1/me
+// errUnauthorized maps to 401: the tick endpoint is key-guarded and /external/v1/me
 // needs a caller.
 var errUnauthorized = errors.New("invalid or missing api key")
 

@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/auth/config": {
+    "/external/v1/auth/config": {
         parameters: {
             query?: never;
             header?: never;
@@ -40,7 +40,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/login": {
+    "/external/v1/auth/login": {
         parameters: {
             query?: never;
             header?: never;
@@ -90,77 +90,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/healthz": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Liveness probe */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description process is alive */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/internal/callback/scheduler": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Apply every due scheduled change (external cron / scheduler) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["usecases.TickResult"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/auth/logout": {
+    "/external/v1/auth/logout": {
         parameters: {
             query?: never;
             header?: never;
@@ -203,7 +133,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/auth/password": {
+    "/external/v1/auth/password": {
         parameters: {
             query?: never;
             header?: never;
@@ -251,7 +181,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/config/drivers": {
+    "/external/v1/config/drivers": {
         parameters: {
             query?: never;
             header?: never;
@@ -287,7 +217,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/config/members": {
+    "/external/v1/config/members": {
         parameters: {
             query?: never;
             header?: never;
@@ -335,7 +265,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/changes": {
+    "/external/v1/engine/{engine}/changes": {
         parameters: {
             query?: never;
             header?: never;
@@ -441,7 +371,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/changes/{id}": {
+    "/external/v1/engine/{engine}/changes/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -491,7 +421,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/changes/{id}/apply": {
+    "/external/v1/engine/{engine}/changes/{id}/apply": {
         parameters: {
             query?: never;
             header?: never;
@@ -550,7 +480,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/changes/{id}/approve": {
+    "/external/v1/engine/{engine}/changes/{id}/approve": {
         parameters: {
             query?: never;
             header?: never;
@@ -609,7 +539,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/changes/{id}/reject": {
+    "/external/v1/engine/{engine}/changes/{id}/reject": {
         parameters: {
             query?: never;
             header?: never;
@@ -668,7 +598,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/changes/{id}/schedule": {
+    "/external/v1/engine/{engine}/changes/{id}/schedule": {
         parameters: {
             query?: never;
             header?: never;
@@ -732,7 +662,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections": {
+    "/external/v1/engine/{engine}/connections": {
         parameters: {
             query?: never;
             header?: never;
@@ -810,7 +740,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}": {
+    "/external/v1/engine/{engine}/connections/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -892,7 +822,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/alter": {
+    "/external/v1/engine/{engine}/connections/{name}/alter": {
         parameters: {
             query?: never;
             header?: never;
@@ -951,7 +881,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/analyze": {
+    "/external/v1/engine/{engine}/connections/{name}/analyze": {
         parameters: {
             query?: never;
             header?: never;
@@ -1015,7 +945,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/collections": {
+    "/external/v1/engine/{engine}/connections/{name}/collections": {
         parameters: {
             query?: never;
             header?: never;
@@ -1079,7 +1009,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/databases": {
+    "/external/v1/engine/{engine}/connections/{name}/databases": {
         parameters: {
             query?: never;
             header?: never;
@@ -1140,7 +1070,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/flush": {
+    "/external/v1/engine/{engine}/connections/{name}/flush": {
         parameters: {
             query?: never;
             header?: never;
@@ -1204,7 +1134,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/keys": {
+    "/external/v1/engine/{engine}/connections/{name}/keys": {
         parameters: {
             query?: never;
             header?: never;
@@ -1318,7 +1248,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/permissions": {
+    "/external/v1/engine/{engine}/connections/{name}/permissions": {
         parameters: {
             query?: never;
             header?: never;
@@ -1507,7 +1437,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/query": {
+    "/external/v1/engine/{engine}/connections/{name}/query": {
         parameters: {
             query?: never;
             header?: never;
@@ -1571,7 +1501,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/requests": {
+    "/external/v1/engine/{engine}/connections/{name}/requests": {
         parameters: {
             query?: never;
             header?: never;
@@ -1635,7 +1565,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/rollback": {
+    "/external/v1/engine/{engine}/connections/{name}/rollback": {
         parameters: {
             query?: never;
             header?: never;
@@ -1694,7 +1624,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/schema": {
+    "/external/v1/engine/{engine}/connections/{name}/schema": {
         parameters: {
             query?: never;
             header?: never;
@@ -1755,7 +1685,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/tables/{table}/rows": {
+    "/external/v1/engine/{engine}/connections/{name}/tables/{table}/rows": {
         parameters: {
             query?: never;
             header?: never;
@@ -1821,7 +1751,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/test": {
+    "/external/v1/engine/{engine}/connections/{name}/test": {
         parameters: {
             query?: never;
             header?: never;
@@ -1871,7 +1801,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/engine/{engine}/connections/{name}/value": {
+    "/external/v1/engine/{engine}/connections/{name}/value": {
         parameters: {
             query?: never;
             header?: never;
@@ -1933,7 +1863,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/instances": {
+    "/external/v1/instances": {
         parameters: {
             query?: never;
             header?: never;
@@ -1983,7 +1913,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/instances/{id}": {
+    "/external/v1/instances/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -2031,7 +1961,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/instances/{id}/password": {
+    "/external/v1/instances/{id}/password": {
         parameters: {
             query?: never;
             header?: never;
@@ -2093,7 +2023,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/me": {
+    "/external/v1/me": {
         parameters: {
             query?: never;
             header?: never;
@@ -2132,6 +2062,76 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/healthz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liveness probe */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description process is alive */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/callback/scheduler": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply every due scheduled change (external cron / scheduler) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["usecases.TickResult"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -2209,17 +2209,17 @@ export interface components {
             createdAt?: number;
             createdBy?: string;
             database: string;
-            /** @description postgres | mysql (mariadb aliases mysql) */
+            /** @description postgres | mysql (mariadb aliases mysql) | sqlite */
             driver: string;
             /**
              * @description Family names the engine family that serves the driver. It is not
              *     stored: the cross-family routes set it when serving.
              */
             family?: string;
-            host: string;
+            host?: string;
             /**
              * @description ID is the stable instance identifier used by the cross-family
-             *     /v1/instances routes. Permissions and changes still link by Name.
+             *     /external/v1/instances routes. Permissions and changes still link by Name.
              */
             id?: string;
             name: string;
@@ -2228,7 +2228,7 @@ export interface components {
                 [key: string]: string;
             };
             password?: string;
-            port: number;
+            port?: number;
             user?: string;
         };
         "entity.Database": {

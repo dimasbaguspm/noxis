@@ -61,7 +61,7 @@ export interface ChangeInput {
 
 // v1 builds an endpoint from the engine family, so no call hardcodes a family
 // URL prefix: the family is the server's generic route parameter.
-const v1 = (family: FamilyKey, path: string) => `/v1/engine/${family}/${path}`;
+const v1 = (family: FamilyKey, path: string) => `/external/v1/engine/${family}/${path}`;
 
 // connPath is the connection-scoped path; the name is URL-encoded so a name
 // with a space or slash cannot break the route.
@@ -102,7 +102,7 @@ function connectionOps(family: FamilyKey) {
 }
 
 export const api = {
-  me: () => request<Identity>("GET", "/v1/me"),
+  me: () => request<Identity>("GET", "/external/v1/me"),
   // instances are the cross-family view: one connection addressed by its
   // stable id, whatever family serves it.
   instances: {
@@ -114,11 +114,11 @@ export const api = {
       if (query.page && query.page > 1) params.set("page", String(query.page));
       if (query.perPage) params.set("perPage", String(query.perPage));
       const qs = params.toString();
-      return request<{ instances: Connection[]; total: number }>("GET", `/v1/instances${qs ? `?${qs}` : ""}`);
+      return request<{ instances: Connection[]; total: number }>("GET", `/external/v1/instances${qs ? `?${qs}` : ""}`);
     },
-    get: (id: string) => request<Connection>("GET", `/v1/instances/${encodeURIComponent(id)}`),
+    get: (id: string) => request<Connection>("GET", `/external/v1/instances/${encodeURIComponent(id)}`),
     rotatePassword: (id: string, password: string) =>
-      request<{ status: string }>("POST", `/v1/instances/${encodeURIComponent(id)}/password`, { password }),
+      request<{ status: string }>("POST", `/external/v1/instances/${encodeURIComponent(id)}/password`, { password }),
   },
   connections: {
     ...connectionOps(FAMILY.SQL),
@@ -212,8 +212,8 @@ export const api = {
       ),
   },
   config: {
-    drivers: () => request<DriverInfo[]>("GET", "/v1/config/drivers"),
-    members: () => request<{ groups: string[]; users: MemberUser[] }>("GET", "/v1/config/members"),
+    drivers: () => request<DriverInfo[]>("GET", "/external/v1/config/drivers"),
+    members: () => request<{ groups: string[]; users: MemberUser[] }>("GET", "/external/v1/config/members"),
   },
   // family returns the shared connection lifecycle for any engine family.
   family: connectionOps,

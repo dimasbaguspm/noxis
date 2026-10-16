@@ -5,7 +5,7 @@ info:
   contact: {}
   version: 0.1.0
 paths:
-  /auth/config:
+  /external/v1/auth/config:
     get:
       summary: Public auth configuration (console bootstrap)
       responses:
@@ -15,7 +15,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/config.AuthInfo"
-  /auth/login:
+  /external/v1/auth/login:
     post:
       summary: Log in with a local account
       requestBody:
@@ -38,23 +38,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  /healthz:
-    get:
-      summary: Liveness probe
-      responses:
-        "200":
-          description: process is alive
-  /internal/callback/scheduler:
-    post:
-      summary: Apply every due scheduled change (external cron / scheduler)
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/usecases.TickResult"
-  /v1/auth/logout:
+  /external/v1/auth/logout:
     post:
       summary: Log out the current local account
       responses:
@@ -66,7 +50,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  /v1/auth/password:
+  /external/v1/auth/password:
     post:
       summary: Change the current local account's password
       requestBody:
@@ -85,7 +69,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  /v1/config/drivers:
+  /external/v1/config/drivers:
     get:
       summary: List the drivers the console can register
       responses:
@@ -97,7 +81,7 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/handlers.DriverInfo"
-  /v1/config/members:
+  /external/v1/config/members:
     get:
       summary: The known groups and user accounts for permission editing
       responses:
@@ -122,7 +106,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/changes":
+  "/external/v1/engine/{engine}/changes":
     get:
       summary: List proposed changes for an engine (newest first)
       parameters:
@@ -208,7 +192,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/changes/{id}":
+  "/external/v1/engine/{engine}/changes/{id}":
     get:
       summary: Get one change
       parameters:
@@ -237,7 +221,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/changes/{id}/apply":
+  "/external/v1/engine/{engine}/changes/{id}/apply":
     post:
       summary: Apply an approved change
       parameters:
@@ -272,7 +256,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/changes/{id}/approve":
+  "/external/v1/engine/{engine}/changes/{id}/approve":
     post:
       summary: Approve a validated change (self-approval allowed)
       parameters:
@@ -307,7 +291,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/changes/{id}/reject":
+  "/external/v1/engine/{engine}/changes/{id}/reject":
     post:
       summary: Reject a change (kept as an artifact, never deleted)
       parameters:
@@ -342,7 +326,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/changes/{id}/schedule":
+  "/external/v1/engine/{engine}/changes/{id}/schedule":
     post:
       summary: Schedule or unschedule an approved change
       parameters:
@@ -384,7 +368,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections":
+  "/external/v1/engine/{engine}/connections":
     get:
       summary: List connections (passwords redacted)
       parameters:
@@ -435,7 +419,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}":
+  "/external/v1/engine/{engine}/connections/{name}":
     get:
       summary: Get one connection (password redacted)
       parameters:
@@ -488,7 +472,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/alter":
+  "/external/v1/engine/{engine}/connections/{name}/alter":
     post:
       summary: Apply a write directly (DML or DDL)
       parameters:
@@ -525,7 +509,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/analyze":
+  "/external/v1/engine/{engine}/connections/{name}/analyze":
     post:
       summary: Refresh planner statistics for a table
       parameters:
@@ -567,7 +551,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/collections":
+  "/external/v1/engine/{engine}/connections/{name}/collections":
     get:
       summary: List a database's collections with their sizes
       parameters:
@@ -613,7 +597,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/databases":
+  "/external/v1/engine/{engine}/connections/{name}/databases":
     get:
       summary: List databases with their sizes
       parameters:
@@ -653,7 +637,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/flush":
+  "/external/v1/engine/{engine}/connections/{name}/flush":
     post:
       summary: Empty the connected database (FLUSHDB, never FLUSHALL)
       parameters:
@@ -695,7 +679,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/keys":
+  "/external/v1/engine/{engine}/connections/{name}/keys":
     get:
       summary: Browse keys by pattern (bounded scan, with type, TTL and size)
       parameters:
@@ -784,7 +768,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/permissions":
+  "/external/v1/engine/{engine}/connections/{name}/permissions":
     get:
       summary: List a connection's permissions
       parameters:
@@ -925,7 +909,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/query":
+  "/external/v1/engine/{engine}/connections/{name}/query":
     post:
       summary: Run a SQL console op (query | alter | rollback | analytics)
       parameters:
@@ -967,7 +951,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/requests":
+  "/external/v1/engine/{engine}/connections/{name}/requests":
     post:
       summary: Run a read request (find | aggregate | count)
       parameters:
@@ -1009,7 +993,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/rollback":
+  "/external/v1/engine/{engine}/connections/{name}/rollback":
     post:
       summary: Dry-run statements inside a transaction that always rolls back
       parameters:
@@ -1046,7 +1030,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/schema":
+  "/external/v1/engine/{engine}/connections/{name}/schema":
     get:
       summary: Introspect a connection's tables and columns
       parameters:
@@ -1086,7 +1070,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/tables/{table}/rows":
+  "/external/v1/engine/{engine}/connections/{name}/tables/{table}/rows":
     get:
       summary: Preview a table's rows
       parameters:
@@ -1137,7 +1121,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/test":
+  "/external/v1/engine/{engine}/connections/{name}/test":
     post:
       summary: Test that a connection answers
       parameters:
@@ -1166,7 +1150,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/engine/{engine}/connections/{name}/value":
+  "/external/v1/engine/{engine}/connections/{name}/value":
     get:
       summary: Inspect one key's value (rendered per its type)
       parameters:
@@ -1207,7 +1191,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  /v1/instances:
+  /external/v1/instances:
     get:
       summary: List instances across engine families (passwords redacted)
       parameters:
@@ -1250,7 +1234,7 @@ paths:
                       $ref: "#/components/schemas/entity.Connection"
                   total:
                     type: integer
-  "/v1/instances/{id}":
+  "/external/v1/instances/{id}":
     get:
       summary: Get one instance across engine families (password redacted)
       parameters:
@@ -1273,7 +1257,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/v1/instances/{id}/password":
+  "/external/v1/instances/{id}/password":
     post:
       summary: Rotate an instance's password (identity fields stay locked)
       parameters:
@@ -1309,7 +1293,7 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  /v1/me:
+  /external/v1/me:
     get:
       summary: The authenticated caller and its per-connection levels
       responses:
@@ -1325,6 +1309,22 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
+  /healthz:
+    get:
+      summary: Liveness probe
+      responses:
+        "200":
+          description: process is alive
+  /internal/callback/scheduler:
+    post:
+      summary: Apply every due scheduled change (external cron / scheduler)
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/usecases.TickResult"
 components:
   requestBodies:
     handlers.opBody:
@@ -1460,9 +1460,7 @@ components:
       required:
         - database
         - driver
-        - host
         - name
-        - port
       properties:
         createdAt:
           type: integer
@@ -1471,7 +1469,7 @@ components:
         database:
           type: string
         driver:
-          description: postgres | mysql (mariadb aliases mysql)
+          description: postgres | mysql (mariadb aliases mysql) | sqlite
           type: string
         family:
           description: |-
@@ -1481,9 +1479,10 @@ components:
         host:
           type: string
         id:
-          description: |-
+          description: >-
             ID is the stable instance identifier used by the cross-family
-            /v1/instances routes. Permissions and changes still link by Name.
+
+            /external/v1/instances routes. Permissions and changes still link by Name.
           type: string
         name:
           type: string

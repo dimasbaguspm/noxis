@@ -50,9 +50,9 @@ func (f *fakePermissions) ListGroupNames(_ context.Context) ([]string, error) {
 func permissionRouter() http.Handler {
 	d, _, _ := newTestDeps(&fakeSQL{})
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/permissions", ListPermissions)
-	mux.HandleFunc("PUT /v1/engine/{engine}/connections/{name}/permissions", SetPermission)
-	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}/permissions", DeletePermission)
+	mux.HandleFunc("GET /external/v1/engine/{engine}/connections/{name}/permissions", ListPermissions)
+	mux.HandleFunc("PUT /external/v1/engine/{engine}/connections/{name}/permissions", SetPermission)
+	mux.HandleFunc("DELETE /external/v1/engine/{engine}/connections/{name}/permissions", DeletePermission)
 	return depsHandler(mux, d)
 }
 
@@ -67,10 +67,10 @@ func request(t *testing.T, h http.Handler, method, path, body string, admin bool
 
 func TestPermissionsRequireGlobalAdmin(t *testing.T) {
 	h := permissionRouter()
-	if rec := request(t, h, http.MethodGet, "/v1/engine/sql/connections/demo/permissions", "", false); rec.Code != http.StatusForbidden {
+	if rec := request(t, h, http.MethodGet, "/external/v1/engine/sql/connections/demo/permissions", "", false); rec.Code != http.StatusForbidden {
 		t.Fatalf("non-admin list status=%d want 403", rec.Code)
 	}
-	if rec := request(t, h, http.MethodPut, "/v1/engine/sql/connections/demo/permissions", `{"member":"dev","memberType":"group","level":"read"}`, false); rec.Code != http.StatusForbidden {
+	if rec := request(t, h, http.MethodPut, "/external/v1/engine/sql/connections/demo/permissions", `{"member":"dev","memberType":"group","level":"read"}`, false); rec.Code != http.StatusForbidden {
 		t.Fatalf("non-admin set status=%d want 403", rec.Code)
 	}
 }
@@ -78,22 +78,22 @@ func TestPermissionsRequireGlobalAdmin(t *testing.T) {
 func TestPermissionsCRUDAsAdmin(t *testing.T) {
 	h := permissionRouter()
 
-	rec := request(t, h, http.MethodPut, "/v1/engine/sql/connections/demo/permissions", `{"member":"dev","memberType":"group","level":"write"}`, true)
+	rec := request(t, h, http.MethodPut, "/external/v1/engine/sql/connections/demo/permissions", `{"member":"dev","memberType":"group","level":"write"}`, true)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("set status=%d body=%s", rec.Code, rec.Body.String())
 	}
 
-	rec = request(t, h, http.MethodGet, "/v1/engine/sql/connections/demo/permissions", "", true)
+	rec = request(t, h, http.MethodGet, "/external/v1/engine/sql/connections/demo/permissions", "", true)
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"member":"dev"`) {
 		t.Fatalf("list status=%d body=%s", rec.Code, rec.Body.String())
 	}
 
-	rec = request(t, h, http.MethodPut, "/v1/engine/sql/connections/demo/permissions", `{"member":"dev","memberType":"group","level":"root"}`, true)
+	rec = request(t, h, http.MethodPut, "/external/v1/engine/sql/connections/demo/permissions", `{"member":"dev","memberType":"group","level":"root"}`, true)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("bad level status=%d want 400 body=%s", rec.Code, rec.Body.String())
 	}
 
-	rec = request(t, h, http.MethodDelete, "/v1/engine/sql/connections/demo/permissions?member=dev", "", true)
+	rec = request(t, h, http.MethodDelete, "/external/v1/engine/sql/connections/demo/permissions?member=dev", "", true)
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("delete status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -103,12 +103,12 @@ func TestPermissionsCRUDAsAdmin(t *testing.T) {
 func TestPermissionForUser(t *testing.T) {
 	h := permissionRouter()
 
-	rec := request(t, h, http.MethodPut, "/v1/engine/sql/connections/demo/permissions", `{"member":"local:alice","memberType":"user","level":"admin"}`, true)
+	rec := request(t, h, http.MethodPut, "/external/v1/engine/sql/connections/demo/permissions", `{"member":"local:alice","memberType":"user","level":"admin"}`, true)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("set user permission status=%d body=%s", rec.Code, rec.Body.String())
 	}
 
-	rec = request(t, h, http.MethodGet, "/v1/engine/sql/connections/demo/permissions", "", true)
+	rec = request(t, h, http.MethodGet, "/external/v1/engine/sql/connections/demo/permissions", "", true)
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"memberType":"user"`) {
 		t.Fatalf("user permission missing: %d %s", rec.Code, rec.Body.String())
 	}

@@ -14,7 +14,7 @@ var errLocalAccountRequired = errors.New("a local account is required for this a
 
 // @Summary Public auth configuration (console bootstrap)
 // @Success 200 {object} config.AuthInfo
-// @Router /auth/config [get]
+// @Router /external/v1/auth/config [get]
 func GetAuthConfig(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(context.Context) (any, error) {
@@ -39,7 +39,7 @@ type loginResponse struct {
 // @Param credentials body loginRequest true "username and password"
 // @Success 200 {object} loginResponse
 // @Failure 401 {object} entity.ErrorResponse
-// @Router /auth/login [post]
+// @Router /external/v1/auth/login [post]
 func PostLogin(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -58,7 +58,7 @@ func PostLogin(w http.ResponseWriter, r *http.Request) {
 // @Summary Log out the current local account
 // @Success 204
 // @Failure 401 {object} entity.ErrorResponse
-// @Router /v1/auth/logout [post]
+// @Router /external/v1/auth/logout [post]
 func PostLogout(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handleNoContent(w, r, func(ctx context.Context) error {
@@ -81,7 +81,7 @@ type changePasswordRequest struct {
 // @Param passwords body changePasswordRequest true "old and new password"
 // @Success 204
 // @Failure 401 {object} entity.ErrorResponse
-// @Router /v1/auth/password [post]
+// @Router /external/v1/auth/password [post]
 func PostChangePassword(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handleNoContent(w, r, func(ctx context.Context) error {
@@ -110,7 +110,7 @@ type MeResponse struct {
 // @Summary The authenticated caller and its per-connection levels
 // @Success 200 {object} MeResponse
 // @Failure 401 {object} entity.ErrorResponse
-// @Router /v1/me [get]
+// @Router /external/v1/me [get]
 func GetMe(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {

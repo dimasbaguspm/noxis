@@ -24,7 +24,7 @@ import (
 // @Success 200 {object} object{databases=[]entity.Database}
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/databases [get]
+// @Router /external/v1/engine/{engine}/connections/{name}/databases [get]
 func ListDatabases(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -48,7 +48,7 @@ func ListDatabases(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} object{collections=[]entity.Collection}
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/collections [get]
+// @Router /external/v1/engine/{engine}/connections/{name}/collections [get]
 func ListCollections(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -72,7 +72,7 @@ func ListCollections(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/requests [post]
+// @Router /external/v1/engine/{engine}/connections/{name}/requests [post]
 func PostRequest(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {

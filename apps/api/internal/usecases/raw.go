@@ -20,7 +20,7 @@ func rawConn(ctx context.Context, conns interfaces.ConnectionRepository, grants 
 	}
 	if !mod.Supports(c.Driver) {
 		if other, ok := modules.RegistryFrom(ctx).Serves(c.Driver); ok {
-			return nil, fmt.Errorf("connection %q is not a %s connection (driver %q, try /v1/engine/%s)",
+			return nil, fmt.Errorf("connection %q is not a %s connection (driver %q, try /external/v1/engine/%s)",
 				c.Name, mod.Family(), c.Driver, other.Family())
 		}
 		return nil, fmt.Errorf("connection %q is not a %s connection (driver %q)",

@@ -141,7 +141,7 @@ func stackUp() error {
 // it now that there is no open mode.
 func login() error {
 	body := strings.NewReader(`{"username":"` + adminUser + `","password":"` + adminPassword + `"}`)
-	resp, err := http.Post(baseURL+"/auth/login", "application/json", body)
+	resp, err := http.Post(baseURL+"/external/v1/auth/login", "application/json", body)
 	if err != nil {
 		return err
 	}

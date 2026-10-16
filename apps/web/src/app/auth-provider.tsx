@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLocalOn(Boolean(config.local));
       setOidcOn(Boolean(config.oidc));
       // the callback route owns its own exchange; bootstrapping here would fire
-      // unauthenticated /v1/* fetches and bounce back mid-exchange
+      // unauthenticated /external/v1/* fetches and bounce back mid-exchange
       if (isCallback) return;
       const token = await accessToken();
       if (token) {

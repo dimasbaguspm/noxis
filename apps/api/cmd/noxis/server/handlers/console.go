@@ -19,7 +19,7 @@ var consoleStatic embed.FS
 // paths answer JSON 404 instead of the shell: a route that was renamed must
 // fail loudly, not hand the caller an HTML page with 200.
 func GetConsole(w http.ResponseWriter, r *http.Request) {
-	if strings.HasPrefix(r.URL.Path, "/v1/") {
+	if strings.HasPrefix(r.URL.Path, "/external/v1/") {
 		writeJSON(w, http.StatusNotFound, entity.ErrorResponse{Error: "no such endpoint: " + r.URL.Path})
 		return
 	}

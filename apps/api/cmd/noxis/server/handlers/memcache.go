@@ -25,7 +25,7 @@ import (
 // @Success 200 {object} entity.KeyPage
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/keys [get]
+// @Router /external/v1/engine/{engine}/connections/{name}/keys [get]
 func ListKeys(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -49,7 +49,7 @@ func ListKeys(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/value [get]
+// @Router /external/v1/engine/{engine}/connections/{name}/value [get]
 func GetValue(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -80,7 +80,7 @@ type memcacheKeysBody struct {
 // @Success 200 {object} object{deleted=int}
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/keys [delete]
+// @Router /external/v1/engine/{engine}/connections/{name}/keys [delete]
 func DeleteKeys(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -112,7 +112,7 @@ type memcacheFlushBody struct {
 // @Success 200 {object} entity.StatusResponse
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/flush [post]
+// @Router /external/v1/engine/{engine}/connections/{name}/flush [post]
 func FlushDB(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {

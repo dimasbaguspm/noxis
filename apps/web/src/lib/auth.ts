@@ -3,7 +3,7 @@ import { UserManager, WebStorageStateStore, type User } from "oidc-client-ts";
 // The console authenticates two ways, both bearer-token based:
 // - local accounts: username + password -> an opaque session token;
 // - OIDC: Authorization Code + PKCE against the issuer, when configured.
-// The server exposes which methods are available at /auth/config.
+// The server exposes which methods are available at /external/v1/auth/config.
 
 export interface AuthConfig {
   local?: boolean;
@@ -27,7 +27,7 @@ function setLocalToken(token: string | null): void {
 
 export async function loadAuthConfig(): Promise<AuthConfig> {
   try {
-    const res = await fetch("/auth/config");
+    const res = await fetch("/external/v1/auth/config");
     if (!res.ok) return { local: false };
     return (await res.json()) as AuthConfig;
   } catch {
@@ -83,7 +83,7 @@ export async function accessToken(): Promise<string | null> {
 
 // localLogin exchanges username + password for a session token.
 export async function localLogin(username: string, password: string): Promise<void> {
-  const res = await fetch("/auth/login", {
+  const res = await fetch("/external/v1/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),
@@ -96,7 +96,7 @@ export async function localLogin(username: string, password: string): Promise<vo
 // changePassword rotates the password and invalidates the active session.
 export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
   const token = localToken();
-  const res = await fetch("/v1/auth/password", {
+  const res = await fetch("/external/v1/auth/password", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -123,7 +123,7 @@ export async function handleCallback(): Promise<void> {
 export async function signout(): Promise<void> {
   const token = localToken();
   if (token) {
-    await fetch("/v1/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => undefined);
+    await fetch("/external/v1/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => undefined);
     setLocalToken(null);
   }
   if (manager) {

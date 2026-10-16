@@ -30,7 +30,7 @@ func unsupportedChangeFlow(mod interfaces.Module) error {
 // @Param perPage query int false "items per page (default 20, max 100)"
 // @Success 200 {object} object{changes=[]entity.Change,total=int}
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/changes [get]
+// @Router /external/v1/engine/{engine}/changes [get]
 func ListChanges(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -98,7 +98,7 @@ func filterByStatus(changes []entity.Change, status string) []entity.Change {
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/changes [post]
+// @Router /external/v1/engine/{engine}/changes [post]
 func SubmitChange(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -129,7 +129,7 @@ func SubmitChange(w http.ResponseWriter, r *http.Request) {
 // @Param id path string true "change id"
 // @Success 200 {object} entity.Change
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/changes/{id} [get]
+// @Router /external/v1/engine/{engine}/changes/{id} [get]
 func GetChange(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -153,7 +153,7 @@ func GetChange(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/changes/{id}/approve [post]
+// @Router /external/v1/engine/{engine}/changes/{id}/approve [post]
 func ApproveChange(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -183,7 +183,7 @@ func ApproveChange(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/changes/{id}/apply [post]
+// @Router /external/v1/engine/{engine}/changes/{id}/apply [post]
 func ApplyChange(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -210,7 +210,7 @@ func ApplyChange(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/changes/{id}/reject [post]
+// @Router /external/v1/engine/{engine}/changes/{id}/reject [post]
 func RejectChange(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -245,7 +245,7 @@ type scheduleBody struct {
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/changes/{id}/schedule [post]
+// @Router /external/v1/engine/{engine}/changes/{id}/schedule [post]
 func ScheduleChange(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {

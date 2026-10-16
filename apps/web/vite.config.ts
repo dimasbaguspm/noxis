@@ -24,12 +24,9 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 5173,
       proxy: {
-        "/v1": {
-          target: env.VITE_PROXY_TARGET ?? "http://localhost:9000",
-          changeOrigin: true,
-        },
-        // /auth/* (config, login) is not under /v1 but is served by the same API
-        "/auth": {
+        // the public API is mounted under /external; the SPA's /auth/callback
+        // is a client route and must not be proxied.
+        "/external": {
           target: env.VITE_PROXY_TARGET ?? "http://localhost:9000",
           changeOrigin: true,
         },

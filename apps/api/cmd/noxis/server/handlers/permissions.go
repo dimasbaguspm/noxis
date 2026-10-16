@@ -17,7 +17,7 @@ type memberUser struct {
 // @Summary The known groups and user accounts for permission editing
 // @Success 200 {object} object{groups=[]string,users=[]memberUser}
 // @Failure 403 {object} entity.ErrorResponse
-// @Router /v1/config/members [get]
+// @Router /external/v1/config/members [get]
 func ListConfigMembers(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -51,7 +51,7 @@ type permissionBody struct {
 // @Failure 401 {object} entity.ErrorResponse
 // @Failure 403 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/permissions [get]
+// @Router /external/v1/engine/{engine}/connections/{name}/permissions [get]
 func ListPermissions(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -73,7 +73,7 @@ func ListPermissions(w http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} entity.ErrorResponse
 // @Failure 403 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/permissions [put]
+// @Router /external/v1/engine/{engine}/connections/{name}/permissions [put]
 func SetPermission(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -97,7 +97,7 @@ func SetPermission(w http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} entity.ErrorResponse
 // @Failure 403 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/permissions [delete]
+// @Router /external/v1/engine/{engine}/connections/{name}/permissions [delete]
 func DeletePermission(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handleNoContent(w, r, func(ctx context.Context) error {

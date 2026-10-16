@@ -90,7 +90,7 @@ via TanStack Query, monaco editor, `oidc-client-ts` for PKCE login.
   connection, layout, mongodb, sql, ui), `src/hooks/*` (queries), `src/lib/*`.
 - `apps/api/cmd/noxis/server/handlers/static/` is gitignored except `placeholder.html`
   (go:embed needs a compile-time file). `GetConsole` answers JSON 404 for any
-  unknown `/v1/*` instead of serving the SPA shell.
+  unknown `/external/v1/*` instead of serving the SPA shell.
 
 ## Devcontainer
 
