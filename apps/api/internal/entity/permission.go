@@ -1,11 +1,15 @@
 package entity
 
-// Access levels a group can hold on one connection, weakest to strongest.
+// Access levels a member can hold on one connection, weakest to strongest.
 // Enforcement is "at least this level", so read < write < admin.
 const (
 	LevelRead  = "read"
 	LevelWrite = "write"
 	LevelAdmin = "admin"
+
+	// Member kinds a permission can target.
+	MemberUser  = "user"
+	MemberGroup = "group"
 )
 
 var levelRank = map[string]int{
@@ -26,7 +30,7 @@ func LevelAllows(have, need string) bool {
 }
 
 // StrongestLevel returns the strongest known level in levels, or "" when none
-// is known. It collapses a caller's matching grants into one effective level.
+// is known. It collapses a caller's matching permissions into one effective level.
 func StrongestLevel(levels ...string) string {
 	best := ""
 	for _, level := range levels {
@@ -41,15 +45,17 @@ func StrongestLevel(levels ...string) string {
 	return best
 }
 
-// Grant binds one OIDC group to one connection at a level. Noxis stores the
-// policy only — identity and membership live in the issuer.
-type Grant struct {
+// Permission binds one member to one connection at a level. A member is either
+// a user subject (local:<name> or an OIDC sub) or a group name. Noxis stores the
+// policy only — identity and membership come from the account row or the issuer.
+type Permission struct {
 	Connection string `json:"connection,omitempty"`
-	Group      string `json:"group" validate:"required"`
+	Member     string `json:"member" validate:"required"`
+	MemberType string `json:"memberType" validate:"required,oneof=user group"`
 	Level      string `json:"level" validate:"required,oneof=read write admin"`
 }
 
-// Validate checks the group and level are present and the level is known.
-func (g Grant) Validate() error {
-	return validate.Struct(g)
+// Validate checks the member, member type and level are present and known.
+func (p Permission) Validate() error {
+	return validate.Struct(p)
 }

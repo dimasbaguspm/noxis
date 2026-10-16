@@ -26,7 +26,7 @@ export function useRotatePasswordMutation() {
     onSuccess: (_data, { id }) => {
       void queryClient.invalidateQueries({ queryKey: ["instances"] });
       void queryClient.invalidateQueries({ queryKey: queryKeys.instances.get(id) });
-      // the console's own permission view follows the new grants
+      // the console's own permission view follows the new permissions
       void queryClient.invalidateQueries({ queryKey: queryKeys.me });
     },
   });

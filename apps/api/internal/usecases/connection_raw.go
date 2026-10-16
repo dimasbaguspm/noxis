@@ -12,10 +12,10 @@ import (
 // needs, returning the password-bearing connection.
 type Raw struct {
 	Connections interfaces.ConnectionRepository
-	Grants      interfaces.GrantRepository
+	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.
 func (uc Raw) Serve(ctx context.Context, mod interfaces.Module, name, level string) (*entity.Connection, error) {
-	return rawConn(ctx, uc.Connections, uc.Grants, mod, name, level)
+	return rawConn(ctx, uc.Connections, uc.Permissions, mod, name, level)
 }

@@ -34,9 +34,11 @@ Carries `checks` (JSON), `est_duration_ms`/`est_affected` (dry-run estimates),
 `affected_tables`/`affected_columns` (JSON), `scheduled_at`, `created_by`, and
 the approve/apply/reject timestamps.
 
-### `connection_grants`
-`(connection, group_name, level)` PK, `level` ∈ `read|write|admin`. The only
-policy table. Identity/membership come from OIDC or local accounts.
+### `permissions`
+`(connection, member, member_type, level)` PK `(connection, member)`. `member` is
+a user subject (`local:<name>` or an OIDC sub) or a group name; `member_type` ∈
+`user|group`; `level` ∈ `read|write|admin`. The only policy table. The old
+`connection_grants` table is migrated in as `member_type='group'` and dropped.
 
 ### `users`
 Local accounts. `username` PK, `password` is a **bcrypt hash** (one-way, unlike
@@ -57,7 +59,7 @@ single active session: `token_hash` (SHA-256 of the raw token) +
 ## Repositories (the pattern)
 
 - Each repository method is a `Store` method in its own file:
-  `connections.go`, `changes.go`, `grants.go`, `users.go`.
+  `connections.go`, `changes.go`, `permissions.go`, `users.go`.
 - Shared row iteration lives in `queryRows[T]`; transactions via
   `Store.WithTx(ctx, fn)`.
 - `Store` satisfies all three interfaces (`var _ interfaces.ConnectionRepository = (*Store)(nil)` etc.).

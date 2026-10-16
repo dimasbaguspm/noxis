@@ -36,7 +36,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
   );
   const submit = useSubmitChangeMutation();
   const label = kind.toUpperCase();
-  // raising a change needs a write grant on some SQL instance; the form still
+  // raising a change needs a write permission on some SQL instance; the form still
   // lets the server refuse a specific connection
   const mayRaise = sqlConnections.some((c) => can(c.name, "write"));
 

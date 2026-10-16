@@ -160,9 +160,9 @@
                 }
             }
         },
-        "/v1/config/groups": {
+        "/v1/config/members": {
             "get": {
-                "summary": "The known group names for grant editing",
+                "summary": "The known groups and user accounts for permission editing",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -175,6 +175,12 @@
                                             "type": "array",
                                             "items": {
                                                 "type": "string"
+                                            }
+                                        },
+                                        "users": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/handlers.memberUser"
                                             }
                                         }
                                     }
@@ -1122,234 +1128,6 @@
                 }
             }
         },
-        "/v1/engine/{engine}/connections/{name}/grants": {
-            "get": {
-                "summary": "List a connection's group grants",
-                "parameters": [
-                    {
-                        "description": "engine family (sql, memcache, mongodb)",
-                        "name": "engine",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "grants": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/entity.Grant"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "put": {
-                "summary": "Grant an OIDC group a level on a connection",
-                "parameters": [
-                    {
-                        "description": "engine family (sql, memcache, mongodb)",
-                        "name": "engine",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/handlers.grantBody"
-                            }
-                        }
-                    },
-                    "description": "group and level",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Grant"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "summary": "Revoke a group's grant on a connection",
-                "parameters": [
-                    {
-                        "description": "engine family (sql, memcache, mongodb)",
-                        "name": "engine",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "connection name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "OIDC group name",
-                        "name": "group",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/v1/engine/{engine}/connections/{name}/keys": {
             "get": {
                 "summary": "Browse keys by pattern (bounded scan, with type, TTL and size)",
@@ -1473,6 +1251,234 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/engine/{engine}/connections/{name}/permissions": {
+            "get": {
+                "summary": "List a connection's permissions",
+                "parameters": [
+                    {
+                        "description": "engine family (sql, memcache, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "permissions": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/entity.Permission"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "summary": "Grant a user or group a level on a connection",
+                "parameters": [
+                    {
+                        "description": "engine family (sql, memcache, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/handlers.permissionBody"
+                            }
+                        }
+                    },
+                    "description": "member, member type and level",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.Permission"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "summary": "Revoke a member's permission on a connection",
+                "parameters": [
+                    {
+                        "description": "engine family (sql, memcache, mongodb)",
+                        "name": "engine",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "user subject or group name",
+                        "name": "member",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "content": {
                             "*/*": {
                                 "schema": {
@@ -2366,7 +2372,7 @@
                         "type": "string"
                     },
                     "id": {
-                        "description": "ID is the stable instance identifier used by the cross-family\n/v1/instances routes. Grants and changes still link by Name.",
+                        "description": "ID is the stable instance identifier used by the cross-family\n/v1/instances routes. Permissions and changes still link by Name.",
                         "type": "string"
                     },
                     "name": {
@@ -2421,29 +2427,6 @@
                 "properties": {
                     "error": {
                         "type": "string"
-                    }
-                }
-            },
-            "entity.Grant": {
-                "type": "object",
-                "required": [
-                    "group",
-                    "level"
-                ],
-                "properties": {
-                    "connection": {
-                        "type": "string"
-                    },
-                    "group": {
-                        "type": "string"
-                    },
-                    "level": {
-                        "type": "string",
-                        "enum": [
-                            "read",
-                            "write",
-                            "admin"
-                        ]
                     }
                 }
             },
@@ -2510,6 +2493,37 @@
                     },
                     "value": {
                         "type": "string"
+                    }
+                }
+            },
+            "entity.Permission": {
+                "type": "object",
+                "required": [
+                    "level",
+                    "member",
+                    "memberType"
+                ],
+                "properties": {
+                    "connection": {
+                        "type": "string"
+                    },
+                    "level": {
+                        "type": "string",
+                        "enum": [
+                            "read",
+                            "write",
+                            "admin"
+                        ]
+                    },
+                    "member": {
+                        "type": "string"
+                    },
+                    "memberType": {
+                        "type": "string",
+                        "enum": [
+                            "user",
+                            "group"
+                        ]
                     }
                 }
             },
@@ -2665,17 +2679,6 @@
                     }
                 }
             },
-            "handlers.grantBody": {
-                "type": "object",
-                "properties": {
-                    "group": {
-                        "type": "string"
-                    },
-                    "level": {
-                        "type": "string"
-                    }
-                }
-            },
             "handlers.loginRequest": {
                 "type": "object",
                 "properties": {
@@ -2695,6 +2698,17 @@
                     },
                     "user": {
                         "$ref": "#/components/schemas/entity.User"
+                    }
+                }
+            },
+            "handlers.memberUser": {
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string"
+                    },
+                    "subject": {
+                        "type": "string"
                     }
                 }
             },
@@ -2767,6 +2781,20 @@
                 "type": "object",
                 "properties": {
                     "password": {
+                        "type": "string"
+                    }
+                }
+            },
+            "handlers.permissionBody": {
+                "type": "object",
+                "properties": {
+                    "level": {
+                        "type": "string"
+                    },
+                    "member": {
+                        "type": "string"
+                    },
+                    "memberType": {
                         "type": "string"
                     }
                 }

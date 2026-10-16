@@ -10,7 +10,7 @@ import (
 // ConnectionList is the "ConnectionList" use case.
 type ConnectionList struct {
 	Connections interfaces.ConnectionRepository
-	Grants      interfaces.GrantRepository
+	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.
@@ -27,7 +27,7 @@ func (uc ConnectionList) Serve(ctx context.Context, mod interfaces.Module) (out 
 		if !mod.Supports(c.Driver) {
 			continue
 		}
-		ok, err := CanRead(ctx, uc.Grants, c.Name)
+		ok, err := CanRead(ctx, uc.Permissions, c.Name)
 		if err != nil {
 			return nil, err
 		}

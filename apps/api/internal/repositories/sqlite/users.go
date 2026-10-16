@@ -41,6 +41,29 @@ func (s *Store) GetUserByUsername(ctx context.Context, username string) (u *enti
 	return scanUser(s.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE username = ? AND username != ''`, username))
 }
 
+// ListUsers returns every account, local names first, for the permission
+// editor's member picker.
+func (s *Store) ListUsers(ctx context.Context) (out []entity.User, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT `+userColumns+` FROM users ORDER BY username = '', username, subject`)
+	if err != nil {
+		return nil, fmt.Errorf("list users: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var u entity.User
+		var groups string
+		if err := rows.Scan(&u.Subject, &u.Username, &u.Password, &groups, &u.Admin, &u.Disabled); err != nil {
+			return nil, err
+		}
+		u.Groups = decodeGroups(groups)
+		out = append(out, u)
+	}
+	return out, rows.Err()
+}
+
 // EnsureSubject records an OIDC identity the first time it is seen.
 func (s *Store) EnsureSubject(ctx context.Context, subject string) (err error) {
 	ctx, end := logging.StartSpan(ctx)

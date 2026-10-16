@@ -24,17 +24,17 @@ type ConnectionRepository interface {
 	Delete(ctx context.Context, name string) error
 }
 
-// GrantRepository persists the per-connection RBAC policy: which OIDC group
-// may touch which connection, at what level.
-type GrantRepository interface {
-	// ListGrants returns a connection's grants, ordered by group.
-	ListGrants(ctx context.Context, connection string) ([]entity.Grant, error)
-	// SetGrant upserts one group's level for a connection.
-	SetGrant(ctx context.Context, g entity.Grant) error
-	// DeleteGrant removes one group's grant from a connection.
-	DeleteGrant(ctx context.Context, connection, group string) error
-	// ListGroupNames returns every distinct group that appears in any grant,
-	// so the console can suggest groups for new grants.
+// PermissionRepository persists the per-connection RBAC policy: which member (a
+// user subject or a group) may touch which connection, at what level.
+type PermissionRepository interface {
+	// ListPermissions returns a connection's permissions, ordered by member.
+	ListPermissions(ctx context.Context, connection string) ([]entity.Permission, error)
+	// SetPermission upserts one member's level for a connection.
+	SetPermission(ctx context.Context, p entity.Permission) error
+	// DeletePermission removes one member's permission from a connection.
+	DeletePermission(ctx context.Context, connection, member string) error
+	// ListGroupNames returns every distinct group that appears in any permission,
+	// so the console can suggest groups for new permissions.
 	ListGroupNames(ctx context.Context) ([]string, error)
 }
 

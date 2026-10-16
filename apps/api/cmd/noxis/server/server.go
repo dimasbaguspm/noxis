@@ -32,7 +32,7 @@ func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config, authSvc *
 	return deps.Init(deps.Deps{
 		Connections: store,
 		Changes:     store,
-		Grants:      store,
+		Permissions: store,
 		Users:       store,
 		Modules:     modules.Default(authSvc),
 		Log:         log,
@@ -66,11 +66,12 @@ func newHandler(cfg config.Config) http.Handler {
 	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}", handlers.DeleteConnection)
 	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/test", handlers.TestConnection)
 
-	// Grants: per-connection RBAC policy, managed by global admins only.
-	mux.HandleFunc("GET /v1/config/groups", handlers.ListConfigGroups)
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/grants", handlers.ListGrants)
-	mux.HandleFunc("PUT /v1/engine/{engine}/connections/{name}/grants", handlers.SetGrant)
-	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}/grants", handlers.DeleteGrant)
+	// Permissions: per-connection RBAC policy (users and groups), managed by
+	// global admins only.
+	mux.HandleFunc("GET /v1/config/members", handlers.ListConfigMembers)
+	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/permissions", handlers.ListPermissions)
+	mux.HandleFunc("PUT /v1/engine/{engine}/connections/{name}/permissions", handlers.SetPermission)
+	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}/permissions", handlers.DeletePermission)
 
 	// SQL-only: schema, row preview and the console ops.
 	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/schema", handlers.GetSchema)

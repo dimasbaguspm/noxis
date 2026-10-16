@@ -12,7 +12,7 @@ import (
 type SQLChanges struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
-	Grants      interfaces.GrantRepository
+	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.
@@ -23,7 +23,7 @@ func (uc SQLChanges) Serve(ctx context.Context) (out []entity.Change, err error)
 	if err != nil {
 		return nil, err
 	}
-	readable, err := readableConnections(ctx, uc.Connections, uc.Grants)
+	readable, err := readableConnections(ctx, uc.Connections, uc.Permissions)
 	if err != nil {
 		return nil, err
 	}

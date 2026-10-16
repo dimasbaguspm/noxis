@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import type { SelectOption } from "@/components/ui/single-select";
 
 // MultiSelect is a checkbox-backed picker: any number of options, one card
-// per row. Used for multi-value filters and (later) batch group grants.
+// per row. Used for multi-value filters and (later) batch permissions.
 export function MultiSelect<T extends string = string>({
   name,
   values,

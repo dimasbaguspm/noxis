@@ -38,10 +38,10 @@ type Uses struct {
 	Instance         usecases.Instance
 	Instances        usecases.ListInstances
 	RotatePassword   usecases.RotatePassword
-	ListGrants       usecases.ListGrants
-	SetGrant         usecases.SetGrant
-	DeleteGrant      usecases.DeleteGrant
-	Groups           usecases.Groups
+	ListPermissions  usecases.ListPermissions
+	SetPermission    usecases.SetPermission
+	DeletePermission usecases.DeletePermission
+	Members          usecases.Members
 	ConnectionLevels usecases.ConnectionLevels
 }
 
@@ -76,10 +76,10 @@ func Init(d Deps) Uses {
 		Instance:         WithDeps(d, usecases.Instance{}),
 		Instances:        WithDeps(d, usecases.ListInstances{}),
 		RotatePassword:   WithDeps(d, usecases.RotatePassword{}),
-		ListGrants:       WithDeps(d, usecases.ListGrants{}),
-		SetGrant:         WithDeps(d, usecases.SetGrant{}),
-		DeleteGrant:      WithDeps(d, usecases.DeleteGrant{}),
-		Groups:           WithDeps(d, usecases.Groups{}),
+		ListPermissions:  WithDeps(d, usecases.ListPermissions{}),
+		SetPermission:    WithDeps(d, usecases.SetPermission{}),
+		DeletePermission: WithDeps(d, usecases.DeletePermission{}),
+		Members:          WithDeps(d, usecases.Members{}),
 		ConnectionLevels: WithDeps(d, usecases.ConnectionLevels{}),
 	}
 }

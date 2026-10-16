@@ -27,6 +27,14 @@ func newFakeUsers() *fakeUsers {
 
 func (f *fakeUsers) CountUsers(context.Context) (int, error) { return len(f.bySubject), nil }
 
+func (f *fakeUsers) ListUsers(context.Context) ([]entity.User, error) {
+	out := make([]entity.User, 0, len(f.bySubject))
+	for _, u := range f.bySubject {
+		out = append(out, *u)
+	}
+	return out, nil
+}
+
 func (f *fakeUsers) GetUser(_ context.Context, subject string) (*entity.User, error) {
 	u, ok := f.bySubject[subject]
 	if !ok {
