@@ -3,10 +3,10 @@ import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath } from "node:url";
 import { defineConfig, loadEnv } from "vite";
 
-// One predictable config: dist into bin/dist (the Go embed sync), the API
-// proxied for dev under /v1, no surprises across environments. `pnpm dev`
+// One predictable config: dist into <repo>/bin/dist (the Go embed sync), the
+// API proxied for dev under /v1, no surprises across environments. `pnpm dev`
 // talks to localhost:9000 by default; the compose dev service sets
-// VITE_PROXY_TARGET to http://master:9000.
+// VITE_PROXY_TARGET to http://noxis:9000.
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, ".");
   return {
@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
       alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
     },
     build: {
-      outDir: "../bin/dist",
+      outDir: "../../bin/dist",
       emptyOutDir: true,
       target: "es2020",
       sourcemap: false,

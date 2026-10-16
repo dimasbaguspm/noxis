@@ -4,7 +4,7 @@ Detail for `AGENTS.md`.
 
 ## One store, one file
 
-`internal/repositories/sqlite.Store` is the **only** state. It opens a
+`apps/api/internal/repositories/sqlite.Store` is the **only** state. It opens a
 `modernc.org/sqlite` (pure Go, cgo-free) database at `NOXIS_DB`, sets
 `SetMaxOpenConns(1)` (SQLite writer serialization), applies the schema, then
 the migrations, then backfills, then encrypts legacy passwords.
@@ -13,7 +13,7 @@ the migrations, then backfills, then encrypts legacy passwords.
 **directory**, and sqlite cannot open a directory — it returns a clear error
 instead of crash-looping.
 
-## Schema (`internal/repositories/sqlite/sqlite.go`, `schema` const)
+## Schema (`apps/api/internal/repositories/sqlite/sqlite.go`, `schema` const)
 
 ### `connections`
 | column | notes |
@@ -55,14 +55,14 @@ policy table. Identity/membership live in the OIDC issuer.
 - Shared row iteration lives in `queryRows[T]`; transactions via
   `Store.WithTx(ctx, fn)`.
 - `Store` satisfies all three interfaces (`var _ interfaces.ConnectionRepository = (*Store)(nil)` etc.).
-- Add a repository method → add it to the interface in `internal/interfaces/repository.go`
+- Add a repository method → add it to the interface in `apps/api/internal/interfaces/repository.go`
   **and** to `Store`. Keep the `noun` in the method name because one Store
   implements several seams (`ListChanges`, `GetChange`, `SaveChange`).
 - `interfaces.ErrNotFound` is the missing-row sentinel; handlers map it to 404.
 
 ## Secrets
 
-`internal/common/secret`:
+`apps/api/internal/common/secret`:
 
 - Passwords cannot be hashed (noxis must send them to the DB) → reversible
   encryption at rest.
@@ -77,8 +77,8 @@ policy table. Identity/membership live in the OIDC issuer.
 
 ## Limits & config
 
-`internal/constants/limits.go`: `DefaultPageSize=20`, `MaxPageSize=100`,
-`ScanLimit=500`, `MaxScanLimit=5000`. Paging is `internal/common/pagination`
+`apps/api/internal/constants/limits.go`: `DefaultPageSize=20`, `MaxPageSize=100`,
+`ScanLimit=500`, `MaxScanLimit=5000`. Paging is `apps/api/internal/common/pagination`
 (pure functions, no `net/http`).
 
 ## What is *not* in the DB

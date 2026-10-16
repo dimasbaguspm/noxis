@@ -6,7 +6,7 @@ name: noxis
 services:
   noxis:
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile
     command: run server
     environment:
@@ -43,7 +43,7 @@ services:
   # drives the server's /internal/callback/scheduler endpoint — the server carries no ticker.
   ticker:
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile
     command: run ticker
     environment:
@@ -126,7 +126,7 @@ services:
     ports:
       - "5173:5173"
     volumes:
-      - ../web:/web
+      - ./apps/web:/web
       - web_node_modules:/web/node_modules
     depends_on:
       noxis:

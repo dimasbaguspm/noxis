@@ -36,18 +36,15 @@ jobs:
         with:
           filters: |
             go:
-              - 'cmd/**'
-              - 'internal/**'
-              - 'test/**'
-              - 'go.mod'
-              - 'go.sum'
-              - '.golangci.yml'
+              - 'apps/api/**'
               - 'Makefile'
               - 'Dockerfile'
-              - 'docker/**'
+              - 'Dockerfile.api'
+              - 'docker-compose.yml'
               - '.github/workflows/**'
             web:
-              - 'web/**'
+              - 'apps/web/**'
+              - 'openapi.*'
               - '.github/workflows/**'
 
   go:
@@ -61,17 +58,40 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: apps/api/go.mod
           cache: true
 
       - name: lint
-        run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run ./...
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+          working-directory: apps/api
+
+      - name: setup buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: build (Dockerfile)
-        run: docker build -t noxis:ci .
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          tags: noxis:ci
+          cache-from: type=gha,scope=noxis
+          cache-to: type=gha,mode=max,scope=noxis
+
+      - name: build (Dockerfile.api)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.api
+          push: false
+          tags: noxis-api:ci
+          cache-from: type=gha,scope=noxis-api
+          cache-to: type=gha,mode=max,scope=noxis-api
 
       - name: unit tests
-        run: go test -count=1 $(go list ./... | grep -v /test/uat)
+        run: cd apps/api && go test -count=1 $(go list ./... | grep -v /test/uat)
 
       - name: uat (real stack via REST)
         run: make uat
@@ -88,4 +108,4 @@ jobs:
       - name: web (lint + typecheck + build)
         run: |
           npm install -g pnpm@10
-          cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm build
+          cd apps/web && pnpm install --frozen-lockfile && pnpm lint && pnpm build

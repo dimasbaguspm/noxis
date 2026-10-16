@@ -67,11 +67,11 @@ linters:
         - truncateCmp
         - unnamedResult
         - unnecessaryBlock
-  issues:
+  exclusions:
     # revive: guard matching is human judgment — stated in the exclude (kept
     # the rule on so its other checks still run); blank-imports justified at
     # the import site.
-    exclude-rules:
+    rules:
       - linters: [revive]
         text: "if-return"
 
