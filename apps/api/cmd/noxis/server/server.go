@@ -127,7 +127,7 @@ func newHandler(cfg config.Config, verifier interfaces.Verifier) http.Handler {
 }
 
 func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
-	if err := cfg.Require(config.EnvListen, config.EnvDB); err != nil {
+	if err := cfg.Validate(); err != nil {
 		return err
 	}
 	store, err := sqlite.Open(ctx, cfg.DB, cfg.SecretKey)

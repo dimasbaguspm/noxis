@@ -13,6 +13,8 @@ services:
       NOXIS_LISTEN: ":9000"
       NOXIS_DB: /data/noxis.db
       NOXIS_OTEL_NAME: noxis
+      # dev-only secret; compose values are throwaway
+      NOXIS_SECRET_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       # dev-only scheduler pair; the external service (UAT, operator cron) signs
       # the trigger with these same values.
       NOXIS_SCHEDULER_API_KEY: noxis-scheduler

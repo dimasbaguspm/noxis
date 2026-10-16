@@ -86,10 +86,10 @@ connection (`GET /auth/config` is the public console bootstrap).
 ## Credentials at rest
 
 Connection passwords cannot be hashed — they must be sent to the database — so
-set `NOXIS_SECRET_KEY` (64 hex characters) to encrypt them in SQLite with
-AES-256-GCM. Without it they are stored in plaintext and the server logs a
-warning. Setting the key re-encrypts existing plaintext rows when the store
-opens. Rotate a password from the instance's detail page.
+set `NOXIS_SECRET_KEY` (64 hex characters, e.g. `openssl rand -hex 32`) to
+encrypt them in SQLite with AES-256-GCM. It is required: the server refuses to
+start without it. Setting the key re-encrypts existing plaintext rows when the
+store opens. Rotate a password from the instance's detail page.
 
 ## Docs
 
