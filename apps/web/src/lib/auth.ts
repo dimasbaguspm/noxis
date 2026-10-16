@@ -1,33 +1,48 @@
 import { UserManager, WebStorageStateStore, type User } from "oidc-client-ts";
 
-// The console is a public OIDC client (Authorization Code + PKCE, no secret).
-// The server exposes the issuer and client id at /auth/config so the same
-// image can point at a different Authentik without a rebuild.
+// The console authenticates two ways, both bearer-token based:
+// - local accounts: username + password -> an opaque session token;
+// - OIDC: Authorization Code + PKCE against the issuer, when configured.
+// The server exposes which methods are available at /auth/config.
 
 export interface AuthConfig {
-  enabled: boolean;
-  issuer?: string;
-  clientId?: string;
+  local?: boolean;
+  oidc?: { issuer: string; clientId: string };
 }
 
+const LOCAL_TOKEN_KEY = "noxis.token";
+
 let manager: UserManager | null = null;
+let localEnabled = false;
+let authRequired = false;
+
+function localToken(): string | null {
+  return window.localStorage.getItem(LOCAL_TOKEN_KEY);
+}
+
+function setLocalToken(token: string | null): void {
+  if (token) window.localStorage.setItem(LOCAL_TOKEN_KEY, token);
+  else window.localStorage.removeItem(LOCAL_TOKEN_KEY);
+}
 
 export async function loadAuthConfig(): Promise<AuthConfig> {
   try {
     const res = await fetch("/auth/config");
-    if (!res.ok) return { enabled: false };
+    if (!res.ok) return { local: false };
     return (await res.json()) as AuthConfig;
   } catch {
-    return { enabled: false };
+    return { local: false };
   }
 }
 
-// initAuth builds the UserManager once; open mode leaves it null.
+// initAuth records the available methods and builds the UserManager once.
 export function initAuth(config: AuthConfig): void {
-  if (manager || !config.enabled || !config.issuer || !config.clientId) return;
+  localEnabled = Boolean(config.local);
+  authRequired = localEnabled || Boolean(config.oidc);
+  if (manager || !config.oidc) return;
   manager = new UserManager({
-    authority: config.issuer,
-    client_id: config.clientId,
+    authority: config.oidc.issuer,
+    client_id: config.oidc.clientId,
     redirect_uri: `${window.location.origin}/auth/callback`,
     post_logout_redirect_uri: window.location.origin,
     response_type: "code",
@@ -37,7 +52,17 @@ export function initAuth(config: AuthConfig): void {
   });
 }
 
+// authEnabled reports whether a login is required at all (always true today; the
+// server has no open mode).
 export function authEnabled(): boolean {
+  return authRequired;
+}
+
+export function localAuthAvailable(): boolean {
+  return localEnabled;
+}
+
+export function oidcAuthAvailable(): boolean {
   return manager !== null;
 }
 
@@ -45,12 +70,45 @@ export async function currentUser(): Promise<User | null> {
   return manager ? manager.getUser() : null;
 }
 
-// accessToken returns a live token, silently refreshing through the manager.
+// accessToken returns the local session token when present, else a live OIDC
+// token (silently refreshing through the manager).
 export async function accessToken(): Promise<string | null> {
+  const local = localToken();
+  if (local) return local;
   if (!manager) return null;
   const user = await manager.getUser();
   if (!user || user.expired) return null;
   return user.access_token;
+}
+
+// localLogin exchanges username + password for a session token.
+export async function localLogin(username: string, password: string): Promise<void> {
+  const res = await fetch("/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  const data = (await res.json().catch(() => null)) as { token?: string; error?: string } | null;
+  if (!res.ok || !data?.token) throw new Error(data?.error ?? `HTTP ${res.status}`);
+  setLocalToken(data.token);
+}
+
+// changePassword rotates the password and invalidates the active session.
+export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  const token = localToken();
+  const res = await fetch("/v1/auth/password", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ oldPassword, newPassword }),
+  });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(data?.error ?? `HTTP ${res.status}`);
+  }
+  setLocalToken(null); // the server rotated the token; force a fresh login
 }
 
 export async function signin(): Promise<void> {
@@ -61,6 +119,16 @@ export async function handleCallback(): Promise<void> {
   if (manager) await manager.signinRedirectCallback();
 }
 
+// signout clears the local session and, when OIDC is configured, ends that too.
 export async function signout(): Promise<void> {
-  if (manager) await manager.signoutRedirect();
+  const token = localToken();
+  if (token) {
+    await fetch("/v1/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => undefined);
+    setLocalToken(null);
+  }
+  if (manager) {
+    await manager.signoutRedirect();
+    return;
+  }
+  window.location.assign("/login");
 }
