@@ -17,7 +17,7 @@ type Approve struct {
 }
 
 // Serve runs it.
-func (uc Approve) Serve(ctx context.Context, id string) (out entity.Change, err error) {
+func (uc Approve) Run(ctx context.Context, id string) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	ch, err := uc.Changes.GetChange(ctx, id)

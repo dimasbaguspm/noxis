@@ -16,7 +16,7 @@ type SQLChanges struct {
 }
 
 // Serve runs it.
-func (uc SQLChanges) Serve(ctx context.Context) (out []entity.Change, err error) {
+func (uc SQLChanges) Run(ctx context.Context) (out []entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	all, err := uc.Changes.ListChanges(ctx)

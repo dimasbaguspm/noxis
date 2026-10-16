@@ -43,11 +43,11 @@ Inside `apps/api/`:
 
 | Path | Role |
 | --- | --- |
-| `apps/api/cmd/noxis/` | process entry: CLI, server wiring, handlers, middlewares |
+| `apps/api/cmd/noxis/` | process entry: CLI, server wiring (routes), middlewares |
 | `apps/api/cmd/noxis/server/deps/` | runtime dependency container + DI (the only wiring) |
-| `apps/api/cmd/noxis/server/handlers/` | thin HTTP handlers + swag annotations + response glue |
+| `apps/api/cmd/noxis/server/static/` | embedded console (built SPA; placeholder committed) |
 | `apps/api/cmd/noxis/server/middlewares/` | CORS → auth → request-log/span |
-| `apps/api/internal/usecases/` | one file = one use case; business flows only |
+| `apps/api/internal/usecases/` | one file = one use case; `Serve(w, r)` HTTP + domain core |
 | `apps/api/internal/modules/` | engine adapters: `sql`, `memcache`, `mongodb`, `auth` + `Registry` |
 | `apps/api/internal/repositories/` | persistence: `sqlite` (the only state) |
 | `apps/api/internal/interfaces/` | seams (`ConnectionRepository`, `Module`, `SQLModule`, …) |
@@ -86,7 +86,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 ## Notes that bite
 
 - `Makefile swagger` rewrites `openapi.yaml|json` from Swagger 2.0 → OpenAPI 3; the web client `gen:api` reads the same files. Regenerate and commit both after route/annotation changes.
-- `apps/api/cmd/noxis/server/handlers/static/` is gitignored except `placeholder.html`; `go:embed` needs a file at compile time.
+- `apps/api/cmd/noxis/server/static/` is gitignored except `placeholder.html`; `go:embed` needs a file at compile time.
 - The retired master/slave + Kafka design is gone from the code, docs and CI. If an old branch, issue or note mentions `doorman`, `slave`, `kafka`, `NOXIS_BROKER` or `NOXIS_TOPIC_PREFIX`, it predates the rewrite — do not restore it.
 
 ## Docs index

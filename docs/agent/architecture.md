@@ -5,9 +5,9 @@ Detail for `AGENTS.md`. Read that first for the map.
 ## C4-ish layering
 
 ```
-transport   apps/api/cmd/noxis/server/handlers   (plain funcs, swag, JSON glue)
-application apps/api/cmd/noxis/server/deps        (DI container: Deps → Uses)
-            apps/api/internal/usecases           (one file per use case)
+transport   apps/api/cmd/noxis/server         (route table → use case Serve)
+application apps/api/cmd/noxis/server/deps    (DI container: Deps → Uses)
+            apps/api/internal/usecases        (one file per use case; Serve(w, r) + core)
 domain      apps/api/internal/entity             (data model, imports nothing internal)
             apps/api/internal/interfaces          (seams)
 infra       apps/api/internal/modules/*          (engine adapters)
@@ -70,39 +70,41 @@ module. This is why one handler serves all families instead of a copy per family
 
 ## Use-case pattern
 
-- One file, one exported struct, one `Serve(ctx, ...)` method.
+- One file, one exported struct, one business flow. The domain work is a
+  `Run(ctx, ...)` core; its `Serve(w, r)` owns that route's HTTP.
 - Fields are the deps it needs (filled by type). It references **no other use
   case**; shared steps are package-level helpers that take deps as args:
   `rawConn` (load connection + check family + authorize), `Authorize` /
   `RequireAdmin` / `EffectiveLevel` (policy), `applyChange`/`applySQL`/
   `applyMongo` (apply mechanics).
-- Every `Serve` opens a span: `ctx, end := logging.StartSpan(ctx); defer func(){ end(err) }()`.
+- Every `Run` opens a span: `ctx, end := logging.StartSpan(ctx); defer func(){ end(err) }()`.
 - Domain rejects are returned, not panicked. `ErrForbidden` → 403.
 
-## Handler pattern
+## Serve pattern
 
-`apps/api/cmd/noxis/server/handlers/server.go` holds `handle`, `handleNoContent`,
-`decode`, `writeJSON`, `writeErr`. A handler body is:
+`apps/api/internal/usecases/http.go` holds `respond`, `respondNoContent`,
+`decode` and `fail` (the single error→status map). A `Serve` body resolves the
+engine from the ctx registry, decodes, calls the domain core and writes:
 
 ```go
-func Foo(w http.ResponseWriter, r *http.Request) {
-    d := deps.From(r.Context())
-    handle(w, r, func(ctx context.Context) (any, error) {
-        mod, err := d.Modules.Engine(r.PathValue("engine"))
-        if err != nil { return nil, err }
-        return d.Foo.Serve(ctx, mod, /* path/query/body */)
-    })
+func (uc Foo) Serve(w http.ResponseWriter, r *http.Request) {
+    mod, err := modules.RegistryFrom(r.Context()).Engine(r.PathValue("engine"))
+    if err != nil { fail(w, err); return }
+    out, err := uc.Run(r.Context(), mod, /* path/query/body */)
+    if err != nil { fail(w, err); return }
+    respond(w, out)
 }
 ```
 
-Routes are declared in `apps/api/cmd/noxis/server/server.go` (`newHandler`). Add a route
-there + a handler + a swag annotation block, then `make swagger`.
+Routes are declared in `apps/api/cmd/noxis/server/server.go` (`newHandler`) and
+point straight at a use case `Serve`: there is no handler package. Add a route
+plus a swag annotation on `Serve`, then `make swagger`.
 
 ## Auth & policy
 
 - `middlewares.WithAuth(verifier, next)` verifies bearer tokens; the
   `entity.Identity` lands on the ctx (`usecases.Principal`).
-- Open mode = no issuer set; every caller trusted; `deps.From` still required.
+- Open mode is gone: `WithAuth` denies when no verifier is configured.
 - `usecases.rawConn` is the single per-connection gate. `RequireAdmin` gates the
   management surfaces (connection CRUD, permissions).
 - Levels: `read < write < admin` (`entity.LevelAllows`). `OpLevel` maps a SQL op

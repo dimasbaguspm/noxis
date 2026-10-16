@@ -14,7 +14,7 @@ type DeleteConnection struct {
 }
 
 // Serve runs it.
-func (uc DeleteConnection) Serve(ctx context.Context, mod interfaces.Module, name string) (err error) {
+func (uc DeleteConnection) Run(ctx context.Context, mod interfaces.Module, name string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := RequireAdmin(ctx); err != nil {

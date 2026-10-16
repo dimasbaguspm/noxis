@@ -14,7 +14,7 @@ type RotatePassword struct {
 }
 
 // Serve runs it.
-func (uc RotatePassword) Serve(ctx context.Context, id, password string) (err error) {
+func (uc RotatePassword) Run(ctx context.Context, id, password string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := RequireAdmin(ctx); err != nil {

@@ -14,7 +14,7 @@ type ConnectionList struct {
 }
 
 // Serve runs it.
-func (uc ConnectionList) Serve(ctx context.Context, mod interfaces.Module) (out []entity.Connection, err error) {
+func (uc ConnectionList) Run(ctx context.Context, mod interfaces.Module) (out []entity.Connection, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	list, err := uc.Connections.List(ctx)

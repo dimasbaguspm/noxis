@@ -16,7 +16,7 @@ type DeletePermission struct {
 }
 
 // Serve removes one member's permission from a connection.
-func (uc DeletePermission) Serve(ctx context.Context, mod interfaces.Module, name, member string) (err error) {
+func (uc DeletePermission) Run(ctx context.Context, mod interfaces.Module, name, member string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := RequireAdmin(ctx); err != nil {

@@ -31,7 +31,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/handlers.loginRequest"
+                                "$ref": "#/components/schemas/usecases.loginRequest"
                             }
                         }
                     },
@@ -44,7 +44,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/handlers.loginResponse"
+                                    "$ref": "#/components/schemas/usecases.loginResponse"
                                 }
                             }
                         }
@@ -89,7 +89,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/handlers.changePasswordRequest"
+                                "$ref": "#/components/schemas/usecases.changePasswordRequest"
                             }
                         }
                     },
@@ -124,7 +124,7 @@
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/handlers.DriverInfo"
+                                        "$ref": "#/components/schemas/usecases.DriverInfo"
                                     }
                                 }
                             }
@@ -153,7 +153,7 @@
                                         "users": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/components/schemas/handlers.memberUser"
+                                                "$ref": "#/components/schemas/usecases.memberUser"
                                             }
                                         }
                                     }
@@ -557,7 +557,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/handlers.scheduleBody"
+                                "$ref": "#/components/schemas/usecases.scheduleBody"
                             }
                         }
                     },
@@ -790,7 +790,7 @@
                     }
                 ],
                 "requestBody": {
-                    "$ref": "#/components/requestBodies/handlers.opBody"
+                    "$ref": "#/components/requestBodies/usecases.opBody"
                 },
                 "responses": {
                     "200": {
@@ -853,7 +853,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/handlers.opBody"
+                                "$ref": "#/components/schemas/usecases.opBody"
                             }
                         }
                     },
@@ -1060,7 +1060,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/handlers.memcacheFlushBody"
+                                "$ref": "#/components/schemas/usecases.cacheFlushBody"
                             }
                         }
                     },
@@ -1199,7 +1199,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/handlers.memcacheKeysBody"
+                                "$ref": "#/components/schemas/usecases.cacheKeysBody"
                             }
                         }
                     },
@@ -1345,7 +1345,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/handlers.permissionBody"
+                                "$ref": "#/components/schemas/usecases.permissionBody"
                             }
                         }
                     },
@@ -1475,7 +1475,7 @@
         },
         "/external/v1/engine/{engine}/connections/{name}/query": {
             "post": {
-                "summary": "Run a SQL console op (query | alter | rollback | analytics)",
+                "summary": "Run a SQL console op (query)",
                 "parameters": [
                     {
                         "description": "engine family (sql)",
@@ -1497,15 +1497,7 @@
                     }
                 ],
                 "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/handlers.opBody"
-                            }
-                        }
-                    },
-                    "description": "sql (or table for analytics)",
-                    "required": true
+                    "$ref": "#/components/requestBodies/usecases.opBody"
                 },
                 "responses": {
                     "200": {
@@ -1633,7 +1625,7 @@
                     }
                 ],
                 "requestBody": {
-                    "$ref": "#/components/requestBodies/handlers.opBody"
+                    "$ref": "#/components/requestBodies/usecases.opBody"
                 },
                 "responses": {
                     "200": {
@@ -2055,7 +2047,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/handlers.passwordBody"
+                                "$ref": "#/components/schemas/usecases.passwordBody"
                             }
                         }
                     },
@@ -2105,7 +2097,7 @@
                         "content": {
                             "*/*": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/handlers.MeResponse"
+                                    "$ref": "#/components/schemas/usecases.MeResponse"
                                 }
                             }
                         }
@@ -2153,11 +2145,11 @@
     },
     "components": {
         "requestBodies": {
-            "handlers.opBody": {
+            "usecases.opBody": {
                 "content": {
                     "application/json": {
                         "schema": {
-                            "$ref": "#/components/schemas/handlers.opBody"
+                            "$ref": "#/components/schemas/usecases.opBody"
                         }
                     }
                 },
@@ -2622,7 +2614,7 @@
                     }
                 }
             },
-            "handlers.DriverInfo": {
+            "usecases.DriverInfo": {
                 "type": "object",
                 "properties": {
                     "driver": {
@@ -2636,7 +2628,7 @@
                     }
                 }
             },
-            "handlers.MeResponse": {
+            "usecases.MeResponse": {
                 "type": "object",
                 "properties": {
                     "admin": {
@@ -2666,51 +2658,25 @@
                     }
                 }
             },
-            "handlers.changePasswordRequest": {
+            "usecases.TickResult": {
+                "description": "applied and failed change ids from one tick.",
                 "type": "object",
                 "properties": {
-                    "newPassword": {
-                        "type": "string"
+                    "applied": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
-                    "oldPassword": {
-                        "type": "string"
+                    "failed": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },
-            "handlers.loginRequest": {
-                "type": "object",
-                "properties": {
-                    "password": {
-                        "type": "string"
-                    },
-                    "username": {
-                        "type": "string"
-                    }
-                }
-            },
-            "handlers.loginResponse": {
-                "type": "object",
-                "properties": {
-                    "token": {
-                        "type": "string"
-                    },
-                    "user": {
-                        "$ref": "#/components/schemas/entity.User"
-                    }
-                }
-            },
-            "handlers.memberUser": {
-                "type": "object",
-                "properties": {
-                    "label": {
-                        "type": "string"
-                    },
-                    "subject": {
-                        "type": "string"
-                    }
-                }
-            },
-            "handlers.memcacheFlushBody": {
+            "usecases.cacheFlushBody": {
                 "type": "object",
                 "properties": {
                     "confirm": {
@@ -2718,7 +2684,7 @@
                     }
                 }
             },
-            "handlers.memcacheKeysBody": {
+            "usecases.cacheKeysBody": {
                 "type": "object",
                 "properties": {
                     "keys": {
@@ -2729,7 +2695,51 @@
                     }
                 }
             },
-            "handlers.mongoChangeBody": {
+            "usecases.changePasswordRequest": {
+                "type": "object",
+                "properties": {
+                    "newPassword": {
+                        "type": "string"
+                    },
+                    "oldPassword": {
+                        "type": "string"
+                    }
+                }
+            },
+            "usecases.loginRequest": {
+                "type": "object",
+                "properties": {
+                    "password": {
+                        "type": "string"
+                    },
+                    "username": {
+                        "type": "string"
+                    }
+                }
+            },
+            "usecases.loginResponse": {
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string"
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/entity.User"
+                    }
+                }
+            },
+            "usecases.memberUser": {
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string"
+                    },
+                    "subject": {
+                        "type": "string"
+                    }
+                }
+            },
+            "usecases.mongoChangeBody": {
                 "type": "object",
                 "properties": {
                     "collection": {
@@ -2764,7 +2774,7 @@
                     }
                 }
             },
-            "handlers.opBody": {
+            "usecases.opBody": {
                 "type": "object",
                 "properties": {
                     "sql": {
@@ -2775,7 +2785,7 @@
                     }
                 }
             },
-            "handlers.passwordBody": {
+            "usecases.passwordBody": {
                 "type": "object",
                 "properties": {
                     "password": {
@@ -2783,7 +2793,7 @@
                     }
                 }
             },
-            "handlers.permissionBody": {
+            "usecases.permissionBody": {
                 "type": "object",
                 "properties": {
                     "level": {
@@ -2797,29 +2807,11 @@
                     }
                 }
             },
-            "handlers.scheduleBody": {
+            "usecases.scheduleBody": {
                 "type": "object",
                 "properties": {
                     "scheduledAt": {
                         "type": "integer"
-                    }
-                }
-            },
-            "usecases.TickResult": {
-                "description": "applied and failed change ids from one tick.",
-                "type": "object",
-                "properties": {
-                    "applied": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "failed": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
                     }
                 }
             }

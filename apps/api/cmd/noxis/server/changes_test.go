@@ -1,4 +1,4 @@
-package handlers
+package server
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"noxis/cmd/noxis/server/deps"
+	"noxis/internal/common/config"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -175,7 +176,7 @@ func TestChangeWorkflow(t *testing.T) {
 	d, _, _ := newTestDeps(sq)
 	ctx := modules.WithRegistry(context.Background(), d.Modules)
 
-	submitted, err := d.SubmitChange.Serve(ctx, sq, sampleChange())
+	submitted, err := d.SubmitChange.Run(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
@@ -187,11 +188,11 @@ func TestChangeWorkflow(t *testing.T) {
 	}
 
 	// apply before approval is refused
-	if _, err := d.Apply.Serve(ctx, sq, submitted.ID); err == nil {
+	if _, err := d.Apply.Run(ctx, sq, submitted.ID); err == nil {
 		t.Fatal("apply must require approval")
 	}
 
-	approved, err := d.Approve.Serve(ctx, submitted.ID)
+	approved, err := d.Approve.Run(ctx, submitted.ID)
 	if err != nil {
 		t.Fatalf("approve: %v", err)
 	}
@@ -199,7 +200,7 @@ func TestChangeWorkflow(t *testing.T) {
 		t.Fatalf("approve result: %+v", approved)
 	}
 
-	applied, err := d.Apply.Serve(ctx, sq, submitted.ID)
+	applied, err := d.Apply.Run(ctx, sq, submitted.ID)
 	if err != nil {
 		t.Fatalf("apply: %v", err)
 	}
@@ -214,21 +215,21 @@ func TestChangeValidationFailures(t *testing.T) {
 	// a read on the change path is refused up front
 	sq := &fakeSQL{writeErr: errors.New(`statement "SELECT" not allowed here`)}
 	d, _, _ := newTestDeps(sq)
-	bad, err := d.SubmitChange.Serve(ctx, sq, sampleChange())
+	bad, err := d.SubmitChange.Run(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
 	if bad.Status != constants.ChangeFailed {
 		t.Fatalf("status=%q want failed", bad.Status)
 	}
-	if _, err := d.Approve.Serve(ctx, bad.ID); err == nil {
+	if _, err := d.Approve.Run(ctx, bad.ID); err == nil {
 		t.Fatal("failed change must not be approvable")
 	}
 
 	// a dry-run failure also lands as failed with the reason recorded
 	sq2 := &fakeSQL{validateErr: errors.New("rollback statement 1: syntax error")}
 	d2, _, _ := newTestDeps(sq2)
-	failed, err := d2.SubmitChange.Serve(ctx, sq2, sampleChange())
+	failed, err := d2.SubmitChange.Run(ctx, sq2, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
@@ -242,14 +243,14 @@ func TestChangeValidationFailures(t *testing.T) {
 	// mysql DDL cannot be dry-run: unverified, still approvable
 	sq3 := &fakeSQL{validateErr: sql.ErrUnverifiable}
 	d3, _, _ := newTestDeps(sq3)
-	unv, err := d3.SubmitChange.Serve(ctx, sq3, sampleChange())
+	unv, err := d3.SubmitChange.Run(ctx, sq3, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
 	if unv.Status != constants.ChangeUnverified {
 		t.Fatalf("status=%q want unverified", unv.Status)
 	}
-	if _, err := d3.Approve.Serve(ctx, unv.ID); err != nil {
+	if _, err := d3.Approve.Run(ctx, unv.ID); err != nil {
 		t.Fatalf("unverified change must be approvable: %v", err)
 	}
 }
@@ -258,14 +259,14 @@ func TestApplyFailureIsRecorded(t *testing.T) {
 	sq := &fakeSQL{applyErr: errors.New("statement 1: duplicate key")}
 	d, store, _ := newTestDeps(sq)
 	ctx := modules.WithRegistry(context.Background(), d.Modules)
-	ch, err := d.SubmitChange.Serve(ctx, sq, sampleChange())
+	ch, err := d.SubmitChange.Run(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
-	if _, err := d.Approve.Serve(ctx, ch.ID); err != nil {
+	if _, err := d.Approve.Run(ctx, ch.ID); err != nil {
 		t.Fatalf("approve: %v", err)
 	}
-	if _, err := d.Apply.Serve(ctx, sq, ch.ID); err == nil {
+	if _, err := d.Apply.Run(ctx, sq, ch.ID); err == nil {
 		t.Fatal("apply must surface the failure")
 	}
 	stored, ok := store.changes[ch.ID]
@@ -286,14 +287,14 @@ func TestSecretsStayRedacted(t *testing.T) {
 	c.Password = "supersecret"
 	_ = conns.Save(ctx, *c)
 
-	got, err := d.Connection.Serve(ctx, mod, "demo")
+	got, err := d.Connection.Run(ctx, mod, "demo")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
 	if got.Password != "" {
 		t.Fatalf("password leaked: %q", got.Password)
 	}
-	list, err := d.ConnectionList.Serve(ctx, mod)
+	list, err := d.ConnectionList.Run(ctx, mod)
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -302,7 +303,7 @@ func TestSecretsStayRedacted(t *testing.T) {
 			t.Fatalf("password leaked in list: %q", x.Password)
 		}
 	}
-	if raw, err := d.Raw.Serve(ctx, mod, "demo", entity.LevelRead); err != nil || raw.Password != "supersecret" {
+	if raw, err := d.Raw.Run(ctx, mod, "demo", entity.LevelRead); err != nil || raw.Password != "supersecret" {
 		t.Fatalf("internal path must still see the password: %v", err)
 	}
 }
@@ -311,11 +312,10 @@ func TestSecretsStayRedacted(t *testing.T) {
 // self-calling span closure once turned this into a stack overflow.
 func TestHandlersRespond(t *testing.T) {
 	d, _, _ := newTestDeps(&fakeSQL{})
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /external/v1/engine/{engine}/connections", ListConnections)
+	h := depsHandler(newHandler(d, config.Config{}), d)
 
 	rec := httptest.NewRecorder()
-	depsHandler(mux, d).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/engine/sql/connections", http.NoBody))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/engine/sql/connections", http.NoBody))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -328,9 +328,7 @@ func TestHandlersRespond(t *testing.T) {
 // sub-resource the engine does not serve are 404, never routed elsewhere.
 func TestEngineGating(t *testing.T) {
 	d, _, _ := newTestDeps(&fakeSQL{})
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /external/v1/engine/{engine}/connections", ListConnections)
-	mux.HandleFunc("GET /external/v1/engine/{engine}/connections/{name}/keys", ListKeys)
+	h := depsHandler(newHandler(d, config.Config{}), d)
 
 	cases := []struct {
 		path string
@@ -342,7 +340,7 @@ func TestEngineGating(t *testing.T) {
 	}
 	for _, tc := range cases {
 		rec := httptest.NewRecorder()
-		depsHandler(mux, d).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, http.NoBody))
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, tc.path, http.NoBody))
 		if rec.Code != tc.want {
 			t.Fatalf("%s: status=%d want=%d body=%s", tc.path, rec.Code, tc.want, rec.Body.String())
 		}
@@ -357,17 +355,17 @@ func TestScheduledChangeWaitsForItsSlot(t *testing.T) {
 	ctx := modules.WithRegistry(context.Background(), d.Modules)
 	in := sampleChange()
 	in.ScheduledAt = time.Now().Add(time.Hour).Unix()
-	ch, err := d.SubmitChange.Serve(ctx, sq, in)
+	ch, err := d.SubmitChange.Run(ctx, sq, in)
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
-	if _, err := d.Approve.Serve(ctx, ch.ID); err != nil {
+	if _, err := d.Approve.Run(ctx, ch.ID); err != nil {
 		t.Fatalf("approve: %v", err)
 	}
-	if _, err := d.Apply.Serve(ctx, sq, ch.ID); err == nil {
+	if _, err := d.Apply.Run(ctx, sq, ch.ID); err == nil {
 		t.Fatal("apply before the scheduled time must be refused")
 	}
-	res, err := d.Tick.Serve(ctx)
+	res, err := d.Tick.Run(ctx)
 	if err != nil {
 		t.Fatalf("tick: %v", err)
 	}
@@ -387,20 +385,20 @@ func TestTickAppliesDueScheduledChange(t *testing.T) {
 	ctx := modules.WithRegistry(context.Background(), d.Modules)
 	in := sampleChange()
 	in.ScheduledAt = time.Now().Add(-time.Minute).Unix()
-	ch, err := d.SubmitChange.Serve(ctx, sq, in)
+	ch, err := d.SubmitChange.Run(ctx, sq, in)
 	if err != nil {
 		t.Fatalf("submit: %v", err)
 	}
-	immediate, err := d.SubmitChange.Serve(ctx, sq, sampleChange())
+	immediate, err := d.SubmitChange.Run(ctx, sq, sampleChange())
 	if err != nil {
 		t.Fatalf("submit immediate: %v", err)
 	}
 	for _, id := range []string{ch.ID, immediate.ID} {
-		if _, err := d.Approve.Serve(ctx, id); err != nil {
+		if _, err := d.Approve.Run(ctx, id); err != nil {
 			t.Fatalf("approve %s: %v", id, err)
 		}
 	}
-	res, err := d.Tick.Serve(ctx)
+	res, err := d.Tick.Run(ctx)
 	if err != nil {
 		t.Fatalf("tick: %v", err)
 	}
@@ -420,7 +418,7 @@ func TestSchedulerEndpoint(t *testing.T) {
 	d, fakeStore, _ := newTestDeps(&fakeSQL{})
 	fakeStore.changes["due"] = entity.Change{ID: "due", Kind: constants.KindDDL, Status: constants.ChangeApproved, Connection: "demo"}
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /internal/callback/scheduler", PostScheduler)
+	mux.HandleFunc("POST /internal/callback/scheduler", d.Tick.Serve)
 
 	for _, path := range []string{
 		"/internal/callback/scheduler",
@@ -443,8 +441,8 @@ func TestChangeKindGated(t *testing.T) {
 	fakeStore.changes["m1"] = entity.Change{ID: "m1", Kind: constants.KindMongo, Status: constants.ChangeValidated, Connection: "mongo"}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /external/v1/engine/{engine}/changes/{id}/approve", ApproveChange)
-	mux.HandleFunc("POST /external/v1/engine/{engine}/changes/{id}/reject", RejectChange)
+	mux.HandleFunc("POST /external/v1/engine/{engine}/changes/{id}/approve", d.ChangeApprove.Serve)
+	mux.HandleFunc("POST /external/v1/engine/{engine}/changes/{id}/reject", d.ChangeReject.Serve)
 
 	for _, path := range []string{"/external/v1/engine/sql/changes/m1/approve", "/external/v1/engine/sql/changes/m1/reject"} {
 		rec := httptest.NewRecorder()

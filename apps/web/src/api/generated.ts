@@ -60,7 +60,7 @@ export interface paths {
             /** @description username and password */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.loginRequest"];
+                    "application/json": components["schemas"]["usecases.loginRequest"];
                 };
             };
             responses: {
@@ -70,7 +70,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["handlers.loginResponse"];
+                        "*/*": components["schemas"]["usecases.loginResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -153,7 +153,7 @@ export interface paths {
             /** @description old and new password */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.changePasswordRequest"];
+                    "application/json": components["schemas"]["usecases.changePasswordRequest"];
                 };
             };
             responses: {
@@ -204,7 +204,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["handlers.DriverInfo"][];
+                        "*/*": components["schemas"]["usecases.DriverInfo"][];
                     };
                 };
             };
@@ -242,7 +242,7 @@ export interface paths {
                     content: {
                         "*/*": {
                             groups?: string[];
-                            users?: components["schemas"]["handlers.memberUser"][];
+                            users?: components["schemas"]["usecases.memberUser"][];
                         };
                     };
                 };
@@ -623,7 +623,7 @@ export interface paths {
             /** @description scheduledAt unix seconds; 0 clears the schedule */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.scheduleBody"];
+                    "application/json": components["schemas"]["usecases.scheduleBody"];
                 };
             };
             responses: {
@@ -844,7 +844,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["handlers.opBody"];
+            requestBody: components["requestBodies"]["usecases.opBody"];
             responses: {
                 /** @description OK */
                 200: {
@@ -906,7 +906,7 @@ export interface paths {
             /** @description table */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.opBody"];
+                    "application/json": components["schemas"]["usecases.opBody"];
                 };
             };
             responses: {
@@ -1095,7 +1095,7 @@ export interface paths {
             /** @description confirm must repeat the connection name */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.memcacheFlushBody"];
+                    "application/json": components["schemas"]["usecases.cacheFlushBody"];
                 };
             };
             responses: {
@@ -1208,7 +1208,7 @@ export interface paths {
             /** @description keys to remove */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.memcacheKeysBody"];
+                    "application/json": components["schemas"]["usecases.cacheKeysBody"];
                 };
             };
             responses: {
@@ -1326,7 +1326,7 @@ export interface paths {
             /** @description member, member type and level */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.permissionBody"];
+                    "application/json": components["schemas"]["usecases.permissionBody"];
                 };
             };
             responses: {
@@ -1446,7 +1446,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Run a SQL console op (query | alter | rollback | analytics) */
+        /** Run a SQL console op (query) */
         post: {
             parameters: {
                 query?: never;
@@ -1459,12 +1459,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            /** @description sql (or table for analytics) */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["handlers.opBody"];
-                };
-            };
+            requestBody: components["requestBodies"]["usecases.opBody"];
             responses: {
                 /** @description OK */
                 200: {
@@ -1587,7 +1582,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["handlers.opBody"];
+            requestBody: components["requestBodies"]["usecases.opBody"];
             responses: {
                 /** @description OK */
                 200: {
@@ -1984,7 +1979,7 @@ export interface paths {
             /** @description new password */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["handlers.passwordBody"];
+                    "application/json": components["schemas"]["usecases.passwordBody"];
                 };
             };
             responses: {
@@ -2046,7 +2041,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["handlers.MeResponse"];
+                        "*/*": components["schemas"]["usecases.MeResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2304,12 +2299,12 @@ export interface components {
             subject: string;
             username?: string;
         };
-        "handlers.DriverInfo": {
+        "usecases.DriverInfo": {
             driver?: string;
             family?: string;
             label?: string;
         };
-        "handlers.MeResponse": {
+        "usecases.MeResponse": {
             /** @description Admin reports membership of the configured global-admin group. */
             admin?: boolean;
             connections?: {
@@ -2320,29 +2315,34 @@ export interface components {
             name?: string;
             sub?: string;
         };
-        "handlers.changePasswordRequest": {
+        /** @description applied and failed change ids from one tick. */
+        "usecases.TickResult": {
+            applied?: string[];
+            failed?: string[];
+        };
+        "usecases.cacheFlushBody": {
+            confirm?: string;
+        };
+        "usecases.cacheKeysBody": {
+            keys?: string[];
+        };
+        "usecases.changePasswordRequest": {
             newPassword?: string;
             oldPassword?: string;
         };
-        "handlers.loginRequest": {
+        "usecases.loginRequest": {
             password?: string;
             username?: string;
         };
-        "handlers.loginResponse": {
+        "usecases.loginResponse": {
             token?: string;
             user?: components["schemas"]["entity.User"];
         };
-        "handlers.memberUser": {
+        "usecases.memberUser": {
             label?: string;
             subject?: string;
         };
-        "handlers.memcacheFlushBody": {
-            confirm?: string;
-        };
-        "handlers.memcacheKeysBody": {
-            keys?: string[];
-        };
-        "handlers.mongoChangeBody": {
+        "usecases.mongoChangeBody": {
             collection?: string;
             connection?: string;
             database?: string;
@@ -2354,34 +2354,29 @@ export interface components {
             sort?: string;
             value?: string;
         };
-        "handlers.opBody": {
+        "usecases.opBody": {
             sql?: string;
             table?: string;
         };
-        "handlers.passwordBody": {
+        "usecases.passwordBody": {
             password?: string;
         };
-        "handlers.permissionBody": {
+        "usecases.permissionBody": {
             level?: string;
             member?: string;
             memberType?: string;
         };
-        "handlers.scheduleBody": {
+        "usecases.scheduleBody": {
             scheduledAt?: number;
-        };
-        /** @description applied and failed change ids from one tick. */
-        "usecases.TickResult": {
-            applied?: string[];
-            failed?: string[];
         };
     };
     responses: never;
     parameters: never;
     requestBodies: {
         /** @description sql */
-        "handlers.opBody": {
+        "usecases.opBody": {
             content: {
-                "application/json": components["schemas"]["handlers.opBody"];
+                "application/json": components["schemas"]["usecases.opBody"];
             };
         };
     };

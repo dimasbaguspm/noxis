@@ -15,7 +15,7 @@ type Op struct {
 }
 
 // Serve runs it.
-func (uc Op) Serve(ctx context.Context, sq interfaces.SQLModule, name, operation, sqlText, table string) (out interfaces.Result, err error) {
+func (uc Op) Run(ctx context.Context, sq interfaces.SQLModule, name, operation, sqlText, table string) (out interfaces.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	c, err := rawConn(ctx, uc.Connections, uc.Permissions, sq, name, OpLevel(operation))

@@ -17,7 +17,7 @@ type Reject struct {
 }
 
 // Serve runs it.
-func (uc Reject) Serve(ctx context.Context, id string) (out entity.Change, err error) {
+func (uc Reject) Run(ctx context.Context, id string) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	ch, err := uc.Changes.GetChange(ctx, id)

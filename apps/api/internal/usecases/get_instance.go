@@ -15,7 +15,7 @@ type Instance struct {
 }
 
 // Serve runs it.
-func (uc Instance) Serve(ctx context.Context, id string) (out entity.Connection, err error) {
+func (uc Instance) Run(ctx context.Context, id string) (out entity.Connection, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	c, err := uc.Connections.GetByID(ctx, id)

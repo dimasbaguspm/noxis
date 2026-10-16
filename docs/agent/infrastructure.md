@@ -60,7 +60,7 @@ entry. Defaults and cross-field rules live in `LoadConfig` / `Validate`; a
 Two images share `apps/api` as the Go build source:
 
 - `Dockerfile` — full: builds `apps/web/` (node:22-alpine) → copies dist into
-  `apps/api/cmd/noxis/server/handlers/static/` → golang:1.26-alpine build. This
+  `apps/api/cmd/noxis/server/static/` → golang:1.26-alpine build. This
   is what `docker-compose.yml` and `docker-publish.yml` use.
 - `Dockerfile.api` — API only: no console build, serves the committed
   `placeholder.html`. `docker build -f Dockerfile.api -t noxis-api .`
@@ -88,8 +88,8 @@ via TanStack Query, monaco editor, `oidc-client-ts` for PKCE login.
 - `pnpm gen:api` regenerates `src/api/generated.ts` from `openapi.yaml`.
 - Layout: `src/pages/*` (routes), `src/components/*` (by domain: changes,
   connection, layout, mongodb, sql, ui), `src/hooks/*` (queries), `src/lib/*`.
-- `apps/api/cmd/noxis/server/handlers/static/` is gitignored except `placeholder.html`
-  (go:embed needs a compile-time file). `GetConsole` answers JSON 404 for any
+- `apps/api/cmd/noxis/server/static/` is gitignored except `placeholder.html`
+  (go:embed needs a compile-time file). `getConsole` answers JSON 404 for any
   unknown `/external/v1/*` instead of serving the SPA shell.
 
 ## Devcontainer

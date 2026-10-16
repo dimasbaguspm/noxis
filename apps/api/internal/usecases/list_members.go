@@ -15,7 +15,7 @@ type Members struct {
 }
 
 // Serve returns the known groups and every account.
-func (uc Members) Serve(ctx context.Context) (groups []string, users []entity.User, err error) {
+func (uc Members) Run(ctx context.Context) (groups []string, users []entity.User, err error) {
 	if err := RequireAdmin(ctx); err != nil {
 		return nil, nil, err
 	}

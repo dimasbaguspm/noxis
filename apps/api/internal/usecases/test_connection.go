@@ -14,7 +14,7 @@ type TestConnection struct {
 }
 
 // Serve runs it.
-func (uc TestConnection) Serve(ctx context.Context, mod interfaces.Module, name string) (err error) {
+func (uc TestConnection) Run(ctx context.Context, mod interfaces.Module, name string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	c, err := rawConn(ctx, uc.Connections, uc.Permissions, mod, name, entity.LevelRead)

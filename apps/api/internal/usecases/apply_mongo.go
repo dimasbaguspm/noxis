@@ -19,7 +19,7 @@ type ApplyMongo struct {
 }
 
 // Serve runs it.
-func (uc ApplyMongo) Serve(ctx context.Context, m interfaces.MongoModule, id string) (out entity.Change, err error) {
+func (uc ApplyMongo) Run(ctx context.Context, m interfaces.MongoModule, id string) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	ch, err := mongoChange(ctx, uc.Changes, uc.Permissions, id)

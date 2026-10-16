@@ -1,4 +1,4 @@
-package handlers
+package server
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"noxis/internal/common/config"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -49,11 +50,7 @@ func (f *fakePermissions) ListGroupNames(_ context.Context) ([]string, error) {
 
 func permissionRouter() http.Handler {
 	d, _, _ := newTestDeps(&fakeSQL{})
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /external/v1/engine/{engine}/connections/{name}/permissions", ListPermissions)
-	mux.HandleFunc("PUT /external/v1/engine/{engine}/connections/{name}/permissions", SetPermission)
-	mux.HandleFunc("DELETE /external/v1/engine/{engine}/connections/{name}/permissions", DeletePermission)
-	return depsHandler(mux, d)
+	return depsHandler(newHandler(d, config.Config{}), d)
 }
 
 func request(t *testing.T, h http.Handler, method, path, body string, admin bool) *httptest.ResponseRecorder {

@@ -3,7 +3,7 @@ import { FAMILY, type FamilyKey } from "@/lib/families";
 import { accessToken, authEnabled } from "@/lib/auth";
 
 export type Level = "read" | "write" | "admin";
-export type Identity = components["schemas"]["handlers.MeResponse"];
+export type Identity = components["schemas"]["usecases.MeResponse"];
 
 export type Connection = components["schemas"]["entity.Connection"];
 export type Change = components["schemas"]["entity.Change"];
@@ -23,7 +23,7 @@ export interface MongoChangeInput extends MongoRequest {
 export type MemcacheKey = components["schemas"]["entity.Key"];
 export type MemcacheKeyPage = components["schemas"]["entity.KeyPage"];
 export type Permission = components["schemas"]["entity.Permission"];
-export type MemberUser = components["schemas"]["handlers.memberUser"];
+export type MemberUser = components["schemas"]["usecases.memberUser"];
 
 // DriverInfo is one entry of the server's hardcoded driver catalog.
 export interface DriverInfo {

@@ -1,4 +1,4 @@
-package handlers
+package server
 
 import (
 	"context"
@@ -74,12 +74,12 @@ func TestAuthorizeOpenModeAndAdmin(t *testing.T) {
 func TestConnectionsListHidesUnreadable(t *testing.T) {
 	base, mod := authzBase(entity.Permission{Connection: "demo", Member: "readers", MemberType: entity.MemberGroup, Level: entity.LevelRead})
 
-	visible, err := (usecases.ConnectionList{Connections: base.Connections, Permissions: base.Permissions}).Serve(asPrincipal(entity.Identity{Groups: []string{"readers"}}), mod)
+	visible, err := (usecases.ConnectionList{Connections: base.Connections, Permissions: base.Permissions}).Run(asPrincipal(entity.Identity{Groups: []string{"readers"}}), mod)
 	if err != nil || len(visible) != 1 {
 		t.Fatalf("granted reader: list=%v err=%v", visible, err)
 	}
 
-	hidden, err := (usecases.ConnectionList{Connections: base.Connections, Permissions: base.Permissions}).Serve(asPrincipal(entity.Identity{Groups: []string{"strangers"}}), mod)
+	hidden, err := (usecases.ConnectionList{Connections: base.Connections, Permissions: base.Permissions}).Run(asPrincipal(entity.Identity{Groups: []string{"strangers"}}), mod)
 	if err != nil || len(hidden) != 0 {
 		t.Fatalf("stranger: list=%v err=%v", hidden, err)
 	}

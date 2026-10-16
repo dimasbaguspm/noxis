@@ -16,7 +16,7 @@ type ConnectionLevels struct {
 }
 
 // Serve runs it.
-func (uc ConnectionLevels) Serve(ctx context.Context) (map[string]string, error) {
+func (uc ConnectionLevels) Run(ctx context.Context) (map[string]string, error) {
 	p, ok := Principal(ctx)
 	if !ok {
 		return map[string]string{}, nil

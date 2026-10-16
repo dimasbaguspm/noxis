@@ -1,5 +1,5 @@
 // Package server is the noxis REST API and operator console: the transport
-// wiring. Swagger annotations live on the handlers in the api package.
+// wiring. Swagger annotations live on the use case Serve methods.
 //
 // @title       noxis API
 // @version     0.1.0
@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"noxis/cmd/noxis/server/deps"
-	"noxis/cmd/noxis/server/handlers"
 	"noxis/cmd/noxis/server/middlewares"
 	"noxis/internal/common/config"
 	"noxis/internal/constants"
@@ -41,84 +40,85 @@ func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config, authSvc *
 	})
 }
 
-// newHandler wires routes to plain handlers. Every request context carries
-// the deps seeded in Run; a handler reads what it needs with usecases.From.
+// newHandler wires routes straight to use case methods. Each use case is an
+// http.Handler-shaped Serve(w, r): the route is the address, the use case owns
+// the request and the response, and there is no handler layer in between.
 //
 // Routes are generic over the engine family: `{engine}` names the family and
-// every handler resolves its module from the registry. A family is registered
-// exactly once, here, and a family that does not serve a route is refused by
-// the handler (404) instead of reaching the wrong module.
-func newHandler(cfg config.Config) http.Handler {
+// every Serve resolves its module from the registry. A family that does not
+// serve a route is refused by the use case (404) instead of reaching the wrong
+// module.
+func newHandler(d deps.Uses, cfg config.Config) http.Handler {
 	mux := http.NewServeMux()
 	// The public API is versioned and mounted under /external; internal triggers
 	// live under /internal; the console shell and health probes stay at the root.
 	const api = constants.APIPrefix
 
-	mux.HandleFunc("GET /healthz", handlers.GetHealthz)
-	mux.HandleFunc("GET "+api+"/config/drivers", handlers.ListDrivers)
-	mux.HandleFunc("GET "+api+"/auth/config", handlers.GetAuthConfig)
-	mux.HandleFunc("POST "+api+"/auth/login", handlers.PostLogin)
-	mux.HandleFunc("GET "+api+"/me", handlers.GetMe)
-	mux.HandleFunc("POST "+api+"/auth/logout", handlers.PostLogout)
-	mux.HandleFunc("POST "+api+"/auth/password", handlers.PostChangePassword)
+	mux.HandleFunc("GET /healthz", getHealthz)
+	mux.HandleFunc("GET "+api+"/config/drivers", d.Drivers.Serve)
+	mux.HandleFunc("GET "+api+"/auth/config", d.AuthConfig.Serve)
+	mux.HandleFunc("POST "+api+"/auth/login", d.Login.Serve)
+	mux.HandleFunc("GET "+api+"/me", d.ConnectionLevels.Serve)
+	mux.HandleFunc("POST "+api+"/auth/logout", d.Logout.Serve)
+	mux.HandleFunc("POST "+api+"/auth/password", d.ChangePass.Serve)
 
-	// Connections: one generic handler per route, gated by the {engine} path
+	// Connections: one generic route per operation, gated by the {engine} path
 	// parameter through the module registry.
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections", handlers.ListConnections)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections", handlers.SaveConnection)
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}", handlers.GetConnection)
-	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}", handlers.DeleteConnection)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/test", handlers.TestConnection)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections", d.ConnectionList.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections", d.SaveConnection.Serve)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}", d.Connection.Serve)
+	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}", d.DeleteConnection.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/test", d.TestConnection.Serve)
 
 	// Permissions: per-connection RBAC policy (users and groups), managed by
 	// global admins only.
-	mux.HandleFunc("GET "+api+"/config/members", handlers.ListConfigMembers)
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/permissions", handlers.ListPermissions)
-	mux.HandleFunc("PUT "+api+"/engine/{engine}/connections/{name}/permissions", handlers.SetPermission)
-	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}/permissions", handlers.DeletePermission)
+	mux.HandleFunc("GET "+api+"/config/members", d.Members.Serve)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/permissions", d.ListPermissions.Serve)
+	mux.HandleFunc("PUT "+api+"/engine/{engine}/connections/{name}/permissions", d.SetPermission.Serve)
+	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}/permissions", d.DeletePermission.Serve)
 
 	// SQL-only: schema, row preview and the console ops.
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/schema", handlers.GetSchema)
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/tables/{table}/rows", handlers.GetRows)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/query", handlers.PostQuery)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/alter", handlers.PostAlter)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/rollback", handlers.PostRollback)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/analyze", handlers.PostAnalyze)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/schema", d.Schema.Serve)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/tables/{table}/rows", d.Rows.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/query", d.Op.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/alter", d.Op.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/rollback", d.Op.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/analyze", d.Op.Serve)
 
 	// Changes: SQL and MongoDB keep separate queues behind one route.
-	mux.HandleFunc("GET "+api+"/engine/{engine}/changes", handlers.ListChanges)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/changes", handlers.SubmitChange)
-	mux.HandleFunc("GET "+api+"/engine/{engine}/changes/{id}", handlers.GetChange)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/approve", handlers.ApproveChange)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/apply", handlers.ApplyChange)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/reject", handlers.RejectChange)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/schedule", handlers.ScheduleChange)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/changes", d.ChangeList.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/changes", d.ChangeSubmit.Serve)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/changes/{id}", d.ChangeGet.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/approve", d.ChangeApprove.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/apply", d.ChangeApply.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/reject", d.ChangeReject.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/schedule", d.ChangeSchedule.Serve)
 
 	// Memory-cache-only: keys, values, removal and emptying the database.
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/keys", handlers.ListKeys)
-	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}/keys", handlers.DeleteKeys)
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/value", handlers.GetValue)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/flush", handlers.FlushDB)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/keys", d.CacheKeys.Serve)
+	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}/keys", d.CacheDelete.Serve)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/value", d.CacheValue.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/flush", d.CacheFlush.Serve)
 
 	// MongoDB-only: databases, collections and read requests.
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/databases", handlers.ListDatabases)
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/collections", handlers.ListCollections)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/requests", handlers.PostRequest)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/databases", d.MongoDbs.Serve)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/collections", d.MongoColls.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/requests", d.MongoRun.Serve)
 
-	mux.Handle("GET /assets/", http.HandlerFunc(handlers.GetAssets)) // embedded FS keeps the assets/ prefix
-	mux.HandleFunc("GET /", handlers.GetConsole)                     // the operator console (SPA shell)
+	mux.Handle("GET /assets/", http.HandlerFunc(getAssets)) // embedded FS keeps the assets/ prefix
+	mux.HandleFunc("GET /", getConsole)                     // the operator console (SPA shell)
 
 	// Scheduling: an external service drives due changes through this trigger,
 	// authenticated with the shared scheduler key + secret; there is no in-process
 	// scheduler and no ticker sidecar.
-	mux.Handle("POST /internal/callback/scheduler", middlewares.WithSchedulerAuth(cfg.SchedulerKey, cfg.SchedulerSecret, http.HandlerFunc(handlers.PostScheduler)))
+	mux.Handle("POST /internal/callback/scheduler", middlewares.WithSchedulerAuth(cfg.SchedulerKey, cfg.SchedulerSecret, http.HandlerFunc(d.Tick.Serve)))
 
 	// Instances address a connection by its stable id, across families. The
 	// family routes live under {api}/engine/{engine}/..., so these paths never
 	// collide with the {engine} wildcard.
-	mux.HandleFunc("GET "+api+"/instances", handlers.ListInstances)
-	mux.HandleFunc("GET "+api+"/instances/{id}", handlers.GetInstance)
-	mux.HandleFunc("POST "+api+"/instances/{id}/password", handlers.RotatePassword)
+	mux.HandleFunc("GET "+api+"/instances", d.Instances.Serve)
+	mux.HandleFunc("GET "+api+"/instances/{id}", d.Instance.Serve)
+	mux.HandleFunc("POST "+api+"/instances/{id}/password", d.RotatePassword.Serve)
 
 	return mux
 }
@@ -155,11 +155,12 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 	// CORS, then authentication, then request logging + span: the request log
 	// and its span run after the principal is attached, so the user's trace
 	// attributes and log fields are set once, in the middleware layer.
-	handler := middlewares.CORS(middlewares.WithAuth(authSvc, middlewares.RequestLog(newHandler(cfg), log)))
+	handler := middlewares.CORS(middlewares.WithAuth(authSvc, middlewares.RequestLog(newHandler(d, cfg), log)))
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler}
-	// every request ctx descends from ours, seeded once with the deps
+	// every request ctx descends from ours, carrying the engine registry the
+	// use cases resolve {engine} through
 	srv.BaseContext = func(net.Listener) context.Context {
-		return deps.Seed(modules.WithRegistry(ctx, d.Modules), d)
+		return modules.WithRegistry(ctx, d.Modules)
 	}
 
 	errCh := make(chan error, 1)
