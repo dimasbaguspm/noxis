@@ -23,4 +23,17 @@ func TestConnectionValidation(t *testing.T) {
 	if err := valkey.Validate(); err != nil {
 		t.Fatalf("valkey without a user must pass: %v", err)
 	}
+
+	// SQLite is file-backed: only the path (Database) is required.
+	if err := (Connection{Name: "c", Driver: "sqlite", Database: "/data/app.db"}).Validate(); err != nil {
+		t.Fatalf("sqlite with a path must pass: %v", err)
+	}
+	if err := (Connection{Name: "c", Driver: "sqlite"}).Validate(); err == nil {
+		t.Fatal("sqlite without a path must fail validation")
+	}
+	noPort := base
+	noPort.Driver, noPort.User, noPort.Port = "postgres", "u", 0
+	if err := noPort.Validate(); err == nil {
+		t.Fatal("postgres without a port must fail validation")
+	}
 }

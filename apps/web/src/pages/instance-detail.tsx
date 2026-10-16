@@ -106,8 +106,14 @@ export default function InstanceDetailPage() {
 
   const meta = familyByKey[family];
   const Icon = meta.icon;
-  const databaseLabel =
-    family === FAMILY.SQL ? "Database" : family === FAMILY.MONGODB ? "Database (auth)" : "DB index";
+  const fileDriver = instance.driver === "sqlite";
+  const databaseLabel = fileDriver
+    ? "File path"
+    : family === FAMILY.SQL
+      ? "Database"
+      : family === FAMILY.MONGODB
+        ? "Database (auth)"
+        : "DB index";
 
   return (
     <div className="flex flex-col gap-4">
@@ -155,10 +161,14 @@ export default function InstanceDetailPage() {
             <dd>
               <Badge variant="secondary">{instance.driver}</Badge>
             </dd>
-            <dt className="text-muted-foreground">Endpoint</dt>
-            <dd className="font-mono text-xs">
-              {instance.host}:{instance.port}
-            </dd>
+            {!fileDriver && (
+              <>
+                <dt className="text-muted-foreground">Endpoint</dt>
+                <dd className="font-mono text-xs">
+                  {instance.host}:{instance.port}
+                </dd>
+              </>
+            )}
             <dt className="text-muted-foreground">{databaseLabel}</dt>
             <dd>{instance.database}</dd>
             {instance.user && (

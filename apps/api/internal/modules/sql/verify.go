@@ -31,6 +31,11 @@ const scratchPrefix = "noxis_verify_"
 func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
+	// SQLite DDL is transactional, so a rolled-back transaction is a safe dry
+	// run on the live schema; no scratch database is needed.
+	if isSQLite(c.Driver) {
+		return validateChangeTx(ctx, c, query, rollback)
+	}
 	started := time.Now()
 	schema := scratchPrefix + idgen.Hex(6)
 
@@ -93,6 +98,48 @@ func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rol
 	}, nil
 }
 
+// validateChangeTx dry-runs a change and its rollback in one transaction that
+// always rolls back. SQLite is the driver this exists for: it supports
+// transactional DDL, so the live tables can be exercised directly.
+func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback string) (Result, error) {
+	started := time.Now()
+	var affected int64
+	_, err := withDB(c, func(db *stdsql.DB) (struct{}, error) {
+		tx, err := db.BeginTx(ctx, nil)
+		if err != nil {
+			return struct{}{}, fmt.Errorf("begin: %w", err)
+		}
+		defer func() { _ = tx.Rollback() }() // the dry run never persists
+		if _, err := execEach(query, func(stmt string) error {
+			out, err := tx.ExecContext(ctx, stmt)
+			if err != nil {
+				return hintOf(stmt, err)
+			}
+			if a, err := out.RowsAffected(); err == nil {
+				affected += a
+			}
+			return nil
+		}); err != nil {
+			return struct{}{}, fmt.Errorf("query %w", err)
+		}
+		if _, err := execEach(rollback, func(stmt string) error {
+			_, err := tx.ExecContext(ctx, stmt)
+			return hintOf(stmt, err)
+		}); err != nil {
+			return struct{}{}, fmt.Errorf("rollback %w", err)
+		}
+		return struct{}{}, nil
+	})
+	if err != nil {
+		return Result{}, err
+	}
+	return Result{
+		Affected:   affected,
+		DurationMs: time.Since(started).Milliseconds(),
+		Message:    "verified in a rolled-back transaction on sqlite",
+	}, nil
+}
+
 // mirrorReferenced copies the structure of every referenced table that already
 // exists live into the scratch schema, so the change has something to act on.
 // Tables the batch creates itself are skipped.
@@ -132,6 +179,9 @@ func splitRef(c entity.Connection, ref string) (schema, table string) {
 	}
 	if isMySQL(c.Driver) {
 		return c.Database, ref
+	}
+	if isSQLite(c.Driver) {
+		return "main", ref
 	}
 	return "public", ref
 }

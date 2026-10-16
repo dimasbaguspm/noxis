@@ -18,7 +18,10 @@ const (
 const (
 	DriverPostgres = "postgres"
 	DriverMySQL    = "mysql"
-	DriverRedis    = "redis"
+	// DriverSQLite is a file-backed SQL database: the connection's Database is
+	// the file path, with no host, port or user.
+	DriverSQLite = "sqlite"
+	DriverRedis  = "redis"
 	// DriverValkey is the Linux Foundation fork of Redis: same protocol, same
 	// commands, same family. It is a separate driver name so the console can
 	// show what it is actually talking to.

@@ -48,8 +48,13 @@ func withDB[T any](c entity.Connection, fn func(db *stdsql.DB) (T, error)) (T, e
 		return zero, fmt.Errorf("open %s: %w", c.Name, err)
 	}
 	defer db.Close()
-	db.SetMaxOpenConns(4)
-	db.SetMaxIdleConns(2)
+	if isSQLite(c.Driver) {
+		// SQLite serializes writers; a single connection avoids "database is locked".
+		db.SetMaxOpenConns(1)
+	} else {
+		db.SetMaxOpenConns(4)
+		db.SetMaxIdleConns(2)
+	}
 	db.SetConnMaxLifetime(5 * time.Minute)
 	return fn(db)
 }
@@ -252,7 +257,7 @@ func (u *DB) Tables(ctx context.Context, c entity.Connection) (tables []entity.T
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	return withDB(c, func(db *stdsql.DB) ([]entity.Table, error) {
-		return listTables(ctx, db)
+		return listTables(ctx, db, c.Driver)
 	})
 }
 

@@ -3,7 +3,8 @@
 A lightweight console to query and change the databases you already run, with confidence.
 
 **The goal:** point noXis at the databases you already run (Postgres,
-MySQL/MariaDB, Redis, Valkey and MongoDB) and get a single place to browse them, run reads, and
+MySQL/MariaDB, SQLite, Redis, Valkey and MongoDB) and get a single place to
+browse them, run reads, and
 ship changes safely. No agents, no brokers, no orchestration — one binary, one
 volume, no docker socket.
 
@@ -23,6 +24,10 @@ volume, no docker socket.
     change.
 - **Honest about drivers** — MySQL commits DDL implicitly, so a change carrying
   DDL there is marked `unverified` instead of pretending a dry-run happened.
+- **SQLite is a file** — a SQLite connection is a path on the noXis
+  host/container (mount it), not a server. Its changes dry-run in a transaction
+  that always rolls back, since SQLite DDL is transactional. Point it at a
+  database file — never noXis's own registry.
 - **Redis is not pretended into SQL** — a Redis value cannot be rolled back, so
   there is no validated change queue for it: keys can be browsed, inspected and
   removed, and every operation is a typed client call (no command text to
