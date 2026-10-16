@@ -12,13 +12,10 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
-
-// ErrInvalidCredentials is the single answer to every failed login: it does not
-// reveal whether the account exists, is disabled, or had the wrong password.
-var ErrInvalidCredentials = errors.New("invalid credentials")
 
 const (
 	// TokenTTL bounds how long a local login survives.
@@ -56,13 +53,13 @@ func NewService(users interfaces.UserRepository, oidc interfaces.Verifier) *Serv
 // first time it is seen. Anything else is rejected.
 func (s *Service) Verify(ctx context.Context, rawToken string) (entity.Identity, error) {
 	if rawToken == "" {
-		return entity.Identity{}, ErrInvalidCredentials
+		return entity.Identity{}, constants.ErrInvalidCredentials
 	}
 	if u, err := s.users.UserByToken(ctx, TokenHash(rawToken), s.now().Unix()); err == nil {
 		return u.Identity(), nil
 	}
 	if s.oidc == nil {
-		return entity.Identity{}, ErrInvalidCredentials
+		return entity.Identity{}, constants.ErrInvalidCredentials
 	}
 	id, err := s.oidc.Verify(ctx, rawToken)
 	if err != nil {
@@ -109,10 +106,10 @@ func (s *Service) Login(ctx context.Context, username, password string) (string,
 	if err != nil {
 		// pay the bcrypt cost anyway: timing must not reveal a known username
 		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
-		return "", entity.User{}, ErrInvalidCredentials
+		return "", entity.User{}, constants.ErrInvalidCredentials
 	}
 	if u.Disabled || bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)) != nil {
-		return "", entity.User{}, ErrInvalidCredentials
+		return "", entity.User{}, constants.ErrInvalidCredentials
 	}
 	token, hash, err := newToken()
 	if err != nil {
@@ -135,7 +132,7 @@ func (s *Service) Logout(ctx context.Context, subject string) error {
 func (s *Service) ChangePassword(ctx context.Context, subject, oldPassword, newPassword string) error {
 	u, err := s.users.GetUser(ctx, subject)
 	if err != nil || u.Password == "" || bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(oldPassword)) != nil {
-		return ErrInvalidCredentials
+		return constants.ErrInvalidCredentials
 	}
 	if err := checkPassword(newPassword); err != nil {
 		return err

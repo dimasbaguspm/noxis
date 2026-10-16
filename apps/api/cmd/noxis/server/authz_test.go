@@ -50,7 +50,7 @@ func TestAuthorizeByEffectiveLevel(t *testing.T) {
 		if tc.ok && err != nil {
 			t.Errorf("%s: err=%v want allowed", tc.name, err)
 		}
-		if !tc.ok && !errors.Is(err, usecases.ErrForbidden) {
+		if !tc.ok && !errors.Is(err, constants.ErrForbidden) {
 			t.Errorf("%s: err=%v want forbidden", tc.name, err)
 		}
 	}

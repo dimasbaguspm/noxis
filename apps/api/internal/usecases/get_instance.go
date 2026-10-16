@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"noxis/internal/common/logging"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
@@ -24,14 +25,14 @@ func (uc Instance) Run(ctx context.Context, id string) (out entity.Connection, e
 	}
 	mod, ok := uc.Modules.Serves(c.Driver)
 	if !ok {
-		return entity.Connection{}, interfaces.ErrUnsupported
+		return entity.Connection{}, constants.ErrUnsupported
 	}
 	readable, err := CanRead(ctx, uc.Permissions, c.Name)
 	if err != nil {
 		return entity.Connection{}, err
 	}
 	if !readable {
-		return entity.Connection{}, interfaces.ErrNotFound
+		return entity.Connection{}, constants.ErrNotFound
 	}
 	c.Family = mod.Family()
 	return c.Redacted(), nil

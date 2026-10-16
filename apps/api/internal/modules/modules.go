@@ -57,7 +57,7 @@ func (r registry) Auth() *auth.Service { return r.auth }
 func (r registry) Engine(name string) (interfaces.Module, error) {
 	mod, ok := r.mods[name]
 	if !ok {
-		return nil, fmt.Errorf("%w: no engine %q", interfaces.ErrUnsupported, name)
+		return nil, fmt.Errorf("%w: no engine %q", constants.ErrUnsupported, name)
 	}
 	return mod, nil
 }
@@ -120,5 +120,5 @@ func memcacheOf(mod interfaces.Module) (interfaces.MemcacheModule, error) {
 }
 
 func unsupported(mod interfaces.Module, what string) error {
-	return fmt.Errorf("%w: engine %q does not serve %s", interfaces.ErrUnsupported, mod.Family(), what)
+	return fmt.Errorf("%w: engine %q does not serve %s", constants.ErrUnsupported, mod.Family(), what)
 }

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 )
 
 // fakeUsers is an in-memory UserRepository for the service tests.
@@ -38,7 +38,7 @@ func (f *fakeUsers) ListUsers(context.Context) ([]entity.User, error) {
 func (f *fakeUsers) GetUser(_ context.Context, subject string) (*entity.User, error) {
 	u, ok := f.bySubject[subject]
 	if !ok {
-		return nil, interfaces.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 	cp := *u
 	return &cp, nil
@@ -51,7 +51,7 @@ func (f *fakeUsers) GetUserByUsername(_ context.Context, username string) (*enti
 			return &cp, nil
 		}
 	}
-	return nil, interfaces.ErrNotFound
+	return nil, constants.ErrNotFound
 }
 
 func (f *fakeUsers) EnsureSubject(_ context.Context, subject string) error {
@@ -70,7 +70,7 @@ func (f *fakeUsers) SaveUser(_ context.Context, u entity.User) error {
 func (f *fakeUsers) SetUserPassword(_ context.Context, subject, hash string) error {
 	u, ok := f.bySubject[subject]
 	if !ok {
-		return interfaces.ErrNotFound
+		return constants.ErrNotFound
 	}
 	u.Password = hash
 	return nil
@@ -78,7 +78,7 @@ func (f *fakeUsers) SetUserPassword(_ context.Context, subject, hash string) err
 
 func (f *fakeUsers) SetUserToken(_ context.Context, subject, tokenHash string, expiresAt int64) error {
 	if _, ok := f.bySubject[subject]; !ok {
-		return interfaces.ErrNotFound
+		return constants.ErrNotFound
 	}
 	for h, t := range f.tokens { // single active token
 		if t.subject == subject {
@@ -101,11 +101,11 @@ func (f *fakeUsers) ClearUserToken(_ context.Context, subject string) error {
 func (f *fakeUsers) UserByToken(_ context.Context, tokenHash string, now int64) (*entity.User, error) {
 	t, ok := f.tokens[tokenHash]
 	if !ok || t.expires <= now {
-		return nil, interfaces.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 	u, ok := f.bySubject[t.subject]
 	if !ok || u.Disabled {
-		return nil, interfaces.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 	cp := *u
 	return &cp, nil
@@ -181,16 +181,16 @@ func TestLoginRejects(t *testing.T) {
 	svc, repo := seeded(t)
 	ctx := context.Background()
 
-	if _, _, err := svc.Login(ctx, "root", "wrong-password"); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, err := svc.Login(ctx, "root", "wrong-password"); !errors.Is(err, constants.ErrInvalidCredentials) {
 		t.Fatalf("wrong password: %v", err)
 	}
-	if _, _, err := svc.Login(ctx, "ghost", "whatever-long"); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, err := svc.Login(ctx, "ghost", "whatever-long"); !errors.Is(err, constants.ErrInvalidCredentials) {
 		t.Fatalf("unknown user: %v", err)
 	}
 	u, _ := repo.GetUser(ctx, "local:root")
 	u.Disabled = true
 	_ = repo.SaveUser(ctx, *u)
-	if _, _, err := svc.Login(ctx, "root", "supersecret"); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, err := svc.Login(ctx, "root", "supersecret"); !errors.Is(err, constants.ErrInvalidCredentials) {
 		t.Fatalf("disabled user: %v", err)
 	}
 }
@@ -203,7 +203,7 @@ func TestChangePasswordRotatesToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("login: %v", err)
 	}
-	if err := svc.ChangePassword(ctx, "local:root", "wrong", "another-long"); !errors.Is(err, ErrInvalidCredentials) {
+	if err := svc.ChangePassword(ctx, "local:root", "wrong", "another-long"); !errors.Is(err, constants.ErrInvalidCredentials) {
 		t.Fatalf("old password check: %v", err)
 	}
 	if err := svc.ChangePassword(ctx, "local:root", "supersecret", "short"); err == nil {

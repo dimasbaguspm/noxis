@@ -6,14 +6,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
-	"noxis/internal/modules/auth"
 )
-
-// ErrUnauthorized maps to 401: the caller is missing though the operation
-// needs one (a local-account action reachable only when authenticated).
-var ErrUnauthorized = errors.New("invalid or missing api key")
 
 // errLocalAccountRequired reports a local-only action asked of an OIDC caller.
 var errLocalAccountRequired = errors.New("a local account is required for this action")
@@ -47,11 +42,11 @@ func decode(r *http.Request, v any) error { return json.NewDecoder(r.Body).Decod
 func fail(w http.ResponseWriter, err error) {
 	code := http.StatusBadRequest
 	switch {
-	case errors.Is(err, interfaces.ErrNotFound), errors.Is(err, interfaces.ErrUnsupported):
+	case errors.Is(err, constants.ErrNotFound), errors.Is(err, constants.ErrUnsupported):
 		code = http.StatusNotFound
-	case errors.Is(err, ErrUnauthorized), errors.Is(err, auth.ErrInvalidCredentials):
+	case errors.Is(err, constants.ErrUnauthorized), errors.Is(err, constants.ErrInvalidCredentials):
 		code = http.StatusUnauthorized
-	case errors.Is(err, ErrForbidden):
+	case errors.Is(err, constants.ErrForbidden):
 		code = http.StatusForbidden
 	}
 	w.Header().Set("Content-Type", "application/json")
