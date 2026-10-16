@@ -19,8 +19,8 @@ RUN go mod download
 COPY apps/api/ ./
 # vite writes to <repo>/bin/dist, which is /bin/dist inside this stage
 COPY --from=web /bin/dist /src/dist
-RUN rm -rf cmd/noxis/server/handlers/static/assets cmd/noxis/server/handlers/static/index.html \
-    && cp -r /src/dist/* cmd/noxis/server/handlers/static/ \
+RUN rm -rf cmd/noxis/server/static/assets cmd/noxis/server/static/index.html \
+    && cp -r /src/dist/* cmd/noxis/server/static/ \
     && CGO_ENABLED=0 go build -o /out/noxis ./cmd/noxis
 
 FROM alpine:3.20

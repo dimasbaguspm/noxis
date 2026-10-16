@@ -15,7 +15,7 @@ type MongoChange struct {
 }
 
 // Serve runs it.
-func (uc MongoChange) Serve(ctx context.Context, id string) (*entity.Change, error) {
+func (uc MongoChange) Run(ctx context.Context, id string) (*entity.Change, error) {
 	ch, err := uc.Changes.GetChange(ctx, id)
 	if err != nil {
 		return nil, err

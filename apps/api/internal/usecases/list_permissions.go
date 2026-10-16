@@ -15,7 +15,7 @@ type ListPermissions struct {
 }
 
 // Serve runs it.
-func (uc ListPermissions) Serve(ctx context.Context, mod interfaces.Module, name string) (out []entity.Permission, err error) {
+func (uc ListPermissions) Run(ctx context.Context, mod interfaces.Module, name string) (out []entity.Permission, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := RequireAdmin(ctx); err != nil {

@@ -8,5 +8,5 @@ apps/web/.vite/
 apps/web/dist/
 *.tsbuildinfo
 .pnpm-store/
-apps/api/cmd/noxis/server/handlers/static/index.html
-apps/api/cmd/noxis/server/handlers/static/assets/
+apps/api/cmd/noxis/server/static/index.html
+apps/api/cmd/noxis/server/static/assets/

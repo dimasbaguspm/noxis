@@ -1,4 +1,4 @@
-package handlers
+package server
 
 import (
 	"net/http"
@@ -15,8 +15,7 @@ import (
 
 func TestGetMeServesPrincipal(t *testing.T) {
 	d, _, _ := newTestDeps(&fakeSQL{})
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /external/v1/me", GetMe)
+	h := depsHandler(newHandler(d, config.Config{}), d)
 
 	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
 	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Identity{
@@ -25,7 +24,7 @@ func TestGetMeServesPrincipal(t *testing.T) {
 		Admin:   true,
 	}))
 	rec := httptest.NewRecorder()
-	depsHandler(mux, d).ServeHTTP(rec, req)
+	h.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
@@ -43,13 +42,12 @@ func TestGetMeIncludesLevels(t *testing.T) {
 		"dev": {Connection: "demo", Member: "readers", MemberType: entity.MemberGroup, Level: entity.LevelRead},
 	}}
 	d := deps.Init(deps.Deps{Connections: base.Connections, Changes: base.Changes, Permissions: base.Permissions, Modules: modules.New(base.Modules, nil), Log: discardLog()})
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /external/v1/me", GetMe)
+	h := depsHandler(newHandler(d, config.Config{}), d)
 
 	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
 	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Identity{Subject: "bob", Groups: []string{"readers"}}))
 	rec := httptest.NewRecorder()
-	depsHandler(mux, d).ServeHTTP(rec, req)
+	h.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
@@ -60,13 +58,16 @@ func TestGetMeIncludesLevels(t *testing.T) {
 }
 
 func TestGetAuthConfig(t *testing.T) {
-	d, _, _ := newTestDeps(&fakeSQL{})
-	d.Auth = config.AuthInfo{Local: true}
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /external/v1/auth/config", GetAuthConfig)
+	base, _, _ := newTestBase(&fakeSQL{})
+	d := deps.Init(deps.Deps{
+		Connections: base.Connections, Changes: base.Changes, Permissions: base.Permissions,
+		Modules: modules.New(base.Modules, nil), Log: discardLog(),
+		Auth: config.AuthInfo{Local: true},
+	})
+	h := depsHandler(newHandler(d, config.Config{}), d)
 
 	rec := httptest.NewRecorder()
-	depsHandler(mux, d).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/auth/config", http.NoBody))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/auth/config", http.NoBody))
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"local":true`) {
 		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -74,11 +75,10 @@ func TestGetAuthConfig(t *testing.T) {
 
 func TestGetMeUnauthenticated(t *testing.T) {
 	d, _, _ := newTestDeps(&fakeSQL{})
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /external/v1/me", GetMe)
+	h := depsHandler(newHandler(d, config.Config{}), d)
 
 	rec := httptest.NewRecorder()
-	depsHandler(mux, d).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody))
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody))
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("status=%d want 401", rec.Code)
 	}

@@ -16,7 +16,7 @@ type MongoChanges struct {
 }
 
 // Serve runs it.
-func (uc MongoChanges) Serve(ctx context.Context) (out []entity.Change, err error) {
+func (uc MongoChanges) Run(ctx context.Context) (out []entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	all, err := uc.Changes.ListChanges(ctx)

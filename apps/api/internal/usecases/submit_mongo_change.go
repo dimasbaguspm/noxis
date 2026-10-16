@@ -21,7 +21,7 @@ type SubmitMongoChange struct {
 }
 
 // Serve runs it.
-func (uc SubmitMongoChange) Serve(ctx context.Context, m interfaces.MongoModule, conn, notes string, req interfaces.MongoRequest) (out entity.Change, err error) {
+func (uc SubmitMongoChange) Run(ctx context.Context, m interfaces.MongoModule, conn, notes string, req interfaces.MongoRequest) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	raw, err := rawConn(ctx, uc.Connections, uc.Permissions, m, conn, entity.LevelWrite)

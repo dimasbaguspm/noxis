@@ -22,7 +22,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/handlers.loginRequest"
+              $ref: "#/components/schemas/usecases.loginRequest"
         description: username and password
         required: true
       responses:
@@ -31,7 +31,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/handlers.loginResponse"
+                $ref: "#/components/schemas/usecases.loginResponse"
         "401":
           description: Unauthorized
           content:
@@ -57,7 +57,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/handlers.changePasswordRequest"
+              $ref: "#/components/schemas/usecases.changePasswordRequest"
         description: old and new password
         required: true
       responses:
@@ -80,7 +80,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/handlers.DriverInfo"
+                  $ref: "#/components/schemas/usecases.DriverInfo"
   /external/v1/config/members:
     get:
       summary: The known groups and user accounts for permission editing
@@ -99,7 +99,7 @@ paths:
                   users:
                     type: array
                     items:
-                      $ref: "#/components/schemas/handlers.memberUser"
+                      $ref: "#/components/schemas/usecases.memberUser"
         "403":
           description: Forbidden
           content:
@@ -346,7 +346,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/handlers.scheduleBody"
+              $ref: "#/components/schemas/usecases.scheduleBody"
         description: scheduledAt unix seconds; 0 clears the schedule
         required: true
       responses:
@@ -489,7 +489,7 @@ paths:
           schema:
             type: string
       requestBody:
-        $ref: "#/components/requestBodies/handlers.opBody"
+        $ref: "#/components/requestBodies/usecases.opBody"
       responses:
         "200":
           description: OK
@@ -529,7 +529,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/handlers.opBody"
+              $ref: "#/components/schemas/usecases.opBody"
         description: table
         required: true
       responses:
@@ -657,7 +657,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/handlers.memcacheFlushBody"
+              $ref: "#/components/schemas/usecases.cacheFlushBody"
         description: confirm must repeat the connection name
         required: true
       responses:
@@ -743,7 +743,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/handlers.memcacheKeysBody"
+              $ref: "#/components/schemas/usecases.cacheKeysBody"
         description: keys to remove
         required: true
       responses:
@@ -833,7 +833,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/handlers.permissionBody"
+              $ref: "#/components/schemas/usecases.permissionBody"
         description: member, member type and level
         required: true
       responses:
@@ -911,7 +911,7 @@ paths:
                 $ref: "#/components/schemas/entity.ErrorResponse"
   "/external/v1/engine/{engine}/connections/{name}/query":
     post:
-      summary: Run a SQL console op (query | alter | rollback | analytics)
+      summary: Run a SQL console op (query)
       parameters:
         - description: engine family (sql)
           name: engine
@@ -926,12 +926,7 @@ paths:
           schema:
             type: string
       requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/handlers.opBody"
-        description: sql (or table for analytics)
-        required: true
+        $ref: "#/components/requestBodies/usecases.opBody"
       responses:
         "200":
           description: OK
@@ -1010,7 +1005,7 @@ paths:
           schema:
             type: string
       requestBody:
-        $ref: "#/components/requestBodies/handlers.opBody"
+        $ref: "#/components/requestBodies/usecases.opBody"
       responses:
         "200":
           description: OK
@@ -1271,7 +1266,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/handlers.passwordBody"
+              $ref: "#/components/schemas/usecases.passwordBody"
         description: new password
         required: true
       responses:
@@ -1302,7 +1297,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/handlers.MeResponse"
+                $ref: "#/components/schemas/usecases.MeResponse"
         "401":
           description: Unauthorized
           content:
@@ -1327,11 +1322,11 @@ paths:
                 $ref: "#/components/schemas/usecases.TickResult"
 components:
   requestBodies:
-    handlers.opBody:
+    usecases.opBody:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/handlers.opBody"
+            $ref: "#/components/schemas/usecases.opBody"
       description: sql
       required: true
   schemas:
@@ -1650,7 +1645,7 @@ components:
           type: string
         username:
           type: string
-    handlers.DriverInfo:
+    usecases.DriverInfo:
       type: object
       properties:
         driver:
@@ -1659,7 +1654,7 @@ components:
           type: string
         label:
           type: string
-    handlers.MeResponse:
+    usecases.MeResponse:
       type: object
       properties:
         admin:
@@ -1679,47 +1674,59 @@ components:
           type: string
         sub:
           type: string
-    handlers.changePasswordRequest:
+    usecases.TickResult:
+      description: applied and failed change ids from one tick.
       type: object
       properties:
-        newPassword:
-          type: string
-        oldPassword:
-          type: string
-    handlers.loginRequest:
-      type: object
-      properties:
-        password:
-          type: string
-        username:
-          type: string
-    handlers.loginResponse:
-      type: object
-      properties:
-        token:
-          type: string
-        user:
-          $ref: "#/components/schemas/entity.User"
-    handlers.memberUser:
-      type: object
-      properties:
-        label:
-          type: string
-        subject:
-          type: string
-    handlers.memcacheFlushBody:
+        applied:
+          type: array
+          items:
+            type: string
+        failed:
+          type: array
+          items:
+            type: string
+    usecases.cacheFlushBody:
       type: object
       properties:
         confirm:
           type: string
-    handlers.memcacheKeysBody:
+    usecases.cacheKeysBody:
       type: object
       properties:
         keys:
           type: array
           items:
             type: string
-    handlers.mongoChangeBody:
+    usecases.changePasswordRequest:
+      type: object
+      properties:
+        newPassword:
+          type: string
+        oldPassword:
+          type: string
+    usecases.loginRequest:
+      type: object
+      properties:
+        password:
+          type: string
+        username:
+          type: string
+    usecases.loginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/entity.User"
+    usecases.memberUser:
+      type: object
+      properties:
+        label:
+          type: string
+        subject:
+          type: string
+    usecases.mongoChangeBody:
       type: object
       properties:
         collection:
@@ -1742,19 +1749,19 @@ components:
           type: string
         value:
           type: string
-    handlers.opBody:
+    usecases.opBody:
       type: object
       properties:
         sql:
           type: string
         table:
           type: string
-    handlers.passwordBody:
+    usecases.passwordBody:
       type: object
       properties:
         password:
           type: string
-    handlers.permissionBody:
+    usecases.permissionBody:
       type: object
       properties:
         level:
@@ -1763,20 +1770,8 @@ components:
           type: string
         memberType:
           type: string
-    handlers.scheduleBody:
+    usecases.scheduleBody:
       type: object
       properties:
         scheduledAt:
           type: integer
-    usecases.TickResult:
-      description: applied and failed change ids from one tick.
-      type: object
-      properties:
-        applied:
-          type: array
-          items:
-            type: string
-        failed:
-          type: array
-          items:
-            type: string

@@ -16,7 +16,7 @@ type ListInstances struct {
 }
 
 // Serve runs it.
-func (uc ListInstances) Serve(ctx context.Context, name, driver, host string) (out []entity.Connection, err error) {
+func (uc ListInstances) Run(ctx context.Context, name, driver, host string) (out []entity.Connection, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	list, err := uc.Connections.List(ctx)

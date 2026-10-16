@@ -1,9 +1,9 @@
 // Package usecases holds the business use cases of the noxis console, one
-// file and one Serve per use case. A use case stands alone: it carries only
-// the repositories and modules its flow reads, and never references another
-// use case — shared steps are package helpers (policy, raw, apply) that
-// receive the deps as arguments. Transport concerns live in
-// cmd/noxis/server/handlers.
+// file per use case. The domain work is a Run core; its Serve(w, r) method
+// owns that route's HTTP and there is no separate handler package. A use case
+// stands alone: it carries only the repositories and modules its flow reads,
+// and never references another use case — shared steps are package helpers
+// (policy, raw, apply) that receive the deps as arguments.
 package usecases
 
 import (

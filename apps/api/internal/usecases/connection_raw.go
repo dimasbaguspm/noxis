@@ -16,6 +16,6 @@ type Raw struct {
 }
 
 // Serve runs it.
-func (uc Raw) Serve(ctx context.Context, mod interfaces.Module, name, level string) (*entity.Connection, error) {
+func (uc Raw) Run(ctx context.Context, mod interfaces.Module, name, level string) (*entity.Connection, error) {
 	return rawConn(ctx, uc.Connections, uc.Permissions, mod, name, level)
 }

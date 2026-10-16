@@ -43,6 +43,26 @@ type Uses struct {
 	DeletePermission usecases.DeletePermission
 	Members          usecases.Members
 	ConnectionLevels usecases.ConnectionLevels
+
+	AuthConfig     usecases.AuthConfig
+	Login          usecases.Login
+	Logout         usecases.Logout
+	ChangePass     usecases.ChangePassword
+	Drivers        usecases.Drivers
+	CacheKeys      usecases.CacheKeys
+	CacheValue     usecases.CacheValue
+	CacheDelete    usecases.CacheDelete
+	CacheFlush     usecases.CacheFlush
+	MongoDbs       usecases.MongoDatabases
+	MongoColls     usecases.MongoCollections
+	MongoRun       usecases.MongoRun
+	ChangeList     usecases.ChangeList
+	ChangeSubmit   usecases.ChangeSubmit
+	ChangeGet      usecases.ChangeGet
+	ChangeApprove  usecases.ChangeApprove
+	ChangeApply    usecases.ChangeApply
+	ChangeReject   usecases.ChangeReject
+	ChangeSchedule usecases.ChangeSchedule
 }
 
 // Init binds every use case once, from the sources in d. It is the single
@@ -81,5 +101,25 @@ func Init(d Deps) Uses {
 		DeletePermission: WithDeps(d, usecases.DeletePermission{}),
 		Members:          WithDeps(d, usecases.Members{}),
 		ConnectionLevels: WithDeps(d, usecases.ConnectionLevels{}),
+
+		AuthConfig:     WithDeps(d, usecases.AuthConfig{}),
+		Login:          WithDeps(d, usecases.Login{}),
+		Logout:         WithDeps(d, usecases.Logout{}),
+		ChangePass:     WithDeps(d, usecases.ChangePassword{}),
+		Drivers:        WithDeps(d, usecases.Drivers{}),
+		CacheKeys:      WithDeps(d, usecases.CacheKeys{}),
+		CacheValue:     WithDeps(d, usecases.CacheValue{}),
+		CacheDelete:    WithDeps(d, usecases.CacheDelete{}),
+		CacheFlush:     WithDeps(d, usecases.CacheFlush{}),
+		MongoDbs:       WithDeps(d, usecases.MongoDatabases{}),
+		MongoColls:     WithDeps(d, usecases.MongoCollections{}),
+		MongoRun:       WithDeps(d, usecases.MongoRun{}),
+		ChangeList:     WithDeps(d, usecases.ChangeList{}),
+		ChangeSubmit:   WithDeps(d, usecases.ChangeSubmit{}),
+		ChangeGet:      WithDeps(d, usecases.ChangeGet{}),
+		ChangeApprove:  WithDeps(d, usecases.ChangeApprove{}),
+		ChangeApply:    WithDeps(d, usecases.ChangeApply{}),
+		ChangeReject:   WithDeps(d, usecases.ChangeReject{}),
+		ChangeSchedule: WithDeps(d, usecases.ChangeSchedule{}),
 	}
 }

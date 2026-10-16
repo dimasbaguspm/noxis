@@ -18,7 +18,7 @@ type Schedule struct {
 }
 
 // Serve runs it.
-func (uc Schedule) Serve(ctx context.Context, id string, at int64) (out entity.Change, err error) {
+func (uc Schedule) Run(ctx context.Context, id string, at int64) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	ch, err := uc.Changes.GetChange(ctx, id)

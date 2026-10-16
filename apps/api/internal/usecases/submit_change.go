@@ -20,7 +20,7 @@ type SubmitChange struct {
 }
 
 // Serve runs it.
-func (uc SubmitChange) Serve(ctx context.Context, sq interfaces.SQLModule, ch entity.Change) (out entity.Change, err error) {
+func (uc SubmitChange) Run(ctx context.Context, sq interfaces.SQLModule, ch entity.Change) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := ch.Validate(); err != nil {

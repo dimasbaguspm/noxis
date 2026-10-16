@@ -18,7 +18,7 @@ type Apply struct {
 }
 
 // Serve runs it.
-func (uc Apply) Serve(ctx context.Context, sq interfaces.SQLModule, id string) (out entity.Change, err error) {
+func (uc Apply) Run(ctx context.Context, sq interfaces.SQLModule, id string) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	ch, err := uc.Changes.GetChange(ctx, id)

@@ -15,7 +15,7 @@ type SetPermission struct {
 }
 
 // Serve upserts one member's level on a connection.
-func (uc SetPermission) Serve(ctx context.Context, mod interfaces.Module, name, member, memberType, level string) (out entity.Permission, err error) {
+func (uc SetPermission) Run(ctx context.Context, mod interfaces.Module, name, member, memberType, level string) (out entity.Permission, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := RequireAdmin(ctx); err != nil {

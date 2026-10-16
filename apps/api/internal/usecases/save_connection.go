@@ -17,7 +17,7 @@ type SaveConnection struct {
 }
 
 // Serve runs it.
-func (uc SaveConnection) Serve(ctx context.Context, mod interfaces.Module, c entity.Connection) (out entity.Connection, err error) {
+func (uc SaveConnection) Run(ctx context.Context, mod interfaces.Module, c entity.Connection) (out entity.Connection, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := RequireAdmin(ctx); err != nil {

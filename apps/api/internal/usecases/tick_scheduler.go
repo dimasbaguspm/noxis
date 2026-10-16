@@ -36,7 +36,7 @@ type Tick struct {
 }
 
 // Serve runs it.
-func (uc Tick) Serve(ctx context.Context) (res TickResult, err error) {
+func (uc Tick) Run(ctx context.Context) (res TickResult, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	all, err := uc.Changes.ListChanges(ctx)
