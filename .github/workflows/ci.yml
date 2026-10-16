@@ -2,9 +2,10 @@
 #   go  → lint → build (Dockerfile) → unit → UAT
 #   web → lint + typecheck + build
 # A `changes` gate computes which side moved; the heavy jobs run only for
-# their side. UAT brings the real compose stack up (kafka + master + slave)
-# on the runner's docker daemon and drives it through the REST surface
-# (make uat); the default tag set skips the @slow image-pull scenarios.
+# their side. UAT brings the real compose stack up (noxis + postgres/redis/
+# valkey/mongo/mariadb) on the runner's docker daemon and drives it through the
+# REST surface (make uat); the default tag set skips the @slow image-pull
+# scenarios.
 name: ci
 
 on:

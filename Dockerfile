@@ -22,6 +22,6 @@ RUN rm -rf cmd/noxis/server/handlers/static/assets cmd/noxis/server/handlers/sta
     && CGO_ENABLED=0 go build -o /out/noxis ./cmd/noxis
 
 FROM alpine:3.20
-RUN apk add --no-cache docker-cli ca-certificates
+RUN apk add --no-cache ca-certificates
 COPY --from=build /out/noxis /usr/local/bin/noxis
 ENTRYPOINT ["noxis"]

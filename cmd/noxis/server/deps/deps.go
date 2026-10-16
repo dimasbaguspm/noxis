@@ -11,7 +11,6 @@ import (
 	"noxis/internal/common/config"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules"
-	"noxis/internal/repositories/in-memory-cache"
 )
 
 // Deps is what the initiator provides: the repositories, the engine registry
@@ -22,7 +21,6 @@ type Deps struct {
 	Grants      interfaces.GrantRepository
 	Modules     modules.Registry
 	Log         *slog.Logger
-	Cache       *cache.Cache
 	Auth        config.AuthInfo
 }
 

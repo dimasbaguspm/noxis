@@ -1,0 +1,97 @@
+# Code review checklist
+
+Detail for `AGENTS.md`. Use this when reviewing a diff or a PR. It is
+repo-specific: the generic review skill covers the rest.
+
+## Invariants (a diff that breaks one is a blocker)
+
+1. **Layer direction** — nothing inward imports outward. `entity` imports
+   nothing internal; `usecases` never import `handlers`; repositories never
+   import use cases. New seams go in `internal/interfaces`.
+2. **Access gate** — every connection-scoped flow must go through
+   `usecases.rawConn` (family check + `Authorize`) or `RequireAdmin` for
+   management. A new route that reads a connection without one of these is a
+   security hole.
+3. **Password redaction** — the wire never carries `entity.Connection.Password`.
+   Use `Connection.Redacted()`. Check every new response shape.
+4. **Family isolation** — a memcache connection must be invisible to SQL routes
+   and vice versa. Handlers resolve `{engine}` via the registry; no driver →
+   family switch in code.
+5. **Changes are artifacts** — never delete a `changes` row; a failed
+   submission is returned to the caller, not persisted (see `SubmitChange`).
+6. **Migrations are append-only** — a new column is a new `ALTER TABLE` line;
+   never edit or reorder existing ones.
+7. **SQL guard** — statement-kind checks run **per statement** (split outside
+   string literals/comments). A read endpoint must reject DML/DDL smuggled
+   behind `SELECT 1; DROP ...`.
+
+## What to verify per layer
+
+**Handlers** — thin: decode → resolve module → call use case → return. No
+business logic, no direct repository access, no engine-family literal. Swag
+annotation block updated and `make swagger` run if the route changed.
+
+**Use cases** — one file, one `Serve`, span opened, deps as struct fields.
+Shared logic lives in a package helper, not by calling another use case. Errors
+wrapped with `%w`; sentinel compares with `errors.Is`.
+
+**Modules** — implements an `interfaces.*Module`; has the `var _ interfaces.X`
+satisfier; no engine-specific literal outside `internal/constants`; times out
+every network call.
+
+**Repositories** — new method added to both the interface and `Store`;
+`ErrNotFound` for missing rows; transactions via `WithTx`; no env reads.
+
+**Web** — `pnpm lint` + `pnpm build` pass; API types come from
+`src/api/generated.ts` (run `gen:api` if the spec changed); no hardcoded driver
+list that drifts from `GET /v1/config/drivers`.
+
+## Conventions a reviewer should enforce
+
+- Terse, purposeful comments: explain *why*, not *what*. `ponytail:` comments
+  mark a known limit (`shortcut: <limit>, <when to upgrade>`) — either fine to
+  keep or a reason to ask.
+- No new dependency for a few lines.
+- No option/config/abstraction nobody asked for.
+- Errors lowercase, no punctuation (revive `error-strings`).
+- `context.Context` is the first arg (`context-as-argument`).
+- Every `http.Client`/DB call has a timeout.
+- Constants over magic strings; `internal/constants` for universal values.
+
+## Verification (run before approving)
+
+```bash
+make lint     # golangci-lint v2: errcheck/govet/staticcheck/revive/gocritic/...
+make test     # unit
+make uat      # if the REST surface / engine behaviour changed
+make build    # Dockerfile path is exercised differently in CI
+```
+
+CI additionally runs the Dockerfile build and the web lint+typecheck+build.
+
+## Commit / PR conventions (observed in history)
+
+- Commit subject: `[ai:y][#<issue>] <type>(<scope>): <subject>` where `<type>`
+  is Conventional Commits (`feat`/`refactor`/`fix`/`chore`) and scope is
+  `backend`/`web`.
+- One PR = one issue; the PR body should state scope + what was verified.
+- When asked to open a PR, follow the `mr` skill; for commits, the
+  `git-commit` skill.
+
+## Retired design — do not restore
+
+A master/slave + Kafka + Docker topology was the original design and is fully
+retired. Any branch, issue or note that mentions `doorman`, `slave`, `kafka`,
+`franz`, `NOXIS_BROKER` or `NOXIS_TOPIC_PREFIX` predates the rewrite: the tree
+is one SQLite-backed binary with no broker and no docker socket. A diff that
+"restores" those is wrong.
+
+## Definition of done
+
+- [ ] `make lint` + `make test` green locally.
+- [ ] REST surface changed ⇒ `make swagger` run and `doc/swagger.*` committed.
+- [ ] UI changed ⇒ `make web` (or `pnpm build`) green.
+- [ ] Auth/engine behaviour changed ⇒ `make uat` green.
+- [ ] New persisted column ⇒ appended migration + interface/Store updated.
+- [ ] Access gate present on any new connection-scoped route.
+- [ ] No password on the wire; no secret logged.

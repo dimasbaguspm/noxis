@@ -21,7 +21,6 @@ import (
 	"noxis/internal/interfaces"
 	"noxis/internal/modules"
 	"noxis/internal/modules/auth"
-	cache "noxis/internal/repositories/in-memory-cache"
 	"noxis/internal/repositories/sqlite"
 )
 
@@ -44,7 +43,6 @@ func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config) deps.Uses
 		Grants:      store,
 		Modules:     modules.Default(),
 		Log:         log,
-		Cache:       cache.New(),
 		Auth: config.AuthInfo{
 			Enabled:  cfg.OIDCIssuer != "",
 			Issuer:   cfg.OIDCIssuer,

@@ -93,9 +93,11 @@ opens. Rotate a password from the instance's detail page.
 
 ## Docs
 
-- `PLAN.md` — architecture, decisions, and known ceilings.
+- `AGENTS.md` — the harness brief: repo map, conventions, drift, next steps.
+- `doc/agent/` — architecture, infrastructure, database and code-review docs.
+- `doc/plan/` — one snapshot per `ai:y` plan (issue body + commit + PR), with an index.
 - `doc/swagger.yaml|json` — OpenAPI 3 spec (Postman artifact, generated from
-  controller annotations via `make swagger`).
+  handler annotations via `make swagger`).
 - `web/` — the console source (`make web` embeds it; `make dev-ui` gives a
   hot-reloading dev server on :5173).
 - `test/uat/` — Gherkin acceptance suite over the real stack: `make uat`.
