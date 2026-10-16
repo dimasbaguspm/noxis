@@ -22,9 +22,9 @@ OIDC verifier (nil = open mode), assembles `deps.Uses`, seeds it on
 
 | var | meaning |
 | --- | --- |
-| `NOXIS_LISTEN` | REST listen addr (**required**) |
-| `NOXIS_DB` | SQLite path (**required**) |
-| `NOXIS_SECRET_KEY` | 64 hex chars / 32 bytes; empty = plaintext passwords |
+| `NOXIS_LISTEN` | REST listen addr (default `:9000`) |
+| `NOXIS_DB` | SQLite path (default `/data/noxis.db`) |
+| `NOXIS_SECRET_KEY` | 64 hex chars / 32 bytes; **required** |
 | `NOXIS_SCHEDULER_API_KEY` | external scheduler: shared api key (bearer) |
 | `NOXIS_SCHEDULER_SECRET` | external scheduler: HMAC secret signing the trigger |
 | `NOXIS_OTEL_COLLECTOR` | OTLP endpoint (optional) |
@@ -36,8 +36,9 @@ OIDC verifier (nil = open mode), assembles `deps.Uses`, seeds it on
 | `NOXIS_OIDC_ADMIN_GROUP` | implicit global admin |
 
 `config.LogState` logs secret/auth state once at boot. **No other package reads
-the environment.** To add a var: `EnvX` const + `Config` field + `LoadConfig` +
-`fieldOf` case (+ `Require(...)` if mandatory).
+the environment.** To add a var: `EnvX` const + `Config` field + `LoadConfig`
+entry. Defaults and cross-field rules live in `LoadConfig` / `Validate`; a
+`.env.example` at the repo root documents every flag.
 
 ## Makefile targets (all run from the repo root)
 

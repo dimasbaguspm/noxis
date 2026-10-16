@@ -1,4 +1,5 @@
 bin/
+.env
 *.db
 *.db-journal
 .swagger-tmp/

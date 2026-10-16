@@ -3,27 +3,24 @@ package config
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"strings"
-
-	"github.com/go-playground/validator/v10"
 )
 
 // Env is read exactly once, here; nothing else talks to the environment.
 const (
-	EnvListen          = "NOXIS_LISTEN"            // REST listen addr
-	EnvDB              = "NOXIS_DB"                // sqlite path (connection registry)
-	EnvSecretKey       = "NOXIS_SECRET_KEY"        // AES key for passwords at rest (64 hex chars; empty = plaintext)
+	EnvListen          = "NOXIS_LISTEN"            // REST listen addr (default :9000)
+	EnvDB              = "NOXIS_DB"                // sqlite path (default /data/noxis.db)
+	EnvSecretKey       = "NOXIS_SECRET_KEY"        // AES key for passwords at rest (64 hex chars; required)
 	EnvSchedulerKey    = "NOXIS_SCHEDULER_API_KEY" // external scheduler: shared api key it presents as a bearer token
 	EnvSchedulerSecret = "NOXIS_SCHEDULER_SECRET"  // external scheduler: HMAC secret signing the trigger request
 	EnvOTELCollector   = "NOXIS_OTEL_COLLECTOR"    // OTLP endpoint (optional)
 	EnvOTELName        = "NOXIS_OTEL_NAME"         // service name reported to OTEL (optional)
 
-	// OIDC: when the issuer is set, the API authenticates every caller against
-	// it; when it is empty, noxis runs open (single-operator default).
+	// OIDC: when the issuer is set, the API accepts OIDC tokens; it is additive
+	// to local accounts. Empty leaves OIDC off.
 	EnvOIDCIssuer      = "NOXIS_OIDC_ISSUER"
 	EnvOIDCClientID    = "NOXIS_OIDC_CLIENT_ID"
 	EnvOIDCAudience    = "NOXIS_OIDC_AUDIENCE"     // defaults to the client id
@@ -31,10 +28,17 @@ const (
 	EnvOIDCAdminGroup  = "NOXIS_OIDC_ADMIN_GROUP"  // implicit global admin
 )
 
-// Config is the process environment; no defaults.
+// Defaults keep a first instance runnable with no env at all.
+const (
+	defaultListen = ":9000"
+	defaultDB     = "/data/noxis.db"
+)
+
+// Config is the resolved process environment: defaults applied, nothing else
+// reads os.Getenv.
 type Config struct {
-	Listen          string `validate:"required"`
-	DB              string `validate:"required"`
+	Listen          string
+	DB              string
 	SecretKey       string
 	SchedulerKey    string
 	SchedulerSecret string
@@ -48,13 +52,11 @@ type Config struct {
 	OIDCAdminGroup  string
 }
 
-var validate = validator.New()
-
-// LoadConfig reads every env var exactly once, per process.
+// LoadConfig reads every env var exactly once, per process, folding in defaults.
 func LoadConfig() Config {
-	return Config{
-		Listen:          os.Getenv(EnvListen),
-		DB:              os.Getenv(EnvDB),
+	cfg := Config{
+		Listen:          firstNonEmpty(os.Getenv(EnvListen), defaultListen),
+		DB:              firstNonEmpty(os.Getenv(EnvDB), defaultDB),
 		SecretKey:       os.Getenv(EnvSecretKey),
 		SchedulerKey:    os.Getenv(EnvSchedulerKey),
 		SchedulerSecret: os.Getenv(EnvSchedulerSecret),
@@ -67,47 +69,16 @@ func LoadConfig() Config {
 		OIDCGroupsClaim: os.Getenv(EnvOIDCGroupsClaim),
 		OIDCAdminGroup:  os.Getenv(EnvOIDCAdminGroup),
 	}
+	return cfg
 }
 
-// Require aggregates the missing variables a command needs.
-func (c Config) Require(envs ...string) error {
-	var errs []error
-	for _, env := range envs {
-		if err := validate.Var(fieldOf(c, env), "required"); err != nil {
-			errs = append(errs, fmt.Errorf("%s is required", env))
-		}
+// Validate enforces the rules defaults cannot: connection passwords are always
+// encrypted at rest, so the secret key is required.
+func (c Config) Validate() error {
+	if c.SecretKey == "" {
+		return fmt.Errorf("%s is required (64 hex characters, e.g. openssl rand -hex 32)", EnvSecretKey)
 	}
-	return errors.Join(errs...)
-}
-
-func fieldOf(c Config, env string) string {
-	switch env {
-	case EnvListen:
-		return c.Listen
-	case EnvDB:
-		return c.DB
-	case EnvSecretKey:
-		return c.SecretKey
-	case EnvSchedulerKey:
-		return c.SchedulerKey
-	case EnvSchedulerSecret:
-		return c.SchedulerSecret
-	case EnvOTELCollector:
-		return c.OTELCollector
-	case EnvOTELName:
-		return c.OTELName
-	case EnvOIDCIssuer:
-		return c.OIDCIssuer
-	case EnvOIDCClientID:
-		return c.OIDCClientID
-	case EnvOIDCAudience:
-		return c.OIDCAudience
-	case EnvOIDCGroupsClaim:
-		return c.OIDCGroupsClaim
-	case EnvOIDCAdminGroup:
-		return c.OIDCAdminGroup
-	}
-	return ""
+	return nil
 }
 
 func (c Config) String() string {
@@ -131,13 +102,9 @@ func (c Config) String() string {
 // auth are configured. Field-level warnings live here, not in command code, so
 // a config decision is decided in exactly one place.
 func LogState(ctx context.Context, log *slog.Logger, c Config) {
-	if c.SecretKey == "" {
-		log.WarnContext(ctx, "NOXIS_SECRET_KEY is not set; connection passwords are stored in plaintext")
-	} else {
-		log.InfoContext(ctx, "connection passwords are encrypted at rest")
-	}
+	log.InfoContext(ctx, "connection passwords are encrypted at rest")
 	if c.OIDCIssuer == "" {
-		log.WarnContext(ctx, "NOXIS_OIDC_ISSUER is not set; the API is unauthenticated")
+		log.InfoContext(ctx, "OIDC authentication disabled")
 	} else {
 		log.InfoContext(ctx, "OIDC authentication enabled", "issuer", c.OIDCIssuer, "adminGroup", c.OIDCAdminGroup)
 	}
@@ -154,6 +121,15 @@ func redact(value string) string {
 		return ""
 	}
 	return "<redacted>"
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // AuthInfo is the public OIDC configuration the console needs to start login.
