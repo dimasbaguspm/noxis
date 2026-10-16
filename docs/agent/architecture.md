@@ -16,9 +16,14 @@ cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagina
             apps/api/internal/constants          (universal values)
 ```
 
-Rule: dependencies point inward. `handlers → usecases → modules/repositories → entity`.
-`entity` imports nothing internal. Repositories/modules own the `var _ interfaces.X`
-satisfier asserts next to their struct.
+Rule: dependencies point inward and only downward. The order (low → high) is
+`constants · entity · interfaces → common/* → repositories/* → modules/*
+(families) → modules (registry) → usecases → middlewares → cmd/noxis/server
+(routes)`. A package may import only packages below its layer, and two packages
+in the same layer may not import each other. `cmd/noxis` is the composition root
+and is exempt. `test/arch/arch_test.go` reads the graph from `go list` and fails
+on any bent edge, so the rule is enforced, not just documented. Repositories and
+modules keep their `var _ interfaces.X` satisfier asserts next to the struct.
 
 ## Dependency injection
 

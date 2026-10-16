@@ -21,7 +21,7 @@ func Bootstrap() error {
 	defer stop()
 
 	cfg := config.LoadConfig()
-	log, shutdown, err := logging.New(ctx, cfg)
+	log, shutdown, err := logging.New(ctx, logging.OTLP{Collector: cfg.OTELCollector, Name: cfg.OTELName})
 
 	if err != nil {
 		return err
