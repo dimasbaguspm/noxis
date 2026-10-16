@@ -17,27 +17,27 @@ import (
 	"time"
 )
 
-// root is the module root, found via go.mod: `go test` runs with the package
-// dir as cwd, so stack paths resolve against it.
+// root is the repository root, found via .git: `go test` runs with the package
+// dir as cwd (apps/api/test/uat), so stack paths resolve against it.
 var root = func() string {
 	dir, err := os.Getwd()
 	if err != nil {
 		panic(fmt.Sprintf("getwd: %v", err))
 	}
 	for {
-		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
 			return dir
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			panic("go.mod not found above " + dir)
+			panic(".git not found above " + dir)
 		}
 		dir = parent
 	}
 }()
 
 var (
-	stackFile = root + "/docker/docker-compose.yml"
+	stackFile = root + "/docker-compose.yml"
 	baseURL   = "http://localhost:9000"
 
 	connHost = "db"    // the compose postgres target

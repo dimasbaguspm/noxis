@@ -11,7 +11,7 @@ Notes_. Each commit carries `[ai:y][#<issue>] <type>(<scope>): <subject> (#<pr>)
 This directory makes the plan survive even if the tracker does not.
 
 **Fresh session:** read the most recent plans under `backend/`-tagged areas to
-learn the current architecture, then `AGENTS.md` + `doc/agent/`.
+learn the current architecture, then `AGENTS.md` + `docs/agent/`.
 
 ## Index
 

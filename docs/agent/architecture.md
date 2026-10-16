@@ -5,15 +5,15 @@ Detail for `AGENTS.md`. Read that first for the map.
 ## C4-ish layering
 
 ```
-transport   cmd/noxis/server/handlers   (plain funcs, swag, JSON glue)
-application cmd/noxis/server/deps        (DI container: Deps → Uses)
-            internal/usecases           (one file per use case)
-domain      internal/entity             (data model, imports nothing internal)
-            internal/interfaces          (seams)
-infra       internal/modules/*          (engine adapters)
-            internal/repositories/*     (persistence)
-cross-cut   internal/common/*           (config, logging, idgen, pagination, secret)
-            internal/constants          (universal values)
+transport   apps/api/cmd/noxis/server/handlers   (plain funcs, swag, JSON glue)
+application apps/api/cmd/noxis/server/deps        (DI container: Deps → Uses)
+            apps/api/internal/usecases           (one file per use case)
+domain      apps/api/internal/entity             (data model, imports nothing internal)
+            apps/api/internal/interfaces          (seams)
+infra       apps/api/internal/modules/*          (engine adapters)
+            apps/api/internal/repositories/*     (persistence)
+cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagination, secret)
+            apps/api/internal/constants          (universal values)
 ```
 
 Rule: dependencies point inward. `handlers → usecases → modules/repositories → entity`.
@@ -24,7 +24,7 @@ satisfier asserts next to their struct.
 
 Two files do all wiring, at boot, once.
 
-- `cmd/noxis/server/deps/deps.go` — `Deps` holds the **sources**: 3 repositories,
+- `apps/api/cmd/noxis/server/deps/deps.go` — `Deps` holds the **sources**: 3 repositories,
   `modules.Registry`, `*slog.Logger`, `config.AuthInfo`.
 - `deps/uses.go` — `Uses` lists every bound use case as a named field; `Init(d)`
   is the single construction point.
@@ -34,13 +34,13 @@ Two files do all wiring, at boot, once.
 - `deps.Seed(ctx, Uses)` / `deps.From(ctx)` — the uses ride the request context;
   `deps.From` panics if unseeded (wiring bug).
 
-Add a new use case: create `internal/usecases/foo.go` with a `Foo struct` and a
+Add a new use case: create `apps/api/internal/usecases/foo.go` with a `Foo struct` and a
 `Serve` method → add one field to `Uses` and one line to `Init` → call it from a
 handler. No constructor boilerplate.
 
 ## Engine registry
 
-`internal/modules/modules.go`:
+`apps/api/internal/modules/modules.go`:
 
 - `Registry` resolves a family by name (`Engine`), by interface (`EngineSQL`,
   `EngineMongo`, `EngineMemcache`), and a driver → family (`Serves`).
@@ -81,7 +81,7 @@ module. This is why one handler serves all families instead of a copy per family
 
 ## Handler pattern
 
-`cmd/noxis/server/handlers/server.go` holds `handle`, `handleNoContent`,
+`apps/api/cmd/noxis/server/handlers/server.go` holds `handle`, `handleNoContent`,
 `decode`, `writeJSON`, `writeErr`. A handler body is:
 
 ```go
@@ -95,7 +95,7 @@ func Foo(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-Routes are declared in `cmd/noxis/server/server.go` (`newHandler`). Add a route
+Routes are declared in `apps/api/cmd/noxis/server/server.go` (`newHandler`). Add a route
 there + a handler + a swag annotation block, then `make swagger`.
 
 ## Auth & policy
@@ -111,7 +111,7 @@ there + a handler + a swag annotation block, then `make swagger`.
 
 ## Span naming
 
-`internal/common/logging/span.go` derives span names from the Go function:
+`apps/api/internal/common/logging/span.go` derives span names from the Go function:
 `Repository.Sqlite.Store.List`, `Usecases.Op.Serve`, `Modules.Sql.DB.query`.
 Logs re-emit trace/span ids from ctx so log/trace/metric share identity
 (`logging` package).
@@ -119,7 +119,7 @@ Logs re-emit trace/span ids from ctx so log/trace/metric share identity
 ## How to add things
 
 **New engine family:** implement `interfaces.Module` (+ one of the sub-seam
-interfaces) in `internal/modules/<family>/`, register in `modules.Default()`,
+interfaces) in `apps/api/internal/modules/<family>/`, register in `modules.Default()`,
 add a family const + driver consts, add a route family in `newHandler`, add
 `Engine<Family>` to `Registry`. Add a compose service to exercise it in UAT.
 
@@ -130,4 +130,4 @@ must never leak into the memcache/mongo namespaces.
 
 **New persisted field:** add to `entity`, add a **new** `ALTER TABLE` line to the
 `migrations` slice in `sqlite.go`, update the `Save`/scan in the relevant
-`internal/repositories/sqlite/*.go` file. Never edit an existing migration.
+`apps/api/internal/repositories/sqlite/*.go` file. Never edit an existing migration.

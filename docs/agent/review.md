@@ -7,7 +7,7 @@ repo-specific: the generic review skill covers the rest.
 
 1. **Layer direction** — nothing inward imports outward. `entity` imports
    nothing internal; `usecases` never import `handlers`; repositories never
-   import use cases. New seams go in `internal/interfaces`.
+   import use cases. New seams go in `apps/api/internal/interfaces`.
 2. **Access gate** — every connection-scoped flow must go through
    `usecases.rawConn` (family check + `Authorize`) or `RequireAdmin` for
    management. A new route that reads a connection without one of these is a
@@ -36,7 +36,7 @@ Shared logic lives in a package helper, not by calling another use case. Errors
 wrapped with `%w`; sentinel compares with `errors.Is`.
 
 **Modules** — implements an `interfaces.*Module`; has the `var _ interfaces.X`
-satisfier; no engine-specific literal outside `internal/constants`; times out
+satisfier; no engine-specific literal outside `apps/api/internal/constants`; times out
 every network call.
 
 **Repositories** — new method added to both the interface and `Store`;
@@ -56,18 +56,20 @@ list that drifts from `GET /v1/config/drivers`.
 - Errors lowercase, no punctuation (revive `error-strings`).
 - `context.Context` is the first arg (`context-as-argument`).
 - Every `http.Client`/DB call has a timeout.
-- Constants over magic strings; `internal/constants` for universal values.
+- Constants over magic strings; `apps/api/internal/constants` for universal values.
 
 ## Verification (run before approving)
 
 ```bash
 make lint     # golangci-lint v2: errcheck/govet/staticcheck/revive/gocritic/...
 make test     # unit
+make build    # bin/noxis
+make web      # console build + embed sync (if apps/web changed)
 make uat      # if the REST surface / engine behaviour changed
-make build    # Dockerfile path is exercised differently in CI
 ```
 
-CI additionally runs the Dockerfile build and the web lint+typecheck+build.
+CI additionally builds both images (`Dockerfile`, `Dockerfile.api`) and runs
+the web lint + typecheck + build.
 
 ## Commit / PR conventions (observed in history)
 
@@ -89,7 +91,7 @@ is one SQLite-backed binary with no broker and no docker socket. A diff that
 ## Definition of done
 
 - [ ] `make lint` + `make test` green locally.
-- [ ] REST surface changed ⇒ `make swagger` run and `doc/swagger.*` committed.
+- [ ] REST surface changed ⇒ `make swagger` run and `openapi.*` committed.
 - [ ] UI changed ⇒ `make web` (or `pnpm build`) green.
 - [ ] Auth/engine behaviour changed ⇒ `make uat` green.
 - [ ] New persisted column ⇒ appended migration + interface/Store updated.

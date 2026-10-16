@@ -12,7 +12,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b",
     "lint": "oxlint",
-    "gen:api": "openapi-typescript ../doc/swagger.yaml -o src/api/generated.ts"
+    "gen:api": "openapi-typescript ../../openapi.yaml -o src/api/generated.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

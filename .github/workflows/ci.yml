@@ -36,18 +36,15 @@ jobs:
         with:
           filters: |
             go:
-              - 'cmd/**'
-              - 'internal/**'
-              - 'test/**'
-              - 'go.mod'
-              - 'go.sum'
-              - '.golangci.yml'
+              - 'apps/api/**'
               - 'Makefile'
               - 'Dockerfile'
-              - 'docker/**'
+              - 'Dockerfile.api'
+              - 'docker-compose.yml'
               - '.github/workflows/**'
             web:
-              - 'web/**'
+              - 'apps/web/**'
+              - 'openapi.*'
               - '.github/workflows/**'
 
   go:
@@ -61,17 +58,20 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version-file: apps/api/go.mod
           cache: true
 
       - name: lint
-        run: go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run ./...
+        run: cd apps/api && go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run ./...
 
       - name: build (Dockerfile)
         run: docker build -t noxis:ci .
 
+      - name: build (Dockerfile.api)
+        run: docker build -f Dockerfile.api -t noxis-api:ci .
+
       - name: unit tests
-        run: go test -count=1 $(go list ./... | grep -v /test/uat)
+        run: cd apps/api && go test -count=1 $(go list ./... | grep -v /test/uat)
 
       - name: uat (real stack via REST)
         run: make uat
@@ -88,4 +88,4 @@ jobs:
       - name: web (lint + typecheck + build)
         run: |
           npm install -g pnpm@10
-          cd web && pnpm install --frozen-lockfile && pnpm lint && pnpm build
+          cd apps/web && pnpm install --frozen-lockfile && pnpm lint && pnpm build

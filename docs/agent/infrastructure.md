@@ -4,19 +4,19 @@ Detail for `AGENTS.md`.
 
 ## Entry point & CLI
 
-`cmd/noxis/main.go` → `bootstrap.go` (`Bootstrap()`) builds the signal-aware
+`apps/api/cmd/noxis/main.go` → `bootstrap.go` (`Bootstrap()`) builds the signal-aware
 context, loads config, sets up logging, and runs one cobra root:
 
-- `noxis run server` — REST API + embedded console (`cmd/noxis/server.Run`).
+- `noxis run server` — REST API + embedded console (`apps/api/cmd/noxis/server.Run`).
 - `noxis run ticker` — standalone scheduler: POSTs
-  `/internal/callback/scheduler` on `NOXIS_TICK_INTERVAL`, requires
+  `/apps/api/internal/callback/scheduler` on `NOXIS_TICK_INTERVAL`, requires
   `NOXIS_TICK_HOST`. The server carries no ticker.
 
 `server.Run` requires `NOXIS_LISTEN` and `NOXIS_DB`, opens the store, builds the
 OIDC verifier (nil = open mode), assembles `deps.Uses`, seeds it on
 `srv.BaseContext`, and starts the server with a 10s graceful shutdown.
 
-## Environment variables (`internal/common/config`)
+## Environment variables (`apps/api/internal/common/config`)
 
 | var | meaning |
 | --- | --- |
@@ -37,15 +37,15 @@ OIDC verifier (nil = open mode), assembles `deps.Uses`, seeds it on
 the environment.** To add a var: `EnvX` const + `Config` field + `LoadConfig` +
 `fieldOf` case (+ `Require(...)` if mandatory).
 
-## Makefile targets
+## Makefile targets (all run from the repo root)
 
 | target | what |
 | --- | --- |
-| `make build` | `go build -o bin/noxis ./cmd/noxis` |
-| `make test` | `go test ./...` |
-| `make lint` | golangci-lint v2 (installs on first use) |
+| `make build` | `cd apps/api && go build -o ../../bin/noxis ./cmd/noxis` |
+| `make test` | `cd apps/api && go test ./...` |
+| `make lint` | golangci-lint v2 in `apps/api` (installs on first use) |
 | `make web` | pnpm install + build → sync `bin/dist/*` into the embed dir |
-| `make swagger` | swag init + convert Swagger 2.0 → OpenAPI 3 into `doc/` |
+| `make swagger` | swag init + convert Swagger 2.0 → OpenAPI 3 into root `openapi.{yaml,json}` |
 | `make dev` | compose stack (noxis + postgres/redis/valkey/mongo/mariadb) |
 | `make dev-ui` | same + hot-reloading Vite console on :5173 |
 | `make down` | stop compose and wipe volumes (`-v`) |
@@ -53,46 +53,62 @@ the environment.** To add a var: `EnvX` const + `Config` field + `LoadConfig` +
 
 ## Docker
 
-`Dockerfile` is multi-stage:
+Two images share `apps/api` as the Go build source:
 
-1. `web` (node:22-alpine): install pnpm, build `web/` → `/bin/dist`.
-2. `build` (golang:1.26-alpine): copy dist into
-   `cmd/noxis/server/handlers/static/`, `CGO_ENABLED=0 go build`.
-3. runtime (alpine:3.20): binary + `ca-certificates`.
+- `Dockerfile` — full: builds `apps/web/` (node:22-alpine) → copies dist into
+  `apps/api/cmd/noxis/server/handlers/static/` → golang:1.26-alpine build. This
+  is what `docker-compose.yml` and `docker-publish.yml` use.
+- `Dockerfile.api` — API only: no console build, serves the committed
+  `placeholder.html`. `docker build -f Dockerfile.api -t noxis-api .`
 
-`docker/docker-compose.yml` (`name: noxis`):
+Both end on alpine:3.20 with the static binary + `ca-certificates`.
 
-- `noxis` — the app, `:9000`, named volume `noxis-data:/data`, healthcheck
-  `/healthz`, waits on all target services healthy.
+`docker-compose.yml` at the repo root (`name: noxis`):
+
+- `noxis` — the full image, `:9000`, named volume `noxis-data:/data`,
+  healthcheck `/healthz`, waits on all target services healthy.
 - `ticker` — same image, `run ticker`, depends on noxis healthy.
 - `db` postgres:16, `redis` redis:7, `valkey` valkey/valkey:8, `mongo` mongo:7
   (auth on: root/noxis), `mariadb` mariadb:11.
-- `console` — Vite dev server, `profiles: [dev]`.
+- `console` — Vite dev server, `profiles: [dev]`, mounts `./apps/web`.
 
 Secrets here are demo-only (`noxis`). Dev compose is a stand-in for target
 databases that "already exist" in real use.
 
 ## Web console
 
-`web/` = React 18 + TS + Vite + Tailwind 4 + shadcn-style `components/ui`, data
+`apps/web/` = React 18 + TS + Vite + Tailwind 4 + shadcn-style `components/ui`, data
 via TanStack Query, monaco editor, `oidc-client-ts` for PKCE login.
 
 - `pnpm dev` proxies `/v1` to `VITE_PROXY_TARGET` (default `http://localhost:9000`).
-- `pnpm build` outputs to `../bin/dist`; `make web` syncs it into the Go embed.
-- `pnpm gen:api` regenerates `src/api/generated.ts` from `doc/swagger.yaml`.
+- `pnpm build` outputs to `<repo>/bin/dist`; `make web` syncs it into the Go embed.
+- `pnpm gen:api` regenerates `src/api/generated.ts` from `openapi.yaml`.
 - Layout: `src/pages/*` (routes), `src/components/*` (by domain: changes,
   connection, layout, mongodb, sql, ui), `src/hooks/*` (queries), `src/lib/*`.
-- `cmd/noxis/server/handlers/static/` is gitignored except `placeholder.html`
+- `apps/api/cmd/noxis/server/handlers/static/` is gitignored except `placeholder.html`
   (go:embed needs a compile-time file). `GetConsole` answers JSON 404 for any
   unknown `/v1/*` instead of serving the SPA shell.
+
+## Devcontainer
+
+`.devcontainer/` opens the repo in a ready environment:
+
+- base `mcr.microsoft.com/devcontainers/go:1.26-bookworm` + Node 22 +
+  Docker-in-Docker features;
+- `post-create.sh` activates `pnpm@10.34.5` (from `apps/web/package.json`),
+  runs `go mod download` in `apps/api` and `pnpm install` in `apps/web`;
+- forwards `9000` (API + console) and `5173` (Vite).
+
+`make dev` / `make dev-ui` work inside it because Docker-in-Docker provides the
+compose daemon. Validate edits with a JSON parse and `bash -n post-create.sh`.
 
 ## CI/CD (`.github/workflows/`)
 
 `ci.yml` — path-filtered:
 
 - `changes` job runs `dorny/paths-filter`; heavy jobs run only for their side.
-- `go` (if any `cmd/** internal/** test/** go.mod go.sum .golangci.yml Makefile Dockerfile docker/**`): lint → docker build → unit tests (excluding `test/uat`) → `make uat`.
-- `web` (if `web/**` or workflows): `pnpm install --frozen-lockfile && pnpm lint && pnpm build`.
+- `go` (if any `apps/api/** Makefile Dockerfile Dockerfile.api docker-compose.yml .github/workflows/**`): lint → `docker build` (both Dockerfiles) → unit tests (excluding `apps/api/test/uat`) → `make uat`.
+- `web` (if `apps/web/**`, `openapi.*` or workflows): `cd apps/web && pnpm install --frozen-lockfile && pnpm lint && pnpm build`.
 
 `docker-publish.yml` — on push to `master` (or manual), builds the Dockerfile
 and pushes `ghcr.io/<owner>/noxis:nightly`.
@@ -102,5 +118,5 @@ and pushes `ghcr.io/<owner>/noxis:nightly`.
 1. `make test` and `make lint` (fast feedback).
 2. `make dev` → `http://localhost:9000`; or `make dev-ui` for hot reload.
 3. For a UI change: `make web` before `make build`/docker so the embed is fresh.
-4. For a route change: `make swagger` and commit the regenerated `doc/swagger.*`.
+4. For a route change: `make swagger` and commit the regenerated `openapi.*`.
 5. `make uat` before opening a PR when the REST surface changed.
