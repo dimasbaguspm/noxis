@@ -320,7 +320,7 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
             <form id="schedule-change" onSubmit={onValid}>
               <Field>
                 <FieldLabel htmlFor="schedule-at">Run at</FieldLabel>
-                <Input id="schedule-at" type="datetime-local" {...register("when")} />
+                <Input id="schedule-at" type="datetime-local" aria-invalid={!!errors.when} {...register("when")} />
                 <FieldDescription>a future moment; the scheduler applies the change once.</FieldDescription>
                 <FieldError>{errors.when?.message}</FieldError>
               </Field>

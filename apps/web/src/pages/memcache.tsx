@@ -291,6 +291,7 @@ export default function MemcachePage() {
               <Input
                 id="flush-confirm"
                 placeholder={connection ?? "the connection name"}
+                aria-invalid={!!flushErrors.confirm}
                 {...register("confirm")}
               />
               <FieldError>{flushErrors.confirm?.message}</FieldError>

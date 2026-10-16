@@ -119,6 +119,7 @@ export function ConnectionDialog({
     const r = register(key);
     return {
       ...r,
+      "aria-invalid": Boolean(errors[key]),
       onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
         void r.onChange(e);
         setVerified(false);

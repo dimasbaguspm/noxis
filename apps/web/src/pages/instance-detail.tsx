@@ -208,6 +208,7 @@ export default function InstanceDetailPage() {
                   id="rotate-password-input"
                   type="password"
                   placeholder="the new stored password"
+                  aria-invalid={!!errors.password}
                   {...register("password")}
                 />
                 <FieldError>
