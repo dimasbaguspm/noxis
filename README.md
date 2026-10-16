@@ -99,6 +99,36 @@ encrypt them in SQLite with AES-256-GCM. It is required: the server refuses to
 start without it. Setting the key re-encrypts existing plaintext rows when the
 store opens. Rotate a password from the instance's detail page.
 
+## First instance
+
+Run noxis on its own — one container, one volume, no dev stand-ins. It needs a
+secret key and a root admin:
+
+```bash
+cp deploy/.env.example deploy/.env
+openssl rand -hex 32              # paste this into deploy/.env as NOXIS_SECRET_KEY
+$EDITOR deploy/.env               # also set NOXIS_ADMIN_USERNAME / NOXIS_ADMIN_PASSWORD
+
+make up                           # docker compose -f deploy/docker-compose.yml up -d --build
+open http://localhost:9000        # log in with the root admin
+```
+
+The stack refuses to start while any of the three required values is missing.
+Once you are in:
+
+- **Register databases** you already run from the console (or the API), then give
+  users access under Access.
+- **Add OIDC** by setting `NOXIS_OIDC_ISSUER` / `NOXIS_OIDC_CLIENT_ID` /
+  `NOXIS_OIDC_ADMIN_GROUP` in `deploy/.env` and restarting; local login keeps
+  working alongside it.
+- **Schedule changes** by pointing an external service at
+  `POST /internal/callback/scheduler`, signed with `NOXIS_SCHEDULER_API_KEY` +
+  `NOXIS_SCHEDULER_SECRET` (bearer key + HMAC over `<timestamp>.<body>`).
+
+Stop it with
+`docker compose -f deploy/docker-compose.yml --env-file deploy/.env down`
+(add `-v` to also drop the registry volume).
+
 ## Docs
 
 - `AGENTS.md` — the harness brief: repo map, conventions, drift, next steps.

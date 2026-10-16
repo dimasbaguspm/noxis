@@ -1,6 +1,6 @@
 PATH := $(HOME)/.local/bin:$(HOME)/go/bin:$(PATH)
 
-.PHONY: build test lint swagger web dev down uat
+.PHONY: build test lint swagger web up dev dev-ui down uat
 
 build:
 	cd apps/api && go build -o ../../bin/noxis ./cmd/noxis
@@ -29,6 +29,9 @@ swagger:  ## regenerate openapi.yaml|json (OpenAPI 3) from handler annotations
 	npx --yes swagger2openapi -y .swagger-tmp/swagger.json -o openapi.yaml
 	npx --yes swagger2openapi .swagger-tmp/swagger.json -o openapi.json
 	rm -rf .swagger-tmp
+
+up:  ## run the first-instance stack (noxis only) from deploy/; needs deploy/.env
+	docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
 
 dev:  ## build + run the dev stack (noxis + a target postgres for playing)
 	docker compose -f docker-compose.yml up --build

@@ -1,0 +1,44 @@
+# First-instance stack: noxis on its own, one volume, no dev stand-ins and no
+# ticker. Copy the example env and fill the three required values, then:
+#
+#   cp deploy/.env.example deploy/.env
+#   # set NOXIS_SECRET_KEY (openssl rand -hex 32), NOXIS_ADMIN_USERNAME, NOXIS_ADMIN_PASSWORD
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+#
+# Real databases are registered later from the console; they already exist.
+name: noxis
+
+services:
+  noxis:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: run server
+    environment:
+      NOXIS_LISTEN: ":9000"
+      NOXIS_DB: /data/noxis.db
+      # required: the stack refuses to start without these
+      NOXIS_SECRET_KEY: ${NOXIS_SECRET_KEY:?set NOXIS_SECRET_KEY in deploy/.env}
+      NOXIS_ADMIN_USERNAME: ${NOXIS_ADMIN_USERNAME:?set NOXIS_ADMIN_USERNAME in deploy/.env}
+      NOXIS_ADMIN_PASSWORD: ${NOXIS_ADMIN_PASSWORD:?set NOXIS_ADMIN_PASSWORD in deploy/.env}
+      # optional: OIDC login, added later alongside the local root admin
+      NOXIS_OIDC_ISSUER: ${NOXIS_OIDC_ISSUER:-}
+      NOXIS_OIDC_CLIENT_ID: ${NOXIS_OIDC_CLIENT_ID:-}
+      NOXIS_OIDC_ADMIN_GROUP: ${NOXIS_OIDC_ADMIN_GROUP:-}
+      # optional: a shared key + secret for the external scheduler trigger
+      NOXIS_SCHEDULER_API_KEY: ${NOXIS_SCHEDULER_API_KEY:-}
+      NOXIS_SCHEDULER_SECRET: ${NOXIS_SCHEDULER_SECRET:-}
+    ports:
+      - "${NOXIS_PORT:-9000}:9000"
+    volumes:
+      - noxis-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9000/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 2s
+
+volumes:
+  noxis-data:

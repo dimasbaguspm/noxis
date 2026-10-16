@@ -78,6 +78,12 @@ Both end on alpine:3.20 with the static binary + `ca-certificates`.
 Secrets here are demo-only (`noxis`). Dev compose is a stand-in for target
 databases that "already exist" in real use.
 
+`deploy/docker-compose.yml` (`name: noxis`) is the **first-instance** stack:
+noXis alone, one volume, no ticker. It requires `NOXIS_SECRET_KEY`,
+`NOXIS_ADMIN_USERNAME` and `NOXIS_ADMIN_PASSWORD` (the `${VAR:?}` form fails
+loudly when unset); `make up` runs it with `deploy/.env`. See the README "First
+instance".
+
 ## Web console
 
 `apps/web/` = React 18 + TS + Vite + Tailwind 4 + shadcn-style `components/ui`, data
