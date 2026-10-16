@@ -12,7 +12,7 @@ import (
 // matching grant, so an absent connection means no access.
 type ConnectionLevels struct {
 	Connections interfaces.ConnectionRepository
-	Grants      interfaces.GrantRepository
+	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.
@@ -32,7 +32,7 @@ func (uc ConnectionLevels) Serve(ctx context.Context) (map[string]string, error)
 			out[c.Name] = entity.LevelAdmin
 			continue
 		}
-		level, err := EffectiveLevel(ctx, uc.Grants, c.Name, p.Groups)
+		level, err := EffectiveLevel(ctx, uc.Permissions, c.Name, p.Groups)
 		if err != nil {
 			return nil, err
 		}

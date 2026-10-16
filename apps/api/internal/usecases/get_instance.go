@@ -11,7 +11,7 @@ import (
 // Instance is the "Instance" use case.
 type Instance struct {
 	Connections interfaces.ConnectionRepository
-	Grants      interfaces.GrantRepository
+	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.
@@ -26,7 +26,7 @@ func (uc Instance) Serve(ctx context.Context, id string) (out entity.Connection,
 	if !ok {
 		return entity.Connection{}, interfaces.ErrUnsupported
 	}
-	readable, err := CanRead(ctx, uc.Grants, c.Name)
+	readable, err := CanRead(ctx, uc.Permissions, c.Name)
 	if err != nil {
 		return entity.Connection{}, err
 	}

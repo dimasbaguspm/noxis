@@ -5,6 +5,7 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -27,7 +28,7 @@ type Store struct {
 var (
 	_ interfaces.ConnectionRepository = (*Store)(nil)
 	_ interfaces.ChangeRepository     = (*Store)(nil)
-	_ interfaces.GrantRepository      = (*Store)(nil)
+	_ interfaces.PermissionRepository = (*Store)(nil)
 	_ interfaces.UserRepository       = (*Store)(nil)
 )
 
@@ -80,6 +81,10 @@ func Open(ctx context.Context, path, secretKey string) (*Store, error) {
 		db.Close()
 		return nil, fmt.Errorf("encrypt stored passwords: %w", err)
 	}
+	if err := migrateGrantsToPermissions(ctx, db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("migrate grants: %w", err)
+	}
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	if err := db.PingContext(ctx); err != nil {
@@ -87,6 +92,27 @@ func Open(ctx context.Context, path, secretKey string) (*Store, error) {
 		return nil, fmt.Errorf("sqlite ping: %w", err)
 	}
 	return s, nil
+}
+
+// migrateGrantsToPermissions moves a pre-rename connection_grants table into
+// permissions once, then drops it. Fresh databases have no such table.
+func migrateGrantsToPermissions(ctx context.Context, db *sql.DB) error {
+	var name string
+	err := db.QueryRowContext(ctx,
+		`SELECT name FROM sqlite_master WHERE type='table' AND name='connection_grants'`).Scan(&name)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if _, err := db.ExecContext(ctx, `
+		INSERT OR IGNORE INTO permissions (connection, member, member_type, level)
+		SELECT connection, group_name, 'group', level FROM connection_grants`); err != nil {
+		return err
+	}
+	_, err = db.ExecContext(ctx, `DROP TABLE connection_grants`)
+	return err
 }
 
 // migrations are applied best-effort; duplicates (fresh databases) error and
@@ -172,11 +198,12 @@ CREATE TABLE IF NOT EXISTS connections (
   created_by TEXT NOT NULL DEFAULT ''
 );
 
-CREATE TABLE IF NOT EXISTS connection_grants (
-  connection TEXT NOT NULL,
-  group_name TEXT NOT NULL,
-  level      TEXT NOT NULL,
-  PRIMARY KEY (connection, group_name)
+CREATE TABLE IF NOT EXISTS permissions (
+  connection  TEXT NOT NULL,
+  member      TEXT NOT NULL,
+  member_type TEXT NOT NULL,
+  level       TEXT NOT NULL,
+  PRIMARY KEY (connection, member)
 );
 
 CREATE TABLE IF NOT EXISTS users (

@@ -19,7 +19,7 @@ import (
 type Deps struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
-	Grants      interfaces.GrantRepository
+	Permissions interfaces.PermissionRepository
 	Users       interfaces.UserRepository
 	Modules     modules.Registry
 	Log         *slog.Logger

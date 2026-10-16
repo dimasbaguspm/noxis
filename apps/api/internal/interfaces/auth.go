@@ -21,6 +21,8 @@ type UserRepository interface {
 	CountUsers(ctx context.Context) (int, error)
 	// GetUser returns an account by subject, or ErrNotFound.
 	GetUser(ctx context.Context, subject string) (*entity.User, error)
+	// ListUsers returns every account, for the permission editor's member picker.
+	ListUsers(ctx context.Context) ([]entity.User, error)
 	// GetUserByUsername returns a local account by login name, or ErrNotFound.
 	GetUserByUsername(ctx context.Context, username string) (*entity.User, error)
 	// EnsureSubject records an OIDC identity reference the first time it is

@@ -20,7 +20,7 @@ func WithDeps[T any](d Deps, target T) T {
 		if !f.CanSet() {
 			continue
 		}
-		if src, ok := source(d, f.Type()); ok {
+		if src, ok := source(d, f.Type()); ok && src.IsValid() {
 			f.Set(src)
 		}
 	}
@@ -34,8 +34,8 @@ func source(d Deps, t reflect.Type) (reflect.Value, bool) {
 		return reflect.ValueOf(d.Connections), true
 	case reflect.TypeOf((*interfaces.ChangeRepository)(nil)).Elem():
 		return reflect.ValueOf(d.Changes), true
-	case reflect.TypeOf((*interfaces.GrantRepository)(nil)).Elem():
-		return reflect.ValueOf(d.Grants), true
+	case reflect.TypeOf((*interfaces.PermissionRepository)(nil)).Elem():
+		return reflect.ValueOf(d.Permissions), true
 	case reflect.TypeOf((*interfaces.UserRepository)(nil)).Elem():
 		return reflect.ValueOf(d.Users), true
 	case reflect.TypeOf((*modules.Registry)(nil)).Elem():

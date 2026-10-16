@@ -20,12 +20,17 @@ const LEVELS = [
   { value: "admin", label: "Admin" },
 ] as const;
 
+const MEMBER_TYPES = [
+  { value: "group", label: "Group" },
+  { value: "user", label: "User" },
+] as const;
+
 const SKELETON_ROWS = [1, 2, 3];
 
-// SettingsPage is the RBAC console: per-instance grants binding OIDC groups
-// to read/editor/admin. Only global admins reach it (the server enforces the
-// same on every grants call); the configured admin group is implicit super
-// admin on every instance.
+// SettingsPage is the RBAC console: per-instance permissions binding a user (by
+// subject) or a group to read/editor/admin. Only global admins reach it (the
+// server enforces the same on every permissions call); a global admin is
+// implicit super admin on every instance.
 export default function SettingsPage() {
   const { isAdmin } = useAuth();
   const { data, isPending } = usePagedInstancesQuery();
@@ -49,8 +54,8 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-base font-medium">Access</h1>
         <p className="text-xs text-muted-foreground">
-          Bind OIDC groups to a level per instance. The group in NOXIS_OIDC_ADMIN_GROUP is super
-          admin everywhere and needs no grant.
+          Give a user or a group a level per instance. A global admin is super admin everywhere and
+          needs no permission.
         </p>
       </div>
 
@@ -63,48 +68,53 @@ export default function SettingsPage() {
       ) : instances.length === 0 ? (
         <Empty title="No instances" description="Register an instance before granting access." />
       ) : (
-        instances.map((instance) => <InstanceGrants key={instance.id} instance={instance} />)
+        instances.map((instance) => <InstancePermissions key={instance.id} instance={instance} />)
       )}
     </div>
   );
 }
 
-function InstanceGrants({ instance }: { instance: Connection }) {
+function InstancePermissions({ instance }: { instance: Connection }) {
   const family = instance.family as FamilyKey | undefined;
   const name = instance.name;
   const queryClient = useQueryClient();
   const { identity } = useAuth();
-  const [group, setGroup] = useState("");
+  const [memberType, setMemberType] = useState<string>("group");
+  const [member, setMember] = useState("");
   const [level, setLevel] = useState<string>("read");
 
-  const grants = useQuery({
-    queryKey: ["grants", family, name],
-    queryFn: () => api.grants.list(family as FamilyKey, name),
+  const permissions = useQuery({
+    queryKey: ["permissions", family, name],
+    queryFn: () => api.permissions.list(family as FamilyKey, name),
     enabled: !!family && !!name,
   });
-  const known = useQuery({ queryKey: ["config", "groups"], queryFn: () => api.config.groups() });
+  const members = useQuery({ queryKey: ["config", "members"], queryFn: () => api.config.members() });
 
-  const suggestions = useMemo(() => {
-    const all = new Set<string>([...(identity?.groups ?? []), ...(known.data?.groups ?? [])]);
+  const knownGroups = useMemo(() => {
+    const all = new Set<string>([...(identity?.groups ?? []), ...(members.data?.groups ?? [])]);
     return [...all].sort();
-  }, [identity, known.data]);
+  }, [identity, members.data]);
+
+  const label = (p: { member: string; memberType: string }) =>
+    p.memberType === "user" ? (members.data?.users.find((u) => u.subject === p.member)?.label ?? p.member) : p.member;
 
   function invalidate() {
-    void queryClient.invalidateQueries({ queryKey: ["grants", family, name] });
+    void queryClient.invalidateQueries({ queryKey: ["permissions", family, name] });
     void queryClient.invalidateQueries({ queryKey: ["me"] });
   }
 
   const add = useMutation({
-    mutationFn: () => api.grants.set(family as FamilyKey, name, group.trim(), level),
+    mutationFn: () => api.permissions.set(family as FamilyKey, name, member.trim(), memberType, level),
     onSuccess: () => {
-      setGroup("");
+      const added = label({ member: member.trim(), memberType });
+      setMember("");
       invalidate();
-      toast.success(`${group.trim()} can ${level} ${name}`);
+      toast.success(`${added} can ${level} ${name}`);
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
   });
   const remove = useMutation({
-    mutationFn: (grantGroup: string) => api.grants.remove(family as FamilyKey, name, grantGroup),
+    mutationFn: (member: string) => api.permissions.remove(family as FamilyKey, name, member),
     onSuccess: invalidate,
     onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
   });
@@ -125,20 +135,21 @@ function InstanceGrants({ instance }: { instance: Connection }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          {(grants.data?.grants ?? []).length === 0 ? (
-            <span className="text-sm text-muted-foreground">no grants yet</span>
+          {(permissions.data?.permissions ?? []).length === 0 ? (
+            <span className="text-sm text-muted-foreground">no permissions yet</span>
           ) : (
-            (grants.data?.grants ?? []).map((grant) => (
-              <Badge key={grant.group} variant="secondary" className="gap-1.5 pr-1">
-                {grant.group}
+            (permissions.data?.permissions ?? []).map((p) => (
+              <Badge key={p.member} variant="secondary" className="gap-1.5 pr-1">
+                {p.memberType === "user" && <span className="text-muted-foreground">user</span>}
+                {label(p)}
                 <span className="text-muted-foreground">
-                  · {LEVELS.find((l) => l.value === grant.level)?.label ?? grant.level}
+                  · {LEVELS.find((l) => l.value === p.level)?.label ?? p.level}
                 </span>
                 <button
                   type="button"
-                  aria-label={`remove ${grant.group}`}
+                  aria-label={`remove ${p.member}`}
                   className="rounded-sm p-0.5 hover:bg-background/60"
-                  onClick={() => remove.mutate(grant.group)}
+                  onClick={() => remove.mutate(p.member)}
                 >
                   <X className="size-3" />
                 </button>
@@ -151,21 +162,58 @@ function InstanceGrants({ instance }: { instance: Connection }) {
           className="flex flex-wrap items-center gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            if (group.trim()) add.mutate();
+            if (member.trim()) add.mutate();
           }}
         >
-          <Input
-            className="w-56"
-            placeholder="oidc group name"
-            list="known-groups"
-            value={group}
-            onChange={(e) => setGroup(e.target.value)}
-          />
-          <datalist id="known-groups">
-            {suggestions.map((g) => (
-              <option key={g} value={g} />
-            ))}
-          </datalist>
+          <Select
+            value={memberType}
+            onValueChange={(v) => {
+              setMemberType(String(v));
+              setMember("");
+            }}
+          >
+            <SelectTrigger className="w-28">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MEMBER_TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {memberType === "user" ? (
+            <Select value={member} onValueChange={(v) => setMember(String(v))}>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="pick a user" />
+              </SelectTrigger>
+              <SelectContent>
+                {(members.data?.users ?? []).map((u) => (
+                  <SelectItem key={u.subject} value={u.subject}>
+                    {u.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <>
+              <Input
+                className="w-56"
+                placeholder="group name"
+                list="known-groups"
+                value={member}
+                onChange={(e) => setMember(e.target.value)}
+              />
+              <datalist id="known-groups">
+                {knownGroups.map((g) => (
+                  <option key={g} value={g} />
+                ))}
+              </datalist>
+            </>
+          )}
+
           <Select value={level} onValueChange={(v) => setLevel(String(v))}>
             <SelectTrigger className="w-32">
               <SelectValue />
@@ -178,7 +226,7 @@ function InstanceGrants({ instance }: { instance: Connection }) {
               ))}
             </SelectContent>
           </Select>
-          <Button type="submit" size="sm" disabled={!group.trim() || add.isPending}>
+          <Button type="submit" size="sm" disabled={!member.trim() || add.isPending}>
             <Plus /> Grant
           </Button>
         </form>

@@ -14,7 +14,7 @@ import (
 
 // mongoChange loads a change and insists it is a MongoDB request, so the SQL
 // queue cannot be addressed through the MongoDB flow.
-func mongoChange(ctx context.Context, changes interfaces.ChangeRepository, grants interfaces.GrantRepository, id string) (*entity.Change, error) {
+func mongoChange(ctx context.Context, changes interfaces.ChangeRepository, grants interfaces.PermissionRepository, id string) (*entity.Change, error) {
 	ch, err := changes.GetChange(ctx, id)
 	if err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func mongoChange(ctx context.Context, changes interfaces.ChangeRepository, grant
 
 // sqlChange loads a change and insists it is a SQL one, so a MongoDB request
 // cannot be opened through the SQL flow.
-func sqlChange(ctx context.Context, changes interfaces.ChangeRepository, grants interfaces.GrantRepository, id string) (*entity.Change, error) {
+func sqlChange(ctx context.Context, changes interfaces.ChangeRepository, grants interfaces.PermissionRepository, id string) (*entity.Change, error) {
 	ch, err := changes.GetChange(ctx, id)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func sqlChange(ctx context.Context, changes interfaces.ChangeRepository, grants 
 
 // applySQL executes an approved change transactionally; a failure is recorded
 // on the change, not just returned.
-func applySQL(ctx context.Context, changes interfaces.ChangeRepository, conns interfaces.ConnectionRepository, grants interfaces.GrantRepository, sq interfaces.SQLModule, id string) (out entity.Change, err error) {
+func applySQL(ctx context.Context, changes interfaces.ChangeRepository, conns interfaces.ConnectionRepository, grants interfaces.PermissionRepository, sq interfaces.SQLModule, id string) (out entity.Change, err error) {
 	ch, err := changes.GetChange(ctx, id)
 	if err != nil {
 		return entity.Change{}, err
@@ -80,7 +80,7 @@ func applySQL(ctx context.Context, changes interfaces.ChangeRepository, conns in
 
 // applyMongo executes an approved request; a failure is recorded on the
 // change, and there is no rollback to fall back on.
-func applyMongo(ctx context.Context, changes interfaces.ChangeRepository, conns interfaces.ConnectionRepository, grants interfaces.GrantRepository, m interfaces.MongoModule, id string) (out entity.Change, err error) {
+func applyMongo(ctx context.Context, changes interfaces.ChangeRepository, conns interfaces.ConnectionRepository, grants interfaces.PermissionRepository, m interfaces.MongoModule, id string) (out entity.Change, err error) {
 	ch, err := mongoChange(ctx, changes, grants, id)
 	if err != nil {
 		return entity.Change{}, err
@@ -114,7 +114,7 @@ func applyMongo(ctx context.Context, changes interfaces.ChangeRepository, conns 
 
 // applyChange resolves a change's engine from its connection's driver and
 // applies it through the matching family, so the scheduler is family-agnostic.
-func applyChange(ctx context.Context, changes interfaces.ChangeRepository, conns interfaces.ConnectionRepository, grants interfaces.GrantRepository, ch entity.Change) (entity.Change, error) {
+func applyChange(ctx context.Context, changes interfaces.ChangeRepository, conns interfaces.ConnectionRepository, grants interfaces.PermissionRepository, ch entity.Change) (entity.Change, error) {
 	conn, err := conns.Get(ctx, ch.Connection)
 	if err != nil {
 		return ch, err

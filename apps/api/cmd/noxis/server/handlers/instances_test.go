@@ -21,7 +21,7 @@ func TestInstanceLookup(t *testing.T) {
 	c.Password = "secret"
 	conns.conns["demo"] = c
 
-	got, err := (usecases.Instance{Connections: base.Connections, Grants: base.Grants}).Serve(ctx, "abc")
+	got, err := (usecases.Instance{Connections: base.Connections, Permissions: base.Permissions}).Serve(ctx, "abc")
 	if err != nil {
 		t.Fatalf("instance: %v", err)
 	}
@@ -32,7 +32,7 @@ func TestInstanceLookup(t *testing.T) {
 		t.Fatal("password must be redacted")
 	}
 
-	if _, err := (usecases.Instance{Connections: base.Connections, Grants: base.Grants}).Serve(ctx, "missing"); !errors.Is(err, interfaces.ErrNotFound) {
+	if _, err := (usecases.Instance{Connections: base.Connections, Permissions: base.Permissions}).Serve(ctx, "missing"); !errors.Is(err, interfaces.ErrNotFound) {
 		t.Fatalf("missing id: err=%v want not found", err)
 	}
 }
@@ -61,7 +61,7 @@ func TestInstanceSearch(t *testing.T) {
 	}
 	base.Modules[constants.FamilyMemcache] = &fakeMemcache{}
 
-	all, err := (usecases.ListInstances{Connections: base.Connections, Grants: base.Grants}).Serve(ctx, "", "", "")
+	all, err := (usecases.ListInstances{Connections: base.Connections, Permissions: base.Permissions}).Serve(ctx, "", "", "")
 	if err != nil {
 		t.Fatalf("list: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("all = %d, want 3", len(all))
 	}
 
-	byName, err := (usecases.ListInstances{Connections: base.Connections, Grants: base.Grants}).Serve(ctx, "PROD", "", "")
+	byName, err := (usecases.ListInstances{Connections: base.Connections, Permissions: base.Permissions}).Serve(ctx, "PROD", "", "")
 	if err != nil {
 		t.Fatalf("by name: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("by name = %+v", byName)
 	}
 
-	byDriver, err := (usecases.ListInstances{Connections: base.Connections, Grants: base.Grants}).Serve(ctx, "", constants.DriverRedis, "")
+	byDriver, err := (usecases.ListInstances{Connections: base.Connections, Permissions: base.Permissions}).Serve(ctx, "", constants.DriverRedis, "")
 	if err != nil {
 		t.Fatalf("by driver: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestInstanceSearch(t *testing.T) {
 		t.Fatalf("by driver = %+v", byDriver)
 	}
 
-	byHost, err := (usecases.ListInstances{Connections: base.Connections, Grants: base.Grants}).Serve(ctx, "", "", "internal")
+	byHost, err := (usecases.ListInstances{Connections: base.Connections, Permissions: base.Permissions}).Serve(ctx, "", "", "internal")
 	if err != nil {
 		t.Fatalf("by host: %v", err)
 	}
@@ -97,7 +97,7 @@ func TestInstanceSearch(t *testing.T) {
 // Identity is fixed after registration; only the password rotates.
 func TestIdentityLockedAndRotation(t *testing.T) {
 	base, _, conns := newTestBase(&fakeSQL{})
-	ctx := testCtx(base.Modules)
+	ctx := usecases.WithPrincipal(testCtx(base.Modules), entity.Identity{Subject: "root", Admin: true})
 	mod := base.Modules[constants.FamilySQL]
 
 	c := conns.conns["demo"]

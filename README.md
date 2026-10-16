@@ -83,13 +83,13 @@ OIDC can be added later and runs alongside local accounts — set
 | `NOXIS_OIDC_CLIENT_ID` | public client id (PKCE, no secret) |
 | `NOXIS_OIDC_AUDIENCE` | expected `aud`, defaults to the client id |
 | `NOXIS_OIDC_GROUPS_CLAIM` | token claim holding group names, defaults to `groups` |
-| `NOXIS_OIDC_ADMIN_GROUP` | members are global admins (manage connections and grants) |
+| `NOXIS_OIDC_ADMIN_GROUP` | members are global admins (manage connections and permissions) |
 
-Access is per connection — `read` < `write` < `admin` — granted to OIDC groups
-through `/v1/engine/{engine}/connections/{name}/grants`. Default deny: a user with no
-grant sees nothing. `GET /v1/me` reports the caller and its effective level per
-connection (`GET /auth/config` is the public console bootstrap, and
-exposes whether local and/or OIDC login is available).
+Access is per connection — `read` < `write` < `admin` — granted to a user (by
+subject) or a group through `/v1/engine/{engine}/connections/{name}/permissions`.
+Default deny: a user with no permission sees nothing. `GET /v1/me` reports the
+caller and its effective level per connection (`GET /auth/config` is the public
+console bootstrap).
 
 ## Credentials at rest
 

@@ -15,21 +15,21 @@ import (
 type ApplyMongo struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
-	Grants      interfaces.GrantRepository
+	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.
 func (uc ApplyMongo) Serve(ctx context.Context, m interfaces.MongoModule, id string) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	ch, err := mongoChange(ctx, uc.Changes, uc.Grants, id)
+	ch, err := mongoChange(ctx, uc.Changes, uc.Permissions, id)
 	if err != nil {
 		return entity.Change{}, err
 	}
 	if ch.Status != constants.ChangeApproved {
 		return *ch, fmt.Errorf("request is %s, not approved — cannot apply", ch.Status)
 	}
-	conn, err := rawConn(ctx, uc.Connections, uc.Grants, m, ch.Connection, entity.LevelAdmin)
+	conn, err := rawConn(ctx, uc.Connections, uc.Permissions, m, ch.Connection, entity.LevelAdmin)
 	if err != nil {
 		return entity.Change{}, err
 	}

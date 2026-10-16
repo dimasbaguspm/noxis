@@ -12,7 +12,7 @@ import (
 // Instances is the "Instances" use case.
 type ListInstances struct {
 	Connections interfaces.ConnectionRepository
-	Grants      interfaces.GrantRepository
+	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.
@@ -41,7 +41,7 @@ func (uc ListInstances) Serve(ctx context.Context, name, driver, host string) (o
 		if hostNeedle != "" && !strings.Contains(strings.ToLower(c.Host), hostNeedle) {
 			continue
 		}
-		readable, err := CanRead(ctx, uc.Grants, c.Name)
+		readable, err := CanRead(ctx, uc.Permissions, c.Name)
 		if err != nil {
 			return nil, err
 		}

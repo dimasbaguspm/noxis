@@ -60,7 +60,7 @@ module. This is why one handler serves all families instead of a copy per family
 | --- | --- | --- |
 | `ConnectionRepository` | `interfaces/repository.go` | `sqlite.Store` |
 | `ChangeRepository` | `interfaces/repository.go` | `sqlite.Store` |
-| `GrantRepository` | `interfaces/repository.go` | `sqlite.Store` |
+| `PermissionRepository` | `interfaces/repository.go` | `sqlite.Store` |
 | `Module` / `SQLModule` | `interfaces/sql.go` | `sql.DB` |
 | `MemcacheModule` | `interfaces/memcache.go` | `memcache.DB` |
 | `MongoModule` | `interfaces/mongodb.go` | `mongodb.DB` |
@@ -104,7 +104,7 @@ there + a handler + a swag annotation block, then `make swagger`.
   `entity.Identity` lands on the ctx (`usecases.Principal`).
 - Open mode = no issuer set; every caller trusted; `deps.From` still required.
 - `usecases.rawConn` is the single per-connection gate. `RequireAdmin` gates the
-  management surfaces (connection CRUD, grants).
+  management surfaces (connection CRUD, permissions).
 - Levels: `read < write < admin` (`entity.LevelAllows`). `OpLevel` maps a SQL op
   to a level (only `query` is read; `analyze` mutates planner stats = write).
 - List endpoints hide unreadable connections (`CanRead`/`readableConnections`).

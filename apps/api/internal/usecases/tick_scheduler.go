@@ -32,7 +32,7 @@ func dueChange(ch entity.Change, now int64) bool {
 type Tick struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
-	Grants      interfaces.GrantRepository
+	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.
@@ -48,7 +48,7 @@ func (uc Tick) Serve(ctx context.Context) (res TickResult, err error) {
 		if !dueChange(all[i], now) {
 			continue
 		}
-		if _, err := applyChange(ctx, uc.Changes, uc.Connections, uc.Grants, all[i]); err != nil {
+		if _, err := applyChange(ctx, uc.Changes, uc.Connections, uc.Permissions, all[i]); err != nil {
 			res.Failed = append(res.Failed, all[i].ID)
 			continue
 		}

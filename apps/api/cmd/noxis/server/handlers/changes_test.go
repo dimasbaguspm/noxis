@@ -128,7 +128,7 @@ func (f *fakeSQL) Apply(context.Context, entity.Connection, string) (interfaces.
 type testBase struct {
 	Connections interfaces.ConnectionRepository
 	Changes     interfaces.ChangeRepository
-	Grants      interfaces.GrantRepository
+	Permissions interfaces.PermissionRepository
 	Modules     map[string]interfaces.Module
 }
 
@@ -143,7 +143,7 @@ func newTestBase(sq interfaces.SQLModule) (testBase, *fakeChanges, *fakeConns) {
 	return testBase{
 		Connections: conns,
 		Changes:     changes,
-		Grants:      &fakeGrants{grants: map[string]entity.Grant{}},
+		Permissions: &fakePermissions{permissions: map[string]entity.Permission{}},
 		Modules:     map[string]interfaces.Module{constants.FamilySQL: sq},
 	}, changes, conns
 }
@@ -155,7 +155,7 @@ func newTestDeps(sq interfaces.SQLModule) (deps.Uses, *fakeChanges, *fakeConns) 
 	return deps.Init(deps.Deps{
 		Connections: base.Connections,
 		Changes:     base.Changes,
-		Grants:      base.Grants,
+		Permissions: base.Permissions,
 		Modules:     modules.New(base.Modules, nil),
 		Log:         discardLog(),
 	}), changes, conns

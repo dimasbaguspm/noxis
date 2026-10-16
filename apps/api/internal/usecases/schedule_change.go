@@ -13,8 +13,8 @@ import (
 
 // Schedule is the "Schedule" use case.
 type Schedule struct {
-	Changes interfaces.ChangeRepository
-	Grants  interfaces.GrantRepository
+	Changes     interfaces.ChangeRepository
+	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.
@@ -25,7 +25,7 @@ func (uc Schedule) Serve(ctx context.Context, id string, at int64) (out entity.C
 	if err != nil {
 		return entity.Change{}, err
 	}
-	if err := Authorize(ctx, uc.Grants, ch.Connection, entity.LevelAdmin); err != nil {
+	if err := Authorize(ctx, uc.Permissions, ch.Connection, entity.LevelAdmin); err != nil {
 		return entity.Change{}, err
 	}
 	if ch.Status != constants.ChangeApproved {

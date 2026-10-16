@@ -13,7 +13,7 @@ import (
 // another engine family is not addressable in this namespace. It is the
 // single authorization gate every connection-scoped workflow funnels through:
 // level is the access the operation needs.
-func rawConn(ctx context.Context, conns interfaces.ConnectionRepository, grants interfaces.GrantRepository, mod interfaces.Module, name, level string) (*entity.Connection, error) {
+func rawConn(ctx context.Context, conns interfaces.ConnectionRepository, grants interfaces.PermissionRepository, mod interfaces.Module, name, level string) (*entity.Connection, error) {
 	c, err := conns.Get(ctx, name)
 	if err != nil {
 		return nil, err

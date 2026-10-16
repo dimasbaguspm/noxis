@@ -10,8 +10,8 @@ import (
 
 // MongoChange is the "MongoChange" use case.
 type MongoChange struct {
-	Changes interfaces.ChangeRepository
-	Grants  interfaces.GrantRepository
+	Changes     interfaces.ChangeRepository
+	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.
@@ -23,7 +23,7 @@ func (uc MongoChange) Serve(ctx context.Context, id string) (*entity.Change, err
 	if ch.Kind != constants.KindMongo {
 		return nil, fmt.Errorf("change %s is %s, not a mongodb request", id, ch.Kind)
 	}
-	if err := Authorize(ctx, uc.Grants, ch.Connection, entity.LevelRead); err != nil {
+	if err := Authorize(ctx, uc.Permissions, ch.Connection, entity.LevelRead); err != nil {
 		return nil, err
 	}
 	return ch, nil
