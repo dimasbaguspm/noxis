@@ -6,6 +6,10 @@ package constants
 // Version is the build version reported by the CLI and health surfaces.
 const Version = "0.1.0"
 
+// APIPrefix is the versioned mount point of the public API. Internal callers
+// live under /internal, while the console shell and /healthz stay at the root.
+const APIPrefix = "/external/v1"
+
 // The wire contract ops (SQL console operations).
 const (
 	OpQuery    = "query"

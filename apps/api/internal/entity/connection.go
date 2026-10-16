@@ -13,7 +13,7 @@ import (
 // case the store encrypts it at rest with AES-256-GCM.
 type Connection struct {
 	// ID is the stable instance identifier used by the cross-family
-	// /v1/instances routes. Permissions and changes still link by Name.
+	// /external/v1/instances routes. Permissions and changes still link by Name.
 	ID string `json:"id,omitempty"`
 	// Family names the engine family that serves the driver. It is not
 	// stored: the cross-family routes set it when serving.

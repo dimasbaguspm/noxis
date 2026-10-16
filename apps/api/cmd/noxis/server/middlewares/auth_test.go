@@ -29,16 +29,16 @@ func okHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
 }
 
-// WithAuth denies /v1/* when no verifier is wired: there is no open mode.
+// WithAuth denies /external/v1/* when no verifier is wired: there is no open mode.
 func TestWithAuthNilVerifierDenies(t *testing.T) {
 	rec := httptest.NewRecorder()
-	WithAuth(nil, okHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody))
+	WithAuth(nil, okHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/engine/sql/connections", http.NoBody))
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("nil verifier status=%d want=%d", rec.Code, http.StatusUnauthorized)
 	}
 }
 
-// WithAuth guards /v1/* with a bearer token; the console shell, assets and
+// WithAuth guards /external/v1/* with a bearer token; the console shell, assets and
 // health stay reachable so login can happen.
 func TestWithAuthGuardsAPI(t *testing.T) {
 	verifier := &fakeVerifier{err: errors.New("bad token")}
@@ -50,9 +50,9 @@ func TestWithAuthGuardsAPI(t *testing.T) {
 		header string
 		want   int
 	}{
-		{"api missing token", "/v1/engine/sql/connections", "", http.StatusUnauthorized},
-		{"api bad scheme", "/v1/engine/sql/connections", "Token abc", http.StatusUnauthorized},
-		{"api invalid token", "/v1/engine/sql/connections", "Bearer nope", http.StatusUnauthorized},
+		{"api missing token", "/external/v1/engine/sql/connections", "", http.StatusUnauthorized},
+		{"api bad scheme", "/external/v1/engine/sql/connections", "Token abc", http.StatusUnauthorized},
+		{"api invalid token", "/external/v1/engine/sql/connections", "Bearer nope", http.StatusUnauthorized},
 		{"console open", "/", "", http.StatusOK},
 		{"health open", "/healthz", "", http.StatusOK},
 	}
@@ -77,7 +77,7 @@ func TestWithAuthAttachesPrincipal(t *testing.T) {
 		got, _ = usecases.Principal(r.Context())
 		w.WriteHeader(http.StatusOK)
 	})
-	req := httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody)
+	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
 	req.Header.Set("Authorization", "Bearer good-token")
 	rec := httptest.NewRecorder()
 	WithAuth(verifier, inner).ServeHTTP(rec, req)

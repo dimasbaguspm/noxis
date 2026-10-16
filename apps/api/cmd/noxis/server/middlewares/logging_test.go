@@ -20,11 +20,11 @@ func TestRequestLogRecordsStatus(t *testing.T) {
 	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNotFound) })
 
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/engine/sql/connections", http.NoBody)
+	req := httptest.NewRequest(http.MethodGet, "/external/v1/engine/sql/connections", http.NoBody)
 	RequestLog(inner, log).ServeHTTP(rec, req)
 
 	line := buf.String()
-	for _, want := range []string{`"method":"GET"`, `"path":"/v1/engine/sql/connections"`, `"status":404`} {
+	for _, want := range []string{`"method":"GET"`, `"path":"/external/v1/engine/sql/connections"`, `"status":404`} {
 		if !strings.Contains(line, want) {
 			t.Fatalf("log %s missing %s", line, want)
 		}
@@ -38,7 +38,7 @@ func TestRequestLogAttachesPrincipal(t *testing.T) {
 	log := slog.New(slog.NewJSONHandler(&buf, nil))
 
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody)
+	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
 	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Identity{Subject: "bob", Groups: []string{"readers"}}))
 	RequestLog(okHandler(), log).ServeHTTP(rec, req)
 
@@ -56,7 +56,7 @@ func TestRequestLogWithoutTracingDoesNotPanic(t *testing.T) {
 	var buf bytes.Buffer
 	log := slog.New(slog.NewTextHandler(&buf, nil))
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/v1/me", http.NoBody)
+	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
 	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Identity{Subject: "bob"}))
 	RequestLog(okHandler(), log).ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {

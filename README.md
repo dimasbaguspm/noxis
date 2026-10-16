@@ -32,7 +32,7 @@ volume, no docker socket.
   there is no validated change queue for it: keys can be browsed, inspected and
   removed, and every operation is a typed client call (no command text to
   inject). `FLUSHALL` is deliberately unreachable.
-- **Namespaced API** — `/v1/engine/sql/...`, `/v1/engine/memcache/...` and `/v1/engine/mongodb/...`;
+- **Namespaced API** — `/external/v1/engine/sql/...`, `/external/v1/engine/memcache/...` and `/external/v1/engine/mongodb/...`;
   each family serves only its own drivers, so a memory-cache connection is
   invisible to the SQL routes and vice versa. The console follows the same
   split: one dashboard table for every instance with a detail dialog, and a
@@ -70,12 +70,12 @@ volume, no docker socket.
 
 ## Authentication
 
-Noxis requires a login: every `/v1/*` call needs a bearer token. There is no
+Noxis requires a login: every `/external/v1/*` call needs a bearer token. There is no
 open mode. On first boot the root admin is created from `NOXIS_ADMIN_USERNAME`
 and `NOXIS_ADMIN_PASSWORD` (required only while no accounts exist; ignored
 after, so a password changed in the console survives restarts).
 
-Accounts are local by default: `POST /auth/login` verifies a bcrypt-hashed
+Accounts are local by default: `POST /external/v1/auth/login` verifies a bcrypt-hashed
 password and returns a single opaque session token; disabling an account or
 changing its password invalidates that token immediately.
 
@@ -91,9 +91,9 @@ OIDC can be added later and runs alongside local accounts — set
 | `NOXIS_OIDC_ADMIN_GROUP` | members are global admins (manage connections and permissions) |
 
 Access is per connection — `read` < `write` < `admin` — granted to a user (by
-subject) or a group through `/v1/engine/{engine}/connections/{name}/permissions`.
-Default deny: a user with no permission sees nothing. `GET /v1/me` reports the
-caller and its effective level per connection (`GET /auth/config` is the public
+subject) or a group through `/external/v1/engine/{engine}/connections/{name}/permissions`.
+Default deny: a user with no permission sees nothing. `GET /external/v1/me` reports the
+caller and its effective level per connection (`GET /external/v1/auth/config` is the public
 console bootstrap).
 
 ## Credentials at rest
@@ -123,27 +123,27 @@ open http://localhost:9000
 
 # the dev stack seeds the root admin admin / noxis-admin; every /v1 call needs
 # the bearer token it returns (the console login form arrives in a later change)
-TOKEN=$(curl -s localhost:9000/auth/login -H 'Content-Type: application/json' \
+TOKEN=$(curl -s localhost:9000/external/v1/auth/login -H 'Content-Type: application/json' \
   -d '{"username":"admin","password":"noxis-admin"}' | sed 's/.*"token":"\([^"]*\)".*/\1/')
 
 # or drive the API (add -H "Authorization: Bearer $TOKEN" to each call):
-curl -s -X POST localhost:9000/v1/engine/sql/connections -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+curl -s -X POST localhost:9000/external/v1/engine/sql/connections -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"name":"demo","driver":"postgres","host":"db","port":5432,
        "user":"postgres","password":"noxis","database":"demo"}'
-curl -s -X POST localhost:9000/v1/engine/sql/connections/demo/query \
+curl -s -X POST localhost:9000/external/v1/engine/sql/connections/demo/query \
   -H 'Content-Type: application/json' -d '{"sql":"SELECT 6*6 AS n"}'
 
 # mongodb: register the compose server, explore, run a request
-curl -s -X POST localhost:9000/v1/engine/mongodb/connections -H 'Content-Type: application/json' \
+curl -s -X POST localhost:9000/external/v1/engine/mongodb/connections -H 'Content-Type: application/json' \
   -d '{"name":"docs","driver":"mongo","host":"mongo","port":27017,"user":"root",
        "password":"noxis","database":"admin"}'
-curl -s "localhost:9000/v1/engine/mongodb/connections/docs/collections?database=demo"
-curl -s -X POST localhost:9000/v1/engine/mongodb/connections/docs/requests \
+curl -s "localhost:9000/external/v1/engine/mongodb/connections/docs/collections?database=demo"
+curl -s -X POST localhost:9000/external/v1/engine/mongodb/connections/docs/requests \
   -H 'Content-Type: application/json' \
   -d '{"op":"find","database":"demo","collection":"items","filter":"{\"sku\": \"a\"}"}'
 
 # memory cache: register the compose server, browse keys
-curl -s -X POST localhost:9000/v1/engine/memcache/connections -H 'Content-Type: application/json' \
+curl -s -X POST localhost:9000/external/v1/engine/memcache/connections -H 'Content-Type: application/json' \
   -d '{"name":"cache","driver":"redis","host":"redis","port":6379,"database":"0"}'
-curl -s "localhost:9000/v1/engine/memcache/connections/cache/keys?pattern=*"
+curl -s "localhost:9000/external/v1/engine/memcache/connections/cache/keys?pattern=*"
 ```

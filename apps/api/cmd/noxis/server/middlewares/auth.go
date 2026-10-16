@@ -5,17 +5,19 @@ import (
 	"net/http"
 	"strings"
 
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
 )
 
-// WithAuth requires a valid bearer token on every /v1/* request. There is no
-// open mode: a nil verifier is a wiring bug and denies rather than trusting. The
-// console shell, assets and /healthz stay reachable so login can happen.
+// WithAuth requires a valid bearer token on every public API request. There is
+// no open mode: a nil verifier is a wiring bug and denies rather than trusting.
+// The console shell, assets, /healthz and the two pre-token auth endpoints stay
+// reachable so login can happen.
 func WithAuth(verifier interfaces.Verifier, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.HasPrefix(r.URL.Path, "/v1/") {
+		if !strings.HasPrefix(r.URL.Path, constants.APIPrefix+"/") || authPublic(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -35,6 +37,16 @@ func WithAuth(verifier interfaces.Verifier, next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r.WithContext(usecases.WithPrincipal(r.Context(), principal)))
 	})
+}
+
+// authPublic reports whether a path under the API prefix is reachable without a
+// token: the config probe and the login the console calls before it has one.
+func authPublic(path string) bool {
+	switch path {
+	case constants.APIPrefix + "/auth/config", constants.APIPrefix + "/auth/login":
+		return true
+	}
+	return false
 }
 
 // bearerToken returns the token from `Authorization: Bearer <token>`.

@@ -21,7 +21,7 @@ import (
 // @Param page query int false "page number, starting at 1"
 // @Param perPage query int false "items per page (default 20, max 100)"
 // @Success 200 {object} object{instances=[]entity.Connection,total=int}
-// @Router /v1/instances [get]
+// @Router /external/v1/instances [get]
 func ListInstances(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -44,7 +44,7 @@ func ListInstances(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.StatusResponse
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 403 {object} entity.ErrorResponse
-// @Router /v1/instances/{id}/password [post]
+// @Router /external/v1/instances/{id}/password [post]
 func RotatePassword(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -63,7 +63,7 @@ func RotatePassword(w http.ResponseWriter, r *http.Request) {
 // @Param id path string true "instance id"
 // @Success 200 {object} entity.Connection
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/instances/{id} [get]
+// @Router /external/v1/instances/{id} [get]
 func GetInstance(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {

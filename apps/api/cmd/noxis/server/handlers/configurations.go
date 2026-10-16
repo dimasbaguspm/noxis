@@ -27,7 +27,7 @@ var driverCatalog = []DriverInfo{
 
 // @Summary List the drivers the console can register
 // @Success 200 {array} handlers.DriverInfo
-// @Router /v1/config/drivers [get]
+// @Router /external/v1/config/drivers [get]
 func ListDrivers(w http.ResponseWriter, r *http.Request) {
 	handle(w, r, func(context.Context) (any, error) {
 		return driverCatalog, nil

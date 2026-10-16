@@ -17,7 +17,7 @@ import (
 // @Summary List connections (passwords redacted)
 // @Param engine path string true "engine family (sql, memcache, mongodb)"
 // @Success 200 {object} object{connections=[]entity.Connection}
-// @Router /v1/engine/{engine}/connections [get]
+// @Router /external/v1/engine/{engine}/connections [get]
 func ListConnections(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -35,7 +35,7 @@ func ListConnections(w http.ResponseWriter, r *http.Request) {
 // @Param body body entity.Connection true "connection (omit password to keep the stored one)"
 // @Success 200 {object} entity.Connection
 // @Failure 400 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections [post]
+// @Router /external/v1/engine/{engine}/connections [post]
 func SaveConnection(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -56,7 +56,7 @@ func SaveConnection(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Success 200 {object} entity.Connection
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name} [get]
+// @Router /external/v1/engine/{engine}/connections/{name} [get]
 func GetConnection(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -73,7 +73,7 @@ func GetConnection(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Success 204 "deleted"
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name} [delete]
+// @Router /external/v1/engine/{engine}/connections/{name} [delete]
 func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handleNoContent(w, r, func(ctx context.Context) error {
@@ -90,7 +90,7 @@ func DeleteConnection(w http.ResponseWriter, r *http.Request) {
 // @Param name path string true "connection name"
 // @Success 200 {object} entity.StatusResponse
 // @Failure 400 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/test [post]
+// @Router /external/v1/engine/{engine}/connections/{name}/test [post]
 func TestConnection(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -111,7 +111,7 @@ func TestConnection(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} object{tables=[]entity.Table}
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/schema [get]
+// @Router /external/v1/engine/{engine}/connections/{name}/schema [get]
 func GetSchema(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -133,7 +133,7 @@ func GetSchema(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/tables/{table}/rows [get]
+// @Router /external/v1/engine/{engine}/connections/{name}/tables/{table}/rows [get]
 func GetRows(w http.ResponseWriter, r *http.Request) {
 	d := deps.From(r.Context())
 	handle(w, r, func(ctx context.Context) (any, error) {
@@ -153,7 +153,7 @@ func GetRows(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/query [post]
+// @Router /external/v1/engine/{engine}/connections/{name}/query [post]
 func PostQuery(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 // @Summary Apply a write directly (DML or DDL)
@@ -163,7 +163,7 @@ func PostQuery(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/alter [post]
+// @Router /external/v1/engine/{engine}/connections/{name}/alter [post]
 func PostAlter(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 // @Summary Dry-run statements inside a transaction that always rolls back
@@ -173,7 +173,7 @@ func PostAlter(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/rollback [post]
+// @Router /external/v1/engine/{engine}/connections/{name}/rollback [post]
 func PostRollback(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 // @Summary Refresh planner statistics for a table
@@ -183,7 +183,7 @@ func PostRollback(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /v1/engine/{engine}/connections/{name}/analyze [post]
+// @Router /external/v1/engine/{engine}/connections/{name}/analyze [post]
 func PostAnalyze(w http.ResponseWriter, r *http.Request) { doOp(w, r) }
 
 type opBody struct {
@@ -193,10 +193,10 @@ type opBody struct {
 
 // opRoutes pins each op route to its op name.
 var opRoutes = map[string]string{
-	"POST /v1/engine/{engine}/connections/{name}/query":    constants.OpQuery,
-	"POST /v1/engine/{engine}/connections/{name}/alter":    constants.OpAlter,
-	"POST /v1/engine/{engine}/connections/{name}/rollback": constants.OpRollback,
-	"POST /v1/engine/{engine}/connections/{name}/analyze":  constants.OpAnalyze,
+	"POST /external/v1/engine/{engine}/connections/{name}/query":    constants.OpQuery,
+	"POST /external/v1/engine/{engine}/connections/{name}/alter":    constants.OpAlter,
+	"POST /external/v1/engine/{engine}/connections/{name}/rollback": constants.OpRollback,
+	"POST /external/v1/engine/{engine}/connections/{name}/analyze":  constants.OpAnalyze,
 }
 
 func doOp(w http.ResponseWriter, r *http.Request) {

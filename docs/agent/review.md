@@ -44,7 +44,7 @@ every network call.
 
 **Web** — `pnpm lint` + `pnpm build` pass; API types come from
 `src/api/generated.ts` (run `gen:api` if the spec changed); no hardcoded driver
-list that drifts from `GET /v1/config/drivers`.
+list that drifts from `GET /external/v1/config/drivers`.
 
 ## Conventions a reviewer should enforce
 

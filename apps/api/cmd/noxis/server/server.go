@@ -18,6 +18,7 @@ import (
 	"noxis/cmd/noxis/server/handlers"
 	"noxis/cmd/noxis/server/middlewares"
 	"noxis/internal/common/config"
+	"noxis/internal/constants"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules"
 	"noxis/internal/modules/auth"
@@ -49,57 +50,60 @@ func newDeps(store *sqlite.Store, log *slog.Logger, cfg config.Config, authSvc *
 // the handler (404) instead of reaching the wrong module.
 func newHandler(cfg config.Config) http.Handler {
 	mux := http.NewServeMux()
+	// The public API is versioned and mounted under /external; internal triggers
+	// live under /internal; the console shell and health probes stay at the root.
+	const api = constants.APIPrefix
 
 	mux.HandleFunc("GET /healthz", handlers.GetHealthz)
-	mux.HandleFunc("GET /v1/config/drivers", handlers.ListDrivers)
-	mux.HandleFunc("GET /auth/config", handlers.GetAuthConfig)
-	mux.HandleFunc("POST /auth/login", handlers.PostLogin)
-	mux.HandleFunc("GET /v1/me", handlers.GetMe)
-	mux.HandleFunc("POST /v1/auth/logout", handlers.PostLogout)
-	mux.HandleFunc("POST /v1/auth/password", handlers.PostChangePassword)
+	mux.HandleFunc("GET "+api+"/config/drivers", handlers.ListDrivers)
+	mux.HandleFunc("GET "+api+"/auth/config", handlers.GetAuthConfig)
+	mux.HandleFunc("POST "+api+"/auth/login", handlers.PostLogin)
+	mux.HandleFunc("GET "+api+"/me", handlers.GetMe)
+	mux.HandleFunc("POST "+api+"/auth/logout", handlers.PostLogout)
+	mux.HandleFunc("POST "+api+"/auth/password", handlers.PostChangePassword)
 
 	// Connections: one generic handler per route, gated by the {engine} path
 	// parameter through the module registry.
-	mux.HandleFunc("GET /v1/engine/{engine}/connections", handlers.ListConnections)
-	mux.HandleFunc("POST /v1/engine/{engine}/connections", handlers.SaveConnection)
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}", handlers.GetConnection)
-	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}", handlers.DeleteConnection)
-	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/test", handlers.TestConnection)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections", handlers.ListConnections)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections", handlers.SaveConnection)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}", handlers.GetConnection)
+	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}", handlers.DeleteConnection)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/test", handlers.TestConnection)
 
 	// Permissions: per-connection RBAC policy (users and groups), managed by
 	// global admins only.
-	mux.HandleFunc("GET /v1/config/members", handlers.ListConfigMembers)
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/permissions", handlers.ListPermissions)
-	mux.HandleFunc("PUT /v1/engine/{engine}/connections/{name}/permissions", handlers.SetPermission)
-	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}/permissions", handlers.DeletePermission)
+	mux.HandleFunc("GET "+api+"/config/members", handlers.ListConfigMembers)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/permissions", handlers.ListPermissions)
+	mux.HandleFunc("PUT "+api+"/engine/{engine}/connections/{name}/permissions", handlers.SetPermission)
+	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}/permissions", handlers.DeletePermission)
 
 	// SQL-only: schema, row preview and the console ops.
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/schema", handlers.GetSchema)
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/tables/{table}/rows", handlers.GetRows)
-	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/query", handlers.PostQuery)
-	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/alter", handlers.PostAlter)
-	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/rollback", handlers.PostRollback)
-	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/analyze", handlers.PostAnalyze)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/schema", handlers.GetSchema)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/tables/{table}/rows", handlers.GetRows)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/query", handlers.PostQuery)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/alter", handlers.PostAlter)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/rollback", handlers.PostRollback)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/analyze", handlers.PostAnalyze)
 
 	// Changes: SQL and MongoDB keep separate queues behind one route.
-	mux.HandleFunc("GET /v1/engine/{engine}/changes", handlers.ListChanges)
-	mux.HandleFunc("POST /v1/engine/{engine}/changes", handlers.SubmitChange)
-	mux.HandleFunc("GET /v1/engine/{engine}/changes/{id}", handlers.GetChange)
-	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/approve", handlers.ApproveChange)
-	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/apply", handlers.ApplyChange)
-	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/reject", handlers.RejectChange)
-	mux.HandleFunc("POST /v1/engine/{engine}/changes/{id}/schedule", handlers.ScheduleChange)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/changes", handlers.ListChanges)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/changes", handlers.SubmitChange)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/changes/{id}", handlers.GetChange)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/approve", handlers.ApproveChange)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/apply", handlers.ApplyChange)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/reject", handlers.RejectChange)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/schedule", handlers.ScheduleChange)
 
 	// Memory-cache-only: keys, values, removal and emptying the database.
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/keys", handlers.ListKeys)
-	mux.HandleFunc("DELETE /v1/engine/{engine}/connections/{name}/keys", handlers.DeleteKeys)
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/value", handlers.GetValue)
-	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/flush", handlers.FlushDB)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/keys", handlers.ListKeys)
+	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}/keys", handlers.DeleteKeys)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/value", handlers.GetValue)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/flush", handlers.FlushDB)
 
 	// MongoDB-only: databases, collections and read requests.
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/databases", handlers.ListDatabases)
-	mux.HandleFunc("GET /v1/engine/{engine}/connections/{name}/collections", handlers.ListCollections)
-	mux.HandleFunc("POST /v1/engine/{engine}/connections/{name}/requests", handlers.PostRequest)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/databases", handlers.ListDatabases)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/collections", handlers.ListCollections)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/requests", handlers.PostRequest)
 
 	mux.Handle("GET /assets/", http.HandlerFunc(handlers.GetAssets)) // embedded FS keeps the assets/ prefix
 	mux.HandleFunc("GET /", handlers.GetConsole)                     // the operator console (SPA shell)
@@ -110,11 +114,11 @@ func newHandler(cfg config.Config) http.Handler {
 	mux.Handle("POST /internal/callback/scheduler", middlewares.WithSchedulerAuth(cfg.SchedulerKey, cfg.SchedulerSecret, http.HandlerFunc(handlers.PostScheduler)))
 
 	// Instances address a connection by its stable id, across families. The
-	// family routes live under /v1/engine/{engine}/..., so these paths never
+	// family routes live under {api}/engine/{engine}/..., so these paths never
 	// collide with the {engine} wildcard.
-	mux.HandleFunc("GET /v1/instances", handlers.ListInstances)
-	mux.HandleFunc("GET /v1/instances/{id}", handlers.GetInstance)
-	mux.HandleFunc("POST /v1/instances/{id}/password", handlers.RotatePassword)
+	mux.HandleFunc("GET "+api+"/instances", handlers.ListInstances)
+	mux.HandleFunc("GET "+api+"/instances/{id}", handlers.GetInstance)
+	mux.HandleFunc("POST "+api+"/instances/{id}/password", handlers.RotatePassword)
 
 	return mux
 }

@@ -19,7 +19,7 @@ instead of crash-looping.
 | column | notes |
 | --- | --- |
 | `name` | PK, the connection's addressable name |
-| `id` | stable instance id (`/v1/instances`), unique index, backfilled |
+| `id` | stable instance id (`/external/v1/instances`), unique index, backfilled |
 | `driver` | `postgres`/`mysql`/`redis`/`valkey`/`mongo` |
 | `host`, `port`, `user`, `database` | identity fields, locked after registration |
 | `password` | plaintext or `enc:v1:...` (AES-256-GCM) |

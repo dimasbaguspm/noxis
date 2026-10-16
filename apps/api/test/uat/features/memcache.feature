@@ -1,5 +1,5 @@
 Feature: Memory cache keys and metrics
-  The /v1/engine/memcache namespace browses a live server (Redis or Valkey): keys with
+  The /external/v1/engine/memcache namespace browses a live server (Redis or Valkey): keys with
   their type and TTL, values rendered per type, INFO metrics, and key removal.
   Writes stop at deleting keys because a cache value cannot be rolled back.
 
