@@ -15,7 +15,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { SingleSelect } from "@/components/ui/single-select";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,6 +24,7 @@ import { useDriversQuery } from "@/hooks/use-config";
 import { queryClient } from "@/lib/query-client";
 import { FAMILY, type FamilyKey } from "@/lib/families";
 import { api, type Connection } from "@/lib/api";
+import { parseDsn } from "@/lib/dsn";
 
 // connectionSchema is the client-side contract for the registration form;
 // the server still enforces driver specifics on probe. A file driver (sqlite)
@@ -44,6 +45,7 @@ const connectionSchema = z
     user: z.string().trim().optional(),
     password: z.string().optional(),
     database: z.string().trim().min(1, "database is required"),
+    params: z.record(z.string(), z.string()).optional(),
     driver: z.string().optional(),
   })
   .superRefine((v, ctx) => {
@@ -113,6 +115,8 @@ export function ConnectionDialog({
   const [step, setStep] = useState<1 | 2>(wizard && !initial ? 1 : 2);
   const [verified, setVerified] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [dsn, setDsn] = useState("");
+  const [dsnError, setDsnError] = useState<string | null>(null);
 
   // closing never keeps a half-filled form: the next visit starts over at the
   // kind choice with pristine values for the dialog's own family
@@ -155,6 +159,33 @@ export function ConnectionDialog({
     reset(BLANK[next]);
     setVerified(false);
     setStep(2);
+  }
+
+  // applyDsn fills the form from a pasted connection string, switching the
+  // dialog's family when the string belongs to another one.
+  function applyDsn() {
+    if (!dsn.trim()) return;
+    const parsed = parseDsn(dsn);
+    if (!parsed.ok) {
+      setDsnError(parsed.error);
+      return;
+    }
+    const v = parsed.value;
+    const info = drivers.find((d) => d.driver === v.driver);
+    if (!info) {
+      setDsnError(`unknown driver "${v.driver}"`);
+      return;
+    }
+    setDsnError(null);
+    if (info.family !== kind) setKind(info.family);
+    setValue("driver", v.driver);
+    setValue("host", v.host);
+    setValue("port", v.port);
+    setValue("user", v.user);
+    setValue("password", v.password);
+    setValue("database", v.database);
+    setValue("params", v.params);
+    setVerified(false);
   }
 
   const onValid = handleSubmit(async (values) => {
@@ -234,6 +265,27 @@ export function ConnectionDialog({
           <>
             <SheetBody>
               <form id="connection-save" onSubmit={onValid} className="grid gap-4">
+              <Field>
+                <FieldLabel htmlFor="conn-dsn">Connection string (optional)</FieldLabel>
+                <Input
+                  id="conn-dsn"
+                  placeholder="postgresql://user:pass@host:5432/db"
+                  value={dsn}
+                  onChange={(e) => {
+                    setDsn(e.target.value);
+                    setDsnError(null);
+                  }}
+                  onBlur={applyDsn}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applyDsn();
+                    }
+                  }}
+                />
+                <FieldDescription>Paste a URL to fill the fields below.</FieldDescription>
+                <FieldError>{dsnError}</FieldError>
+              </Field>
               <Field>
                 <FieldLabel htmlFor="conn-name">Name</FieldLabel>
                 <Input id="conn-name" placeholder="prod-readonly" {...field("name")} />
