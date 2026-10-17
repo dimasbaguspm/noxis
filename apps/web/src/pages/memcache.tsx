@@ -49,10 +49,10 @@ interface Row {
 // emptying the database behind a typed confirmation. New instances are
 // registered from the dashboard, the single entry point.
 export default function MemcachePage() {
-  const { can } = useAuth();
+  const { isInstanceAdmin } = useAuth();
   const { connections, connection, pick } = useMemcacheConnections();
   // removing keys and emptying the database are admin actions on the instance
-  const mayAdmin = can(connection, "admin");
+  const mayAdmin = isInstanceAdmin(connection);
   const [pattern, setPattern] = useState("*");
   const glob = useDebounce(pattern || "*", 300);
   const [selected, setSelected] = useState<string[]>([]);

@@ -15,11 +15,11 @@ import { cn } from "@/lib/utils";
 // MongoRequestsPage is the review queue: every write request waits here until
 // someone approves and applies it. Reads never appear (they run in Explore).
 export default function MongoRequestsPage() {
-  const { can } = useAuth();
+  const { canAccess } = useAuth();
   const { connections } = useMongoConnections();
   const { connections: mongoConnections } = useConnections(FAMILY.MONGODB);
   const { changes, isFetching: loading, refetch: reload } = useMongoChangesListQuery();
-  const mayWrite = mongoConnections.some((c) => can(c.name, "write"));
+  const mayWrite = mongoConnections.some((c) => canAccess(c.name, "write"));
 
   return (
     <div className="flex flex-col gap-4">

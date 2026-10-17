@@ -61,7 +61,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { can } = useAuth();
+  const { canAccess, isInstanceAdmin } = useAuth();
   const detail = useChangeGetQuery(id);
   const change = detail.data;
   const gone = detail.isError;
@@ -90,8 +90,8 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
 
   const queue = kind === "ddl" ? PAGE_ROUTES.SQL.DDL : PAGE_ROUTES.SQL.DML;
   const act = (fn: (id: string) => void) => () => fn(id);
-  const mayReview = can(change.connection, "admin");
-  const mayWrite = can(change.connection, "write");
+  const mayReview = isInstanceAdmin(change.connection);
+  const mayWrite = canAccess(change.connection, "write");
   const canApprove = mayReview && (change.status === "validated" || change.status === "unverified");
   const canApply = mayReview && change.status === "approved";
   const canReject = mayReview && change.status !== "applied" && change.status !== "rejected";

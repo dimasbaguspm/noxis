@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight, GalleryVerticalEnd, LayoutDashboard, Settings, UserRound, UsersRound } from "lucide-react";
+import { ChevronRight, GalleryVerticalEnd, LayoutDashboard, UserRound, UsersRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FAMILIES, type Family } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
@@ -142,14 +142,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                   <Link to={PAGE_ROUTES.PROFILE}>
                     <UserRound />
                     <span>Profile</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === PAGE_ROUTES.SETTINGS}>
-                  <Link to={PAGE_ROUTES.SETTINGS}>
-                    <Settings />
-                    <span>Settings</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

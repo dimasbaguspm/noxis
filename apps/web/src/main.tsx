@@ -15,6 +15,7 @@ import "./app.css";
 // route-level splitting: monaco (query/changes) loads with the page that needs it
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
 const InstanceDetailPage = lazy(() => import("@/pages/instance-detail"));
+const InstanceDashboardPage = lazy(() => import("@/pages/instance-dashboard"));
 const QueryPage = lazy(() => import("@/pages/query"));
 const DmlPage = lazy(() => import("@/pages/dml"));
 const DdlPage = lazy(() => import("@/pages/ddl"));
@@ -28,7 +29,6 @@ const ChangeDetail = lazy(() =>
 );
 const AuthCallbackPage = lazy(() => import("@/pages/auth-callback"));
 const LoginPage = lazy(() => import("@/pages/login"));
-const SettingsPage = lazy(() => import("@/pages/settings"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 const UsersPage = lazy(() => import("@/pages/users"));
 const UserDetailPage = lazy(() => import("@/pages/user-detail"));
@@ -48,11 +48,11 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <DashboardPage /> },
-      { path: routePath(PAGE_ROUTES.SETTINGS), element: <SettingsPage /> },
       { path: routePath(PAGE_ROUTES.PROFILE), element: <ProfilePage /> },
       { path: routePath(PAGE_ROUTES.USERS), element: <UsersPage /> },
       { path: `${routePath(PAGE_ROUTES.USERS)}/:subject`, element: <UserDetailPage /> },
       { path: routePath(PAGE_ROUTES.INSTANCE_DETAIL(":id")), element: <InstanceDetailPage /> },
+      { path: routePath(PAGE_ROUTES.INSTANCE_DASHBOARD(":id")), element: <InstanceDashboardPage /> },
       { path: routePath(PAGE_ROUTES.SQL.QUERY), element: <QueryPage /> },
       { path: routePath(PAGE_ROUTES.SQL.DML), element: <DmlPage /> },
       { path: `${routePath(PAGE_ROUTES.SQL.DML)}/:id`, element: <ChangeDetail kind="dml" /> },

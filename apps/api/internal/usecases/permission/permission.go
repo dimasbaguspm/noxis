@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -67,16 +68,24 @@ type List struct{ usecases.RegistryDeps }
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if err := uc.RequireSuper(ctx); err != nil {
-		uc.Fail(w, err)
+	// The super admin edits access; the instance's own admin reads it.
+	p, ok := usecases.Principal(ctx)
+	if !ok {
+		uc.Fail(w, constants.ErrUnauthorized)
 		return
+	}
+	if !p.Super {
+		if err := uc.Authorize(ctx, r.PathValue("name"), entity.LevelAdmin); err != nil {
+			uc.Fail(w, err)
+			return
+		}
 	}
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		uc.Fail(w, err)
 		return
 	}
-	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), entity.LevelRead); err != nil {
+	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), entity.LevelAdmin); err != nil {
 		uc.Fail(w, err)
 		return
 	}

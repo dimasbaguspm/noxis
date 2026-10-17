@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 // no rollback exists for a document change.
 export default function MongoRequestDetailPage() {
   const { id = "" } = useParams();
-  const { can } = useAuth();
+  const { isInstanceAdmin } = useAuth();
   const { data: change, isPending: loading } = useMongoChangeGetQuery(id);
   const approve = useMongoApproveChangeMutation();
   const apply = useMongoApplyChangeMutation();
@@ -45,7 +45,7 @@ export default function MongoRequestDetailPage() {
 
   const request = parseRequest(change.query);
   const act = (fn: (id: string) => void) => () => fn(id);
-  const mayReview = can(change.connection, "admin");
+  const mayReview = isInstanceAdmin(change.connection);
   const canApprove = mayReview && (change.status === "validated" || change.status === "unverified");
   const canApply = mayReview && change.status === "approved";
   const canReject = mayReview && change.status !== "applied" && change.status !== "rejected";

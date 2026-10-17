@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Database, ExternalLink, KeyRound, Trash2, Zap } from "lucide-react";
+import { ArrowLeft, Database, ExternalLink, KeyRound, ShieldCheck, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ import { PAGE_ROUTES } from "@/lib/routes";
 export default function InstanceDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { isSuper } = useAuth();
+  const { isSuper, isInstanceAdmin } = useAuth();
   const [rotateOpen, setRotateOpen] = useState(false);
   const detail = useInstanceQuery(id);
   const instance = detail.data;
@@ -135,6 +135,15 @@ export default function InstanceDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {(isSuper || isInstanceAdmin(instance.name)) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  render={<Link to={PAGE_ROUTES.INSTANCE_DASHBOARD(instance.id ?? "")} />}
+                >
+                  <ShieldCheck /> Dashboard
+                </Button>
+              )}
               <Button size="sm" variant="outline" render={<Link to={meta.page} />}>
                 <ExternalLink /> {meta.openLabel}
               </Button>

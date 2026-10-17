@@ -14,7 +14,8 @@ interface AuthState {
   isSuper: boolean;
   identity: Identity | null;
   ready: boolean;
-  can: (connection: string | undefined, need: Level) => boolean;
+  canAccess: (connection: string | undefined, need: Level) => boolean;
+  isInstanceAdmin: (connection: string) => boolean;
   signout: () => Promise<void>;
 }
 
@@ -57,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isSuper = !authOn || (identity?.super ?? false);
 
-  const can = useCallback(
+  const canAccess = useCallback(
     (connection: string | undefined, need: Level) => {
       if (!authOn) return true;
       if (!identity) return false;
@@ -81,10 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isSuper,
       identity,
       ready,
-      can,
+      canAccess,
+      isInstanceAdmin: (connection: string) => canAccess(connection, "admin"),
       signout,
     }),
-    [authOn, localOn, oidcOn, authenticated, identity, isSuper, ready, can, signout],
+    [authOn, localOn, oidcOn, authenticated, identity, isSuper, ready, canAccess, signout],
   );
 
   if (!ready && !isCallback) {
