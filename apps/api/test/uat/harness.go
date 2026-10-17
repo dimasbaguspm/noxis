@@ -44,6 +44,7 @@ var root = func() string {
 var (
 	stackFile   = root + "/docker-compose.yml"
 	snapshotDir = root + "/apps/api/test/uat/snapshots"
+	stubDir     = root + "/apps/api/test/uat/stubs"
 
 	// Read from the compose file by loadTargets, so the suite and the stack share
 	// one source of truth for the base URL and the credentials.

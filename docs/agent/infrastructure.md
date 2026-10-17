@@ -61,7 +61,9 @@ entry. Defaults and cross-field rules live in `LoadConfig` / `Validate`; a
 image by default; `UAT_BUILD=1` does. It tears the stack down afterwards, volumes
 included; `UAT_KEEP=1` leaves it up so the next run reuses it. `UAT_TAGS`
 overrides the default `~@slow` tag filter. `UPDATE_SNAPSHOTS=1` rewrites the
-committed response goldens under `apps/api/test/uat/snapshots/`.
+committed response goldens under `apps/api/test/uat/snapshots/`. `UAT_RECORD=1`
+records the `@stub` scenarios' responses into `apps/api/test/uat/stubs/`;
+`UAT_STUB=1` replays them with the stack down (no docker).
 
 ## Docker
 

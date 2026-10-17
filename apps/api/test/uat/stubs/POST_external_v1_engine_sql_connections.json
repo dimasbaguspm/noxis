@@ -1,0 +1,24 @@
+{
+  "status": 200,
+  "headers": {
+    "Access-Control-Allow-Headers": [
+      "Content-Type, Authorization"
+    ],
+    "Access-Control-Allow-Methods": [
+      "GET, PUT, POST, DELETE, OPTIONS"
+    ],
+    "Access-Control-Allow-Origin": [
+      "*"
+    ],
+    "Content-Length": [
+      "185"
+    ],
+    "Content-Type": [
+      "application/json"
+    ],
+    "Date": [
+      "Sat, 17 Oct 2026 01:31:50 GMT"
+    ]
+  },
+  "body": "{\"id\":\"026c1afc8f1b8a142c09e8e05d292116\",\"name\":\"demo\",\"driver\":\"postgres\",\"host\":\"db\",\"port\":5432,\"user\":\"postgres\",\"database\":\"demo\",\"createdAt\":1792200710,\"createdBy\":\"local:admin\"}\n"
+}
