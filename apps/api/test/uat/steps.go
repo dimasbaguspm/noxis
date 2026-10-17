@@ -71,36 +71,31 @@ func (w *world) stackRunning(ctx context.Context) error {
 	return waitHTTP(baseURL+"/healthz", 10*time.Second)
 }
 
-// registerConnection upserts the compose postgres as a noxis connection.
+// registerConnection upserts the default SQL target as a noxis connection.
 func (w *world) registerConnection(ctx context.Context, name string) error {
-	conn := map[string]any{
-		"name": name, "driver": "postgres", "host": connHost, "port": 5432,
-		"user": "postgres", "password": connPass, "database": "demo",
-	}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections", conn, nil); err != nil {
-		return err
-	}
-	if w.code != http.StatusOK {
-		return fmt.Errorf("register connection: %d", w.code)
-	}
-	w.conn = name
-	return nil
+	return w.registerSQL(ctx, name, "postgres")
 }
 
-// registerConnectionDriver registers a non-postgres target. The compose
-// service name equals the driver (mariadb) on its default port.
+// registerConnectionDriver registers a non-postgres SQL target. The driver name
+// is also the target key (mariadb).
 func (w *world) registerConnectionDriver(ctx context.Context, name, driver string) error {
+	return w.registerSQL(ctx, name, driver)
+}
+
+// registerSQL builds the connection from the target the compose file declares.
+func (w *world) registerSQL(ctx context.Context, name, key string) error {
+	t := targets[key]
 	conn := map[string]any{
-		"name": name, "driver": driver, "host": driver, "port": 3306,
-		"user": "root", "password": connPass, "database": "demo",
+		"name": name, "driver": t.Driver, "host": t.Host, "port": t.Port,
+		"user": t.User, "password": t.Password, "database": t.Database,
 	}
 	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections", conn, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
-		return fmt.Errorf("register %s connection: %d", driver, w.code)
+		return fmt.Errorf("register %s connection: %d", key, w.code)
 	}
-	w.conn = name
+	w.conn, w.host = name, t.Host
 	return nil
 }
 
@@ -122,8 +117,10 @@ func (w *world) listRedacted(ctx context.Context) error {
 	if code != http.StatusOK {
 		return fmt.Errorf("list connections: %d", code)
 	}
-	if strings.Contains(body, connPass) {
-		return fmt.Errorf("connection list must not carry the password: %s", body)
+	for _, t := range targets {
+		if t.Password != "" && strings.Contains(body, t.Password) {
+			return fmt.Errorf("connection list must not carry a password: %s", body)
+		}
 	}
 	if !strings.Contains(body, `"name"`) {
 		return fmt.Errorf("connection list looks wrong: %s", body)

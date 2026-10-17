@@ -43,16 +43,15 @@ var root = func() string {
 
 var (
 	stackFile = root + "/docker-compose.yml"
-	baseURL   = "http://localhost:9000"
 
-	connHost = "db"    // the compose postgres target
-	connPass = "noxis" // its password (dev stack only)
-
-	// must match the noxis service env in docker-compose.yml
-	schedulerKey    = "noxis-scheduler"
-	schedulerSecret = "noxis-scheduler-secret"
-	adminUser       = "admin"
-	adminPassword   = "noxis-admin"
+	// Read from the compose file by loadTargets, so the suite and the stack share
+	// one source of truth for the base URL and the credentials.
+	baseURL         string
+	adminUser       string
+	adminPassword   string
+	schedulerKey    string
+	schedulerSecret string
+	targets         map[string]target
 )
 
 // token is the local session the suite obtains once in BeforeSuite and sends as
@@ -84,6 +83,7 @@ type world struct {
 	body    string            // resp.String(), kept for the existing assertions
 
 	conn     string // connection name under test
+	host     string // the compose service backing that connection
 	changeID string
 	key      redisKey // the redis key a scenario picked out of a browse
 	page     redisPage
@@ -167,6 +167,9 @@ type checkBody struct {
 // UAT_KEEP reuses the stack: the image and noxis's volume stay, but every
 // container is recreated, so the target databases start empty.
 func stackUp() error {
+	if err := loadTargets(); err != nil {
+		return err
+	}
 	if envTrue("UAT_KEEP") {
 		_ = exec.Command("docker", "compose", "-f", stackFile, "rm", "-sf").Run()
 	}

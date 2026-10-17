@@ -57,7 +57,7 @@ func (w *world) mongoRequestChange(ctx context.Context, op, collection, filter, 
 	w.change = changeBody{}
 	w.mongoQueueSize = w.mongoQueueLen()
 	body := map[string]any{
-		"connection": w.conn, "notes": "uat " + op, "op": op, "database": "demo",
+		"connection": w.conn, "notes": "uat " + op, "op": op, "database": targets["mongo"].Database,
 		"collection": collection, "filter": filter, "value": value, "many": false,
 	}
 	if err := w.api(http.MethodPost, "/external/v1/engine/mongodb/changes", body, &w.change); err != nil {
@@ -153,7 +153,7 @@ func (w *world) mongoRequestStatus(ctx context.Context, want string) error {
 // mongoReadRefused proves a read cannot be queued as a request.
 func (w *world) mongoReadRefused(ctx context.Context) error {
 	body := map[string]any{
-		"connection": w.conn, "notes": "read", "op": "find", "database": "demo", "collection": "items",
+		"connection": w.conn, "notes": "read", "op": "find", "database": targets["mongo"].Database, "collection": "items",
 	}
 	if err := w.api(http.MethodPost, "/external/v1/engine/mongodb/changes", body, &w.change); err != nil {
 		return err
@@ -165,9 +165,10 @@ func (w *world) mongoReadRefused(ctx context.Context) error {
 }
 
 func (w *world) registerMongo(ctx context.Context, name string) error {
+	t := targets["mongo"]
 	conn := map[string]any{
-		"name": name, "driver": "mongo", "host": "mongo", "port": 27017,
-		"user": "root", "password": "noxis", "database": "admin",
+		"name": name, "driver": t.Driver, "host": t.Host, "port": t.Port,
+		"user": t.User, "password": t.Password, "database": "admin",
 	}
 	if err := w.api(http.MethodPost, "/external/v1/engine/mongodb/connections", conn, nil); err != nil {
 		return err
@@ -175,7 +176,7 @@ func (w *world) registerMongo(ctx context.Context, name string) error {
 	if w.code != http.StatusOK {
 		return fmt.Errorf("register mongo connection: %d", w.code)
 	}
-	w.conn = name
+	w.conn, w.host = name, t.Host
 	return nil
 }
 
@@ -191,12 +192,13 @@ func (w *world) mongoAnswers(ctx context.Context) error {
 
 // mongoSeed inserts documents with mongosh, authenticating as root.
 func (w *world) mongoSeed(ctx context.Context, collection, documents string) error {
+	t := targets["mongo"]
 	script := fmt.Sprintf(
-		`db.getSiblingDB("demo").getCollection(%q).insertMany(%s)`,
-		collection, documents,
+		`db.getSiblingDB(%q).getCollection(%q).insertMany(%s)`,
+		t.Database, collection, documents,
 	)
-	out, err := exec.Command("docker", "compose", "-f", stackFile, "exec", "-T", "mongo",
-		"mongosh", "-u", "root", "-p", "noxis", "--authenticationDatabase", "admin",
+	out, err := exec.Command("docker", "compose", "-f", stackFile, "exec", "-T", t.Host,
+		"mongosh", "-u", t.User, "-p", t.Password, "--authenticationDatabase", "admin",
 		"--quiet", "--eval", script).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("seed %s: %w\n%s", collection, err, out)
@@ -247,7 +249,7 @@ func (w *world) mongoCollectionExists(ctx context.Context, database, collection 
 func (w *world) mongoRequest(ctx context.Context, op, collection, filter, value string) error {
 	w.result = resultBody{}
 	body := map[string]any{
-		"op": op, "database": "demo", "collection": collection,
+		"op": op, "database": targets["mongo"].Database, "collection": collection,
 		"filter": filter, "value": value, "limit": 50,
 	}
 	path := "/external/v1/engine/mongodb/connections/" + w.conn + "/requests"

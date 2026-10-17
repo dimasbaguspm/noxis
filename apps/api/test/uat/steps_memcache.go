@@ -48,32 +48,29 @@ func (w *world) memcacheSteps(sc *godog.ScenarioContext) {
 }
 
 func (w *world) registerRedis(ctx context.Context, name string) error {
-	conn := map[string]any{
-		"name": name, "driver": "redis", "host": "redis", "port": 6379, "database": "0",
-	}
-	if err := w.api(http.MethodPost, "/external/v1/engine/memcache/connections", conn, nil); err != nil {
-		return err
-	}
-	if w.code != http.StatusOK {
-		return fmt.Errorf("register redis connection: %d", w.code)
-	}
-	w.conn = name
-	return nil
+	return w.registerCache(ctx, name, "redis")
 }
 
 // registerValkey registers the compose valkey service: same protocol, its own
 // driver name, and it must be served by the same module.
 func (w *world) registerValkey(ctx context.Context, name string) error {
+	return w.registerCache(ctx, name, "valkey")
+}
+
+// registerCache builds the memcache connection from the target the compose file
+// declares.
+func (w *world) registerCache(ctx context.Context, name, key string) error {
+	t := targets[key]
 	conn := map[string]any{
-		"name": name, "driver": "valkey", "host": "valkey", "port": 6379, "database": "0",
+		"name": name, "driver": t.Driver, "host": t.Host, "port": t.Port, "database": t.Database,
 	}
 	if err := w.api(http.MethodPost, "/external/v1/engine/memcache/connections", conn, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
-		return fmt.Errorf("register valkey connection: %d", w.code)
+		return fmt.Errorf("register %s connection: %d", key, w.code)
 	}
-	w.conn = name
+	w.conn, w.host = name, t.Host
 	return nil
 }
 
@@ -99,14 +96,8 @@ func (w *world) redisSeedList(ctx context.Context, key, value string) error {
 	return redisSeed(w.service(), "rpush", key, value)
 }
 
-// service is the compose service a key-value scenario seeds into: the
-// connection name is the driver under test.
-func (w *world) service() string {
-	if w.conn == "valkey" {
-		return "valkey"
-	}
-	return "redis"
-}
+// service is the compose service a key-value scenario seeds into.
+func (w *world) service() string { return w.host }
 
 func (w *world) redisBrowse(ctx context.Context, pattern string) error {
 	w.page = redisPage{}

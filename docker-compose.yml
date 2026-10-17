@@ -51,8 +51,12 @@ services:
   db:
     image: postgres:16-alpine
     environment:
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: noxis
       POSTGRES_DB: demo
+    # expose documents the port the suite connects to; it is already reachable
+    # on the compose network, the suite reads it as the connection port.
+    expose: ["5432"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d demo"]
       interval: 5s
@@ -62,6 +66,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    expose: ["6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -77,6 +82,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: noxis
       MONGO_INITDB_DATABASE: demo
+    expose: ["27017"]
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
       interval: 5s
@@ -92,6 +98,7 @@ services:
       MARIADB_ROOT_PASSWORD: noxis
       MARIADB_ROOT_HOST: "%"
       MARIADB_DATABASE: demo
+    expose: ["3306"]
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
@@ -103,6 +110,7 @@ services:
   # to keep that claim honest.
   valkey:
     image: valkey/valkey:8-alpine
+    expose: ["6379"]
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
