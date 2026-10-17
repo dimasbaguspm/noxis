@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/logo.webp" width="120" height="120" alt="noXis">
+</p>
+
 # noXis
 
 **The calm way to change the databases you already run.**
