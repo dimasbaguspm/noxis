@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+
 	"noxis/internal/common/logging"
 	"noxis/internal/usecases"
 )
@@ -37,7 +40,9 @@ func RequestLog(next http.Handler, log *slog.Logger) http.Handler {
 	spanName := logging.CallerName(1)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		ctx, end := logging.StartSpan(r.Context(), spanName)
+		// an upstream traceparent becomes the parent of this request's span
+		ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+		ctx, end := logging.StartSpan(ctx, spanName)
 		logging.Attach(ctx, usecases.LogAttrs(ctx)...)
 		rec := &statusRecorder{ResponseWriter: w}
 		next.ServeHTTP(rec, r.WithContext(ctx))

@@ -11,6 +11,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
@@ -45,6 +46,12 @@ func New(ctx context.Context, otlp OTLP) (*slog.Logger, Shutdown, error) {
 	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
 		logger.ErrorContext(context.Background(), "telemetry export failed", "error", err)
 	}))
+	// W3C trace context travels with requests: the middleware extracts a
+	// caller's traceparent so one trace spans browser, API and database.
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	))
 
 	if otlp.Collector == "" {
 		noop := func(context.Context) error { return nil }
