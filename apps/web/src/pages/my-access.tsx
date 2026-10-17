@@ -1,4 +1,3 @@
-import { useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
@@ -6,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RequestAccessDialog } from "@/components/access/request-access-dialog";
 import { useAuth } from "@/app/auth-provider";
-import { useMyRequestsQuery } from "@/hooks/use-access-requests";
+import { useMyAccessUrlParams, useMyRequestsQuery } from "@/hooks/use-access-requests";
 import { useLevelsQuery } from "@/hooks/use-config";
 import { formatDateTime, grantExpiry } from "@/lib/dates";
 
@@ -15,18 +14,10 @@ import { formatDateTime, grantExpiry } from "@/lib/dates";
 // URL so a filtered view can be shared.
 export default function MyAccessPage() {
   const { identity } = useAuth();
-  const [params, setParams] = useSearchParams();
-  const status = params.get("status") ?? "all";
+  const { status, setStatus } = useMyAccessUrlParams();
   const requests = useMyRequestsQuery();
   const levels = useLevelsQuery().data?.levels ?? [];
   const levelLabel = (value?: string) => levels.find((l) => l.value === value)?.label ?? value;
-
-  const setStatus = (value: string) => {
-    const next = new URLSearchParams(params);
-    if (value && value !== "all") next.set("status", value);
-    else next.delete("status");
-    setParams(next, { replace: true });
-  };
 
   const grants = Object.entries(identity?.connections ?? {})
     .map(([connection, grant]) => ({ connection, ...grant, ...grantExpiry(grant.expiresAt) }))

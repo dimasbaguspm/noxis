@@ -1,6 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { useUrlState } from "@/hooks/use-url-state";
+
+const MY_ACCESS_DEFAULTS = { status: "all" };
+
+// useMyAccessUrlParams is the status filter on /my/access, kept in the URL.
+export function useMyAccessUrlParams() {
+  const [state, patch] = useUrlState(MY_ACCESS_DEFAULTS);
+  return { status: state.status, setStatus: (value: string) => patch({ status: value }) };
+}
 
 export function useMyRequestsQuery() {
   return useQuery({

@@ -1,4 +1,4 @@
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ShieldCheck, Users as UsersIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Empty } from "@/components/ui/empty";
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/app/auth-provider";
-import { useUsersQuery } from "@/hooks/use-users";
+import { useUsersQuery, useUsersUrlParams } from "@/hooks/use-users";
 import { formatDateTime } from "@/lib/dates";
 import { PAGE_ROUTES } from "@/lib/routes";
 
@@ -16,17 +16,8 @@ import { PAGE_ROUTES } from "@/lib/routes";
 // be shared or reloaded.
 export default function UsersPage() {
   const { isSuper } = useAuth();
-  const [params, setParams] = useSearchParams();
-  const q = params.get("q") ?? "";
-  const status = params.get("status") ?? "all";
-  const { data, isPending } = useUsersQuery(q, status, isSuper);
-
-  const setFilter = (key: string, value: string) => {
-    const next = new URLSearchParams(params);
-    if (value) next.set(key, value);
-    else next.delete(key);
-    setParams(next, { replace: true });
-  };
+  const { q, status, setQ, setStatus } = useUsersUrlParams();
+  const { data, isPending } = useUsersQuery(isSuper);
 
   if (!isSuper) {
     return (
@@ -54,11 +45,11 @@ export default function UsersPage() {
       <div className="flex flex-wrap items-center gap-2">
         <Input
           value={q}
-          onChange={(e) => setFilter("q", e.target.value)}
+          onChange={(e) => setQ(e.target.value)}
           placeholder="Search subject or username"
           className="h-8 w-64"
         />
-        <Select value={status} onValueChange={(v) => setFilter("status", v ?? "all")}>
+        <Select value={status} onValueChange={(v) => setStatus(v ?? "all")}>
           <SelectTrigger className="h-8 w-40">
             <SelectValue />
           </SelectTrigger>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Braces, Database, FileJson, Leaf, ListTree, Play, RefreshCw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { JsonEditor } from "@/components/sql/json-editor";
 import { ResultTable } from "@/components/sql/result-table";
 import { JsonTree } from "@/components/mongodb/json-tree";
-import { useMongoCollectionsQuery, useMongoConnections, useMongoDatabasesQuery, useMongoRunMutation } from "@/hooks/use-mongodb";
+import { useMongoCollectionsQuery, useMongoConnections, useMongoDatabasesQuery, useMongoRunMutation, useMongoUrlParams } from "@/hooks/use-mongodb";
 import { bytes, compact } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-type View = "json" | "raw" | "tree";
 
 // MongoExplorePage walks a server and queries it: databases, their
 // collections, and the documents of the one you pick. The three panes resize,
@@ -22,22 +21,24 @@ type View = "json" | "raw" | "tree";
 export default function MongoExplorePage() {
   const { connections, connection, pick } = useMongoConnections();
   const { databases, isFetching: loadingDbs, refetch: reloadDbs } = useMongoDatabasesQuery(connection);
-  const [database, setDatabase] = useState<string>();
-  const [filter, setFilter] = useState("");
-  const [collection, setCollection] = useState<string>();
-  const [view, setView] = useState<View>("json");
-
-  useEffect(() => {
-    if (!database && databases.length > 0) setDatabase(databases[0]?.name);
-  }, [database, databases]);
+  const {
+    database: urlDatabase,
+    collection,
+    filter,
+    view,
+    setDatabase,
+    setCollection,
+    setFilter,
+    setView,
+  } = useMongoUrlParams();
+  const database = urlDatabase ?? databases[0]?.name;
 
   const { collections, isFetching: loadingColls, refetch: reloadColls } = useMongoCollectionsQuery(connection, database);
   const read = useMongoRunMutation();
 
-  // a new collection starts from an empty filter: reads run straight away
+  // a new collection starts a fresh read
   useEffect(() => {
     read.reset();
-    setFilter("{}");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connection, database, collection]);
 

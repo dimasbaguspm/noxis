@@ -29,6 +29,7 @@ import {
   useMemcacheConnections,
   useMemcacheKeysQuery,
   useMemcacheValueQuery,
+  useMemcacheUrlParams,
   useRemoveKeysMutation,
 } from "@/hooks/use-memcache";
 import { cn } from "@/lib/utils";
@@ -53,10 +54,9 @@ export default function MemcachePage() {
   const { connections, connection, pick } = useMemcacheConnections();
   // removing keys and emptying the database are admin actions on the instance
   const mayAdmin = isInstanceAdmin(connection);
-  const [pattern, setPattern] = useState("*");
+  const { pattern, inspected, setPattern, setInspected } = useMemcacheUrlParams();
   const glob = useDebounce(pattern || "*", 300);
   const [selected, setSelected] = useState<string[]>([]);
-  const [inspected, setInspected] = useState<string>();
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "name", desc: false });
   const [flushOpen, setFlushOpen] = useState(false);
   const {

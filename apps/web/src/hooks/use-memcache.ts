@@ -1,11 +1,25 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useConnections } from "@/hooks/use-connections";
+import { useUrlState } from "@/hooks/use-url-state";
 import { FAMILY } from "@/lib/families";
 import { queryClient, queryKeys } from "@/lib/query-client";
 
 // useMemcacheConnections reads the memory-cache list from the cached
 // instances query, so the dashboard and these pages never disagree.
+const MEMCACHE_DEFAULTS = { pattern: "*", key: "" };
+
+// useMemcacheUrlParams is the keys filter and the inspected key, kept in the URL.
+export function useMemcacheUrlParams() {
+  const [state, patch] = useUrlState(MEMCACHE_DEFAULTS);
+  return {
+    pattern: state.pattern,
+    inspected: state.key || undefined,
+    setPattern: (value: string) => patch({ pattern: value }),
+    setInspected: (value: string | undefined) => patch({ key: value ?? "" }),
+  };
+}
+
 export function useMemcacheConnections() {
   const { connections, active, setActive, busy, reload } = useConnections(FAMILY.MEMCACHE);
   return { connections, connection: active, pick: setActive, busy, reload };

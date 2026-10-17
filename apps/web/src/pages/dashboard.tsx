@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { title } from "radash";
 import { Boxes, Search } from "lucide-react";
@@ -15,14 +14,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { useAuth } from "@/app/auth-provider";
 import { useDriversQuery } from "@/hooks/use-config";
-import { usePagedInstancesQuery } from "@/hooks/use-instances";
+import { ALL_DRIVERS, useInstancesUrlParams, usePagedInstancesQuery } from "@/hooks/use-instances";
 import { useDebounce } from "@/hooks/use-debounce";
 import { familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
 
 // One row per instance, whichever family it belongs to: the table shows only
 // what they have in common, and the detail page carries the rest.
-const ALL_DRIVERS = "all";
 const PER_PAGE = 20;
 const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 
@@ -31,13 +29,8 @@ const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 export default function DashboardPage() {
   const { isSuper } = useAuth();
   const { data: drivers = [] } = useDriversQuery();
-  const [filter, setFilter] = useState("");
-  const [driver, setDriver] = useState(ALL_DRIVERS);
-  const [page, setPage] = useState(1);
+  const { q: filter, driver, page, setQ: setFilter, setDriver, setPage } = useInstancesUrlParams();
   const query = useDebounce(filter);
-
-  // a changed filter starts back at the first page
-  useEffect(() => setPage(1), [query, driver]);
 
   const list = usePagedInstancesQuery({
     name: query.trim() || undefined,

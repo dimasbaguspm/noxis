@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
+import { useUrlState } from "@/hooks/use-url-state";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, type ChangeInput } from "@/lib/api";
 import { queryClient, queryKeys } from "@/lib/query-client";
@@ -12,18 +14,32 @@ function invalidateChanges() {
   void queryClient.invalidateQueries({ queryKey: ["sql", "changes"] });
 }
 
-// useChangeListQuery lists a page of changes (the server returns one list for
-// dml and ddl; the kind filter is applied here, mirroring the pre-query
-// behavior so no change disappears from either tab).
-export function useChangeListQuery(
-  kind?: ChangeKind,
-  connection?: string,
-  status?: string,
-  page = 1,
-) {
+const CHANGE_DEFAULTS = { q: "", status: "all", page: "1" };
+
+// useChangeListUrlParams is the change queue's filter state, kept in the URL.
+export function useChangeListUrlParams() {
+  const [state, patch] = useUrlState(CHANGE_DEFAULTS);
+  return {
+    connection: state.q,
+    status: state.status,
+    page: Number(state.page),
+    setConnection: (value: string) => patch({ q: value, page: "1" }),
+    setStatus: (value: string) => patch({ status: value, page: "1" }),
+    setPage: (value: number) => patch({ page: String(value) }),
+  };
+}
+
+// useChangeListQuery lists a page of changes from the URL filters (the server
+// returns one list for dml and ddl; the kind filter is applied here, mirroring
+// the pre-query behavior so no change disappears from either tab).
+export function useChangeListQuery(kind?: ChangeKind) {
+  const { connection, status, page } = useChangeListUrlParams();
+  const debounced = useDebounce(connection.trim());
+  const connectionFilter = debounced || undefined;
+  const statusFilter = status === "all" ? undefined : status;
   const query = useQuery({
-    queryKey: queryKeys.sql.changes.list(kind, connection, status, page),
-    queryFn: () => api.changes.list(connection, page, undefined, status),
+    queryKey: queryKeys.sql.changes.list(kind, connectionFilter, statusFilter, page),
+    queryFn: () => api.changes.list(connectionFilter, page, undefined, statusFilter),
   });
   const changes = useMemo(() => {
     if (!kind) return query.data?.changes;

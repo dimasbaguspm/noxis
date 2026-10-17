@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,10 +9,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/app/auth-provider";
 import { useConnections } from "@/hooks/use-connections";
 import { FAMILY } from "@/lib/families";
-import { useDebounce } from "@/hooks/use-debounce";
 import { CreateChangeSheet } from "@/components/changes/create-change-sheet";
 import { ChangeTable } from "@/components/changes/change-table";
-import { useChangeListQuery, useSubmitChangeMutation, type ChangeKind } from "@/hooks/use-changes";
+import { useChangeListQuery, useChangeListUrlParams, useSubmitChangeMutation, type ChangeKind } from "@/hooks/use-changes";
 
 const PER_PAGE = 20;
 const STATUS_OPTIONS = ["unverified", "validated", "approved", "applied", "failed", "rejected"];
@@ -24,24 +22,20 @@ const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 export function ChangePage({ kind }: { kind: ChangeKind }) {
   const { canAccess } = useAuth();
   const { connections: sqlConnections } = useConnections(FAMILY.SQL);
-  const [filter, setFilter] = useState("");
-  const query = useDebounce(filter.trim());
-  const [status, setStatus] = useState("all");
-  const [page, setPage] = useState(1);
-  const { changes = [], total = 0, isPending } = useChangeListQuery(
-    kind,
-    query || undefined,
-    status === "all" ? undefined : status,
+  const {
+    connection: filter,
+    status,
     page,
-  );
+    setConnection: setFilter,
+    setStatus,
+    setPage,
+  } = useChangeListUrlParams();
+  const { changes = [], total = 0, isPending } = useChangeListQuery(kind);
   const submit = useSubmitChangeMutation();
   const label = kind.toUpperCase();
   // raising a change needs a write permission on some SQL instance; the form still
   // lets the server refuse a specific connection
   const mayRaise = sqlConnections.some((c) => canAccess(c.name, "write"));
-
-  // a changed filter starts back at the first page
-  useEffect(() => setPage(1), [query, status]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -102,7 +96,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
           ) : total === 0 ? (
             <Empty
               title={`no ${kind} changes`}
-              description={query ? "no change matches this instance filter" : "raise one and it will land here"}
+              description={filter.trim() ? "no change matches this instance filter" : "raise one and it will land here"}
             />
           ) : (
             <ChangeTable changes={changes} emptyHint={`no ${kind} changes on this page`} />
