@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Plus, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,11 +23,12 @@ const MEMBER_TYPES = [
   { value: "user", label: "User" },
 ] as const;
 
-// InstancePermissions is one instance's access policy. The super admin grants
-// and revokes; the instance's own admin sees the same list read-only. The
-// grant-form choices live in the URL, and levels come from the backend catalog.
+// InstancePermissions is one instance's access policy: everyone who can reach
+// it, at what level and until when. The super admin and the instance's own
+// admin grant and revoke; levels come from the backend catalog, and the
+// grant-form choices live in the URL.
 export function InstancePermissions({ instance }: { instance: Connection }) {
-  const { isSuper } = useAuth();
+  const { isSuper, isInstanceAdmin } = useAuth();
   const family = instance.family as FamilyKey | undefined;
   const name = instance.name;
   const [params, setParams] = useSearchParams();
@@ -52,6 +52,7 @@ export function InstancePermissions({ instance }: { instance: Connection }) {
   const groups = knownGroups(members.data?.groups);
   const meta = family ? familyByKey[family] : undefined;
   const Icon = meta?.icon;
+  const canRevoke = isSuper || isInstanceAdmin(name);
 
   return (
     <Card>
@@ -62,38 +63,40 @@ export function InstancePermissions({ instance }: { instance: Connection }) {
         </CardTitle>
         <CardDescription>
           {meta?.label ?? family} · {instance.driver}
-          {!isSuper && " · read-only"}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {(permissions.data?.permissions ?? []).length === 0 ? (
-            <span className="text-sm text-muted-foreground">no permissions yet</span>
-          ) : (
-            (permissions.data?.permissions ?? []).map((p) => {
+        {(permissions.data?.permissions ?? []).length === 0 ? (
+          <span className="text-sm text-muted-foreground">no permissions yet</span>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {(permissions.data?.permissions ?? []).map((p) => {
               const exp = grantExpiry(p.expiresAt);
+              const level = levels.find((l) => l.value === p.level)?.label ?? p.level;
               return (
-                <Badge key={p.member} variant="secondary" className="gap-1.5 pr-1">
-                  {p.memberType === "user" && <span className="text-muted-foreground">user</span>}
-                  {memberLabel(p, members.data?.users)}
-                  <span className="text-muted-foreground">
-                    · {levels.find((l) => l.value === p.level)?.label ?? p.level} · {exp.label}
-                  </span>
-                  {isSuper && (
-                    <button
-                      type="button"
-                      aria-label={`remove ${p.member}`}
-                      className="rounded-sm p-0.5 hover:bg-background/60"
+                <li key={p.member} className="flex items-center gap-3 rounded-md border border-border px-3 py-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{memberLabel(p, members.data?.users)}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {p.memberType} · {level} · {exp.label}
+                    </div>
+                  </div>
+                  {canRevoke && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      aria-label={`revoke ${p.member}`}
+                      disabled={remove.isPending}
                       onClick={() => remove.mutate(p.member)}
                     >
-                      <X className="size-3" />
-                    </button>
+                      <X /> Revoke
+                    </Button>
                   )}
-                </Badge>
+                </li>
               );
-            })
-          )}
-        </div>
+            })}
+          </ul>
+        )}
 
         {isSuper && (
           <form
