@@ -22,7 +22,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/usecases.loginRequest"
+              $ref: "#/components/schemas/auth.loginRequest"
         description: username and password
         required: true
       responses:
@@ -31,7 +31,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/usecases.loginResponse"
+                $ref: "#/components/schemas/auth.loginResponse"
         "401":
           description: Unauthorized
           content:
@@ -57,7 +57,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/usecases.changePasswordRequest"
+              $ref: "#/components/schemas/auth.changePasswordRequest"
         description: old and new password
         required: true
       responses:
@@ -80,7 +80,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/usecases.DriverInfo"
+                  $ref: "#/components/schemas/driver.DriverInfo"
   /external/v1/config/members:
     get:
       summary: The known groups and user accounts for permission editing
@@ -99,7 +99,7 @@ paths:
                   users:
                     type: array
                     items:
-                      $ref: "#/components/schemas/usecases.memberUser"
+                      $ref: "#/components/schemas/permission.memberUser"
         "403":
           description: Forbidden
           content:
@@ -346,7 +346,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/usecases.scheduleBody"
+              $ref: "#/components/schemas/change.scheduleBody"
         description: scheduledAt unix seconds; 0 clears the schedule
         required: true
       responses:
@@ -489,7 +489,7 @@ paths:
           schema:
             type: string
       requestBody:
-        $ref: "#/components/requestBodies/usecases.opBody"
+        $ref: "#/components/requestBodies/schema.opBody"
       responses:
         "200":
           description: OK
@@ -529,7 +529,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/usecases.opBody"
+              $ref: "#/components/schemas/schema.opBody"
         description: table
         required: true
       responses:
@@ -657,7 +657,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/usecases.cacheFlushBody"
+              $ref: "#/components/schemas/cache.flushBody"
         description: confirm must repeat the connection name
         required: true
       responses:
@@ -743,7 +743,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/usecases.cacheKeysBody"
+              $ref: "#/components/schemas/cache.keysBody"
         description: keys to remove
         required: true
       responses:
@@ -833,7 +833,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/usecases.permissionBody"
+              $ref: "#/components/schemas/permission.permissionBody"
         description: member, member type and level
         required: true
       responses:
@@ -926,7 +926,7 @@ paths:
           schema:
             type: string
       requestBody:
-        $ref: "#/components/requestBodies/usecases.opBody"
+        $ref: "#/components/requestBodies/schema.opBody"
       responses:
         "200":
           description: OK
@@ -1005,7 +1005,7 @@ paths:
           schema:
             type: string
       requestBody:
-        $ref: "#/components/requestBodies/usecases.opBody"
+        $ref: "#/components/requestBodies/schema.opBody"
       responses:
         "200":
           description: OK
@@ -1266,7 +1266,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/usecases.passwordBody"
+              $ref: "#/components/schemas/instance.passwordBody"
         description: new password
         required: true
       responses:
@@ -1297,7 +1297,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/usecases.MeResponse"
+                $ref: "#/components/schemas/auth.MeResponse"
         "401":
           description: Unauthorized
           content:
@@ -1319,17 +1319,109 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/usecases.TickResult"
+                $ref: "#/components/schemas/apply.TickResult"
 components:
   requestBodies:
-    usecases.opBody:
+    schema.opBody:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/usecases.opBody"
+            $ref: "#/components/schemas/schema.opBody"
       description: sql
       required: true
   schemas:
+    apply.TickResult:
+      type: object
+      properties:
+        applied:
+          type: array
+          items:
+            type: string
+        failed:
+          type: array
+          items:
+            type: string
+    auth.MeResponse:
+      type: object
+      properties:
+        admin:
+          description: Admin reports membership of the configured global-admin group.
+          type: boolean
+        connections:
+          type: object
+          additionalProperties:
+            type: string
+        email:
+          type: string
+        groups:
+          type: array
+          items:
+            type: string
+        name:
+          type: string
+        sub:
+          type: string
+    auth.changePasswordRequest:
+      type: object
+      properties:
+        newPassword:
+          type: string
+        oldPassword:
+          type: string
+    auth.loginRequest:
+      type: object
+      properties:
+        password:
+          type: string
+        username:
+          type: string
+    auth.loginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/entity.User"
+    cache.flushBody:
+      type: object
+      properties:
+        confirm:
+          type: string
+    cache.keysBody:
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            type: string
+    change.mongoChangeBody:
+      type: object
+      properties:
+        collection:
+          type: string
+        connection:
+          type: string
+        database:
+          type: string
+        filter:
+          type: string
+        limit:
+          type: integer
+        many:
+          type: boolean
+        notes:
+          type: string
+        op:
+          type: string
+        sort:
+          type: string
+        value:
+          type: string
+    change.scheduleBody:
+      type: object
+      properties:
+        scheduledAt:
+          type: integer
     config.AuthInfo:
       type: object
       properties:
@@ -1343,6 +1435,15 @@ components:
         clientId:
           type: string
         issuer:
+          type: string
+    driver.DriverInfo:
+      type: object
+      properties:
+        driver:
+          type: string
+        family:
+          type: string
+        label:
           type: string
     entity.Change:
       type: object
@@ -1645,123 +1746,19 @@ components:
           type: string
         username:
           type: string
-    usecases.DriverInfo:
-      type: object
-      properties:
-        driver:
-          type: string
-        family:
-          type: string
-        label:
-          type: string
-    usecases.MeResponse:
-      type: object
-      properties:
-        admin:
-          description: Admin reports membership of the configured global-admin group.
-          type: boolean
-        connections:
-          type: object
-          additionalProperties:
-            type: string
-        email:
-          type: string
-        groups:
-          type: array
-          items:
-            type: string
-        name:
-          type: string
-        sub:
-          type: string
-    usecases.TickResult:
-      description: applied and failed change ids from one tick.
-      type: object
-      properties:
-        applied:
-          type: array
-          items:
-            type: string
-        failed:
-          type: array
-          items:
-            type: string
-    usecases.cacheFlushBody:
-      type: object
-      properties:
-        confirm:
-          type: string
-    usecases.cacheKeysBody:
-      type: object
-      properties:
-        keys:
-          type: array
-          items:
-            type: string
-    usecases.changePasswordRequest:
-      type: object
-      properties:
-        newPassword:
-          type: string
-        oldPassword:
-          type: string
-    usecases.loginRequest:
+    instance.passwordBody:
       type: object
       properties:
         password:
           type: string
-        username:
-          type: string
-    usecases.loginResponse:
-      type: object
-      properties:
-        token:
-          type: string
-        user:
-          $ref: "#/components/schemas/entity.User"
-    usecases.memberUser:
+    permission.memberUser:
       type: object
       properties:
         label:
           type: string
         subject:
           type: string
-    usecases.mongoChangeBody:
-      type: object
-      properties:
-        collection:
-          type: string
-        connection:
-          type: string
-        database:
-          type: string
-        filter:
-          type: string
-        limit:
-          type: integer
-        many:
-          type: boolean
-        notes:
-          type: string
-        op:
-          type: string
-        sort:
-          type: string
-        value:
-          type: string
-    usecases.opBody:
-      type: object
-      properties:
-        sql:
-          type: string
-        table:
-          type: string
-    usecases.passwordBody:
-      type: object
-      properties:
-        password:
-          type: string
-    usecases.permissionBody:
+    permission.permissionBody:
       type: object
       properties:
         level:
@@ -1770,8 +1767,10 @@ components:
           type: string
         memberType:
           type: string
-    usecases.scheduleBody:
+    schema.opBody:
       type: object
       properties:
-        scheduledAt:
-          type: integer
+        sql:
+          type: string
+        table:
+          type: string

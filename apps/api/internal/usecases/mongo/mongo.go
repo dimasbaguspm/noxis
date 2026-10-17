@@ -1,0 +1,113 @@
+// Package mongo holds the MongoDB explorer use cases. Requests run directly:
+// a document change has no generic rollback, so the guards are the op
+// allowlist and the refusal to update or delete without a filter.
+package mongo
+
+import (
+	"net/http"
+
+	"noxis/internal/entity"
+	"noxis/internal/interfaces"
+	"noxis/internal/modules/mongodb"
+	"noxis/internal/usecases"
+)
+
+// Databases lists databases with their sizes.
+type Databases struct{ usecases.RegistryDeps }
+
+// @Summary List databases with their sizes
+// @Param engine path string true "engine family (mongodb)"
+// @Param name path string true "connection name"
+// @Success 200 {object} object{databases=[]entity.Database}
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
+// @Router /external/v1/engine/{engine}/connections/{name}/databases [get]
+func (uc Databases) Serve(w http.ResponseWriter, r *http.Request) {
+	m, err := uc.Modules.EngineMongo(r.PathValue("engine"))
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	c, err := uc.RawConn(r.Context(), m, r.PathValue("name"), entity.LevelRead)
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	out, err := m.Databases(r.Context(), *c)
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	uc.Respond(w, map[string]any{"databases": out})
+}
+
+// Collections lists a database's collections with their sizes.
+type Collections struct{ usecases.RegistryDeps }
+
+// @Summary List a database's collections with their sizes
+// @Param engine path string true "engine family (mongodb)"
+// @Param name path string true "connection name"
+// @Param database query string true "database name"
+// @Success 200 {object} object{collections=[]entity.Collection}
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
+// @Router /external/v1/engine/{engine}/connections/{name}/collections [get]
+func (uc Collections) Serve(w http.ResponseWriter, r *http.Request) {
+	m, err := uc.Modules.EngineMongo(r.PathValue("engine"))
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	c, err := uc.RawConn(r.Context(), m, r.PathValue("name"), entity.LevelRead)
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	out, err := m.Collections(r.Context(), *c, r.URL.Query().Get("database"))
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	uc.Respond(w, map[string]any{"collections": out})
+}
+
+// Run runs a read request (find | aggregate | count).
+type Run struct{ usecases.RegistryDeps }
+
+// @Summary Run a read request (find | aggregate | count)
+// @Param engine path string true "engine family (mongodb)"
+// @Param name path string true "connection name"
+// @Param body body entity.MongoRequest true "op, database, collection, filter and value as Extended JSON"
+// @Success 200 {object} entity.Result
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
+// @Router /external/v1/engine/{engine}/connections/{name}/requests [post]
+func (uc Run) Serve(w http.ResponseWriter, r *http.Request) {
+	var req interfaces.MongoRequest
+	if err := uc.Decode(r, &req); err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	m, err := uc.Modules.EngineMongo(r.PathValue("engine"))
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	// a write op is refused by Run, but it must still not be handed to a
+	// read-only caller
+	level := entity.LevelRead
+	if mongodb.IsWrite(req.Op) {
+		level = entity.LevelWrite
+	}
+	c, err := uc.RawConn(r.Context(), m, r.PathValue("name"), level)
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	out, err := m.Run(r.Context(), *c, req)
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	uc.Respond(w, out)
+}

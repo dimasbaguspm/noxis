@@ -56,7 +56,7 @@ func newHandler(d app, cfg config.Config) http.Handler {
 	mux.HandleFunc("GET "+api+"/config/drivers", d.Drivers.Serve)
 	mux.HandleFunc("GET "+api+"/auth/config", d.AuthConfig.Serve)
 	mux.HandleFunc("POST "+api+"/auth/login", d.Login.Serve)
-	mux.HandleFunc("GET "+api+"/me", d.ConnectionLevels.Serve)
+	mux.HandleFunc("GET "+api+"/me", d.Me.Serve)
 	mux.HandleFunc("POST "+api+"/auth/logout", d.Logout.Serve)
 	mux.HandleFunc("POST "+api+"/auth/password", d.ChangePass.Serve)
 
@@ -94,9 +94,9 @@ func newHandler(d app, cfg config.Config) http.Handler {
 
 	// Memory-cache-only: keys, values, removal and emptying the database.
 	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/keys", d.CacheKeys.Serve)
-	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}/keys", d.CacheDelete.Serve)
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/value", d.CacheValue.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/flush", d.CacheFlush.Serve)
+	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}/keys", d.CacheDel.Serve)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/value", d.CacheVal.Serve)
+	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/flush", d.CacheFlsh.Serve)
 
 	// MongoDB-only: databases, collections and read requests.
 	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/databases", d.MongoDbs.Serve)

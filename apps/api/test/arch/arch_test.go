@@ -37,12 +37,14 @@ func layerOf(pkg string) (int, bool) {
 		return 5, true
 	case pkg == "noxis/internal/modules":
 		return 6, true
-	case pkg == "noxis/internal/usecases" || strings.HasPrefix(pkg, "noxis/internal/usecases/"):
+	case pkg == "noxis/internal/usecases":
 		return 7, true
-	case pkg == "noxis/cmd/noxis/server/middlewares" || strings.HasPrefix(pkg, "noxis/cmd/noxis/server/middlewares/"):
+	case strings.HasPrefix(pkg, "noxis/internal/usecases/"):
 		return 8, true
-	case pkg == "noxis/cmd/noxis/server" || strings.HasPrefix(pkg, "noxis/cmd/noxis/server/"):
+	case pkg == "noxis/cmd/noxis/server/middlewares" || strings.HasPrefix(pkg, "noxis/cmd/noxis/server/middlewares/"):
 		return 9, true
+	case pkg == "noxis/cmd/noxis/server" || strings.HasPrefix(pkg, "noxis/cmd/noxis/server/"):
+		return 10, true
 	}
 	return 0, false
 }

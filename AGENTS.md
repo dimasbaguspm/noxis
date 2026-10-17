@@ -47,7 +47,7 @@ Inside `apps/api/`:
 | `apps/api/cmd/noxis/server/app.go` | composition root: every use case built explicitly |
 | `apps/api/cmd/noxis/server/static/` | embedded console (built SPA; placeholder committed) |
 | `apps/api/cmd/noxis/server/middlewares/` | CORS → auth → request-log/span |
-| `apps/api/internal/usecases/` | one file = one use case; `Serve(w, r)` HTTP + domain core |
+| `apps/api/internal/usecases/` | root framework (RegistryDeps + helpers) + one subpackage per domain |
 | `apps/api/internal/modules/` | engine adapters: `sql`, `memcache`, `mongodb`, `auth` + `Registry` |
 | `apps/api/internal/repositories/` | persistence: `sqlite` (the only state) |
 | `apps/api/internal/interfaces/` | seams (`ConnectionRepository`, `Module`, `SQLModule`, …) |

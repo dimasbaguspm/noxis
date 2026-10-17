@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
@@ -30,4 +31,36 @@ func (d RegistryDeps) RawConn(ctx context.Context, mod interfaces.Module, name, 
 		return nil, err
 	}
 	return c, nil
+}
+
+// SqlChange loads a change and insists it is a SQL one, so a MongoDB request
+// cannot be opened through the SQL flow.
+func (d RegistryDeps) SQLChange(ctx context.Context, id string) (*entity.Change, error) {
+	ch, err := d.Changes.GetChange(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if ch.Kind != constants.KindDML && ch.Kind != constants.KindDDL {
+		return nil, fmt.Errorf("change %s is %s, not a sql change", id, ch.Kind)
+	}
+	if err := d.Authorize(ctx, ch.Connection, entity.LevelRead); err != nil {
+		return nil, err
+	}
+	return ch, nil
+}
+
+// MongoChange loads a change and insists it is a MongoDB request, so the SQL
+// queue cannot be addressed through the MongoDB flow.
+func (d RegistryDeps) MongoChange(ctx context.Context, id string) (*entity.Change, error) {
+	ch, err := d.Changes.GetChange(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if ch.Kind != constants.KindMongo {
+		return nil, fmt.Errorf("change %s is %s, not a mongodb request", id, ch.Kind)
+	}
+	if err := d.Authorize(ctx, ch.Connection, entity.LevelRead); err != nil {
+		return nil, err
+	}
+	return ch, nil
 }

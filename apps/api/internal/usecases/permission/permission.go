@@ -1,0 +1,179 @@
+// Package permission holds the per-connection RBAC use cases.
+package permission
+
+import (
+	"fmt"
+	"net/http"
+
+	"noxis/internal/entity"
+	"noxis/internal/usecases"
+)
+
+// memberUser is one pickable account: the subject stored on a permission and a
+// human label for the console.
+type memberUser struct {
+	Subject string `json:"subject"`
+	Label   string `json:"label"`
+}
+
+// Members returns the known groups and user accounts for permission editing.
+type Members struct{ usecases.RegistryDeps }
+
+// @Summary The known groups and user accounts for permission editing
+// @Success 200 {object} object{groups=[]string,users=[]memberUser}
+// @Failure 403 {object} entity.ErrorResponse
+// @Router /external/v1/config/members [get]
+func (uc Members) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if err := uc.RequireAdmin(ctx); err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	groups, err := uc.Permissions.ListGroupNames(ctx)
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	users, err := uc.Users.ListUsers(ctx)
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	if groups == nil {
+		groups = []string{}
+	}
+	pickable := make([]memberUser, 0, len(users))
+	for _, u := range users {
+		label := u.Username
+		if label == "" {
+			label = u.Subject
+		}
+		pickable = append(pickable, memberUser{Subject: u.Subject, Label: label})
+	}
+	uc.Respond(w, map[string]any{"groups": groups, "users": pickable})
+}
+
+// List lists a connection's permissions.
+type List struct{ usecases.RegistryDeps }
+
+// @Summary List a connection's permissions
+// @Param engine path string true "engine family (sql, memcache, mongodb)"
+// @Param name path string true "connection name"
+// @Success 200 {object} object{permissions=[]entity.Permission}
+// @Failure 401 {object} entity.ErrorResponse
+// @Failure 403 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
+// @Router /external/v1/engine/{engine}/connections/{name}/permissions [get]
+func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if err := uc.RequireAdmin(ctx); err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), entity.LevelRead); err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	out, err := uc.Permissions.ListPermissions(ctx, r.PathValue("name"))
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	uc.Respond(w, map[string]any{"permissions": out})
+}
+
+// permissionBody is the upsert payload: one member at one level.
+type permissionBody struct {
+	Member     string `json:"member"`
+	MemberType string `json:"memberType"`
+	Level      string `json:"level"`
+}
+
+// Set upserts one member's level on a connection.
+type Set struct{ usecases.RegistryDeps }
+
+// @Summary Grant a user or group a level on a connection
+// @Param engine path string true "engine family (sql, memcache, mongodb)"
+// @Param name path string true "connection name"
+// @Param body body permissionBody true "member, member type and level"
+// @Success 200 {object} entity.Permission
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 401 {object} entity.ErrorResponse
+// @Failure 403 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
+// @Router /external/v1/engine/{engine}/connections/{name}/permissions [put]
+func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if err := uc.RequireAdmin(ctx); err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	var body permissionBody
+	if err := uc.Decode(r, &body); err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), entity.LevelRead); err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	p := entity.Permission{Connection: r.PathValue("name"), Member: body.Member, MemberType: body.MemberType, Level: body.Level}
+	if err := p.Validate(); err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	if err := uc.Permissions.SetPermission(ctx, p); err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	uc.Respond(w, p)
+}
+
+// Delete removes a member's permission from a connection.
+type Delete struct{ usecases.RegistryDeps }
+
+// @Summary Revoke a member's permission on a connection
+// @Param engine path string true "engine family (sql, memcache, mongodb)"
+// @Param name path string true "connection name"
+// @Param member query string true "user subject or group name"
+// @Success 204
+// @Failure 401 {object} entity.ErrorResponse
+// @Failure 403 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
+// @Router /external/v1/engine/{engine}/connections/{name}/permissions [delete]
+func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	if err := uc.RequireAdmin(ctx); err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	member := r.URL.Query().Get("member")
+	if member == "" {
+		uc.Fail(w, fmt.Errorf("member is required"))
+		return
+	}
+	mod, err := uc.Modules.Engine(r.PathValue("engine"))
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), entity.LevelRead); err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	if err := uc.Permissions.DeletePermission(ctx, r.PathValue("name"), member); err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	uc.RespondNoContent(w)
+}
