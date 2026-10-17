@@ -2,15 +2,15 @@ package uat
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/cucumber/godog"
+
+	"noxis/test/uat/kit"
 )
 
 // changeBody is the wire shape of a change (only the fields UAT asserts on).
@@ -27,7 +27,12 @@ type changeBody struct {
 
 // steps registers every scenario step on the world.
 func (w *world) steps(sc *godog.ScenarioContext) {
+	sc.Before(func(ctx context.Context, _ *godog.Scenario) (context.Context, error) {
+		w.reset()
+		return ctx, nil
+	})
 	sc.Step("the stack is running", w.stackRunning)
+	w.httpSteps(sc)
 	w.memcacheSteps(sc)
 	w.mongoSteps(sc)
 
@@ -241,26 +246,15 @@ func (w *world) tickScheduler(ctx context.Context) error {
 // tick drives POST /internal/callback/scheduler and, on success, reloads the
 // change under test so the next status assertion sees the result.
 func (w *world) tick(ctx context.Context) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+"/internal/callback/scheduler", http.NoBody)
-	if err != nil {
+	if err := w.send(kit.Request{
+		Method: http.MethodPost,
+		Path:   "/internal/callback/scheduler",
+		Sign:   signScheduler,
+	}); err != nil {
 		return err
 	}
-	signScheduler(req, nil)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	w.code = resp.StatusCode
-	w.body = strings.TrimSpace(string(b))
 	w.ticked = tickBody{}
-	if len(b) > 0 {
-		_ = json.Unmarshal(b, &w.ticked)
-	}
+	_ = w.resp.Decode(&w.ticked)
 	if w.code != http.StatusOK || w.changeID == "" {
 		return nil
 	}

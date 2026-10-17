@@ -5,20 +5,21 @@
 package uat
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"noxis/test/uat/kit"
 )
 
 // root is the repository root, found via .git: `go test` runs with the package
@@ -75,19 +76,54 @@ func signScheduler(req *http.Request, body []byte) {
 // world carries state between steps; godog runs scenarios sequentially and
 // hands each one a fresh world.
 type world struct {
-	code     int
+	client  kit.Client
+	headers map[string]string // per-scenario header overrides
+	cookies []*http.Cookie    // per-scenario cookies
+	resp    kit.Response      // the last response
+	code    int               // resp.Status, kept for the existing assertions
+	body    string            // resp.String(), kept for the existing assertions
+
 	conn     string // connection name under test
 	changeID string
 	key      redisKey // the redis key a scenario picked out of a browse
 	page     redisPage
 	result   resultBody
 	change   changeBody
-	body     string // the last response body, for error assertions
 
 	database       mongoDatabase   // the mongo database a scenario picked out
 	collection     mongoCollection // the mongo collection a scenario picked out
 	mongoQueueSize int
 	ticked         tickBody // the last /internal/callback/scheduler result
+}
+
+// reset clears the per-scenario state. godog reuses one world across scenarios,
+// so this runs before each one and gives every scenario a clean client.
+func (w *world) reset() {
+	jar, _ := cookiejar.New(nil)
+	*w = world{
+		client:  kit.Client{BaseURL: baseURL, Token: token, Jar: jar},
+		headers: map[string]string{},
+	}
+}
+
+// send is the suite's single request path: it folds in the per-scenario headers
+// and cookies and captures the response whole.
+func (w *world) send(r kit.Request) error {
+	if r.Headers == nil {
+		r.Headers = map[string]string{}
+	}
+	for k, v := range w.headers {
+		r.Headers[k] = v
+	}
+	r.Cookies = append(r.Cookies, w.cookies...)
+	resp, err := w.client.Send(r)
+	if err != nil {
+		return err
+	}
+	w.resp = resp
+	w.code = resp.Status
+	w.body = resp.String()
+	return nil
 }
 
 // tickBody is the /internal/callback/scheduler response shape.
@@ -151,20 +187,22 @@ func stackUp() error {
 // login exchanges the dev root admin for a session token; every /v1 call needs
 // it now that there is no open mode.
 func login() error {
-	body := strings.NewReader(`{"username":"` + adminUser + `","password":"` + adminPassword + `"}`)
-	resp, err := http.Post(baseURL+"/external/v1/auth/login", "application/json", body)
+	c := kit.Client{BaseURL: baseURL}
+	resp, err := c.Send(kit.Request{
+		Method: http.MethodPost,
+		Path:   "/external/v1/auth/login",
+		Body:   []byte(`{"username":"` + adminUser + `","password":"` + adminPassword + `"}`),
+	})
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		b, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("login: status %d body %s", resp.StatusCode, strings.TrimSpace(string(b)))
+	if resp.Status != http.StatusOK {
+		return fmt.Errorf("login: status %d body %s", resp.Status, resp.String())
 	}
 	var out struct {
 		Token string `json:"token"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+	if err := resp.Decode(&out); err != nil {
 		return fmt.Errorf("login decode: %w", err)
 	}
 	token = out.Token
@@ -204,62 +242,32 @@ func waitHTTP(url string, timeout time.Duration) error {
 	return fmt.Errorf("%s not ready within %v", url, timeout)
 }
 
-// api hits the noxis REST surface with an optional JSON body.
+// api hits the noxis REST surface with an optional JSON body and decodes the
+// reply into out.
 func (w *world) api(method, path string, body any, out any) error {
-	var rd io.Reader
+	var raw []byte
 	if body != nil {
 		b, err := json.Marshal(body)
 		if err != nil {
 			return err
 		}
-		rd = bytes.NewReader(b)
+		raw = b
 	}
-	req, err := http.NewRequest(method, baseURL+path, rd)
-	if err != nil {
+	if err := w.send(kit.Request{Method: method, Path: path, Body: raw}); err != nil {
 		return err
 	}
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	w.code = resp.StatusCode
-	w.body = strings.TrimSpace(string(b))
-	if out != nil && len(b) > 0 {
-		if err := json.Unmarshal(b, out); err != nil {
-			return fmt.Errorf("decode %s %s: %w (%s)", method, path, err, strings.TrimSpace(string(b)))
+	if out != nil {
+		if err := w.resp.Decode(out); err != nil {
+			return fmt.Errorf("decode %s %s: %w (%s)", method, path, err, w.resp.String())
 		}
 	}
 	return nil
 }
 
-// raw returns the response body of a GET (for presence assertions).
+// raw returns the response of a GET (for presence assertions).
 func (w *world) raw(path string) (code int, body string, err error) {
-	req, err := http.NewRequest(http.MethodGet, baseURL+path, http.NoBody)
-	if err != nil {
+	if err := w.send(kit.Request{Method: http.MethodGet, Path: path}); err != nil {
 		return 0, "", err
 	}
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return 0, "", err
-	}
-	defer resp.Body.Close()
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return 0, "", err
-	}
-	return resp.StatusCode, string(b), nil
+	return w.resp.Status, w.resp.String(), nil
 }
