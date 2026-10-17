@@ -114,7 +114,7 @@ func (f *Permissions) SetPermission(_ context.Context, p entity.Permission) erro
 	return nil
 }
 
-func (f *Permissions) DeletePermission(_ context.Context, _, member string) error {
+func (f *Permissions) DeletePermission(_ context.Context, _, member, _ string) error {
 	delete(f.M, member)
 	return nil
 }
@@ -144,15 +144,34 @@ func (f *Users) GetUser(context.Context, string) (*entity.User, error) {
 func (f *Users) GetUserByUsername(context.Context, string) (*entity.User, error) {
 	return nil, constants.ErrNotFound
 }
-func (f *Users) EnsureSubject(context.Context, string) error            { return nil }
-func (f *Users) SaveUser(context.Context, entity.User) error            { return nil }
-func (f *Users) SetUserPassword(context.Context, string, string) error  { return nil }
+func (f *Users) EnsureSubject(context.Context, string) error           { return nil }
+func (f *Users) SaveUser(context.Context, entity.User) error           { return nil }
+func (f *Users) SetUserPassword(context.Context, string, string) error { return nil }
 func (f *Users) SetUserToken(context.Context, string, string, int64) error {
 	return nil
 }
-func (f *Users) ClearUserToken(context.Context, string) error { return nil }
+func (f *Users) SetLastLogin(context.Context, string, int64) error { return nil }
+func (f *Users) SetSoleSuper(context.Context, string) error        { return nil }
+func (f *Users) ClearUserToken(context.Context, string) error      { return nil }
 func (f *Users) UserByToken(context.Context, string, int64) (*entity.User, error) {
 	return nil, constants.ErrNotFound
+}
+
+// Events is an in-memory AccessEventRepository.
+type Events struct{ List []entity.AccessEvent }
+
+func (f *Events) ListAccessEvents(_ context.Context, subject string, limit int) ([]entity.AccessEvent, error) {
+	out := make([]entity.AccessEvent, 0, len(f.List))
+	for i := range f.List {
+		e := f.List[i]
+		if e.Subject == subject || e.Actor == subject {
+			out = append(out, e)
+		}
+	}
+	if limit > 0 && len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
 }
 
 // SQL is a fake SQLModule with swappable failures.
@@ -167,9 +186,9 @@ type SQL struct {
 func (f *SQL) Supports(driver string) bool {
 	return driver == constants.DriverPostgres || driver == constants.DriverMySQL
 }
-func (f *SQL) Family() string               { return constants.FamilySQL }
-func (f *SQL) VerifyWrite(string) error     { return f.WriteErr }
-func (f *SQL) Kind(string) string           { return constants.KindDDL }
+func (f *SQL) Family() string           { return constants.FamilySQL }
+func (f *SQL) VerifyWrite(string) error { return f.WriteErr }
+func (f *SQL) Kind(string) string       { return constants.KindDDL }
 func (f *SQL) ValidateChange(context.Context, entity.Connection, string, string) (interfaces.Result, error) {
 	if f.ValidateErr != nil {
 		return interfaces.Result{}, f.ValidateErr
@@ -197,6 +216,7 @@ type Fixture struct {
 	Changes *Changes
 	Perms   *Permissions
 	Users   *Users
+	Events  *Events
 	Mods    map[string]interfaces.Module
 }
 
@@ -207,6 +227,7 @@ func New(sq interfaces.SQLModule) *Fixture {
 		Changes: NewChanges(),
 		Perms:   NewPermissions(),
 		Users:   &Users{},
+		Events:  &Events{},
 		Mods:    map[string]interfaces.Module{constants.FamilySQL: sq},
 	}
 }
@@ -215,10 +236,11 @@ func New(sq interfaces.SQLModule) *Fixture {
 func (f *Fixture) Deps() usecases.RegistryDeps {
 	return usecases.RegistryDeps{
 		Registry: repositories.Registry{
-			Connections: f.Conns,
-			Changes:     f.Changes,
-			Permissions: f.Perms,
-			Users:       f.Users,
+			Connections:  f.Conns,
+			Changes:      f.Changes,
+			Permissions:  f.Perms,
+			Users:        f.Users,
+			AccessEvents: f.Events,
 		},
 		Modules: modules.New(f.Mods, nil),
 	}

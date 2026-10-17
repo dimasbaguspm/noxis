@@ -29,7 +29,7 @@ const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 // DashboardPage filters through the instances API and pages the result, so the
 // server stays the source of truth for what the caller may see.
 export default function DashboardPage() {
-  const { isAdmin } = useAuth();
+  const { isSuper } = useAuth();
   const { data: drivers = [] } = useDriversQuery();
   const [filter, setFilter] = useState("");
   const [driver, setDriver] = useState(ALL_DRIVERS);
@@ -93,7 +93,7 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {isAdmin && (
+      {isSuper && (
         <div className="flex justify-end">
           <ConnectionDialog trigger="New connection" wizard />
         </div>

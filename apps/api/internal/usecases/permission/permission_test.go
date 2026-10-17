@@ -9,7 +9,7 @@ import (
 	"noxis/internal/usecases/ucstest"
 )
 
-func TestRequireAdmin(t *testing.T) {
+func TestRequireSuper(t *testing.T) {
 	f := ucstest.New(&ucstest.SQL{})
 	mux := ucstest.Mux("GET", "/external/v1/engine/{engine}/connections/{name}/permissions", List{RegistryDeps: f.Deps()}.Serve)
 	rec := ucstest.Do(mux, http.MethodGet, "/external/v1/engine/sql/connections/demo/permissions", "", nil)
@@ -20,7 +20,7 @@ func TestRequireAdmin(t *testing.T) {
 
 func TestCRUD(t *testing.T) {
 	f := ucstest.New(&ucstest.SQL{})
-	admin := &entity.Identity{Subject: "root", Admin: true}
+	admin := &entity.Identity{Subject: "root", Super: true}
 
 	put := ucstest.Mux("PUT", "/external/v1/engine/{engine}/connections/{name}/permissions", Set{RegistryDeps: f.Deps()}.Serve)
 	rec := ucstest.Do(put, http.MethodPut, "/external/v1/engine/sql/connections/demo/permissions", `{"member":"dev","memberType":"group","level":"write"}`, admin)
@@ -52,7 +52,7 @@ func TestMembers(t *testing.T) {
 	f.Users.Accounts = []entity.User{{Subject: "local:alice", Username: "alice"}}
 
 	rec := ucstest.Do(ucstest.Mux("GET", "/external/v1/config/members", Members{RegistryDeps: f.Deps()}.Serve),
-		http.MethodGet, "/external/v1/config/members", "", &entity.Identity{Subject: "root", Admin: true})
+		http.MethodGet, "/external/v1/config/members", "", &entity.Identity{Subject: "root", Super: true})
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"readers"`) || !strings.Contains(rec.Body.String(), `"local:alice"`) {
 		t.Fatalf("members status=%d body=%s", rec.Code, rec.Body.String())
 	}

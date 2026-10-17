@@ -11,7 +11,7 @@ interface AuthState {
   localEnabled: boolean;
   oidcEnabled: boolean;
   authenticated: boolean;
-  isAdmin: boolean;
+  isSuper: boolean;
   identity: Identity | null;
   ready: boolean;
   can: (connection: string | undefined, need: Level) => boolean;
@@ -55,14 +55,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const isAdmin = !authOn || (identity?.admin ?? false);
+  const isSuper = !authOn || (identity?.super ?? false);
 
   const can = useCallback(
     (connection: string | undefined, need: Level) => {
       if (!authOn) return true;
       if (!identity) return false;
-      if (identity.admin) return true;
-      const have = (connection ? identity.connections?.[connection] : "") ?? "";
+      if (identity.super) return true;
+      const have = (connection ? identity.connections?.[connection]?.level : "") ?? "";
       return (LEVEL_RANK[have] ?? 0) >= LEVEL_RANK[need];
     },
     [authOn, identity],
@@ -78,13 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localEnabled: localOn,
       oidcEnabled: oidcOn,
       authenticated,
-      isAdmin,
+      isSuper,
       identity,
       ready,
       can,
       signout,
     }),
-    [authOn, localOn, oidcOn, authenticated, identity, isAdmin, ready, can, signout],
+    [authOn, localOn, oidcOn, authenticated, identity, isSuper, ready, can, signout],
   );
 
   if (!ready && !isCallback) {

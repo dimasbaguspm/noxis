@@ -16,7 +16,7 @@ import { classify } from "@/lib/statements";
 import { Play } from "lucide-react";
 
 export default function QueryPage() {
-  const { can, isAdmin } = useAuth();
+  const { can, isSuper } = useAuth();
   const { connection, connections, busy, pick } = useConnectionSelection();
 
   const tabs = useSqlTabs();
@@ -51,7 +51,7 @@ export default function QueryPage() {
               : "Register a SQL database to start browsing and querying."}
           </CardDescription>
         </CardHeader>
-        {!busy && isAdmin && (
+        {!busy && isSuper && (
           <CardContent>
             <ConnectionDialog trigger="New connection" wizard />
           </CardContent>

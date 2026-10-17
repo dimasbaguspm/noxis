@@ -78,7 +78,7 @@ module. This is why one handler serves all families instead of a copy per family
 - One exported struct per operation, one `Serve(w, r)`. It embeds
   `usecases.RegistryDeps`, so the shared steps are methods on the receiver:
   `uc.RawConn` (load connection + check family + authorize), `uc.Authorize` /
-  `uc.RequireAdmin` / `uc.EffectiveLevel` (policy), `uc.Respond` / `uc.Fail` /
+  `uc.RequireSuper` / `uc.EffectiveGrant` (policy), `uc.Respond` / `uc.Fail` /
   `uc.Decode` (transport). `applyChange`/`applySQL`/`applyMongo` live in `apply`.
 - Domain rejects are returned, not panicked. `constants.ErrForbidden` → 403.
 
@@ -107,7 +107,7 @@ plus a swag annotation on `Serve`, then `make swagger`.
 - `middlewares.WithAuth(verifier, next)` verifies bearer tokens; the
   `entity.Identity` lands on the ctx (`usecases.Principal`).
 - Open mode is gone: `WithAuth` denies when no verifier is configured.
-- `usecases.rawConn` is the single per-connection gate. `RequireAdmin` gates the
+- `usecases.rawConn` is the single per-connection gate. `RequireSuper` gates the
   management surfaces (connection CRUD, permissions).
 - Levels: `read < write < admin` (`entity.LevelAllows`). `OpLevel` maps a SQL op
   to a level (only `query` is read; `analyze` mutates planner stats = write).

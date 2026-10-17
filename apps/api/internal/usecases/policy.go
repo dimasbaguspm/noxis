@@ -1,6 +1,6 @@
 // Package usecases is the framework every use case embeds. RegistryDeps carries
 // the repositories and the module registry, and its methods are the shared
-// steps — RawConn, Authorize, RequireAdmin, CanRead, Respond, Fail — so a use
+// steps — RawConn, Authorize, RequireSuper, CanRead, Respond, Fail — so a use
 // case reaches them statefully. Concrete use cases live in the domain
 // subpackages and never reference each other.
 package usecases
@@ -9,15 +9,16 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"time"
 
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 )
 
-// RequireAdmin gates the management surfaces (connection CRUD, permissions).
-// The middleware guarantees a principal; a missing one is denied, not trusted.
-func (d RegistryDeps) RequireAdmin(ctx context.Context) error {
-	if p, ok := Principal(ctx); ok && p.Admin {
+// RequireSuper gates the global surfaces (connections, users, permissions).
+// Super is the env root's single global role; a missing principal is denied.
+func (d RegistryDeps) RequireSuper(ctx context.Context) error {
+	if p, ok := Principal(ctx); ok && p.Super {
 		return nil
 	}
 	return constants.ErrForbidden
@@ -29,33 +30,44 @@ func identities(p entity.Identity) []string {
 	return append([]string{p.Subject}, p.Groups...)
 }
 
-// EffectiveLevel is the strongest level the caller's identities hold on a
-// connection; "" when none matches.
-func (d RegistryDeps) EffectiveLevel(ctx context.Context, connection string, ids []string) (string, error) {
+// EffectiveGrant is the strongest non-expired level the caller holds on a
+// connection, with the expiry of the grant that supplies it. "" when none.
+func (d RegistryDeps) EffectiveGrant(ctx context.Context, connection string, p entity.Identity) (level string, expiresAt int64, err error) {
 	list, err := d.Permissions.ListPermissions(ctx, connection)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
-	levels := make([]string, 0, len(list))
-	for _, p := range list {
-		if slices.Contains(ids, p.Member) {
-			levels = append(levels, p.Level)
+	ids := identities(p)
+	now := time.Now().Unix()
+	for i := range list {
+		grant := &list[i]
+		if grant.Expired(now) || !slices.Contains(ids, grant.Member) {
+			continue
+		}
+		if level == "" || entity.LevelAllows(grant.Level, level) {
+			level, expiresAt = grant.Level, grant.ExpiresAt
 		}
 	}
-	return entity.StrongestLevel(levels...), nil
+	return level, expiresAt, nil
 }
 
-// Authorize enforces need on a connection. Global admins pass without a
-// per-connection check; everyone else needs a matching permission.
+// EffectiveLevel is EffectiveGrant without the expiry.
+func (d RegistryDeps) EffectiveLevel(ctx context.Context, connection string, p entity.Identity) (string, error) {
+	level, _, err := d.EffectiveGrant(ctx, connection, p)
+	return level, err
+}
+
+// Authorize enforces need on a connection. The super admin passes without a
+// per-connection check; everyone else needs a matching, unexpired permission.
 func (d RegistryDeps) Authorize(ctx context.Context, connection, need string) error {
 	if need == "" {
 		return nil
 	}
 	p, ok := Principal(ctx)
-	if !ok || p.Admin {
+	if !ok || p.Super {
 		return nil
 	}
-	level, err := d.EffectiveLevel(ctx, connection, identities(p))
+	level, err := d.EffectiveLevel(ctx, connection, p)
 	if err != nil {
 		return err
 	}
@@ -69,10 +81,10 @@ func (d RegistryDeps) Authorize(ctx context.Context, connection, need string) er
 // connections from listings rather than failing the whole list.
 func (d RegistryDeps) CanRead(ctx context.Context, connection string) (bool, error) {
 	p, ok := Principal(ctx)
-	if !ok || p.Admin {
+	if !ok || p.Super {
 		return true, nil
 	}
-	level, err := d.EffectiveLevel(ctx, connection, identities(p))
+	level, err := d.EffectiveLevel(ctx, connection, p)
 	if err != nil {
 		return false, err
 	}

@@ -89,6 +89,20 @@ func (f *fakeUsers) SetUserToken(_ context.Context, subject, tokenHash string, e
 	return nil
 }
 
+func (f *fakeUsers) SetLastLogin(_ context.Context, subject string, at int64) error {
+	if u, ok := f.bySubject[subject]; ok {
+		u.LastLoginAt = at
+	}
+	return nil
+}
+
+func (f *fakeUsers) SetSoleSuper(_ context.Context, subject string) error {
+	for s, u := range f.bySubject {
+		u.Super = s == subject
+	}
+	return nil
+}
+
 func (f *fakeUsers) ClearUserToken(_ context.Context, subject string) error {
 	for h, t := range f.tokens {
 		if t.subject == subject {
@@ -154,6 +168,32 @@ func TestEnsureRootCreatesOnce(t *testing.T) {
 	}
 }
 
+func TestEnsureRootIsSoleSuper(t *testing.T) {
+	repo := newFakeUsers()
+	svc := NewService(repo, nil)
+	ctx := context.Background()
+
+	if err := svc.EnsureRoot(ctx, "root", "supersecret"); err != nil {
+		t.Fatalf("seed root: %v", err)
+	}
+	// a second super, as an older build might have stored, is cleared on boot
+	if err := repo.SaveUser(ctx, entity.User{Subject: "local:bob", Username: "bob", Super: true}); err != nil {
+		t.Fatalf("seed bob: %v", err)
+	}
+	if err := svc.EnsureRoot(ctx, "root", ""); err != nil {
+		t.Fatalf("reboot: %v", err)
+	}
+	if u, _ := repo.GetUser(ctx, "local:bob"); u.Super {
+		t.Fatal("only the env account may be super")
+	}
+	if u, _ := repo.GetUser(ctx, "local:root"); !u.Super {
+		t.Fatal("the env account must be super")
+	}
+	if err := svc.EnsureRoot(ctx, "ghost", ""); err == nil {
+		t.Fatal("an unknown env account must fail closed")
+	}
+}
+
 func TestLoginVerifyLogout(t *testing.T) {
 	svc, _ := seeded(t)
 	ctx := context.Background()
@@ -163,7 +203,7 @@ func TestLoginVerifyLogout(t *testing.T) {
 		t.Fatalf("login: %v", err)
 	}
 	id, err := svc.Verify(ctx, token)
-	if err != nil || id.Subject != "local:root" || !id.Admin {
+	if err != nil || id.Subject != "local:root" || !id.Super {
 		t.Fatalf("verify: %+v err=%v", id, err)
 	}
 	if _, err := svc.Verify(ctx, "not-a-token"); err == nil {

@@ -30,11 +30,11 @@ registers the routes and starts the server with a 10s graceful shutdown.
 | `NOXIS_SCHEDULER_SECRET` | external scheduler: HMAC secret signing the trigger |
 | `NOXIS_OTEL_COLLECTOR` | OTLP endpoint (optional) |
 | `NOXIS_OTEL_NAME` | OTEL service name (optional) |
+| `NOXIS_ACCESS_GRANT_DAYS` | per-connection grant lifetime in days (default 120; the super admin never expires) |
 | `NOXIS_OIDC_ISSUER` | empty = OIDC off (local accounts still required); set = accept OIDC tokens too |
 | `NOXIS_OIDC_CLIENT_ID` | public PKCE client id |
 | `NOXIS_OIDC_AUDIENCE` | expected `aud`, defaults to client id |
 | `NOXIS_OIDC_GROUPS_CLAIM` | defaults to `groups` |
-| `NOXIS_OIDC_ADMIN_GROUP` | implicit global admin |
 
 `config.LogState` logs secret/auth state once at boot. **No other package reads
 the environment.** To add a var: `EnvX` const + `Config` field + `LoadConfig`

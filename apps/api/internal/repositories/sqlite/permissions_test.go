@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 )
 
@@ -50,7 +51,7 @@ func TestPermissionsRoundTrip(t *testing.T) {
 		t.Fatal("unknown member type must be rejected")
 	}
 
-	if err := store.DeletePermission(ctx, "demo", "dev"); err != nil {
+	if err := store.DeletePermission(ctx, "demo", "dev", "root"); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
 	list, err = store.ListPermissions(ctx, "demo")
@@ -60,6 +61,33 @@ func TestPermissionsRoundTrip(t *testing.T) {
 	if len(list) != 2 {
 		t.Fatalf("after delete permissions=%+v", list)
 	}
+	if list[0].ExpiresAt == 0 {
+		t.Fatal("a stored grant must carry an expiry")
+	}
+
+	events, err := store.ListAccessEvents(ctx, "local:alice", 20)
+	if err != nil {
+		t.Fatalf("events: %v", err)
+	}
+	if !hasAction(events, constants.AccessGranted) {
+		t.Fatalf("expected a granted event, got %+v", events)
+	}
+	revoked, err := store.ListAccessEvents(ctx, "dev", 20)
+	if err != nil {
+		t.Fatalf("events: %v", err)
+	}
+	if !hasAction(revoked, constants.AccessRevoked) {
+		t.Fatalf("expected a revoked event, got %+v", revoked)
+	}
+}
+
+func hasAction(events []entity.AccessEvent, action string) bool {
+	for i := range events {
+		if events[i].Action == action {
+			return true
+		}
+	}
+	return false
 }
 
 // TestMigrateGrantsToPermissions opens a pre-rename database (old

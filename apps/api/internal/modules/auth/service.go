@@ -71,33 +71,41 @@ func (s *Service) Verify(ctx context.Context, rawToken string) (entity.Identity,
 	return id, nil
 }
 
-// EnsureRoot creates the root admin from env on a cold install. Once any account
-// exists the database wins, so a changed password survives restarts and a stale
-// env value never overwrites it.
+// EnsureRoot makes the env account the single super admin. On a cold install it
+// creates the account; on an existing store it promotes that account and clears
+// any other super, so the env is always the source of the one global role. It
+// fails closed when no username is configured.
 func (s *Service) EnsureRoot(ctx context.Context, username, password string) error {
-	count, err := s.users.CountUsers(ctx)
-	if err != nil {
+	username = strings.TrimSpace(username)
+	if username == "" {
+		return errors.New("NOXIS_ADMIN_USERNAME is required: it names the single super admin")
+	}
+	subject := entity.LocalSubject(username)
+	_, err := s.users.GetUser(ctx, subject)
+	switch {
+	case errors.Is(err, constants.ErrNotFound):
+		if password == "" {
+			return fmt.Errorf("no account for %q; set NOXIS_ADMIN_PASSWORD to create the super admin", username)
+		}
+		if err := checkPassword(password); err != nil {
+			return err
+		}
+		hash, err := HashPassword(password)
+		if err != nil {
+			return err
+		}
+		if err := s.users.SaveUser(ctx, entity.User{
+			Subject:  subject,
+			Username: username,
+			Password: hash,
+			Super:    true,
+		}); err != nil {
+			return err
+		}
+	case err != nil:
 		return err
 	}
-	if count > 0 {
-		return nil
-	}
-	if strings.TrimSpace(username) == "" || password == "" {
-		return errors.New("no local accounts exist; set NOXIS_ADMIN_USERNAME and NOXIS_ADMIN_PASSWORD to create the root admin")
-	}
-	if err := checkPassword(password); err != nil {
-		return err
-	}
-	hash, err := HashPassword(password)
-	if err != nil {
-		return err
-	}
-	return s.users.SaveUser(ctx, entity.User{
-		Subject:  entity.LocalSubject(username),
-		Username: username,
-		Password: hash,
-		Admin:    true,
-	})
+	return s.users.SetSoleSuper(ctx, subject)
 }
 
 // Login verifies a password and issues the account's single active token.
@@ -115,9 +123,14 @@ func (s *Service) Login(ctx context.Context, username, password string) (string,
 	if err != nil {
 		return "", entity.User{}, err
 	}
-	if err := s.users.SetUserToken(ctx, u.Subject, hash, s.now().Add(TokenTTL).Unix()); err != nil {
+	now := s.now()
+	if err := s.users.SetUserToken(ctx, u.Subject, hash, now.Add(TokenTTL).Unix()); err != nil {
 		return "", entity.User{}, err
 	}
+	if err := s.users.SetLastLogin(ctx, u.Subject, now.Unix()); err != nil {
+		return "", entity.User{}, err
+	}
+	u.LastLoginAt = now.Unix()
 	return token, *u, nil
 }
 

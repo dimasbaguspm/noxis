@@ -12,7 +12,7 @@ const LEVEL_LABEL: Record<string, string> = { read: "Read", write: "Editor", adm
 // ProfilePage shows the signed-in identity (from the OIDC provider) and the
 // effective level it holds on every instance.
 export default function ProfilePage() {
-  const { identity, isAdmin, authEnabled } = useAuth();
+  const { identity, isSuper, authEnabled } = useAuth();
   const { data } = usePagedInstancesQuery();
   const instances = data?.instances ?? [];
 
@@ -49,7 +49,7 @@ export default function ProfilePage() {
             <div>
               <dt className="text-muted-foreground">Role</dt>
               <dd>
-                {isAdmin ? <Badge variant="success">Super admin</Badge> : <Badge variant="secondary">Member</Badge>}
+                {isSuper ? <Badge variant="success">Super admin</Badge> : <Badge variant="secondary">Member</Badge>}
               </dd>
             </div>
             <div className="sm:col-span-2">
@@ -73,7 +73,7 @@ export default function ProfilePage() {
       <Card>
         <CardHeader className="gap-1">
           <CardTitle className="text-base">Access</CardTitle>
-          <CardDescription>the level your groups hold on each instance</CardDescription>
+          <CardDescription>the level you hold on each instance, and when it lapses</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -93,7 +93,7 @@ export default function ProfilePage() {
                 </TableRow>
               )}
               {instances.map((instance) => {
-                const level = levels[instance.name];
+                const grant = levels[instance.name];
                 return (
                   <TableRow key={instance.id}>
                     <TableCell className="text-sm">{instance.name}</TableCell>
@@ -101,8 +101,17 @@ export default function ProfilePage() {
                       {familyByKey[instance.family as FamilyKey]?.label ?? instance.family}
                     </TableCell>
                     <TableCell>
-                      {level ? (
-                        <Badge variant="secondary">{LEVEL_LABEL[level] ?? level}</Badge>
+                      {grant ? (
+                        <span className="flex flex-col gap-0.5">
+                          <Badge variant="secondary" className="w-fit">
+                            {LEVEL_LABEL[grant.level ?? ""] ?? grant.level}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {grant.expiresAt
+                              ? `expires ${new Date(grant.expiresAt * 1000).toLocaleDateString()}`
+                              : "never"}
+                          </span>
+                        </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}

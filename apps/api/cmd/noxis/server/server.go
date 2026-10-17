@@ -29,12 +29,13 @@ const shutdownTimeout = 10 * time.Second
 // the auth service) and the transport values, then builds every use case.
 func newDeps(store *sqlite.Store, cfg config.Config, authSvc *auth.Service) app {
 	return newApp(sources{
-		Connections: store,
-		Changes:     store,
-		Permissions: store,
-		Users:       store,
-		Modules:     modules.Default(authSvc),
-		Auth:        cfg.AuthInfo(),
+		Connections:  store,
+		Changes:      store,
+		Permissions:  store,
+		Users:        store,
+		AccessEvents: store,
+		Modules:      modules.Default(authSvc),
+		Auth:         cfg.AuthInfo(),
 	})
 }
 

@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -23,7 +22,6 @@ const defaultGroupsClaim = "groups"
 type OIDC struct {
 	verifier    *oidc.IDTokenVerifier
 	groupsClaim string
-	adminGroup  string
 }
 
 // Satisfier.
@@ -54,7 +52,6 @@ func New(ctx context.Context, cfg config.Config) (*OIDC, error) {
 	return &OIDC{
 		verifier:    provider.Verifier(&oidc.Config{ClientID: audience}),
 		groupsClaim: groupsClaim,
-		adminGroup:  cfg.OIDCAdminGroup,
 	}, nil
 }
 
@@ -69,12 +66,12 @@ func (o *OIDC) Verify(ctx context.Context, rawToken string) (entity.Identity, er
 	if err := tok.Claims(&claims); err != nil {
 		return entity.Identity{}, fmt.Errorf("read claims: %w", err)
 	}
-	return principalFromClaims(tok.Subject, claims, o.groupsClaim, o.adminGroup), nil
+	return principalFromClaims(tok.Subject, claims, o.groupsClaim), nil
 }
 
 // principalFromClaims builds the caller. The groups claim may be absent (no
 // groups) or a JSON array; anything else is ignored rather than trusted.
-func principalFromClaims(subject string, claims map[string]any, groupsClaim, adminGroup string) entity.Identity {
+func principalFromClaims(subject string, claims map[string]any, groupsClaim string) entity.Identity {
 	groups := stringSlice(claims[groupsClaim])
 	return entity.Identity{
 		Subject: subject,
@@ -82,7 +79,6 @@ func principalFromClaims(subject string, claims map[string]any, groupsClaim, adm
 		Name:   firstNonEmpty(stringClaim(claims["name"]), stringClaim(claims["preferred_username"])),
 		Email:  stringClaim(claims["email"]),
 		Groups: groups,
-		Admin:  adminGroup != "" && slices.Contains(groups, adminGroup),
 	}
 }
 

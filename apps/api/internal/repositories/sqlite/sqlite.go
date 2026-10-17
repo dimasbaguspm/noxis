@@ -13,6 +13,7 @@ import (
 
 	"noxis/internal/common/idgen"
 	"noxis/internal/common/secret"
+	"noxis/internal/constants"
 	"noxis/internal/interfaces"
 
 	// modernc SQLite driver: pure-Go, cgo-free (interface is database/sql).
@@ -30,6 +31,7 @@ var (
 	_ interfaces.ChangeRepository     = (*Store)(nil)
 	_ interfaces.PermissionRepository = (*Store)(nil)
 	_ interfaces.UserRepository       = (*Store)(nil)
+	_ interfaces.AccessEventRepository = (*Store)(nil)
 )
 
 // Open opens the store and verifies it answers a ping. The parent directory
@@ -85,6 +87,10 @@ func Open(ctx context.Context, path, secretKey string) (*Store, error) {
 		db.Close()
 		return nil, fmt.Errorf("migrate grants: %w", err)
 	}
+	if err := backfillAccessExpiry(ctx, db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("backfill access expiry: %w", err)
+	}
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	if err := db.PingContext(ctx); err != nil {
@@ -115,6 +121,20 @@ func migrateGrantsToPermissions(ctx context.Context, db *sql.DB) error {
 	return err
 }
 
+// backfillAccessExpiry gives every permission written before the 120-day rule
+// an expiry and attributes it to "system". Rows with an expiry are left alone,
+// so it is effectively one-time.
+func backfillAccessExpiry(ctx context.Context, db *sql.DB) error {
+	now := time.Now()
+	if _, err := db.ExecContext(ctx,
+		`UPDATE permissions SET expires_at = ?, created_by = 'system', created_at = ?, updated_at = ?
+		 WHERE expires_at = 0`,
+		now.Add(constants.AccessGrantTTL).Unix(), now.Unix(), now.Unix()); err != nil {
+		return fmt.Errorf("backfill permission expiry: %w", err)
+	}
+	return nil
+}
+
 // migrations are applied best-effort; duplicates (fresh databases) error and
 // are ignored.
 var migrations = []string{
@@ -129,7 +149,23 @@ var migrations = []string{
 	`ALTER TABLE changes ADD COLUMN scheduled_at INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE changes ADD COLUMN created_by TEXT NOT NULL DEFAULT ''`,
 	`ALTER TABLE connections ADD COLUMN id TEXT NOT NULL DEFAULT ''`,
-	`ALTER TABLE connections ADD COLUMN created_by TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE users ADD COLUMN last_login_at INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE users ADD COLUMN is_super INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE permissions ADD COLUMN expires_at INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE permissions ADD COLUMN created_by TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE permissions ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE permissions ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
+	`CREATE TABLE IF NOT EXISTS access_events (
+	  id         TEXT PRIMARY KEY,
+	  at         INTEGER NOT NULL,
+	  actor      TEXT NOT NULL DEFAULT '',
+	  action     TEXT NOT NULL,
+	  subject    TEXT NOT NULL DEFAULT '',
+	  connection TEXT NOT NULL DEFAULT '',
+	  level      TEXT NOT NULL DEFAULT '',
+	  request_id TEXT NOT NULL DEFAULT '',
+	  note       TEXT NOT NULL DEFAULT ''
+	)`,
 }
 
 // backfillConnectionIDs gives every pre-migration row a stable id. New rows

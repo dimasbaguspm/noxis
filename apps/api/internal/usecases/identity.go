@@ -30,7 +30,7 @@ func LogAttrs(ctx context.Context) []any {
 	if !ok {
 		return nil
 	}
-	return []any{"user_id", p.Subject, "admin", p.Admin, "groups", p.Groups}
+	return []any{"user_id", p.Subject, "super", p.Super, "groups", p.Groups}
 }
 
 // Actor returns the caller's subject for attribution; empty when there is no
