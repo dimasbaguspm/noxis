@@ -1,0 +1,15 @@
+{
+  "affected": 0,
+  "columns": [
+    "n"
+  ],
+  "durationMs": 0,
+  "estimatedRows": 1,
+  "message": "1 statement(s) executed",
+  "rows": [
+    [
+      "36"
+    ]
+  ],
+  "rowsReturned": 1
+}

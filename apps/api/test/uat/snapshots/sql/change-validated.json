@@ -1,0 +1,31 @@
+{
+  "affectedColumns": [
+    "id"
+  ],
+  "affectedTables": [
+    "uat_snap"
+  ],
+  "checks": [
+    {
+      "detail": "write statements only",
+      "ok": true,
+      "target": "query kind"
+    },
+    {
+      "detail": "verified in scratch schema \"<scratch>\" on postgres",
+      "ok": true,
+      "target": "dry-run (query + rollback)"
+    }
+  ],
+  "connection": "demo",
+  "createdAt": "<ts>",
+  "createdBy": "local:admin",
+  "estDurationMs": 0,
+  "id": "<id>",
+  "kind": "ddl",
+  "notes": "uat change",
+  "query": "CREATE TABLE IF NOT EXISTS uat_snap (id INT)",
+  "rollback": "DROP TABLE uat_snap",
+  "scratchSchema": "<scratch>",
+  "status": "validated"
+}

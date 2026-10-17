@@ -20,6 +20,7 @@ func (w *world) httpSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I set cookie "([^"]*)" to "([^"]*)"$`, w.setCookie)
 	sc.Step(`^the response header "([^"]*)" is "([^"]*)"$`, w.responseHeaderIs)
 	sc.Step(`^the response status is (\d+)$`, w.responseStatusIs)
+	sc.Step(`^the response matches snapshot "([^"]*)"$`, w.responseMatchesSnapshot)
 	sc.Step(`^I send a (\w+) to "([^"]*)" with payload:$`, w.sendPayload)
 }
 
@@ -57,6 +58,12 @@ func (w *world) responseStatusIs(ctx context.Context, want int) error {
 		return fmt.Errorf("response status = %d, want %d", w.resp.Status, want)
 	}
 	return nil
+}
+
+// responseMatchesSnapshot compares the last response against a committed golden
+// under test/uat/snapshots. Volatile fields are scrubbed first.
+func (w *world) responseMatchesSnapshot(ctx context.Context, name string) error {
+	return w.snapshots.Match(name, w.resp.Body)
 }
 
 // sendPayload sends a request whose body is the step's docstring, verbatim, and

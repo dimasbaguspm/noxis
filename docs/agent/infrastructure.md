@@ -60,7 +60,8 @@ entry. Defaults and cross-field rules live in `LoadConfig` / `Validate`; a
 `make uat` runs the suite against the compose stack. It does **not** rebuild the
 image by default; `UAT_BUILD=1` does. It tears the stack down afterwards, volumes
 included; `UAT_KEEP=1` leaves it up so the next run reuses it. `UAT_TAGS`
-overrides the default `~@slow` tag filter.
+overrides the default `~@slow` tag filter. `UPDATE_SNAPSHOTS=1` rewrites the
+committed response goldens under `apps/api/test/uat/snapshots/`.
 
 ## Docker
 
