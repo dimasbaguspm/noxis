@@ -78,13 +78,13 @@ export function NavSearch() {
     <Dialog open={open} onOpenChange={change}>
       <DialogTrigger
         render={
-          <Button variant="outline" className="w-72 justify-start gap-2 text-muted-foreground font-normal" />
+          <Button variant="outline" className="w-auto justify-start gap-2 font-normal text-muted-foreground sm:w-72">
+            <Search className="size-4" />
+            <span className="hidden sm:inline">{current.item?.label ?? "Search pages…"}</span>
+            <kbd className="ml-auto hidden rounded border border-border px-1.5 text-[10px] tracking-tight sm:inline">⌘K</kbd>
+          </Button>
         }
-      >
-        <Search className="size-4" />
-        <span>{current.item?.label ?? "Search pages…"}</span>
-        <kbd className="ml-auto rounded border border-border px-1.5 text-[10px] tracking-tight">⌘K</kbd>
-      </DialogTrigger>
+      />
 
       <DialogContent showCloseButton={false} className="gap-0 overflow-hidden p-0 sm:max-w-lg">
         <DialogTitle className="sr-only">Navigate</DialogTitle>

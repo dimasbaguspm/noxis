@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, type Identity, type Level } from "@/lib/api";
 import { accessToken, initAuth, loadAuthConfig, signout as doSignout } from "@/lib/auth";
+import { AppShellSkeleton } from "@/components/layout/app-shell-skeleton";
 
 // AuthProvider owns the auth bootstrap (local account and/or OIDC) and the
 // console's permission view. The server is the enforcement point either way;
@@ -90,11 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   if (!ready && !isCallback) {
-    return (
-      <div className="flex h-svh items-center justify-center text-sm text-muted-foreground">
-        signing in…
-      </div>
-    );
+    return <AppShellSkeleton />;
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

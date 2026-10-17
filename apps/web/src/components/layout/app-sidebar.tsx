@@ -123,17 +123,24 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
               {FAMILIES.map((family) => (
                 <FamilyMenu key={family.key} family={family} pathname={pathname} />
               ))}
-              {isSuper && (
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        {isSuper && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Administration</SidebarGroupLabel>
+            <SidebarGroupContent className="flex flex-col gap-2">
+              <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton render={<Link to={PAGE_ROUTES.USERS} />} isActive={pathname.startsWith(PAGE_ROUTES.USERS)} tooltip="Users">
                     <UsersRound />
                     <span>Users</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarFooter>
         <NavUser />
