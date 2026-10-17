@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import { ShieldCheck, Users as UsersIcon } from "lucide-react";
+import { Search, ShieldCheck, Users as UsersIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Empty } from "@/components/ui/empty";
-import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -44,12 +44,12 @@ export default function UsersPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search subject or username"
-          className="h-8 w-64"
-        />
+        <InputGroup className="h-8 w-64">
+          <InputGroupAddon>
+            <Search />
+          </InputGroupAddon>
+          <InputGroupInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search subject or username" />
+        </InputGroup>
         <Select value={status} onValueChange={(v) => setStatus(v ?? "all")}>
           <SelectTrigger className="h-8 w-40">
             <SelectValue />
