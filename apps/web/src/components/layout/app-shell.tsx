@@ -3,12 +3,14 @@ import { NavSearch } from "@/components/layout/nav-search";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
+import { useRouteTrace } from "@/hooks/use-route-trace";
 
 // AppShell is the sidebar + header frame every engine page renders inside:
 // the shadcn sidebar structure on the left, an inset column with breadcrumbs,
 // the Cmd+K page search and the routed outlet.
 export function AppShell() {
   const crumbs = useBreadcrumbs();
+  useRouteTrace();
 
   return (
     <SidebarProvider>

@@ -1,6 +1,7 @@
 import type { components } from "@/api/generated";
 import { FAMILY, type FamilyKey } from "@/lib/families";
 import { accessToken, authEnabled } from "@/lib/auth";
+import { endSpan, startSpan, traceparent } from "@/lib/tracing";
 
 export type Level = "read" | "write" | "admin";
 export type Identity = components["schemas"]["auth.MeResponse"];
@@ -74,15 +75,24 @@ const connPath = (family: FamilyKey, name: string, suffix = "") =>
   v1(family, `connections/${encodeURIComponent(name)}${suffix}`);
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = {};
+  // the call runs under the current navigation's trace, so the API joins it
+  const span = startSpan(`${method} ${path}`);
+  const headers: Record<string, string> = { traceparent: traceparent(span) };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   const token = await accessToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(path, {
-    method,
-    headers: Object.keys(headers).length > 0 ? headers : undefined,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(path, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch (err) {
+    endSpan(span, err);
+    throw err;
+  }
+  endSpan(span, res.ok ? undefined : new Error(`HTTP ${res.status}`));
   // an expired or revoked token drops the console to the login page; the
   // user restarts the OIDC flow from there
   if (res.status === 401 && authEnabled()) {
