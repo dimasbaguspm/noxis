@@ -238,6 +238,19 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
+  /external/v1/config/tracing:
+    get:
+      summary: OTLP endpoint the console may export traces to
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                type: object
+                properties:
+                  endpoint:
+                    type: string
   "/external/v1/engine/{engine}/changes":
     get:
       summary: List proposed changes for an engine (newest first)

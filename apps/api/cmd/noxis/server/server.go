@@ -37,6 +37,7 @@ func newDeps(store *sqlite.Store, cfg config.Config, authSvc *auth.Service) app 
 		AccessRequests: store,
 		Modules:        modules.Default(authSvc),
 		Auth:           cfg.AuthInfo(),
+		OTELCollector:  cfg.OTELCollector,
 	})
 }
 
@@ -57,6 +58,7 @@ func newHandler(d app, cfg config.Config) http.Handler {
 	mux.HandleFunc("GET /healthz", getHealthz)
 	mux.HandleFunc("GET "+api+"/config/drivers", d.Drivers.Serve)
 	mux.HandleFunc("GET "+api+"/config/levels", d.Levels.Serve)
+	mux.HandleFunc("GET "+api+"/config/tracing", d.Tracing.Serve)
 	mux.HandleFunc("GET "+api+"/auth/config", d.AuthConfig.Serve)
 	mux.HandleFunc("POST "+api+"/auth/login", d.Login.Serve)
 	mux.HandleFunc("GET "+api+"/me", d.Me.Serve)

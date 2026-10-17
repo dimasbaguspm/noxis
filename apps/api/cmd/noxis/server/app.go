@@ -35,6 +35,7 @@ type sources struct {
 	Modules        modules.Registry
 	Auth           config.AuthInfo
 	AccessTTL      time.Duration
+	OTELCollector  string
 }
 
 // app is the composition root: every use case built once, explicitly.
@@ -78,6 +79,7 @@ type app struct {
 
 	Drivers   driver.Drivers
 	Levels    metadata.Levels
+	Tracing   metadata.Tracing
 	CacheKeys cache.Keys
 	CacheVal  cache.Value
 	CacheDel  cache.Delete
@@ -153,6 +155,7 @@ func newApp(s sources) app {
 
 		Drivers:   driver.Drivers{RegistryDeps: deps},
 		Levels:    metadata.Levels{RegistryDeps: deps},
+		Tracing:   metadata.Tracing{RegistryDeps: deps, Endpoint: s.OTELCollector},
 		CacheKeys: cache.Keys{RegistryDeps: deps},
 		CacheVal:  cache.Value{RegistryDeps: deps},
 		CacheDel:  cache.Delete{RegistryDeps: deps},
