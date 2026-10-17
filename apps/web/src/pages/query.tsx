@@ -16,7 +16,7 @@ import { classify } from "@/lib/statements";
 import { Play } from "lucide-react";
 
 export default function QueryPage() {
-  const { can, isSuper } = useAuth();
+  const { canAccess, isSuper } = useAuth();
   const { connection, connections, busy, pick } = useConnectionSelection();
 
   const tabs = useSqlTabs();
@@ -74,7 +74,7 @@ export default function QueryPage() {
                 <TableBrowser
                   tables={tables}
                   onRecords={(t) => tabs.add(`SELECT * FROM ${t.schema}.${t.name} LIMIT 100;`)}
-                  onAnalyze={can(connection, "write") ? onAnalyze : undefined}
+                  onAnalyze={canAccess(connection, "write") ? onAnalyze : undefined}
                 />
               </div>
             </CardContent>

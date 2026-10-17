@@ -22,7 +22,7 @@ const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 // ChangePage is the shared DML/DDL queue: raise inline, filter by instance,
 // review the paginated single list.
 export function ChangePage({ kind }: { kind: ChangeKind }) {
-  const { can } = useAuth();
+  const { canAccess } = useAuth();
   const { connections: sqlConnections } = useConnections(FAMILY.SQL);
   const [filter, setFilter] = useState("");
   const query = useDebounce(filter.trim());
@@ -38,7 +38,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
   const label = kind.toUpperCase();
   // raising a change needs a write permission on some SQL instance; the form still
   // lets the server refuse a specific connection
-  const mayRaise = sqlConnections.some((c) => can(c.name, "write"));
+  const mayRaise = sqlConnections.some((c) => canAccess(c.name, "write"));
 
   // a changed filter starts back at the first page
   useEffect(() => setPage(1), [query, status]);

@@ -4,15 +4,22 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/usecases/ucstest"
 )
 
-func TestRequireSuper(t *testing.T) {
+func TestListRequiresInstanceAdmin(t *testing.T) {
 	f := ucstest.New(&ucstest.SQL{})
 	mux := ucstest.Mux("GET", "/external/v1/engine/{engine}/connections/{name}/permissions", List{RegistryDeps: f.Deps()}.Serve)
 	rec := ucstest.Do(mux, http.MethodGet, "/external/v1/engine/sql/connections/demo/permissions", "", nil)
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("no principal: %d %s", rec.Code, rec.Body.String())
+	}
+	// a member with no grant on the connection is forbidden
+	rec = ucstest.Do(mux, http.MethodGet, "/external/v1/engine/sql/connections/demo/permissions", "", &entity.Identity{Subject: "local:bob"})
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("non-admin list: %d %s", rec.Code, rec.Body.String())
 	}
@@ -55,5 +62,27 @@ func TestMembers(t *testing.T) {
 		http.MethodGet, "/external/v1/config/members", "", &entity.Identity{Subject: "root", Super: true})
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"readers"`) || !strings.Contains(rec.Body.String(), `"local:alice"`) {
 		t.Fatalf("members status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestInstanceAdminCanReadButNotWrite(t *testing.T) {
+	f := ucstest.New(&ucstest.SQL{})
+	f.Conns.M["demo"] = entity.Connection{Name: "demo", Driver: constants.DriverPostgres, Family: constants.FamilySQL}
+	f.Perms.M["local:bob"] = entity.Permission{
+		Connection: "demo", Member: "local:bob", MemberType: entity.MemberUser,
+		Level: entity.LevelAdmin, ExpiresAt: time.Now().Add(time.Hour).Unix(),
+	}
+	bob := &entity.Identity{Subject: "local:bob"}
+
+	rec := ucstest.Do(ucstest.Mux("GET", "/x/{engine}/c/{name}", List{RegistryDeps: f.Deps()}.Serve),
+		http.MethodGet, "/x/sql/c/demo", "", bob)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("instance admin list: %d %s", rec.Code, rec.Body.String())
+	}
+
+	rec = ucstest.Do(ucstest.Mux("PUT", "/x/{engine}/c/{name}", Set{RegistryDeps: f.Deps()}.Serve),
+		http.MethodPut, "/x/sql/c/demo", `{"member":"x","memberType":"group","level":"read"}`, bob)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("instance admin must not grant: %d %s", rec.Code, rec.Body.String())
 	}
 }
