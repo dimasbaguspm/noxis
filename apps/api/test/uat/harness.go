@@ -42,7 +42,8 @@ var root = func() string {
 }()
 
 var (
-	stackFile = root + "/docker-compose.yml"
+	stackFile   = root + "/docker-compose.yml"
+	snapshotDir = root + "/apps/api/test/uat/snapshots"
 
 	// Read from the compose file by loadTargets, so the suite and the stack share
 	// one source of truth for the base URL and the credentials.
@@ -75,8 +76,9 @@ func signScheduler(req *http.Request, body []byte) {
 // world carries state between steps; godog runs scenarios sequentially and
 // hands each one a fresh world.
 type world struct {
-	client  kit.Client
-	headers map[string]string // per-scenario header overrides
+	client    kit.Client
+	snapshots kit.Snapshots
+	headers   map[string]string // per-scenario header overrides
 	cookies []*http.Cookie    // per-scenario cookies
 	resp    kit.Response      // the last response
 	code    int               // resp.Status, kept for the existing assertions
@@ -101,8 +103,9 @@ type world struct {
 func (w *world) reset() {
 	jar, _ := cookiejar.New(nil)
 	*w = world{
-		client:  kit.Client{BaseURL: baseURL, Token: token, Jar: jar},
-		headers: map[string]string{},
+		client:    kit.Client{BaseURL: baseURL, Token: token, Jar: jar},
+		snapshots: kit.Snapshots{Dir: snapshotDir, Update: envTrue("UPDATE_SNAPSHOTS")},
+		headers:   map[string]string{},
 	}
 }
 
