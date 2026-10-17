@@ -1,62 +1,161 @@
-import type { ReactNode } from "react";
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
-import { P } from "@/components/ui/typography";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
-// Field is the reusable form-field set (shadcn/base-field style): a labelled
-// input with an optional description and an error slot below it. Every form
-// in the console renders validation the same way.
+// Field is the one form-field composition in the console: a set of labelled
+// controls where each field shows a label, an optional description and, on
+// failure, the message from the resolver. Pair it with react-hook-form's
+// register or Controller; FieldError takes the resolver's error array as-is.
 
-export function FieldSet({ legend, description, children, className }: { legend?: ReactNode; description?: string; children: ReactNode; className?: string }) {
+export function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
+  return <fieldset data-slot="field-set" className={cn("flex flex-col gap-6", className)} {...props} />;
+}
+
+export function FieldLegend({
+  className,
+  variant = "legend",
+  ...props
+}: React.ComponentProps<"legend"> & { variant?: "legend" | "label" }) {
   return (
-    <fieldset className={cn("flex flex-col gap-4", className)}>
-      {legend && (
-        <legend className="grid gap-1">
-          {typeof legend === "string" ? <span className="text-sm font-medium">{legend}</span> : legend}
-          {description && <span className="text-xs text-muted-foreground">{description}</span>}
-        </legend>
+    <legend
+      data-slot="field-legend"
+      data-variant={variant}
+      className={cn("mb-3 font-medium data-[variant=label]:text-sm data-[variant=legend]:text-base", className)}
+      {...props}
+    />
+  );
+}
+
+export function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="field-group"
+      className={cn("@container/field-group group/field-group flex w-full flex-col gap-4", className)}
+      {...props}
+    />
+  );
+}
+
+const fieldVariants = cva("group/field flex w-full gap-2", {
+  variants: {
+    orientation: {
+      vertical: "flex-col *:w-full [&>.sr-only]:w-auto",
+      horizontal: "flex-row items-center has-[>[data-slot=field-content]]:items-start *:data-[slot=field-label]:flex-auto",
+      responsive:
+        "flex-col *:w-full @md/field-group:flex-row @md/field-group:items-center @md/field-group:*:w-auto @md/field-group:has-[>[data-slot=field-content]]:items-start @md/field-group:*:data-[slot=field-label]:flex-auto [&>.sr-only]:w-auto",
+    },
+  },
+  defaultVariants: { orientation: "vertical" },
+});
+
+export function Field({
+  className,
+  orientation = "vertical",
+  ...props
+}: React.ComponentProps<"div"> & VariantProps<typeof fieldVariants>) {
+  return (
+    <div
+      role="group"
+      data-slot="field"
+      data-orientation={orientation}
+      className={cn(fieldVariants({ orientation }), className)}
+      {...props}
+    />
+  );
+}
+
+export function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="field-content"
+      className={cn("group/field-content flex flex-1 flex-col gap-1 leading-snug", className)}
+      {...props}
+    />
+  );
+}
+
+export function FieldLabel({ className, ...props }: React.ComponentProps<typeof Label>) {
+  return (
+    <Label
+      data-slot="field-label"
+      className={cn(
+        "group/field-label peer/field-label flex w-fit gap-2 leading-snug",
+        "has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col",
+        className,
       )}
-      {children}
-    </fieldset>
+      {...props}
+    />
   );
 }
 
-export function FieldGroup({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("flex flex-col gap-3", className)}>{children}</div>;
-}
-
-export function Field({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("grid gap-1.5", className)}>{children}</div>;
-}
-
-// FieldLayout spaces a row of fields uniformly. In a form, wrap each Field in
-// a layout so stacked and two-column groups keep the same rhythm.
-export function FieldLayout({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("grid gap-3", className)}>{children}</div>;
-}
-
-// FieldRow is a FieldLayout that puts short sibling fields side by side on
-// wide screens (e.g. host/port, user/password).
-export function FieldRow({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("grid gap-3 sm:grid-cols-2", className)}>{children}</div>;
-}
-
-export function FieldLabel({ htmlFor, children, className }: { htmlFor?: string; children: ReactNode; className?: string }) {
+export function FieldTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <label htmlFor={htmlFor} className={cn("text-sm font-medium", className)}>
-      {children}
-    </label>
+    <div
+      data-slot="field-label"
+      className={cn("flex w-fit items-center gap-2 text-sm font-medium", className)}
+      {...props}
+    />
   );
 }
 
-export function FieldDescription({ children, className }: { children: ReactNode; className?: string }) {
-  return <P className={className}>{children}</P>;
+export function FieldDescription({ className, ...props }: React.ComponentProps<"p">) {
+  return (
+    <p
+      data-slot="field-description"
+      className={cn(
+        "text-sm leading-normal font-normal text-muted-foreground [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
-export function FieldError({ children, className }: { children?: ReactNode; className?: string }) {
-  if (!children) return null;
+export function FieldSeparator({
+  children,
+  className,
+  ...props
+}: React.ComponentProps<"div"> & { children?: React.ReactNode }) {
   return (
-    <p role="alert" className={cn("text-xs text-destructive", className)}>
-      {children}
-    </p>
+    <div data-slot="field-separator" data-content={!!children} className={cn("relative -my-2 h-5 text-sm", className)} {...props}>
+      <Separator className="absolute inset-0 top-1/2" />
+      {children && <span className="relative mx-auto block w-fit bg-background px-2 text-muted-foreground">{children}</span>}
+    </div>
+  );
+}
+
+// FieldError renders the resolver's messages: one inline, or a deduped list
+// when a field carries several. Children win, for a message the resolver did
+// not produce (a server failure, for instance).
+export function FieldError({
+  className,
+  children,
+  errors,
+  ...props
+}: React.ComponentProps<"div"> & {
+  errors?: Array<{ message?: string } | undefined>;
+}) {
+  const content = React.useMemo(() => {
+    if (children) return children;
+    if (!errors?.length) return null;
+
+    const unique = [...new Map(errors.map((error) => [error?.message, error])).values()];
+    if (unique.length === 1) return unique[0]?.message;
+
+    return (
+      <ul className="ml-4 flex list-disc flex-col gap-1">
+        {unique.map((error) => error?.message && <li key={error.message}>{error.message}</li>)}
+      </ul>
+    );
+  }, [children, errors]);
+
+  if (!content) return null;
+
+  return (
+    <div role="alert" data-slot="field-error" className={cn("text-sm font-normal text-destructive", className)} {...props}>
+      {content}
+    </div>
   );
 }

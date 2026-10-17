@@ -289,7 +289,7 @@ export function ConnectionDialog({
               <Field>
                 <FieldLabel htmlFor="conn-name">Name</FieldLabel>
                 <Input id="conn-name" placeholder="prod-readonly" {...field("name")} />
-                <FieldError>{errors.name?.message}</FieldError>
+                <FieldError errors={[errors.name]} />
               </Field>
               <Field>
                 <FieldLabel>Driver</FieldLabel>
@@ -333,12 +333,12 @@ export function ConnectionDialog({
                       placeholder={cache ? "cache.internal" : mongo ? "mongo.internal" : "db.internal"}
                       {...field("host")}
                     />
-                    <FieldError>{errors.host?.message}</FieldError>
+                    <FieldError errors={[errors.host]} />
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="conn-port">Port</FieldLabel>
                     <Input id="conn-port" type="number" {...field("port")} />
-                    <FieldError>{errors.port?.message}</FieldError>
+                    <FieldError errors={[errors.port]} />
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="conn-user">{cache ? "User (ACL, optional)" : "User"}</FieldLabel>
@@ -347,7 +347,7 @@ export function ConnectionDialog({
                       placeholder={cache ? "default" : mongo ? "root" : "postgres"}
                       {...field("user")}
                     />
-                    <FieldError>{errors.user?.message}</FieldError>
+                    <FieldError errors={[errors.user]} />
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="conn-password">Password</FieldLabel>
@@ -369,7 +369,7 @@ export function ConnectionDialog({
                   placeholder={fileDriver ? "/data/app.db" : cache ? "0" : mongo ? "admin" : "app"}
                   {...field("database")}
                 />
-                <FieldError>{errors.database?.message}</FieldError>
+                <FieldError errors={[errors.database]} />
               </Field>
 
               </form>

@@ -74,7 +74,7 @@ export default function LoginPage({ className, ...props }: React.ComponentProps<
                   aria-invalid={!!errors.username}
                   {...register("username")}
                 />
-                <FieldError>{errors.username?.message}</FieldError>
+                <FieldError errors={[errors.username]} />
               </Field>
               <Field>
                 <FieldLabel htmlFor="login-password">Password</FieldLabel>
@@ -85,7 +85,7 @@ export default function LoginPage({ className, ...props }: React.ComponentProps<
                   aria-invalid={!!errors.password}
                   {...register("password")}
                 />
-                <FieldError>{errors.password?.message}</FieldError>
+                <FieldError errors={[errors.password]} />
               </Field>
               {error && <FieldError>{error}</FieldError>}
               <Field>

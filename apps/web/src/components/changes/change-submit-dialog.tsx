@@ -17,7 +17,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Field, FieldError, FieldLabel, FieldLayout } from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { SqlEditor } from "@/components/sql/sql-editor";
@@ -124,7 +124,7 @@ export function ChangeSubmitDialog({
 
         <SheetBody>
           <form id="submit-change" onSubmit={onValid} className="grid gap-4">
-          <FieldLayout>
+          <FieldGroup>
           <Field>
             <FieldLabel>
               {title("instance")} <Required />
@@ -136,7 +136,7 @@ export function ChangeSubmitDialog({
               {title("notes")} <Required />
             </FieldLabel>
             <Input id="change-notes" placeholder="what and why" aria-invalid={!!errors.notes} {...register("notes")} />
-            <FieldError>{errors.notes?.message}</FieldError>
+            <FieldError errors={[errors.notes]} />
           </Field>
 
           <Field>
@@ -148,7 +148,7 @@ export function ChangeSubmitDialog({
             </FieldLabel>
             <SqlEditor value={watch("query")} onChange={(sql) => setValue("query", sql)} tables={tables} height="12rem" />
             <input type="hidden" aria-hidden {...register("query")} />
-            <FieldError>{errors.query?.message}</FieldError>
+            <FieldError errors={[errors.query]} />
           </Field>
 
           <Field>
@@ -157,9 +157,9 @@ export function ChangeSubmitDialog({
             </FieldLabel>
             <SqlEditor value={watch("rollback")} onChange={(sql) => setValue("rollback", sql)} tables={tables} height="9rem" />
             <input type="hidden" aria-hidden {...register("rollback")} />
-            <FieldError>{errors.rollback?.message}</FieldError>
+            <FieldError errors={[errors.rollback]} />
           </Field>
-          </FieldLayout>
+          </FieldGroup>
           {failure.length > 0 && (
             <div className="grid gap-1 rounded-md border border-destructive/40 p-3">
               {failure.map((check) => (
