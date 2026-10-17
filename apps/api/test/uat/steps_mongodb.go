@@ -176,7 +176,7 @@ func (w *world) registerMongo(ctx context.Context, name string) error {
 	if w.code != http.StatusOK {
 		return fmt.Errorf("register mongo connection: %d", w.code)
 	}
-	w.conn, w.host = name, t.Host
+	w.conn, w.host, w.targetKey = name, t.Host, "mongo"
 	return nil
 }
 
