@@ -55,6 +55,13 @@ entry. Defaults and cross-field rules live in `LoadConfig` / `Validate`; a
 | `make down` | stop compose and wipe volumes (`-v`) |
 | `make uat` | godog acceptance suite over the real compose stack |
 
+### UAT switches
+
+`make uat` runs the suite against the compose stack. It does **not** rebuild the
+image by default; `UAT_BUILD=1` does. It tears the stack down afterwards, volumes
+included; `UAT_KEEP=1` leaves it up so the next run reuses it. `UAT_TAGS`
+overrides the default `~@slow` tag filter.
+
 ## Docker
 
 Two images share `apps/api` as the Go build source:

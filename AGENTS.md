@@ -19,6 +19,7 @@ make lint        # golangci-lint v2         (~60s)
 make build       # bin/noxis
 make web         # build console into embed dir (needs pnpm)
 make uat         # godog over real compose stack (needs docker, tags ~@slow)
+                 #   UAT_BUILD=1 rebuilds · UAT_KEEP=1 reuses the stack
 ```
 
 CI (`.github/workflows/ci.yml`) runs exactly: lint → docker build → unit →
