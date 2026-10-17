@@ -21,6 +21,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RequestAccessDialog } from "@/components/access/request-access-dialog";
 import { useAction } from "@/hooks/use-action";
 import { useInstanceQuery, useRotatePasswordMutation } from "@/hooks/use-instances";
 import { useAuth } from "@/app/auth-provider";
@@ -135,6 +136,7 @@ export default function InstanceDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {!isSuper && <RequestAccessDialog connection={instance.name} />}
               {(isSuper || isInstanceAdmin(instance.name)) && (
                 <Button
                   size="sm"

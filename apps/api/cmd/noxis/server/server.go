@@ -29,13 +29,14 @@ const shutdownTimeout = 10 * time.Second
 // the auth service) and the transport values, then builds every use case.
 func newDeps(store *sqlite.Store, cfg config.Config, authSvc *auth.Service) app {
 	return newApp(sources{
-		Connections:  store,
-		Changes:      store,
-		Permissions:  store,
-		Users:        store,
-		AccessEvents: store,
-		Modules:      modules.Default(authSvc),
-		Auth:         cfg.AuthInfo(),
+		Connections:    store,
+		Changes:        store,
+		Permissions:    store,
+		Users:          store,
+		AccessEvents:   store,
+		AccessRequests: store,
+		Modules:        modules.Default(authSvc),
+		Auth:           cfg.AuthInfo(),
 	})
 }
 
@@ -73,6 +74,13 @@ func newHandler(d app, cfg config.Config) http.Handler {
 	// Permissions: per-connection RBAC policy (users and groups), managed by
 	// global admins only.
 	mux.HandleFunc("GET "+api+"/config/members", d.Members.Serve)
+
+	// Access requests: a user asks, the super admin or the instance's admin
+	// decides. The decision writes the grant and its audit trail.
+	mux.HandleFunc("POST "+api+"/access-requests", d.AccessCreate.Serve)
+	mux.HandleFunc("GET "+api+"/access-requests", d.AccessList.Serve)
+	mux.HandleFunc("POST "+api+"/access-requests/{id}/approve", d.AccessApprove.Serve)
+	mux.HandleFunc("POST "+api+"/access-requests/{id}/reject", d.AccessReject.Serve)
 
 	// Users: the super admin's directory. There is no local user creation; a
 	// user is created by the env bootstrap or by signing in through OIDC.

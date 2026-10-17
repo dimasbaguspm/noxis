@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
+import { AccessInbox } from "@/components/access/access-inbox";
 import { InstancePermissions } from "@/components/access/instance-permissions";
 import { Empty } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,6 +34,7 @@ export default function InstanceDashboardPage() {
         <H1>{instance.name} · Dashboard</H1>
         <P>Who can reach this instance, and when their access lapses.</P>
       </div>
+      <AccessInbox connection={instance.name} />
       <InstancePermissions instance={instance} />
     </div>
   );

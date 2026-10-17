@@ -245,6 +245,73 @@ func (f *Events) ListAccessEvents(_ context.Context, subject string, limit int) 
 	return out, nil
 }
 
+// AccessRequests is an in-memory AccessRequestRepository.
+type AccessRequests struct{ Rows []entity.AccessRequest }
+
+func (f *AccessRequests) CreateAccessRequest(_ context.Context, r entity.AccessRequest) error {
+	f.Rows = append(f.Rows, r)
+	return nil
+}
+
+func (f *AccessRequests) PendingRequestExists(_ context.Context, subject, connection string) (bool, error) {
+	for i := range f.Rows {
+		if f.Rows[i].Subject == subject && f.Rows[i].Connection == connection && f.Rows[i].Status == entity.RequestPending {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (f *AccessRequests) GetAccessRequest(_ context.Context, id string) (*entity.AccessRequest, error) {
+	for i := range f.Rows {
+		if f.Rows[i].ID == id {
+			r := f.Rows[i]
+			return &r, nil
+		}
+	}
+	return nil, constants.ErrNotFound
+}
+
+func (f *AccessRequests) ListAccessRequests(_ context.Context, subject string) ([]entity.AccessRequest, error) {
+	out := make([]entity.AccessRequest, 0)
+	for i := range f.Rows {
+		if f.Rows[i].Subject == subject {
+			out = append(out, f.Rows[i])
+		}
+	}
+	return out, nil
+}
+
+func (f *AccessRequests) ListPendingRequests(_ context.Context, connections []string) ([]entity.AccessRequest, error) {
+	allowed := map[string]struct{}{}
+	for _, c := range connections {
+		allowed[c] = struct{}{}
+	}
+	out := make([]entity.AccessRequest, 0)
+	for i := range f.Rows {
+		if f.Rows[i].Status != entity.RequestPending {
+			continue
+		}
+		if connections != nil {
+			if _, ok := allowed[f.Rows[i].Connection]; !ok {
+				continue
+			}
+		}
+		out = append(out, f.Rows[i])
+	}
+	return out, nil
+}
+
+func (f *AccessRequests) SetAccessRequestDecision(_ context.Context, id, status, decidedBy string, decidedAt int64, note string) error {
+	for i := range f.Rows {
+		if f.Rows[i].ID == id {
+			f.Rows[i].Status, f.Rows[i].DecidedBy, f.Rows[i].DecidedAt, f.Rows[i].DecisionNote = status, decidedBy, decidedAt, note
+			return nil
+		}
+	}
+	return constants.ErrNotFound
+}
+
 // SQL is a fake SQLModule with swappable failures.
 type SQL struct {
 	interfaces.SQLModule
@@ -283,23 +350,25 @@ func (Memcache) Supports(driver string) bool {
 
 // Fixture wires the fakes into RegistryDeps.
 type Fixture struct {
-	Conns   *Conns
-	Changes *Changes
-	Perms   *Permissions
-	Users   *Users
-	Events  *Events
-	Mods    map[string]interfaces.Module
+	Conns    *Conns
+	Changes  *Changes
+	Perms    *Permissions
+	Users    *Users
+	Events   *Events
+	Requests *AccessRequests
+	Mods     map[string]interfaces.Module
 }
 
 // New builds a fixture whose SQL family is sq.
 func New(sq interfaces.SQLModule) *Fixture {
 	return &Fixture{
-		Conns:   NewConns(),
-		Changes: NewChanges(),
-		Perms:   NewPermissions(),
-		Users:   &Users{},
-		Events:  &Events{},
-		Mods:    map[string]interfaces.Module{constants.FamilySQL: sq},
+		Conns:    NewConns(),
+		Changes:  NewChanges(),
+		Perms:    NewPermissions(),
+		Users:    &Users{},
+		Events:   &Events{},
+		Requests: &AccessRequests{},
+		Mods:     map[string]interfaces.Module{constants.FamilySQL: sq},
 	}
 }
 
@@ -307,11 +376,12 @@ func New(sq interfaces.SQLModule) *Fixture {
 func (f *Fixture) Deps() usecases.RegistryDeps {
 	return usecases.RegistryDeps{
 		Registry: repositories.Registry{
-			Connections:  f.Conns,
-			Changes:      f.Changes,
-			Permissions:  f.Perms,
-			Users:        f.Users,
-			AccessEvents: f.Events,
+			Connections:    f.Conns,
+			Changes:        f.Changes,
+			Permissions:    f.Perms,
+			Users:          f.Users,
+			AccessEvents:   f.Events,
+			AccessRequests: f.Requests,
 		},
 		Modules: modules.New(f.Mods, nil),
 	}

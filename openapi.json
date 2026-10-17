@@ -7,6 +7,199 @@
         "version": "0.1.0"
     },
     "paths": {
+        "/external/v1/access-requests": {
+            "get": {
+                "summary": "List access requests (mine, or the ones I may decide)",
+                "parameters": [
+                    {
+                        "description": "mine (default) or to-approve",
+                        "name": "scope",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "requests": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/entity.AccessRequest"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "summary": "Request access to a connection",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/access.createBody"
+                            }
+                        }
+                    },
+                    "description": "connection, level and reason",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.AccessRequest"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/external/v1/access-requests/{id}/approve": {
+            "post": {
+                "summary": "Approve an access request",
+                "parameters": [
+                    {
+                        "description": "request id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/access.decisionBody"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.AccessRequest"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/external/v1/access-requests/{id}/reject": {
+            "post": {
+                "summary": "Reject an access request",
+                "parameters": [
+                    {
+                        "description": "request id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/access.decisionBody"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.AccessRequest"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/external/v1/auth/config": {
             "get": {
                 "summary": "Public auth configuration (console bootstrap)",
@@ -2348,9 +2541,41 @@
                 },
                 "description": "sql",
                 "required": true
+            },
+            "access.decisionBody": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/access.decisionBody"
+                        }
+                    }
+                },
+                "description": "optional note"
             }
         },
         "schemas": {
+            "access.createBody": {
+                "type": "object",
+                "properties": {
+                    "connection": {
+                        "type": "string"
+                    },
+                    "level": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "string"
+                    }
+                }
+            },
+            "access.decisionBody": {
+                "type": "object",
+                "properties": {
+                    "note": {
+                        "type": "string"
+                    }
+                }
+            },
             "apply.TickResult": {
                 "type": "object",
                 "properties": {
@@ -2564,6 +2789,44 @@
                         "type": "string"
                     },
                     "requestId": {
+                        "type": "string"
+                    },
+                    "subject": {
+                        "type": "string"
+                    }
+                }
+            },
+            "entity.AccessRequest": {
+                "type": "object",
+                "properties": {
+                    "connection": {
+                        "type": "string"
+                    },
+                    "decidedAt": {
+                        "type": "integer"
+                    },
+                    "decidedBy": {
+                        "type": "string"
+                    },
+                    "decisionNote": {
+                        "type": "string"
+                    },
+                    "expiresAt": {
+                        "type": "integer"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "level": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "requestedAt": {
+                        "type": "integer"
+                    },
+                    "status": {
                         "type": "string"
                     },
                     "subject": {

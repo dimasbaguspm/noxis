@@ -28,6 +28,7 @@ export type User = components["schemas"]["entity.User"];
 export type UserDetail = components["schemas"]["user.Detail"];
 export type AccessEvent = components["schemas"]["entity.AccessEvent"];
 export type AccessLevel = components["schemas"]["metadata.LevelInfo"];
+export type AccessRequest = components["schemas"]["entity.AccessRequest"];
 
 // DriverInfo is one entry of the server's hardcoded driver catalog.
 export interface DriverInfo {
@@ -214,6 +215,18 @@ export const api = {
         "DELETE",
         v1(family, `connections/${encodeURIComponent(name)}/permissions?member=${encodeURIComponent(member)}`),
       ),
+  },
+  // accessRequests: a user asks for a level on a connection; the super admin or
+  // that instance's admin decides.
+  accessRequests: {
+    create: (connection: string, level: string, reason: string) =>
+      request<AccessRequest>("POST", "/external/v1/access-requests", { connection, level, reason }),
+    mine: () => request<{ requests: AccessRequest[] }>("GET", "/external/v1/access-requests?scope=mine"),
+    toApprove: () => request<{ requests: AccessRequest[] }>("GET", "/external/v1/access-requests?scope=to-approve"),
+    approve: (id: string, note = "") =>
+      request<AccessRequest>("POST", `/external/v1/access-requests/${id}/approve`, { note }),
+    reject: (id: string, note = "") =>
+      request<AccessRequest>("POST", `/external/v1/access-requests/${id}/reject`, { note }),
   },
   // users: the super admin's directory. Read-only plus a disable toggle.
   users: {
