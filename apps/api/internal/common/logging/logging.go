@@ -6,11 +6,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"os"
 	"strings"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
@@ -64,7 +65,7 @@ func New(ctx context.Context, otlp OTLP) (*slog.Logger, Shutdown, error) {
 		semconv.ServiceName(service),
 	)
 
-	traceExp, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpointURL(endpointURL(otlp.Collector)))
+	traceExp, err := otlptracehttp.New(ctx, otlptracehttp.WithEndpointURL(endpointURL(otlp.Collector)))
 	if err != nil {
 		return nil, nil, fmt.Errorf("otel trace exporter: %w", err)
 	}
@@ -110,14 +111,22 @@ func firstNonEmpty(a, b string) string {
 	return b
 }
 
-// endpointURL makes NOXIS_OTEL_COLLECTOR a URL the OTLP gRPC exporter accepts.
-// The exporter wants a scheme (https enables TLS; a bare host:port is treated
-// as plaintext http), and a URL without a port still resolves to gRPC's
-// default 443. Passing a raw URL to WithEndpoint made gRPC resolve "https" as
-// a hostname and loop on DNS failures.
+// endpointURL makes NOXIS_OTEL_COLLECTOR a URL the OTLP/HTTP exporter accepts.
+// It wants a scheme — https enables TLS, a bare host:port is plaintext http —
+// and a path, because the exporter does not append the traces path to a URL,
+// so a bare host is pointed at /v1/traces here. OTLP/HTTP rather than gRPC:
+// a collector behind a proxy answers gRPC's export path with a 403.
 func endpointURL(collector string) string {
-	if strings.Contains(collector, "://") {
-		return collector
+	raw := collector
+	if !strings.Contains(raw, "://") {
+		raw = "http://" + raw
 	}
-	return "http://" + collector
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return raw
+	}
+	if u.Path == "" || u.Path == "/" {
+		u.Path = "/v1/traces"
+	}
+	return u.String()
 }

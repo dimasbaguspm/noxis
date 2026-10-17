@@ -28,7 +28,7 @@ registers the routes and starts the server with a 10s graceful shutdown.
 | `NOXIS_ADMIN_USERNAME` / `NOXIS_ADMIN_PASSWORD` | root local admin; required only while no accounts exist |
 | `NOXIS_SCHEDULER_API_KEY` | external scheduler: shared api key (bearer) |
 | `NOXIS_SCHEDULER_SECRET` | external scheduler: HMAC secret signing the trigger |
-| `NOXIS_OTEL_COLLECTOR` | OTLP/gRPC endpoint URL (optional); `https://` uses TLS, a bare `host:port` is plaintext |
+| `NOXIS_OTEL_COLLECTOR` | OTLP/HTTP endpoint URL (optional); `https://` uses TLS, a bare `host:port` is plaintext, and `/v1/traces` is added when the URL has no path |
 | `NOXIS_OTEL_NAME` | OTEL service name (optional) |
 | `NOXIS_ACCESS_GRANT_DAYS` | per-connection grant lifetime in days (default 120; the super admin never expires) |
 | `NOXIS_OIDC_ISSUER` | empty = OIDC off (local accounts still required); set = accept OIDC tokens too |
