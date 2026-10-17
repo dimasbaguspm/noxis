@@ -126,8 +126,19 @@ type checkBody struct {
 	Error  string `json:"error"`
 }
 
+// stackUp brings the compose stack up. It rebuilds only when UAT_BUILD=1; a run
+// against a cold cache still builds, because compose builds a missing image.
+// UAT_KEEP reuses the stack: the image and noxis's volume stay, but every
+// container is recreated, so the target databases start empty.
 func stackUp() error {
-	out, err := exec.Command("docker", "compose", "-f", stackFile, "up", "-d", "--build", "--remove-orphans").CombinedOutput()
+	if envTrue("UAT_KEEP") {
+		_ = exec.Command("docker", "compose", "-f", stackFile, "rm", "-sf").Run()
+	}
+	args := []string{"compose", "-f", stackFile, "up", "-d", "--remove-orphans"}
+	if envTrue("UAT_BUILD") {
+		args = append(args, "--build")
+	}
+	out, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("compose up: %w\n%s", err, out)
 	}
@@ -160,8 +171,22 @@ func login() error {
 	return nil
 }
 
+// stackDown tears the stack down, volumes included, unless UAT_KEEP=1 leaves it
+// up so the next run reuses it.
 func stackDown() {
+	if envTrue("UAT_KEEP") {
+		return
+	}
 	_ = exec.Command("docker", "compose", "-f", stackFile, "down", "-v", "--remove-orphans").Run()
+}
+
+// envTrue reports whether an env switch is set to a truthy value.
+func envTrue(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(name))) {
+	case "1", "true", "yes":
+		return true
+	}
+	return false
 }
 
 func waitHTTP(url string, timeout time.Duration) error {
