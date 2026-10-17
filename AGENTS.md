@@ -22,8 +22,9 @@ make uat         # godog over real compose stack (needs docker, tags ~@slow)
                  #   UAT_BUILD=1 rebuilds · UAT_KEEP=1 reuses the stack
 ```
 
-CI (`.github/workflows/ci.yml`) runs exactly: lint → docker build → unit →
-`make uat` for Go; lint + typecheck + build for `apps/web/`.
+CI (`.github/workflows/ci.yml`) runs exactly: lint → api image build → unit →
+`make uat` (which builds the full image through compose) for Go; lint +
+typecheck + build for `apps/web/`.
 
 ## Repo map (outer layer → inner layer)
 

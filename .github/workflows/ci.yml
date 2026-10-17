@@ -1,6 +1,9 @@
 # Two path-filtered jobs, one per side of the repo.
-#   go  → lint → build (Dockerfile) → unit → UAT
+#   go  → lint → build (Dockerfile.api) → unit → UAT
 #   web → lint + typecheck + build
+# The full Dockerfile is built by the UAT step itself: `make uat` runs
+# `docker compose up`, which builds the noxis service image. The API-only image
+# (Dockerfile.api) is the one nothing else builds, so it is built here.
 # A `changes` gate computes which side moved; the heavy jobs run only for
 # their side. UAT brings the real compose stack up (noxis + postgres/redis/
 # valkey/mongo/mariadb) on the runner's docker daemon and drives it through the
@@ -48,7 +51,7 @@ jobs:
               - '.github/workflows/**'
 
   go:
-    name: "go: lint, build, unit, uat"
+    name: "go: lint, build api image, unit, uat"
     needs: changes
     if: needs.changes.outputs.go == 'true'
     runs-on: ubuntu-latest
@@ -69,16 +72,6 @@ jobs:
 
       - name: setup buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: build (Dockerfile)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile
-          push: false
-          tags: noxis:ci
-          cache-from: type=gha,scope=noxis
-          cache-to: type=gha,mode=max,scope=noxis
 
       - name: build (Dockerfile.api)
         uses: docker/build-push-action@v6
