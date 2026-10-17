@@ -24,6 +24,10 @@ export type MemcacheKey = components["schemas"]["entity.Key"];
 export type MemcacheKeyPage = components["schemas"]["entity.KeyPage"];
 export type Permission = components["schemas"]["entity.Permission"];
 export type MemberUser = components["schemas"]["permission.memberUser"];
+export type User = components["schemas"]["entity.User"];
+export type UserDetail = components["schemas"]["user.Detail"];
+export type AccessEvent = components["schemas"]["entity.AccessEvent"];
+export type AccessLevel = components["schemas"]["metadata.LevelInfo"];
 
 // DriverInfo is one entry of the server's hardcoded driver catalog.
 export interface DriverInfo {
@@ -211,8 +215,20 @@ export const api = {
         v1(family, `connections/${encodeURIComponent(name)}/permissions?member=${encodeURIComponent(member)}`),
       ),
   },
+  // users: the super admin's directory. Read-only plus a disable toggle.
+  users: {
+    list: (q: string, status: string) =>
+      request<{ users: User[] }>(
+        "GET",
+        `/external/v1/users?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`,
+      ),
+    get: (subject: string) => request<UserDetail>("GET", `/external/v1/users/${encodeURIComponent(subject)}`),
+    setDisabled: (subject: string, disabled: boolean) =>
+      request<User>("PATCH", `/external/v1/users/${encodeURIComponent(subject)}`, { disabled }),
+  },
   config: {
     drivers: () => request<DriverInfo[]>("GET", "/external/v1/config/drivers"),
+    levels: () => request<{ levels: AccessLevel[] }>("GET", "/external/v1/config/levels"),
     members: () => request<{ groups: string[]; users: MemberUser[] }>("GET", "/external/v1/config/members"),
   },
   // family returns the shared connection lifecycle for any engine family.

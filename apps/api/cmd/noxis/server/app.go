@@ -15,9 +15,11 @@ import (
 	"noxis/internal/usecases/connection"
 	"noxis/internal/usecases/driver"
 	"noxis/internal/usecases/instance"
+	"noxis/internal/usecases/metadata"
 	"noxis/internal/usecases/mongo"
 	"noxis/internal/usecases/permission"
 	"noxis/internal/usecases/schema"
+	"noxis/internal/usecases/user"
 )
 
 // sources are the seams the composition root builds the use cases from. They
@@ -63,7 +65,12 @@ type app struct {
 	ChangePass auth.Password
 	Me         auth.Me
 
+	UserList   user.List
+	UserGet    user.Get
+	UserUpdate user.Update
+
 	Drivers   driver.Drivers
+	Levels    metadata.Levels
 	CacheKeys cache.Keys
 	CacheVal  cache.Value
 	CacheDel  cache.Delete
@@ -127,7 +134,12 @@ func newApp(s sources) app {
 		ChangePass: auth.Password{RegistryDeps: deps},
 		Me:         auth.Me{RegistryDeps: deps},
 
+		UserList:   user.List{RegistryDeps: deps},
+		UserGet:    user.Get{RegistryDeps: deps},
+		UserUpdate: user.Update{RegistryDeps: deps},
+
 		Drivers:   driver.Drivers{RegistryDeps: deps},
+		Levels:    metadata.Levels{RegistryDeps: deps},
 		CacheKeys: cache.Keys{RegistryDeps: deps},
 		CacheVal:  cache.Value{RegistryDeps: deps},
 		CacheDel:  cache.Delete{RegistryDeps: deps},

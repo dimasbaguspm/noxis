@@ -12,6 +12,7 @@ type User struct {
 	Super       bool     `json:"super"`
 	Disabled    bool     `json:"disabled"`
 	LastLoginAt int64    `json:"lastLoginAt"`
+	CreatedAt   int64    `json:"createdAt"`
 }
 
 // LocalSubject namespaces a local account, so it can never collide with an OIDC

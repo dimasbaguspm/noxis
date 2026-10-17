@@ -89,6 +89,13 @@ func (f *fakeUsers) SetUserToken(_ context.Context, subject, tokenHash string, e
 	return nil
 }
 
+func (f *fakeUsers) SetUserDisabled(_ context.Context, subject string, disabled bool) error {
+	if u, ok := f.bySubject[subject]; ok {
+		u.Disabled = disabled
+	}
+	return nil
+}
+
 func (f *fakeUsers) SetLastLogin(_ context.Context, subject string, at int64) error {
 	if u, ok := f.bySubject[subject]; ok {
 		u.LastLoginAt = at

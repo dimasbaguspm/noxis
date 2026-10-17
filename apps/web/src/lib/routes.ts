@@ -7,6 +7,8 @@ export const PAGE_ROUTES = {
   SETTINGS: "/settings",
   PROFILE: "/profile",
   INSTANCE_DETAIL: (id: string) => `/instances/${id}`,
+  USERS: "/users",
+  USER_DETAIL: (subject: string) => `/users/${encodeURIComponent(subject)}`,
   SQL: {
     QUERY: "/sql/query",
     DML: "/sql/dml",

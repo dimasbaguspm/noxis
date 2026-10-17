@@ -119,6 +119,20 @@ func (f *Permissions) DeletePermission(_ context.Context, _, member, _ string) e
 	return nil
 }
 
+func (f *Permissions) ListPermissionsForMembers(_ context.Context, members []string) ([]entity.Permission, error) {
+	want := map[string]struct{}{}
+	for _, m := range members {
+		want[m] = struct{}{}
+	}
+	out := make([]entity.Permission, 0)
+	for _, p := range f.M {
+		if _, ok := want[p.Member]; ok {
+			out = append(out, p)
+		}
+	}
+	return out, nil
+}
+
 func (f *Permissions) ListGroupNames(context.Context) ([]string, error) {
 	seen := map[string]struct{}{}
 	for _, p := range f.M {
@@ -133,26 +147,83 @@ func (f *Permissions) ListGroupNames(context.Context) ([]string, error) {
 	return out, nil
 }
 
-// Users is a minimal UserRepository.
+// Users is an in-memory UserRepository.
 type Users struct{ Accounts []entity.User }
 
 func (f *Users) ListUsers(context.Context) ([]entity.User, error) { return f.Accounts, nil }
 func (f *Users) CountUsers(context.Context) (int, error)          { return len(f.Accounts), nil }
-func (f *Users) GetUser(context.Context, string) (*entity.User, error) {
+
+func (f *Users) find(pred func(*entity.User) bool) (*entity.User, error) {
+	for i := range f.Accounts {
+		if pred(&f.Accounts[i]) {
+			u := f.Accounts[i]
+			return &u, nil
+		}
+	}
 	return nil, constants.ErrNotFound
 }
-func (f *Users) GetUserByUsername(context.Context, string) (*entity.User, error) {
-	return nil, constants.ErrNotFound
+
+func (f *Users) GetUser(_ context.Context, subject string) (*entity.User, error) {
+	return f.find(func(u *entity.User) bool { return u.Subject == subject })
 }
-func (f *Users) EnsureSubject(context.Context, string) error           { return nil }
-func (f *Users) SaveUser(context.Context, entity.User) error           { return nil }
-func (f *Users) SetUserPassword(context.Context, string, string) error { return nil }
-func (f *Users) SetUserToken(context.Context, string, string, int64) error {
+
+func (f *Users) GetUserByUsername(_ context.Context, username string) (*entity.User, error) {
+	if username == "" {
+		return nil, constants.ErrNotFound
+	}
+	return f.find(func(u *entity.User) bool { return u.Username == username })
+}
+
+func (f *Users) EnsureSubject(ctx context.Context, subject string) error {
+	if _, err := f.GetUser(ctx, subject); err == nil {
+		return nil
+	}
+	f.Accounts = append(f.Accounts, entity.User{Subject: subject})
 	return nil
 }
-func (f *Users) SetLastLogin(context.Context, string, int64) error { return nil }
-func (f *Users) SetSoleSuper(context.Context, string) error        { return nil }
-func (f *Users) ClearUserToken(context.Context, string) error      { return nil }
+
+func (f *Users) SaveUser(_ context.Context, u entity.User) error {
+	for i := range f.Accounts {
+		if f.Accounts[i].Subject == u.Subject {
+			f.Accounts[i] = u
+			return nil
+		}
+	}
+	f.Accounts = append(f.Accounts, u)
+	return nil
+}
+
+func (f *Users) SetUserPassword(context.Context, string, string) error { return nil }
+
+func (f *Users) SetUserDisabled(ctx context.Context, subject string, disabled bool) error {
+	u, err := f.GetUser(ctx, subject)
+	if err != nil {
+		return err
+	}
+	u.Disabled = disabled
+	return f.SaveUser(ctx, *u)
+}
+
+func (f *Users) SetUserToken(context.Context, string, string, int64) error { return nil }
+
+func (f *Users) SetLastLogin(ctx context.Context, subject string, at int64) error {
+	u, err := f.GetUser(ctx, subject)
+	if err != nil {
+		return err
+	}
+	u.LastLoginAt = at
+	return f.SaveUser(ctx, *u)
+}
+
+func (f *Users) SetSoleSuper(_ context.Context, subject string) error {
+	for i := range f.Accounts {
+		f.Accounts[i].Super = f.Accounts[i].Subject == subject
+	}
+	return nil
+}
+
+func (f *Users) ClearUserToken(context.Context, string) error { return nil }
+
 func (f *Users) UserByToken(context.Context, string, int64) (*entity.User, error) {
 	return nil, constants.ErrNotFound
 }

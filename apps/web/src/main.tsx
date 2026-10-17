@@ -30,6 +30,8 @@ const AuthCallbackPage = lazy(() => import("@/pages/auth-callback"));
 const LoginPage = lazy(() => import("@/pages/login"));
 const SettingsPage = lazy(() => import("@/pages/settings"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
+const UsersPage = lazy(() => import("@/pages/users"));
+const UserDetailPage = lazy(() => import("@/pages/user-detail"));
 
 // Every page carries its engine family prefix (/sql, /memcache, /mongodb); the
 // dashboard is the only family-less route. Paths come from PAGE_ROUTES.
@@ -48,6 +50,8 @@ const router = createBrowserRouter([
       { index: true, element: <DashboardPage /> },
       { path: routePath(PAGE_ROUTES.SETTINGS), element: <SettingsPage /> },
       { path: routePath(PAGE_ROUTES.PROFILE), element: <ProfilePage /> },
+      { path: routePath(PAGE_ROUTES.USERS), element: <UsersPage /> },
+      { path: `${routePath(PAGE_ROUTES.USERS)}/:subject`, element: <UserDetailPage /> },
       { path: routePath(PAGE_ROUTES.INSTANCE_DETAIL(":id")), element: <InstanceDetailPage /> },
       { path: routePath(PAGE_ROUTES.SQL.QUERY), element: <QueryPage /> },
       { path: routePath(PAGE_ROUTES.SQL.DML), element: <DmlPage /> },

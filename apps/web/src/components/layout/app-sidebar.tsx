@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight, GalleryVerticalEnd, LayoutDashboard, Settings, UserRound } from "lucide-react";
+import { ChevronRight, GalleryVerticalEnd, LayoutDashboard, Settings, UserRound, UsersRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FAMILIES, type Family } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { NavUser } from "@/components/layout/nav-user";
+import { useAuth } from "@/app/auth-provider";
 import {
   Sidebar,
   SidebarContent,
@@ -105,6 +106,7 @@ function FamilyMenu({ family, pathname }: { family: Family; pathname: string }) 
 // family expanding into its sub-menus — and a rail.
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
+  const { isSuper } = useAuth();
 
   return (
     <Sidebar {...props}>
@@ -118,6 +120,16 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
               {FAMILIES.map((family) => (
                 <FamilyMenu key={family.key} family={family} pathname={pathname} />
               ))}
+              {isSuper && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.startsWith(PAGE_ROUTES.USERS)}>
+                    <Link to={PAGE_ROUTES.USERS}>
+                      <UsersRound />
+                      <span>Users</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
