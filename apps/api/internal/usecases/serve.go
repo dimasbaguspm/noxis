@@ -386,7 +386,7 @@ type MeResponse struct {
 func (uc ConnectionLevels) Serve(w http.ResponseWriter, r *http.Request) {
 	p, ok := Principal(r.Context())
 	if !ok {
-		fail(w, ErrUnauthorized)
+		fail(w, constants.ErrUnauthorized)
 		return
 	}
 	levels, err := uc.Run(r.Context())
@@ -458,7 +458,7 @@ type Logout struct {
 func (uc Logout) Serve(w http.ResponseWriter, r *http.Request) {
 	p, ok := Principal(r.Context())
 	if !ok {
-		fail(w, ErrUnauthorized)
+		fail(w, constants.ErrUnauthorized)
 		return
 	}
 	if err := uc.Modules.Auth().Logout(r.Context(), p.Subject); err != nil {
@@ -488,7 +488,7 @@ type ChangePassword struct {
 func (uc ChangePassword) Serve(w http.ResponseWriter, r *http.Request) {
 	p, ok := Principal(r.Context())
 	if !ok {
-		fail(w, ErrUnauthorized)
+		fail(w, constants.ErrUnauthorized)
 		return
 	}
 	if entity.LocalUsername(p.Subject) == "" {

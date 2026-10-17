@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"noxis/internal/common/idgen"
 	"noxis/internal/common/logging"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"time"
@@ -48,7 +49,7 @@ func (uc SaveConnection) Run(ctx context.Context, mod interfaces.Module, c entit
 		c.CreatedAt = existing.CreatedAt
 		c.CreatedBy = existing.CreatedBy
 		c.ID = existing.ID
-	case errors.Is(err, interfaces.ErrNotFound):
+	case errors.Is(err, constants.ErrNotFound):
 		c.CreatedAt = time.Now().Unix()
 		c.CreatedBy = actor(ctx)
 		c.ID = idgen.UUID()

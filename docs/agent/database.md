@@ -66,7 +66,7 @@ single active session: `token_hash` (SHA-256 of the raw token) +
 - Add a repository method → add it to the interface in `apps/api/internal/interfaces/repository.go`
   **and** to `Store`. Keep the `noun` in the method name because one Store
   implements several seams (`ListChanges`, `GetChange`, `SaveChange`).
-- `interfaces.ErrNotFound` is the missing-row sentinel; handlers map it to 404.
+- `constants.ErrNotFound` is the missing-row sentinel; handlers map it to 404.
 
 ## Secrets
 

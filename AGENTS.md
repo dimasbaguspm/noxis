@@ -67,7 +67,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 3. `Serve` reads the path/query/body and resolves the engine family via `uc.Modules.Engine(...)`.
 4. It calls its `Run(ctx, ...)` domain core and writes the response with `respond`/`fail`.
 5. The use case reads repositories/modules from its own struct fields (set explicitly in `newApp`), enforces access via `rawConn`/`Authorize`, persists via a repository.
-6. `fail` maps `ErrNotFound`/`ErrUnsupported`→404, `ErrForbidden`→403, bad credentials/`ErrUnauthorized`→401, else 400.
+6. `fail` maps `constants.ErrNotFound`/`constants.ErrUnsupported`→404, `constants.ErrForbidden`→403, `constants.ErrInvalidCredentials`/`constants.ErrUnauthorized`→401, else 400.
 
 ## Conventions
 

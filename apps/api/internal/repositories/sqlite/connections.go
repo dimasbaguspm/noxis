@@ -10,8 +10,8 @@ import (
 
 	"noxis/internal/common/idgen"
 	"noxis/internal/common/logging"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 )
 
 const connColumns = `id, name, driver, host, port, user, password, database, params, created_at, created_by`
@@ -51,14 +51,14 @@ func (s *Store) List(ctx context.Context) (out []entity.Connection, err error) {
 	return queryRows(ctx, s.db, `SELECT `+connColumns+` FROM connections ORDER BY name`, s.scanConnection)
 }
 
-// Get returns one connection, or interfaces.ErrNotFound.
+// Get returns one connection, or constants.ErrNotFound.
 func (s *Store) Get(ctx context.Context, name string) (c *entity.Connection, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	return s.getOne(ctx, `SELECT `+connColumns+` FROM connections WHERE name = ?`, name)
 }
 
-// GetByID returns one connection by its stable id, or interfaces.ErrNotFound.
+// GetByID returns one connection by its stable id, or constants.ErrNotFound.
 func (s *Store) GetByID(ctx context.Context, id string) (c *entity.Connection, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -68,7 +68,7 @@ func (s *Store) GetByID(ctx context.Context, id string) (c *entity.Connection, e
 func (s *Store) getOne(ctx context.Context, q string, arg any) (*entity.Connection, error) {
 	conn, err := s.scanConnection(s.db.QueryRowContext(ctx, q, arg))
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("connection %v: %w", arg, interfaces.ErrNotFound)
+		return nil, fmt.Errorf("connection %v: %w", arg, constants.ErrNotFound)
 	}
 	if err != nil {
 		return nil, err

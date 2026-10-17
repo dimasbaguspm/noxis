@@ -8,8 +8,8 @@ import (
 	"fmt"
 
 	"noxis/internal/common/logging"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 )
 
 const changeColumns = `id, connection, notes, query, rollback, kind, status, checks, created_at, created_by,
@@ -60,14 +60,14 @@ func (s *Store) ListChanges(ctx context.Context) (out []entity.Change, err error
 	return queryRows(ctx, s.db, `SELECT `+changeColumns+` FROM changes ORDER BY created_at DESC, id`, scanChange)
 }
 
-// GetChange returns one change, or interfaces.ErrNotFound.
+// GetChange returns one change, or constants.ErrNotFound.
 func (s *Store) GetChange(ctx context.Context, id string) (c *entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	row := s.db.QueryRowContext(ctx, `SELECT `+changeColumns+` FROM changes WHERE id = ?`, id)
 	ch, err := scanChange(row)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("change %s: %w", id, interfaces.ErrNotFound)
+		return nil, fmt.Errorf("change %s: %w", id, constants.ErrNotFound)
 	}
 	if err != nil {
 		return nil, err

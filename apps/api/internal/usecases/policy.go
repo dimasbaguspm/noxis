@@ -8,7 +8,6 @@ package usecases
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 
@@ -17,16 +16,13 @@ import (
 	"noxis/internal/interfaces"
 )
 
-// ErrForbidden maps to 403: editing the policy is a global-admin action.
-var ErrForbidden = errors.New("forbidden: global admin required")
-
 // RequireAdmin gates the management surfaces (connection CRUD, permissions).
 // The middleware guarantees a principal; a missing one is denied, not trusted.
 func RequireAdmin(ctx context.Context) error {
 	if p, ok := Principal(ctx); ok && p.Admin {
 		return nil
 	}
-	return ErrForbidden
+	return constants.ErrForbidden
 }
 
 // identities is the caller's match set: the subject plus every group it belongs
@@ -66,7 +62,7 @@ func Authorize(ctx context.Context, perms interfaces.PermissionRepository, conne
 		return err
 	}
 	if !entity.LevelAllows(level, need) {
-		return fmt.Errorf("%w: %s requires %s on connection %q", ErrForbidden, p.Subject, need, connection)
+		return fmt.Errorf("%w: %s requires %s on connection %q", constants.ErrForbidden, p.Subject, need, connection)
 	}
 	return nil
 }

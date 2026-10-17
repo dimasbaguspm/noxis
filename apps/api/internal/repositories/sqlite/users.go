@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"noxis/internal/common/logging"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 )
 
 // userColumns is the shared SELECT list, so every scan stays in step.
@@ -146,7 +146,7 @@ func (s *Store) UserByToken(ctx context.Context, tokenHash string, now int64) (u
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if tokenHash == "" {
-		return nil, interfaces.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 	return scanUser(s.db.QueryRowContext(ctx,
 		`SELECT `+userColumns+` FROM users
@@ -159,7 +159,7 @@ func scanUser(row *sql.Row) (*entity.User, error) {
 	var groups string
 	if err := row.Scan(&u.Subject, &u.Username, &u.Password, &groups, &u.Admin, &u.Disabled); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, interfaces.ErrNotFound
+			return nil, constants.ErrNotFound
 		}
 		return nil, err
 	}

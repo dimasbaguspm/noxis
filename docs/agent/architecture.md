@@ -51,7 +51,7 @@ its `Run` core and a `Serve(w, r)` → add a field to `app` and one line to `new
   embeds `usecases.RegistryDeps`, so `uc.Modules` is set at the composition root.
 
 Serve methods take `{engine}` as a path param and resolve the module; a family that
-does not serve the route gets `interfaces.ErrUnsupported` → 404, never the wrong
+does not serve the route gets `constants.ErrUnsupported` → 404, never the wrong
 module. This is why one handler serves all families instead of a copy per family.
 
 ## Interfaces (the seams)
@@ -66,7 +66,7 @@ module. This is why one handler serves all families instead of a copy per family
 | `MongoModule` | `interfaces/mongodb.go` | `mongodb.DB` |
 | `Verifier` | `interfaces/auth.go` | `auth.OIDC` (tests use a fake) |
 
-`ErrNotFound` and `ErrUnsupported` live in `interfaces` and drive HTTP 404.
+`ErrNotFound` and `ErrUnsupported` live in `constants` and drive HTTP 404.
 
 ## Use-case pattern
 

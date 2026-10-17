@@ -18,7 +18,7 @@ import (
 
 // unsupportedChangeFlow reports a family that serves no changes queue.
 func unsupportedChangeFlow(mod interfaces.Module) error {
-	return fmt.Errorf("%w: engine %q does not serve changes", interfaces.ErrUnsupported, mod.Family())
+	return fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, mod.Family())
 }
 
 // filterByConnection keeps changes whose connection name contains the

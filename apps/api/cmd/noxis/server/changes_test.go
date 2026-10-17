@@ -36,7 +36,7 @@ func (f *fakeConns) List(context.Context) ([]entity.Connection, error) {
 func (f *fakeConns) Get(_ context.Context, name string) (*entity.Connection, error) {
 	c, ok := f.conns[name]
 	if !ok {
-		return nil, interfaces.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 	return &c, nil
 }
@@ -48,7 +48,7 @@ func (f *fakeConns) GetByID(_ context.Context, id string) (*entity.Connection, e
 			return &c, nil
 		}
 	}
-	return nil, interfaces.ErrNotFound
+	return nil, constants.ErrNotFound
 }
 
 func (f *fakeConns) Save(_ context.Context, c entity.Connection) error {
@@ -76,7 +76,7 @@ func (f *fakeChanges) ListChanges(context.Context) ([]entity.Change, error) {
 func (f *fakeChanges) GetChange(_ context.Context, id string) (*entity.Change, error) {
 	c, ok := f.changes[id]
 	if !ok {
-		return nil, interfaces.ErrNotFound
+		return nil, constants.ErrNotFound
 	}
 	return &c, nil
 }

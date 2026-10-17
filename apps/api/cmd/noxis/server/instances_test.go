@@ -39,7 +39,7 @@ func TestInstanceLookup(t *testing.T) {
 		t.Fatal("password must be redacted")
 	}
 
-	if _, err := (usecases.Instance{RegistryDeps: reg(base), Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "missing"); !errors.Is(err, interfaces.ErrNotFound) {
+	if _, err := (usecases.Instance{RegistryDeps: reg(base), Connections: base.Connections, Permissions: base.Permissions}).Run(ctx, "missing"); !errors.Is(err, constants.ErrNotFound) {
 		t.Fatalf("missing id: err=%v want not found", err)
 	}
 }
@@ -130,7 +130,7 @@ func TestIdentityLockedAndRotation(t *testing.T) {
 	if err := (usecases.RotatePassword{RegistryDeps: reg(base), Connections: base.Connections}).Run(ctx, "abc", ""); err == nil {
 		t.Fatal("empty password must be rejected")
 	}
-	if err := (usecases.RotatePassword{RegistryDeps: reg(base), Connections: base.Connections}).Run(ctx, "missing", "x"); !errors.Is(err, interfaces.ErrNotFound) {
+	if err := (usecases.RotatePassword{RegistryDeps: reg(base), Connections: base.Connections}).Run(ctx, "missing", "x"); !errors.Is(err, constants.ErrNotFound) {
 		t.Fatalf("missing id: err=%v want not found", err)
 	}
 }

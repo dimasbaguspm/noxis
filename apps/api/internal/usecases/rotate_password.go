@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"noxis/internal/common/logging"
+	"noxis/internal/constants"
 	"noxis/internal/interfaces"
 )
 
@@ -28,7 +29,7 @@ func (uc RotatePassword) Run(ctx context.Context, id, password string) (err erro
 		return err
 	}
 	if _, ok := uc.Modules.Serves(c.Driver); !ok {
-		return interfaces.ErrUnsupported
+		return constants.ErrUnsupported
 	}
 	c.Password = password
 	return uc.Connections.Save(ctx, *c)
