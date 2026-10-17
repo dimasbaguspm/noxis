@@ -81,6 +81,14 @@ export async function accessToken(): Promise<string | null> {
   return user.access_token;
 }
 
+// clearSession drops the stored credentials after the server rejects them.
+// Without this a stale token 401s on every load and the console bounces between
+// /login and the identity fetch forever.
+export async function clearSession(): Promise<void> {
+  setLocalToken(null);
+  if (manager) await manager.removeUser();
+}
+
 // localLogin exchanges username + password for a session token.
 export async function localLogin(username: string, password: string): Promise<void> {
   const res = await fetch("/external/v1/auth/login", {
