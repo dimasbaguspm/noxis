@@ -21,6 +21,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 const VERSION = "v0.1.0";
@@ -37,16 +38,10 @@ function SiteTitle() {
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton
-            asChild
-            size="lg"
-            className="data-[slot=sidebar-menu-button]:p-1.5!"
-          >
-            <Link to="/">
-              <GalleryVerticalEnd className="size-5!" />
-              <span className="text-base font-semibold">noXis</span>
-              <span className="ml-auto text-xs text-muted-foreground">{VERSION}</span>
-            </Link>
+          <SidebarMenuButton render={<Link to="/" />} size="lg" className="data-[slot=sidebar-menu-button]:p-1.5!">
+            <GalleryVerticalEnd className="size-5!" />
+            <span className="text-base font-semibold">noXis</span>
+            <span className="ml-auto text-xs text-muted-foreground">{VERSION}</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
@@ -60,38 +55,45 @@ function InstancesMenu({ pathname }: { pathname: string }) {
   const active = pathname === "/" || pathname.startsWith("/instances/");
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={active}>
-        <Link to="/">
-          <LayoutDashboard />
-          <span>Instances</span>
-        </Link>
+      <SidebarMenuButton render={<Link to="/" />} isActive={active} tooltip="Instances">
+        <LayoutDashboard />
+        <span>Instances</span>
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
 }
 
 // FamilyMenu is the dashboard-01 nav-main item: an icon + label button that
-// expands its sub-menu, open by default while one of its pages is active.
+// expands its sub-menu. While the rail is collapsed a click would only reveal
+// hidden children, so it expands the sidebar first.
 function FamilyMenu({ family, pathname }: { family: Family; pathname: string }) {
   const active = family.nav.some((item) => isItemActive(pathname, item.to));
   const [open, setOpen] = useState(active);
+  const { state, isMobile, setOpen: setSidebarOpen } = useSidebar();
   const Icon = family.icon;
+
+  function toggle() {
+    if (state === "collapsed" && !isMobile) {
+      setSidebarOpen(true);
+      setOpen(true);
+      return;
+    }
+    setOpen((value) => !value);
+  }
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton isActive={active} onClick={() => setOpen((v) => !v)}>
+      <SidebarMenuButton isActive={active} tooltip={family.label} onClick={toggle}>
         <Icon />
         <span>{family.label}</span>
-        <ChevronRight className={cn("ml-auto transition-transform duration-200", open && "rotate-90")} />
+        <ChevronRight className={cn("ml-auto transition-transform duration-200 group-data-[collapsible=icon]:hidden", open && "rotate-90")} />
       </SidebarMenuButton>
       {open && (
         <SidebarMenuSub>
           {family.nav.map((item) => (
             <SidebarMenuSubItem key={item.to}>
-              <SidebarMenuSubButton asChild isActive={isItemActive(pathname, item.to)}>
-                <Link to={item.to}>
-                  <span>{item.label}</span>
-                </Link>
+              <SidebarMenuSubButton render={<Link to={item.to} />} isActive={isItemActive(pathname, item.to)}>
+                <span>{item.label}</span>
               </SidebarMenuSubButton>
             </SidebarMenuSubItem>
           ))}
@@ -101,15 +103,16 @@ function FamilyMenu({ family, pathname }: { family: Family; pathname: string }) 
   );
 }
 
-// AppSidebar renders the dashboard-01 structure: static site title on top,
-// one labelled group of items — the Instances submenu first, then each engine
-// family expanding into its sub-menus — and a rail.
+// AppSidebar renders the dashboard-01 structure: static site title on top, one
+// labelled group of items — the Instances submenu first, then each engine
+// family expanding into its sub-menus — and a rail. On desktop it collapses to
+// an icon rail; below the mobile breakpoint it becomes the overlay sheet.
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
   const { isSuper } = useAuth();
 
   return (
-    <Sidebar {...props}>
+    <Sidebar collapsible="icon" {...props}>
       <SiteTitle />
       <SidebarContent>
         <SidebarGroup>
@@ -122,11 +125,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
               ))}
               {isSuper && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith(PAGE_ROUTES.USERS)}>
-                    <Link to={PAGE_ROUTES.USERS}>
-                      <UsersRound />
-                      <span>Users</span>
-                    </Link>
+                  <SidebarMenuButton render={<Link to={PAGE_ROUTES.USERS} />} isActive={pathname.startsWith(PAGE_ROUTES.USERS)} tooltip="Users">
+                    <UsersRound />
+                    <span>Users</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
