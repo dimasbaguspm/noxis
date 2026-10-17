@@ -35,13 +35,13 @@ export function NavUser() {
           <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent text-xs font-medium text-sidebar-accent-foreground">
             {initials(identity?.name ?? "", identity?.email ?? "")}
           </div>
-          <div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
+          <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
             <span className="truncate font-medium">{name}</span>
             <span className="truncate text-xs text-muted-foreground">
               {identity?.super ? "super admin" : email || "member"}
             </span>
           </div>
-          <ChevronsUpDown className="ml-auto size-4" />
+          <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="top" className="w-56">
           <DropdownMenuGroup>
