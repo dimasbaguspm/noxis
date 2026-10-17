@@ -3,12 +3,27 @@
 // user-facing error messages live next to the logic that raises them.
 package constants
 
+import "time"
+
 // Version is the build version reported by the CLI and health surfaces.
 const Version = "0.1.0"
 
 // APIPrefix is the versioned mount point of the public API. Internal callers
 // live under /internal, while the console shell and /healthz stay at the root.
 const APIPrefix = "/external/v1"
+
+// AccessGrantTTL is how long every per-connection grant lasts — read, write and
+// admin alike. The single super admin never expires.
+const AccessGrantTTL = 120 * 24 * time.Hour
+
+// Access-event actions: the append-only audit trail.
+const (
+	AccessGranted   = "granted"
+	AccessRevoked   = "revoked"
+	AccessRequested = "requested"
+	AccessApproved  = "approved"
+	AccessRejected  = "rejected"
+)
 
 // The wire contract ops (SQL console operations).
 const (

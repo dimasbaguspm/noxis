@@ -113,11 +113,18 @@ func (uc Password) Serve(w http.ResponseWriter, r *http.Request) {
 	uc.RespondNoContent(w)
 }
 
-// MeResponse is the caller plus the effective level it holds on each readable
+// AccessGrant is the caller's effective level on a connection and when it
+// lapses. A super admin's grant never expires (ExpiresAt 0).
+type AccessGrant struct {
+	Level     string `json:"level"`
+	ExpiresAt int64  `json:"expiresAt"`
+}
+
+// MeResponse is the caller plus the effective grant it holds on each readable
 // connection, so the console can gate actions without guessing.
 type MeResponse struct {
 	entity.Identity
-	Connections map[string]string `json:"connections"`
+	Connections map[string]AccessGrant `json:"connections"`
 }
 
 // Me returns the authenticated caller and its per-connection levels.
@@ -134,7 +141,7 @@ func (uc Me) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(w, constants.ErrUnauthorized)
 		return
 	}
-	levels := map[string]string{}
+	grants := map[string]AccessGrant{}
 	list, err := uc.Connections.List(ctx)
 	if err != nil {
 		uc.Fail(w, err)
@@ -142,18 +149,18 @@ func (uc Me) Serve(w http.ResponseWriter, r *http.Request) {
 	}
 	for i := range list {
 		c := &list[i]
-		if p.Admin {
-			levels[c.Name] = entity.LevelAdmin
+		if p.Super {
+			grants[c.Name] = AccessGrant{Level: entity.LevelAdmin}
 			continue
 		}
-		level, err := uc.EffectiveLevel(ctx, c.Name, p.Groups)
+		level, expiresAt, err := uc.EffectiveGrant(ctx, c.Name, p)
 		if err != nil {
 			uc.Fail(w, err)
 			return
 		}
 		if level != "" {
-			levels[c.Name] = level
+			grants[c.Name] = AccessGrant{Level: level, ExpiresAt: expiresAt}
 		}
 	}
-	uc.Respond(w, MeResponse{Identity: p, Connections: levels})
+	uc.Respond(w, MeResponse{Identity: p, Connections: grants})
 }

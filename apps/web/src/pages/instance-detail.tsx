@@ -35,7 +35,7 @@ import { PAGE_ROUTES } from "@/lib/routes";
 export default function InstanceDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isSuper } = useAuth();
   const [rotateOpen, setRotateOpen] = useState(false);
   const detail = useInstanceQuery(id);
   const instance = detail.data;
@@ -141,7 +141,7 @@ export default function InstanceDetailPage() {
               <Button size="sm" variant="outline" onClick={() => void test.run()} disabled={test.loading}>
                 <Zap /> Test
               </Button>
-              {isAdmin && (
+              {isSuper && (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -186,7 +186,7 @@ export default function InstanceDetailPage() {
           <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
             Driver, host, database and user are fixed once registered. Only the password can be rotated.
           </p>
-          {isAdmin && (
+          {isSuper && (
             <div className="mt-3">
               <Button size="sm" variant="outline" onClick={() => setRotateOpen(true)}>
                 <KeyRound /> Rotate password

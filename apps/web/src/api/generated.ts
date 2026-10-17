@@ -2141,16 +2141,19 @@ export interface components {
             applied?: string[];
             failed?: string[];
         };
+        "auth.AccessGrant": {
+            expiresAt?: number;
+            level?: string;
+        };
         "auth.MeResponse": {
-            /** @description Admin reports membership of the configured global-admin group. */
-            admin?: boolean;
             connections?: {
-                [key: string]: string;
+                [key: string]: components["schemas"]["auth.AccessGrant"];
             };
             email?: string;
             groups?: string[];
             name?: string;
             sub?: string;
+            super?: boolean;
         };
         "auth.changePasswordRequest": {
             newPassword?: string;
@@ -2315,11 +2318,15 @@ export interface components {
         };
         "entity.Permission": {
             connection?: string;
+            createdAt?: number;
+            createdBy?: string;
+            expiresAt?: number;
             /** @enum {string} */
             level: "read" | "write" | "admin";
             member: string;
             /** @enum {string} */
             memberType: "user" | "group";
+            updatedAt?: number;
         };
         "entity.Result": {
             affected?: number;
@@ -2346,10 +2353,11 @@ export interface components {
             schema?: string;
         };
         "entity.User": {
-            admin?: boolean;
             disabled?: boolean;
             groups?: string[];
+            lastLoginAt?: number;
             subject: string;
+            super?: boolean;
             username?: string;
         };
         "instance.passwordBody": {

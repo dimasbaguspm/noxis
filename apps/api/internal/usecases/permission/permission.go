@@ -4,6 +4,7 @@ package permission
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
@@ -25,7 +26,7 @@ type Members struct{ usecases.RegistryDeps }
 // @Router /external/v1/config/members [get]
 func (uc Members) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if err := uc.RequireAdmin(ctx); err != nil {
+	if err := uc.RequireSuper(ctx); err != nil {
 		uc.Fail(w, err)
 		return
 	}
@@ -66,7 +67,7 @@ type List struct{ usecases.RegistryDeps }
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if err := uc.RequireAdmin(ctx); err != nil {
+	if err := uc.RequireSuper(ctx); err != nil {
 		uc.Fail(w, err)
 		return
 	}
@@ -109,7 +110,7 @@ type Set struct{ usecases.RegistryDeps }
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [put]
 func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if err := uc.RequireAdmin(ctx); err != nil {
+	if err := uc.RequireSuper(ctx); err != nil {
 		uc.Fail(w, err)
 		return
 	}
@@ -127,7 +128,14 @@ func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(w, err)
 		return
 	}
-	p := entity.Permission{Connection: r.PathValue("name"), Member: body.Member, MemberType: body.MemberType, Level: body.Level}
+	now := time.Now()
+	p := entity.Permission{
+		Connection: r.PathValue("name"), Member: body.Member, MemberType: body.MemberType, Level: body.Level,
+		ExpiresAt: now.Add(uc.GrantTTL()).Unix(),
+		CreatedBy: usecases.Actor(ctx),
+		CreatedAt: now.Unix(),
+		UpdatedAt: now.Unix(),
+	}
 	if err := p.Validate(); err != nil {
 		uc.Fail(w, err)
 		return
@@ -153,7 +161,7 @@ type Delete struct{ usecases.RegistryDeps }
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [delete]
 func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if err := uc.RequireAdmin(ctx); err != nil {
+	if err := uc.RequireSuper(ctx); err != nil {
 		uc.Fail(w, err)
 		return
 	}
@@ -171,7 +179,7 @@ func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(w, err)
 		return
 	}
-	if err := uc.Permissions.DeletePermission(ctx, r.PathValue("name"), member); err != nil {
+	if err := uc.Permissions.DeletePermission(ctx, r.PathValue("name"), member, usecases.Actor(ctx)); err != nil {
 		uc.Fail(w, err)
 		return
 	}

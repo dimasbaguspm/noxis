@@ -5,12 +5,13 @@ package entity
 // and Password are empty for OIDC rows, which exist so grants and the user
 // directory can reference every authenticated principal.
 type User struct {
-	Subject  string   `json:"subject" validate:"required"`
-	Username string   `json:"username,omitempty"`
-	Password string   `json:"-"`
-	Groups   []string `json:"groups"`
-	Admin    bool     `json:"admin"`
-	Disabled bool     `json:"disabled"`
+	Subject     string   `json:"subject" validate:"required"`
+	Username    string   `json:"username,omitempty"`
+	Password    string   `json:"-"`
+	Groups      []string `json:"groups"`
+	Super       bool     `json:"super"`
+	Disabled    bool     `json:"disabled"`
+	LastLoginAt int64    `json:"lastLoginAt"`
 }
 
 // LocalSubject namespaces a local account, so it can never collide with an OIDC
@@ -33,7 +34,7 @@ func (u User) Identity() Identity {
 	if name == "" {
 		name = u.Subject
 	}
-	return Identity{Subject: u.Subject, Name: name, Groups: u.Groups, Admin: u.Admin}
+	return Identity{Subject: u.Subject, Name: name, Groups: u.Groups, Super: u.Super}
 }
 
 // Validate checks the wire fields.

@@ -77,7 +77,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 - **No env reads outside `apps/api/internal/common/config`.** Add a `EnvX` const + field + `fieldOf` case.
 - **No hardcoded drivers/families/statuses.** Add to `apps/api/internal/constants`.
 - **Secrets:** passwords are redacted on every response (`Connection.Redacted()`); encrypted at rest via `apps/api/internal/common/secret` when `NOXIS_SECRET_KEY` set.
-- **Authz:** the single gate is `usecases.rawConn` (per-connection) + `RequireAdmin` (management). Open mode / global admin bypass.
+- **Authz:** the single gate is `usecases.RawConn` (per-connection) + `RequireSuper` (global management). The env root is the only super; everyone else needs a non-expired per-connection grant.
 - **Errors:** wrap with `%w`; compare with `errors.Is`. Sentinel errors live in `interfaces` / `usecases`.
 - **Spans:** `ctx, end := logging.StartSpan(ctx); defer func(){ end(err) }()` at the top of every repository/module/use case method.
 - **No new dependency** for a few lines; no abstraction or option nobody asked for.

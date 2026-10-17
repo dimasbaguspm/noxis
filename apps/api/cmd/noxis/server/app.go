@@ -1,6 +1,8 @@
 package server
 
 import (
+	"time"
+
 	"noxis/internal/common/config"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules"
@@ -21,12 +23,14 @@ import (
 // sources are the seams the composition root builds the use cases from. They
 // are interfaces, so a test can hand in fakes without a store or an HTTP stack.
 type sources struct {
-	Connections interfaces.ConnectionRepository
-	Changes     interfaces.ChangeRepository
-	Permissions interfaces.PermissionRepository
-	Users       interfaces.UserRepository
-	Modules     modules.Registry
-	Auth        config.AuthInfo
+	Connections  interfaces.ConnectionRepository
+	Changes      interfaces.ChangeRepository
+	Permissions  interfaces.PermissionRepository
+	Users        interfaces.UserRepository
+	AccessEvents interfaces.AccessEventRepository
+	Modules      modules.Registry
+	Auth         config.AuthInfo
+	AccessTTL    time.Duration
 }
 
 // app is the composition root: every use case built once, explicitly.
@@ -85,12 +89,14 @@ type app struct {
 func newApp(s sources) app {
 	deps := usecases.RegistryDeps{
 		Registry: repositories.Registry{
-			Connections: s.Connections,
-			Changes:     s.Changes,
-			Permissions: s.Permissions,
-			Users:       s.Users,
+			Connections:  s.Connections,
+			Changes:      s.Changes,
+			Permissions:  s.Permissions,
+			Users:        s.Users,
+			AccessEvents: s.AccessEvents,
 		},
-		Modules: s.Modules,
+		Modules:   s.Modules,
+		AccessTTL: s.AccessTTL,
 	}
 	return app{
 		Modules: s.Modules,

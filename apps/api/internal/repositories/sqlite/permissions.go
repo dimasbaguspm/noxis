@@ -2,18 +2,25 @@ package sqlite
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
+	"time"
 
 	"noxis/internal/common/logging"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 )
 
-// ListPermissions returns a connection's permissions, ordered by member.
+const permissionColumns = `connection, member, member_type, level, expires_at, created_by, created_at, updated_at`
+
+// ListPermissions returns a connection's permissions, ordered by member. Expired
+// rows are included: the console shows them, and authorization filters them.
 func (s *Store) ListPermissions(ctx context.Context, connection string) (out []entity.Permission, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT connection, member, member_type, level FROM permissions WHERE connection = ? ORDER BY member`,
+		`SELECT `+permissionColumns+` FROM permissions WHERE connection = ? ORDER BY member`,
 		connection)
 	if err != nil {
 		return nil, fmt.Errorf("list permissions %s: %w", connection, err)
@@ -21,7 +28,8 @@ func (s *Store) ListPermissions(ctx context.Context, connection string) (out []e
 	defer rows.Close()
 	for rows.Next() {
 		var p entity.Permission
-		if err := rows.Scan(&p.Connection, &p.Member, &p.MemberType, &p.Level); err != nil {
+		if err := rows.Scan(&p.Connection, &p.Member, &p.MemberType, &p.Level,
+			&p.ExpiresAt, &p.CreatedBy, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, p)
@@ -29,20 +37,50 @@ func (s *Store) ListPermissions(ctx context.Context, connection string) (out []e
 	return out, rows.Err()
 }
 
-// SetPermission upserts one member's level for a connection.
+// SetPermission upserts one member's level for a connection and records the
+// grant in the audit trail, in the same transaction.
 func (s *Store) SetPermission(ctx context.Context, p entity.Permission) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := p.Validate(); err != nil {
 		return err
 	}
-	if _, err := s.db.ExecContext(ctx, `
-		INSERT INTO permissions (connection, member, member_type, level) VALUES (?, ?, ?, ?)
-		ON CONFLICT(connection, member) DO UPDATE SET member_type = excluded.member_type, level = excluded.level`,
-		p.Connection, p.Member, p.MemberType, p.Level); err != nil {
+	now := time.Now().Unix()
+	if p.CreatedAt == 0 {
+		p.CreatedAt = now
+	}
+	if p.UpdatedAt == 0 {
+		p.UpdatedAt = now
+	}
+	if p.ExpiresAt == 0 {
+		p.ExpiresAt = now + int64(constants.AccessGrantTTL.Seconds())
+	}
+	if p.CreatedBy == "" {
+		p.CreatedBy = "system"
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
 		return fmt.Errorf("set permission %s/%s: %w", p.Connection, p.Member, err)
 	}
-	return nil
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `
+		INSERT INTO permissions (`+permissionColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(connection, member) DO UPDATE SET
+			member_type = excluded.member_type,
+			level = excluded.level,
+			expires_at = excluded.expires_at,
+			created_by = excluded.created_by,
+			updated_at = excluded.updated_at`,
+		p.Connection, p.Member, p.MemberType, p.Level, p.ExpiresAt, p.CreatedBy, p.CreatedAt, p.UpdatedAt); err != nil {
+		return fmt.Errorf("set permission %s/%s: %w", p.Connection, p.Member, err)
+	}
+	if err := recordEvent(ctx, tx, entity.AccessEvent{
+		Action: constants.AccessGranted, Actor: p.CreatedBy,
+		Subject: p.Member, Connection: p.Connection, Level: p.Level,
+	}); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // ListGroupNames returns the distinct groups that hold any permission.
@@ -65,14 +103,33 @@ func (s *Store) ListGroupNames(ctx context.Context) (out []string, err error) {
 	return out, rows.Err()
 }
 
-// DeletePermission removes one member's permission from a connection.
-func (s *Store) DeletePermission(ctx context.Context, connection, member string) (err error) {
+// DeletePermission removes one member's permission from a connection and records
+// who revoked it. A missing row is a no-op, so revoking twice is safe.
+func (s *Store) DeletePermission(ctx context.Context, connection, member, actor string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	if _, err := s.db.ExecContext(ctx,
-		`DELETE FROM permissions WHERE connection = ? AND member = ?`,
-		connection, member); err != nil {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
 		return fmt.Errorf("delete permission %s/%s: %w", connection, member, err)
 	}
-	return nil
+	defer func() { _ = tx.Rollback() }()
+	var level string
+	switch err := tx.QueryRowContext(ctx,
+		`SELECT level FROM permissions WHERE connection = ? AND member = ?`, connection, member).Scan(&level); {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil
+	case err != nil:
+		return err
+	}
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM permissions WHERE connection = ? AND member = ?`, connection, member); err != nil {
+		return fmt.Errorf("delete permission %s/%s: %w", connection, member, err)
+	}
+	if err := recordEvent(ctx, tx, entity.AccessEvent{
+		Action: constants.AccessRevoked, Actor: actor,
+		Subject: member, Connection: connection, Level: level,
+	}); err != nil {
+		return err
+	}
+	return tx.Commit()
 }

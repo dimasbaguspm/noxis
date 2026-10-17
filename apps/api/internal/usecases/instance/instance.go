@@ -118,7 +118,7 @@ type RotatePassword struct{ usecases.RegistryDeps }
 // @Router /external/v1/instances/{id}/password [post]
 func (uc RotatePassword) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if err := uc.RequireAdmin(ctx); err != nil {
+	if err := uc.RequireSuper(ctx); err != nil {
 		uc.Fail(w, err)
 		return
 	}

@@ -13,8 +13,9 @@ type PermissionRepository interface {
 	ListPermissions(ctx context.Context, connection string) ([]entity.Permission, error)
 	// SetPermission upserts one member's level for a connection.
 	SetPermission(ctx context.Context, p entity.Permission) error
-	// DeletePermission removes one member's permission from a connection.
-	DeletePermission(ctx context.Context, connection, member string) error
+	// DeletePermission removes one member's permission from a connection and
+	// records who revoked it.
+	DeletePermission(ctx context.Context, connection, member, actor string) error
 	// ListGroupNames returns every distinct group that appears in any permission.
 	ListGroupNames(ctx context.Context) ([]string, error)
 }

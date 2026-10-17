@@ -3,6 +3,9 @@ package config
 import (
 	"strings"
 	"testing"
+	"time"
+
+	"noxis/internal/constants"
 )
 
 // Guards the env contract: defaults make an empty environment runnable, and the
@@ -40,5 +43,20 @@ func TestStringRedactsSecrets(t *testing.T) {
 		if got := cfg.String(); strings.Contains(got, leak) {
 			t.Fatalf("String() leaked %q: %s", leak, got)
 		}
+	}
+}
+
+func TestAccessGrantTTL(t *testing.T) {
+	t.Setenv(EnvAccessGrantDays, "")
+	if got := LoadConfig().GrantTTL(); got != constants.AccessGrantTTL {
+		t.Fatalf("default ttl = %v, want %v", got, constants.AccessGrantTTL)
+	}
+	t.Setenv(EnvAccessGrantDays, "30")
+	if got := LoadConfig().GrantTTL(); got != 30*24*time.Hour {
+		t.Fatalf("configured ttl = %v, want 30 days", got)
+	}
+	t.Setenv(EnvAccessGrantDays, "not-a-number")
+	if got := LoadConfig().GrantTTL(); got != constants.AccessGrantTTL {
+		t.Fatalf("invalid ttl must fall back, got %v", got)
 	}
 }

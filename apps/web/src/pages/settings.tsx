@@ -32,10 +32,10 @@ const SKELETON_ROWS = [1, 2, 3];
 // server enforces the same on every permissions call); a global admin is
 // implicit super admin on every instance.
 export default function SettingsPage() {
-  const { isAdmin } = useAuth();
+  const { isSuper } = useAuth();
   const { data, isPending } = usePagedInstancesQuery();
 
-  if (!isAdmin) {
+  if (!isSuper) {
     return (
       <div className="mx-auto mt-8 max-w-lg">
         <Empty

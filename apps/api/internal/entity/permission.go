@@ -53,6 +53,16 @@ type Permission struct {
 	Member     string `json:"member" validate:"required"`
 	MemberType string `json:"memberType" validate:"required,oneof=user group"`
 	Level      string `json:"level" validate:"required,oneof=read write admin"`
+	ExpiresAt  int64  `json:"expiresAt"`
+	CreatedBy  string `json:"createdBy,omitempty"`
+	CreatedAt  int64  `json:"createdAt"`
+	UpdatedAt  int64  `json:"updatedAt"`
+}
+
+// Expired reports whether the grant has lapsed at now. A zero expiry means
+// "no expiry" and is only expected on rows written before the rule existed.
+func (p Permission) Expired(now int64) bool {
+	return p.ExpiresAt > 0 && p.ExpiresAt <= now
 }
 
 // Validate checks the member, member type and level are present and known.

@@ -1341,16 +1341,20 @@ components:
           type: array
           items:
             type: string
+    auth.AccessGrant:
+      type: object
+      properties:
+        expiresAt:
+          type: integer
+        level:
+          type: string
     auth.MeResponse:
       type: object
       properties:
-        admin:
-          description: Admin reports membership of the configured global-admin group.
-          type: boolean
         connections:
           type: object
           additionalProperties:
-            type: string
+            $ref: "#/components/schemas/auth.AccessGrant"
         email:
           type: string
         groups:
@@ -1361,6 +1365,8 @@ components:
           type: string
         sub:
           type: string
+        super:
+          type: boolean
     auth.changePasswordRequest:
       type: object
       properties:
@@ -1667,6 +1673,12 @@ components:
       properties:
         connection:
           type: string
+        createdAt:
+          type: integer
+        createdBy:
+          type: string
+        expiresAt:
+          type: integer
         level:
           type: string
           enum:
@@ -1680,6 +1692,8 @@ components:
           enum:
             - user
             - group
+        updatedAt:
+          type: integer
     entity.Result:
       type: object
       properties:
@@ -1734,16 +1748,18 @@ components:
       required:
         - subject
       properties:
-        admin:
-          type: boolean
         disabled:
           type: boolean
         groups:
           type: array
           items:
             type: string
+        lastLoginAt:
+          type: integer
         subject:
           type: string
+        super:
+          type: boolean
         username:
           type: string
     instance.passwordBody:

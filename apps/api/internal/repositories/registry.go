@@ -13,4 +13,5 @@ type Registry struct {
 	Changes     interfaces.ChangeRepository
 	Permissions interfaces.PermissionRepository
 	Users       interfaces.UserRepository
+	AccessEvents interfaces.AccessEventRepository
 }
