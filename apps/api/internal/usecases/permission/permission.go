@@ -156,7 +156,8 @@ func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
 	uc.Respond(w, p)
 }
 
-// Delete removes a member's permission from a connection.
+// Delete removes a member's permission from a connection. The super admin and
+// the instance's own admin may call it; granting stays super-only.
 type Delete struct{ usecases.RegistryDeps }
 
 // @Summary Revoke a member's permission on a connection
@@ -170,9 +171,17 @@ type Delete struct{ usecases.RegistryDeps }
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [delete]
 func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if err := uc.RequireSuper(ctx); err != nil {
-		uc.Fail(w, err)
+	// The super admin and the instance's own admin may revoke; everyone else cannot.
+	p, ok := usecases.Principal(ctx)
+	if !ok {
+		uc.Fail(w, constants.ErrUnauthorized)
 		return
+	}
+	if !p.Super {
+		if err := uc.Authorize(ctx, r.PathValue("name"), entity.LevelAdmin); err != nil {
+			uc.Fail(w, err)
+			return
+		}
 	}
 	member := r.URL.Query().Get("member")
 	if member == "" {
@@ -184,7 +193,7 @@ func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(w, err)
 		return
 	}
-	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), entity.LevelRead); err != nil {
+	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), entity.LevelAdmin); err != nil {
 		uc.Fail(w, err)
 		return
 	}
