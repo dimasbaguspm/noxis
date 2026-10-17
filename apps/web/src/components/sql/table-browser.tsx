@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Table } from "@/lib/api";
+import { P } from "@/components/ui/typography";
 
 interface Props {
   tables: Table[];
@@ -77,13 +78,13 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
-        {entries.length === 0 && <p className="px-1 py-2 text-xs text-muted-foreground">{title("no tables")}</p>}
+        {entries.length === 0 && <P className="px-1 py-2">{title("no tables")}</P>}
         {entries.map(([schema, items]) => (
           <div key={schema} className="mb-2">
-            <p className="flex items-center gap-1 px-1 py-1 text-xs font-medium text-muted-foreground">
+            <P className="flex items-center gap-1 px-1 py-1 font-medium">
               <ListTree className="size-3" />
               {schema}
-            </p>
+            </P>
             {items.map((t) => {
               const key = `${t.schema}.${t.name}`;
               const open = expanded === key;

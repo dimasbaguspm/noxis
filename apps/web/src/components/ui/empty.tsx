@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { H2, P } from "@/components/ui/typography";
 
 // Empty is the shared no-content state: an icon, a title, an optional
 // explanation and an optional action, centered so every surface renders the
@@ -29,8 +30,8 @@ export function Empty({
           <Icon className="size-5" />
         </span>
       )}
-      <p className="text-sm font-medium">{title}</p>
-      {description && <p className="max-w-md text-xs text-muted-foreground">{description}</p>}
+      <H2>{title}</H2>
+      {description && <P className="max-w-md">{description}</P>}
       {action && <div className="mt-2">{action}</div>}
     </div>
   );

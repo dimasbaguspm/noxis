@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Change } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
+import { P } from "@/components/ui/typography";
 
 const STATUS_VARIANT: Record<
   string,
@@ -23,7 +24,7 @@ const STATUS_VARIANT: Record<
 // the only thing here is "review" — the list stays a queue, not a workbench.
 export function ChangeTable({ changes, emptyHint }: { changes: Change[]; emptyHint: string }) {
   if (changes.length === 0) {
-    return <p className="text-sm text-muted-foreground">{emptyHint}</p>;
+    return <P size="sm">{emptyHint}</P>;
   }
 
   return (

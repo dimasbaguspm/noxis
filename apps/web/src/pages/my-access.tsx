@@ -8,6 +8,7 @@ import { useAuth } from "@/app/auth-provider";
 import { useMyAccessUrlParams, useMyRequestsQuery } from "@/hooks/use-access-requests";
 import { useLevelsQuery } from "@/hooks/use-config";
 import { formatDateTime, grantExpiry } from "@/lib/dates";
+import { H1, P } from "@/components/ui/typography";
 
 // MyAccessPage lists the grants the caller holds (and when they lapse), the
 // requests they filed, and the way to ask for more. The status filter is in the
@@ -27,8 +28,8 @@ export default function MyAccessPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-base font-medium">My access</h1>
-          <p className="text-xs text-muted-foreground">What you can reach, and how long it lasts.</p>
+          <H1>My access</H1>
+          <P>What you can reach, and how long it lasts.</P>
         </div>
         <div className="flex items-center gap-2">
           <Select value={status} onValueChange={(v) => setStatus(v ?? "all")}>

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { P } from "@/components/ui/typography";
 
 // Field is the reusable form-field set (shadcn/base-field style): a labelled
 // input with an optional description and an error slot below it. Every form
@@ -48,7 +49,7 @@ export function FieldLabel({ htmlFor, children, className }: { htmlFor?: string;
 }
 
 export function FieldDescription({ children, className }: { children: ReactNode; className?: string }) {
-  return <p className={cn("text-xs text-muted-foreground", className)}>{children}</p>;
+  return <P className={className}>{children}</P>;
 }
 
 export function FieldError({ children, className }: { children?: ReactNode; className?: string }) {

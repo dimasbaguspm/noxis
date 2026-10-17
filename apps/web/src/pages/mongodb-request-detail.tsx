@@ -17,6 +17,7 @@ import {
 import type { MongoRequest } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
+import { P } from "@/components/ui/typography";
 
 // MongoRequestDetailPage is the review of one request: what it would change,
 // what the dry run proved, and the trail. There is no rollback editor because
@@ -92,12 +93,12 @@ export default function MongoRequestDetailPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="grid gap-1.5">
-                <p className="text-xs font-medium text-muted-foreground">Filter</p>
+                <P className="font-medium">Filter</P>
                 <JsonEditor value={request?.filter ?? ""} readOnly height="8rem" />
               </div>
               {request?.op !== "delete" && (
                 <div className="grid gap-1.5">
-                  <p className="text-xs font-medium text-muted-foreground">Value</p>
+                  <P className="font-medium">Value</P>
                   <JsonEditor value={request?.value ?? ""} readOnly height="8rem" />
                 </div>
               )}
@@ -180,9 +181,9 @@ export default function MongoRequestDetailPage() {
                 />
               </div>
               <Separator />
-              <p className="text-xs text-muted-foreground">
+              <P>
                 Rejected requests stay in the queue as artifacts. Nothing is deleted.
-              </p>
+              </P>
             </CardContent>
           </Card>
         </div>
@@ -246,7 +247,7 @@ function Unavailable({ id }: { id: string }) {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <P>{label}</P>
       <p className="font-medium tabular-nums">{value}</p>
     </div>
   );

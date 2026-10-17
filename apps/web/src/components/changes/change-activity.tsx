@@ -1,5 +1,6 @@
 import { CircleDot, CircleSlash, Clock, Play, ShieldCheck, Undo2 } from "lucide-react";
 import type { Change } from "@/lib/api";
+import { H2, P } from "@/components/ui/typography";
 
 type Step = {
   label: string;
@@ -63,11 +64,11 @@ export function ChangeActivity({ change }: { change: Change }) {
           <span className="absolute -left-[7px] flex size-3.5 items-center justify-center rounded-full border border-border bg-background">
             <step.icon className={`size-2.5 ${step.tone}`} />
           </span>
-          <p className="text-sm font-medium">{step.label}</p>
-          <p className="text-xs text-muted-foreground">
+          <H2>{step.label}</H2>
+          <P>
             {step.at ? new Date(step.at * 1000).toLocaleString() : "—"}
             {step.hint ? ` · ${step.hint}` : ""}
-          </p>
+          </P>
         </li>
       ))}
     </ol>

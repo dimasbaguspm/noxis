@@ -13,6 +13,7 @@ import { JsonTree } from "@/components/mongodb/json-tree";
 import { useMongoCollectionsQuery, useMongoConnections, useMongoDatabasesQuery, useMongoRunMutation, useMongoUrlParams } from "@/hooks/use-mongodb";
 import { bytes, compact } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { P } from "@/components/ui/typography";
 
 
 // MongoExplorePage walks a server and queries it: databases, their
@@ -103,9 +104,9 @@ export default function MongoExplorePage() {
             <CardContent className="min-h-0 overflow-auto">
               <div className="grid gap-1">
                 {databases.length === 0 && (
-                  <p className="text-sm text-muted-foreground">
+                  <P size="sm">
                     {connection ? "no database visible to this user" : "register a mongodb server to explore"}
-                  </p>
+                  </P>
                 )}
                 {databases.map((db) => (
                   <Button
@@ -256,7 +257,7 @@ export default function MongoExplorePage() {
 
               <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border">
                 {!read.data ? (
-                  <p className="p-3 text-sm text-muted-foreground">no documents loaded yet</p>
+                  <P size="sm" className="p-3">no documents loaded yet</P>
                 ) : view === "raw" ? (
                   <ResultTable result={read.data} title={`${database}.${collection}`} />
                 ) : view === "json" ? (
@@ -271,9 +272,9 @@ export default function MongoExplorePage() {
               </div>
 
               {read.data && (
-                <p className="text-xs text-muted-foreground">
+                <P>
                   {read.data.message} · {read.data.durationMs ?? 0} ms
-                </p>
+                </P>
               )}
             </CardContent>
           </Card>
