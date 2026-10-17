@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { BadgeCheck, ChevronLeft, ChevronRight, PlugZap } from "lucide-react";
+import { BadgeCheck, ChevronLeft, ChevronRight, ClipboardPaste, Eye, EyeOff, PlugZap, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +18,7 @@ import {
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { SingleSelect } from "@/components/ui/single-select";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSetActiveConnection } from "@/hooks/use-connections";
 import { useDriversQuery } from "@/hooks/use-config";
@@ -117,6 +118,18 @@ export function ConnectionDialog({
   const [busy, setBusy] = useState(false);
   const [dsn, setDsn] = useState("");
   const [dsnError, setDsnError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  async function pasteDsn() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text) return;
+      setDsn(text);
+      setDsnError(null);
+    } catch {
+      toast.error("could not read the clipboard");
+    }
+  }
 
   // closing never keeps a half-filled form: the next visit starts over at the
   // kind choice with pristine values for the dialog's own family
@@ -267,22 +280,40 @@ export function ConnectionDialog({
               <form id="connection-save" onSubmit={onValid} className="grid gap-4">
               <Field>
                 <FieldLabel htmlFor="conn-dsn">Connection string (optional)</FieldLabel>
-                <Input
-                  id="conn-dsn"
-                  placeholder="postgresql://user:pass@host:5432/db"
-                  value={dsn}
-                  onChange={(e) => {
-                    setDsn(e.target.value);
-                    setDsnError(null);
-                  }}
-                  onBlur={applyDsn}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      applyDsn();
-                    }
-                  }}
-                />
+                <InputGroup>
+                  <InputGroupInput
+                    id="conn-dsn"
+                    placeholder="postgresql://user:pass@host:5432/db"
+                    value={dsn}
+                    onChange={(e) => {
+                      setDsn(e.target.value);
+                      setDsnError(null);
+                    }}
+                    onBlur={applyDsn}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        applyDsn();
+                      }
+                    }}
+                  />
+                  <InputGroupAddon align="inline-end">
+                    {dsn && (
+                      <InputGroupButton
+                        aria-label="Clear connection string"
+                        onClick={() => {
+                          setDsn("");
+                          setDsnError(null);
+                        }}
+                      >
+                        <X />
+                      </InputGroupButton>
+                    )}
+                    <InputGroupButton aria-label="Paste connection string" onClick={pasteDsn}>
+                      <ClipboardPaste />
+                    </InputGroupButton>
+                  </InputGroupAddon>
+                </InputGroup>
                 <FieldDescription>Paste a URL to fill the fields below.</FieldDescription>
                 <FieldError>{dsnError}</FieldError>
               </Field>
@@ -351,12 +382,22 @@ export function ConnectionDialog({
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="conn-password">Password</FieldLabel>
-                    <Input
-                      id="conn-password"
-                      type="password"
-                      placeholder={initial ? "unchanged" : ""}
-                      {...field("password")}
-                    />
+                    <InputGroup>
+                      <InputGroupInput
+                        id="conn-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder={initial ? "unchanged" : ""}
+                        {...field("password")}
+                      />
+                      <InputGroupAddon align="inline-end">
+                        <InputGroupButton
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          onClick={() => setShowPassword((value) => !value)}
+                        >
+                          {showPassword ? <EyeOff /> : <Eye />}
+                        </InputGroupButton>
+                      </InputGroupAddon>
+                    </InputGroup>
                   </Field>
                 </>
               )}

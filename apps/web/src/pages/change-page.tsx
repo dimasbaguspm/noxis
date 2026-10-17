@@ -2,7 +2,7 @@ import { Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
-import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,16 +44,17 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
         <CardContent className="flex flex-col gap-4 pt-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="change-filter">Filter by instance</Label>
-            <div className="relative">
-              <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
+            <InputGroup>
+              <InputGroupAddon>
+                <Search />
+              </InputGroupAddon>
+              <InputGroupInput
                 id="change-filter"
-                className="pl-7"
                 placeholder="type to filter…"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
               />
-            </div>
+            </InputGroup>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label>Status</Label>
