@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -38,6 +39,12 @@ func New(ctx context.Context, otlp OTLP) (*slog.Logger, Shutdown, error) {
 	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
 	logger := slog.New(&ctxHandler{inner: jsonHandler})
 	slog.SetDefault(logger)
+	// slog.SetDefault routes the standard log package (which OTel uses for its
+	// internal reports) through this handler at info level; an exporter failure
+	// is an error, so route them here instead.
+	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+		logger.ErrorContext(context.Background(), "telemetry export failed", "error", err)
+	}))
 
 	if otlp.Collector == "" {
 		noop := func(context.Context) error { return nil }
@@ -50,7 +57,7 @@ func New(ctx context.Context, otlp OTLP) (*slog.Logger, Shutdown, error) {
 		semconv.ServiceName(service),
 	)
 
-	traceExp, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpoint(otlp.Collector), otlptracegrpc.WithInsecure())
+	traceExp, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpointURL(endpointURL(otlp.Collector)))
 	if err != nil {
 		return nil, nil, fmt.Errorf("otel trace exporter: %w", err)
 	}
@@ -94,4 +101,16 @@ func firstNonEmpty(a, b string) string {
 		return a
 	}
 	return b
+}
+
+// endpointURL makes NOXIS_OTEL_COLLECTOR a URL the OTLP gRPC exporter accepts.
+// The exporter wants a scheme (https enables TLS; a bare host:port is treated
+// as plaintext http), and a URL without a port still resolves to gRPC's
+// default 443. Passing a raw URL to WithEndpoint made gRPC resolve "https" as
+// a hostname and loop on DNS failures.
+func endpointURL(collector string) string {
+	if strings.Contains(collector, "://") {
+		return collector
+	}
+	return "http://" + collector
 }
