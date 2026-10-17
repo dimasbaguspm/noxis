@@ -3,6 +3,7 @@ import { ChevronsUpDown, LogOut, Settings, ShieldCheck, UserRound } from "lucide
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -43,17 +44,18 @@ export function NavUser() {
           <ChevronsUpDown className="ml-auto size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="top" className="w-56">
-          <DropdownMenuLabel>{name}</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => navigate(PAGE_ROUTES.MY)}>
-            <UserRound /> My profile
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate(PAGE_ROUTES.MY_SETTINGS)}>
-            <Settings /> Settings
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate(PAGE_ROUTES.MY_ACCESS)}>
-            <ShieldCheck /> My access
-          </DropdownMenuItem>
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>{name}</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => navigate(PAGE_ROUTES.MY)}>
+              <UserRound /> My profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate(PAGE_ROUTES.MY_SETTINGS)}>
+              <Settings /> Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate(PAGE_ROUTES.MY_ACCESS)}>
+              <ShieldCheck /> My access
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onClick={() => void signout()}>
             <LogOut /> Sign out
