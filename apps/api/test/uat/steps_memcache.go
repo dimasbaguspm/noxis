@@ -70,7 +70,7 @@ func (w *world) registerCache(ctx context.Context, name, key string) error {
 	if w.code != http.StatusOK {
 		return fmt.Errorf("register %s connection: %d", key, w.code)
 	}
-	w.conn, w.host = name, t.Host
+	w.conn, w.host, w.targetKey = name, t.Host, key
 	return nil
 }
 

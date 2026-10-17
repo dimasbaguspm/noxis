@@ -85,9 +85,10 @@ type world struct {
 	code    int               // resp.Status, kept for the existing assertions
 	body    string            // resp.String(), kept for the existing assertions
 
-	conn     string // connection name under test
-	host     string // the compose service backing that connection
-	changeID string
+	conn      string // connection name under test
+	host      string // the compose service backing that connection
+	targetKey string // the key into targets for that connection
+	changeID  string
 	key      redisKey // the redis key a scenario picked out of a browse
 	page     redisPage
 	result   resultBody
@@ -97,6 +98,8 @@ type world struct {
 	collection     mongoCollection // the mongo collection a scenario picked out
 	mongoQueueSize int
 	ticked         tickBody // the last /internal/callback/scheduler result
+
+	snaps map[string]dbSnapshot // named database dumps, for this scenario
 }
 
 // reset clears the per-scenario state. godog reuses one world across scenarios,

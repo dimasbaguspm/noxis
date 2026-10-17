@@ -38,6 +38,7 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	})
 	sc.Step("the stack is running", w.stackRunning)
 	w.httpSteps(sc)
+	w.snapshotSteps(sc)
 	w.memcacheSteps(sc)
 	w.mongoSteps(sc)
 
@@ -113,7 +114,7 @@ func (w *world) registerSQL(ctx context.Context, name, key string) error {
 	if w.code != http.StatusOK {
 		return fmt.Errorf("register %s connection: %d", key, w.code)
 	}
-	w.conn, w.host = name, t.Host
+	w.conn, w.host, w.targetKey = name, t.Host, key
 	return nil
 }
 
