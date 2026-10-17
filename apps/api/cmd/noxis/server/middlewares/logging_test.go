@@ -2,11 +2,18 @@ package middlewares
 
 import (
 	"bytes"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"go.opentelemetry.io/otel/trace"
 
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
@@ -61,5 +68,59 @@ func TestRequestLogWithoutTracingDoesNotPanic(t *testing.T) {
 	RequestLog(okHandler(), log).ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d", rec.Code)
+	}
+}
+
+// setupTracing installs a recording provider and the W3C propagator for the
+// test, restoring the process globals afterwards.
+func setupTracing(t *testing.T) *tracetest.SpanRecorder {
+	t.Helper()
+	prevTP, prevProp := otel.GetTracerProvider(), otel.GetTextMapPropagator()
+	t.Cleanup(func() {
+		otel.SetTracerProvider(prevTP)
+		otel.SetTextMapPropagator(prevProp)
+	})
+	recorder := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdkTrace.NewTracerProvider(sdkTrace.WithSpanProcessor(recorder)))
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	return recorder
+}
+
+// A caller's traceparent becomes the parent of the request span.
+func TestRequestLogJoinsIncomingTrace(t *testing.T) {
+	recorder := setupTracing(t)
+	const traceID = "4bf92f3577b34da6a3ce929d0e0e4736"
+
+	var got trace.SpanContext
+	inner := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		got = trace.SpanContextFromContext(r.Context())
+	})
+	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
+	req.Header.Set("traceparent", "00-"+traceID+"-00f067aa0ba902b7-01")
+
+	RequestLog(inner, slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(httptest.NewRecorder(), req)
+
+	if got.TraceID().String() != traceID {
+		t.Fatalf("handler span trace id=%s want=%s", got.TraceID(), traceID)
+	}
+	if spans := recorder.Ended(); len(spans) != 1 || spans[0].SpanContext().TraceID().String() != traceID {
+		t.Fatalf("request span did not join trace: %+v", spans)
+	}
+}
+
+// An unparseable traceparent is ignored: the request gets a fresh trace, no error.
+func TestRequestLogIgnoresInvalidTraceparent(t *testing.T) {
+	recorder := setupTracing(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
+	req.Header.Set("traceparent", "not-a-traceparent")
+	rec := httptest.NewRecorder()
+	RequestLog(okHandler(), slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d", rec.Code)
+	}
+	if spans := recorder.Ended(); len(spans) != 1 || !spans[0].SpanContext().IsValid() {
+		t.Fatalf("expected one valid fresh span, got %+v", spans)
 	}
 }
