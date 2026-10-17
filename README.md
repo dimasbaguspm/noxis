@@ -1,149 +1,136 @@
 # noXis
 
-A lightweight console to query and change the databases you already run, with confidence.
+**The calm way to change the databases you already run.**
 
-**The goal:** point noXis at the databases you already run (Postgres,
-MySQL/MariaDB, SQLite, Redis, Valkey and MongoDB) and get a single place to
-browse them, run reads, and
-ship changes safely. No agents, no brokers, no orchestration — one binary, one
-volume, no docker socket.
+noXis is a small, self-hosted console for Postgres, MySQL/MariaDB, SQLite,
+Redis, Valkey and MongoDB. Point it at what you already run, browse freely, run
+reads instantly, and send schema or data changes through a review that proves
+the rollback **before** anyone approves.
 
-## What it does at a glance
+One Go binary. One SQLite file. No agents, no brokers, no docker socket.
 
-- **Connections** — register a database (host/port/user/password/database);
-  passwords never leave the API (redacted on every response).
-- **Browse** — introspect schema (tables + columns) and preview table rows.
-- **Reads run directly** — `SELECT`/`EXPLAIN`/`SHOW` execute immediately with a
-  result grid; the read path is read-only and rejects DML/DDL.
-- **Changes are a workflow** — submit *{connection, notes, query, rollback}*:
-  - **validate** — the query and its rollback are dry-run **together** in a
-    transaction that always rolls back, proving the rollback really undoes the
-    change (nothing persists on submit);
-  - **approve** — self-approval is fine (single-operator tool);
-  - **apply** — executed inside a transaction; failures stay recorded on the
-    change.
-- **Honest about drivers** — MySQL commits DDL implicitly, so a change carrying
-  DDL there is marked `unverified` instead of pretending a dry-run happened.
-- **SQLite is a file** — a SQLite connection is a path on the noXis
-  host/container (mount it), not a server. Its changes dry-run in a transaction
-  that always rolls back, since SQLite DDL is transactional. Point it at a
-  database file — never noXis's own registry.
-- **Redis is not pretended into SQL** — a Redis value cannot be rolled back, so
-  there is no validated change queue for it: keys can be browsed, inspected and
-  removed, and every operation is a typed client call (no command text to
-  inject). `FLUSHALL` is deliberately unreachable.
-- **Namespaced API** — `/external/v1/engine/sql/...`, `/external/v1/engine/memcache/...` and `/external/v1/engine/mongodb/...`;
-  each family serves only its own drivers, so a memory-cache connection is
-  invisible to the SQL routes and vice versa. The console follows the same
-  split: one dashboard table for every instance with a detail dialog, and a
-  sidebar group per family.
-- **Redis and Valkey are one family: Memory Cache** — Valkey implements the
-  Redis protocol and command set, so it is served by the same module under its
-  own driver name (`valkey`), and INFO is read from its own `valkey_version` so
-  the console shows what it is really talking to. The acceptance suite
-  registers a real Valkey server to keep that claim honest.
-- **Operator console** — served by the binary itself at `/` (React + TS +
-  shadcn/ui, embedded; no build step at deploy time):
-  - **Dashboard** — every instance in one searchable table with a detail
-    dialog; a swipeable tile counts All / SQL / Memory Cache and MongoDB; one
-    "new connection" wizard asks for the kind of instance first, then verifies
-    it before saving
-  - menu (collapsible sidebar + a search field in the header that opens a
-    searchable palette): Dashboard · SQL (Query, DML, DDL) ·
-    Memory Cache (Keys) · MongoDB (Explore, Requests)
-  - **Query** — per-instance schema/table browser, monaco editor (self-hosted,
-    schema-aware completion), result grid with duration / rows / plan estimate
-    and CSV export; `ANALYZE` and "show records" live in each table's menu
-  - **DML / DDL** — change queue, then a focus review page per change:
-    estimates vs actuals, the tables/columns it touches (parsed from the
-    statements), an activity trail, and monaco for query/rollback; changes are
-    artifacts, never deleted
-  - **Memory Cache** — browse keys by pattern with type, TTL and size (one bounded
-    scan, so the list can be sorted by TTL for real), inspect any value per its
-    type, remove selected keys, and empty a database behind a typed
-    confirmation
-  - **MongoDB** — Explore has three resizable panes (databases, collections,
-    documents): pick a collection and filter it, reading the documents as
-    **JSON, a grid or a tree**; Requests is the review queue plus a wizard
-    (database → collection → filter and value, stacked) and a review page with
-    the dry-run checks, the activity trail and no rollback editor
+[Quick start](#quick-start) · [Why noXis](#why-noxis) · [What you get](#what-you-get) · [How a change works](#how-a-change-works) · [Docs](#docs)
 
-## Authentication
+## Why noXis
 
-Noxis requires a login: every `/external/v1/*` call needs a bearer token. There is no
-open mode. On first boot the root admin is created from `NOXIS_ADMIN_USERNAME`
-and `NOXIS_ADMIN_PASSWORD` (required only while no accounts exist; ignored
-after, so a password changed in the console survives restarts).
+You already run the databases. The hard part is *changing* them.
 
-Accounts are local by default: `POST /external/v1/auth/login` verifies a bcrypt-hashed
-password and returns a single opaque session token; disabling an account or
-changing its password invalidates that token immediately.
+- “Just run this one query” — at 11pm, in production.
+- A migration that looked fine right up until it wasn’t.
+- A “simple” admin tool that wants an agent, a broker, or root on your host
+  just to show you a table.
 
-OIDC can be added later and runs alongside local accounts — set
-`NOXIS_OIDC_ISSUER` and noxis accepts the issuer's tokens too:
+noXis is the small thing in the middle. Look around as much as you like. When
+it’s time to change something, noXis shows you the blast radius, checks that the
+rollback actually undoes the change, and keeps the whole story afterward.
 
-| env | meaning |
-| --- | --- |
-| `NOXIS_OIDC_ISSUER` | issuer URL; empty keeps OIDC off |
-| `NOXIS_OIDC_CLIENT_ID` | public client id (PKCE, no secret) |
-| `NOXIS_OIDC_AUDIENCE` | expected `aud`, defaults to the client id |
-| `NOXIS_OIDC_GROUPS_CLAIM` | token claim holding group names, defaults to `groups` |
-| `NOXIS_OIDC_ADMIN_GROUP` | members are global admins (manage connections and permissions) |
+## What you get
 
-Access is per connection — `read` < `write` < `admin` — granted to a user (by
-subject) or a group through `/external/v1/engine/{engine}/connections/{name}/permissions`.
-Default deny: a user with no permission sees nothing. `GET /external/v1/me` reports the
-caller and its effective level per connection (`GET /external/v1/auth/config` is the public
-console bootstrap).
+- **Browse anything you run** — connections, schemas, tables and rows across SQL,
+  memory cache and document databases, from one console.
+- **Reads are instant** — `SELECT`, `EXPLAIN` and `SHOW` run straight away. The
+  read path is read-only and refuses to become a way to change data.
+- **Writes are a decision** — a change is `{connection, notes, query, rollback}`.
+  It is dry-run **together with its rollback** in a transaction that always rolls
+  back, so you see exactly what it touches and know the undo works.
+- **Review that lasts** — every change is an artifact: its checks, estimates
+  versus actuals, the tables it touched, and an activity trail. Nothing is
+  silently deleted; a rejected submission is returned, not stored.
+- **Small on purpose** — one binary, one volume, one SQLite file. Your databases
+  stay yours; noXis never asks for a sidecar.
+- **Secrets stay secret** — connection passwords are encrypted at rest
+  (AES-256-GCM) and redacted from every response.
+- **Honest about limits** — where a rollback genuinely cannot be proven, noXis
+  says so instead of pretending. More [below](#honest-about-limits).
 
-## Credentials at rest
+## How a change works
 
-Connection passwords cannot be hashed — they must be sent to the database — so
-set `NOXIS_SECRET_KEY` (64 hex characters, e.g. `openssl rand -hex 32`) to
-encrypt them in SQLite with AES-256-GCM. It is required: the server refuses to
-start without it. Setting the key re-encrypts existing plaintext rows when the
-store opens. Rotate a password from the instance's detail page.
-
-## Docs
-
-- `AGENTS.md` — the harness brief: repo map, conventions, drift, next steps.
-- `docs/agent/` — architecture, infrastructure, database and code-review docs.
-- `docs/plan/` — one snapshot per `ai:y` plan (issue body + commit + PR), with an index.
-- `openapi.yaml|json` — OpenAPI 3 spec (Postman artifact, generated from
-  handler annotations via `make swagger`).
-- `apps/web/` — the console source (`make web` embeds it; `make dev-ui` gives a
-  hot-reloading dev server on :5173).
-- `apps/api/test/uat/` — Gherkin acceptance suite over the real stack: `make uat`.
+1. **Submit** — the query, a short note, and the rollback you’d run.
+2. **Validate** — query and rollback run together in a transaction that is
+   always rolled back. The estimate, the affected tables and the checks come back
+   with the change.
+3. **Approve** — self-approval is fine; this is a single-operator tool.
+4. **Apply** — executed in a transaction. Failures stay recorded with their
+   reason, so the next person knows what happened.
 
 ## Quick start
 
 ```bash
-make dev          # noxis + a throwaway postgres to play with
-open http://localhost:9000
-
-# the dev stack seeds the root admin admin / noxis-admin; every /v1 call needs
-# the bearer token it returns (the console login form arrives in a later change)
-TOKEN=$(curl -s localhost:9000/external/v1/auth/login -H 'Content-Type: application/json' \
-  -d '{"username":"admin","password":"noxis-admin"}' | sed 's/.*"token":"\([^"]*\)".*/\1/')
-
-# or drive the API (add -H "Authorization: Bearer $TOKEN" to each call):
-curl -s -X POST localhost:9000/external/v1/engine/sql/connections -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"name":"demo","driver":"postgres","host":"db","port":5432,
-       "user":"postgres","password":"noxis","database":"demo"}'
-curl -s -X POST localhost:9000/external/v1/engine/sql/connections/demo/query \
-  -H 'Content-Type: application/json' -d '{"sql":"SELECT 6*6 AS n"}'
-
-# mongodb: register the compose server, explore, run a request
-curl -s -X POST localhost:9000/external/v1/engine/mongodb/connections -H 'Content-Type: application/json' \
-  -d '{"name":"docs","driver":"mongo","host":"mongo","port":27017,"user":"root",
-       "password":"noxis","database":"admin"}'
-curl -s "localhost:9000/external/v1/engine/mongodb/connections/docs/collections?database=demo"
-curl -s -X POST localhost:9000/external/v1/engine/mongodb/connections/docs/requests \
-  -H 'Content-Type: application/json' \
-  -d '{"op":"find","database":"demo","collection":"items","filter":"{\"sku\": \"a\"}"}'
-
-# memory cache: register the compose server, browse keys
-curl -s -X POST localhost:9000/external/v1/engine/memcache/connections -H 'Content-Type: application/json' \
-  -d '{"name":"cache","driver":"redis","host":"redis","port":6379,"database":"0"}'
-curl -s "localhost:9000/external/v1/engine/memcache/connections/cache/keys?pattern=*"
+docker run -d --name noxis -p 9000:9000 \
+  -v noxis-data:/data \
+  -e NOXIS_SECRET_KEY="$(openssl rand -hex 32)" \
+  -e NOXIS_ADMIN_USERNAME=admin \
+  -e NOXIS_ADMIN_PASSWORD=change-me \
+  ghcr.io/dimasbaguspm/noxis:nightly
 ```
+
+Open <http://localhost:9000>, sign in, and add your first connection.
+
+Working on noXis itself, or want a throwaway stack to play with?
+
+```bash
+make dev        # noxis + a demo postgres, redis, valkey, mongo and mariadb
+```
+
+The dev stack seeds a root admin (`admin` / `noxis-admin`).
+
+### Drive it from the API
+
+Everything the console does is a REST call under `/external/v1/engine/{sql|memcache|mongodb}`.
+Every call needs the bearer token from `POST /external/v1/auth/login`:
+
+```bash
+TOKEN=$(curl -s localhost:9000/external/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"noxis-admin"}' | jq -r .token)
+
+curl -s -X POST localhost:9000/external/v1/engine/sql/connections/demo/query \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"sql":"SELECT 6*6 AS n"}'
+```
+
+The full OpenAPI spec is in [`openapi.yaml`](openapi.yaml).
+
+## Supported databases
+
+| You run | noXis gives you |
+| --- | --- |
+| **Postgres** | browse, reads, validated changes, scratch-schema dry runs |
+| **MySQL / MariaDB** | browse, reads, changes (see the DDL note below) |
+| **SQLite** | browse, reads, transactional dry runs against a file |
+| **Redis / Valkey** | browse keys by pattern, inspect values, TTL/size, remove keys |
+| **MongoDB** | explore databases/collections/documents, reviewed write requests |
+
+Redis and Valkey are treated as one family under their own driver names, because
+Valkey speaks the same protocol — and the acceptance suite registers a real
+Valkey server to keep that claim honest.
+
+## Honest about limits
+
+- **MySQL commits DDL implicitly.** A change carrying DDL there is marked
+  `unverified` rather than pretending a dry run happened.
+- **A cache value cannot be rolled back.** So memory cache has no change queue:
+  you can browse, inspect and remove keys, and `FLUSHALL` is deliberately
+  unreachable.
+- **SQLite is a file.** Point the connection at the database file on the noXis
+  host or volume — never at noXis’s own registry.
+
+## Authentication
+
+Every `/external/v1/*` call needs a bearer token; there is no open mode. Local
+accounts are the default (bcrypt passwords, one opaque session token each).
+OIDC can run alongside them (`NOXIS_OIDC_ISSUER`, `NOXIS_OIDC_CLIENT_ID`, …).
+Access is per connection — `read` < `write` < `admin` — granted to users or
+groups, default deny.
+
+Connection passwords are encrypted at rest with `NOXIS_SECRET_KEY` (required;
+`openssl rand -hex 32`).
+
+## Docs
+
+- [`AGENTS.md`](AGENTS.md) — the harness brief: repo map, conventions, next steps.
+- [`docs/agent/`](docs/agent) — architecture, infrastructure, database and review docs.
+- [`docs/plan/`](docs/plan) — one snapshot per shipped plan.
+- [`openapi.yaml`](openapi.yaml) · [`openapi.json`](openapi.json) — the REST contract.
+- [`apps/web/`](apps/web) — the console source (`make web` embeds it).
+- [`apps/api/test/uat/`](apps/api/test/uat) — the Gherkin acceptance suite (`make uat`).
