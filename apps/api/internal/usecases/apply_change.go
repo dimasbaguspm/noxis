@@ -13,9 +13,6 @@ import (
 // Apply is the "Apply" use case.
 type Apply struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Changes     interfaces.ChangeRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.

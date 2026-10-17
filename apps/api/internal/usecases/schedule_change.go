@@ -7,14 +7,12 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 	"time"
 )
 
 // Schedule is the "Schedule" use case.
 type Schedule struct {
-	Changes     interfaces.ChangeRepository
-	Permissions interfaces.PermissionRepository
+	RegistryDeps
 }
 
 // Serve runs it.

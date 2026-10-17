@@ -14,9 +14,6 @@ import (
 // ApplyMongo is the "ApplyMongo" use case.
 type ApplyMongo struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Changes     interfaces.ChangeRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.

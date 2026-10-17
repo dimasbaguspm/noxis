@@ -15,7 +15,6 @@ import (
 // SaveConnection is the "SaveConnection" use case.
 type SaveConnection struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
 }
 
 // Serve runs it.

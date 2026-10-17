@@ -4,15 +4,13 @@ import (
 	"context"
 
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 )
 
 // ConnectionLevels is the effective level per connection for the caller. A
 // global admin holds admin everywhere; everyone else only appears with a
 // matching grant, so an absent connection means no access.
 type ConnectionLevels struct {
-	Connections interfaces.ConnectionRepository
-	Permissions interfaces.PermissionRepository
+	RegistryDeps
 }
 
 // Serve runs it.

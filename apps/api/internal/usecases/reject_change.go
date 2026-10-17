@@ -6,14 +6,12 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 	"time"
 )
 
 // Reject is the "Reject" use case.
 type Reject struct {
-	Changes     interfaces.ChangeRepository
-	Permissions interfaces.PermissionRepository
+	RegistryDeps
 }
 
 // Serve runs it.

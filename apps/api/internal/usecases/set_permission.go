@@ -11,8 +11,6 @@ import (
 // SetPermission is the "SetPermission" use case.
 type SetPermission struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve upserts one member's level on a connection.

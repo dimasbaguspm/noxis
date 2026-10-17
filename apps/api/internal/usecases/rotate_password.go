@@ -5,13 +5,11 @@ import (
 	"errors"
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
-	"noxis/internal/interfaces"
 )
 
 // RotatePassword is the "RotatePassword" use case.
 type RotatePassword struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
 }
 
 // Serve runs it.

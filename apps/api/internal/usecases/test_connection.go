@@ -10,8 +10,6 @@ import (
 // TestConnection is the "TestConnection" use case.
 type TestConnection struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.

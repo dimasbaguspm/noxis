@@ -10,8 +10,6 @@ import (
 // DeleteConnection is the "DeleteConnection" use case.
 type DeleteConnection struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.

@@ -4,6 +4,7 @@ import (
 	"noxis/internal/common/config"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules"
+	"noxis/internal/repositories"
 	"noxis/internal/usecases"
 )
 
@@ -18,9 +19,8 @@ type sources struct {
 	Auth        config.AuthInfo
 }
 
-// app is the composition root: every use case built once, explicitly, with the
-// fields it needs named at the call site. There is no reflection and no
-// dependency container in a request context.
+// app is the composition root: every use case built once, explicitly. There is
+// no reflection and no dependency container in a request context.
 type app struct {
 	Modules modules.Registry
 	Auth    config.AuthInfo
@@ -75,61 +75,70 @@ type app struct {
 	ChangeSchedule   usecases.ChangeSchedule
 }
 
-// newApp builds every use case from s. It is the single place the use cases
-// are constructed.
+// newApp builds every use case from s: one shared RegistryDeps value carries
+// the repositories and the module registry, so each use case is a one-field
+// literal. It is the single place the use cases are constructed.
 func newApp(s sources) app {
-	reg := usecases.RegistryDeps{Modules: s.Modules}
+	deps := usecases.RegistryDeps{
+		Registry: repositories.Registry{
+			Connections: s.Connections,
+			Changes:     s.Changes,
+			Permissions: s.Permissions,
+			Users:       s.Users,
+		},
+		Modules: s.Modules,
+	}
 	return app{
 		Modules: s.Modules,
 		Auth:    s.Auth,
 
-		SubmitChange:     usecases.SubmitChange{RegistryDeps: reg, Connections: s.Connections, Changes: s.Changes, Permissions: s.Permissions},
-		Approve:          usecases.Approve{Changes: s.Changes, Permissions: s.Permissions},
-		Schedule:         usecases.Schedule{Changes: s.Changes, Permissions: s.Permissions},
-		Apply:            usecases.Apply{RegistryDeps: reg, Connections: s.Connections, Changes: s.Changes, Permissions: s.Permissions},
-		Reject:           usecases.Reject{Changes: s.Changes, Permissions: s.Permissions},
-		SQLChanges:       usecases.SQLChanges{Connections: s.Connections, Changes: s.Changes, Permissions: s.Permissions},
-		SQLChange:        usecases.SQLChange{Changes: s.Changes, Permissions: s.Permissions},
-		Tick:             usecases.Tick{RegistryDeps: reg, Connections: s.Connections, Changes: s.Changes, Permissions: s.Permissions},
-		ConnectionList:   usecases.ConnectionList{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		Connection:       usecases.Connection{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		Raw:              usecases.Raw{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		SaveConnection:   usecases.SaveConnection{RegistryDeps: reg, Connections: s.Connections},
-		DeleteConnection: usecases.DeleteConnection{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		TestConnection:   usecases.TestConnection{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		Schema:           usecases.Schema{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		Rows:             usecases.Rows{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		Op:               usecases.Op{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		SubmitMongo:      usecases.SubmitMongoChange{RegistryDeps: reg, Connections: s.Connections, Changes: s.Changes, Permissions: s.Permissions},
-		MongoChange:      usecases.MongoChange{Changes: s.Changes, Permissions: s.Permissions},
-		ApplyMongo:       usecases.ApplyMongo{RegistryDeps: reg, Connections: s.Connections, Changes: s.Changes, Permissions: s.Permissions},
-		MongoChanges:     usecases.MongoChanges{Connections: s.Connections, Changes: s.Changes, Permissions: s.Permissions},
-		Instance:         usecases.Instance{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		Instances:        usecases.ListInstances{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		RotatePassword:   usecases.RotatePassword{RegistryDeps: reg, Connections: s.Connections},
-		ListPermissions:  usecases.ListPermissions{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		SetPermission:    usecases.SetPermission{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		DeletePermission: usecases.DeletePermission{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		Members:          usecases.Members{Permissions: s.Permissions, Users: s.Users},
-		ConnectionLevels: usecases.ConnectionLevels{Connections: s.Connections, Permissions: s.Permissions},
+		SubmitChange:     usecases.SubmitChange{RegistryDeps: deps},
+		Approve:          usecases.Approve{RegistryDeps: deps},
+		Schedule:         usecases.Schedule{RegistryDeps: deps},
+		Apply:            usecases.Apply{RegistryDeps: deps},
+		Reject:           usecases.Reject{RegistryDeps: deps},
+		SQLChanges:       usecases.SQLChanges{RegistryDeps: deps},
+		SQLChange:        usecases.SQLChange{RegistryDeps: deps},
+		Tick:             usecases.Tick{RegistryDeps: deps},
+		ConnectionList:   usecases.ConnectionList{RegistryDeps: deps},
+		Connection:       usecases.Connection{RegistryDeps: deps},
+		Raw:              usecases.Raw{RegistryDeps: deps},
+		SaveConnection:   usecases.SaveConnection{RegistryDeps: deps},
+		DeleteConnection: usecases.DeleteConnection{RegistryDeps: deps},
+		TestConnection:   usecases.TestConnection{RegistryDeps: deps},
+		Schema:           usecases.Schema{RegistryDeps: deps},
+		Rows:             usecases.Rows{RegistryDeps: deps},
+		Op:               usecases.Op{RegistryDeps: deps},
+		SubmitMongo:      usecases.SubmitMongoChange{RegistryDeps: deps},
+		MongoChange:      usecases.MongoChange{RegistryDeps: deps},
+		ApplyMongo:       usecases.ApplyMongo{RegistryDeps: deps},
+		MongoChanges:     usecases.MongoChanges{RegistryDeps: deps},
+		Instance:         usecases.Instance{RegistryDeps: deps},
+		Instances:        usecases.ListInstances{RegistryDeps: deps},
+		RotatePassword:   usecases.RotatePassword{RegistryDeps: deps},
+		ListPermissions:  usecases.ListPermissions{RegistryDeps: deps},
+		SetPermission:    usecases.SetPermission{RegistryDeps: deps},
+		DeletePermission: usecases.DeletePermission{RegistryDeps: deps},
+		Members:          usecases.Members{RegistryDeps: deps},
+		ConnectionLevels: usecases.ConnectionLevels{RegistryDeps: deps},
 		AuthConfig:       usecases.AuthConfig{Auth: s.Auth},
-		Login:            usecases.Login{RegistryDeps: reg},
-		Logout:           usecases.Logout{RegistryDeps: reg},
-		ChangePass:       usecases.ChangePassword{RegistryDeps: reg},
+		Login:            usecases.Login{RegistryDeps: deps},
+		Logout:           usecases.Logout{RegistryDeps: deps},
+		ChangePass:       usecases.ChangePassword{RegistryDeps: deps},
 		Drivers:          usecases.Drivers{},
-		CacheKeys:        usecases.CacheKeys{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		CacheValue:       usecases.CacheValue{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		CacheDelete:      usecases.CacheDelete{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		CacheFlush:       usecases.CacheFlush{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		MongoDbs:         usecases.MongoDatabases{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		MongoColls:       usecases.MongoCollections{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		MongoRun:         usecases.MongoRun{RegistryDeps: reg, Connections: s.Connections, Permissions: s.Permissions},
-		ChangeList:       usecases.ChangeList{RegistryDeps: reg, Connections: s.Connections, Changes: s.Changes, Permissions: s.Permissions},
-		ChangeSubmit:     usecases.ChangeSubmit{RegistryDeps: reg, Connections: s.Connections, Changes: s.Changes, Permissions: s.Permissions},
-		ChangeGet:        usecases.ChangeGet{RegistryDeps: reg, Changes: s.Changes, Permissions: s.Permissions},
-		ChangeApprove:    usecases.ChangeApprove{RegistryDeps: reg, Changes: s.Changes, Permissions: s.Permissions},
-		ChangeApply:      usecases.ChangeApply{RegistryDeps: reg, Connections: s.Connections, Changes: s.Changes, Permissions: s.Permissions},
-		ChangeReject:     usecases.ChangeReject{RegistryDeps: reg, Changes: s.Changes, Permissions: s.Permissions},
-		ChangeSchedule:   usecases.ChangeSchedule{RegistryDeps: reg, Changes: s.Changes, Permissions: s.Permissions},
+		CacheKeys:        usecases.CacheKeys{RegistryDeps: deps},
+		CacheValue:       usecases.CacheValue{RegistryDeps: deps},
+		CacheDelete:      usecases.CacheDelete{RegistryDeps: deps},
+		CacheFlush:       usecases.CacheFlush{RegistryDeps: deps},
+		MongoDbs:         usecases.MongoDatabases{RegistryDeps: deps},
+		MongoColls:       usecases.MongoCollections{RegistryDeps: deps},
+		MongoRun:         usecases.MongoRun{RegistryDeps: deps},
+		ChangeList:       usecases.ChangeList{RegistryDeps: deps},
+		ChangeSubmit:     usecases.ChangeSubmit{RegistryDeps: deps},
+		ChangeGet:        usecases.ChangeGet{RegistryDeps: deps},
+		ChangeApprove:    usecases.ChangeApprove{RegistryDeps: deps},
+		ChangeApply:      usecases.ChangeApply{RegistryDeps: deps},
+		ChangeReject:     usecases.ChangeReject{RegistryDeps: deps},
+		ChangeSchedule:   usecases.ChangeSchedule{RegistryDeps: deps},
 	}
 }

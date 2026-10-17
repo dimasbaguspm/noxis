@@ -4,14 +4,12 @@ import (
 	"context"
 
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 )
 
 // Members is the "Members" use case: the group names and user accounts a
 // permission can target, for the console's member picker.
 type Members struct {
-	Permissions interfaces.PermissionRepository
-	Users       interfaces.UserRepository
+	RegistryDeps
 }
 
 // Serve returns the known groups and every account.

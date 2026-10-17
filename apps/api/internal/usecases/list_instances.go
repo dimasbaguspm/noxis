@@ -4,15 +4,12 @@ import (
 	"context"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 	"strings"
 )
 
 // Instances is the "Instances" use case.
 type ListInstances struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.

@@ -12,8 +12,6 @@ import (
 // needs, returning the password-bearing connection.
 type Raw struct {
 	RegistryDeps
-	Connections interfaces.ConnectionRepository
-	Permissions interfaces.PermissionRepository
 }
 
 // Serve runs it.
