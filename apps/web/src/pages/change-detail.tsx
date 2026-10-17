@@ -323,7 +323,7 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
                 <FieldLabel htmlFor="schedule-at">Run at</FieldLabel>
                 <Input id="schedule-at" type="datetime-local" aria-invalid={!!errors.when} {...register("when")} />
                 <FieldDescription>a future moment; the scheduler applies the change once.</FieldDescription>
-                <FieldError>{errors.when?.message}</FieldError>
+                <FieldError errors={[errors.when]} />
               </Field>
             </form>
           </SheetBody>

@@ -132,7 +132,7 @@ export function CreateChangeSheet({
             </FieldLabel>
             <SqlEditor value={watch("rollback")} onChange={(sql) => setValue("rollback", sql)} tables={tables} height="10rem" />
             <input type="hidden" aria-hidden {...register("rollback")} />
-            <FieldError>{errors.rollback?.message}</FieldError>
+            <FieldError errors={[errors.rollback]} />
           </Field>
           </form>
         </SheetBody>

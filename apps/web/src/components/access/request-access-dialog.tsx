@@ -89,7 +89,7 @@ export function RequestAccessDialog({ connection }: { connection?: string }) {
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldError>{errors.connection?.message}</FieldError>
+                <FieldError errors={[errors.connection]} />
               </Field>
             )}
             <Field>
@@ -106,7 +106,7 @@ export function RequestAccessDialog({ connection }: { connection?: string }) {
                   ))}
                 </SelectContent>
               </Select>
-              <FieldError>{errors.level?.message}</FieldError>
+              <FieldError errors={[errors.level]} />
             </Field>
             <Field>
               <FieldLabel htmlFor="reason">Reason</FieldLabel>

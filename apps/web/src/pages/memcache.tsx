@@ -295,7 +295,7 @@ export default function MemcachePage() {
                 aria-invalid={!!flushErrors.confirm}
                 {...register("confirm")}
               />
-              <FieldError>{flushErrors.confirm?.message}</FieldError>
+              <FieldError errors={[flushErrors.confirm]} />
             </Field>
           </form>
           <DialogFooter>

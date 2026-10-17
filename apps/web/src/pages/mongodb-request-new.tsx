@@ -173,7 +173,7 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <FieldError>{errors.connection?.message}</FieldError>
+              <FieldError errors={[errors.connection]} />
             </Field>
             <Field>
               <FieldLabel>Database</FieldLabel>
@@ -189,7 +189,7 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <FieldError>{errors.database?.message}</FieldError>
+              <FieldError errors={[errors.database]} />
             </Field>
             <div className="flex justify-end">
               <Button
@@ -229,7 +229,7 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <FieldError>{errors.collection?.message}</FieldError>
+              <FieldError errors={[errors.collection]} />
             </Field>
             <Field>
               <FieldLabel>Operation</FieldLabel>
@@ -292,7 +292,7 @@ export default function MongoRequestNewPage() {
                 fields={[]}
                 placeholder="{}"
               />
-              <FieldError>{errors.filter?.message}</FieldError>
+              <FieldError errors={[errors.filter]} />
             </Field>
 
             <Field>
@@ -305,7 +305,7 @@ export default function MongoRequestNewPage() {
                 placeholder={opValue === "delete" ? "—" : '{ "$set": { "field": "value" } }'}
                 readOnly={opValue === "delete"}
               />
-              <FieldError>{errors.value?.message}</FieldError>
+              <FieldError errors={[errors.value]} />
             </Field>
 
             <label className="flex items-center gap-2 text-sm">

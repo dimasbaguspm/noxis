@@ -59,7 +59,7 @@ export function AccountActions() {
                   aria-invalid={!!errors.oldPassword}
                   {...register("oldPassword")}
                 />
-                <FieldError>{errors.oldPassword?.message}</FieldError>
+                <FieldError errors={[errors.oldPassword]} />
               </Field>
               <Field>
                 <FieldLabel htmlFor="new-password">New password</FieldLabel>
@@ -70,7 +70,7 @@ export function AccountActions() {
                   aria-invalid={!!errors.newPassword}
                   {...register("newPassword")}
                 />
-                <FieldError>{errors.newPassword?.message}</FieldError>
+                <FieldError errors={[errors.newPassword]} />
               </Field>
               {error && <FieldError>{error}</FieldError>}
               <Button type="submit" disabled={isSubmitting} className="w-fit">
