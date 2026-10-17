@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"noxis/internal/common/logging"
@@ -81,6 +82,36 @@ func (s *Store) SetPermission(ctx context.Context, p entity.Permission) (err err
 		return err
 	}
 	return tx.Commit()
+}
+
+// ListPermissionsForMembers returns every permission held by one of members,
+// across connections, ordered by connection then member.
+func (s *Store) ListPermissionsForMembers(ctx context.Context, members []string) (out []entity.Permission, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	if len(members) == 0 {
+		return nil, nil
+	}
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(members)), ",")
+	args := make([]any, len(members))
+	for i, m := range members {
+		args[i] = m
+	}
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT `+permissionColumns+` FROM permissions WHERE member IN (`+placeholders+`) ORDER BY connection, member`, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list permissions for members: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var p entity.Permission
+		if err := rows.Scan(&p.Connection, &p.Member, &p.MemberType, &p.Level,
+			&p.ExpiresAt, &p.CreatedBy, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
 }
 
 // ListGroupNames returns the distinct groups that hold any permission.

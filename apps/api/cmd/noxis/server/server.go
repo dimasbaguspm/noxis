@@ -55,6 +55,7 @@ func newHandler(d app, cfg config.Config) http.Handler {
 
 	mux.HandleFunc("GET /healthz", getHealthz)
 	mux.HandleFunc("GET "+api+"/config/drivers", d.Drivers.Serve)
+	mux.HandleFunc("GET "+api+"/config/levels", d.Levels.Serve)
 	mux.HandleFunc("GET "+api+"/auth/config", d.AuthConfig.Serve)
 	mux.HandleFunc("POST "+api+"/auth/login", d.Login.Serve)
 	mux.HandleFunc("GET "+api+"/me", d.Me.Serve)
@@ -72,6 +73,12 @@ func newHandler(d app, cfg config.Config) http.Handler {
 	// Permissions: per-connection RBAC policy (users and groups), managed by
 	// global admins only.
 	mux.HandleFunc("GET "+api+"/config/members", d.Members.Serve)
+
+	// Users: the super admin's directory. There is no local user creation; a
+	// user is created by the env bootstrap or by signing in through OIDC.
+	mux.HandleFunc("GET "+api+"/users", d.UserList.Serve)
+	mux.HandleFunc("GET "+api+"/users/{subject}", d.UserGet.Serve)
+	mux.HandleFunc("PATCH "+api+"/users/{subject}", d.UserUpdate.Serve)
 	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/permissions", d.ListPermissions.Serve)
 	mux.HandleFunc("PUT "+api+"/engine/{engine}/connections/{name}/permissions", d.SetPermission.Serve)
 	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}/permissions", d.DeletePermission.Serve)

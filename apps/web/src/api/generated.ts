@@ -217,6 +217,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/external/v1/config/levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Access levels and their labels */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            levels?: components["schemas"]["metadata.LevelInfo"][];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/external/v1/config/members": {
         parameters: {
             query?: never;
@@ -2063,6 +2101,170 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/external/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List accounts (super admin only) */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description match subject or username */
+                    q?: string;
+                    /** @description all, active or disabled */
+                    status?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            users?: components["schemas"]["entity.User"][];
+                        };
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/external/v1/users/{subject}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One account with its access and activity (super admin only) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description user subject */
+                    subject: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["user.Detail"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Disable or re-enable an account (super admin only) */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description user subject */
+                    subject: string;
+                };
+                cookie?: never;
+            };
+            /** @description disabled */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["user.updateBody"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.User"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -2200,6 +2402,17 @@ export interface components {
             driver?: string;
             family?: string;
             label?: string;
+        };
+        "entity.AccessEvent": {
+            action?: string;
+            actor?: string;
+            at?: number;
+            connection?: string;
+            id?: string;
+            level?: string;
+            note?: string;
+            requestId?: string;
+            subject?: string;
         };
         "entity.Change": {
             affectedColumns?: string[];
@@ -2353,6 +2566,7 @@ export interface components {
             schema?: string;
         };
         "entity.User": {
+            createdAt?: number;
             disabled?: boolean;
             groups?: string[];
             lastLoginAt?: number;
@@ -2362,6 +2576,10 @@ export interface components {
         };
         "instance.passwordBody": {
             password?: string;
+        };
+        "metadata.LevelInfo": {
+            label?: string;
+            value?: string;
         };
         "permission.memberUser": {
             label?: string;
@@ -2375,6 +2593,20 @@ export interface components {
         "schema.opBody": {
             sql?: string;
             table?: string;
+        };
+        "user.Detail": {
+            access?: components["schemas"]["entity.Permission"][];
+            createdAt?: number;
+            disabled?: boolean;
+            events?: components["schemas"]["entity.AccessEvent"][];
+            groups?: string[];
+            lastLoginAt?: number;
+            subject: string;
+            super?: boolean;
+            username?: string;
+        };
+        "user.updateBody": {
+            disabled?: boolean;
         };
     };
     responses: never;

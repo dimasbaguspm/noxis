@@ -133,6 +133,31 @@
                 }
             }
         },
+        "/external/v1/config/levels": {
+            "get": {
+                "summary": "Access levels and their labels",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "levels": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/metadata.LevelInfo"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/external/v1/config/members": {
             "get": {
                 "summary": "The known groups and user accounts for permission editing",
@@ -2115,6 +2140,174 @@
                 }
             }
         },
+        "/external/v1/users": {
+            "get": {
+                "summary": "List accounts (super admin only)",
+                "parameters": [
+                    {
+                        "description": "match subject or username",
+                        "name": "q",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "all, active or disabled",
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "users": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/entity.User"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/external/v1/users/{subject}": {
+            "get": {
+                "summary": "One account with its access and activity (super admin only)",
+                "parameters": [
+                    {
+                        "description": "user subject",
+                        "name": "subject",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/user.Detail"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "summary": "Disable or re-enable an account (super admin only)",
+                "parameters": [
+                    {
+                        "description": "user subject",
+                        "name": "subject",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/user.updateBody"
+                            }
+                        }
+                    },
+                    "description": "disabled",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.User"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/healthz": {
             "get": {
                 "summary": "Liveness probe",
@@ -2342,6 +2535,38 @@
                         "type": "string"
                     },
                     "label": {
+                        "type": "string"
+                    }
+                }
+            },
+            "entity.AccessEvent": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string"
+                    },
+                    "actor": {
+                        "type": "string"
+                    },
+                    "at": {
+                        "type": "integer"
+                    },
+                    "connection": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "level": {
+                        "type": "string"
+                    },
+                    "note": {
+                        "type": "string"
+                    },
+                    "requestId": {
+                        "type": "string"
+                    },
+                    "subject": {
                         "type": "string"
                     }
                 }
@@ -2772,6 +2997,9 @@
                     "subject"
                 ],
                 "properties": {
+                    "createdAt": {
+                        "type": "integer"
+                    },
                     "disabled": {
                         "type": "boolean"
                     },
@@ -2799,6 +3027,17 @@
                 "type": "object",
                 "properties": {
                     "password": {
+                        "type": "string"
+                    }
+                }
+            },
+            "metadata.LevelInfo": {
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string"
+                    },
+                    "value": {
                         "type": "string"
                     }
                 }
@@ -2836,6 +3075,58 @@
                     },
                     "table": {
                         "type": "string"
+                    }
+                }
+            },
+            "user.Detail": {
+                "type": "object",
+                "required": [
+                    "subject"
+                ],
+                "properties": {
+                    "access": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/entity.Permission"
+                        }
+                    },
+                    "createdAt": {
+                        "type": "integer"
+                    },
+                    "disabled": {
+                        "type": "boolean"
+                    },
+                    "events": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/entity.AccessEvent"
+                        }
+                    },
+                    "groups": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "lastLoginAt": {
+                        "type": "integer"
+                    },
+                    "subject": {
+                        "type": "string"
+                    },
+                    "super": {
+                        "type": "boolean"
+                    },
+                    "username": {
+                        "type": "string"
+                    }
+                }
+            },
+            "user.updateBody": {
+                "type": "object",
+                "properties": {
+                    "disabled": {
+                        "type": "boolean"
                     }
                 }
             }
