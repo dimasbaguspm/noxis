@@ -69,7 +69,7 @@ type ChangeList struct {
 func (uc ChangeList) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	var changes []entity.Change
@@ -79,18 +79,18 @@ func (uc ChangeList) Serve(w http.ResponseWriter, r *http.Request) {
 	case interfaces.MongoModule:
 		changes, err = MongoChanges(uc).Run(r.Context())
 	default:
-		fail(w, unsupportedChangeFlow(mod))
+		uc.Fail(w, unsupportedChangeFlow(mod))
 		return
 	}
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	q := r.URL.Query()
 	changes = filterByConnection(changes, q.Get("connection"))
 	changes = filterByStatus(changes, q.Get("status"))
 	page, perPage := pagination.Params(q.Get("page"), q.Get("perPage"), constants.DefaultPageSize)
-	respond(w, map[string]any{
+	uc.Respond(w, map[string]any{
 		"changes": pagination.Slice(changes, page, perPage),
 		"total":   len(changes),
 	})
@@ -119,36 +119,36 @@ type ChangeSubmit struct {
 func (uc ChangeSubmit) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	switch m := mod.(type) {
 	case interfaces.SQLModule:
 		var ch entity.Change
-		if err := decode(r, &ch); err != nil {
-			fail(w, err)
+		if err := uc.Decode(r, &ch); err != nil {
+			uc.Fail(w, err)
 			return
 		}
 		out, err := SubmitChange(uc).Run(r.Context(), m, ch)
 		if err != nil {
-			fail(w, err)
+			uc.Fail(w, err)
 			return
 		}
-		respond(w, out)
+		uc.Respond(w, out)
 	case interfaces.MongoModule:
 		var body mongoChangeBody
-		if err := decode(r, &body); err != nil {
-			fail(w, err)
+		if err := uc.Decode(r, &body); err != nil {
+			uc.Fail(w, err)
 			return
 		}
 		out, err := SubmitMongoChange(uc).Run(r.Context(), m, body.Connection, body.Notes, body.MongoRequest)
 		if err != nil {
-			fail(w, err)
+			uc.Fail(w, err)
 			return
 		}
-		respond(w, out)
+		uc.Respond(w, out)
 	default:
-		fail(w, unsupportedChangeFlow(mod))
+		uc.Fail(w, unsupportedChangeFlow(mod))
 	}
 }
 
@@ -166,7 +166,7 @@ type ChangeGet struct {
 func (uc ChangeGet) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	var out *entity.Change
@@ -176,14 +176,14 @@ func (uc ChangeGet) Serve(w http.ResponseWriter, r *http.Request) {
 	case interfaces.MongoModule:
 		out, err = MongoChange(uc).Run(r.Context(), r.PathValue("id"))
 	default:
-		fail(w, unsupportedChangeFlow(mod))
+		uc.Fail(w, unsupportedChangeFlow(mod))
 		return
 	}
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }
 
 // ChangeApprove approves a validated change (self-approval allowed).
@@ -201,7 +201,7 @@ type ChangeApprove struct {
 func (uc ChangeApprove) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	switch mod.(type) {
@@ -210,19 +210,19 @@ func (uc ChangeApprove) Serve(w http.ResponseWriter, r *http.Request) {
 	case interfaces.MongoModule:
 		_, err = MongoChange(uc).Run(r.Context(), r.PathValue("id"))
 	default:
-		fail(w, unsupportedChangeFlow(mod))
+		uc.Fail(w, unsupportedChangeFlow(mod))
 		return
 	}
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	out, err := Approve(uc).Run(r.Context(), r.PathValue("id"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }
 
 // ChangeApply applies an approved change.
@@ -240,31 +240,31 @@ type ChangeApply struct {
 func (uc ChangeApply) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	id := r.PathValue("id")
 	switch m := mod.(type) {
 	case interfaces.SQLModule:
 		if _, err := (SQLChange(uc)).Run(r.Context(), id); err != nil {
-			fail(w, err)
+			uc.Fail(w, err)
 			return
 		}
 		out, err := Apply(uc).Run(r.Context(), m, id)
 		if err != nil {
-			fail(w, err)
+			uc.Fail(w, err)
 			return
 		}
-		respond(w, out)
+		uc.Respond(w, out)
 	case interfaces.MongoModule:
 		out, err := ApplyMongo(uc).Run(r.Context(), m, id)
 		if err != nil {
-			fail(w, err)
+			uc.Fail(w, err)
 			return
 		}
-		respond(w, out)
+		uc.Respond(w, out)
 	default:
-		fail(w, unsupportedChangeFlow(mod))
+		uc.Fail(w, unsupportedChangeFlow(mod))
 	}
 }
 
@@ -283,7 +283,7 @@ type ChangeReject struct {
 func (uc ChangeReject) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	switch mod.(type) {
@@ -292,19 +292,19 @@ func (uc ChangeReject) Serve(w http.ResponseWriter, r *http.Request) {
 	case interfaces.MongoModule:
 		_, err = MongoChange(uc).Run(r.Context(), r.PathValue("id"))
 	default:
-		fail(w, unsupportedChangeFlow(mod))
+		uc.Fail(w, unsupportedChangeFlow(mod))
 		return
 	}
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	out, err := Reject(uc).Run(r.Context(), r.PathValue("id"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }
 
 // scheduleBody is the schedule payload: unix seconds, 0 clears the schedule.
@@ -328,35 +328,35 @@ type ChangeSchedule struct {
 func (uc ChangeSchedule) Serve(w http.ResponseWriter, r *http.Request) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
 	var body scheduleBody
-	if err := decode(r, &body); err != nil {
-		fail(w, err)
+	if err := uc.Decode(r, &body); err != nil {
+		uc.Fail(w, err)
 		return
 	}
 	switch mod.(type) {
 	case interfaces.SQLModule:
 		if _, err := (SQLChange(uc)).Run(r.Context(), r.PathValue("id")); err != nil {
-			fail(w, err)
+			uc.Fail(w, err)
 			return
 		}
 	case interfaces.MongoModule:
 		if _, err := (MongoChange(uc)).Run(r.Context(), r.PathValue("id")); err != nil {
-			fail(w, err)
+			uc.Fail(w, err)
 			return
 		}
 	default:
-		fail(w, unsupportedChangeFlow(mod))
+		uc.Fail(w, unsupportedChangeFlow(mod))
 		return
 	}
 	out, err := Schedule(uc).Run(r.Context(), r.PathValue("id"), body.ScheduledAt)
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }
 
 // Tick applies every due scheduled change; the external scheduler drives it.
@@ -366,8 +366,8 @@ func (uc ChangeSchedule) Serve(w http.ResponseWriter, r *http.Request) {
 func (uc Tick) Serve(w http.ResponseWriter, r *http.Request) {
 	out, err := uc.Run(r.Context())
 	if err != nil {
-		fail(w, err)
+		uc.Fail(w, err)
 		return
 	}
-	respond(w, out)
+	uc.Respond(w, out)
 }

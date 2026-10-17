@@ -24,7 +24,7 @@ func (uc SubmitChange) Run(ctx context.Context, sq interfaces.SQLModule, ch enti
 	if err := ch.Validate(); err != nil {
 		return entity.Change{}, err
 	}
-	conn, err := rawConn(ctx, uc.Connections, uc.Permissions, uc.Modules, sq, ch.Connection, entity.LevelWrite)
+	conn, err := uc.RawConn(ctx, sq, ch.Connection, entity.LevelWrite)
 	if err != nil {
 		return entity.Change{}, err
 	}

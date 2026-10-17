@@ -16,7 +16,7 @@ type RotatePassword struct {
 func (uc RotatePassword) Run(ctx context.Context, id, password string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	if err := RequireAdmin(ctx); err != nil {
+	if err := uc.RequireAdmin(ctx); err != nil {
 		return err
 	}
 	if password == "" {

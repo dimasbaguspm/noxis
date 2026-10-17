@@ -20,7 +20,7 @@ func (uc SQLChanges) Run(ctx context.Context) (out []entity.Change, err error) {
 	if err != nil {
 		return nil, err
 	}
-	readable, err := readableConnections(ctx, uc.Connections, uc.Permissions)
+	readable, err := uc.ReadableConnections(ctx)
 	if err != nil {
 		return nil, err
 	}

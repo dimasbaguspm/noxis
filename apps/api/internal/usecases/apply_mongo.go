@@ -20,14 +20,14 @@ type ApplyMongo struct {
 func (uc ApplyMongo) Run(ctx context.Context, m interfaces.MongoModule, id string) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	ch, err := mongoChange(ctx, uc.Changes, uc.Permissions, id)
+	ch, err := mongoChange(ctx, uc.RegistryDeps, id)
 	if err != nil {
 		return entity.Change{}, err
 	}
 	if ch.Status != constants.ChangeApproved {
 		return *ch, fmt.Errorf("request is %s, not approved — cannot apply", ch.Status)
 	}
-	conn, err := rawConn(ctx, uc.Connections, uc.Permissions, uc.Modules, m, ch.Connection, entity.LevelAdmin)
+	conn, err := uc.RawConn(ctx, m, ch.Connection, entity.LevelAdmin)
 	if err != nil {
 		return entity.Change{}, err
 	}

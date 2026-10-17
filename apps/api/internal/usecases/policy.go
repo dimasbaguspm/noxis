@@ -1,9 +1,8 @@
-// Package usecases holds the business use cases of the noxis console, one
-// file per use case. The domain work is a Run core; its Serve(w, r) method
-// owns that route's HTTP and there is no separate handler package. A use case
-// stands alone: it carries only the repositories and modules its flow reads,
-// and never references another use case — shared steps are package helpers
-// (policy, raw, apply) that receive the deps as arguments.
+// Package usecases is the framework every use case embeds. RegistryDeps carries
+// the repositories and the module registry, and its methods are the shared
+// steps — RawConn, Authorize, RequireAdmin, CanRead, Respond, Fail — so a use
+// case reaches them statefully. Concrete use cases live in the domain
+// subpackages and never reference each other.
 package usecases
 
 import (
@@ -13,12 +12,11 @@ import (
 
 	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 )
 
 // RequireAdmin gates the management surfaces (connection CRUD, permissions).
 // The middleware guarantees a principal; a missing one is denied, not trusted.
-func RequireAdmin(ctx context.Context) error {
+func (d RegistryDeps) RequireAdmin(ctx context.Context) error {
 	if p, ok := Principal(ctx); ok && p.Admin {
 		return nil
 	}
@@ -33,14 +31,14 @@ func identities(p entity.Identity) []string {
 
 // EffectiveLevel is the strongest level the caller's identities hold on a
 // connection; "" when none matches.
-func EffectiveLevel(ctx context.Context, perms interfaces.PermissionRepository, connection string, identities []string) (string, error) {
-	list, err := perms.ListPermissions(ctx, connection)
+func (d RegistryDeps) EffectiveLevel(ctx context.Context, connection string, ids []string) (string, error) {
+	list, err := d.Permissions.ListPermissions(ctx, connection)
 	if err != nil {
 		return "", err
 	}
 	levels := make([]string, 0, len(list))
 	for _, p := range list {
-		if slices.Contains(identities, p.Member) {
+		if slices.Contains(ids, p.Member) {
 			levels = append(levels, p.Level)
 		}
 	}
@@ -49,7 +47,7 @@ func EffectiveLevel(ctx context.Context, perms interfaces.PermissionRepository, 
 
 // Authorize enforces need on a connection. Global admins pass without a
 // per-connection check; everyone else needs a matching permission.
-func Authorize(ctx context.Context, perms interfaces.PermissionRepository, connection, need string) error {
+func (d RegistryDeps) Authorize(ctx context.Context, connection, need string) error {
 	if need == "" {
 		return nil
 	}
@@ -57,7 +55,7 @@ func Authorize(ctx context.Context, perms interfaces.PermissionRepository, conne
 	if !ok || p.Admin {
 		return nil
 	}
-	level, err := EffectiveLevel(ctx, perms, connection, identities(p))
+	level, err := d.EffectiveLevel(ctx, connection, identities(p))
 	if err != nil {
 		return err
 	}
@@ -69,29 +67,29 @@ func Authorize(ctx context.Context, perms interfaces.PermissionRepository, conne
 
 // CanRead reports whether the caller may read a connection; used to hide
 // connections from listings rather than failing the whole list.
-func CanRead(ctx context.Context, perms interfaces.PermissionRepository, connection string) (bool, error) {
+func (d RegistryDeps) CanRead(ctx context.Context, connection string) (bool, error) {
 	p, ok := Principal(ctx)
 	if !ok || p.Admin {
 		return true, nil
 	}
-	level, err := EffectiveLevel(ctx, perms, connection, identities(p))
+	level, err := d.EffectiveLevel(ctx, connection, identities(p))
 	if err != nil {
 		return false, err
 	}
 	return entity.LevelAllows(level, entity.LevelRead), nil
 }
 
-// readableConnections is the set of connection names the caller may read, so
+// ReadableConnections is the set of connection names the caller may read, so
 // a change list can drop rows for connections the caller cannot see.
-func readableConnections(ctx context.Context, conns interfaces.ConnectionRepository, perms interfaces.PermissionRepository) (map[string]bool, error) {
-	list, err := conns.List(ctx)
+func (d RegistryDeps) ReadableConnections(ctx context.Context) (map[string]bool, error) {
+	list, err := d.Connections.List(ctx)
 	if err != nil {
 		return nil, err
 	}
 	out := make(map[string]bool, len(list))
 	for i := range list {
 		c := &list[i]
-		ok, err := CanRead(ctx, perms, c.Name)
+		ok, err := d.CanRead(ctx, c.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -102,7 +100,7 @@ func readableConnections(ctx context.Context, conns interfaces.ConnectionReposit
 
 // OpLevel is the level a direct SQL op requires. Everything that is not a
 // read is a write (ANALYZE mutates planner statistics).
-func OpLevel(operation string) string {
+func (d RegistryDeps) OpLevel(operation string) string {
 	if operation == constants.OpQuery {
 		return entity.LevelRead
 	}

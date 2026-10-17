@@ -21,8 +21,8 @@ func errFlushConfirm(name string) error {
 	return fmt.Errorf("flushing %s needs its name typed as confirmation", name)
 }
 
-// respond writes v as a JSON 200. A nil v writes an empty 200 body.
-func respond(w http.ResponseWriter, v any) {
+// Respond writes v as a JSON 200. A nil v writes an empty 200 body.
+func (d RegistryDeps) Respond(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	if v != nil {
@@ -30,16 +30,16 @@ func respond(w http.ResponseWriter, v any) {
 	}
 }
 
-// respondNoContent writes 204 for operations with an empty response.
-func respondNoContent(w http.ResponseWriter) { w.WriteHeader(http.StatusNoContent) }
+// RespondNoContent writes 204 for operations with an empty response.
+func (d RegistryDeps) RespondNoContent(w http.ResponseWriter) { w.WriteHeader(http.StatusNoContent) }
 
-// decode reads the request body as JSON into v.
-func decode(r *http.Request, v any) error { return json.NewDecoder(r.Body).Decode(v) }
+// Decode reads the request body as JSON into v.
+func (d RegistryDeps) Decode(r *http.Request, v any) error { return json.NewDecoder(r.Body).Decode(v) }
 
-// fail maps err to a status and writes the error envelope. It is the single
+// Fail maps err to a status and writes the error envelope. It is the single
 // place the API's errors become HTTP: a missing row and a missing engine both
 // read as "not here", bad credentials and a missing caller as 401.
-func fail(w http.ResponseWriter, err error) {
+func (d RegistryDeps) Fail(w http.ResponseWriter, err error) {
 	code := http.StatusBadRequest
 	switch {
 	case errors.Is(err, constants.ErrNotFound), errors.Is(err, constants.ErrUnsupported):

@@ -24,7 +24,7 @@ func (uc Instance) Run(ctx context.Context, id string) (out entity.Connection, e
 	if !ok {
 		return entity.Connection{}, constants.ErrUnsupported
 	}
-	readable, err := CanRead(ctx, uc.Permissions, c.Name)
+	readable, err := uc.CanRead(ctx, c.Name)
 	if err != nil {
 		return entity.Connection{}, err
 	}

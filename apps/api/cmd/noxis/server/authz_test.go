@@ -46,7 +46,7 @@ func TestAuthorizeByEffectiveLevel(t *testing.T) {
 	}
 	for _, tc := range cases {
 		ctx := asPrincipal(entity.Identity{Subject: "alice", Groups: tc.groups})
-		err := usecases.Authorize(ctx, base.Permissions, "demo", tc.need)
+		err := reg(base).Authorize(ctx, "demo", tc.need)
 		if tc.ok && err != nil {
 			t.Errorf("%s: err=%v want allowed", tc.name, err)
 		}
@@ -60,11 +60,11 @@ func TestAuthorizeByEffectiveLevel(t *testing.T) {
 // both bypass the per-connection check.
 func TestAuthorizeOpenModeAndAdmin(t *testing.T) {
 	base, _ := authzBase()
-	if err := usecases.Authorize(context.Background(), base.Permissions, "demo", entity.LevelAdmin); err != nil {
+	if err := reg(base).Authorize(context.Background(), "demo", entity.LevelAdmin); err != nil {
 		t.Fatalf("open mode: %v", err)
 	}
 	ctx := asPrincipal(entity.Identity{Subject: "root", Groups: []string{"whatever"}, Admin: true})
-	if err := usecases.Authorize(ctx, base.Permissions, "demo", entity.LevelAdmin); err != nil {
+	if err := reg(base).Authorize(ctx, "demo", entity.LevelAdmin); err != nil {
 		t.Fatalf("global admin: %v", err)
 	}
 }

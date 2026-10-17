@@ -14,7 +14,7 @@ type Members struct {
 
 // Serve returns the known groups and every account.
 func (uc Members) Run(ctx context.Context) (groups []string, users []entity.User, err error) {
-	if err := RequireAdmin(ctx); err != nil {
+	if err := uc.RequireAdmin(ctx); err != nil {
 		return nil, nil, err
 	}
 	groups, err = uc.Permissions.ListGroupNames(ctx)

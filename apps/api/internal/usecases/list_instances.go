@@ -38,7 +38,7 @@ func (uc ListInstances) Run(ctx context.Context, name, driver, host string) (out
 		if hostNeedle != "" && !strings.Contains(strings.ToLower(c.Host), hostNeedle) {
 			continue
 		}
-		readable, err := CanRead(ctx, uc.Permissions, c.Name)
+		readable, err := uc.CanRead(ctx, c.Name)
 		if err != nil {
 			return nil, err
 		}

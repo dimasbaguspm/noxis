@@ -30,7 +30,7 @@ func (uc ConnectionLevels) Run(ctx context.Context) (map[string]string, error) {
 			out[c.Name] = entity.LevelAdmin
 			continue
 		}
-		level, err := EffectiveLevel(ctx, uc.Permissions, c.Name, p.Groups)
+		level, err := uc.EffectiveLevel(ctx, c.Name, p.Groups)
 		if err != nil {
 			return nil, err
 		}

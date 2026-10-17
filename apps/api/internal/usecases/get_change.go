@@ -14,5 +14,5 @@ type SQLChange struct {
 
 // Serve runs it.
 func (uc SQLChange) Run(ctx context.Context, id string) (*entity.Change, error) {
-	return sqlChange(ctx, uc.Changes, uc.Permissions, id)
+	return sqlChange(ctx, uc.RegistryDeps, id)
 }

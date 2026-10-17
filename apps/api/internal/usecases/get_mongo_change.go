@@ -21,7 +21,7 @@ func (uc MongoChange) Run(ctx context.Context, id string) (*entity.Change, error
 	if ch.Kind != constants.KindMongo {
 		return nil, fmt.Errorf("change %s is %s, not a mongodb request", id, ch.Kind)
 	}
-	if err := Authorize(ctx, uc.Permissions, ch.Connection, entity.LevelRead); err != nil {
+	if err := uc.Authorize(ctx, ch.Connection, entity.LevelRead); err != nil {
 		return nil, err
 	}
 	return ch, nil

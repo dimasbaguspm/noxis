@@ -45,7 +45,7 @@ func (uc Tick) Run(ctx context.Context) (res TickResult, err error) {
 		if !dueChange(all[i], now) {
 			continue
 		}
-		if _, err := applyChange(ctx, uc.Changes, uc.Connections, uc.Permissions, uc.Modules, all[i]); err != nil {
+		if _, err := applyChange(ctx, uc.RegistryDeps, all[i]); err != nil {
 			res.Failed = append(res.Failed, all[i].ID)
 			continue
 		}
