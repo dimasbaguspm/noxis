@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight, GalleryVerticalEnd, LayoutDashboard, UsersRound } from "lucide-react";
+import { ChevronRight, LayoutDashboard, UsersRound } from "lucide-react";
+import { LogoMark } from "@/components/brand/logo-mark";
 import { cn } from "@/lib/utils";
 import { FAMILIES, type Family } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
@@ -39,7 +40,7 @@ function SiteTitle() {
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton render={<Link to="/" />} size="lg" className="data-[slot=sidebar-menu-button]:p-1.5!">
-            <GalleryVerticalEnd className="size-5!" />
+            <LogoMark className="size-5 shrink-0" />
             <span className="text-base font-semibold">noXis</span>
             <span className="ml-auto text-xs text-muted-foreground">{VERSION}</span>
           </SidebarMenuButton>
