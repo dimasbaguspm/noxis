@@ -33,11 +33,22 @@ func TestUAT(t *testing.T) {
 		},
 		TestSuiteInitializer: func(ctx *godog.TestSuiteContext) {
 			ctx.BeforeSuite(func() {
+				if envTrue("UAT_STUB") {
+					// Offline replay: the compose file is still the source for the base
+					// URL and targets, but no stack comes up.
+					if err := loadTargets(); err != nil {
+						t.Fatalf("load targets: %v", err)
+					}
+					return
+				}
 				if err := stackUp(); err != nil {
 					t.Fatalf("stack up: %v", err)
 				}
 			})
 			ctx.AfterSuite(func() {
+				if envTrue("UAT_STUB") {
+					return
+				}
 				stackDown()
 			})
 		},

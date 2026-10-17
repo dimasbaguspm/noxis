@@ -51,11 +51,31 @@ type Client struct {
 	Headers map[string]string
 	Jar     http.CookieJar
 	HTTP    *http.Client
+	Stub    *Stub
 }
 
-// Send performs r and captures the response. A JSON content type is set for a
-// body unless a header overrides it.
+// Send performs r, or serves it from the stub store when one is attached. With
+// Stub.Record the live response is written to the store first.
 func (c *Client) Send(r Request) (Response, error) {
+	if c.Stub != nil {
+		if !c.Stub.Record {
+			return c.Stub.replay(r)
+		}
+		resp, err := c.doSend(r)
+		if err != nil {
+			return Response{}, err
+		}
+		if err := c.Stub.record(r, resp); err != nil {
+			return Response{}, err
+		}
+		return resp, nil
+	}
+	return c.doSend(r)
+}
+
+// doSend performs r and captures the response. A JSON content type is set for a
+// body unless a header overrides it.
+func (c *Client) doSend(r Request) (Response, error) {
 	var body io.Reader
 	if r.Body != nil {
 		body = bytes.NewReader(r.Body)
