@@ -17,10 +17,12 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	otellog "go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/propagation"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
@@ -37,8 +39,9 @@ const (
 
 // Signal paths the OTLP/HTTP exporters post to.
 const (
-	pathTraces = "/v1/traces"
-	pathLogs   = "/v1/logs"
+	pathTraces  = "/v1/traces"
+	pathLogs    = "/v1/logs"
+	pathMetrics = "/v1/metrics"
 )
 
 // Shutdown flushes telemetry; call on process exit.
@@ -94,13 +97,24 @@ func New(ctx context.Context, otlp OTLP) (*slog.Logger, Shutdown, error) {
 		sdklog.WithResource(res),
 	)
 
+	// Metrics share the collector and its cadence.
+	metricExp, err := otlpmetrichttp.New(ctx, otlpmetrichttp.WithEndpointURL(signalURL(otlp.Collector, pathMetrics)))
+	if err != nil {
+		return nil, nil, fmt.Errorf("otel metric exporter: %w", err)
+	}
+	mp := sdkmetric.NewMeterProvider(
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExp)),
+		sdkmetric.WithResource(res),
+	)
+	otel.SetMeterProvider(mp)
+
 	// With a collector configured, records go there and not to stdout.
 	logger := slog.New(&otelHandler{logger: lp.Logger(service)})
 	slog.SetDefault(logger)
 
 	logger.InfoContext(ctx, "telemetry connected", attrCollector, otlp.Collector, attrService, service)
 	return logger, func(ctx context.Context) error {
-		return errors.Join(tp.Shutdown(ctx), lp.Shutdown(ctx))
+		return errors.Join(tp.Shutdown(ctx), lp.Shutdown(ctx), mp.Shutdown(ctx))
 	}, nil
 }
 

@@ -3,6 +3,7 @@ package usecases
 import (
 	"time"
 
+	"noxis/internal/common/metrics"
 	"noxis/internal/constants"
 	"noxis/internal/modules"
 	"noxis/internal/repositories"
@@ -15,6 +16,9 @@ import (
 type RegistryDeps struct {
 	repositories.Registry
 	Modules modules.Registry
+	// Metrics records the catalog's instruments. A nil value is a no-op, so a
+	// use case built by hand in a test needs no instrumentation.
+	Metrics *metrics.Metrics
 	// AccessTTL is how long a per-connection grant lasts. Zero falls back to
 	// constants.AccessGrantTTL, so a hand-built dep in a test still works.
 	AccessTTL time.Duration

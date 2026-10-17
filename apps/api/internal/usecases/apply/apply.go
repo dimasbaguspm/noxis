@@ -126,6 +126,8 @@ func applyMongo(ctx context.Context, d usecases.RegistryDeps, m interfaces.Mongo
 
 // applyChange resolves a change's engine from its connection's driver and
 // applies it through the matching family, so the scheduler is family-agnostic.
+// It is the one place a change is applied, so it is where the outcome is
+// counted.
 func applyChange(ctx context.Context, d usecases.RegistryDeps, ch entity.Change) (entity.Change, error) {
 	conn, err := d.Connections.Get(ctx, ch.Connection)
 	if err != nil {
@@ -135,13 +137,21 @@ func applyChange(ctx context.Context, d usecases.RegistryDeps, ch entity.Change)
 	if !ok {
 		return ch, fmt.Errorf("no engine serves driver %q", conn.Driver)
 	}
+	var out entity.Change
 	switch m := mod.(type) {
 	case interfaces.SQLModule:
-		return applySQL(ctx, d, m, ch.ID)
+		out, err = applySQL(ctx, d, m, ch.ID)
 	case interfaces.MongoModule:
-		return applyMongo(ctx, d, m, ch.ID)
+		out, err = applyMongo(ctx, d, m, ch.ID)
+	default:
+		return ch, fmt.Errorf("driver %q cannot be applied", conn.Driver)
 	}
-	return ch, fmt.Errorf("driver %q cannot be applied", conn.Driver)
+	if err != nil {
+		d.Metrics.ChangeFailed(ctx, conn.Family, "apply")
+		return out, err
+	}
+	d.Metrics.ChangeApplied(ctx, conn.Family)
+	return out, nil
 }
 
 // TickResult is one scheduler pass: the ids it applied and the ids it failed
@@ -183,5 +193,10 @@ func (uc Tick) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 		res.Applied = append(res.Applied, all[i].ID)
 	}
+	status := "ok"
+	if len(res.Failed) > 0 {
+		status = "failed"
+	}
+	uc.Metrics.SchedulerTick(ctx, status)
 	uc.Respond(w, res)
 }

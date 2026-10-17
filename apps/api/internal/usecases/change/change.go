@@ -163,6 +163,7 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 			uc.Fail(w, err)
 			return
 		}
+		uc.Metrics.ChangeSubmitted(ctx, mod.Family(), r.PathValue("engine"))
 		uc.Respond(w, out)
 	case interfaces.MongoModule:
 		var body mongoChangeBody
@@ -175,6 +176,7 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 			uc.Fail(w, err)
 			return
 		}
+		uc.Metrics.ChangeSubmitted(ctx, mod.Family(), r.PathValue("engine"))
 		uc.Respond(w, out)
 	default:
 		uc.Fail(w, unsupportedChangeFlow(mod))

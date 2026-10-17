@@ -1,9 +1,17 @@
 package server
 
 import (
+	"context"
+	"log/slog"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+
 	"noxis/internal/common/config"
+	"noxis/internal/common/metrics"
+	"noxis/internal/constants"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules"
 	"noxis/internal/repositories"
@@ -101,6 +109,13 @@ type app struct {
 // newApp builds every use case from s. It is the single place the use cases
 // are constructed.
 func newApp(s sources) app {
+	// Instruments come from the global meter provider the logger setup
+	// registered; without a collector every instrument is a no-op.
+	m, err := metrics.New(otel.Meter(metrics.Scope))
+	if err != nil {
+		slog.Error("metric instruments", "error", err)
+	}
+
 	deps := usecases.RegistryDeps{
 		Registry: repositories.Registry{
 			Connections:    s.Connections,
@@ -112,7 +127,9 @@ func newApp(s sources) app {
 		},
 		Modules:   s.Modules,
 		AccessTTL: s.AccessTTL,
+		Metrics:   m,
 	}
+	registerConnectionGauge(m, s.Connections)
 	return app{
 		Modules: s.Modules,
 		Auth:    s.Auth,
@@ -171,5 +188,34 @@ func newApp(s sources) app {
 
 		ChangeApply: apply.Apply{RegistryDeps: deps},
 		Tick:        apply.Tick{RegistryDeps: deps},
+	}
+}
+
+// registerConnectionGauge reports how many connections exist per family and
+// driver, sampled on the collector's cadence. The callback lives here because
+// it needs the repository, which the instrument builder does not have.
+func registerConnectionGauge(m *metrics.Metrics, connections interfaces.ConnectionRepository) {
+	if m == nil {
+		return
+	}
+	_, err := otel.Meter(metrics.Scope).RegisterCallback(func(ctx context.Context, o metric.Observer) error {
+		list, err := connections.List(ctx)
+		if err != nil {
+			return err
+		}
+		counts := map[[2]string]int64{}
+		for i := range list {
+			counts[[2]string{list[i].Family, list[i].Driver}]++
+		}
+		for key, n := range counts {
+			o.ObserveInt64(m.Connections, n, metric.WithAttributes(
+				attribute.String(constants.LabelFamily, key[0]),
+				attribute.String(constants.LabelDriver, key[1]),
+			))
+		}
+		return nil
+	}, m.Connections)
+	if err != nil {
+		slog.Error("connection gauge", "error", err)
 	}
 }
