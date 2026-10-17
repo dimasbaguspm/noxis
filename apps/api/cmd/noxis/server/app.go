@@ -8,6 +8,7 @@ import (
 	"noxis/internal/modules"
 	"noxis/internal/repositories"
 	"noxis/internal/usecases"
+	"noxis/internal/usecases/access"
 	"noxis/internal/usecases/apply"
 	"noxis/internal/usecases/auth"
 	"noxis/internal/usecases/cache"
@@ -25,14 +26,15 @@ import (
 // sources are the seams the composition root builds the use cases from. They
 // are interfaces, so a test can hand in fakes without a store or an HTTP stack.
 type sources struct {
-	Connections  interfaces.ConnectionRepository
-	Changes      interfaces.ChangeRepository
-	Permissions  interfaces.PermissionRepository
-	Users        interfaces.UserRepository
-	AccessEvents interfaces.AccessEventRepository
-	Modules      modules.Registry
-	Auth         config.AuthInfo
-	AccessTTL    time.Duration
+	Connections    interfaces.ConnectionRepository
+	Changes        interfaces.ChangeRepository
+	Permissions    interfaces.PermissionRepository
+	Users          interfaces.UserRepository
+	AccessEvents   interfaces.AccessEventRepository
+	AccessRequests interfaces.AccessRequestRepository
+	Modules        modules.Registry
+	Auth           config.AuthInfo
+	AccessTTL      time.Duration
 }
 
 // app is the composition root: every use case built once, explicitly.
@@ -69,6 +71,11 @@ type app struct {
 	UserGet    user.Get
 	UserUpdate user.Update
 
+	AccessCreate  access.Create
+	AccessList    access.List
+	AccessApprove access.Approve
+	AccessReject  access.Reject
+
 	Drivers   driver.Drivers
 	Levels    metadata.Levels
 	CacheKeys cache.Keys
@@ -96,11 +103,12 @@ type app struct {
 func newApp(s sources) app {
 	deps := usecases.RegistryDeps{
 		Registry: repositories.Registry{
-			Connections:  s.Connections,
-			Changes:      s.Changes,
-			Permissions:  s.Permissions,
-			Users:        s.Users,
-			AccessEvents: s.AccessEvents,
+			Connections:    s.Connections,
+			Changes:        s.Changes,
+			Permissions:    s.Permissions,
+			Users:          s.Users,
+			AccessEvents:   s.AccessEvents,
+			AccessRequests: s.AccessRequests,
 		},
 		Modules:   s.Modules,
 		AccessTTL: s.AccessTTL,
@@ -137,6 +145,11 @@ func newApp(s sources) app {
 		UserList:   user.List{RegistryDeps: deps},
 		UserGet:    user.Get{RegistryDeps: deps},
 		UserUpdate: user.Update{RegistryDeps: deps},
+
+		AccessCreate:  access.Create{RegistryDeps: deps},
+		AccessList:    access.List{RegistryDeps: deps},
+		AccessApprove: access.Approve{RegistryDeps: deps},
+		AccessReject:  access.Reject{RegistryDeps: deps},
 
 		Drivers:   driver.Drivers{RegistryDeps: deps},
 		Levels:    metadata.Levels{RegistryDeps: deps},

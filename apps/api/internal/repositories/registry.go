@@ -9,9 +9,10 @@ import "noxis/internal/interfaces"
 // embedded in use cases (via usecases.RegistryDeps) so a use case reaches its
 // repositories as promoted fields: uc.Connections, uc.Changes, uc.Users.
 type Registry struct {
-	Connections interfaces.ConnectionRepository
-	Changes     interfaces.ChangeRepository
-	Permissions interfaces.PermissionRepository
-	Users       interfaces.UserRepository
-	AccessEvents interfaces.AccessEventRepository
+	Connections    interfaces.ConnectionRepository
+	Changes        interfaces.ChangeRepository
+	Permissions    interfaces.PermissionRepository
+	Users          interfaces.UserRepository
+	AccessEvents   interfaces.AccessEventRepository
+	AccessRequests interfaces.AccessRequestRepository
 }

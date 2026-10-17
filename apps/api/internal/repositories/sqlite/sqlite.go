@@ -27,10 +27,10 @@ type Store struct {
 
 // Satisfiers.
 var (
-	_ interfaces.ConnectionRepository = (*Store)(nil)
-	_ interfaces.ChangeRepository     = (*Store)(nil)
-	_ interfaces.PermissionRepository = (*Store)(nil)
-	_ interfaces.UserRepository       = (*Store)(nil)
+	_ interfaces.ConnectionRepository  = (*Store)(nil)
+	_ interfaces.ChangeRepository      = (*Store)(nil)
+	_ interfaces.PermissionRepository  = (*Store)(nil)
+	_ interfaces.UserRepository        = (*Store)(nil)
 	_ interfaces.AccessEventRepository = (*Store)(nil)
 )
 
@@ -155,6 +155,20 @@ var migrations = []string{
 	`ALTER TABLE permissions ADD COLUMN created_by TEXT NOT NULL DEFAULT ''`,
 	`ALTER TABLE permissions ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE permissions ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
+	`CREATE TABLE IF NOT EXISTS access_requests (
+	  id            TEXT PRIMARY KEY,
+	  subject       TEXT NOT NULL,
+	  connection    TEXT NOT NULL,
+	  level         TEXT NOT NULL,
+	  reason        TEXT NOT NULL DEFAULT '',
+	  status        TEXT NOT NULL,
+	  requested_at  INTEGER NOT NULL,
+	  decided_by    TEXT NOT NULL DEFAULT '',
+	  decided_at    INTEGER NOT NULL DEFAULT 0,
+	  decision_note TEXT NOT NULL DEFAULT '',
+	  expires_at    INTEGER NOT NULL DEFAULT 0
+	)`,
+	`CREATE INDEX IF NOT EXISTS access_requests_pending ON access_requests(status, connection)`,
 	`CREATE TABLE IF NOT EXISTS access_events (
 	  id         TEXT PRIMARY KEY,
 	  at         INTEGER NOT NULL,
