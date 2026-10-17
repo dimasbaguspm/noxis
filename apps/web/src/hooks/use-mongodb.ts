@@ -1,11 +1,32 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, type MongoChangeInput } from "@/lib/api";
 import { useConnections } from "@/hooks/use-connections";
+import { useUrlState } from "@/hooks/use-url-state";
 import { FAMILY } from "@/lib/families";
 import { queryClient, queryKeys } from "@/lib/query-client";
 
 // useMongoConnections reads the MongoDB list from the cached instances query,
 // so the dashboard and these pages never disagree.
+export type MongoView = "json" | "raw" | "tree";
+const MONGO_DEFAULTS = { database: "", collection: "", filter: "{}", view: "json" };
+
+// useMongoUrlParams is the explore page's selection, kept in the URL: database,
+// collection, filter and view. Changing the database or collection resets the
+// filter, so a new target starts from an empty read.
+export function useMongoUrlParams() {
+  const [state, patch] = useUrlState(MONGO_DEFAULTS);
+  return {
+    database: state.database || undefined,
+    collection: state.collection || undefined,
+    filter: state.filter,
+    view: state.view as MongoView,
+    setDatabase: (value?: string) => patch({ database: value ?? "", collection: "", filter: "{}" }),
+    setCollection: (value?: string) => patch({ collection: value ?? "", filter: "{}" }),
+    setFilter: (value: string) => patch({ filter: value }),
+    setView: (value: MongoView) => patch({ view: value }),
+  };
+}
+
 export function useMongoConnections() {
   const { connections, active, setActive, busy, reload } = useConnections(FAMILY.MONGODB);
   return { connections, connection: active, pick: setActive, busy, reload };

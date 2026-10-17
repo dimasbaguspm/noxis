@@ -1,6 +1,24 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useUrlState } from "@/hooks/use-url-state";
 import { api, type InstanceQuery } from "@/lib/api";
 import { queryClient, queryKeys } from "@/lib/query-client";
+
+export const ALL_DRIVERS = "all";
+const INSTANCE_DEFAULTS = { q: "", driver: ALL_DRIVERS, page: "1" };
+
+// useInstancesUrlParams is the dashboard's filter state, kept in the URL: search,
+// driver and page. Changing a filter starts back at page one.
+export function useInstancesUrlParams() {
+  const [state, patch] = useUrlState(INSTANCE_DEFAULTS);
+  return {
+    q: state.q,
+    driver: state.driver,
+    page: Number(state.page),
+    setQ: (value: string) => patch({ q: value, page: "1" }),
+    setDriver: (value: string) => patch({ driver: value, page: "1" }),
+    setPage: (value: number) => patch({ page: String(value) }),
+  };
+}
 
 // usePagedInstancesQuery is the cross-family instance list (dashboard + the
 // global registry reads), paged with the same params the API exposes.
