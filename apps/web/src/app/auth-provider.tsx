@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, type Identity, type Level } from "@/lib/api";
 import { accessToken, initAuth, loadAuthConfig, signout as doSignout } from "@/lib/auth";
+import { beginTracing, setUser } from "@/lib/tracing";
 
 // AuthProvider owns the auth bootstrap (local account and/or OIDC) and the
 // console's permission view. The server is the enforcement point either way;
@@ -45,7 +46,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = await accessToken();
       if (token) {
         try {
-          setIdentity(await api.me());
+          const identity = await api.me();
+          setIdentity(identity);
+          setUser(identity.sub);
+          // browser tracing is optional: a missing endpoint or a failed lookup
+          // must never block sign-in
+          const tracing = await api.config.tracing().catch(() => ({ endpoint: undefined }));
+          beginTracing(tracing.endpoint);
           setAuthenticated(true);
         } catch {
           /* request() sends a 401 to the login page */
