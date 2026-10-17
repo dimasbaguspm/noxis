@@ -18,6 +18,7 @@ import { useMongoCollectionsQuery, useMongoConnections, useMongoDatabasesQuery, 
 import type { Change } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
+import { H2 } from "@/components/ui/typography";
 
 // Write ops only: reads belong in Explore, and the queue refuses them.
 const WRITES = [
@@ -327,7 +328,7 @@ export default function MongoRequestNewPage() {
 
             {failure && (
               <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3">
-                <p className="text-sm font-medium text-destructive">validation failed, nothing was recorded</p>
+                <H2 className="text-destructive">validation failed, nothing was recorded</H2>
                 <ul className="mt-1.5 grid gap-1 text-xs">
                   {(failure.checks ?? []).map((check) => (
                     <li key={check.target} className={cn(check.ok ? "text-muted-foreground" : "text-destructive")}>

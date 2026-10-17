@@ -10,6 +10,7 @@ import { useAuth } from "@/app/auth-provider";
 import { useLevelsQuery } from "@/hooks/use-config";
 import { useSetUserDisabled, useUserQuery } from "@/hooks/use-users";
 import { formatDateTime, grantExpiry } from "@/lib/dates";
+import { H1, P } from "@/components/ui/typography";
 
 // UserDetailPage is the super admin's view of one account: identity, the access
 // it holds directly or through a group, and the activity trail.
@@ -38,8 +39,8 @@ export default function UserDetailPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-base font-medium">{user.username || user.subject}</h1>
-          <p className="font-mono text-xs text-muted-foreground">{user.subject}</p>
+          <H1>{user.username || user.subject}</H1>
+          <P className="font-mono">{user.subject}</P>
         </div>
         <div className="flex items-center gap-2">
           {user.super ? <Badge variant="success">Super</Badge> : <Badge variant="secondary">Member</Badge>}

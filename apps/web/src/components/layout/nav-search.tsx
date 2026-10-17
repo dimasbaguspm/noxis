@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { NAV, findNav, type NavItem } from "@/lib/nav";
 import { cn } from "@/lib/utils";
+import { P } from "@/components/ui/typography";
 
 interface Entry {
   group?: string;
@@ -108,7 +109,7 @@ export function NavSearch() {
 
         <div ref={list} className="max-h-80 overflow-auto p-2">
           {matches.length === 0 && (
-            <p className="px-2 py-3 text-sm text-muted-foreground">no page matches “{filter}”</p>
+            <P size="sm" className="px-2 py-3">no page matches “{filter}”</P>
           )}
           {matches.map((entry, i) => {
             const active = entry.item.to === current.item?.to;

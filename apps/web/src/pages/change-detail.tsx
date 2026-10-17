@@ -46,6 +46,7 @@ import {
 import type { Change } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
+import { P } from "@/components/ui/typography";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   validated: "secondary",
@@ -249,9 +250,9 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
                 <Metric label={title("rows affected")} value={change.appliedAt ? String(change.appliedAffected ?? 0) : "—"} />
               </div>
               <Separator />
-              <p className="text-xs text-muted-foreground">
+              <P>
                 Rejected changes stay in the queue as artifacts. Nothing is deleted.
-              </p>
+              </P>
             </CardContent>
           </Card>
         </div>
@@ -363,7 +364,7 @@ function Unavailable({ kind, id }: { kind: ChangeKind; id: string }) {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-1.5">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <P className="font-medium">{label}</P>
       {children}
     </div>
   );
@@ -380,7 +381,7 @@ function Identifiers({
 }) {
   return (
     <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <P>{label}</P>
       <div className="mt-0.5 flex flex-wrap gap-1">
         {(values ?? []).length === 0 ? (
           <span className="text-muted-foreground">—</span>
@@ -399,7 +400,7 @@ function Identifiers({
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <P>{label}</P>
       <p className="font-medium tabular-nums">{value}</p>
     </div>
   );

@@ -33,6 +33,7 @@ import {
   useRemoveKeysMutation,
 } from "@/hooks/use-memcache";
 import { cn } from "@/lib/utils";
+import { P } from "@/components/ui/typography";
 
 type SortKey = "name" | "type" | "ttl" | "size";
 
@@ -265,7 +266,7 @@ export default function MemcachePage() {
           </DialogHeader>
           <div className="max-h-[60svh] overflow-auto">
             {valueLoading ? (
-              <p className="text-sm text-muted-foreground">loading…</p>
+              <P size="sm">loading…</P>
             ) : (
               <ResultTable result={result} title={inspected ?? "value"} />
             )}

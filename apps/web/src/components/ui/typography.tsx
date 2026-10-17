@@ -12,6 +12,11 @@ export function H2({ className, ...props }: ComponentProps<"h2">) {
   return <h2 className={cn("text-sm font-medium", className)} {...props} />;
 }
 
-export function P({ className, ...props }: ComponentProps<"p">) {
-  return <p className={cn("text-xs text-muted-foreground", className)} {...props} />;
+export function P({ className, size = "xs", ...props }: ComponentProps<"p"> & { size?: "xs" | "sm" }) {
+  return (
+    <p
+      className={cn(size === "sm" ? "text-sm text-muted-foreground" : "text-xs text-muted-foreground", className)}
+      {...props}
+    />
+  );
 }

@@ -24,6 +24,7 @@ import { SqlEditor } from "@/components/sql/sql-editor";
 import { useConnectionSelection } from "@/hooks/use-connection";
 import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { classify } from "@/lib/statements";
+import { P } from "@/components/ui/typography";
 
 const submitSchema = z.object({
   notes: z.string().trim().min(1, "notes are required"),
@@ -180,9 +181,9 @@ export function ChangeSubmitDialog({
         </SheetBody>
 
         <SheetFooter className="items-center">
-            <p className="mr-auto text-xs text-muted-foreground">
+            <P className="mr-auto">
               validation runs on submit: syntax and dry run against the instance
-            </p>
+            </P>
             <Button type="submit" form="submit-change" disabled={busy}>
               Submit for review
             </Button>

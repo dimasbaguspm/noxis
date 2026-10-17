@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { downloadCSV, toCSV } from "@/lib/csv";
 import type { Result } from "@/lib/api";
+import { P } from "@/components/ui/typography";
 
 // ResultTable renders a query grid and can export it as CSV.
 export function ResultTable({ result, title = "result" }: { result: Result | null; title?: string }) {
   if (!result) {
-    return <p className="text-sm text-muted-foreground">{startCase("nothing to show yet")}</p>;
+    return <P size="sm">{startCase("nothing to show yet")}</P>;
   }
 
   const columns = result.columns ?? [];
@@ -17,13 +18,13 @@ export function ResultTable({ result, title = "result" }: { result: Result | nul
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-2">
       <div className="flex min-w-0 items-center gap-2">
-        <p className="flex min-w-0 flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
+        <P className="flex min-w-0 flex-wrap items-center gap-x-3">
           <span className="break-words">{result.message}</span>
           <span>{startCase("duration")}: {result.durationMs ?? 0} ms</span>
           {(result.rowsReturned ?? 0) > 0 && <span>{startCase("returned")}: {result.rowsReturned}</span>}
           {(result.affected ?? 0) > 0 && <span>{startCase("affected")}: {result.affected}</span>}
           {(result.estimatedRows ?? 0) > 0 && <span>{startCase("plan rows")}: ~{result.estimatedRows}</span>}
-        </p>
+        </P>
         <span className="flex-1" />
         {columns.length > 0 && (
           <Button

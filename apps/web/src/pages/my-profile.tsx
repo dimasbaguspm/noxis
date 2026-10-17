@@ -6,6 +6,7 @@ import { Empty } from "@/components/ui/empty";
 import { useAuth } from "@/app/auth-provider";
 import { formatDateTime } from "@/lib/dates";
 import { PAGE_ROUTES } from "@/lib/routes";
+import { H1, P } from "@/components/ui/typography";
 
 // MyProfilePage is the signed-in account: who you are, your role and groups,
 // and the shortcuts to your own settings and access.
@@ -26,8 +27,8 @@ export default function MyProfilePage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-base font-medium">My profile</h1>
-        <p className="text-xs text-muted-foreground">The account you are signed in with.</p>
+        <H1>My profile</H1>
+        <P>The account you are signed in with.</P>
       </div>
 
       <Card>

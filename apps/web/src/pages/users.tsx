@@ -10,6 +10,7 @@ import { useAuth } from "@/app/auth-provider";
 import { useUsersQuery, useUsersUrlParams } from "@/hooks/use-users";
 import { formatDateTime } from "@/lib/dates";
 import { PAGE_ROUTES } from "@/lib/routes";
+import { H1, P } from "@/components/ui/typography";
 
 // UsersPage is the super admin's directory: every account, filterable by a
 // search term and status. The filters live in the URL, so a filtered view can
@@ -36,10 +37,10 @@ export default function UsersPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-base font-medium">Users</h1>
-        <p className="text-xs text-muted-foreground">
+        <H1>Users</H1>
+        <P>
           Every account that can sign in, its role, and when it was last seen.
-        </p>
+        </P>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

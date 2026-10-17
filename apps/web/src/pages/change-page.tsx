@@ -12,6 +12,7 @@ import { FAMILY } from "@/lib/families";
 import { CreateChangeSheet } from "@/components/changes/create-change-sheet";
 import { ChangeTable } from "@/components/changes/change-table";
 import { useChangeListQuery, useChangeListUrlParams, useSubmitChangeMutation, type ChangeKind } from "@/hooks/use-changes";
+import { H2 } from "@/components/ui/typography";
 
 const PER_PAGE = 20;
 const STATUS_OPTIONS = ["unverified", "validated", "approved", "applied", "failed", "rejected"];
@@ -82,7 +83,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
       <Card>
         <CardContent className="flex flex-col gap-3 pt-4">
           <div className="flex flex-wrap items-baseline gap-2">
-            <h2 className="text-sm font-medium">{label} changes</h2>
+            <H2>{label} changes</H2>
             <span className="flex-1" />
             <span className="text-xs text-muted-foreground tabular-nums">{total}</span>
           </div>

@@ -29,6 +29,7 @@ import { api } from "@/lib/api";
 import { queryClient } from "@/lib/query-client";
 import { FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
+import { P } from "@/components/ui/typography";
 
 // InstanceDetailPage is the cross-family home of one instance: its common
 // information and the lifecycle actions. The changes for an instance live on
@@ -194,9 +195,9 @@ export default function InstanceDetailPage() {
               {instance.createdBy ? ` · by ${instance.createdBy}` : ""}
             </dd>
           </dl>
-          <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
+          <P className="mt-4 border-t border-border pt-3">
             Driver, host, database and user are fixed once registered. Only the password can be rotated.
-          </p>
+          </P>
           {isSuper && (
             <div className="mt-3">
               <Button size="sm" variant="outline" onClick={() => setRotateOpen(true)}>

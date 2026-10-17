@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/app/auth-provider";
 import { localLogin, signin } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { H1 } from "@/components/ui/typography";
 
 const credentialsSchema = z.object({
   username: z.string().trim().min(1, "username is required"),
@@ -53,7 +54,7 @@ export default function LoginPage({ className, ...props }: React.ComponentProps<
             </div>
             <span className="sr-only">noXis</span>
           </a>
-          <h1 className="text-xl font-bold">Welcome to noXis</h1>
+          <H1 className="text-xl font-bold">Welcome to noXis</H1>
           <FieldDescription>
             {localEnabled
               ? "Sign in with your account."
