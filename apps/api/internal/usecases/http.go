@@ -1,10 +1,13 @@
 package usecases
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 )
@@ -26,7 +29,8 @@ func (d RegistryDeps) Decode(r *http.Request, v any) error { return json.NewDeco
 
 // Fail maps err to a status and writes the error envelope. It is the single
 // place the API's errors become HTTP: a missing row and a missing engine both
-// read as "not here", bad credentials and a missing caller as 401.
+// read as "not here", bad credentials and a missing caller as 401. Being the
+// one exit for failures, it is also where they are counted.
 func (d RegistryDeps) Fail(w http.ResponseWriter, err error) {
 	code := http.StatusBadRequest
 	switch {
@@ -37,6 +41,8 @@ func (d RegistryDeps) Fail(w http.ResponseWriter, err error) {
 	case errors.Is(err, constants.ErrForbidden):
 		code = http.StatusForbidden
 	}
+	// The use case is the caller of Fail; the status is what the client saw.
+	d.Metrics.UsecaseError(context.Background(), logging.CallerName(1), strconv.Itoa(code))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(entity.ErrorResponse{Error: err.Error()})

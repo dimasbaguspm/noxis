@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"noxis/internal/constants"
 	"noxis/internal/entity"
@@ -118,38 +119,27 @@ func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
+	start := time.Now()
+	var out any
 	switch operation {
 	case constants.OpQuery:
-		res, err := sq.Query(ctx, *c, body.SQL)
-		if err != nil {
-			uc.Fail(w, err)
-			return
-		}
-		uc.Respond(w, res)
+		out, err = sq.Query(ctx, *c, body.SQL)
 	case constants.OpAlter:
-		res, err := sq.Alter(ctx, *c, body.SQL)
-		if err != nil {
-			uc.Fail(w, err)
-			return
-		}
-		uc.Respond(w, res)
+		out, err = sq.Alter(ctx, *c, body.SQL)
 	case constants.OpRollback:
-		res, err := sq.DryRun(ctx, *c, body.SQL)
-		if err != nil {
-			uc.Fail(w, err)
-			return
-		}
-		uc.Respond(w, res)
+		out, err = sq.DryRun(ctx, *c, body.SQL)
 	case constants.OpAnalyze:
-		res, err := sq.Analyze(ctx, *c, body.Table)
-		if err != nil {
-			uc.Fail(w, err)
-			return
-		}
-		uc.Respond(w, res)
+		out, err = sq.Analyze(ctx, *c, body.Table)
 	default:
-		uc.Fail(w, fmt.Errorf("unknown op %q", operation))
+		err = fmt.Errorf("unknown op %q", operation)
 	}
+	// A failure's duration counts too: a slow failure is still slow.
+	uc.Metrics.OpDuration(ctx, r.PathValue("engine"), operation, time.Since(start).Seconds())
+	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	uc.Respond(w, out)
 }
 
 // OpAlter documents the alter route.
