@@ -3,23 +3,11 @@ package usecases
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 )
-
-// errLocalAccountRequired reports a local-only action asked of an OIDC caller.
-var errLocalAccountRequired = errors.New("a local account is required for this action")
-
-// errKeyRequired reports the value route called without a key.
-var errKeyRequired = errors.New("key is required")
-
-// errFlushConfirm reports a flush whose confirmation did not repeat the name.
-func errFlushConfirm(name string) error {
-	return fmt.Errorf("flushing %s needs its name typed as confirmation", name)
-}
 
 // Respond writes v as a JSON 200. A nil v writes an empty 200 body.
 func (d RegistryDeps) Respond(w http.ResponseWriter, v any) {

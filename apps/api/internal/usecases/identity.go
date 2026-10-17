@@ -33,8 +33,9 @@ func LogAttrs(ctx context.Context) []any {
 	return []any{"user_id", p.Subject, "admin", p.Admin, "groups", p.Groups}
 }
 
-// actor returns the caller's subject for attribution; empty in open mode.
-func actor(ctx context.Context) string {
+// Actor returns the caller's subject for attribution; empty when there is no
+// principal.
+func Actor(ctx context.Context) string {
 	if p, ok := Principal(ctx); ok {
 		return p.Subject
 	}

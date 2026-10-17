@@ -7,7 +7,7 @@ Detail for `AGENTS.md`. Read that first for the map.
 ```
 transport   apps/api/cmd/noxis/server         (route table → use case Serve)
 application apps/api/cmd/noxis/server/app.go   (composition root: newApp)
-            apps/api/internal/usecases        (one file per use case; Serve(w, r) + core)
+            apps/api/internal/usecases        (root framework; one subpackage per domain)
 domain      apps/api/internal/entity             (data model, imports nothing internal)
             apps/api/internal/interfaces          (seams)
 infra       apps/api/internal/modules/*          (engine adapters)
@@ -18,7 +18,7 @@ cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagina
 
 Rule: dependencies point inward and only downward. The order (low → high) is
 `constants · entity · interfaces → common/* → repositories/* → modules/*
-(families) → modules (registry) → usecases → middlewares → cmd/noxis/server
+(families) → modules (registry) → usecases (root) → usecases/* (domains) → middlewares → cmd/noxis/server
 (routes)`. A package may import only packages below its layer, and two packages
 in the same layer may not import each other. `cmd/noxis` is the composition root
 and is exempt. `test/arch/arch_test.go` reads the graph from `go list` and fails
@@ -35,9 +35,10 @@ One file does all wiring, at boot, once: `apps/api/cmd/noxis/server/app.go`.
   named at the call site. There is no reflection and no dependency container in a
   request context; the only thing on the context is the authenticated principal.
 
-Add a new use case: create `apps/api/internal/usecases/foo.go` with a `Foo struct`,
-its `Run` core and a `Serve(w, r)` → add a field to `app` and one line to `newApp`
-→ register its `Serve` in `newHandler`. No constructor boilerplate, no reflection.
+Add a new use case: create `apps/api/internal/usecases/<domain>/foo.go` with a
+`Foo struct` embedding `usecases.RegistryDeps` and a `Serve(w, r)` → add a field
+to `app` and one line to `newApp` → register its `Serve` in `newHandler`. No
+constructor boilerplate, no reflection.
 
 ## Engine registry
 
@@ -58,9 +59,9 @@ module. This is why one handler serves all families instead of a copy per family
 
 | Interface | File | Implemented by |
 | --- | --- | --- |
-| `ConnectionRepository` | `interfaces/repository.go` | `sqlite.Store` |
-| `ChangeRepository` | `interfaces/repository.go` | `sqlite.Store` |
-| `PermissionRepository` | `interfaces/repository.go` | `sqlite.Store` |
+| `ConnectionRepository` | `interfaces/connection.go` | `sqlite.Store` |
+| `ChangeRepository` | `interfaces/change.go` | `sqlite.Store` |
+| `PermissionRepository` | `interfaces/permission.go` | `sqlite.Store` |
 | `Module` / `SQLModule` | `interfaces/sql.go` | `sql.DB` |
 | `MemcacheModule` | `interfaces/memcache.go` | `memcache.DB` |
 | `MongoModule` | `interfaces/mongodb.go` | `mongodb.DB` |
@@ -70,29 +71,30 @@ module. This is why one handler serves all families instead of a copy per family
 
 ## Use-case pattern
 
-- One file, one exported struct, one business flow. The domain work is a
-  `Run(ctx, ...)` core; its `Serve(w, r)` owns that route's HTTP.
-- Fields are the deps it needs (filled by type). It references **no other use
-  case**; shared steps are package-level helpers that take deps as args:
-  `rawConn` (load connection + check family + authorize), `Authorize` /
-  `RequireAdmin` / `EffectiveLevel` (policy), `applyChange`/`applySQL`/
-  `applyMongo` (apply mechanics).
-- Every `Run` opens a span: `ctx, end := logging.StartSpan(ctx); defer func(){ end(err) }()`.
-- Domain rejects are returned, not panicked. `ErrForbidden` → 403.
+- The root package `internal/usecases` is the framework: `RegistryDeps` (the
+  repositories + the module registry) and its methods. Domain subpackages
+  (`connection`, `change`, `apply`, `schema`, `permission`, `instance`, `auth`,
+  `cache`, `mongo`, `driver`) hold the use cases; siblings never import each other.
+- One exported struct per operation, one `Serve(w, r)`. It embeds
+  `usecases.RegistryDeps`, so the shared steps are methods on the receiver:
+  `uc.RawConn` (load connection + check family + authorize), `uc.Authorize` /
+  `uc.RequireAdmin` / `uc.EffectiveLevel` (policy), `uc.Respond` / `uc.Fail` /
+  `uc.Decode` (transport). `applyChange`/`applySQL`/`applyMongo` live in `apply`.
+- Domain rejects are returned, not panicked. `constants.ErrForbidden` → 403.
 
 ## Serve pattern
 
-`apps/api/internal/usecases/http.go` holds `respond`, `respondNoContent`,
-`decode` and `fail` (the single error→status map). A `Serve` body resolves the
-engine from the ctx registry, decodes, calls the domain core and writes:
+`apps/api/internal/usecases/http.go` holds `Respond`, `RespondNoContent`,
+`Decode` and `Fail` (the single error→status map) as methods on `RegistryDeps`.
+A `Serve` resolves the engine, decodes, does the work and writes:
 
 ```go
 func (uc Foo) Serve(w http.ResponseWriter, r *http.Request) {
     mod, err := uc.Modules.Engine(r.PathValue("engine"))
-    if err != nil { fail(w, err); return }
-    out, err := uc.Run(r.Context(), mod, /* path/query/body */)
-    if err != nil { fail(w, err); return }
-    respond(w, out)
+    if err != nil { uc.Fail(w, err); return }
+    out, err := doWork(r.Context(), mod, /* path/query/body */)
+    if err != nil { uc.Fail(w, err); return }
+    uc.Respond(w, out)
 }
 ```
 

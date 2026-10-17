@@ -1,0 +1,59 @@
+package permission
+
+import (
+	"net/http"
+	"strings"
+	"testing"
+
+	"noxis/internal/entity"
+	"noxis/internal/usecases/ucstest"
+)
+
+func TestRequireAdmin(t *testing.T) {
+	f := ucstest.New(&ucstest.SQL{})
+	mux := ucstest.Mux("GET", "/external/v1/engine/{engine}/connections/{name}/permissions", List{RegistryDeps: f.Deps()}.Serve)
+	rec := ucstest.Do(mux, http.MethodGet, "/external/v1/engine/sql/connections/demo/permissions", "", nil)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("non-admin list: %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestCRUD(t *testing.T) {
+	f := ucstest.New(&ucstest.SQL{})
+	admin := &entity.Identity{Subject: "root", Admin: true}
+
+	put := ucstest.Mux("PUT", "/external/v1/engine/{engine}/connections/{name}/permissions", Set{RegistryDeps: f.Deps()}.Serve)
+	rec := ucstest.Do(put, http.MethodPut, "/external/v1/engine/sql/connections/demo/permissions", `{"member":"dev","memberType":"group","level":"write"}`, admin)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("set status=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	get := ucstest.Mux("GET", "/external/v1/engine/{engine}/connections/{name}/permissions", List{RegistryDeps: f.Deps()}.Serve)
+	rec = ucstest.Do(get, http.MethodGet, "/external/v1/engine/sql/connections/demo/permissions", "", admin)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"member":"dev"`) {
+		t.Fatalf("list status=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	rec = ucstest.Do(put, http.MethodPut, "/external/v1/engine/sql/connections/demo/permissions", `{"member":"dev","memberType":"group","level":"root"}`, admin)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("bad level status=%d want 400", rec.Code)
+	}
+
+	del := ucstest.Mux("DELETE", "/external/v1/engine/{engine}/connections/{name}/permissions", Delete{RegistryDeps: f.Deps()}.Serve)
+	rec = ucstest.Do(del, http.MethodDelete, "/external/v1/engine/sql/connections/demo/permissions?member=dev", "", admin)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("delete status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestMembers(t *testing.T) {
+	f := ucstest.New(&ucstest.SQL{})
+	f.Perms.M["readers"] = entity.Permission{Connection: "demo", Member: "readers", MemberType: entity.MemberGroup, Level: entity.LevelRead}
+	f.Users.Accounts = []entity.User{{Subject: "local:alice", Username: "alice"}}
+
+	rec := ucstest.Do(ucstest.Mux("GET", "/external/v1/config/members", Members{RegistryDeps: f.Deps()}.Serve),
+		http.MethodGet, "/external/v1/config/members", "", &entity.Identity{Subject: "root", Admin: true})
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"readers"`) || !strings.Contains(rec.Body.String(), `"local:alice"`) {
+		t.Fatalf("members status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}

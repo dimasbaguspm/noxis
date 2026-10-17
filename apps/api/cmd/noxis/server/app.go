@@ -6,6 +6,16 @@ import (
 	"noxis/internal/modules"
 	"noxis/internal/repositories"
 	"noxis/internal/usecases"
+	"noxis/internal/usecases/apply"
+	"noxis/internal/usecases/auth"
+	"noxis/internal/usecases/cache"
+	"noxis/internal/usecases/change"
+	"noxis/internal/usecases/connection"
+	"noxis/internal/usecases/driver"
+	"noxis/internal/usecases/instance"
+	"noxis/internal/usecases/mongo"
+	"noxis/internal/usecases/permission"
+	"noxis/internal/usecases/schema"
 )
 
 // sources are the seams the composition root builds the use cases from. They
@@ -19,65 +29,59 @@ type sources struct {
 	Auth        config.AuthInfo
 }
 
-// app is the composition root: every use case built once, explicitly. There is
-// no reflection and no dependency container in a request context.
+// app is the composition root: every use case built once, explicitly.
 type app struct {
 	Modules modules.Registry
 	Auth    config.AuthInfo
 
-	SubmitChange     usecases.SubmitChange
-	Approve          usecases.Approve
-	Schedule         usecases.Schedule
-	Apply            usecases.Apply
-	Reject           usecases.Reject
-	SQLChanges       usecases.SQLChanges
-	SQLChange        usecases.SQLChange
-	Tick             usecases.Tick
-	ConnectionList   usecases.ConnectionList
-	Connection       usecases.Connection
-	Raw              usecases.Raw
-	SaveConnection   usecases.SaveConnection
-	DeleteConnection usecases.DeleteConnection
-	TestConnection   usecases.TestConnection
-	Schema           usecases.Schema
-	Rows             usecases.Rows
-	Op               usecases.Op
-	SubmitMongo      usecases.SubmitMongoChange
-	MongoChange      usecases.MongoChange
-	ApplyMongo       usecases.ApplyMongo
-	MongoChanges     usecases.MongoChanges
-	Instance         usecases.Instance
-	Instances        usecases.ListInstances
-	RotatePassword   usecases.RotatePassword
-	ListPermissions  usecases.ListPermissions
-	SetPermission    usecases.SetPermission
-	DeletePermission usecases.DeletePermission
-	Members          usecases.Members
-	ConnectionLevels usecases.ConnectionLevels
-	AuthConfig       usecases.AuthConfig
-	Login            usecases.Login
-	Logout           usecases.Logout
-	ChangePass       usecases.ChangePassword
-	Drivers          usecases.Drivers
-	CacheKeys        usecases.CacheKeys
-	CacheValue       usecases.CacheValue
-	CacheDelete      usecases.CacheDelete
-	CacheFlush       usecases.CacheFlush
-	MongoDbs         usecases.MongoDatabases
-	MongoColls       usecases.MongoCollections
-	MongoRun         usecases.MongoRun
-	ChangeList       usecases.ChangeList
-	ChangeSubmit     usecases.ChangeSubmit
-	ChangeGet        usecases.ChangeGet
-	ChangeApprove    usecases.ChangeApprove
-	ChangeApply      usecases.ChangeApply
-	ChangeReject     usecases.ChangeReject
-	ChangeSchedule   usecases.ChangeSchedule
+	ConnectionList   connection.List
+	Connection       connection.Get
+	SaveConnection   connection.Save
+	DeleteConnection connection.Delete
+	TestConnection   connection.Test
+
+	Schema schema.Tables
+	Rows   schema.Rows
+	Op     schema.Op
+
+	Members          permission.Members
+	ListPermissions  permission.List
+	SetPermission    permission.Set
+	DeletePermission permission.Delete
+
+	Instances      instance.List
+	Instance       instance.Get
+	RotatePassword instance.RotatePassword
+
+	AuthConfig auth.Config
+	Login      auth.Login
+	Logout     auth.Logout
+	ChangePass auth.Password
+	Me         auth.Me
+
+	Drivers   driver.Drivers
+	CacheKeys cache.Keys
+	CacheVal  cache.Value
+	CacheDel  cache.Delete
+	CacheFlsh cache.Flush
+
+	MongoDbs   mongo.Databases
+	MongoColls mongo.Collections
+	MongoRun   mongo.Run
+
+	ChangeList     change.List
+	ChangeSubmit   change.Submit
+	ChangeGet      change.Get
+	ChangeApprove  change.Approve
+	ChangeReject   change.Reject
+	ChangeSchedule change.Schedule
+
+	ChangeApply apply.Apply
+	Tick        apply.Tick
 }
 
-// newApp builds every use case from s: one shared RegistryDeps value carries
-// the repositories and the module registry, so each use case is a one-field
-// literal. It is the single place the use cases are constructed.
+// newApp builds every use case from s. It is the single place the use cases
+// are constructed.
 func newApp(s sources) app {
 	deps := usecases.RegistryDeps{
 		Registry: repositories.Registry{
@@ -92,53 +96,49 @@ func newApp(s sources) app {
 		Modules: s.Modules,
 		Auth:    s.Auth,
 
-		SubmitChange:     usecases.SubmitChange{RegistryDeps: deps},
-		Approve:          usecases.Approve{RegistryDeps: deps},
-		Schedule:         usecases.Schedule{RegistryDeps: deps},
-		Apply:            usecases.Apply{RegistryDeps: deps},
-		Reject:           usecases.Reject{RegistryDeps: deps},
-		SQLChanges:       usecases.SQLChanges{RegistryDeps: deps},
-		SQLChange:        usecases.SQLChange{RegistryDeps: deps},
-		Tick:             usecases.Tick{RegistryDeps: deps},
-		ConnectionList:   usecases.ConnectionList{RegistryDeps: deps},
-		Connection:       usecases.Connection{RegistryDeps: deps},
-		Raw:              usecases.Raw{RegistryDeps: deps},
-		SaveConnection:   usecases.SaveConnection{RegistryDeps: deps},
-		DeleteConnection: usecases.DeleteConnection{RegistryDeps: deps},
-		TestConnection:   usecases.TestConnection{RegistryDeps: deps},
-		Schema:           usecases.Schema{RegistryDeps: deps},
-		Rows:             usecases.Rows{RegistryDeps: deps},
-		Op:               usecases.Op{RegistryDeps: deps},
-		SubmitMongo:      usecases.SubmitMongoChange{RegistryDeps: deps},
-		MongoChange:      usecases.MongoChange{RegistryDeps: deps},
-		ApplyMongo:       usecases.ApplyMongo{RegistryDeps: deps},
-		MongoChanges:     usecases.MongoChanges{RegistryDeps: deps},
-		Instance:         usecases.Instance{RegistryDeps: deps},
-		Instances:        usecases.ListInstances{RegistryDeps: deps},
-		RotatePassword:   usecases.RotatePassword{RegistryDeps: deps},
-		ListPermissions:  usecases.ListPermissions{RegistryDeps: deps},
-		SetPermission:    usecases.SetPermission{RegistryDeps: deps},
-		DeletePermission: usecases.DeletePermission{RegistryDeps: deps},
-		Members:          usecases.Members{RegistryDeps: deps},
-		ConnectionLevels: usecases.ConnectionLevels{RegistryDeps: deps},
-		AuthConfig:       usecases.AuthConfig{Auth: s.Auth},
-		Login:            usecases.Login{RegistryDeps: deps},
-		Logout:           usecases.Logout{RegistryDeps: deps},
-		ChangePass:       usecases.ChangePassword{RegistryDeps: deps},
-		Drivers:          usecases.Drivers{},
-		CacheKeys:        usecases.CacheKeys{RegistryDeps: deps},
-		CacheValue:       usecases.CacheValue{RegistryDeps: deps},
-		CacheDelete:      usecases.CacheDelete{RegistryDeps: deps},
-		CacheFlush:       usecases.CacheFlush{RegistryDeps: deps},
-		MongoDbs:         usecases.MongoDatabases{RegistryDeps: deps},
-		MongoColls:       usecases.MongoCollections{RegistryDeps: deps},
-		MongoRun:         usecases.MongoRun{RegistryDeps: deps},
-		ChangeList:       usecases.ChangeList{RegistryDeps: deps},
-		ChangeSubmit:     usecases.ChangeSubmit{RegistryDeps: deps},
-		ChangeGet:        usecases.ChangeGet{RegistryDeps: deps},
-		ChangeApprove:    usecases.ChangeApprove{RegistryDeps: deps},
-		ChangeApply:      usecases.ChangeApply{RegistryDeps: deps},
-		ChangeReject:     usecases.ChangeReject{RegistryDeps: deps},
-		ChangeSchedule:   usecases.ChangeSchedule{RegistryDeps: deps},
+		ConnectionList:   connection.List{RegistryDeps: deps},
+		Connection:       connection.Get{RegistryDeps: deps},
+		SaveConnection:   connection.Save{RegistryDeps: deps},
+		DeleteConnection: connection.Delete{RegistryDeps: deps},
+		TestConnection:   connection.Test{RegistryDeps: deps},
+
+		Schema: schema.Tables{RegistryDeps: deps},
+		Rows:   schema.Rows{RegistryDeps: deps},
+		Op:     schema.Op{RegistryDeps: deps},
+
+		Members:          permission.Members{RegistryDeps: deps},
+		ListPermissions:  permission.List{RegistryDeps: deps},
+		SetPermission:    permission.Set{RegistryDeps: deps},
+		DeletePermission: permission.Delete{RegistryDeps: deps},
+
+		Instances:      instance.List{RegistryDeps: deps},
+		Instance:       instance.Get{RegistryDeps: deps},
+		RotatePassword: instance.RotatePassword{RegistryDeps: deps},
+
+		AuthConfig: auth.Config{RegistryDeps: deps, Auth: s.Auth},
+		Login:      auth.Login{RegistryDeps: deps},
+		Logout:     auth.Logout{RegistryDeps: deps},
+		ChangePass: auth.Password{RegistryDeps: deps},
+		Me:         auth.Me{RegistryDeps: deps},
+
+		Drivers:   driver.Drivers{RegistryDeps: deps},
+		CacheKeys: cache.Keys{RegistryDeps: deps},
+		CacheVal:  cache.Value{RegistryDeps: deps},
+		CacheDel:  cache.Delete{RegistryDeps: deps},
+		CacheFlsh: cache.Flush{RegistryDeps: deps},
+
+		MongoDbs:   mongo.Databases{RegistryDeps: deps},
+		MongoColls: mongo.Collections{RegistryDeps: deps},
+		MongoRun:   mongo.Run{RegistryDeps: deps},
+
+		ChangeList:     change.List{RegistryDeps: deps},
+		ChangeSubmit:   change.Submit{RegistryDeps: deps},
+		ChangeGet:      change.Get{RegistryDeps: deps},
+		ChangeApprove:  change.Approve{RegistryDeps: deps},
+		ChangeReject:   change.Reject{RegistryDeps: deps},
+		ChangeSchedule: change.Schedule{RegistryDeps: deps},
+
+		ChangeApply: apply.Apply{RegistryDeps: deps},
+		Tick:        apply.Tick{RegistryDeps: deps},
 	}
 }
