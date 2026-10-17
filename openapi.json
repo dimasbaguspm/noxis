@@ -2622,6 +2622,9 @@
                             "type": "string"
                         }
                     },
+                    "lastLoginAt": {
+                        "type": "integer"
+                    },
                     "name": {
                         "type": "string"
                     },

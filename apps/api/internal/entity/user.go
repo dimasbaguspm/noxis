@@ -35,7 +35,7 @@ func (u User) Identity() Identity {
 	if name == "" {
 		name = u.Subject
 	}
-	return Identity{Subject: u.Subject, Name: name, Groups: u.Groups, Super: u.Super}
+	return Identity{Subject: u.Subject, Name: name, Groups: u.Groups, Super: u.Super, LastLoginAt: u.LastLoginAt}
 }
 
 // Validate checks the wire fields.
