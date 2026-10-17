@@ -1,6 +1,6 @@
 import type { components } from "@/api/generated";
 import { FAMILY, type FamilyKey } from "@/lib/families";
-import { accessToken, authEnabled } from "@/lib/auth";
+import { accessToken, authEnabled, clearSession } from "@/lib/auth";
 
 export type Level = "read" | "write" | "admin";
 export type Identity = components["schemas"]["auth.MeResponse"];
@@ -84,8 +84,10 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   // an expired or revoked token drops the console to the login page; the
-  // user restarts the OIDC flow from there
+  // user restarts the OIDC flow from there. Clearing first is what breaks the
+  // loop: a kept token would 401 again on the next load.
   if (res.status === 401 && authEnabled()) {
+    await clearSession();
     window.location.assign("/login");
     throw new Error("redirecting to sign-in");
   }
