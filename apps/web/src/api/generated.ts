@@ -2568,6 +2568,7 @@ export interface components {
             };
             email?: string;
             groups?: string[];
+            lastLoginAt?: number;
             name?: string;
             sub?: string;
             super?: boolean;

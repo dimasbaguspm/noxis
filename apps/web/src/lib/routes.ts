@@ -4,8 +4,9 @@
 
 export const PAGE_ROUTES = {
   DASHBOARD: "/",
-  SETTINGS: "/settings",
-  PROFILE: "/profile",
+  MY: "/my",
+  MY_SETTINGS: "/my/settings",
+  MY_ACCESS: "/my/access",
   INSTANCE_DETAIL: (id: string) => `/instances/${id}`,
   INSTANCE_DASHBOARD: (id: string) => `/instances/${id}/dashboard`,
   USERS: "/users",
