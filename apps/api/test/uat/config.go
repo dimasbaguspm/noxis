@@ -55,7 +55,7 @@ func loadTargets() error {
 	}
 	host, port := map[string]string{}, map[string]int{}
 	for driver, image := range map[string]string{
-		"postgres": "postgres", "mariadb": "mariadb", "mongo": "mongo",
+		"postgres": "postgres", "mysql": "mysql", "mariadb": "mariadb", "mongo": "mongo",
 		"redis": "redis", "valkey": "valkey",
 	} {
 		h, err := hostOf(image)
@@ -88,6 +88,11 @@ func loadTargets() error {
 			Driver: "postgres", Host: host["postgres"], Port: port["postgres"],
 			User:     env(host["postgres"], "POSTGRES_USER"),
 			Password: env(host["postgres"], "POSTGRES_PASSWORD"), Database: env(host["postgres"], "POSTGRES_DB"),
+		},
+		"mysql": {
+			Driver: "mysql", Host: host["mysql"], Port: port["mysql"],
+			User: "root", Password: env(host["mysql"], "MYSQL_ROOT_PASSWORD"),
+			Database: env(host["mysql"], "MYSQL_DATABASE"),
 		},
 		"mariadb": {
 			Driver: "mariadb", Host: host["mariadb"], Port: port["mariadb"],

@@ -68,6 +68,7 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	sc.Step(`^the change records an estimated duration and affected count$`, w.changeEstimates)
 
 	sc.Step(`^I dry-run "([^"]*)"$`, w.dryRun)
+	sc.Step(`^I dry-run "([^"]*)" and it is refused$`, w.dryRunRefused)
 	sc.Step(`^analyze on table "([^"]*)" succeeds$`, w.analyze)
 	sc.Step(`^the schema lists table "([^"]*)"$`, w.schemaLists)
 	sc.Step(`^table "([^"]*)" has (\d+) row\(s\)$`, w.tableRows)
@@ -392,6 +393,20 @@ func (w *world) dryRun(ctx context.Context, sqlText string) error {
 	return nil
 }
 
+// dryRunRefused expects the driver to refuse a dry run: mysql-family engines
+// commit DDL implicitly, so a rolled-back transaction there would not be a dry
+// run at all.
+func (w *world) dryRunRefused(ctx context.Context, sqlText string) error {
+	w.result = resultBody{}
+	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/rollback", map[string]string{"sql": sqlText}, &w.result); err != nil {
+		return err
+	}
+	if w.code == http.StatusOK {
+		return fmt.Errorf("dry run of DDL must be refused on this driver: %s", w.result.Message)
+	}
+	return nil
+}
+
 func (w *world) analyze(ctx context.Context, table string) error {
 	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/analyze", map[string]string{"table": table}, &w.result); err != nil {
 		return err
@@ -421,7 +436,9 @@ func (w *world) schemaLists(ctx context.Context, table string) error {
 
 func (w *world) tableRows(ctx context.Context, table string, want int) error {
 	w.result = resultBody{}
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn+"/tables/"+table+"/rows?schema=public", nil, &w.result); err != nil {
+	// no schema parameter: the driver's own default resolves the table, which is
+	// what keeps the step driver-agnostic
+	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn+"/tables/"+table+"/rows", nil, &w.result); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {

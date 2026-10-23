@@ -181,9 +181,9 @@ func splitRef(c entity.Connection, ref string) (schema, table string) {
 		return c.Database, ref
 	}
 	if isSQLite(c.Driver) {
-		return "main", ref
+		return schemaSQLite, ref
 	}
-	return "public", ref
+	return schemaPostgres, ref
 }
 
 // tableExists reports whether a base table exists in the live schema.

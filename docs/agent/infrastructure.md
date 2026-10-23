@@ -50,7 +50,7 @@ entry. Defaults and cross-field rules live in `LoadConfig` / `Validate`; a
 | `make lint` | golangci-lint v2 in `apps/api` (installs on first use) |
 | `make web` | pnpm install + build → sync `bin/dist/*` into the embed dir |
 | `make swagger` | swag init + convert Swagger 2.0 → OpenAPI 3 into root `openapi.{yaml,json}` |
-| `make dev` | compose stack (noxis + postgres/redis/valkey/mongo/mariadb) |
+| `make dev` | compose stack (noxis + postgres/mysql/mariadb/redis/valkey/mongo) |
 | `make dev-ui` | same + hot-reloading Vite console on :5173 |
 | `make down` | stop compose and wipe volumes (`-v`) |
 | `make uat` | godog acceptance suite over the real compose stack |
@@ -81,8 +81,10 @@ Both end on alpine:3.20 with the static binary + `ca-certificates`.
 
 - `noxis` — the full image, `:9000`, named volume `noxis-data:/data`,
   healthcheck `/healthz`, waits on all target services healthy.
-- `db` postgres:16, `redis` redis:7, `valkey` valkey/valkey:8, `mongo` mongo:7
-  (auth on: root/noxis), `mariadb` mariadb:11.
+- `db` postgres:16, `mysql` mysql:8, `mariadb` mariadb:11, `redis` redis:7,
+  `valkey` valkey/valkey:8, `mongo` mongo:7 (auth on: root/noxis). MySQL and
+  MariaDB are separate services because the driver is shared but the servers
+  differ: `features/sql-compat.feature` runs the same scenarios on both.
 - `console` — Vite dev server, `profiles: [dev]`, mounts `./apps/web`.
 
 Secrets here are demo-only (`noxis`). Dev compose is a stand-in for target

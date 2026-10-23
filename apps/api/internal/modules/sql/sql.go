@@ -162,7 +162,7 @@ func (u *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (r
 		return Result{}, fmt.Errorf("dry run of DDL is not safe on %s (implicit commit) — try it on a postgres connection", c.Driver)
 	}
 	started := time.Now()
-	n, err := inTx(c, func(tx *stdsql.Tx) (int, error) {
+	n, err := inTx(c, true, func(tx *stdsql.Tx) (int, error) {
 		return execEach(sqlText, func(stmt string) error {
 			_, err := tx.ExecContext(ctx, stmt)
 			return hintOf(stmt, err)
@@ -186,7 +186,7 @@ func (u *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (re
 	}
 	started := time.Now()
 	var affected int64
-	n, err := inTx(c, func(tx *stdsql.Tx) (int, error) {
+	n, err := inTx(c, false, func(tx *stdsql.Tx) (int, error) {
 		return execEach(sqlText, func(stmt string) error {
 			out, err := tx.ExecContext(ctx, stmt)
 			if err != nil {
@@ -211,8 +211,9 @@ func (u *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (re
 	}, nil
 }
 
-// inTx runs fn inside a transaction: commit when it returns nil error.
-func inTx(c entity.Connection, fn func(tx *stdsql.Tx) (int, error)) (int, error) {
+// inTx runs fn inside a transaction and commits when it returns nil error. With
+// rollback set it never commits: a dry run must leave nothing behind.
+func inTx(c entity.Connection, rollback bool, fn func(tx *stdsql.Tx) (int, error)) (int, error) {
 	return withDB(c, func(db *stdsql.DB) (int, error) {
 		tx, err := db.Begin()
 		if err != nil {
@@ -220,8 +221,8 @@ func inTx(c entity.Connection, fn func(tx *stdsql.Tx) (int, error)) (int, error)
 		}
 		defer func() { _ = tx.Rollback() }()
 		n, err := fn(tx)
-		if err != nil {
-			return 0, err
+		if err != nil || rollback {
+			return n, err
 		}
 		if err := tx.Commit(); err != nil {
 			return 0, fmt.Errorf("commit: %w", err)

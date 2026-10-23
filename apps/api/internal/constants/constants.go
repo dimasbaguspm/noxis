@@ -37,6 +37,9 @@ const (
 const (
 	DriverPostgres = "postgres"
 	DriverMySQL    = "mysql"
+	// DriverMariaDB is MariaDB: the same wire protocol as mysql, a different
+	// server, so it is its own driver name.
+	DriverMariaDB = "mariadb"
 	// DriverSQLite is a file-backed SQL database: the connection's Database is
 	// the file path, with no host, port or user.
 	DriverSQLite = "sqlite"

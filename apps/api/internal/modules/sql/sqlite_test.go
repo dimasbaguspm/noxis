@@ -87,3 +87,45 @@ func TestSQLiteValidateChangeRollsBack(t *testing.T) {
 		t.Fatalf("dry run leaked rows: %+v", res.Rows)
 	}
 }
+
+// TestSQLiteOperations covers the operations the compatibility suite runs on the
+// server drivers: apply, dry-run, analyze, and the statement-kind guards.
+func TestSQLiteOperations(t *testing.T) {
+	conn := newSQLiteFile(t)
+	u := New()
+	ctx := context.Background()
+
+	if err := u.VerifyWrite("INSERT INTO people (name) VALUES ('linus')"); err != nil {
+		t.Fatalf("a write must pass the write guard: %v", err)
+	}
+	if err := u.VerifyWrite("SELECT * FROM people"); err == nil {
+		t.Fatal("a read must not pass the write guard")
+	}
+	if _, err := u.Query(ctx, conn, "INSERT INTO people (name) VALUES ('x')"); err == nil {
+		t.Fatal("the read path must refuse DML")
+	}
+	if _, err := u.Alter(ctx, conn, "SELECT * FROM people"); err == nil {
+		t.Fatal("the write path must refuse a read")
+	}
+
+	if _, err := u.Apply(ctx, conn, "INSERT INTO people (name) VALUES ('linus')"); err != nil {
+		t.Fatalf("apply: %v", err)
+	}
+	// a dry run rolls back, so the count stays at three
+	if _, err := u.DryRun(ctx, conn, "INSERT INTO people (name) VALUES ('dry')"); err != nil {
+		t.Fatalf("dry run: %v", err)
+	}
+	res, err := u.Rows(ctx, conn, "main", "people", 10)
+	if err != nil {
+		t.Fatalf("rows: %v", err)
+	}
+	if len(res.Rows) != 3 {
+		t.Fatalf("rows=%d want 3 (apply committed once, dry run rolled back)", len(res.Rows))
+	}
+	if _, err := u.Analyze(ctx, conn, "people"); err != nil {
+		t.Fatalf("analyze: %v", err)
+	}
+	if _, err := u.Rows(ctx, conn, "main", "people; DROP TABLE people", 10); err == nil {
+		t.Fatal("an identifier that is not a plain name must be refused")
+	}
+}
