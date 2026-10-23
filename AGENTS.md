@@ -79,7 +79,7 @@ Inside `apps/api/`:
 | `apps/api/internal/repositories/` | persistence: `sqlite` (the only state) |
 | `apps/api/internal/interfaces/` | seams (`ConnectionRepository`, `Module`, `SQLModule`, …) |
 | `apps/api/internal/entity/` | shared data model (store + wire + REST) |
-| `apps/api/internal/common/` | config, logging/span, idgen, pagination, secret |
+| `apps/api/internal/common/` | config, logging/span, idgen, pagination, secret, shared changeflow rules |
 | `apps/api/internal/constants/` | universal values (drivers, families, statuses, limits) |
 | `apps/api/test/uat/` | Gherkin acceptance suite (`make uat`) |
 
@@ -93,7 +93,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 2. `newHandler(app, cfg)` registers each route straight at a use case `Serve(w, r)`.
 3. `Serve` reads the path/query/body and resolves the engine family via `uc.Modules.Engine(...)`.
 4. It calls its `Run(ctx, ...)` domain core and writes the response with `respond`/`fail`.
-5. The use case reads repositories/modules from its own struct fields (set explicitly in `newApp`), enforces access via `rawConn`/`Authorize`, persists via a repository.
+5. The use case reads repositories/modules from its own struct fields (set explicitly in `newApp`), enforces access via `RawConn`/`Authorize`, persists via a repository.
 6. `fail` maps `constants.ErrNotFound`/`constants.ErrUnsupported`→404, `constants.ErrForbidden`→403, `constants.ErrInvalidCredentials`/`constants.ErrUnauthorized`→401, else 400.
 
 ## Conventions

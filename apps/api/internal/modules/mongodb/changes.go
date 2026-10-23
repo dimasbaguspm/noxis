@@ -79,7 +79,7 @@ func (c *Changes) Submit(ctx context.Context, conn entity.Connection, actor, not
 	} else {
 		logging.InfoWithCtx(ctx, "change validated", "change", ch.ID, "connection", ch.Connection, "kind", ch.Kind)
 	}
-	return c.Record(ctx, ch, dry.Error)
+	return c.Record(ctx, ch)
 }
 
 // Approve signs off a validated request.

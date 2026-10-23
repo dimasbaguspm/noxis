@@ -9,7 +9,7 @@ repo-specific: the generic review skill covers the rest.
    nothing internal; `usecases` never import `handlers`; repositories never
    import use cases. New seams go in `apps/api/internal/interfaces`.
 2. **Access gate** — every connection-scoped flow must go through
-   `usecases.rawConn` (family check + `Authorize`), `RequireSuper` for the
+   `usecases.RegistryDeps.RawConn` (family check + `Authorize`), `RequireSuper` for the
    root-only surfaces or `RequireAdmin` for the instance-management surfaces. A
    new route that reads a connection without one of these is a security hole.
    `RequireAdmin` never implies data access: an admin without a grant cannot read
