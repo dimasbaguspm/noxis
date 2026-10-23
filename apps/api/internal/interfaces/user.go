@@ -9,7 +9,7 @@ import (
 // UserRepository persists local accounts and OIDC identity references, and each
 // account's single active session token. Passwords are stored as bcrypt hashes;
 // the token as a SHA-256 hash, so the raw credential never touches the database.
-// The subject is the key: "local:<username>" or the OIDC sub.
+// The subject is the key: "local:<login>" or the OIDC sub.
 type UserRepository interface {
 	// CountUsers reports how many accounts exist (root seeding decides on it).
 	CountUsers(ctx context.Context) (int, error)
@@ -17,8 +17,9 @@ type UserRepository interface {
 	GetUser(ctx context.Context, subject string) (*entity.User, error)
 	// ListUsers returns every account, for the permission editor's member picker.
 	ListUsers(ctx context.Context) ([]entity.User, error)
-	// GetUserByUsername returns a local account by login name, or ErrNotFound.
-	GetUserByUsername(ctx context.Context, username string) (*entity.User, error)
+	// GetUserByLogin returns a local account by the identifier its owner types
+	// to sign in (its email, or its username), or ErrNotFound.
+	GetUserByLogin(ctx context.Context, login string) (*entity.User, error)
 	// EnsureSubject records an OIDC identity reference the first time it is
 	// seen, so grants and the directory can point at it.
 	EnsureSubject(ctx context.Context, subject string) error

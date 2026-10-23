@@ -78,7 +78,7 @@ func loadTargets() error {
 		return fmt.Errorf("noxis service publishes no port")
 	}
 	baseURL = "http://localhost:" + noxis.Ports[0].Published
-	adminUser = env("noxis", "NOXIS_ADMIN_USERNAME")
+	adminEmail = env("noxis", "NOXIS_ADMIN_EMAIL")
 	adminPassword = env("noxis", "NOXIS_ADMIN_PASSWORD")
 	schedulerKey = env("noxis", "NOXIS_SCHEDULER_API_KEY")
 	schedulerSecret = env("noxis", "NOXIS_SCHEDULER_SECRET")
@@ -86,7 +86,7 @@ func loadTargets() error {
 	targets = map[string]target{
 		"postgres": {
 			Driver: "postgres", Host: host["postgres"], Port: port["postgres"],
-			User: env(host["postgres"], "POSTGRES_USER"),
+			User:     env(host["postgres"], "POSTGRES_USER"),
 			Password: env(host["postgres"], "POSTGRES_PASSWORD"), Database: env(host["postgres"], "POSTGRES_DB"),
 		},
 		"mariadb": {
@@ -102,7 +102,7 @@ func loadTargets() error {
 		},
 		"mongo": {
 			Driver: "mongo", Host: host["mongo"], Port: port["mongo"],
-			User: env(host["mongo"], "MONGO_INITDB_ROOT_USERNAME"),
+			User:     env(host["mongo"], "MONGO_INITDB_ROOT_USERNAME"),
 			Password: env(host["mongo"], "MONGO_INITDB_ROOT_PASSWORD"), Database: env(host["mongo"], "MONGO_INITDB_DATABASE"),
 		},
 	}

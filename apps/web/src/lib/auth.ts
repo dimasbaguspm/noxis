@@ -1,7 +1,7 @@
 import { UserManager, WebStorageStateStore, type User } from "oidc-client-ts";
 
 // The console authenticates two ways, both bearer-token based:
-// - local accounts: username + password -> an opaque session token;
+// - local accounts: email + password -> an opaque session token;
 // - OIDC: Authorization Code + PKCE against the issuer, when configured.
 // The server exposes which methods are available at /external/v1/auth/config.
 
@@ -89,12 +89,13 @@ export async function clearSession(): Promise<void> {
   if (manager) await manager.removeUser();
 }
 
-// localLogin exchanges username + password for a session token.
-export async function localLogin(username: string, password: string): Promise<void> {
+// localLogin exchanges the account's email + password for a session token. The
+// env super admin signs in this way; everyone else usually comes from OIDC.
+export async function localLogin(email: string, password: string): Promise<void> {
   const res = await fetch("/external/v1/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ email, password }),
   });
   const data = (await res.json().catch(() => null)) as { token?: string; error?: string } | null;
   if (!res.ok || !data?.token) throw new Error(data?.error ?? `HTTP ${res.status}`);

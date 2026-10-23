@@ -140,7 +140,7 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/auth.loginRequest"
-        description: username and password
+        description: email and password
         required: true
       responses:
         "200":
@@ -1633,9 +1633,9 @@ components:
     auth.loginRequest:
       type: object
       properties:
-        password:
+        email:
           type: string
-        username:
+        password:
           type: string
     auth.loginResponse:
       type: object
@@ -2054,6 +2054,8 @@ components:
           type: integer
         disabled:
           type: boolean
+        email:
+          type: string
         groups:
           type: array
           items:
@@ -2114,6 +2116,8 @@ components:
           type: integer
         disabled:
           type: boolean
+        email:
+          type: string
         events:
           type: array
           items:

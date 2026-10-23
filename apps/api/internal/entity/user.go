@@ -1,11 +1,13 @@
 package entity
 
 // User is a local account or an OIDC identity reference. Subject is the stable
-// key: "local:<username>" for a local account, the OIDC sub otherwise. Username
-// and Password are empty for OIDC rows, which exist so grants and the user
-// directory can reference every authenticated principal.
+// key: "local:<login>" for a local account, the OIDC sub otherwise. Email is the
+// account identifier: a local account signs in with it. Password is empty for
+// OIDC rows, which exist so grants and the directory can reference every
+// authenticated principal.
 type User struct {
 	Subject     string   `json:"subject" validate:"required"`
+	Email       string   `json:"email,omitempty" validate:"omitempty,email"`
 	Username    string   `json:"username,omitempty"`
 	Password    string   `json:"-"`
 	Groups      []string `json:"groups"`
@@ -17,9 +19,9 @@ type User struct {
 
 // LocalSubject namespaces a local account, so it can never collide with an OIDC
 // subject.
-func LocalSubject(username string) string { return "local:" + username }
+func LocalSubject(login string) string { return "local:" + login }
 
-// LocalUsername returns the account name for a local subject, or "" when the
+// LocalUsername returns the login name for a local subject, or "" when the
 // subject is not local.
 func LocalUsername(subject string) string {
 	const prefix = "local:"

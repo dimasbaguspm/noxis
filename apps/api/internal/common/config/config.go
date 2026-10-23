@@ -18,8 +18,8 @@ const (
 	EnvListen          = "NOXIS_LISTEN"            // REST listen addr (default :9000)
 	EnvDB              = "NOXIS_DB"                // sqlite path (default /data/noxis.db)
 	EnvSecretKey       = "NOXIS_SECRET_KEY"        // AES key for passwords at rest (64 hex chars; required)
-	EnvAdminUsername   = "NOXIS_ADMIN_USERNAME"    // root local admin, created on first boot when no users exist
-	EnvAdminPassword   = "NOXIS_ADMIN_PASSWORD"    // root local admin password (bcrypt-hashed on create)
+	EnvAdminEmail      = "NOXIS_ADMIN_EMAIL"       // root super admin's email: it signs in locally, and blends with the same-email OIDC login
+	EnvAdminPassword   = "NOXIS_ADMIN_PASSWORD"    // root super admin password (bcrypt-hashed on create)
 	EnvSchedulerKey    = "NOXIS_SCHEDULER_API_KEY" // external scheduler: shared api key it presents as a bearer token
 	EnvSchedulerSecret = "NOXIS_SCHEDULER_SECRET"  // external scheduler: HMAC secret signing the trigger request
 	EnvOTELCollector   = "NOXIS_OTEL_COLLECTOR"    // OTLP endpoint (optional)
@@ -47,7 +47,7 @@ type Config struct {
 	Listen          string
 	DB              string
 	SecretKey       string
-	AdminUsername   string
+	AdminEmail      string
 	AdminPassword   string
 	SchedulerKey    string
 	SchedulerSecret string
@@ -67,7 +67,7 @@ func LoadConfig() Config {
 		Listen:          firstNonEmpty(os.Getenv(EnvListen), defaultListen),
 		DB:              firstNonEmpty(os.Getenv(EnvDB), defaultDB),
 		SecretKey:       os.Getenv(EnvSecretKey),
-		AdminUsername:   os.Getenv(EnvAdminUsername),
+		AdminEmail:      os.Getenv(EnvAdminEmail),
 		AdminPassword:   os.Getenv(EnvAdminPassword),
 		SchedulerKey:    os.Getenv(EnvSchedulerKey),
 		SchedulerSecret: os.Getenv(EnvSchedulerSecret),
@@ -115,7 +115,7 @@ func (c Config) String() string {
 		EnvListen + "=" + c.Listen,
 		EnvDB + "=" + c.DB,
 		EnvSecretKey + "=" + redact(c.SecretKey),
-		EnvAdminUsername + "=" + c.AdminUsername,
+		EnvAdminEmail + "=" + c.AdminEmail,
 		EnvAdminPassword + "=" + redact(c.AdminPassword),
 		EnvSchedulerKey + "=" + redact(c.SchedulerKey),
 		EnvSchedulerSecret + "=" + redact(c.SchedulerSecret),

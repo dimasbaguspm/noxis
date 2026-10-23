@@ -264,7 +264,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            /** @description username and password */
+            /** @description email and password */
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["auth.loginRequest"];
@@ -2578,8 +2578,8 @@ export interface components {
             oldPassword?: string;
         };
         "auth.loginRequest": {
+            email?: string;
             password?: string;
-            username?: string;
         };
         "auth.loginResponse": {
             token?: string;
@@ -2797,6 +2797,7 @@ export interface components {
         "entity.User": {
             createdAt?: number;
             disabled?: boolean;
+            email?: string;
             groups?: string[];
             lastLoginAt?: number;
             subject: string;
@@ -2827,6 +2828,7 @@ export interface components {
             access?: components["schemas"]["entity.Permission"][];
             createdAt?: number;
             disabled?: boolean;
+            email?: string;
             events?: components["schemas"]["entity.AccessEvent"][];
             groups?: string[];
             lastLoginAt?: number;

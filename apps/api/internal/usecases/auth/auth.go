@@ -21,9 +21,10 @@ type Config struct {
 // @Router /external/v1/auth/config [get]
 func (uc Config) Serve(w http.ResponseWriter, _ *http.Request) { uc.Respond(w, uc.Auth) }
 
-// loginRequest is the local credentials payload.
+// loginRequest is the local credentials payload. Email is the account
+// identifier: the env root signs in with the address in NOXIS_ADMIN_EMAIL.
 type loginRequest struct {
-	Username string `json:"username"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
@@ -38,7 +39,7 @@ type Login struct{ usecases.RegistryDeps }
 
 // @Summary Log in with a local account
 // @Accept json
-// @Param credentials body loginRequest true "username and password"
+// @Param credentials body loginRequest true "email and password"
 // @Success 200 {object} loginResponse
 // @Failure 401 {object} entity.ErrorResponse
 // @Router /external/v1/auth/login [post]
@@ -48,7 +49,7 @@ func (uc Login) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(w, err)
 		return
 	}
-	token, user, err := uc.Modules.Auth().Login(r.Context(), body.Username, body.Password)
+	token, user, err := uc.Modules.Auth().Login(r.Context(), body.Email, body.Password)
 	if err != nil {
 		uc.Fail(w, err)
 		return

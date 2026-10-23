@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/mail"
 	"strings"
 	"time"
 
@@ -74,18 +75,21 @@ func (s *Service) Verify(ctx context.Context, rawToken string) (entity.Identity,
 // EnsureRoot makes the env account the single super admin. On a cold install it
 // creates the account; on an existing store it promotes that account and clears
 // any other super, so the env is always the source of the one global role. It
-// fails closed when no username is configured.
-func (s *Service) EnsureRoot(ctx context.Context, username, password string) error {
-	username = strings.TrimSpace(username)
-	if username == "" {
-		return errors.New("NOXIS_ADMIN_USERNAME is required: it names the single super admin")
+// fails closed when no email is configured.
+func (s *Service) EnsureRoot(ctx context.Context, email, password string) error {
+	email = normalizeEmail(email)
+	if email == "" {
+		return errors.New("NOXIS_ADMIN_EMAIL is required: it names the single super admin")
 	}
-	subject := entity.LocalSubject(username)
+	if _, err := mail.ParseAddress(email); err != nil {
+		return fmt.Errorf("NOXIS_ADMIN_EMAIL %q is not an email address: %w", email, err)
+	}
+	subject := entity.LocalSubject(email)
 	_, err := s.users.GetUser(ctx, subject)
 	switch {
 	case errors.Is(err, constants.ErrNotFound):
 		if password == "" {
-			return fmt.Errorf("no account for %q; set NOXIS_ADMIN_PASSWORD to create the super admin", username)
+			return fmt.Errorf("no account for %q; set NOXIS_ADMIN_PASSWORD to create the super admin", email)
 		}
 		if err := checkPassword(password); err != nil {
 			return err
@@ -96,7 +100,8 @@ func (s *Service) EnsureRoot(ctx context.Context, username, password string) err
 		}
 		if err := s.users.SaveUser(ctx, entity.User{
 			Subject:  subject,
-			Username: username,
+			Email:    email,
+			Username: email,
 			Password: hash,
 			Super:    true,
 		}); err != nil {
@@ -108,11 +113,12 @@ func (s *Service) EnsureRoot(ctx context.Context, username, password string) err
 	return s.users.SetSoleSuper(ctx, subject)
 }
 
-// Login verifies a password and issues the account's single active token.
-func (s *Service) Login(ctx context.Context, username, password string) (string, entity.User, error) {
-	u, err := s.users.GetUserByUsername(ctx, username)
+// Login verifies a password and issues the account's single active token. The
+// identifier is the account's email (or the username it was created with).
+func (s *Service) Login(ctx context.Context, login, password string) (string, entity.User, error) {
+	u, err := s.users.GetUserByLogin(ctx, normalizeEmail(login))
 	if err != nil {
-		// pay the bcrypt cost anyway: timing must not reveal a known username
+		// pay the bcrypt cost anyway: timing must not reveal a known account
 		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
 		return "", entity.User{}, constants.ErrInvalidCredentials
 	}
@@ -174,6 +180,13 @@ func HashPassword(password string) (string, error) {
 func TokenHash(rawToken string) string {
 	sum := sha256.Sum256([]byte(rawToken))
 	return hex.EncodeToString(sum[:])
+}
+
+// normalizeEmail is the single spelling of an email: trimmed, lowercased. The
+// env root, the login identifier and the OIDC claim all pass through here, so a
+// case difference cannot split one identity into two.
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
 }
 
 func newToken() (raw, hash string, err error) {

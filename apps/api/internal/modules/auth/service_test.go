@@ -21,6 +21,9 @@ type fakeToken struct {
 	expires int64
 }
 
+// rootEmail is the env account's identifier in these tests.
+const rootEmail = "root@example.com"
+
 func newFakeUsers() *fakeUsers {
 	return &fakeUsers{bySubject: map[string]*entity.User{}, tokens: map[string]fakeToken{}}
 }
@@ -44,9 +47,9 @@ func (f *fakeUsers) GetUser(_ context.Context, subject string) (*entity.User, er
 	return &cp, nil
 }
 
-func (f *fakeUsers) GetUserByUsername(_ context.Context, username string) (*entity.User, error) {
+func (f *fakeUsers) GetUserByLogin(_ context.Context, login string) (*entity.User, error) {
 	for _, u := range f.bySubject {
-		if u.Username == username && username != "" {
+		if login != "" && u.Password != "" && (u.Email == login || u.Username == login) {
 			cp := *u
 			return &cp, nil
 		}
@@ -146,7 +149,7 @@ func seeded(t *testing.T) (*Service, *fakeUsers) {
 	t.Helper()
 	repo := newFakeUsers()
 	svc := NewService(repo, nil)
-	if err := svc.EnsureRoot(context.Background(), "root", "supersecret"); err != nil {
+	if err := svc.EnsureRoot(context.Background(), rootEmail, "supersecret"); err != nil {
 		t.Fatalf("seed root: %v", err)
 	}
 	return svc, repo
@@ -160,17 +163,17 @@ func TestEnsureRootCreatesOnce(t *testing.T) {
 	if err := svc.EnsureRoot(ctx, "", ""); err == nil {
 		t.Fatal("empty store with no env must fail")
 	}
-	if err := svc.EnsureRoot(ctx, "root", "short"); err == nil {
+	if err := svc.EnsureRoot(ctx, rootEmail, "short"); err == nil {
 		t.Fatal("a too-short root password must fail")
 	}
-	if err := svc.EnsureRoot(ctx, "root", "supersecret"); err != nil {
+	if err := svc.EnsureRoot(ctx, rootEmail, "supersecret"); err != nil {
 		t.Fatalf("seed root: %v", err)
 	}
 	// a later boot with different env must not overwrite the stored password
-	if err := svc.EnsureRoot(ctx, "root", "different-long"); err != nil {
+	if err := svc.EnsureRoot(ctx, rootEmail, "different-long"); err != nil {
 		t.Fatalf("second seed must be a no-op: %v", err)
 	}
-	if _, _, err := svc.Login(ctx, "root", "supersecret"); err != nil {
+	if _, _, err := svc.Login(ctx, rootEmail, "supersecret"); err != nil {
 		t.Fatalf("original password must still work: %v", err)
 	}
 }
@@ -180,23 +183,23 @@ func TestEnsureRootIsSoleSuper(t *testing.T) {
 	svc := NewService(repo, nil)
 	ctx := context.Background()
 
-	if err := svc.EnsureRoot(ctx, "root", "supersecret"); err != nil {
+	if err := svc.EnsureRoot(ctx, rootEmail, "supersecret"); err != nil {
 		t.Fatalf("seed root: %v", err)
 	}
 	// a second super, as an older build might have stored, is cleared on boot
-	if err := repo.SaveUser(ctx, entity.User{Subject: "local:bob", Username: "bob", Super: true}); err != nil {
+	if err := repo.SaveUser(ctx, entity.User{Subject: "local:bob@example.com", Email: "bob@example.com", Super: true}); err != nil {
 		t.Fatalf("seed bob: %v", err)
 	}
-	if err := svc.EnsureRoot(ctx, "root", ""); err != nil {
+	if err := svc.EnsureRoot(ctx, rootEmail, ""); err != nil {
 		t.Fatalf("reboot: %v", err)
 	}
-	if u, _ := repo.GetUser(ctx, "local:bob"); u.Super {
+	if u, _ := repo.GetUser(ctx, "local:bob@example.com"); u.Super {
 		t.Fatal("only the env account may be super")
 	}
-	if u, _ := repo.GetUser(ctx, "local:root"); !u.Super {
+	if u, _ := repo.GetUser(ctx, entity.LocalSubject(rootEmail)); !u.Super {
 		t.Fatal("the env account must be super")
 	}
-	if err := svc.EnsureRoot(ctx, "ghost", ""); err == nil {
+	if err := svc.EnsureRoot(ctx, "ghost@example.com", ""); err == nil {
 		t.Fatal("an unknown env account must fail closed")
 	}
 }
@@ -205,18 +208,18 @@ func TestLoginVerifyLogout(t *testing.T) {
 	svc, _ := seeded(t)
 	ctx := context.Background()
 
-	token, _, err := svc.Login(ctx, "root", "supersecret")
+	token, _, err := svc.Login(ctx, rootEmail, "supersecret")
 	if err != nil {
 		t.Fatalf("login: %v", err)
 	}
 	id, err := svc.Verify(ctx, token)
-	if err != nil || id.Subject != "local:root" || !id.Super {
+	if err != nil || id.Subject != entity.LocalSubject(rootEmail) || !id.Super {
 		t.Fatalf("verify: %+v err=%v", id, err)
 	}
 	if _, err := svc.Verify(ctx, "not-a-token"); err == nil {
 		t.Fatal("an unknown token must fail")
 	}
-	if err := svc.Logout(ctx, "local:root"); err != nil {
+	if err := svc.Logout(ctx, entity.LocalSubject(rootEmail)); err != nil {
 		t.Fatalf("logout: %v", err)
 	}
 	if _, err := svc.Verify(ctx, token); err == nil {
@@ -228,16 +231,16 @@ func TestLoginRejects(t *testing.T) {
 	svc, repo := seeded(t)
 	ctx := context.Background()
 
-	if _, _, err := svc.Login(ctx, "root", "wrong-password"); !errors.Is(err, constants.ErrInvalidCredentials) {
+	if _, _, err := svc.Login(ctx, rootEmail, "wrong-password"); !errors.Is(err, constants.ErrInvalidCredentials) {
 		t.Fatalf("wrong password: %v", err)
 	}
-	if _, _, err := svc.Login(ctx, "ghost", "whatever-long"); !errors.Is(err, constants.ErrInvalidCredentials) {
+	if _, _, err := svc.Login(ctx, "ghost@example.com", "whatever-long"); !errors.Is(err, constants.ErrInvalidCredentials) {
 		t.Fatalf("unknown user: %v", err)
 	}
-	u, _ := repo.GetUser(ctx, "local:root")
+	u, _ := repo.GetUser(ctx, entity.LocalSubject(rootEmail))
 	u.Disabled = true
 	_ = repo.SaveUser(ctx, *u)
-	if _, _, err := svc.Login(ctx, "root", "supersecret"); !errors.Is(err, constants.ErrInvalidCredentials) {
+	if _, _, err := svc.Login(ctx, rootEmail, "supersecret"); !errors.Is(err, constants.ErrInvalidCredentials) {
 		t.Fatalf("disabled user: %v", err)
 	}
 }
@@ -246,23 +249,23 @@ func TestChangePasswordRotatesToken(t *testing.T) {
 	svc, _ := seeded(t)
 	ctx := context.Background()
 
-	token, _, err := svc.Login(ctx, "root", "supersecret")
+	token, _, err := svc.Login(ctx, rootEmail, "supersecret")
 	if err != nil {
 		t.Fatalf("login: %v", err)
 	}
-	if err := svc.ChangePassword(ctx, "local:root", "wrong", "another-long"); !errors.Is(err, constants.ErrInvalidCredentials) {
+	if err := svc.ChangePassword(ctx, entity.LocalSubject(rootEmail), "wrong", "another-long"); !errors.Is(err, constants.ErrInvalidCredentials) {
 		t.Fatalf("old password check: %v", err)
 	}
-	if err := svc.ChangePassword(ctx, "local:root", "supersecret", "short"); err == nil {
+	if err := svc.ChangePassword(ctx, entity.LocalSubject(rootEmail), "supersecret", "short"); err == nil {
 		t.Fatal("a too-short new password must fail")
 	}
-	if err := svc.ChangePassword(ctx, "local:root", "supersecret", "another-long"); err != nil {
+	if err := svc.ChangePassword(ctx, entity.LocalSubject(rootEmail), "supersecret", "another-long"); err != nil {
 		t.Fatalf("change: %v", err)
 	}
 	if _, err := svc.Verify(ctx, token); err == nil {
 		t.Fatal("the old token must be dead after a password change")
 	}
-	if _, _, err := svc.Login(ctx, "root", "another-long"); err != nil {
+	if _, _, err := svc.Login(ctx, rootEmail, "another-long"); err != nil {
 		t.Fatalf("new password must work: %v", err)
 	}
 }
@@ -273,7 +276,7 @@ func TestTokenExpires(t *testing.T) {
 	base := time.Now()
 	svc.now = func() time.Time { return base }
 
-	token, _, err := svc.Login(ctx, "root", "supersecret")
+	token, _, err := svc.Login(ctx, rootEmail, "supersecret")
 	if err != nil {
 		t.Fatalf("login: %v", err)
 	}
@@ -307,3 +310,4 @@ func TestServiceLocalOnlyRejects(t *testing.T) {
 		t.Fatal("with no OIDC verifier, a non-local token must be rejected")
 	}
 }
+

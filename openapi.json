@@ -228,7 +228,7 @@
                             }
                         }
                     },
-                    "description": "username and password",
+                    "description": "email and password",
                     "required": true
                 },
                 "responses": {
@@ -2650,10 +2650,10 @@
             "auth.loginRequest": {
                 "type": "object",
                 "properties": {
-                    "password": {
+                    "email": {
                         "type": "string"
                     },
-                    "username": {
+                    "password": {
                         "type": "string"
                     }
                 }
@@ -3269,6 +3269,9 @@
                     "disabled": {
                         "type": "boolean"
                     },
+                    "email": {
+                        "type": "string"
+                    },
                     "groups": {
                         "type": "array",
                         "items": {
@@ -3361,6 +3364,9 @@
                     },
                     "disabled": {
                         "type": "boolean"
+                    },
+                    "email": {
+                        "type": "string"
                     },
                     "events": {
                         "type": "array",
