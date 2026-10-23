@@ -1,59 +1,67 @@
 import { useParams } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RoleBadge } from "@/components/access/role-badge";
 import { useAuth } from "@/app/auth-provider";
 import { useLevelsQuery } from "@/hooks/use-config";
-import { useSetUserDisabled, useUserQuery } from "@/hooks/use-users";
+import { useUpdateUser, useUserQuery } from "@/hooks/use-users";
 import { formatDateTime, grantExpiry } from "@/lib/dates";
 import { H1, P } from "@/components/ui/typography";
+import type { UserRole } from "@/lib/api";
 
-// UserDetailPage is the super admin's view of one account: identity, the access
-// it holds directly or through a group, and the activity trail.
+// UserDetailPage is an admin view of one account: identity, role and status,
+// the access it holds directly or through a group, and the activity trail. Only
+// the super admin may change the role; an admin may only ban members.
 export default function UserDetailPage() {
   const { subject = "" } = useParams();
-  const { isSuper } = useAuth();
-  const { data: user, isPending } = useUserQuery(isSuper ? subject : "");
-  const toggle = useSetUserDisabled(subject);
+  const { isAdmin, isSuper, identity } = useAuth();
+  const { data: user, isPending } = useUserQuery(isAdmin ? subject : "");
+  const update = useUpdateUser(subject);
   const levels = useLevelsQuery().data?.levels ?? [];
   const levelLabel = (value?: string) => levels.find((l) => l.value === value)?.label ?? value;
 
-  if (!isSuper) {
+  if (!isAdmin) {
     return (
       <div className="mx-auto mt-8 max-w-lg">
-        <Empty
-          icon={ShieldCheck}
-          title="Super admin only"
-          description="Account details are reserved for the super admin."
-        />
+        <Empty icon={ShieldCheck} title="Admin only" description="Account details are reserved for admins." />
       </div>
     );
   }
   if (isPending || !user) return <Skeleton className="h-64 w-full" />;
 
+  const isSelf = identity?.sub === user.subject;
+  
+  // only the super admin changes a role: never their own, never the root
+  const canSetRole = isSuper && !isSelf && user.role !== "super";
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <H1>{user.username || user.subject}</H1>
+          <H1>{user.email || user.username || user.subject}</H1>
           <P className="font-mono">{user.subject}</P>
         </div>
-        <div className="flex items-center gap-2">
-          {user.super ? <Badge variant="success">Super</Badge> : <Badge variant="secondary">Member</Badge>}
+        <div className="flex flex-wrap items-center gap-2">
+          <RoleBadge role={user.role} />
           {user.disabled && <Badge variant="destructive">Disabled</Badge>}
-          {!user.super && (
-            <Button
-              size="sm"
-              variant={user.disabled ? "outline" : "destructive"}
-              disabled={toggle.isPending}
-              onClick={() => toggle.mutate(!user.disabled)}
+          {canSetRole && (
+            <Select
+              value={user.role}
+              onValueChange={(v) => v && update.mutate({ role: v as UserRole })}
             >
-              {user.disabled ? "Enable" : "Disable"}
-            </Button>
+              <SelectTrigger className="h-8 w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="member">Member</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
           )}
         </div>
       </div>
@@ -61,10 +69,16 @@ export default function UserDetailPage() {
       <Card>
         <CardHeader className="gap-1">
           <CardTitle className="text-base">Identity</CardTitle>
-          <CardDescription>What the directory knows about this account.</CardDescription>
+          <CardDescription>
+            What the directory knows about this account. An OIDC login with this email signs in as this account.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-muted-foreground">Email</dt>
+              <dd>{user.email || "—"}</dd>
+            </div>
             <div>
               <dt className="text-muted-foreground">Last login</dt>
               <dd>{formatDateTime(user.lastLoginAt)}</dd>

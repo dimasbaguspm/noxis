@@ -1,5 +1,5 @@
 // Package access holds access requests: a user asks for a level on one
-// connection, and the super admin or that instance's admin decides.
+// connection, and an admin or that instance's admin decides.
 package access
 
 import (
@@ -101,7 +101,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var connections []string
-	if !p.Super {
+	if !p.IsAdmin() {
 		all, err := uc.Connections.List(ctx)
 		if err != nil {
 			uc.Fail(w, err)
@@ -135,13 +135,13 @@ type decisionBody struct {
 	Note string `json:"note"`
 }
 
-// canDecide enforces who may decide a request: never the requester, then the
-// super admin or a caller holding admin on that connection.
+// canDecide enforces who may decide a request: never the requester, then a
+// global admin or a caller holding admin on that connection.
 func canDecide(ctx context.Context, d usecases.RegistryDeps, req *entity.AccessRequest, p entity.Identity) error {
 	if p.Subject == req.Subject {
 		return fmt.Errorf("%w: you cannot decide your own request", constants.ErrForbidden)
 	}
-	if p.Super {
+	if p.IsAdmin() {
 		return nil
 	}
 	level, err := d.EffectiveLevel(ctx, req.Connection, p)

@@ -14,7 +14,7 @@ import (
 )
 
 // userColumns is the shared SELECT list, so every scan stays in step.
-const userColumns = `subject, email, username, password, groups, is_super, disabled, last_login_at, created_at`
+const userColumns = `subject, email, username, password, groups, role, disabled, last_login_at, created_at`
 
 // CountUsers reports how many accounts exist.
 func (s *Store) CountUsers(ctx context.Context) (n int, err error) {
@@ -60,7 +60,7 @@ func (s *Store) ListUsers(ctx context.Context) (out []entity.User, err error) {
 	for rows.Next() {
 		var u entity.User
 		var groups string
-		if err := rows.Scan(&u.Subject, &u.Email, &u.Username, &u.Password, &groups, &u.Super, &u.Disabled, &u.LastLoginAt, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.Subject, &u.Email, &u.Username, &u.Password, &groups, &u.Role, &u.Disabled, &u.LastLoginAt, &u.CreatedAt); err != nil {
 			return nil, err
 		}
 		u.Groups = decodeGroups(groups)
@@ -95,7 +95,7 @@ func (s *Store) SaveUser(ctx context.Context, u entity.User) (err error) {
 	}
 	now := time.Now().Unix()
 	if _, err := s.db.ExecContext(ctx, `
-		INSERT INTO users (subject, email, username, password, groups, is_super, disabled, last_login_at, created_at, updated_at)
+		INSERT INTO users (subject, email, username, password, groups, role, disabled, last_login_at, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(subject) DO UPDATE SET
 			email = excluded.email,
@@ -104,7 +104,7 @@ func (s *Store) SaveUser(ctx context.Context, u entity.User) (err error) {
 			groups = excluded.groups,
 			disabled = excluded.disabled,
 			updated_at = excluded.updated_at`,
-		u.Subject, u.Email, u.Username, u.Password, encodeGroups(u.Groups), u.Super, u.Disabled, u.LastLoginAt, now, now); err != nil {
+		u.Subject, u.Email, u.Username, u.Password, encodeGroups(u.Groups), u.Role, u.Disabled, u.LastLoginAt, now, now); err != nil {
 		return fmt.Errorf("save user %s: %w", u.Subject, err)
 	}
 	return nil
@@ -170,6 +170,23 @@ func (s *Store) SetUserDisabled(ctx context.Context, subject string, disabled bo
 	return nil
 }
 
+// SetUserRole sets the global role.
+func (s *Store) SetUserRole(ctx context.Context, subject, role string) (err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	switch role {
+	case entity.RoleSuper, entity.RoleAdmin, entity.RoleMember:
+	default:
+		return fmt.Errorf("set role %s: unknown role %q", subject, role)
+	}
+	if _, err := s.db.ExecContext(ctx,
+		`UPDATE users SET role = ?, updated_at = ? WHERE subject = ?`,
+		role, time.Now().Unix(), subject); err != nil {
+		return fmt.Errorf("set role %s: %w", subject, err)
+	}
+	return nil
+}
+
 func (s *Store) SetLastLogin(ctx context.Context, subject string, at int64) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -191,11 +208,14 @@ func (s *Store) SetSoleSuper(ctx context.Context, subject string) (err error) {
 		return fmt.Errorf("sole super: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
-	if _, err := tx.ExecContext(ctx, `UPDATE users SET is_super = 0 WHERE subject != ?`, subject); err != nil {
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE users SET role = ?, updated_at = ? WHERE role = ? AND subject != ?`,
+		entity.RoleMember, time.Now().Unix(), entity.RoleSuper, subject); err != nil {
 		return fmt.Errorf("clear super: %w", err)
 	}
 	if _, err := tx.ExecContext(ctx,
-		`UPDATE users SET is_super = 1, updated_at = ? WHERE subject = ?`, time.Now().Unix(), subject); err != nil {
+		`UPDATE users SET role = ?, updated_at = ? WHERE subject = ?`,
+		entity.RoleSuper, time.Now().Unix(), subject); err != nil {
 		return fmt.Errorf("set super %s: %w", subject, err)
 	}
 	return tx.Commit()
@@ -205,7 +225,7 @@ func (s *Store) SetSoleSuper(ctx context.Context, subject string) (err error) {
 func scanUser(row *sql.Row) (*entity.User, error) {
 	u := &entity.User{}
 	var groups string
-	if err := row.Scan(&u.Subject, &u.Email, &u.Username, &u.Password, &groups, &u.Super, &u.Disabled, &u.LastLoginAt, &u.CreatedAt); err != nil {
+	if err := row.Scan(&u.Subject, &u.Email, &u.Username, &u.Password, &groups, &u.Role, &u.Disabled, &u.LastLoginAt, &u.CreatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, constants.ErrNotFound
 		}

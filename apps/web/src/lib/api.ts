@@ -25,6 +25,7 @@ export type MemcacheKeyPage = components["schemas"]["entity.KeyPage"];
 export type Permission = components["schemas"]["entity.Permission"];
 export type MemberUser = components["schemas"]["permission.memberUser"];
 export type User = components["schemas"]["entity.User"];
+export type UserRole = User["role"];
 export type UserDetail = components["schemas"]["user.Detail"];
 export type AccessEvent = components["schemas"]["entity.AccessEvent"];
 export type AccessLevel = components["schemas"]["metadata.LevelInfo"];
@@ -202,7 +203,7 @@ export const api = {
       request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/schedule`), { scheduledAt }),
   },
   // config is the server's console-facing configuration (hardcoded Go-side).
-  // permissions: per-connection RBAC policy (users and groups), global admins only.
+  // permissions: per-connection RBAC policy (users and groups), admin-managed.
   permissions: {
     list: (family: FamilyKey, name: string) =>
       request<{ permissions: Permission[] }>("GET", v1(family, `connections/${encodeURIComponent(name)}/permissions`)),
@@ -218,8 +219,8 @@ export const api = {
         v1(family, `connections/${encodeURIComponent(name)}/permissions?member=${encodeURIComponent(member)}`),
       ),
   },
-  // accessRequests: a user asks for a level on a connection; the super admin or
-  // that instance's admin decides.
+  // accessRequests: a user asks for a level on a connection; an admin or that
+  // instance's admin decides.
   accessRequests: {
     create: (connection: string, level: string, reason: string) =>
       request<AccessRequest>("POST", "/external/v1/access-requests", { connection, level, reason }),
@@ -230,7 +231,8 @@ export const api = {
     reject: (id: string, note = "") =>
       request<AccessRequest>("POST", `/external/v1/access-requests/${id}/reject`, { note }),
   },
-  // users: the super admin's directory. Read-only plus a disable toggle.
+  // users: the admin directory. Read-only plus the status/role controls; only
+  // the super admin may send a role.
   users: {
     list: (q: string, status: string) =>
       request<{ users: User[] }>(
@@ -238,8 +240,8 @@ export const api = {
         `/external/v1/users?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`,
       ),
     get: (subject: string) => request<UserDetail>("GET", `/external/v1/users/${encodeURIComponent(subject)}`),
-    setDisabled: (subject: string, disabled: boolean) =>
-      request<User>("PATCH", `/external/v1/users/${encodeURIComponent(subject)}`, { disabled }),
+    update: (subject: string, patch: { role?: UserRole }) =>
+      request<User>("PATCH", `/external/v1/users/${encodeURIComponent(subject)}`, patch),
   },
   config: {
     drivers: () => request<DriverInfo[]>("GET", "/external/v1/config/drivers"),

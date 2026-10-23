@@ -13,6 +13,7 @@ interface AuthState {
   oidcEnabled: boolean;
   authenticated: boolean;
   isSuper: boolean;
+  isAdmin: boolean;
   identity: Identity | null;
   ready: boolean;
   canAccess: (connection: string | undefined, need: Level) => boolean;
@@ -57,13 +58,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const isSuper = !authOn || (identity?.super ?? false);
+  const role = identity?.role;
+  const isSuper = !authOn || role === "super";
+  const isAdmin = !authOn || role === "super" || role === "admin";
 
   const canAccess = useCallback(
     (connection: string | undefined, need: Level) => {
       if (!authOn) return true;
       if (!identity) return false;
-      if (identity.super) return true;
+      if (identity.role === "super") return true;
       const have = (connection ? identity.connections?.[connection]?.level : "") ?? "";
       return (LEVEL_RANK[have] ?? 0) >= LEVEL_RANK[need];
     },
@@ -81,13 +84,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       oidcEnabled: oidcOn,
       authenticated,
       isSuper,
+      isAdmin,
       identity,
       ready,
       canAccess,
       isInstanceAdmin: (connection: string) => canAccess(connection, "admin"),
       signout,
     }),
-    [authOn, localOn, oidcOn, authenticated, identity, isSuper, ready, canAccess, signout],
+    [authOn, localOn, oidcOn, authenticated, identity, isSuper, isAdmin, ready, canAccess, signout],
   );
 
   if (!ready && !isCallback) {

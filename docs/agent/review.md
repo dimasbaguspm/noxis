@@ -9,9 +9,11 @@ repo-specific: the generic review skill covers the rest.
    nothing internal; `usecases` never import `handlers`; repositories never
    import use cases. New seams go in `apps/api/internal/interfaces`.
 2. **Access gate** — every connection-scoped flow must go through
-   `usecases.rawConn` (family check + `Authorize`) or `RequireSuper` for
-   management. A new route that reads a connection without one of these is a
-   security hole.
+   `usecases.rawConn` (family check + `Authorize`), `RequireSuper` for the
+   root-only surfaces or `RequireAdmin` for the instance-management surfaces. A
+   new route that reads a connection without one of these is a security hole.
+   `RequireAdmin` never implies data access: an admin without a grant cannot read
+   rows.
 3. **Password redaction** — the wire never carries `entity.Connection.Password`.
    Use `Connection.Redacted()`. Check every new response shape.
 4. **Family isolation** — a memcache connection must be invisible to SQL routes

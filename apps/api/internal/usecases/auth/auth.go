@@ -150,7 +150,7 @@ func (uc Me) Serve(w http.ResponseWriter, r *http.Request) {
 	}
 	for i := range list {
 		c := &list[i]
-		if p.Super {
+		if p.IsSuper() {
 			grants[c.Name] = AccessGrant{Level: entity.LevelAdmin}
 			continue
 		}

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, type UserRole } from "@/lib/api";
 import { useUrlState } from "@/hooks/use-url-state";
 
 const USERS_DEFAULTS = { q: "", status: "all" };
@@ -34,16 +34,17 @@ export function useUserQuery(subject: string) {
   });
 }
 
-// useSetUserDisabled toggles an account and owns the cache invalidation, so the
-// page stays a rendering surface.
-export function useSetUserDisabled(subject: string) {
+// useUpdateUser owns the role mutation and its cache invalidation, so the
+// pages stay rendering surfaces.
+export function useUpdateUser(subject: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (disabled: boolean) => api.users.setDisabled(subject, disabled),
-    onSuccess: () => {
-      toast.success("account updated");
+    mutationFn: (patch: { role?: UserRole }) => api.users.update(subject, patch),
+    onSuccess: (_data, patch) => {
+      toast.success(`role changed to ${patch.role}`);
       void queryClient.invalidateQueries({ queryKey: ["user", subject] });
       void queryClient.invalidateQueries({ queryKey: ["users"] });
+      void queryClient.invalidateQueries({ queryKey: ["access", "matrix"] });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "update failed"),
   });

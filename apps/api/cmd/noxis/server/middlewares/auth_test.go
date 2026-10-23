@@ -71,7 +71,7 @@ func TestWithAuthGuardsAPI(t *testing.T) {
 
 // A verified token reaches the handler as the request's principal.
 func TestWithAuthAttachesPrincipal(t *testing.T) {
-	verifier := &fakeVerifier{principal: entity.Identity{Subject: "alice", Groups: []string{"dev"}, Super: true}}
+	verifier := &fakeVerifier{principal: entity.Identity{Subject: "alice", Groups: []string{"dev"}, Role: entity.RoleSuper}}
 	var got entity.Identity
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		got, _ = usecases.Principal(r.Context())
@@ -81,7 +81,7 @@ func TestWithAuthAttachesPrincipal(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer good-token")
 	rec := httptest.NewRecorder()
 	WithAuth(verifier, inner).ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK || got.Subject != "alice" || !got.Super {
+	if rec.Code != http.StatusOK || got.Subject != "alice" || !got.IsSuper() {
 		t.Fatalf("status=%d principal=%+v", rec.Code, got)
 	}
 }

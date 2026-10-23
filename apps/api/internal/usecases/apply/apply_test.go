@@ -21,7 +21,7 @@ func TestApplyAfterApprove(t *testing.T) {
 	f.Changes.M["x"] = approved("x")
 
 	mux := ucstest.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: f.Deps()}.Serve)
-	rec := ucstest.Do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Super: true})
+	rec := ucstest.Do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("apply status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -35,7 +35,7 @@ func TestApplyFailureIsRecorded(t *testing.T) {
 	f.Changes.M["x"] = approved("x")
 
 	mux := ucstest.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: f.Deps()}.Serve)
-	rec := ucstest.Do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Super: true})
+	rec := ucstest.Do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code == http.StatusOK {
 		t.Fatalf("apply must surface the failure: %s", rec.Body.String())
 	}

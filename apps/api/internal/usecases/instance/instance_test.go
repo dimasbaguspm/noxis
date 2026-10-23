@@ -63,7 +63,7 @@ func TestRotatePassword(t *testing.T) {
 	f.Conns.M["demo"] = c
 
 	mux := ucstest.Mux("POST", "/external/v1/instances/{id}/password", RotatePassword{RegistryDeps: f.Deps()}.Serve)
-	admin := &entity.Identity{Subject: "root", Super: true}
+	admin := &entity.Identity{Subject: "root", Role: entity.RoleSuper}
 	rec := ucstest.Do(mux, http.MethodPost, "/external/v1/instances/abc/password", `{"password":"new"}`, admin)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("rotate status=%d body=%s", rec.Code, rec.Body.String())

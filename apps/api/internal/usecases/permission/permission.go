@@ -2,6 +2,7 @@
 package permission
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -16,6 +17,7 @@ import (
 type memberUser struct {
 	Subject string `json:"subject"`
 	Label   string `json:"label"`
+	Role    string `json:"role"`
 }
 
 // Members returns the known groups and user accounts for permission editing.
@@ -27,7 +29,7 @@ type Members struct{ usecases.RegistryDeps }
 // @Router /external/v1/config/members [get]
 func (uc Members) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if err := uc.RequireSuper(ctx); err != nil {
+	if err := uc.RequireAdmin(ctx); err != nil {
 		uc.Fail(w, err)
 		return
 	}
@@ -45,12 +47,10 @@ func (uc Members) Serve(w http.ResponseWriter, r *http.Request) {
 		groups = []string{}
 	}
 	pickable := make([]memberUser, 0, len(users))
-	for _, u := range users {
-		label := u.Username
-		if label == "" {
-			label = u.Subject
-		}
-		pickable = append(pickable, memberUser{Subject: u.Subject, Label: label})
+	for i := range users {
+		u := &users[i]
+		label := firstNonEmpty(u.Email, u.Username, u.Subject)
+		pickable = append(pickable, memberUser{Subject: u.Subject, Label: label, Role: u.Role})
 	}
 	uc.Respond(w, map[string]any{"groups": groups, "users": pickable})
 }
@@ -68,24 +68,19 @@ type List struct{ usecases.RegistryDeps }
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	// The super admin edits access; the instance's own admin reads it.
-	p, ok := usecases.Principal(ctx)
-	if !ok {
-		uc.Fail(w, constants.ErrUnauthorized)
+	// A global admin reads every connection's policy; an instance's own admin
+	// reads that one.
+	need, err := adminLevel(ctx, entity.LevelAdmin)
+	if err != nil {
+		uc.Fail(w, err)
 		return
-	}
-	if !p.Super {
-		if err := uc.Authorize(ctx, r.PathValue("name"), entity.LevelAdmin); err != nil {
-			uc.Fail(w, err)
-			return
-		}
 	}
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		uc.Fail(w, err)
 		return
 	}
-	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), entity.LevelAdmin); err != nil {
+	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), need); err != nil {
 		uc.Fail(w, err)
 		return
 	}
@@ -95,6 +90,32 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	uc.Respond(w, map[string]any{"permissions": out})
+}
+
+// firstNonEmpty returns the first non-empty string, so a label falls back from
+// email to username to subject.
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// adminLevel is the per-connection level a caller must hold: nothing for a
+// global admin (it manages every connection's policy), need for everyone else.
+// A policy endpoint resolves it before RawConn so the two gates — global role
+// and per-connection grant — stay one call instead of two.
+func adminLevel(ctx context.Context, need string) (string, error) {
+	p, ok := usecases.Principal(ctx)
+	if !ok {
+		return "", constants.ErrUnauthorized
+	}
+	if p.IsAdmin() {
+		return "", nil
+	}
+	return need, nil
 }
 
 // permissionBody is the upsert payload: one member at one level.
@@ -107,7 +128,7 @@ type permissionBody struct {
 // Set upserts one member's level on a connection.
 type Set struct{ usecases.RegistryDeps }
 
-// @Summary Grant a user or group a level on a connection
+// @Summary Grant a user or group a level on a connection (admin only)
 // @Param engine path string true "engine family (sql, memcache, mongodb)"
 // @Param name path string true "connection name"
 // @Param body body permissionBody true "member, member type and level"
@@ -119,7 +140,7 @@ type Set struct{ usecases.RegistryDeps }
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [put]
 func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if err := uc.RequireSuper(ctx); err != nil {
+	if err := uc.RequireAdmin(ctx); err != nil {
 		uc.Fail(w, err)
 		return
 	}
@@ -133,7 +154,8 @@ func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(w, err)
 		return
 	}
-	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), entity.LevelRead); err != nil {
+	// granting is the admin surface itself, so only the family is checked here
+	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), ""); err != nil {
 		uc.Fail(w, err)
 		return
 	}
@@ -156,8 +178,8 @@ func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
 	uc.Respond(w, p)
 }
 
-// Delete removes a member's permission from a connection. The super admin and
-// the instance's own admin may call it; granting stays super-only.
+// Delete removes a member's permission from a connection. The super admin, a
+// global admin and the instance's own admin may call it.
 type Delete struct{ usecases.RegistryDeps }
 
 // @Summary Revoke a member's permission on a connection
@@ -171,17 +193,11 @@ type Delete struct{ usecases.RegistryDeps }
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [delete]
 func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	// The super admin and the instance's own admin may revoke; everyone else cannot.
-	p, ok := usecases.Principal(ctx)
-	if !ok {
-		uc.Fail(w, constants.ErrUnauthorized)
+	// The super admin, a global admin and the instance's own admin may revoke.
+	need, err := adminLevel(ctx, entity.LevelAdmin)
+	if err != nil {
+		uc.Fail(w, err)
 		return
-	}
-	if !p.Super {
-		if err := uc.Authorize(ctx, r.PathValue("name"), entity.LevelAdmin); err != nil {
-			uc.Fail(w, err)
-			return
-		}
 	}
 	member := r.URL.Query().Get("member")
 	if member == "" {
@@ -193,7 +209,7 @@ func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(w, err)
 		return
 	}
-	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), entity.LevelAdmin); err != nil {
+	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), need); err != nil {
 		uc.Fail(w, err)
 		return
 	}

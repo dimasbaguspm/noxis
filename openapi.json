@@ -1538,7 +1538,7 @@
                 }
             },
             "put": {
-                "summary": "Grant a user or group a level on a connection",
+                "summary": "Grant a user or group a level on a connection (admin only)",
                 "parameters": [
                     {
                         "description": "engine family (sql, memcache, mongodb)",
@@ -2335,10 +2335,10 @@
         },
         "/external/v1/users": {
             "get": {
-                "summary": "List accounts (super admin only)",
+                "summary": "List accounts (admin only)",
                 "parameters": [
                     {
-                        "description": "match subject or username",
+                        "description": "match subject, email or username",
                         "name": "q",
                         "in": "query",
                         "schema": {
@@ -2346,7 +2346,7 @@
                         }
                     },
                     {
-                        "description": "all, active or disabled",
+                        "description": "all, active or banned",
                         "name": "status",
                         "in": "query",
                         "schema": {
@@ -2388,7 +2388,7 @@
         },
         "/external/v1/users/{subject}": {
             "get": {
-                "summary": "One account with its access and activity (super admin only)",
+                "summary": "One account with its access and activity (admin only)",
                 "parameters": [
                     {
                         "description": "user subject",
@@ -2434,7 +2434,7 @@
                 }
             },
             "patch": {
-                "summary": "Disable or re-enable an account (super admin only)",
+                "summary": "Promote or demote an admin (super only)",
                 "parameters": [
                     {
                         "description": "user subject",
@@ -2454,7 +2454,7 @@
                             }
                         }
                     },
-                    "description": "disabled",
+                    "description": "role",
                     "required": true
                 },
                 "responses": {
@@ -2628,11 +2628,11 @@
                     "name": {
                         "type": "string"
                     },
-                    "sub": {
+                    "role": {
                         "type": "string"
                     },
-                    "super": {
-                        "type": "boolean"
+                    "sub": {
+                        "type": "string"
                     }
                 }
             },
@@ -3260,6 +3260,7 @@
             "entity.User": {
                 "type": "object",
                 "required": [
+                    "role",
                     "subject"
                 ],
                 "properties": {
@@ -3281,11 +3282,16 @@
                     "lastLoginAt": {
                         "type": "integer"
                     },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "super",
+                            "admin",
+                            "member"
+                        ]
+                    },
                     "subject": {
                         "type": "string"
-                    },
-                    "super": {
-                        "type": "boolean"
                     },
                     "username": {
                         "type": "string"
@@ -3315,6 +3321,9 @@
                 "type": "object",
                 "properties": {
                     "label": {
+                        "type": "string"
+                    },
+                    "role": {
                         "type": "string"
                     },
                     "subject": {
@@ -3350,6 +3359,7 @@
             "user.Detail": {
                 "type": "object",
                 "required": [
+                    "role",
                     "subject"
                 ],
                 "properties": {
@@ -3383,11 +3393,16 @@
                     "lastLoginAt": {
                         "type": "integer"
                     },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "super",
+                            "admin",
+                            "member"
+                        ]
+                    },
                     "subject": {
                         "type": "string"
-                    },
-                    "super": {
-                        "type": "boolean"
                     },
                     "username": {
                         "type": "string"
@@ -3397,8 +3412,8 @@
             "user.updateBody": {
                 "type": "object",
                 "properties": {
-                    "disabled": {
-                        "type": "boolean"
+                    "role": {
+                        "type": "string"
                     }
                 }
             }

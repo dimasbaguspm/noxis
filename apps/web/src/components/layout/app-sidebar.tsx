@@ -110,7 +110,7 @@ function FamilyMenu({ family, pathname }: { family: Family; pathname: string }) 
 // an icon rail; below the mobile breakpoint it becomes the overlay sheet.
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
-  const { isSuper } = useAuth();
+  const { isAdmin } = useAuth();
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -127,7 +127,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {isSuper && (
+        {isAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel>Administration</SidebarGroupLabel>
             <SidebarGroupContent className="flex flex-col gap-2">

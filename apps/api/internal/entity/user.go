@@ -1,17 +1,27 @@
 package entity
 
+// Global roles. Exactly one account holds Super: the env root, named by
+// NOXIS_ADMIN_EMAIL. An Admin runs the instance — directory and every
+// connection's grants — but cannot promote, and cannot manage connections.
+// Everyone else is a Member whose reach is per-connection grants.
+const (
+	RoleSuper  = "super"
+	RoleAdmin  = "admin"
+	RoleMember = "member"
+)
+
 // User is a local account or an OIDC identity reference. Subject is the stable
 // key: "local:<login>" for a local account, the OIDC sub otherwise. Email is the
-// account identifier: a local account signs in with it. Password is empty for
-// OIDC rows, which exist so grants and the directory can reference every
-// authenticated principal.
+// account identifier: a local account signs in with it. Role is the one global
+// role. Password is empty for OIDC rows, which exist so grants and the directory
+// can reference every authenticated principal.
 type User struct {
 	Subject     string   `json:"subject" validate:"required"`
 	Email       string   `json:"email,omitempty" validate:"omitempty,email"`
 	Username    string   `json:"username,omitempty"`
 	Password    string   `json:"-"`
 	Groups      []string `json:"groups"`
-	Super       bool     `json:"super"`
+	Role        string   `json:"role" validate:"required,oneof=super admin member"`
 	Disabled    bool     `json:"disabled"`
 	LastLoginAt int64    `json:"lastLoginAt"`
 	CreatedAt   int64    `json:"createdAt"`
@@ -31,13 +41,26 @@ func LocalUsername(subject string) string {
 	return subject[len(prefix):]
 }
 
+// IsSuper reports whether the account holds the single global role.
+func (u User) IsSuper() bool { return u.Role == RoleSuper }
+
+// IsAdmin reports whether the account holds a global management role.
+func (u User) IsAdmin() bool { return u.Role == RoleSuper || u.Role == RoleAdmin }
+
 // Identity renders the account as the request principal.
 func (u User) Identity() Identity {
 	name := u.Username
 	if name == "" {
 		name = u.Subject
 	}
-	return Identity{Subject: u.Subject, Name: name, Groups: u.Groups, Super: u.Super, LastLoginAt: u.LastLoginAt}
+	return Identity{
+		Subject:     u.Subject,
+		Name:        name,
+		Email:       u.Email,
+		Groups:      u.Groups,
+		Role:        u.Role,
+		LastLoginAt: u.LastLoginAt,
+	}
 }
 
 // Validate checks the wire fields.

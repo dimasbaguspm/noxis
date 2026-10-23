@@ -14,7 +14,7 @@ func TestMe(t *testing.T) {
 	f := ucstest.New(&ucstest.SQL{})
 	mux := ucstest.Mux("GET", "/external/v1/me", Me{RegistryDeps: f.Deps()}.Serve)
 
-	rec := ucstest.Do(mux, http.MethodGet, "/external/v1/me", "", &entity.Identity{Subject: "alice", Groups: []string{"dev"}, Super: true})
+	rec := ucstest.Do(mux, http.MethodGet, "/external/v1/me", "", &entity.Identity{Subject: "alice", Groups: []string{"dev"}, Role: entity.RoleSuper})
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"sub":"alice"`) {
 		t.Fatalf("me status=%d body=%s", rec.Code, rec.Body.String())
 	}

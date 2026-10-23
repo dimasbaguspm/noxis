@@ -188,7 +188,7 @@ func (f *Users) EnsureSubject(ctx context.Context, subject string) error {
 	if _, err := f.GetUser(ctx, subject); err == nil {
 		return nil
 	}
-	f.Accounts = append(f.Accounts, entity.User{Subject: subject})
+	f.Accounts = append(f.Accounts, entity.User{Subject: subject, Role: entity.RoleMember})
 	return nil
 }
 
@@ -214,6 +214,15 @@ func (f *Users) SetUserDisabled(ctx context.Context, subject string, disabled bo
 	return f.SaveUser(ctx, *u)
 }
 
+func (f *Users) SetUserRole(ctx context.Context, subject, role string) error {
+	u, err := f.GetUser(ctx, subject)
+	if err != nil {
+		return err
+	}
+	u.Role = role
+	return f.SaveUser(ctx, *u)
+}
+
 func (f *Users) SetUserToken(context.Context, string, string, int64) error { return nil }
 
 func (f *Users) SetLastLogin(ctx context.Context, subject string, at int64) error {
@@ -227,7 +236,12 @@ func (f *Users) SetLastLogin(ctx context.Context, subject string, at int64) erro
 
 func (f *Users) SetSoleSuper(_ context.Context, subject string) error {
 	for i := range f.Accounts {
-		f.Accounts[i].Super = f.Accounts[i].Subject == subject
+		switch {
+		case f.Accounts[i].Subject == subject:
+			f.Accounts[i].Role = entity.RoleSuper
+		case f.Accounts[i].Role == entity.RoleSuper:
+			f.Accounts[i].Role = entity.RoleMember
+		}
 	}
 	return nil
 }

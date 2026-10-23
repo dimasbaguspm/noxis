@@ -157,6 +157,8 @@ var migrations = []string{
 	// so the account keeps signing in by the name it was created with
 	`UPDATE users SET email = username WHERE email = '' AND username != ''`,
 	`CREATE UNIQUE INDEX IF NOT EXISTS users_email ON users(email) WHERE email != ''`,
+	`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'member'`,
+	`UPDATE users SET role = 'super' WHERE is_super = 1`,
 	`ALTER TABLE permissions ADD COLUMN expires_at INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE permissions ADD COLUMN created_by TEXT NOT NULL DEFAULT ''`,
 	`ALTER TABLE permissions ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0`,
@@ -268,7 +270,7 @@ CREATE TABLE IF NOT EXISTS users (
   username         TEXT NOT NULL DEFAULT '',
   password         TEXT NOT NULL DEFAULT '',
   groups           TEXT NOT NULL DEFAULT '[]',
-  is_admin         INTEGER NOT NULL DEFAULT 0,
+  role             TEXT NOT NULL DEFAULT 'member',
   disabled         INTEGER NOT NULL DEFAULT 0,
   token_hash       TEXT NOT NULL DEFAULT '',
   token_expires_at INTEGER NOT NULL DEFAULT 0,

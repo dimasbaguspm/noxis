@@ -31,9 +31,12 @@ type UserRepository interface {
 	SetUserToken(ctx context.Context, subject, tokenHash string, expiresAt int64) error
 	// SetUserDisabled disables or re-enables an account.
 	SetUserDisabled(ctx context.Context, subject string, disabled bool) error
+	// SetUserRole sets the global role (super, admin or member).
+	SetUserRole(ctx context.Context, subject, role string) error
 	// SetLastLogin records the moment of a successful login.
 	SetLastLogin(ctx context.Context, subject string, at int64) error
-	// SetSoleSuper makes subject the only super admin, clearing every other row.
+	// SetSoleSuper makes subject the only super admin, demoting any other. The
+	// env root is the only source of that role; admins are left alone.
 	SetSoleSuper(ctx context.Context, subject string) error
 	// ClearUserToken logs the account out (idempotent).
 	ClearUserToken(ctx context.Context, subject string) error

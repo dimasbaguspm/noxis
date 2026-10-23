@@ -103,7 +103,7 @@ func (s *Service) EnsureRoot(ctx context.Context, email, password string) error 
 			Email:    email,
 			Username: email,
 			Password: hash,
-			Super:    true,
+			Role:     entity.RoleSuper,
 		}); err != nil {
 			return err
 		}
@@ -203,4 +203,13 @@ func checkPassword(password string) error {
 		return fmt.Errorf("password must be at least %d characters", MinPasswordLength)
 	}
 	return nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }

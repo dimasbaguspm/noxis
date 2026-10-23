@@ -16,7 +16,7 @@ func fixture() *ucstest.Fixture {
 	f := ucstest.New(&ucstest.SQL{})
 	f.Conns.M["demo"] = entity.Connection{Name: "demo", Driver: constants.DriverPostgres, Family: constants.FamilySQL}
 	f.Users.Accounts = []entity.User{
-		{Subject: "local:root", Username: "root", Super: true},
+		{Subject: "local:root", Username: "root", Role: entity.RoleSuper},
 		{Subject: "local:bob", Username: "bob"},
 		{Subject: "local:alice", Username: "alice"},
 	}

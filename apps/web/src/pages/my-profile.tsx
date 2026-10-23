@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
+import { RoleBadge } from "@/components/access/role-badge";
 import { useAuth } from "@/app/auth-provider";
 import { formatDateTime } from "@/lib/dates";
 import { PAGE_ROUTES } from "@/lib/routes";
@@ -45,11 +46,7 @@ export default function MyProfilePage() {
             <div>
               <dt className="text-muted-foreground">Role</dt>
               <dd>
-                {identity.super ? (
-                  <Badge variant="success">Super admin</Badge>
-                ) : (
-                  <Badge variant="secondary">Member</Badge>
-                )}
+                <RoleBadge role={identity.role} />
               </dd>
             </div>
             <div>

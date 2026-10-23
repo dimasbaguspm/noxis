@@ -16,7 +16,7 @@ func TestPrincipalFromClaims(t *testing.T) {
 	if len(p.Groups) != 2 || p.Groups[0] != "dev" || p.Groups[1] != "noxis-admins" {
 		t.Fatalf("groups=%v (non-strings must be dropped)", p.Groups)
 	}
-	if p.Super {
+	if p.IsSuper() {
 		t.Fatal("an OIDC claim must never grant the super role")
 	}
 
