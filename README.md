@@ -73,7 +73,7 @@ Open <http://localhost:9000>, sign in, and add your first connection.
 Working on noXis itself, or want a throwaway stack to play with?
 
 ```bash
-make dev        # noxis + a demo postgres, redis, valkey, mongo and mariadb
+make dev        # noxis + a demo postgres, mysql, mariadb, redis, valkey and mongo
 ```
 
 The dev stack seeds the root super admin (`root@noxis.local` / `noxis-admin`).

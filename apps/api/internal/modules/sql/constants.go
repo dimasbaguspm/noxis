@@ -16,6 +16,21 @@ const (
 	maxPreviewRows     = 500
 )
 
+// The database/sql driver each supported driver speaks, and the schema an
+// unqualified name resolves to. Named so the dialect code and its tests read the
+// same values.
+const (
+	dbDriverPostgres = "pgx"
+	dbDriverMySQL    = "mysql"
+	dbDriverSQLite   = "sqlite"
+
+	schemaPostgres = "public"
+	schemaSQLite   = "main"
+
+	// dsnSchemePostgres is the URL scheme the pgx driver accepts.
+	dsnSchemePostgres = "postgres"
+)
+
 // kindSet is an allow-list of statement keywords, with its printable list.
 type kindSet struct {
 	names string

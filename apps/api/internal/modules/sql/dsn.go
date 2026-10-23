@@ -21,11 +21,11 @@ import (
 func sqlDriver(driver string) (string, error) {
 	switch strings.ToLower(driver) {
 	case constants.DriverPostgres, "postgresql":
-		return "pgx", nil
-	case constants.DriverMySQL, "mariadb":
-		return "mysql", nil
+		return dbDriverPostgres, nil
+	case constants.DriverMySQL, constants.DriverMariaDB:
+		return dbDriverMySQL, nil
 	case constants.DriverSQLite:
-		return "sqlite", nil
+		return dbDriverSQLite, nil
 	}
 	return "", fmt.Errorf("unsupported driver %q (postgres, mysql or sqlite)", driver)
 }
@@ -38,7 +38,7 @@ func isSQLite(driver string) bool {
 // isMySQL reports whether the driver speaks the mysql protocol.
 func isMySQL(driver string) bool {
 	switch strings.ToLower(driver) {
-	case constants.DriverMySQL, "mariadb":
+	case constants.DriverMySQL, constants.DriverMariaDB:
 		return true
 	}
 	return false
@@ -63,7 +63,7 @@ func dsn(c entity.Connection) (string, error) {
 		return "", err
 	}
 	u := &url.URL{
-		Scheme: "postgres",
+		Scheme: dsnSchemePostgres,
 		User:   url.UserPassword(c.User, c.Password),
 		Host:   addr,
 		Path:   "/" + c.Database,

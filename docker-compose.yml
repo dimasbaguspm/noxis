@@ -41,6 +41,8 @@ services:
         condition: service_healthy
       mariadb:
         condition: service_healthy
+      mysql:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9000/healthz"]
       interval: 5s
@@ -90,6 +92,22 @@ services:
       timeout: 5s
       retries: 12
       start_period: 5s
+
+  # MySQL proper, next to MariaDB: the driver is shared but the servers differ,
+  # so the compatibility suite runs against both.
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: noxis
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_DATABASE: demo
+    expose: ["3306"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pnoxis"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
   # A MySQL-family stand-in: the scratch-schema verifier needs a driver whose
   # DDL commits implicitly to prove the point.

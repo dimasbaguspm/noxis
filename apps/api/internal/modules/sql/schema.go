@@ -72,7 +72,7 @@ func listTablesSQLite(ctx context.Context, db *stdsql.DB) ([]entity.Table, error
 		if err != nil {
 			return nil, fmt.Errorf("table %s: %w", name, err)
 		}
-		t := entity.Table{Schema: "main", Name: name}
+		t := entity.Table{Schema: schemaSQLite, Name: name}
 		for cols.Next() {
 			var col, typ string
 			var notnull int
