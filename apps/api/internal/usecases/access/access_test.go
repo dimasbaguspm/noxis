@@ -9,11 +9,11 @@ import (
 
 	"go.uber.org/mock/gomock"
 
+	"noxis/internal/common/testkit"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/mocks"
 	"noxis/internal/repositories"
-	"noxis/internal/common/testkit"
 	"noxis/internal/usecases"
 	"noxis/internal/usecases/access"
 )
