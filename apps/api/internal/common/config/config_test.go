@@ -1,7 +1,6 @@
 package config
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -33,16 +32,6 @@ func TestLoadConfigDefaultsAndValidate(t *testing.T) {
 	t.Setenv(EnvSecretKey, "0000")
 	if err := (LoadConfig()).Validate(); err != nil {
 		t.Fatalf("a set secret key must pass Validate: %v", err)
-	}
-}
-
-// A config dump must never carry a secret value.
-func TestStringRedactsSecrets(t *testing.T) {
-	cfg := Config{SecretKey: "supersecret", SchedulerKey: "k", SchedulerSecret: "also-secret"}
-	for _, leak := range []string{"supersecret", "also-secret"} {
-		if got := cfg.String(); strings.Contains(got, leak) {
-			t.Fatalf("String() leaked %q: %s", leak, got)
-		}
 	}
 }
 

@@ -126,7 +126,12 @@ plus a swag annotation on `Serve`, then `make swagger`.
   metadata only (names, drivers, grants) and exists so an admin can see the whole
   access landscape without a grant on each connection.
 
-## Span naming
+## Tracing & span naming
+
+One span per request, opened by `middlewares.Trace` **outside** `WithAuth` so a
+request refused before the router is still traceable, and closed with an error
+when the handler answered 5xx. `middlewares.RequestLog` runs inside the auth
+middleware and attaches the caller to that span once.
 
 `apps/api/internal/common/logging/span.go` derives span names from the Go function:
 `Repository.Sqlite.Store.List`, `Usecases.Op.Serve`, `Modules.Sql.DB.query`.

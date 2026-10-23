@@ -110,25 +110,6 @@ func (c Config) GrantTTL() time.Duration {
 	return c.AccessGrantTTL
 }
 
-func (c Config) String() string {
-	return strings.Join([]string{
-		EnvListen + "=" + c.Listen,
-		EnvDB + "=" + c.DB,
-		EnvSecretKey + "=" + redact(c.SecretKey),
-		EnvAdminEmail + "=" + c.AdminEmail,
-		EnvAdminPassword + "=" + redact(c.AdminPassword),
-		EnvSchedulerKey + "=" + redact(c.SchedulerKey),
-		EnvSchedulerSecret + "=" + redact(c.SchedulerSecret),
-		EnvOTELCollector + "=" + c.OTELCollector,
-		EnvOTELName + "=" + c.OTELName,
-		EnvAccessGrantDays + "=" + strconv.Itoa(int(c.AccessGrantTTL/(24*time.Hour))),
-		EnvOIDCIssuer + "=" + c.OIDCIssuer,
-		EnvOIDCClientID + "=" + c.OIDCClientID,
-		EnvOIDCAudience + "=" + c.OIDCAudience,
-		EnvOIDCGroupsClaim + "=" + c.OIDCGroupsClaim,
-	}, " ")
-}
-
 // LogState logs the deployment-relevant facts once, at boot: how secrets and
 // auth are configured. Field-level warnings live here, not in command code, so
 // a config decision is decided in exactly one place.
@@ -145,14 +126,6 @@ func LogState(ctx context.Context, log *slog.Logger, c Config) {
 	} else {
 		log.InfoContext(ctx, "scheduler trigger enabled")
 	}
-}
-
-// redact shows presence, never the value: a config dump must not leak a secret.
-func redact(value string) string {
-	if value == "" {
-		return ""
-	}
-	return "<redacted>"
 }
 
 func firstNonEmpty(values ...string) string {

@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"bytes"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +9,7 @@ import (
 	"testing"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -87,7 +87,7 @@ func setupTracing(t *testing.T) *tracetest.SpanRecorder {
 }
 
 // A caller's traceparent becomes the parent of the request span.
-func TestRequestLogJoinsIncomingTrace(t *testing.T) {
+func TestTraceJoinsIncomingTrace(t *testing.T) {
 	recorder := setupTracing(t)
 	const traceID = "4bf92f3577b34da6a3ce929d0e0e4736"
 
@@ -98,7 +98,7 @@ func TestRequestLogJoinsIncomingTrace(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
 	req.Header.Set("traceparent", "00-"+traceID+"-00f067aa0ba902b7-01")
 
-	RequestLog(inner, slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(httptest.NewRecorder(), req)
+	Trace(inner).ServeHTTP(httptest.NewRecorder(), req)
 
 	if got.TraceID().String() != traceID {
 		t.Fatalf("handler span trace id=%s want=%s", got.TraceID(), traceID)
@@ -109,18 +109,64 @@ func TestRequestLogJoinsIncomingTrace(t *testing.T) {
 }
 
 // An unparseable traceparent is ignored: the request gets a fresh trace, no error.
-func TestRequestLogIgnoresInvalidTraceparent(t *testing.T) {
+func TestTraceIgnoresInvalidTraceparent(t *testing.T) {
 	recorder := setupTracing(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
 	req.Header.Set("traceparent", "not-a-traceparent")
 	rec := httptest.NewRecorder()
-	RequestLog(okHandler(), slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(rec, req)
+	Trace(okHandler()).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d", rec.Code)
 	}
 	if spans := recorder.Ended(); len(spans) != 1 || !spans[0].SpanContext().IsValid() {
 		t.Fatalf("expected one valid fresh span, got %+v", spans)
+	}
+}
+
+// A 5xx is a failed request: the span must carry the error, not a success.
+func TestTraceMarksServerError(t *testing.T) {
+	recorder := setupTracing(t)
+	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	Trace(inner).ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody))
+
+	spans := recorder.Ended()
+	if len(spans) != 1 {
+		t.Fatalf("spans=%d want 1", len(spans))
+	}
+	if spans[0].Status().Code != codes.Error || len(spans[0].Events()) == 0 {
+		t.Fatalf("span status=%v events=%d, want an error", spans[0].Status(), len(spans[0].Events()))
+	}
+}
+
+// A 4xx is an answered request, not a broken one: the span stays successful.
+func TestTraceLeavesClientErrorSuccessful(t *testing.T) {
+	recorder := setupTracing(t)
+	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	})
+	Trace(inner).ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody))
+
+	if spans := recorder.Ended(); len(spans) != 1 || spans[0].Status().Code == codes.Error {
+		t.Fatalf("span status=%v want success", spans[0].Status())
+	}
+}
+
+// A request refused before the router is still traced, with its 401 recorded.
+func TestTraceSpansRejectedRequest(t *testing.T) {
+	recorder := setupTracing(t)
+	h := Trace(WithAuth(nil, okHandler(), discardLog()))
+
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody))
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status=%d want 401", rec.Code)
+	}
+	if spans := recorder.Ended(); len(spans) != 1 || !spans[0].SpanContext().IsValid() {
+		t.Fatalf("a rejected request must still produce a span, got %+v", spans)
 	}
 }

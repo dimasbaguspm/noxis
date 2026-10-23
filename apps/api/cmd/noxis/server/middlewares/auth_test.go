@@ -1,10 +1,14 @@
 package middlewares
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"noxis/internal/entity"
@@ -25,6 +29,9 @@ func (f *fakeVerifier) Verify(context.Context, string) (entity.Identity, error) 
 	return f.principal, nil
 }
 
+// discardLog is a logger whose output the test does not inspect.
+func discardLog() *slog.Logger { return slog.New(slog.NewTextHandler(io.Discard, nil)) }
+
 func okHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
 }
@@ -32,7 +39,7 @@ func okHandler() http.Handler {
 // WithAuth denies /external/v1/* when no verifier is wired: there is no open mode.
 func TestWithAuthNilVerifierDenies(t *testing.T) {
 	rec := httptest.NewRecorder()
-	WithAuth(nil, okHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/engine/sql/connections", http.NoBody))
+	WithAuth(nil, okHandler(), discardLog()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/engine/sql/connections", http.NoBody))
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("nil verifier status=%d want=%d", rec.Code, http.StatusUnauthorized)
 	}
@@ -42,7 +49,7 @@ func TestWithAuthNilVerifierDenies(t *testing.T) {
 // health stay reachable so login can happen.
 func TestWithAuthGuardsAPI(t *testing.T) {
 	verifier := &fakeVerifier{err: errors.New("bad token")}
-	h := WithAuth(verifier, okHandler())
+	h := WithAuth(verifier, okHandler(), discardLog())
 
 	cases := []struct {
 		name   string
@@ -80,8 +87,27 @@ func TestWithAuthAttachesPrincipal(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
 	req.Header.Set("Authorization", "Bearer good-token")
 	rec := httptest.NewRecorder()
-	WithAuth(verifier, inner).ServeHTTP(rec, req)
+	WithAuth(verifier, inner, discardLog()).ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK || got.Subject != "alice" || !got.IsSuper() {
 		t.Fatalf("status=%d principal=%+v", rec.Code, got)
+	}
+}
+
+// A refusal is logged where it happens, with a fixed reason and never the token.
+func TestWithAuthRejectionIsLoggedWithoutTheToken(t *testing.T) {
+	var buf bytes.Buffer
+	verifier := &fakeVerifier{err: errors.New("bad token")}
+	h := WithAuth(verifier, okHandler(), slog.New(slog.NewJSONHandler(&buf, nil)))
+
+	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
+	req.Header.Set("Authorization", "Bearer super-secret")
+	h.ServeHTTP(httptest.NewRecorder(), req)
+
+	line := buf.String()
+	if !strings.Contains(line, "auth rejected") || !strings.Contains(line, "invalid or expired token") {
+		t.Fatalf("log %s missing the rejection", line)
+	}
+	if strings.Contains(line, "super-secret") {
+		t.Fatalf("log leaked the presented token: %s", line)
 	}
 }
