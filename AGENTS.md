@@ -88,7 +88,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 
 ## Request flow
 
-1. `middlewares.CORS → WithAuth → RequestLog` wrap the `http.ServeMux`.
+1. `middlewares.CORS → Trace → WithAuth → RequestLog` wrap the `http.ServeMux`: the span covers the whole request (a refused token is traced), and the request log runs after the principal is attached.
 2. `newHandler(app, cfg)` registers each route straight at a use case `Serve(w, r)`.
 3. `Serve` reads the path/query/body and resolves the engine family via `uc.Modules.Engine(...)`.
 4. It calls its `Run(ctx, ...)` domain core and writes the response with `respond`/`fail`.

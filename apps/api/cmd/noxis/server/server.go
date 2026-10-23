@@ -169,10 +169,11 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 		return err
 	}
 
-	// CORS, then authentication, then request logging + span: the request log
-	// and its span run after the principal is attached, so the user's trace
-	// attributes and log fields are set once, in the middleware layer.
-	handler := middlewares.CORS(middlewares.WithAuth(authSvc, middlewares.RequestLog(newHandler(d, cfg), log)))
+	// CORS, then the request trace, then authentication, then request logging:
+	// the span covers the whole request (a refused token is traced too), and the
+	// request log runs after the principal is attached, so the user's log fields
+	// are set once, in the middleware layer.
+	handler := middlewares.CORS(middlewares.Trace(middlewares.WithAuth(authSvc, middlewares.RequestLog(newHandler(d, cfg), log), log)))
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler}
 	// every request ctx descends from ours
 	srv.BaseContext = func(net.Listener) context.Context {

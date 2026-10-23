@@ -52,6 +52,8 @@ type Shutdown func(context.Context) error
 type OTLP struct {
 	Collector string
 	Name      string
+	// Level is the minimum severity kept. The zero value is Info.
+	Level slog.Level
 }
 
 func New(ctx context.Context, otlp OTLP) (*slog.Logger, Shutdown, error) {

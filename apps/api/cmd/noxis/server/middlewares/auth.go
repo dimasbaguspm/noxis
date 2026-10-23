@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -14,29 +15,37 @@ import (
 // WithAuth requires a valid bearer token on every public API request. There is
 // no open mode: a nil verifier is a wiring bug and denies rather than trusting.
 // The console shell, assets, /healthz and the two pre-token auth endpoints stay
-// reachable so login can happen.
-func WithAuth(verifier interfaces.Verifier, next http.Handler) http.Handler {
+// reachable so login can happen. A refusal is logged where it happens, because
+// the request never reaches the router's request log.
+func WithAuth(verifier interfaces.Verifier, next http.Handler, log *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, constants.APIPrefix+"/") || authPublic(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
 		if verifier == nil {
-			writeUnauthorized(w, "authentication is not configured")
+			reject(w, r, log, "authentication is not configured")
 			return
 		}
 		raw := bearerToken(r)
 		if raw == "" {
-			writeUnauthorized(w, "missing bearer token")
+			reject(w, r, log, "missing bearer token")
 			return
 		}
 		principal, err := verifier.Verify(r.Context(), raw)
 		if err != nil {
-			writeUnauthorized(w, "invalid or expired token")
+			reject(w, r, log, "invalid or expired token")
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(usecases.WithPrincipal(r.Context(), principal)))
 	})
+}
+
+// reject answers 401 and records why. The reason is a fixed phrase: the
+// presented token is never logged.
+func reject(w http.ResponseWriter, r *http.Request, log *slog.Logger, reason string) {
+	log.WarnContext(r.Context(), "auth rejected", "path", r.URL.Path, "reason", reason)
+	writeUnauthorized(w, reason)
 }
 
 // authPublic reports whether a path under the API prefix is reachable without a
