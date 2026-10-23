@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -82,7 +83,9 @@ func (c *Changes) Submit(ctx context.Context, conn entity.Connection, actor, not
 }
 
 // Approve signs off a validated request.
-func (c *Changes) Approve(ctx context.Context, ch *entity.Change) error { return c.Flow.Approve(ctx, ch) }
+func (c *Changes) Approve(ctx context.Context, ch *entity.Change) error {
+	return c.Flow.Approve(ctx, ch)
+}
 
 // Reject closes a request without running it.
 func (c *Changes) Reject(ctx context.Context, ch *entity.Change) error { return c.Flow.Reject(ctx, ch) }
@@ -112,7 +115,9 @@ func (c *Changes) Apply(ctx context.Context, ch *entity.Change) (entity.Change, 
 	if err != nil {
 		logging.ErrorWithCtx(ctx, "change failed to apply", err, "change", ch.ID, "connection", ch.Connection)
 		changeflow.Failed(ch, err)
-		_ = c.Save(ctx, ch)
+		if saveErr := c.Save(ctx, ch); saveErr != nil {
+			return *ch, errors.Join(err, fmt.Errorf("save failed apply outcome for change %s: %w", ch.ID, saveErr))
+		}
 		return *ch, err
 	}
 	changeflow.Applied(ch, res, now)
