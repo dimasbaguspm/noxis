@@ -1,15 +1,45 @@
 package entity
 
 // Table is a browsable relation and Column one of its attributes, as the SQL
-// schema browser reports them.
+// schema browser reports them. The key flags come from the catalog's declared
+// constraints, never from a naming convention.
 type Table struct {
 	Schema  string   `json:"schema"`
 	Name    string   `json:"name"`
 	Columns []Column `json:"columns"`
 }
 
+// Column is one attribute. PrimaryKey and Unique are declared constraints;
+// References is set only by a declared foreign key.
 type Column struct {
+	Name       string     `json:"name"`
+	Type       string     `json:"type"`
+	Nullable   bool       `json:"nullable"`
+	PrimaryKey bool       `json:"primaryKey,omitempty"`
+	Unique     bool       `json:"unique,omitempty"`
+	References *Reference `json:"references,omitempty"`
+}
+
+// Reference is the column a foreign key points at.
+type Reference struct {
+	Schema string `json:"schema"`
+	Table  string `json:"table"`
+	Column string `json:"column"`
+}
+
+// SchemaGraph is one connection's schema as the ERD view needs it: the safe
+// connection summary (never a password), every table with its keys and foreign
+// keys, and the Mermaid erDiagram rendered from them.
+type SchemaGraph struct {
+	Connection SchemaConnection `json:"connection"`
+	Tables     []Table          `json:"tables"`
+	Mermaid    string           `json:"mermaid"`
+}
+
+// SchemaConnection identifies which connection the diagram describes.
+type SchemaConnection struct {
 	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Nullable bool   `json:"nullable"`
+	Driver   string `json:"driver"`
+	Family   string `json:"family"`
+	Database string `json:"database"`
 }

@@ -28,6 +28,7 @@ export const queryKeys = {
   },
   sql: {
     schema: (connection: string | undefined) => ["sql", "schema", connection] as const,
+    erd: (connection: string | undefined) => ["sql", "erd", connection] as const,
     rows: (connection: string | undefined, schema?: string, table?: string) =>
       ["sql", "rows", connection, schema, table] as const,
     changes: {

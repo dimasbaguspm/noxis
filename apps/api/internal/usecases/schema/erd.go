@@ -1,0 +1,52 @@
+package schema
+
+import (
+	"net/http"
+
+	"noxis/internal/common/logging"
+	"noxis/internal/entity"
+	"noxis/internal/usecases"
+)
+
+// ERD returns one connection's schema as a diagram: its tables with declared
+// keys and foreign keys, plus the Mermaid erDiagram rendered from them. It is
+// read-authorized per connection, and the connection summary never carries a
+// password.
+type ERD struct{ usecases.RegistryDeps }
+
+// @Summary One connection's schema as a Mermaid ER diagram
+// @Param engine path string true "engine family (sql)"
+// @Param name path string true "connection name"
+// @Success 200 {object} entity.SchemaGraph
+// @Failure 400 {object} entity.ErrorResponse
+// @Failure 404 {object} entity.ErrorResponse
+// @Router /external/v1/engine/{engine}/connections/{name}/erd [get]
+func (uc ERD) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
+	sq, err := uc.Modules.EngineSQL(r.PathValue("engine"))
+	if err != nil {
+		uc.Fail(ctx, w, err)
+		return
+	}
+	c, err := uc.RawConn(ctx, sq, r.PathValue("name"), entity.LevelRead)
+	if err != nil {
+		uc.Fail(ctx, w, err)
+		return
+	}
+	tables, err := sq.Tables(ctx, *c)
+	if err != nil {
+		uc.Fail(ctx, w, err)
+		return
+	}
+	if tables == nil {
+		tables = []entity.Table{}
+	}
+	uc.Respond(w, entity.SchemaGraph{
+		Connection: entity.SchemaConnection{
+			Name: c.Name, Driver: c.Driver, Family: c.Family, Database: c.Database,
+		},
+		Tables:  tables,
+		Mermaid: Mermaid(tables),
+	})
+}

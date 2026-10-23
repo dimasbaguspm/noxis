@@ -62,7 +62,7 @@ module. This is why one handler serves all families instead of a copy per family
 | `ConnectionRepository` | `interfaces/connection.go` | `sqlite.Store` |
 | `ChangeRepository` | `interfaces/change.go` | `sqlite.Store` |
 | `PermissionRepository` | `interfaces/permission.go` | `sqlite.Store` |
-| `Module` / `SQLModule` | `interfaces/sql.go` | `sql.DB` |
+| `Module` / `SQLModule` | `interfaces/sql.go` | `sql.DB` (`Tables` carries declared keys, so the schema browser and the ERD read one pass) |
 | `MemcacheModule` | `interfaces/memcache.go` | `memcache.DB` |
 | `MongoModule` | `interfaces/mongodb.go` | `mongodb.DB` |
 | `Verifier` | `interfaces/auth.go` | `auth.OIDC` (tests use a fake) |

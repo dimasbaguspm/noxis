@@ -13,6 +13,16 @@ export function useConnectionSchemaQuery(connection?: string) {
   });
 }
 
+// useErdQuery loads one connection's schema graph and its Mermaid diagram;
+// enabled only while the diagram view is open, so browsing stays cheap.
+export function useErdQuery(connection?: string, open = false) {
+  return useQuery({
+    queryKey: queryKeys.sql.erd(connection),
+    queryFn: () => api.connections.erd(connection as string),
+    enabled: open && !!connection,
+  });
+}
+
 // useTableRowsQuery previews a table's rows; enabled only once a table is
 // picked, so the cache re-runs when the selection changes.
 export function useTableRowsQuery(connection?: string, schema?: string, table?: string) {

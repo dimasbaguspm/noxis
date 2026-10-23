@@ -32,6 +32,8 @@ rollback actually undoes the change, and keeps the whole story afterward.
 
 - **Browse anything you run** — connections, schemas, tables and rows across SQL,
   memory cache and document databases, from one console.
+- **See the shape of a schema** — open any SQL connection as a Mermaid ER diagram built from the keys and foreign keys the database actually declares, never from column names.
+
 - **Reads are instant** — `SELECT`, `EXPLAIN` and `SHOW` run straight away. The
   read path is read-only and refuses to become a way to change data.
 - **Writes are a decision** — a change is `{connection, notes, query, rollback}`.
