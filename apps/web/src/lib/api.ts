@@ -27,6 +27,7 @@ export type MemberUser = components["schemas"]["permission.memberUser"];
 export type User = components["schemas"]["entity.User"];
 export type UserRole = User["role"];
 export type UserStatus = User["status"];
+export type InstanceAccess = components["schemas"]["permission.InstanceAccess"];
 export type UserDetail = components["schemas"]["user.Detail"];
 export type AccessEvent = components["schemas"]["entity.AccessEvent"];
 export type AccessLevel = components["schemas"]["metadata.LevelInfo"];
@@ -206,6 +207,8 @@ export const api = {
   // config is the server's console-facing configuration (hardcoded Go-side).
   // permissions: per-connection RBAC policy (users and groups), admin-managed.
   permissions: {
+    // matrix is the per-instance overview: every instance with its whole policy.
+    matrix: () => request<{ instances: InstanceAccess[] }>("GET", "/external/v1/access"),
     list: (family: FamilyKey, name: string) =>
       request<{ permissions: Permission[] }>("GET", v1(family, `connections/${encodeURIComponent(name)}/permissions`)),
     set: (family: FamilyKey, name: string, member: string, memberType: string, level: string) =>
