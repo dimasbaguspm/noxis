@@ -170,3 +170,4 @@ func TestTraceSpansRejectedRequest(t *testing.T) {
 		t.Fatalf("a rejected request must still produce a span, got %+v", spans)
 	}
 }
+

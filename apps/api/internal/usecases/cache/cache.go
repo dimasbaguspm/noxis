@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -26,20 +27,22 @@ type Keys struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/keys [get]
 func (uc Keys) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	c, err := uc.RawConn(r.Context(), mc, r.PathValue("name"), entity.LevelRead)
+	c, err := uc.RawConn(ctx, mc, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	out, err := mc.Keys(r.Context(), *c, r.URL.Query().Get("pattern"), limit)
+	out, err := mc.Keys(ctx, *c, r.URL.Query().Get("pattern"), limit)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, out)
@@ -57,24 +60,26 @@ type Value struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/value [get]
 func (uc Value) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	key := r.URL.Query().Get("key")
 	if key == "" {
-		uc.Fail(w, errors.New("key is required"))
+		uc.Fail(ctx, w, errors.New("key is required"))
 		return
 	}
 	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	c, err := uc.RawConn(r.Context(), mc, r.PathValue("name"), entity.LevelRead)
+	c, err := uc.RawConn(ctx, mc, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	out, err := mc.Value(r.Context(), *c, key)
+	out, err := mc.Value(ctx, *c, key)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, out)
@@ -97,24 +102,26 @@ type Delete struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/keys [delete]
 func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	var body keysBody
 	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	c, err := uc.RawConn(r.Context(), mc, r.PathValue("name"), entity.LevelAdmin)
+	c, err := uc.RawConn(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	deleted, err := mc.Delete(r.Context(), *c, body.Keys)
+	deleted, err := mc.Delete(ctx, *c, body.Keys)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, map[string]any{"deleted": deleted})
@@ -137,27 +144,29 @@ type Flush struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/flush [post]
 func (uc Flush) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	var body flushBody
 	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	c, err := uc.RawConn(r.Context(), mc, r.PathValue("name"), entity.LevelAdmin)
+	c, err := uc.RawConn(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if body.Confirm != c.Name {
-		uc.Fail(w, fmt.Errorf("flushing %s needs its name typed as confirmation", c.Name))
+		uc.Fail(ctx, w, fmt.Errorf("flushing %s needs its name typed as confirmation", c.Name))
 		return
 	}
-	if err := mc.Flush(r.Context(), *c); err != nil {
-		uc.Fail(w, err)
+	if err := mc.Flush(ctx, *c); err != nil {
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, entity.StatusResponse{Status: "flushed"})

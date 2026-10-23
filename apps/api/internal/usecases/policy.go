@@ -11,6 +11,7 @@ import (
 	"slices"
 	"time"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 )
@@ -22,6 +23,7 @@ func (d RegistryDeps) RequireSuper(ctx context.Context) error {
 	if p, ok := Principal(ctx); ok && p.IsSuper() {
 		return nil
 	}
+	logging.WarnWithCtx(ctx, "super admin required", "gate", "super")
 	return constants.ErrForbidden
 }
 
@@ -31,6 +33,7 @@ func (d RegistryDeps) RequireAdmin(ctx context.Context) error {
 	if p, ok := Principal(ctx); ok && p.IsAdmin() {
 		return nil
 	}
+	logging.WarnWithCtx(ctx, "admin role required", "gate", "admin")
 	return constants.ErrForbidden
 }
 
@@ -83,6 +86,8 @@ func (d RegistryDeps) Authorize(ctx context.Context, connection, need string) er
 		return err
 	}
 	if !entity.LevelAllows(level, need) {
+		logging.WarnWithCtx(ctx, "access denied",
+			"connection", connection, "need", need, "have", level, "subject", p.Subject)
 		return fmt.Errorf("%w: %s requires %s on connection %q", constants.ErrForbidden, p.Subject, need, connection)
 	}
 	return nil

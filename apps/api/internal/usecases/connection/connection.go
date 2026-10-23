@@ -9,6 +9,7 @@ import (
 
 	"noxis/internal/common/idgen"
 	"noxis/internal/constants"
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -21,14 +22,16 @@ type List struct{ usecases.RegistryDeps }
 // @Success 200 {object} object{connections=[]entity.Connection}
 // @Router /external/v1/engine/{engine}/connections [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	list, err := uc.Connections.List(r.Context())
+	list, err := uc.Connections.List(ctx)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	out := make([]entity.Connection, 0, len(list))
@@ -37,9 +40,9 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		if !mod.Supports(c.Driver) {
 			continue
 		}
-		ok, err := uc.CanRead(r.Context(), c.Name)
+		ok, err := uc.CanRead(ctx, c.Name)
 		if err != nil {
-			uc.Fail(w, err)
+			uc.Fail(ctx, w, err)
 			return
 		}
 		if ok {
@@ -59,14 +62,16 @@ type Get struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name} [get]
 func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	c, err := uc.RawConn(r.Context(), mod, r.PathValue("name"), entity.LevelRead)
+	c, err := uc.RawConn(ctx, mod, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, c.Redacted())
@@ -82,27 +87,28 @@ type Save struct{ usecases.RegistryDeps }
 // @Failure 400 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections [post]
 func (uc Save) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	var c entity.Connection
 	if err := uc.Decode(r, &c); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	ctx := r.Context()
 	if err := uc.RequireSuper(ctx); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if !mod.Supports(c.Driver) {
-		uc.Fail(w, fmt.Errorf("driver %q is not a %s driver", c.Driver, mod.Family()))
+		uc.Fail(ctx, w, fmt.Errorf("driver %q is not a %s driver", c.Driver, mod.Family()))
 		return
 	}
 	if err := c.Validate(); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	existing, err := uc.Connections.Get(ctx, c.Name)
@@ -113,7 +119,7 @@ func (uc Save) Serve(w http.ResponseWriter, r *http.Request) {
 		// rotates through its own action.
 		if c.Driver != existing.Driver || c.Host != existing.Host ||
 			c.Database != existing.Database || c.User != existing.User {
-			uc.Fail(w, errors.New(
+			uc.Fail(ctx, w, errors.New(
 				"driver, host, database and user cannot be changed after registration; "+
 					"rotate the password or register a new connection"))
 			return
@@ -129,11 +135,11 @@ func (uc Save) Serve(w http.ResponseWriter, r *http.Request) {
 		c.CreatedBy = usecases.Actor(ctx)
 		c.ID = idgen.UUID()
 	default:
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if err := uc.Connections.Save(ctx, c); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, c.Redacted())
@@ -149,22 +155,23 @@ type Delete struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name} [delete]
 func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	ctx := r.Context()
 	if err := uc.RequireSuper(ctx); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), entity.LevelRead); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if err := uc.Connections.Delete(ctx, r.PathValue("name")); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.RespondNoContent(w)
@@ -180,18 +187,20 @@ type Test struct{ usecases.RegistryDeps }
 // @Failure 400 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/test [post]
 func (uc Test) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	c, err := uc.RawConn(r.Context(), mod, r.PathValue("name"), entity.LevelRead)
+	c, err := uc.RawConn(ctx, mod, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	if err := mod.Ping(r.Context(), *c); err != nil {
-		uc.Fail(w, err)
+	if err := mod.Ping(ctx, *c); err != nil {
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, entity.StatusResponse{Status: "ok"})

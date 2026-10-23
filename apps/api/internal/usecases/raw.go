@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -20,6 +21,8 @@ func (d RegistryDeps) RawConn(ctx context.Context, mod interfaces.Module, name, 
 		return nil, err
 	}
 	if !mod.Supports(c.Driver) {
+		logging.WarnWithCtx(ctx, "connection belongs to another engine family",
+			"connection", c.Name, "driver", c.Driver, "family", mod.Family())
 		if other, ok := d.Modules.Serves(c.Driver); ok {
 			return nil, fmt.Errorf("connection %q is not a %s connection (driver %q, try /external/v1/engine/%s)",
 				c.Name, mod.Family(), c.Driver, other.Family())

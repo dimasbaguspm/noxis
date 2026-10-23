@@ -5,6 +5,7 @@ package metadata
 import (
 	"net/http"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -28,6 +29,8 @@ type Levels struct{ usecases.RegistryDeps }
 // @Summary Access levels and their labels
 // @Success 200 {object} object{levels=[]LevelInfo}
 // @Router /external/v1/config/levels [get]
-func (uc Levels) Serve(w http.ResponseWriter, _ *http.Request) {
+func (uc Levels) Serve(w http.ResponseWriter, r *http.Request) {
+	_, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	uc.Respond(w, map[string]any{"levels": levels})
 }
