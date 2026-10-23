@@ -1344,6 +1344,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/external/v1/engine/{engine}/connections/{name}/erd": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One connection's schema as a Mermaid ER diagram */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description engine family (sql) */
+                    engine: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.SchemaGraph"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/external/v1/engine/{engine}/connections/{name}/flush": {
         parameters: {
             query?: never;
@@ -2676,7 +2735,10 @@ export interface components {
         "entity.Column": {
             name?: string;
             nullable?: boolean;
+            primaryKey?: boolean;
+            references?: components["schemas"]["entity.Reference"];
             type?: string;
+            unique?: boolean;
         };
         "entity.Connection": {
             createdAt?: number;
@@ -2845,6 +2907,11 @@ export interface components {
         "entity.PermissionList": {
             permissions?: components["schemas"]["entity.Permission"][];
         };
+        "entity.Reference": {
+            column?: string;
+            schema?: string;
+            table?: string;
+        };
         "entity.Result": {
             affected?: number;
             columns?: string[];
@@ -2863,6 +2930,17 @@ export interface components {
         };
         "entity.ScheduleRequest": {
             scheduledAt?: number;
+        };
+        "entity.SchemaConnection": {
+            database?: string;
+            driver?: string;
+            family?: string;
+            name?: string;
+        };
+        "entity.SchemaGraph": {
+            connection?: components["schemas"]["entity.SchemaConnection"];
+            mermaid?: string;
+            tables?: components["schemas"]["entity.Table"][];
         };
         "entity.StatusResponse": {
             status?: string;

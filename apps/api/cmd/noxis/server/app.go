@@ -59,6 +59,7 @@ type app struct {
 	TestConnection   connection.Test
 
 	Schema schema.Tables
+	ERD    schema.ERD
 	Rows   schema.Rows
 	Op     schema.Op
 
@@ -150,6 +151,7 @@ func newApp(s sources) app {
 		TestConnection:   connection.Test{RegistryDeps: deps},
 
 		Schema: schema.Tables{RegistryDeps: deps},
+		ERD:    schema.ERD{RegistryDeps: deps},
 		Rows:   schema.Rows{RegistryDeps: deps},
 		Op:     schema.Op{RegistryDeps: deps},
 

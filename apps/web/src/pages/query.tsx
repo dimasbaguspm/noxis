@@ -1,4 +1,5 @@
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
+import { ErdDialog } from "@/components/sql/erd-dialog";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { ResultTable } from "@/components/sql/result-table";
 import { SqlEditor } from "@/components/sql/sql-editor";
@@ -116,6 +117,7 @@ export default function QueryPage() {
                     >
                       Explain
                     </Button>
+                    <ErdDialog connection={connection} />
                     <span className="text-xs text-muted-foreground">⌘/Ctrl + Enter</span>
                   </div>
                 </CardContent>

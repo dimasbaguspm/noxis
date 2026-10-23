@@ -96,6 +96,7 @@ func newHandler(d app, cfg config.Config) http.Handler {
 
 	// SQL-only: schema, row preview and the console ops.
 	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/schema", d.Schema.Serve)
+	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/erd", d.ERD.Serve)
 	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/tables/{table}/rows", d.Rows.Serve)
 	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/query", d.Op.Serve)
 	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/alter", d.Op.Serve)

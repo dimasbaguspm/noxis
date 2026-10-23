@@ -744,6 +744,41 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
+  "/external/v1/engine/{engine}/connections/{name}/erd":
+    get:
+      summary: One connection's schema as a Mermaid ER diagram
+      parameters:
+        - description: engine family (sql)
+          name: engine
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.SchemaGraph"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
   "/external/v1/engine/{engine}/connections/{name}/flush":
     post:
       summary: Empty the connected database (FLUSHDB, never FLUSHALL)
@@ -1739,8 +1774,14 @@ components:
           type: string
         nullable:
           type: boolean
+        primaryKey:
+          type: boolean
+        references:
+          $ref: "#/components/schemas/entity.Reference"
         type:
           type: string
+        unique:
+          type: boolean
     entity.Connection:
       type: object
       required:
@@ -2066,6 +2107,15 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/entity.Permission"
+    entity.Reference:
+      type: object
+      properties:
+        column:
+          type: string
+        schema:
+          type: string
+        table:
+          type: string
     entity.Result:
       type: object
       properties:
@@ -2104,6 +2154,28 @@ components:
       properties:
         scheduledAt:
           type: integer
+    entity.SchemaConnection:
+      type: object
+      properties:
+        database:
+          type: string
+        driver:
+          type: string
+        family:
+          type: string
+        name:
+          type: string
+    entity.SchemaGraph:
+      type: object
+      properties:
+        connection:
+          $ref: "#/components/schemas/entity.SchemaConnection"
+        mermaid:
+          type: string
+        tables:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.Table"
     entity.StatusResponse:
       type: object
       properties:

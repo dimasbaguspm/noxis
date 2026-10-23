@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	tableRef   = regexp.MustCompile(`(?i)\b(?:from|join|update|into|table)\s+(?:if\s+not\s+exists\s+)?("?[\w.]+"?)`)
+	tableRef   = regexp.MustCompile(`(?i)\b(?:from|join|update|into|table|references)\s+(?:if\s+not\s+exists\s+)?("?[\w.]+"?)`)
 	insertCols = regexp.MustCompile(`(?is)\binsert\s+into\s+\S+\s*\(([^)]*)\)`)
 	createCols = regexp.MustCompile(`(?is)\bcreate\s+table\s+(?:if\s+not\s+exists\s+)?\S+\s*\(([^)]*)\)`)
 	createRef  = regexp.MustCompile(`(?i)\bcreate\s+(?:or\s+replace\s+)?(?:temporary\s+|temp\s+|unlogged\s+|global\s+|local\s+)?table\s+(?:if\s+not\s+exists\s+)?("?[\w.]+"?)`)
@@ -25,8 +25,10 @@ var constraints = map[string]bool{
 // Referenced extracts the tables and columns a batch mentions.
 //
 // ponytail: keyword-anchored best effort, not a SQL parser — it finds
-// FROM/JOIN/UPDATE/INTO/TABLE targets plus INSERT column lists, UPDATE SET
-// targets and qualified references. Enough to tell a reviewer what a change
+// FROM/JOIN/UPDATE/INTO/TABLE/REFERENCES targets plus INSERT column lists,
+// UPDATE SET targets and qualified references. REFERENCES matters to the scratch
+// verifier: a table named only by a foreign key still has to be mirrored there,
+// or the mysql-family (which has no search_path fallback) rejects the change. Enough to tell a reviewer what a change
 // touches; the dry run is what proves the change valid.
 func Referenced(sqlText string) (tables []string, columns []string) {
 	tableSet := map[string]bool{}

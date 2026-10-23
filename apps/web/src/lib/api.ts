@@ -28,6 +28,7 @@ export type User = components["schemas"]["entity.User"];
 export type UserRole = User["role"];
 export type UserStatus = User["status"];
 export type InstanceAccess = components["schemas"]["entity.InstanceAccess"];
+export type SchemaGraph = components["schemas"]["entity.SchemaGraph"];
 export type UserDetail = components["schemas"]["entity.UserDetail"];
 export type AccessEvent = components["schemas"]["entity.AccessEvent"];
 export type AccessLevel = components["schemas"]["entity.LevelInfo"];
@@ -133,6 +134,7 @@ export const api = {
   connections: {
     ...connectionOps(FAMILY.SQL),
     schema: (name: string) => request<{ tables: Table[] }>("GET", connPath(FAMILY.SQL, name, "/schema")),
+    erd: (name: string) => request<SchemaGraph>("GET", connPath(FAMILY.SQL, name, "/erd")),
     rows: (name: string, schema: string, table: string, limit = 100) =>
       request<Result>(
         "GET",
