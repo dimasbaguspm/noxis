@@ -4,6 +4,53 @@
  */
 
 export interface paths {
+    "/external/v1/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every instance and its access policy (admin only) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            instances?: components["schemas"]["permission.InstanceAccess"][];
+                        };
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/external/v1/access-requests": {
         parameters: {
             query?: never;
@@ -2812,6 +2859,13 @@ export interface components {
         "metadata.LevelInfo": {
             label?: string;
             value?: string;
+        };
+        "permission.InstanceAccess": {
+            connection?: string;
+            driver?: string;
+            family?: string;
+            id?: string;
+            permissions?: components["schemas"]["entity.Permission"][];
         };
         "permission.memberUser": {
             label?: string;

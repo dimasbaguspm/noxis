@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight, LayoutDashboard, UsersRound } from "lucide-react";
+import { ChevronRight, KeyRound, LayoutDashboard, UsersRound } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { cn } from "@/lib/utils";
 import { FAMILIES, type Family } from "@/lib/families";
@@ -136,6 +136,12 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuButton render={<Link to={PAGE_ROUTES.USERS} />} isActive={pathname.startsWith(PAGE_ROUTES.USERS)} tooltip="Users">
                     <UsersRound />
                     <span>Users</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton render={<Link to={PAGE_ROUTES.ACCESS} />} isActive={pathname.startsWith(PAGE_ROUTES.ACCESS)} tooltip="Access">
+                    <KeyRound />
+                    <span>Access</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

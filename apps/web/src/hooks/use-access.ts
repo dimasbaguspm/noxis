@@ -19,6 +19,16 @@ export function useMembersQuery(enabled: boolean) {
   });
 }
 
+// useAccessMatrixQuery is the per-instance overview every admin page reads: one
+// request, every connection, every grant.
+export function useAccessMatrixQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["access", "matrix"],
+    queryFn: () => api.permissions.matrix(),
+    enabled,
+  });
+}
+
 // useSetPermission grants a level and owns invalidation; the caller can add its
 // own onSuccess (the editor clears the member input there).
 export function useSetPermission(family: FamilyKey | undefined, name: string) {

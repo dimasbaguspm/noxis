@@ -72,21 +72,24 @@ func newHandler(d app, cfg config.Config) http.Handler {
 	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/test", d.TestConnection.Serve)
 
 	// Permissions: per-connection RBAC policy (users and groups), managed by
-	// global admins only.
+	// admins. The matrix is the per-instance overview the directory links to.
 	mux.HandleFunc("GET "+api+"/config/members", d.Members.Serve)
+	mux.HandleFunc("GET "+api+"/access", d.AccessMatrix.Serve)
 
-	// Access requests: a user asks, the super admin or the instance's admin
-	// decides. The decision writes the grant and its audit trail.
+	// Access requests: a user asks, an admin or the instance's admin decides. The
+	// decision writes the grant and its audit trail.
 	mux.HandleFunc("POST "+api+"/access-requests", d.AccessCreate.Serve)
 	mux.HandleFunc("GET "+api+"/access-requests", d.AccessList.Serve)
 	mux.HandleFunc("POST "+api+"/access-requests/{id}/approve", d.AccessApprove.Serve)
 	mux.HandleFunc("POST "+api+"/access-requests/{id}/reject", d.AccessReject.Serve)
 
-	// Users: the super admin's directory. There is no local user creation; a
-	// user is created by the env bootstrap or by signing in through OIDC.
+	// Users: the admin directory. There is no local user creation; an account is
+	// created by the env bootstrap or by signing in through OIDC.
 	mux.HandleFunc("GET "+api+"/users", d.UserList.Serve)
 	mux.HandleFunc("GET "+api+"/users/{subject}", d.UserGet.Serve)
 	mux.HandleFunc("PATCH "+api+"/users/{subject}", d.UserUpdate.Serve)
+	// The instance-scoped grant routes live under the engine path, so a family
+	// mismatch is reported like any other connection error.
 	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/permissions", d.ListPermissions.Serve)
 	mux.HandleFunc("PUT "+api+"/engine/{engine}/connections/{name}/permissions", d.SetPermission.Serve)
 	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}/permissions", d.DeletePermission.Serve)
