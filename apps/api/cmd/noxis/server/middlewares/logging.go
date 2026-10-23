@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"noxis/internal/entity"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 
 	"noxis/internal/common/logging"
-	"noxis/internal/usecases"
 )
 
 // statusRecorder captures the response status written by a handler, so the
@@ -78,7 +78,7 @@ func RequestLog(next http.Handler, log *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		ctx := r.Context()
-		logging.Attach(ctx, usecases.LogAttrs(ctx)...)
+		logging.Attach(ctx, entity.LogAttrs(ctx)...)
 		rec := &statusRecorder{ResponseWriter: w}
 		next.ServeHTTP(rec, r)
 		logging.Attach(ctx, "http.route", r.Pattern)
@@ -86,6 +86,6 @@ func RequestLog(next http.Handler, log *slog.Logger) http.Handler {
 			append([]any{
 				"method", r.Method, "path", r.URL.Path, "route", r.Pattern,
 				"status", rec.statusCode(), "dur", time.Since(start).String(),
-			}, usecases.LogAttrs(ctx)...)...)
+			}, entity.LogAttrs(ctx)...)...)
 	})
 }

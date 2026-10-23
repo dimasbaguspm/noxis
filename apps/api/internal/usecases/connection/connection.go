@@ -132,7 +132,7 @@ func (uc Save) Serve(w http.ResponseWriter, r *http.Request) {
 		c.ID = existing.ID
 	case errors.Is(err, constants.ErrNotFound):
 		c.CreatedAt = time.Now().Unix()
-		c.CreatedBy = usecases.Actor(ctx)
+		c.CreatedBy = entity.Actor(ctx)
 		c.ID = idgen.UUID()
 	default:
 		uc.Fail(ctx, w, err)

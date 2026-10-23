@@ -9,7 +9,6 @@ import (
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/usecases"
 )
 
 // WithAuth requires a valid bearer token on every public API request. There is
@@ -37,7 +36,7 @@ func WithAuth(verifier interfaces.Verifier, next http.Handler, log *slog.Logger)
 			reject(w, r, log, "invalid or expired token")
 			return
 		}
-		next.ServeHTTP(w, r.WithContext(usecases.WithPrincipal(r.Context(), principal)))
+		next.ServeHTTP(w, r.WithContext(entity.WithPrincipal(r.Context(), principal)))
 	})
 }
 

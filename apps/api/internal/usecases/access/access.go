@@ -29,7 +29,7 @@ type Create struct{ usecases.RegistryDeps }
 func (uc Create) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	p, ok := usecases.Principal(ctx)
+	p, ok := entity.Principal(ctx)
 	if !ok {
 		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
@@ -79,7 +79,7 @@ type List struct{ usecases.RegistryDeps }
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	p, ok := usecases.Principal(ctx)
+	p, ok := entity.Principal(ctx)
 	if !ok {
 		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
@@ -159,7 +159,7 @@ type Approve struct{ usecases.RegistryDeps }
 func (uc Approve) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	p, ok := usecases.Principal(ctx)
+	p, ok := entity.Principal(ctx)
 	if !ok {
 		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
@@ -214,7 +214,7 @@ type Reject struct{ usecases.RegistryDeps }
 func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	p, ok := usecases.Principal(ctx)
+	p, ok := entity.Principal(ctx)
 	if !ok {
 		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return

@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"noxis/internal/entity"
-	"noxis/internal/usecases"
 )
 
 type fakeVerifier struct {
@@ -81,7 +80,7 @@ func TestWithAuthAttachesPrincipal(t *testing.T) {
 	verifier := &fakeVerifier{principal: entity.Identity{Subject: "alice", Groups: []string{"dev"}, Role: entity.RoleSuper}}
 	var got entity.Identity
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		got, _ = usecases.Principal(r.Context())
+		got, _ = entity.Principal(r.Context())
 		w.WriteHeader(http.StatusOK)
 	})
 	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)

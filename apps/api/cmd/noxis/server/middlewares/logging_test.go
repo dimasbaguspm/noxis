@@ -16,7 +16,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"noxis/internal/entity"
-	"noxis/internal/usecases"
 )
 
 // RequestLog records the request line including the status code written by
@@ -46,7 +45,7 @@ func TestRequestLogAttachesPrincipal(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
-	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Identity{Subject: "bob", Groups: []string{"readers"}}))
+	req = req.WithContext(entity.WithPrincipal(req.Context(), entity.Identity{Subject: "bob", Groups: []string{"readers"}}))
 	RequestLog(okHandler(), log).ServeHTTP(rec, req)
 
 	line := buf.String()
@@ -64,7 +63,7 @@ func TestRequestLogWithoutTracingDoesNotPanic(t *testing.T) {
 	log := slog.New(slog.NewTextHandler(&buf, nil))
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
-	req = req.WithContext(usecases.WithPrincipal(req.Context(), entity.Identity{Subject: "bob"}))
+	req = req.WithContext(entity.WithPrincipal(req.Context(), entity.Identity{Subject: "bob"}))
 	RequestLog(okHandler(), log).ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d", rec.Code)

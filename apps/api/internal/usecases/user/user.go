@@ -122,7 +122,7 @@ func (uc Update) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	caller, _ := usecases.Principal(ctx)
+	caller, _ := entity.Principal(ctx)
 	subject := r.PathValue("subject")
 	var body entity.UserUpdate
 	if err := uc.Decode(r, &body); err != nil {

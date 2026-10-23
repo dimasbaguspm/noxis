@@ -185,7 +185,7 @@ func (uc Submit) submitSQL(ctx context.Context, sq interfaces.SQLModule, ch enti
 	}
 	ch.ID = idgen.UUID()
 	ch.CreatedAt = time.Now().Unix()
-	ch.CreatedBy = usecases.Actor(ctx)
+	ch.CreatedBy = entity.Actor(ctx)
 	ch.Kind = sq.Kind(ch.Query)
 	ch.AffectedTables, ch.AffectedColumns = sql.Referenced(ch.Query)
 	ch.Status = constants.ChangeValidated
@@ -235,7 +235,7 @@ func (uc Submit) submitMongo(ctx context.Context, m interfaces.MongoModule, conn
 		Kind:       constants.KindMongo,
 		Status:     constants.ChangeValidated,
 		CreatedAt:  time.Now().Unix(),
-		CreatedBy:  usecases.Actor(ctx),
+		CreatedBy:  entity.Actor(ctx),
 	}
 	encoded, err := json.Marshal(req)
 	if err != nil {
