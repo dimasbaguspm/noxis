@@ -6,6 +6,7 @@ package mongo
 import (
 	"net/http"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules/mongodb"
@@ -23,19 +24,21 @@ type Databases struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/databases [get]
 func (uc Databases) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	m, err := uc.Modules.EngineMongo(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	c, err := uc.RawConn(r.Context(), m, r.PathValue("name"), entity.LevelRead)
+	c, err := uc.RawConn(ctx, m, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	out, err := m.Databases(r.Context(), *c)
+	out, err := m.Databases(ctx, *c)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, map[string]any{"databases": out})
@@ -53,19 +56,21 @@ type Collections struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/collections [get]
 func (uc Collections) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	m, err := uc.Modules.EngineMongo(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	c, err := uc.RawConn(r.Context(), m, r.PathValue("name"), entity.LevelRead)
+	c, err := uc.RawConn(ctx, m, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	out, err := m.Collections(r.Context(), *c, r.URL.Query().Get("database"))
+	out, err := m.Collections(ctx, *c, r.URL.Query().Get("database"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, map[string]any{"collections": out})
@@ -83,14 +88,16 @@ type Run struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/requests [post]
 func (uc Run) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	var req interfaces.MongoRequest
 	if err := uc.Decode(r, &req); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	m, err := uc.Modules.EngineMongo(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	// a write op is refused by Run, but it must still not be handed to a
@@ -99,14 +106,14 @@ func (uc Run) Serve(w http.ResponseWriter, r *http.Request) {
 	if mongodb.IsWrite(req.Op) {
 		level = entity.LevelWrite
 	}
-	c, err := uc.RawConn(r.Context(), m, r.PathValue("name"), level)
+	c, err := uc.RawConn(ctx, m, r.PathValue("name"), level)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	out, err := m.Run(r.Context(), *c, req)
+	out, err := m.Run(ctx, *c, req)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, out)

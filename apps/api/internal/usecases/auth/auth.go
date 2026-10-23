@@ -6,6 +6,7 @@ import (
 
 	"noxis/internal/common/config"
 	"noxis/internal/constants"
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -44,14 +45,16 @@ type Login struct{ usecases.RegistryDeps }
 // @Failure 401 {object} entity.ErrorResponse
 // @Router /external/v1/auth/login [post]
 func (uc Login) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	var body loginRequest
 	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	token, user, err := uc.Modules.Auth().Login(r.Context(), body.Email, body.Password)
+	token, user, err := uc.Modules.Auth().Login(ctx, body.Email, body.Password)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, loginResponse{Token: token, User: user})
@@ -65,13 +68,15 @@ type Logout struct{ usecases.RegistryDeps }
 // @Failure 401 {object} entity.ErrorResponse
 // @Router /external/v1/auth/logout [post]
 func (uc Logout) Serve(w http.ResponseWriter, r *http.Request) {
-	p, ok := usecases.Principal(r.Context())
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
+	p, ok := usecases.Principal(ctx)
 	if !ok {
-		uc.Fail(w, constants.ErrUnauthorized)
+		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
 	}
-	if err := uc.Modules.Auth().Logout(r.Context(), p.Subject); err != nil {
-		uc.Fail(w, err)
+	if err := uc.Modules.Auth().Logout(ctx, p.Subject); err != nil {
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.RespondNoContent(w)
@@ -93,22 +98,24 @@ type Password struct{ usecases.RegistryDeps }
 // @Failure 401 {object} entity.ErrorResponse
 // @Router /external/v1/auth/password [post]
 func (uc Password) Serve(w http.ResponseWriter, r *http.Request) {
-	p, ok := usecases.Principal(r.Context())
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
+	p, ok := usecases.Principal(ctx)
 	if !ok {
-		uc.Fail(w, constants.ErrUnauthorized)
+		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
 	}
 	if entity.LocalUsername(p.Subject) == "" {
-		uc.Fail(w, constants.ErrForbidden)
+		uc.Fail(ctx, w, constants.ErrForbidden)
 		return
 	}
 	var body changePasswordRequest
 	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	if err := uc.Modules.Auth().ChangePassword(r.Context(), p.Subject, body.OldPassword, body.NewPassword); err != nil {
-		uc.Fail(w, err)
+	if err := uc.Modules.Auth().ChangePassword(ctx, p.Subject, body.OldPassword, body.NewPassword); err != nil {
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.RespondNoContent(w)
@@ -136,16 +143,17 @@ type Me struct{ usecases.RegistryDeps }
 // @Failure 401 {object} entity.ErrorResponse
 // @Router /external/v1/me [get]
 func (uc Me) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	p, ok := usecases.Principal(ctx)
 	if !ok {
-		uc.Fail(w, constants.ErrUnauthorized)
+		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
 	}
 	grants := map[string]AccessGrant{}
 	list, err := uc.Connections.List(ctx)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	for i := range list {
@@ -156,7 +164,7 @@ func (uc Me) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 		level, expiresAt, err := uc.EffectiveGrant(ctx, c.Name, p)
 		if err != nil {
-			uc.Fail(w, err)
+			uc.Fail(ctx, w, err)
 			return
 		}
 		if level != "" {

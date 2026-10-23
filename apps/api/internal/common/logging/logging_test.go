@@ -1,10 +1,22 @@
 package logging
 
 import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
 	"log/slog"
+	"strings"
 	"testing"
 
+	"go.opentelemetry.io/otel/codes"
+
+	sdkTrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+
 	otellog "go.opentelemetry.io/otel/log"
+
+	"go.opentelemetry.io/otel"
 )
 
 // TestSignalURL pins the forms NOXIS_OTEL_COLLECTOR accepts: a full URL (https
@@ -67,3 +79,66 @@ func TestFlattenNestedGroup(t *testing.T) {
 	}
 }
 
+// A decision is recorded twice: as a span event for the trace and as a log
+// record at the requested level, so either sink alone explains it.
+func TestInfoAndWarnRecordSpanEventAndLog(t *testing.T) {
+	for _, tc := range []struct {
+		level slog.Level
+		emit  func(context.Context, string, ...any)
+		want  string
+	}{
+		{slog.LevelInfo, InfoWithCtx, `"level":"INFO"`},
+		{slog.LevelWarn, WarnWithCtx, `"level":"WARN"`},
+	} {
+		recorder := newRecorder(t)
+		var buf bytes.Buffer
+		prev := slog.Default()
+		slog.SetDefault(slog.New(slog.NewJSONHandler(&buf, nil)))
+		t.Cleanup(func() { slog.SetDefault(prev) })
+
+		ctx, end := StartSpan(context.Background(), "Test.Decision")
+		tc.emit(ctx, "authz denied", "connection", "demo", "need", "write")
+		end(nil)
+
+		spans := recorder.Ended()
+		if len(spans) != 1 || len(spans[0].Events()) != 1 || spans[0].Events()[0].Name != "authz denied" {
+			t.Fatalf("span events = %+v, want one authz denied", spans)
+		}
+		line := buf.String()
+		if !strings.Contains(line, "authz denied") || !strings.Contains(line, tc.want) || !strings.Contains(line, `"connection":"demo"`) {
+			t.Fatalf("log %s missing the decision", line)
+		}
+	}
+}
+
+// A failure marks the span failed and keeps the wrapped cause in the log.
+func TestErrorWithCtxMarksSpanAndKeepsCause(t *testing.T) {
+	recorder := newRecorder(t)
+	var buf bytes.Buffer
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&buf, nil)))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	ctx, end := StartSpan(context.Background(), "Test.Failure")
+	err := fmt.Errorf("apply change: %w", errors.New("duplicate key"))
+	ErrorWithCtx(ctx, "change failed to apply", err, "change", "x")
+	end(nil)
+
+	spans := recorder.Ended()
+	if len(spans) != 1 || spans[0].Status().Code != codes.Error {
+		t.Fatalf("span status = %+v, want error", spans)
+	}
+	if line := buf.String(); !strings.Contains(line, "duplicate key") || !strings.Contains(line, `"level":"ERROR"`) {
+		t.Fatalf("log %s missing the cause", line)
+	}
+}
+
+// newRecorder installs a recording tracer provider for one test.
+func newRecorder(t *testing.T) *tracetest.SpanRecorder {
+	t.Helper()
+	prev := otel.GetTracerProvider()
+	t.Cleanup(func() { otel.SetTracerProvider(prev) })
+	rec := tracetest.NewSpanRecorder()
+	otel.SetTracerProvider(sdkTrace.NewTracerProvider(sdkTrace.WithSpanProcessor(rec)))
+	return rec
+}

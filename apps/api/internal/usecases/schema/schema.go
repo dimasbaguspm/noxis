@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"noxis/internal/constants"
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -23,19 +24,21 @@ type Tables struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/schema [get]
 func (uc Tables) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	sq, err := uc.Modules.EngineSQL(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	c, err := uc.RawConn(r.Context(), sq, r.PathValue("name"), entity.LevelRead)
+	c, err := uc.RawConn(ctx, sq, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	out, err := sq.Tables(r.Context(), *c)
+	out, err := sq.Tables(ctx, *c)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, map[string]any{"tables": out})
@@ -55,20 +58,22 @@ type Rows struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/tables/{table}/rows [get]
 func (uc Rows) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	sq, err := uc.Modules.EngineSQL(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	c, err := uc.RawConn(r.Context(), sq, r.PathValue("name"), entity.LevelRead)
+	c, err := uc.RawConn(ctx, sq, r.PathValue("name"), entity.LevelRead)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	out, err := sq.Rows(r.Context(), *c, r.URL.Query().Get("schema"), r.PathValue("table"), limit)
+	out, err := sq.Rows(ctx, *c, r.URL.Query().Get("schema"), r.PathValue("table"), limit)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, out)
@@ -102,23 +107,24 @@ type Op struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/query [post]
 func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	sq, err := uc.Modules.EngineSQL(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	var body opBody
 	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	operation := opRoutes[r.Pattern]
-	c, err := uc.RawConn(r.Context(), sq, r.PathValue("name"), uc.OpLevel(operation))
+	c, err := uc.RawConn(ctx, sq, r.PathValue("name"), uc.OpLevel(operation))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
-	ctx := r.Context()
 	start := time.Now()
 	var out any
 	switch operation {
@@ -136,7 +142,7 @@ func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 	// A failure's duration counts too: a slow failure is still slow.
 	uc.Metrics.OpDuration(ctx, r.PathValue("engine"), operation, time.Since(start).Seconds())
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, out)

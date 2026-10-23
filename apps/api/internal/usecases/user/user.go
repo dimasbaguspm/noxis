@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"noxis/internal/constants"
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -24,14 +25,15 @@ type List struct{ usecases.RegistryDeps }
 // @Failure 403 {object} entity.ErrorResponse
 // @Router /external/v1/users [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	if err := uc.RequireAdmin(ctx); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	users, err := uc.Users.ListUsers(ctx)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
@@ -77,24 +79,25 @@ type Get struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/users/{subject} [get]
 func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	if err := uc.RequireAdmin(ctx); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	u, err := uc.Users.GetUser(ctx, r.PathValue("subject"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	access, err := uc.Permissions.ListPermissionsForMembers(ctx, append([]string{u.Subject}, u.Groups...))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	events, err := uc.AccessEvents.ListAccessEvents(ctx, u.Subject, 50)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if access == nil {
@@ -127,47 +130,48 @@ type Update struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/users/{subject} [patch]
 func (uc Update) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	if err := uc.RequireAdmin(ctx); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	caller, _ := usecases.Principal(ctx)
 	subject := r.PathValue("subject")
 	var body updateBody
 	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if body.Status == nil && body.Role == nil {
-		uc.Fail(w, fmt.Errorf("status or role is required"))
+		uc.Fail(ctx, w, fmt.Errorf("status or role is required"))
 		return
 	}
 	u, err := uc.Users.GetUser(ctx, subject)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	// validate the whole patch before mutating, so a bad field cannot leave a
 	// half-applied change
 	if err := uc.checkPatch(caller, u, body); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if subject == caller.Subject {
-		uc.Fail(w, fmt.Errorf("%w: you cannot change your own account", constants.ErrForbidden))
+		uc.Fail(ctx, w, fmt.Errorf("%w: you cannot change your own account", constants.ErrForbidden))
 		return
 	}
 	if u.IsSuper() {
-		uc.Fail(w, fmt.Errorf("%w: the super admin cannot be changed", constants.ErrForbidden))
+		uc.Fail(ctx, w, fmt.Errorf("%w: the super admin cannot be changed", constants.ErrForbidden))
 		return
 	}
 	if err := uc.applyRole(ctx, caller, u, body.Role); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if err := uc.applyStatus(ctx, caller, u, body.Status); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, u)

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"noxis/internal/common/idgen"
+	"noxis/internal/common/logging"
 	"noxis/internal/common/pagination"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
@@ -93,26 +94,27 @@ type List struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	switch mod.(type) {
 	case interfaces.SQLModule, interfaces.MongoModule:
 	default:
-		uc.Fail(w, unsupportedChangeFlow(mod))
+		uc.Fail(ctx, w, unsupportedChangeFlow(mod))
 		return
 	}
 	all, err := uc.Changes.ListChanges(ctx)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	allowed, err := uc.ReadableConnections(ctx)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	changes := readable(all, mod, allowed)
@@ -145,22 +147,23 @@ type Submit struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes [post]
 func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	switch m := mod.(type) {
 	case interfaces.SQLModule:
 		var ch entity.Change
 		if err := uc.Decode(r, &ch); err != nil {
-			uc.Fail(w, err)
+			uc.Fail(ctx, w, err)
 			return
 		}
 		out, err := uc.submitSQL(ctx, m, ch)
 		if err != nil {
-			uc.Fail(w, err)
+			uc.Fail(ctx, w, err)
 			return
 		}
 		uc.Metrics.ChangeSubmitted(ctx, mod.Family(), r.PathValue("engine"))
@@ -168,18 +171,18 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 	case interfaces.MongoModule:
 		var body mongoChangeBody
 		if err := uc.Decode(r, &body); err != nil {
-			uc.Fail(w, err)
+			uc.Fail(ctx, w, err)
 			return
 		}
 		out, err := uc.submitMongo(ctx, m, body.Connection, body.Notes, body.MongoRequest)
 		if err != nil {
-			uc.Fail(w, err)
+			uc.Fail(ctx, w, err)
 			return
 		}
 		uc.Metrics.ChangeSubmitted(ctx, mod.Family(), r.PathValue("engine"))
 		uc.Respond(w, out)
 	default:
-		uc.Fail(w, unsupportedChangeFlow(mod))
+		uc.Fail(ctx, w, unsupportedChangeFlow(mod))
 	}
 }
 
@@ -219,9 +222,12 @@ func (uc Submit) submitSQL(ctx context.Context, sq interfaces.SQLModule, ch enti
 	}
 	ch.Checks = append(ch.Checks, dry)
 	if ch.Status == constants.ChangeFailed {
+		logging.WarnWithCtx(ctx, "change rejected: "+dry.Error, "connection", ch.Connection, "kind", ch.Kind)
 		ch.ID = ""
 		return ch, nil
 	}
+	logging.InfoWithCtx(ctx, "change validated",
+		"change", ch.ID, "connection", ch.Connection, "kind", ch.Kind)
 	if err := uc.Changes.SaveChange(ctx, ch); err != nil {
 		return entity.Change{}, err
 	}
@@ -269,9 +275,11 @@ func (uc Submit) submitMongo(ctx context.Context, m interfaces.MongoModule, conn
 	ch.Checks = append(ch.Checks, dry)
 
 	if ch.Status == constants.ChangeFailed {
+		logging.WarnWithCtx(ctx, "change rejected: "+dry.Error, "connection", ch.Connection, "kind", ch.Kind)
 		ch.ID = ""
 		return ch, nil
 	}
+	logging.InfoWithCtx(ctx, "change validated", "change", ch.ID, "connection", ch.Connection, "kind", ch.Kind)
 	if err := uc.Changes.SaveChange(ctx, ch); err != nil {
 		return entity.Change{}, err
 	}
@@ -288,23 +296,25 @@ type Get struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes/{id} [get]
 func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	var out *entity.Change
 	switch mod.(type) {
 	case interfaces.SQLModule:
-		out, err = uc.SQLChange(r.Context(), r.PathValue("id"))
+		out, err = uc.SQLChange(ctx, r.PathValue("id"))
 	case interfaces.MongoModule:
-		out, err = uc.MongoChange(r.Context(), r.PathValue("id"))
+		out, err = uc.MongoChange(ctx, r.PathValue("id"))
 	default:
-		uc.Fail(w, unsupportedChangeFlow(mod))
+		uc.Fail(ctx, w, unsupportedChangeFlow(mod))
 		return
 	}
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, out)
@@ -335,32 +345,33 @@ type Approve struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes/{id}/approve [post]
 func (uc Approve) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if err := Get(uc).guard(ctx, mod, r.PathValue("id")); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	ch, err := uc.Changes.GetChange(ctx, r.PathValue("id"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if err := uc.Authorize(ctx, ch.Connection, entity.LevelAdmin); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if ch.Status != constants.ChangeValidated && ch.Status != constants.ChangeUnverified {
-		uc.Fail(w, fmt.Errorf("change is %s, not validated — cannot approve", ch.Status))
+		uc.Fail(ctx, w, fmt.Errorf("change is %s, not validated — cannot approve", ch.Status))
 		return
 	}
 	ch.Status, ch.ApprovedAt = constants.ChangeApproved, time.Now().Unix()
 	if err := uc.Changes.SaveChange(ctx, *ch); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, ch)
@@ -377,32 +388,33 @@ type Reject struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes/{id}/reject [post]
 func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if err := Get(uc).guard(ctx, mod, r.PathValue("id")); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	ch, err := uc.Changes.GetChange(ctx, r.PathValue("id"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if err := uc.Authorize(ctx, ch.Connection, entity.LevelAdmin); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if ch.Status == constants.ChangeApplied {
-		uc.Fail(w, fmt.Errorf("change already applied — it cannot be rejected"))
+		uc.Fail(ctx, w, fmt.Errorf("change already applied — it cannot be rejected"))
 		return
 	}
 	ch.Status, ch.RejectedAt = constants.ChangeRejected, time.Now().Unix()
 	if err := uc.Changes.SaveChange(ctx, *ch); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, ch)
@@ -425,41 +437,42 @@ type Schedule struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes/{id}/schedule [post]
 func (uc Schedule) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	var body scheduleBody
 	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if err := Get(uc).guard(ctx, mod, r.PathValue("id")); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	ch, err := uc.Changes.GetChange(ctx, r.PathValue("id"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if err := uc.Authorize(ctx, ch.Connection, entity.LevelAdmin); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if ch.Status != constants.ChangeApproved {
-		uc.Fail(w, fmt.Errorf("change is %s, not approved — cannot schedule", ch.Status))
+		uc.Fail(ctx, w, fmt.Errorf("change is %s, not approved — cannot schedule", ch.Status))
 		return
 	}
 	if body.ScheduledAt > 0 && body.ScheduledAt <= time.Now().Unix() {
-		uc.Fail(w, fmt.Errorf("scheduled time must be in the future"))
+		uc.Fail(ctx, w, fmt.Errorf("scheduled time must be in the future"))
 		return
 	}
 	ch.ScheduledAt = body.ScheduledAt
 	if err := uc.Changes.SaveChange(ctx, *ch); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, ch)

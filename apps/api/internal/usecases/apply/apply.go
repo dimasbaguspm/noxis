@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -25,34 +26,35 @@ type Apply struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes/{id}/apply [post]
 func (uc Apply) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	id := r.PathValue("id")
 	switch m := mod.(type) {
 	case interfaces.SQLModule:
 		if _, err := uc.SQLChange(ctx, id); err != nil {
-			uc.Fail(w, err)
+			uc.Fail(ctx, w, err)
 			return
 		}
 		out, err := applySQL(ctx, uc.RegistryDeps, m, id)
 		if err != nil {
-			uc.Fail(w, err)
+			uc.Fail(ctx, w, err)
 			return
 		}
 		uc.Respond(w, out)
 	case interfaces.MongoModule:
 		out, err := applyMongo(ctx, uc.RegistryDeps, m, id)
 		if err != nil {
-			uc.Fail(w, err)
+			uc.Fail(ctx, w, err)
 			return
 		}
 		uc.Respond(w, out)
 	default:
-		uc.Fail(w, fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, mod.Family()))
+		uc.Fail(ctx, w, fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, mod.Family()))
 	}
 }
 
@@ -64,9 +66,13 @@ func applySQL(ctx context.Context, d usecases.RegistryDeps, sq interfaces.SQLMod
 		return entity.Change{}, err
 	}
 	if ch.Status != constants.ChangeApproved {
+		logging.WarnWithCtx(ctx, "change cannot be applied: it is not approved",
+			"change", ch.ID, "status", ch.Status)
 		return *ch, fmt.Errorf("change is %s, not approved — cannot apply", ch.Status)
 	}
 	if ch.ScheduledAt > time.Now().Unix() {
+		logging.InfoWithCtx(ctx, "change deferred to the scheduler",
+			"change", ch.ID, "scheduledAt", ch.ScheduledAt)
 		return *ch, fmt.Errorf("change is scheduled for %s — the scheduler will apply it",
 			time.Unix(ch.ScheduledAt, 0).Format(time.RFC3339))
 	}
@@ -76,6 +82,7 @@ func applySQL(ctx context.Context, d usecases.RegistryDeps, sq interfaces.SQLMod
 	}
 	res, err := sq.Apply(ctx, *conn, ch.Query)
 	if err != nil {
+		logging.ErrorWithCtx(ctx, "change failed to apply", err, "change", ch.ID, "connection", ch.Connection)
 		ch.Status = constants.ChangeFailed
 		ch.Checks = append(ch.Checks, entity.ChangeCheck{Target: "apply", Error: err.Error()})
 		_ = d.Changes.SaveChange(ctx, *ch)
@@ -84,6 +91,8 @@ func applySQL(ctx context.Context, d usecases.RegistryDeps, sq interfaces.SQLMod
 	ch.Status, ch.AppliedAt = constants.ChangeApplied, time.Now().Unix()
 	ch.AppliedAffected, ch.AppliedDurationMs = res.Affected, res.DurationMs
 	ch.Checks = append(ch.Checks, entity.ChangeCheck{Target: "apply", OK: true, Detail: res.Message})
+	logging.InfoWithCtx(ctx, "change applied",
+		"change", ch.ID, "connection", ch.Connection, "affected", res.Affected, "durationMs", res.DurationMs)
 	if err := d.Changes.SaveChange(ctx, *ch); err != nil {
 		return entity.Change{}, err
 	}
@@ -110,6 +119,7 @@ func applyMongo(ctx context.Context, d usecases.RegistryDeps, m interfaces.Mongo
 	}
 	res, err := m.Apply(ctx, *conn, req)
 	if err != nil {
+		logging.ErrorWithCtx(ctx, "change failed to apply", err, "change", ch.ID, "connection", ch.Connection)
 		ch.Status = constants.ChangeFailed
 		ch.Checks = append(ch.Checks, entity.ChangeCheck{Target: "apply", Error: err.Error()})
 		_ = d.Changes.SaveChange(ctx, *ch)
@@ -118,6 +128,8 @@ func applyMongo(ctx context.Context, d usecases.RegistryDeps, m interfaces.Mongo
 	ch.Status, ch.AppliedAt = constants.ChangeApplied, time.Now().Unix()
 	ch.AppliedAffected, ch.AppliedDurationMs = res.Affected, res.DurationMs
 	ch.Checks = append(ch.Checks, entity.ChangeCheck{Target: "apply", OK: true, Detail: res.Message})
+	logging.InfoWithCtx(ctx, "change applied",
+		"change", ch.ID, "connection", ch.Connection, "affected", res.Affected, "durationMs", res.DurationMs)
 	if err := d.Changes.SaveChange(ctx, *ch); err != nil {
 		return entity.Change{}, err
 	}
@@ -175,10 +187,11 @@ type Tick struct{ usecases.RegistryDeps }
 // @Success 200 {object} TickResult
 // @Router /internal/callback/scheduler [post]
 func (uc Tick) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	all, err := uc.Changes.ListChanges(ctx)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	res := TickResult{}
@@ -187,7 +200,13 @@ func (uc Tick) Serve(w http.ResponseWriter, r *http.Request) {
 		if !dueChange(all[i], now) {
 			continue
 		}
-		if _, err := applyChange(ctx, uc.RegistryDeps, all[i]); err != nil {
+		// one span per due change: a tick that applies five changes shows five
+		// operations in the trace, not one
+		changeCtx, end := logging.StartSpan(ctx, "Scheduler.ApplyChange")
+		logging.Attach(changeCtx, "change", all[i].ID, "connection", all[i].Connection)
+		_, err := applyChange(changeCtx, uc.RegistryDeps, all[i])
+		end(err)
+		if err != nil {
 			res.Failed = append(res.Failed, all[i].ID)
 			continue
 		}

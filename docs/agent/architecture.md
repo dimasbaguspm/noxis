@@ -133,6 +133,18 @@ request refused before the router is still traceable, and closed with an error
 when the handler answered 5xx. `middlewares.RequestLog` runs inside the auth
 middleware and attaches the caller to that span once.
 
+Every use case opens its own operation span at the top of `Serve`
+(`ctx, end := logging.StartSpan(r.Context()); defer end(nil)`), so the trace names
+the operation (`Usecases.Change.Submit.Serve`) and the use case owns its own
+conditions. Failures are recorded once, by the exit that handles them:
+`uc.Fail(ctx, w, err)` maps the error to a status and calls
+`logging.ErrorWithCtx`, which puts the error and the failed status on the span.
+
+Logging is the three-level API in `common/logging`: `InfoWithCtx` for a state
+change, `WarnWithCtx` for an expected refusal, `ErrorWithCtx(ctx, msg, err, ...)`
+for a failure — each writes the span event and the log record together, so a
+trace and a log file tell the same story.
+
 `apps/api/internal/common/logging/span.go` derives span names from the Go function:
 `Repository.Sqlite.Store.List`, `Usecases.Op.Serve`, `Modules.Sql.DB.query`.
 Logs re-emit trace/span ids from ctx so log/trace/metric share identity

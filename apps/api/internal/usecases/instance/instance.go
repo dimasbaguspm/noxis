@@ -8,6 +8,7 @@ import (
 
 	"noxis/internal/common/pagination"
 	"noxis/internal/constants"
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -24,11 +25,12 @@ type List struct{ usecases.RegistryDeps }
 // @Success 200 {object} object{instances=[]entity.Connection,total=int}
 // @Router /external/v1/instances [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	q := r.URL.Query()
 	all, err := uc.Connections.List(ctx)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	needle := strings.ToLower(q.Get("name"))
@@ -52,7 +54,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 		readable, err := uc.CanRead(ctx, c.Name)
 		if err != nil {
-			uc.Fail(w, err)
+			uc.Fail(ctx, w, err)
 			return
 		}
 		if !readable {
@@ -77,24 +79,25 @@ type Get struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/instances/{id} [get]
 func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	c, err := uc.Connections.GetByID(ctx, r.PathValue("id"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	mod, ok := uc.Modules.Serves(c.Driver)
 	if !ok {
-		uc.Fail(w, constants.ErrUnsupported)
+		uc.Fail(ctx, w, constants.ErrUnsupported)
 		return
 	}
 	readable, err := uc.CanRead(ctx, c.Name)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if !readable {
-		uc.Fail(w, constants.ErrNotFound)
+		uc.Fail(ctx, w, constants.ErrNotFound)
 		return
 	}
 	c.Family = mod.Family()
@@ -117,32 +120,33 @@ type RotatePassword struct{ usecases.RegistryDeps }
 // @Failure 403 {object} entity.ErrorResponse
 // @Router /external/v1/instances/{id}/password [post]
 func (uc RotatePassword) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	if err := uc.RequireSuper(ctx); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	var body passwordBody
 	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if body.Password == "" {
-		uc.Fail(w, errors.New("password is required"))
+		uc.Fail(ctx, w, errors.New("password is required"))
 		return
 	}
 	c, err := uc.Connections.GetByID(ctx, r.PathValue("id"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if _, ok := uc.Modules.Serves(c.Driver); !ok {
-		uc.Fail(w, constants.ErrUnsupported)
+		uc.Fail(ctx, w, constants.ErrUnsupported)
 		return
 	}
 	c.Password = body.Password
 	if err := uc.Connections.Save(ctx, *c); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, entity.StatusResponse{Status: "ok"})

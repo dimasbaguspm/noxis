@@ -4,6 +4,7 @@ package driver
 import (
 	"net/http"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/usecases"
 )
@@ -32,4 +33,8 @@ type Drivers struct{ usecases.RegistryDeps }
 // @Summary List the drivers the console can register
 // @Success 200 {array} driver.DriverInfo
 // @Router /external/v1/config/drivers [get]
-func (uc Drivers) Serve(w http.ResponseWriter, _ *http.Request) { uc.Respond(w, driverCatalog) }
+func (uc Drivers) Serve(w http.ResponseWriter, r *http.Request) {
+	_, end := logging.StartSpan(r.Context())
+	defer end(nil)
+	uc.Respond(w, driverCatalog)
+}

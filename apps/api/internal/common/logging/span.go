@@ -3,6 +3,7 @@ package logging
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"runtime"
 	"strings"
 
@@ -23,6 +24,43 @@ func Attach(ctx context.Context, keyValues ...any) {
 	if !span.IsRecording() || len(keyValues) == 0 {
 		return
 	}
+	span.SetAttributes(keyValuesOf(keyValues)...)
+}
+
+// InfoWithCtx records a state change: a log record and a span event on the
+// active span, so the trace explains what happened and the log survives alone.
+func InfoWithCtx(ctx context.Context, msg string, attrs ...any) {
+	record(ctx, slog.LevelInfo, msg, attrs)
+}
+
+// WarnWithCtx records an expected but notable outcome — a refusal, a skipped
+// step — on the span and in the log.
+func WarnWithCtx(ctx context.Context, msg string, attrs ...any) {
+	record(ctx, slog.LevelWarn, msg, attrs)
+}
+
+// ErrorWithCtx records a failure once, where it happens: the error goes on the
+// span (status error, so the trace is marked failed) and into the log record
+// with its chain, which keeps the wrapped cause visible.
+func ErrorWithCtx(ctx context.Context, msg string, err error, attrs ...any) {
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		span.AddEvent(msg, trace.WithAttributes(keyValuesOf(attrs)...))
+	}
+	slog.Default().ErrorContext(ctx, msg, append([]any{"error", err}, attrs...)...)
+}
+
+// record writes one decision to both sinks.
+func record(ctx context.Context, level slog.Level, msg string, attrs []any) {
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		span.AddEvent(msg, trace.WithAttributes(keyValuesOf(attrs)...))
+	}
+	slog.Default().Log(ctx, level, msg, attrs...)
+}
+
+// keyValuesOf turns key/value pairs into span attributes.
+func keyValuesOf(keyValues []any) []attribute.KeyValue {
 	attrs := make([]attribute.KeyValue, 0, len(keyValues)/2)
 	for i := 0; i+1 < len(keyValues); i += 2 {
 		key := attribute.Key(fmt.Sprint(keyValues[i]))
@@ -35,7 +73,7 @@ func Attach(ctx context.Context, keyValues ...any) {
 			attrs = append(attrs, key.String(fmt.Sprint(v)))
 		}
 	}
-	span.SetAttributes(attrs...)
+	return attrs
 }
 
 // StartSpan opens a span for the calling function. Name it explicitly, or let

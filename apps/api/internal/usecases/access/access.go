@@ -11,6 +11,7 @@ import (
 
 	"noxis/internal/common/idgen"
 	"noxis/internal/constants"
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -33,32 +34,33 @@ type Create struct{ usecases.RegistryDeps }
 // @Failure 401 {object} entity.ErrorResponse
 // @Router /external/v1/access-requests [post]
 func (uc Create) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	p, ok := usecases.Principal(ctx)
 	if !ok {
-		uc.Fail(w, constants.ErrUnauthorized)
+		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
 	}
 	var body createBody
 	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if body.Connection == "" || entity.StrongestLevel(body.Level) == "" {
-		uc.Fail(w, fmt.Errorf("connection and a known level are required"))
+		uc.Fail(ctx, w, fmt.Errorf("connection and a known level are required"))
 		return
 	}
 	if _, err := uc.Connections.Get(ctx, body.Connection); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	open, err := uc.AccessRequests.PendingRequestExists(ctx, p.Subject, body.Connection)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if open {
-		uc.Fail(w, fmt.Errorf("a request for %s is already pending", body.Connection))
+		uc.Fail(ctx, w, fmt.Errorf("a request for %s is already pending", body.Connection))
 		return
 	}
 	req := entity.AccessRequest{
@@ -66,7 +68,7 @@ func (uc Create) Serve(w http.ResponseWriter, r *http.Request) {
 		Reason: strings.TrimSpace(body.Reason), Status: entity.RequestPending, RequestedAt: time.Now().Unix(),
 	}
 	if err := uc.AccessRequests.CreateAccessRequest(ctx, req); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, req)
@@ -82,16 +84,17 @@ type List struct{ usecases.RegistryDeps }
 // @Failure 401 {object} entity.ErrorResponse
 // @Router /external/v1/access-requests [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	p, ok := usecases.Principal(ctx)
 	if !ok {
-		uc.Fail(w, constants.ErrUnauthorized)
+		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
 	}
 	if r.URL.Query().Get("scope") != "to-approve" {
 		list, err := uc.AccessRequests.ListAccessRequests(ctx, p.Subject)
 		if err != nil {
-			uc.Fail(w, err)
+			uc.Fail(ctx, w, err)
 			return
 		}
 		if list == nil {
@@ -104,14 +107,14 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	if !p.IsAdmin() {
 		all, err := uc.Connections.List(ctx)
 		if err != nil {
-			uc.Fail(w, err)
+			uc.Fail(ctx, w, err)
 			return
 		}
 		connections = []string{}
 		for i := range all {
 			level, err := uc.EffectiveLevel(ctx, all[i].Name, p)
 			if err != nil {
-				uc.Fail(w, err)
+				uc.Fail(ctx, w, err)
 				return
 			}
 			if entity.LevelAllows(level, entity.LevelAdmin) {
@@ -121,7 +124,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	}
 	list, err := uc.AccessRequests.ListPendingRequests(ctx, connections)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if list == nil {
@@ -166,28 +169,29 @@ type Approve struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/access-requests/{id}/approve [post]
 func (uc Approve) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	p, ok := usecases.Principal(ctx)
 	if !ok {
-		uc.Fail(w, constants.ErrUnauthorized)
+		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
 	}
 	req, err := uc.AccessRequests.GetAccessRequest(ctx, r.PathValue("id"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if req.Status != entity.RequestPending {
-		uc.Fail(w, fmt.Errorf("request is %s, not pending", req.Status))
+		uc.Fail(ctx, w, fmt.Errorf("request is %s, not pending", req.Status))
 		return
 	}
 	if err := canDecide(ctx, uc.RegistryDeps, req, p); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	var body decisionBody
 	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	now := time.Now()
@@ -197,11 +201,11 @@ func (uc Approve) Serve(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: now.Unix(), UpdatedAt: now.Unix(),
 	}
 	if err := uc.Permissions.SetPermission(ctx, grant); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if err := uc.AccessRequests.SetAccessRequestDecision(ctx, req.ID, entity.RequestApproved, p.Subject, now.Unix(), body.Note); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	req.Status, req.DecidedBy, req.DecidedAt, req.DecisionNote = entity.RequestApproved, p.Subject, now.Unix(), body.Note
@@ -220,33 +224,34 @@ type Reject struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/access-requests/{id}/reject [post]
 func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	p, ok := usecases.Principal(ctx)
 	if !ok {
-		uc.Fail(w, constants.ErrUnauthorized)
+		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
 	}
 	req, err := uc.AccessRequests.GetAccessRequest(ctx, r.PathValue("id"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if req.Status != entity.RequestPending {
-		uc.Fail(w, fmt.Errorf("request is %s, not pending", req.Status))
+		uc.Fail(ctx, w, fmt.Errorf("request is %s, not pending", req.Status))
 		return
 	}
 	if err := canDecide(ctx, uc.RegistryDeps, req, p); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	var body decisionBody
 	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	now := time.Now().Unix()
 	if err := uc.AccessRequests.SetAccessRequestDecision(ctx, req.ID, entity.RequestRejected, p.Subject, now, body.Note); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	req.Status, req.DecidedBy, req.DecidedAt, req.DecisionNote = entity.RequestRejected, p.Subject, now, body.Note

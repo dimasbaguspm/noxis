@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"noxis/internal/constants"
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -28,19 +29,20 @@ type Members struct{ usecases.RegistryDeps }
 // @Failure 403 {object} entity.ErrorResponse
 // @Router /external/v1/config/members [get]
 func (uc Members) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	if err := uc.RequireAdmin(ctx); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	groups, err := uc.Permissions.ListGroupNames(ctx)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	users, err := uc.Users.ListUsers(ctx)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if groups == nil {
@@ -67,26 +69,27 @@ type List struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	// A global admin reads every connection's policy; an instance's own admin
 	// reads that one.
 	need, err := adminLevel(ctx, entity.LevelAdmin)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), need); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	out, err := uc.Permissions.ListPermissions(ctx, r.PathValue("name"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, map[string]any{"permissions": out})
@@ -139,24 +142,25 @@ type Set struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [put]
 func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	if err := uc.RequireAdmin(ctx); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	var body permissionBody
 	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	// granting is the admin surface itself, so only the family is checked here
 	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), ""); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	now := time.Now()
@@ -168,11 +172,11 @@ func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: now.Unix(),
 	}
 	if err := p.Validate(); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if err := uc.Permissions.SetPermission(ctx, p); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, p)
@@ -192,29 +196,30 @@ type Delete struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/permissions [delete]
 func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, end := logging.StartSpan(r.Context())
+	defer end(nil)
 	// The super admin, a global admin and the instance's own admin may revoke.
 	need, err := adminLevel(ctx, entity.LevelAdmin)
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	member := r.URL.Query().Get("member")
 	if member == "" {
-		uc.Fail(w, fmt.Errorf("member is required"))
+		uc.Fail(ctx, w, fmt.Errorf("member is required"))
 		return
 	}
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if _, err := uc.RawConn(ctx, mod, r.PathValue("name"), need); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	if err := uc.Permissions.DeletePermission(ctx, r.PathValue("name"), member, usecases.Actor(ctx)); err != nil {
-		uc.Fail(w, err)
+		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.RespondNoContent(w)

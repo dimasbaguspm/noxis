@@ -65,7 +65,9 @@ func (s *Store) PendingRequestExists(ctx context.Context, subject, connection st
 }
 
 // GetAccessRequest returns one request by id.
-func (s *Store) GetAccessRequest(ctx context.Context, id string) (*entity.AccessRequest, error) {
+func (s *Store) GetAccessRequest(ctx context.Context, id string) (r *entity.AccessRequest, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
 	return scanRequest(s.db.QueryRowContext(ctx, `SELECT `+requestColumns+` FROM access_requests WHERE id = ?`, id))
 }
 

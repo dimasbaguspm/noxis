@@ -27,11 +27,12 @@ func (d RegistryDeps) RespondNoContent(w http.ResponseWriter) { w.WriteHeader(ht
 // Decode reads the request body as JSON into v.
 func (d RegistryDeps) Decode(r *http.Request, v any) error { return json.NewDecoder(r.Body).Decode(v) }
 
-// Fail maps err to a status and writes the error envelope. It is the single
-// place the API's errors become HTTP: a missing row and a missing engine both
-// read as "not here", bad credentials and a missing caller as 401. Being the
-// one exit for failures, it is also where they are counted.
-func (d RegistryDeps) Fail(w http.ResponseWriter, err error) {
+// Fail maps err to a status, records it on the operation's span and writes the
+// error envelope. It is the single place the API's errors become HTTP: a missing
+// row and a missing engine both read as "not here", bad credentials and a missing
+// caller as 401. Being the one exit for failures, it is also where they are
+// counted and logged — once, with the cause, not again by every caller.
+func (d RegistryDeps) Fail(ctx context.Context, w http.ResponseWriter, err error) {
 	code := http.StatusBadRequest
 	switch {
 	case errors.Is(err, constants.ErrNotFound), errors.Is(err, constants.ErrUnsupported):
@@ -42,7 +43,8 @@ func (d RegistryDeps) Fail(w http.ResponseWriter, err error) {
 		code = http.StatusForbidden
 	}
 	// The use case is the caller of Fail; the status is what the client saw.
-	d.Metrics.UsecaseError(context.Background(), logging.CallerName(1), strconv.Itoa(code))
+	d.Metrics.UsecaseError(ctx, logging.CallerName(1), strconv.Itoa(code))
+	logging.ErrorWithCtx(ctx, "request failed", err, "status", code)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(entity.ErrorResponse{Error: err.Error()})
