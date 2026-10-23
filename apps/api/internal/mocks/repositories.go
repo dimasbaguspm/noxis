@@ -138,6 +138,21 @@ func (m *MockChangeRepository) EXPECT() *MockChangeRepositoryMockRecorder {
 	return m.recorder
 }
 
+// ClaimChange mocks base method.
+func (m *MockChangeRepository) ClaimChange(ctx context.Context, id string, at int64) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClaimChange", ctx, id, at)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ClaimChange indicates an expected call of ClaimChange.
+func (mr *MockChangeRepositoryMockRecorder) ClaimChange(ctx, id, at any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClaimChange", reflect.TypeOf((*MockChangeRepository)(nil).ClaimChange), ctx, id, at)
+}
+
 // DeleteChange mocks base method.
 func (m *MockChangeRepository) DeleteChange(ctx context.Context, id string) error {
 	m.ctrl.T.Helper()

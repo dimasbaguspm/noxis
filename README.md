@@ -118,6 +118,7 @@ Valkey server to keep that claim honest.
 - **A cache value cannot be rolled back.** So memory cache has no change queue:
   you can browse, inspect and remove keys, and `FLUSHALL` is deliberately
   unreachable.
+- **An interrupted apply is indeterminate.** A change claimed for execution stays `applying` after a process crash; noXis will not retry it automatically. Inspect the target before taking further action.
 - **SQLite is a file.** Point the connection at the database file on the noXis
   host or volume — never at noXis’s own registry.
 

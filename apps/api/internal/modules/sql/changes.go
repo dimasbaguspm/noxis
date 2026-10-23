@@ -108,6 +108,9 @@ func (c *Changes) Apply(ctx context.Context, ch *entity.Change) (entity.Change, 
 	if err != nil {
 		return entity.Change{}, err
 	}
+	if err := c.Claim(ctx, ch, now); err != nil {
+		return *ch, err
+	}
 	res, err := c.Engine.Apply(ctx, *conn, ch.Query)
 	c.count(conn.Family, err)
 	if err != nil {

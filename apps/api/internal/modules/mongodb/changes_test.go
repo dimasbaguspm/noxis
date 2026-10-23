@@ -33,6 +33,7 @@ func TestApplyReturnsOutcomeSaveFailure(t *testing.T) {
 	storeErr := errors.New("sqlite unavailable")
 
 	connections.EXPECT().Get(gomock.Any(), connection.Name).Return(&connection, nil)
+	changes.EXPECT().ClaimChange(gomock.Any(), change.ID, gomock.Any()).Return(true, nil)
 	engine.EXPECT().Apply(gomock.Any(), connection, request).Return(entity.Result{}, engineErr)
 	changes.EXPECT().SaveChange(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, saved entity.Change) error {
 		if saved.Status != constants.ChangeFailed {

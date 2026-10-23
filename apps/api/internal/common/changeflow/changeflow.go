@@ -6,6 +6,7 @@ package changeflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -43,6 +44,9 @@ func (f Flow) Approve(ctx context.Context, ch *entity.Change) error {
 // Reject closes a change without running it. An applied change is history: it
 // stays applied.
 func (f Flow) Reject(ctx context.Context, ch *entity.Change) error {
+	if ch.Status == constants.ChangeApplying {
+		return constants.ErrConflict
+	}
 	if ch.Status == constants.ChangeApplied {
 		return fmt.Errorf("change already applied — it cannot be rejected")
 	}
@@ -53,6 +57,9 @@ func (f Flow) Reject(ctx context.Context, ch *entity.Change) error {
 // Schedule sets (or, with 0, clears) an approved change's slot. A slot in the
 // past would never be due, so it is refused rather than silently ignored.
 func (f Flow) Schedule(ctx context.Context, ch *entity.Change, at int64) error {
+	if ch.Status == constants.ChangeApplying {
+		return constants.ErrConflict
+	}
 	if ch.Status != constants.ChangeApproved {
 		return fmt.Errorf("change is %s, not approved — cannot schedule", ch.Status)
 	}
@@ -63,9 +70,25 @@ func (f Flow) Schedule(ctx context.Context, ch *entity.Change, at int64) error {
 	return f.save(ctx, ch)
 }
 
+// Claim atomically reserves an approved change before an engine write.
+func (f Flow) Claim(ctx context.Context, ch *entity.Change, at int64) error {
+	claimed, err := f.Store.ClaimChange(ctx, ch.ID, at)
+	if err != nil {
+		return err
+	}
+	if !claimed {
+		return constants.ErrConflict
+	}
+	ch.Status, ch.ApplyingAt = constants.ChangeApplying, at
+	return nil
+}
+
 // Applyable reports whether a change may run now: approved, and not waiting for
 // a scheduled slot.
 func Applyable(ch *entity.Change, now int64) error {
+	if ch.Status == constants.ChangeApplying {
+		return constants.ErrConflict
+	}
 	if ch.Status != constants.ChangeApproved {
 		return fmt.Errorf("change is %s, not approved — cannot apply", ch.Status)
 	}
@@ -129,6 +152,9 @@ func Tick(ctx context.Context, store interfaces.ChangeRepository, now int64, min
 			continue
 		}
 		if _, err := apply(ctx, &ch); err != nil {
+			if errors.Is(err, constants.ErrConflict) {
+				continue
+			}
 			res.Failed = append(res.Failed, ch.ID)
 			continue
 		}

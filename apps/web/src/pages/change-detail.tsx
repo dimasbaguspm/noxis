@@ -52,6 +52,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   validated: "secondary",
   unverified: "outline",
   approved: "default",
+  applying: "outline",
   applied: "default",
   failed: "destructive",
   rejected: "outline",
@@ -95,7 +96,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const mayWrite = canAccess(change.connection, "write");
   const canApprove = mayReview && (change.status === "validated" || change.status === "unverified");
   const canApply = mayReview && change.status === "approved";
-  const canReject = mayReview && change.status !== "applied" && change.status !== "rejected";
+  const canReject = mayReview && change.status !== "applied" && change.status !== "rejected" && change.status !== "applying";
 
   return (
     <div className="flex flex-col gap-4">
@@ -137,6 +138,10 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
         <Alert variant="warning" title="Scheduled">
           The scheduler will apply this change at{" "}
           {new Date(change.scheduledAt * 1000).toLocaleString()}. Apply stays refused until then.
+        </Alert>
+      ) : change.status === "applying" ? (
+        <Alert variant="warning" title="Apply outcome unknown">
+          {change.applyingAt ? `Claimed for execution at ${new Date(change.applyingAt * 1000).toLocaleString()}. ` : "The claim time is unavailable. "}Inspect the target database before taking further action.
         </Alert>
       ) : change.status === "failed" ? (
         <Alert variant="destructive" title="Apply failed">

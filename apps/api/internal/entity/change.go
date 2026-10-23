@@ -9,11 +9,12 @@ type Change struct {
 	Query      string        `json:"query" validate:"required"`
 	Rollback   string        `json:"rollback" validate:"required"`
 	Kind       string        `json:"kind"`   // dml | ddl
-	Status     string        `json:"status"` // validated | unverified | failed | approved | applied | rejected
+	Status     string        `json:"status"` // validated | unverified | failed | approved | applying | applied | rejected
 	Checks     []ChangeCheck `json:"checks,omitempty"`
 	CreatedAt  int64         `json:"createdAt"`
 	CreatedBy  string        `json:"createdBy,omitempty"`
 	ApprovedAt int64         `json:"approvedAt,omitempty"`
+	ApplyingAt int64         `json:"applyingAt,omitempty"`
 	AppliedAt  int64         `json:"appliedAt,omitempty"`
 	RejectedAt int64         `json:"rejectedAt,omitempty"`
 	// what the batch touches (keyword-anchored, best effort)

@@ -86,7 +86,7 @@ type List struct{ usecases.RegistryDeps }
 // @Summary List proposed changes for an engine (newest first)
 // @Param engine path string true "engine family (sql, mongodb)"
 // @Param connection query string false "substring match on connection name"
-// @Param status query string false "exact status match (unverified, validated, approved, applied, failed, rejected)"
+// @Param status query string false "exact status match (unverified, validated, approved, applying, applied, failed, rejected)"
 // @Param page query int false "page number, starting at 1"
 // @Param perPage query int false "items per page (default 20, max 100)"
 // @Success 200 {object} entity.ChangeList
@@ -250,6 +250,7 @@ type Reject struct{ usecases.RegistryDeps }
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
+// @Failure 409 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes/{id}/reject [post]
 func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
@@ -291,6 +292,7 @@ type Schedule struct{ usecases.RegistryDeps }
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
+// @Failure 409 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes/{id}/schedule [post]
 func (uc Schedule) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())

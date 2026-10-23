@@ -561,7 +561,7 @@ export interface paths {
                 query?: {
                     /** @description substring match on connection name */
                     connection?: string;
-                    /** @description exact status match (unverified, validated, approved, applied, failed, rejected) */
+                    /** @description exact status match (unverified, validated, approved, applying, applied, failed, rejected) */
                     status?: string;
                     /** @description page number, starting at 1 */
                     page?: number;
@@ -752,6 +752,15 @@ export interface paths {
                         "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -870,6 +879,15 @@ export interface paths {
                         "*/*": components["schemas"]["entity.ErrorResponse"];
                     };
                 };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -927,6 +945,15 @@ export interface paths {
                 };
                 /** @description Not Found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2682,6 +2709,7 @@ export interface components {
             appliedAffected?: number;
             appliedAt?: number;
             appliedDurationMs?: number;
+            applyingAt?: number;
             approvedAt?: number;
             checks?: components["schemas"]["entity.ChangeCheck"][];
             connection: string;
@@ -2703,7 +2731,7 @@ export interface components {
              */
             scheduledAt?: number;
             scratchSchema?: string;
-            /** @description validated | unverified | failed | approved | applied | rejected */
+            /** @description validated | unverified | failed | approved | applying | applied | rejected */
             status?: string;
         };
         "entity.ChangeCheck": {

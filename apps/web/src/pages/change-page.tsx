@@ -15,7 +15,7 @@ import { useChangeListQuery, useChangeListUrlParams, useSubmitChangeMutation, ty
 import { H2 } from "@/components/ui/typography";
 
 const PER_PAGE = 20;
-const STATUS_OPTIONS = ["unverified", "validated", "approved", "applied", "failed", "rejected"];
+const STATUS_OPTIONS = ["unverified", "validated", "approved", "applying", "applied", "failed", "rejected"];
 const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 
 // ChangePage is the shared DML/DDL queue: raise inline, filter by instance,

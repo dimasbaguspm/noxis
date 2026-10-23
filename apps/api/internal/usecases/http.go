@@ -37,6 +37,8 @@ func (d RegistryDeps) Fail(ctx context.Context, w http.ResponseWriter, err error
 	switch {
 	case errors.Is(err, constants.ErrNotFound), errors.Is(err, constants.ErrUnsupported):
 		code = http.StatusNotFound
+	case errors.Is(err, constants.ErrConflict):
+		code = http.StatusConflict
 	case errors.Is(err, constants.ErrUnauthorized), errors.Is(err, constants.ErrInvalidCredentials):
 		code = http.StatusUnauthorized
 	case errors.Is(err, constants.ErrForbidden):

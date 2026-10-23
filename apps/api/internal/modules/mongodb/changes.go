@@ -110,6 +110,9 @@ func (c *Changes) Apply(ctx context.Context, ch *entity.Change) (entity.Change, 
 	if err := json.Unmarshal([]byte(ch.Query), &req); err != nil {
 		return entity.Change{}, fmt.Errorf("stored request is unreadable: %w", err)
 	}
+	if err := c.Claim(ctx, ch, now); err != nil {
+		return *ch, err
+	}
 	res, err := c.Engine.Apply(ctx, *conn, req)
 	c.count(conn.Family, err)
 	if err != nil {

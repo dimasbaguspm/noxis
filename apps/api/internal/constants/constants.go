@@ -84,6 +84,7 @@ const (
 	ChangeUnverified = "unverified" // driver cannot dry-run it (mysql DDL) — approve with eyes open
 	ChangeFailed     = "failed"     // validation found a problem
 	ChangeApproved   = "approved"   // a human signed off (self-approval allowed)
+	ChangeApplying   = "applying"   // one caller claimed execution; outcome may be unknown after a crash
 	ChangeApplied    = "applied"    // executed and committed
 	ChangeRejected   = "rejected"   // reviewed and declined (kept as an artifact)
 )
