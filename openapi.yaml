@@ -5,6 +5,27 @@ info:
   contact: {}
   version: 0.1.0
 paths:
+  /external/v1/access:
+    get:
+      summary: Every instance and its access policy (admin only)
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                type: object
+                properties:
+                  instances:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/permission.InstanceAccess"
+        "403":
+          description: Forbidden
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
   /external/v1/access-requests:
     get:
       summary: List access requests (mine, or the ones I may decide)
@@ -2090,6 +2111,21 @@ components:
           type: string
         value:
           type: string
+    permission.InstanceAccess:
+      type: object
+      properties:
+        connection:
+          type: string
+        driver:
+          type: string
+        family:
+          type: string
+        id:
+          type: string
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.Permission"
     permission.memberUser:
       type: object
       properties:

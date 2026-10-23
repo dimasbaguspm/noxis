@@ -32,6 +32,7 @@ const LoginPage = lazy(() => import("@/pages/login"));
 const MyProfilePage = lazy(() => import("@/pages/my-profile"));
 const MySettingsPage = lazy(() => import("@/pages/my-settings"));
 const MyAccessPage = lazy(() => import("@/pages/my-access"));
+const AccessPage = lazy(() => import("@/pages/access"));
 const UsersPage = lazy(() => import("@/pages/users"));
 const UserDetailPage = lazy(() => import("@/pages/user-detail"));
 
@@ -55,6 +56,7 @@ const router = createBrowserRouter([
       { path: routePath(PAGE_ROUTES.MY_ACCESS), element: <MyAccessPage /> },
       { path: "profile", element: <Navigate to={PAGE_ROUTES.MY} replace /> },
       { path: "settings", element: <Navigate to={PAGE_ROUTES.MY_SETTINGS} replace /> },
+      { path: routePath(PAGE_ROUTES.ACCESS), element: <AccessPage /> },
       { path: routePath(PAGE_ROUTES.USERS), element: <UsersPage /> },
       { path: `${routePath(PAGE_ROUTES.USERS)}/:subject`, element: <UserDetailPage /> },
       { path: routePath(PAGE_ROUTES.INSTANCE_DETAIL(":id")), element: <InstanceDetailPage /> },

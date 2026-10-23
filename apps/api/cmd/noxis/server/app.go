@@ -61,6 +61,7 @@ type app struct {
 	Op     schema.Op
 
 	Members          permission.Members
+	AccessMatrix     permission.Matrix
 	ListPermissions  permission.List
 	SetPermission    permission.Set
 	DeletePermission permission.Delete
@@ -145,7 +146,7 @@ func newApp(s sources) app {
 		Op:     schema.Op{RegistryDeps: deps},
 
 		Members:          permission.Members{RegistryDeps: deps},
-		ListPermissions:  permission.List{RegistryDeps: deps},
+		AccessMatrix:     permission.Matrix{RegistryDeps: deps},
 		SetPermission:    permission.Set{RegistryDeps: deps},
 		DeletePermission: permission.Delete{RegistryDeps: deps},
 

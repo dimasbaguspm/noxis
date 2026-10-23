@@ -122,6 +122,9 @@ plus a swag annotation on `Serve`, then `make swagger`.
 - Levels: `read < write < admin` (`entity.LevelAllows`). `OpLevel` maps a SQL op
   to a level (only `query` is read; `analyze` mutates planner stats = write).
 - List endpoints hide unreadable connections (`CanRead`/`readableConnections`).
+  The one exception is `GET /external/v1/access` (`permission.Matrix`): it is
+  metadata only (names, drivers, grants) and exists so an admin can see the whole
+  access landscape without a grant on each connection.
 
 ## Span naming
 

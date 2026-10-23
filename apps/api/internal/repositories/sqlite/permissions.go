@@ -38,6 +38,27 @@ func (s *Store) ListPermissions(ctx context.Context, connection string) (out []e
 	return out, rows.Err()
 }
 
+// ListAllPermissions returns every permission row, for the access overview.
+func (s *Store) ListAllPermissions(ctx context.Context) (out []entity.Permission, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT `+permissionColumns+` FROM permissions ORDER BY connection, member`)
+	if err != nil {
+		return nil, fmt.Errorf("list permissions: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var p entity.Permission
+		if err := rows.Scan(&p.Connection, &p.Member, &p.MemberType, &p.Level,
+			&p.ExpiresAt, &p.CreatedBy, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
 // SetPermission upserts one member's level for a connection and records the
 // grant in the audit trail, in the same transaction.
 func (s *Store) SetPermission(ctx context.Context, p entity.Permission) (err error) {

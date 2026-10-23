@@ -19,6 +19,9 @@ type PermissionRepository interface {
 	// ListPermissionsForMembers returns every permission held by one of members,
 	// across connections. Used by the user detail to show a subject's access.
 	ListPermissionsForMembers(ctx context.Context, members []string) ([]entity.Permission, error)
+	// ListAllPermissions returns every permission row, ordered by connection and
+	// member, for the per-instance access overview.
+	ListAllPermissions(ctx context.Context) ([]entity.Permission, error)
 	// ListGroupNames returns every distinct group that appears in any permission.
 	ListGroupNames(ctx context.Context) ([]string, error)
 }
