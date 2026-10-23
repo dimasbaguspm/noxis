@@ -19,7 +19,7 @@ type List struct{ usecases.RegistryDeps }
 
 // @Summary List connections (passwords redacted)
 // @Param engine path string true "engine family (sql, memcache, mongodb)"
-// @Success 200 {object} object{connections=[]entity.Connection}
+// @Success 200 {object} entity.ConnectionList
 // @Router /external/v1/engine/{engine}/connections [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
@@ -49,7 +49,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 			out = append(out, c.Redacted())
 		}
 	}
-	uc.Respond(w, map[string]any{"connections": out})
+	uc.Respond(w, entity.ConnectionList{Connections: out})
 }
 
 // Get returns one connection (password redacted).

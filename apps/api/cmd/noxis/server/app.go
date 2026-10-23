@@ -9,9 +9,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
-	"noxis/internal/common/config"
 	"noxis/internal/common/metrics"
 	"noxis/internal/constants"
+	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules"
 	"noxis/internal/repositories"
@@ -41,14 +41,14 @@ type sources struct {
 	AccessEvents   interfaces.AccessEventRepository
 	AccessRequests interfaces.AccessRequestRepository
 	Modules        modules.Registry
-	Auth           config.AuthInfo
+	Auth           entity.AuthConfig
 	AccessTTL      time.Duration
 }
 
 // app is the composition root: every use case built once, explicitly.
 type app struct {
 	Modules modules.Registry
-	Auth    config.AuthInfo
+	Auth    entity.AuthConfig
 
 	ConnectionList   connection.List
 	Connection       connection.Get

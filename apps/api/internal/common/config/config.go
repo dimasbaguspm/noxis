@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"noxis/internal/constants"
+	"noxis/internal/entity"
 )
 
 // Env is read exactly once, here; nothing else talks to the environment.
@@ -137,26 +138,12 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-// AuthInfo is the public auth configuration the console bootstraps from: which
-// methods are available and, when OIDC is on, the issuer + client id (neither is
-// a secret). OIDC is omitted when the issuer is unset.
-type AuthInfo struct {
-	Local bool      `json:"local"`
-	OIDC  *OIDCInfo `json:"oidc,omitempty"`
-}
-
-// OIDCInfo is the public OIDC client configuration for the console's PKCE flow.
-type OIDCInfo struct {
-	Issuer   string `json:"issuer"`
-	ClientID string `json:"clientId"`
-}
-
 // AuthInfo derives the console's auth bootstrap from the config, so no route or
-// server wiring hardcodes what is available.
-func (c Config) AuthInfo() AuthInfo {
-	info := AuthInfo{Local: true}
+// server wiring hardcodes what is available. The wire shape lives in entity.
+func (c Config) AuthInfo() entity.AuthConfig {
+	info := entity.AuthConfig{Local: true}
 	if c.OIDCIssuer != "" {
-		info.OIDC = &OIDCInfo{Issuer: c.OIDCIssuer, ClientID: c.OIDCClientID}
+		info.OIDC = &entity.OIDCConfig{Issuer: c.OIDCIssuer, ClientID: c.OIDCClientID}
 	}
 	return info
 }

@@ -14,12 +14,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: object
-                properties:
-                  instances:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/permission.InstanceAccess"
+                $ref: "#/components/schemas/entity.InstanceAccessList"
         "403":
           description: Forbidden
           content:
@@ -41,12 +36,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: object
-                properties:
-                  requests:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/entity.AccessRequest"
+                $ref: "#/components/schemas/entity.AccessRequestList"
         "401":
           description: Unauthorized
           content:
@@ -59,7 +49,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/access.createBody"
+              $ref: "#/components/schemas/entity.AccessRequestCreate"
         description: connection, level and reason
         required: true
       responses:
@@ -92,7 +82,7 @@ paths:
           schema:
             type: string
       requestBody:
-        $ref: "#/components/requestBodies/access.decisionBody"
+        $ref: "#/components/requestBodies/entity.AccessDecision"
       responses:
         "200":
           description: OK
@@ -123,7 +113,7 @@ paths:
           schema:
             type: string
       requestBody:
-        $ref: "#/components/requestBodies/access.decisionBody"
+        $ref: "#/components/requestBodies/entity.AccessDecision"
       responses:
         "200":
           description: OK
@@ -152,7 +142,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/config.AuthInfo"
+                $ref: "#/components/schemas/entity.AuthConfig"
   /external/v1/auth/login:
     post:
       summary: Log in with a local account
@@ -160,7 +150,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/auth.loginRequest"
+              $ref: "#/components/schemas/entity.LoginRequest"
         description: email and password
         required: true
       responses:
@@ -169,7 +159,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/auth.loginResponse"
+                $ref: "#/components/schemas/entity.LoginResponse"
         "401":
           description: Unauthorized
           content:
@@ -195,7 +185,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/auth.changePasswordRequest"
+              $ref: "#/components/schemas/entity.PasswordChange"
         description: old and new password
         required: true
       responses:
@@ -218,7 +208,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/driver.DriverInfo"
+                  $ref: "#/components/schemas/entity.DriverInfo"
   /external/v1/config/levels:
     get:
       summary: Access levels and their labels
@@ -228,12 +218,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: object
-                properties:
-                  levels:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/metadata.LevelInfo"
+                $ref: "#/components/schemas/entity.LevelList"
   /external/v1/config/members:
     get:
       summary: The known groups and user accounts for permission editing
@@ -243,16 +228,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: object
-                properties:
-                  groups:
-                    type: array
-                    items:
-                      type: string
-                  users:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/permission.memberUser"
+                $ref: "#/components/schemas/entity.MemberList"
         "403":
           description: Forbidden
           content:
@@ -296,14 +272,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: object
-                properties:
-                  changes:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/entity.Change"
-                  total:
-                    type: integer
+                $ref: "#/components/schemas/entity.ChangeList"
         "404":
           description: Not Found
           content:
@@ -499,7 +468,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/change.scheduleBody"
+              $ref: "#/components/schemas/entity.ScheduleRequest"
         description: scheduledAt unix seconds; 0 clears the schedule
         required: true
       responses:
@@ -537,12 +506,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: object
-                properties:
-                  connections:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/entity.Connection"
+                $ref: "#/components/schemas/entity.ConnectionList"
     post:
       summary: Create or update a connection
       parameters:
@@ -642,7 +606,7 @@ paths:
           schema:
             type: string
       requestBody:
-        $ref: "#/components/requestBodies/schema.opBody"
+        $ref: "#/components/requestBodies/entity.OpRequest"
       responses:
         "200":
           description: OK
@@ -682,7 +646,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/schema.opBody"
+              $ref: "#/components/schemas/entity.OpRequest"
         description: table
         required: true
       responses:
@@ -732,12 +696,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: object
-                properties:
-                  collections:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/entity.Collection"
+                $ref: "#/components/schemas/entity.CollectionList"
         "400":
           description: Bad Request
           content:
@@ -772,12 +731,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: object
-                properties:
-                  databases:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/entity.Database"
+                $ref: "#/components/schemas/entity.DatabaseList"
         "400":
           description: Bad Request
           content:
@@ -810,7 +764,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/cache.flushBody"
+              $ref: "#/components/schemas/entity.CacheFlushRequest"
         description: confirm must repeat the connection name
         required: true
       responses:
@@ -896,7 +850,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/cache.keysBody"
+              $ref: "#/components/schemas/entity.CacheDeleteRequest"
         description: keys to remove
         required: true
       responses:
@@ -905,10 +859,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: object
-                properties:
-                  deleted:
-                    type: integer
+                $ref: "#/components/schemas/entity.CacheDeleteResult"
         "400":
           description: Bad Request
           content:
@@ -943,12 +894,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: object
-                properties:
-                  permissions:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/entity.Permission"
+                $ref: "#/components/schemas/entity.PermissionList"
         "401":
           description: Unauthorized
           content:
@@ -986,7 +932,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/permission.permissionBody"
+              $ref: "#/components/schemas/entity.PermissionGrant"
         description: member, member type and level
         required: true
       responses:
@@ -1079,7 +1025,7 @@ paths:
           schema:
             type: string
       requestBody:
-        $ref: "#/components/requestBodies/schema.opBody"
+        $ref: "#/components/requestBodies/entity.OpRequest"
       responses:
         "200":
           description: OK
@@ -1158,7 +1104,7 @@ paths:
           schema:
             type: string
       requestBody:
-        $ref: "#/components/requestBodies/schema.opBody"
+        $ref: "#/components/requestBodies/entity.OpRequest"
       responses:
         "200":
           description: OK
@@ -1200,12 +1146,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: object
-                properties:
-                  tables:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/entity.Table"
+                $ref: "#/components/schemas/entity.TableList"
         "400":
           description: Bad Request
           content:
@@ -1374,14 +1315,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: object
-                properties:
-                  instances:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/entity.Connection"
-                  total:
-                    type: integer
+                $ref: "#/components/schemas/entity.InstanceList"
   "/external/v1/instances/{id}":
     get:
       summary: Get one instance across engine families (password redacted)
@@ -1419,7 +1353,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/instance.passwordBody"
+              $ref: "#/components/schemas/entity.InstancePassword"
         description: new password
         required: true
       responses:
@@ -1450,7 +1384,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/auth.MeResponse"
+                $ref: "#/components/schemas/entity.MeResponse"
         "401":
           description: Unauthorized
           content:
@@ -1477,12 +1411,7 @@ paths:
           content:
             "*/*":
               schema:
-                type: object
-                properties:
-                  users:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/entity.User"
+                $ref: "#/components/schemas/entity.UserList"
         "403":
           description: Forbidden
           content:
@@ -1505,7 +1434,7 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/user.Detail"
+                $ref: "#/components/schemas/entity.UserDetail"
         "403":
           description: Forbidden
           content:
@@ -1532,7 +1461,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/user.updateBody"
+              $ref: "#/components/schemas/entity.UserUpdate"
         description: status and/or role
         required: true
       responses:
@@ -1575,159 +1504,27 @@ paths:
           content:
             "*/*":
               schema:
-                $ref: "#/components/schemas/apply.TickResult"
+                $ref: "#/components/schemas/entity.TickResult"
 components:
   requestBodies:
-    schema.opBody:
+    entity.OpRequest:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/schema.opBody"
+            $ref: "#/components/schemas/entity.OpRequest"
       description: sql
       required: true
-    access.decisionBody:
+    entity.AccessDecision:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/access.decisionBody"
+            $ref: "#/components/schemas/entity.AccessDecision"
       description: optional note
   schemas:
-    access.createBody:
-      type: object
-      properties:
-        connection:
-          type: string
-        level:
-          type: string
-        reason:
-          type: string
-    access.decisionBody:
+    entity.AccessDecision:
       type: object
       properties:
         note:
-          type: string
-    apply.TickResult:
-      type: object
-      properties:
-        applied:
-          type: array
-          items:
-            type: string
-        failed:
-          type: array
-          items:
-            type: string
-    auth.AccessGrant:
-      type: object
-      properties:
-        expiresAt:
-          type: integer
-        level:
-          type: string
-    auth.MeResponse:
-      type: object
-      properties:
-        connections:
-          type: object
-          additionalProperties:
-            $ref: "#/components/schemas/auth.AccessGrant"
-        email:
-          type: string
-        groups:
-          type: array
-          items:
-            type: string
-        lastLoginAt:
-          type: integer
-        name:
-          type: string
-        role:
-          type: string
-        sub:
-          type: string
-    auth.changePasswordRequest:
-      type: object
-      properties:
-        newPassword:
-          type: string
-        oldPassword:
-          type: string
-    auth.loginRequest:
-      type: object
-      properties:
-        email:
-          type: string
-        password:
-          type: string
-    auth.loginResponse:
-      type: object
-      properties:
-        token:
-          type: string
-        user:
-          $ref: "#/components/schemas/entity.User"
-    cache.flushBody:
-      type: object
-      properties:
-        confirm:
-          type: string
-    cache.keysBody:
-      type: object
-      properties:
-        keys:
-          type: array
-          items:
-            type: string
-    change.mongoChangeBody:
-      type: object
-      properties:
-        collection:
-          type: string
-        connection:
-          type: string
-        database:
-          type: string
-        filter:
-          type: string
-        limit:
-          type: integer
-        many:
-          type: boolean
-        notes:
-          type: string
-        op:
-          type: string
-        sort:
-          type: string
-        value:
-          type: string
-    change.scheduleBody:
-      type: object
-      properties:
-        scheduledAt:
-          type: integer
-    config.AuthInfo:
-      type: object
-      properties:
-        local:
-          type: boolean
-        oidc:
-          $ref: "#/components/schemas/config.OIDCInfo"
-    config.OIDCInfo:
-      type: object
-      properties:
-        clientId:
-          type: string
-        issuer:
-          type: string
-    driver.DriverInfo:
-      type: object
-      properties:
-        driver:
-          type: string
-        family:
-          type: string
-        label:
           type: string
     entity.AccessEvent:
       type: object
@@ -1749,6 +1546,13 @@ components:
         requestId:
           type: string
         subject:
+          type: string
+    entity.AccessGrant:
+      type: object
+      properties:
+        expiresAt:
+          type: integer
+        level:
           type: string
     entity.AccessRequest:
       type: object
@@ -1774,6 +1578,46 @@ components:
         status:
           type: string
         subject:
+          type: string
+    entity.AccessRequestCreate:
+      type: object
+      properties:
+        connection:
+          type: string
+        level:
+          type: string
+        reason:
+          type: string
+    entity.AccessRequestList:
+      type: object
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.AccessRequest"
+    entity.AuthConfig:
+      type: object
+      properties:
+        local:
+          type: boolean
+        oidc:
+          $ref: "#/components/schemas/entity.OIDCConfig"
+    entity.CacheDeleteRequest:
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            type: string
+    entity.CacheDeleteResult:
+      type: object
+      properties:
+        deleted:
+          type: integer
+    entity.CacheFlushRequest:
+      type: object
+      properties:
+        confirm:
           type: string
     entity.Change:
       type: object
@@ -1850,6 +1694,15 @@ components:
         target:
           description: query | rollback
           type: string
+    entity.ChangeList:
+      type: object
+      properties:
+        changes:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.Change"
+        total:
+          type: integer
     entity.Collection:
       type: object
       properties:
@@ -1872,6 +1725,13 @@ components:
         type:
           description: collection | view | timeseries
           type: string
+    entity.CollectionList:
+      type: object
+      properties:
+        collections:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.Collection"
     entity.Column:
       type: object
       properties:
@@ -1923,6 +1783,13 @@ components:
           type: integer
         user:
           type: string
+    entity.ConnectionList:
+      type: object
+      properties:
+        connections:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.Connection"
     entity.Database:
       type: object
       properties:
@@ -1940,10 +1807,62 @@ components:
           type: integer
         storageBytes:
           type: integer
+    entity.DatabaseList:
+      type: object
+      properties:
+        databases:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.Database"
+    entity.DriverInfo:
+      type: object
+      properties:
+        driver:
+          type: string
+        family:
+          type: string
+        label:
+          type: string
     entity.ErrorResponse:
       type: object
       properties:
         error:
+          type: string
+    entity.InstanceAccess:
+      type: object
+      properties:
+        connection:
+          type: string
+        driver:
+          type: string
+        family:
+          type: string
+        id:
+          type: string
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.Permission"
+    entity.InstanceAccessList:
+      type: object
+      properties:
+        instances:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.InstanceAccess"
+    entity.InstanceList:
+      type: object
+      properties:
+        instances:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.Connection"
+        total:
+          type: integer
+    entity.InstancePassword:
+      type: object
+      properties:
+        password:
           type: string
     entity.Key:
       type: object
@@ -1969,6 +1888,98 @@ components:
           type: integer
         truncated:
           type: boolean
+    entity.LevelInfo:
+      type: object
+      properties:
+        label:
+          type: string
+        value:
+          type: string
+    entity.LevelList:
+      type: object
+      properties:
+        levels:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.LevelInfo"
+    entity.LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    entity.LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/entity.User"
+    entity.MeResponse:
+      type: object
+      properties:
+        connections:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/entity.AccessGrant"
+        email:
+          type: string
+        groups:
+          type: array
+          items:
+            type: string
+        lastLoginAt:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+        sub:
+          type: string
+    entity.Member:
+      type: object
+      properties:
+        label:
+          type: string
+        role:
+          type: string
+        subject:
+          type: string
+    entity.MemberList:
+      type: object
+      properties:
+        groups:
+          type: array
+          items:
+            type: string
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.Member"
+    entity.MongoChangeRequest:
+      type: object
+      properties:
+        collection:
+          type: string
+        connection:
+          type: string
+        database:
+          type: string
+        filter:
+          type: string
+        limit:
+          type: integer
+        many:
+          type: boolean
+        notes:
+          type: string
+        op:
+          type: string
+        sort:
+          type: string
+        value:
+          type: string
     entity.MongoRequest:
       type: object
       properties:
@@ -1987,6 +1998,27 @@ components:
         sort:
           type: string
         value:
+          type: string
+    entity.OIDCConfig:
+      type: object
+      properties:
+        clientId:
+          type: string
+        issuer:
+          type: string
+    entity.OpRequest:
+      type: object
+      properties:
+        sql:
+          type: string
+        table:
+          type: string
+    entity.PasswordChange:
+      type: object
+      properties:
+        newPassword:
+          type: string
+        oldPassword:
           type: string
     entity.Permission:
       type: object
@@ -2018,6 +2050,22 @@ components:
             - group
         updatedAt:
           type: integer
+    entity.PermissionGrant:
+      type: object
+      properties:
+        level:
+          type: string
+        member:
+          type: string
+        memberType:
+          type: string
+    entity.PermissionList:
+      type: object
+      properties:
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.Permission"
     entity.Result:
       type: object
       properties:
@@ -2051,6 +2099,11 @@ components:
             ScratchSchema is set by change validation: the throwaway schema the
             change was verified against, if any.
           type: string
+    entity.ScheduleRequest:
+      type: object
+      properties:
+        scheduledAt:
+          type: integer
     entity.StatusResponse:
       type: object
       properties:
@@ -2067,6 +2120,24 @@ components:
           type: string
         schema:
           type: string
+    entity.TableList:
+      type: object
+      properties:
+        tables:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.Table"
+    entity.TickResult:
+      type: object
+      properties:
+        applied:
+          type: array
+          items:
+            type: string
+        failed:
+          type: array
+          items:
+            type: string
     entity.User:
       type: object
       required:
@@ -2099,59 +2170,7 @@ components:
           type: string
         username:
           type: string
-    instance.passwordBody:
-      type: object
-      properties:
-        password:
-          type: string
-    metadata.LevelInfo:
-      type: object
-      properties:
-        label:
-          type: string
-        value:
-          type: string
-    permission.InstanceAccess:
-      type: object
-      properties:
-        connection:
-          type: string
-        driver:
-          type: string
-        family:
-          type: string
-        id:
-          type: string
-        permissions:
-          type: array
-          items:
-            $ref: "#/components/schemas/entity.Permission"
-    permission.memberUser:
-      type: object
-      properties:
-        label:
-          type: string
-        role:
-          type: string
-        subject:
-          type: string
-    permission.permissionBody:
-      type: object
-      properties:
-        level:
-          type: string
-        member:
-          type: string
-        memberType:
-          type: string
-    schema.opBody:
-      type: object
-      properties:
-        sql:
-          type: string
-        table:
-          type: string
-    user.Detail:
+    entity.UserDetail:
       type: object
       required:
         - role
@@ -2191,7 +2210,14 @@ components:
           type: string
         username:
           type: string
-    user.updateBody:
+    entity.UserList:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.User"
+    entity.UserUpdate:
       type: object
       properties:
         role:

@@ -13,19 +13,11 @@ import (
 	"noxis/internal/usecases"
 )
 
-// memberUser is one pickable account: the subject stored on a permission and a
-// human label for the console.
-type memberUser struct {
-	Subject string `json:"subject"`
-	Label   string `json:"label"`
-	Role    string `json:"role"`
-}
-
 // Members returns the known groups and user accounts for permission editing.
 type Members struct{ usecases.RegistryDeps }
 
 // @Summary The known groups and user accounts for permission editing
-// @Success 200 {object} object{groups=[]string,users=[]memberUser}
+// @Success 200 {object} entity.MemberList
 // @Failure 403 {object} entity.ErrorResponse
 // @Router /external/v1/config/members [get]
 func (uc Members) Serve(w http.ResponseWriter, r *http.Request) {
@@ -48,13 +40,13 @@ func (uc Members) Serve(w http.ResponseWriter, r *http.Request) {
 	if groups == nil {
 		groups = []string{}
 	}
-	pickable := make([]memberUser, 0, len(users))
+	pickable := make([]entity.Member, 0, len(users))
 	for i := range users {
 		u := &users[i]
 		label := firstNonEmpty(u.Email, u.Username, u.Subject)
-		pickable = append(pickable, memberUser{Subject: u.Subject, Label: label, Role: u.Role})
+		pickable = append(pickable, entity.Member{Subject: u.Subject, Label: label, Role: u.Role})
 	}
-	uc.Respond(w, map[string]any{"groups": groups, "users": pickable})
+	uc.Respond(w, entity.MemberList{Groups: groups, Users: pickable})
 }
 
 // List lists a connection's permissions.
@@ -63,7 +55,7 @@ type List struct{ usecases.RegistryDeps }
 // @Summary List a connection's permissions
 // @Param engine path string true "engine family (sql, memcache, mongodb)"
 // @Param name path string true "connection name"
-// @Success 200 {object} object{permissions=[]entity.Permission}
+// @Success 200 {object} entity.PermissionList
 // @Failure 401 {object} entity.ErrorResponse
 // @Failure 403 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
@@ -92,7 +84,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	uc.Respond(w, map[string]any{"permissions": out})
+	uc.Respond(w, entity.PermissionList{Permissions: out})
 }
 
 // firstNonEmpty returns the first non-empty string, so a label falls back from
@@ -121,20 +113,13 @@ func adminLevel(ctx context.Context, need string) (string, error) {
 	return need, nil
 }
 
-// permissionBody is the upsert payload: one member at one level.
-type permissionBody struct {
-	Member     string `json:"member"`
-	MemberType string `json:"memberType"`
-	Level      string `json:"level"`
-}
-
 // Set upserts one member's level on a connection.
 type Set struct{ usecases.RegistryDeps }
 
 // @Summary Grant a user or group a level on a connection (admin only)
 // @Param engine path string true "engine family (sql, memcache, mongodb)"
 // @Param name path string true "connection name"
-// @Param body body permissionBody true "member, member type and level"
+// @Param body body entity.PermissionGrant true "member, member type and level"
 // @Success 200 {object} entity.Permission
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 401 {object} entity.ErrorResponse
@@ -153,7 +138,7 @@ func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	var body permissionBody
+	var body entity.PermissionGrant
 	if err := uc.Decode(r, &body); err != nil {
 		uc.Fail(ctx, w, err)
 		return

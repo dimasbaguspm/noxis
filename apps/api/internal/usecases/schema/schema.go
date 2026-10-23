@@ -19,7 +19,7 @@ type Tables struct{ usecases.RegistryDeps }
 // @Summary Introspect a connection's tables and columns
 // @Param engine path string true "engine family (sql)"
 // @Param name path string true "connection name"
-// @Success 200 {object} object{tables=[]entity.Table}
+// @Success 200 {object} entity.TableList
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/schema [get]
@@ -41,7 +41,7 @@ func (uc Tables) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	uc.Respond(w, map[string]any{"tables": out})
+	uc.Respond(w, entity.TableList{Tables: out})
 }
 
 // Rows previews a table's rows.
@@ -79,13 +79,6 @@ func (uc Rows) Serve(w http.ResponseWriter, r *http.Request) {
 	uc.Respond(w, out)
 }
 
-// opBody is the console op payload: sql for query/alter/rollback, table for
-// analyze.
-type opBody struct {
-	SQL   string `json:"sql,omitempty"`
-	Table string `json:"table,omitempty"`
-}
-
 // opRoutes pins each op route to its operation name, read from the matched
 // pattern (a request's Pattern is the route it hit).
 var opRoutes = map[string]string{
@@ -101,7 +94,7 @@ type Op struct{ usecases.RegistryDeps }
 // @Summary Run a SQL console op (query)
 // @Param engine path string true "engine family (sql)"
 // @Param name path string true "connection name"
-// @Param body body opBody true "sql"
+// @Param body body entity.OpRequest true "sql"
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
@@ -114,7 +107,7 @@ func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	var body opBody
+	var body entity.OpRequest
 	if err := uc.Decode(r, &body); err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -152,7 +145,7 @@ func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 // @Summary Apply a write directly (DML or DDL)
 // @Param engine path string true "engine family (sql)"
 // @Param name path string true "connection name"
-// @Param body body opBody true "sql"
+// @Param body body entity.OpRequest true "sql"
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
@@ -163,7 +156,7 @@ func OpAlter() {}
 // @Summary Dry-run statements inside a transaction that always rolls back
 // @Param engine path string true "engine family (sql)"
 // @Param name path string true "connection name"
-// @Param body body opBody true "sql"
+// @Param body body entity.OpRequest true "sql"
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
@@ -174,7 +167,7 @@ func OpRollback() {}
 // @Summary Refresh planner statistics for a table
 // @Param engine path string true "engine family (sql)"
 // @Param name path string true "connection name"
-// @Param body body opBody true "table"
+// @Param body body entity.OpRequest true "table"
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse

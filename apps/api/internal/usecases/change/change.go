@@ -90,7 +90,7 @@ type List struct{ usecases.RegistryDeps }
 // @Param status query string false "exact status match (unverified, validated, approved, applied, failed, rejected)"
 // @Param page query int false "page number, starting at 1"
 // @Param perPage query int false "items per page (default 20, max 100)"
-// @Success 200 {object} object{changes=[]entity.Change,total=int}
+// @Success 200 {object} entity.ChangeList
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
@@ -122,18 +122,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	changes = filterByConnection(changes, q.Get("connection"))
 	changes = filterByStatus(changes, q.Get("status"))
 	page, perPage := pagination.Params(q.Get("page"), q.Get("perPage"), constants.DefaultPageSize)
-	uc.Respond(w, map[string]any{
-		"changes": pagination.Slice(changes, page, perPage),
-		"total":   len(changes),
-	})
-}
-
-// mongoChangeBody is one submitted request: the connection and notes of a
-// change, plus the request itself, flat so the console sends one object.
-type mongoChangeBody struct {
-	Connection string `json:"connection"`
-	Notes      string `json:"notes"`
-	interfaces.MongoRequest
+	uc.Respond(w, entity.ChangeList{Changes: pagination.Slice(changes, page, perPage), Total: len(changes)})
 }
 
 // Submit submits a change (validates before recording).
@@ -169,7 +158,7 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Metrics.ChangeSubmitted(ctx, mod.Family(), r.PathValue("engine"))
 		uc.Respond(w, out)
 	case interfaces.MongoModule:
-		var body mongoChangeBody
+		var body entity.MongoChangeRequest
 		if err := uc.Decode(r, &body); err != nil {
 			uc.Fail(ctx, w, err)
 			return
@@ -420,10 +409,6 @@ func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
 	uc.Respond(w, ch)
 }
 
-// scheduleBody is the schedule payload: unix seconds, 0 clears the schedule.
-type scheduleBody struct {
-	ScheduledAt int64 `json:"scheduledAt"`
-}
 
 // Schedule schedules or unschedules an approved change.
 type Schedule struct{ usecases.RegistryDeps }
@@ -431,7 +416,7 @@ type Schedule struct{ usecases.RegistryDeps }
 // @Summary Schedule or unschedule an approved change
 // @Param engine path string true "engine family (sql, mongodb)"
 // @Param id path string true "change id"
-// @Param body body scheduleBody true "scheduledAt unix seconds; 0 clears the schedule"
+// @Param body body entity.ScheduleRequest true "scheduledAt unix seconds; 0 clears the schedule"
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
@@ -444,7 +429,7 @@ func (uc Schedule) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	var body scheduleBody
+	var body entity.ScheduleRequest
 	if err := uc.Decode(r, &body); err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -482,5 +467,5 @@ func (uc Schedule) Serve(w http.ResponseWriter, r *http.Request) {
 // route takes either a SQL change or a MongoDB request, and swag cannot express
 // that on one operation, so this stub emits the concrete schema.
 //
-// @Param body body mongoChangeBody true "mongodb request"
+// @Param body body entity.MongoChangeRequest true "mongodb request"
 func SwaggerMongoChangeBody() {}
