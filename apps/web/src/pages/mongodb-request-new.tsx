@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -45,8 +45,6 @@ function isJson(value: string): boolean {
 
 const requestSchema = z.object({
   connection: z.string().min(1, "choose a connection"),
-  database: z.string().min(1, "choose a database"),
-  collection: z.string().min(1, "choose a collection"),
   op: z.enum(["insert", "update", "delete"]),
   notes: z.string().optional(),
   filter: z.string().refine(isJson, "filter must be valid JSON"),
@@ -63,6 +61,11 @@ export default function MongoRequestNewPage() {
   const navigate = useNavigate();
   const { connections, connection, pick } = useMongoConnections();
   const { databases } = useMongoDatabasesQuery(connection);
+  const [selectedDatabase, setSelectedDatabase] = useState("");
+  const database = databases.some((item) => item.name === selectedDatabase) ? selectedDatabase : (databases[0]?.name ?? "");
+  const { collections } = useMongoCollectionsQuery(connection, database);
+  const [selectedCollection, setSelectedCollection] = useState("");
+  const collection = collections.some((item) => item.name === selectedCollection) ? selectedCollection : (collections[0]?.name ?? "");
   const [step, setStep] = useState(1);
   const [failure, setFailure] = useState<Change>();
   const {
@@ -75,8 +78,6 @@ export default function MongoRequestNewPage() {
   } = useForm<RequestForm>({
     defaultValues: {
       connection: "",
-      database: "",
-      collection: "",
       op: "update",
       notes: "",
       filter: SAMPLES.update?.filter ?? "",
@@ -86,19 +87,8 @@ export default function MongoRequestNewPage() {
     resolver: zodResolver(requestSchema),
   });
 
-  const databaseValue = watch("database");
-  const collectionValue = watch("collection");
   const opValue = watch("op");
-  const { collections } = useMongoCollectionsQuery(connection, databaseValue);
   const submit = useMongoSubmitChangeMutation();
-
-  useEffect(() => {
-    if (!databaseValue && databases.length > 0) setValue("database", databases[0]?.name ?? "", { shouldValidate: false });
-  }, [databaseValue, databases, setValue]);
-  useEffect(() => {
-    if (collectionValue && collections.some((c) => c.name === collectionValue)) return;
-    setValue("collection", collections[0]?.name ?? "", { shouldValidate: false });
-  }, [collectionValue, collections, setValue]);
 
   const spec = WRITES.find((w) => w.value === opValue);
 
@@ -112,13 +102,17 @@ export default function MongoRequestNewPage() {
 
   const onSend = handleSubmit(async (values) => {
     setFailure(undefined);
+    if (!database || !collection) {
+      toast.error("choose a database and collection");
+      return;
+    }
     try {
       const change = (await submit.mutateAsync({
         connection: values.connection,
-        notes: (values.notes ?? "").trim() || `${values.op} on ${values.database}.${values.collection}`,
+        notes: (values.notes ?? "").trim() || `${values.op} on ${database}.${collection}`,
         op: values.op,
-        database: values.database,
-        collection: values.collection,
+        database,
+        collection,
         filter: values.filter,
         value: values.value,
         many: values.many,
@@ -159,6 +153,8 @@ export default function MongoRequestNewPage() {
                 onValueChange={(v) => {
                   const name = String(v);
                   setValue("connection", name);
+                  setSelectedDatabase("");
+                  setSelectedCollection("");
                   pick(name);
                 }}
               >
@@ -177,7 +173,13 @@ export default function MongoRequestNewPage() {
             </Field>
             <Field>
               <FieldLabel>Database</FieldLabel>
-              <Select value={watch("database")} onValueChange={(v) => setValue("database", String(v))}>
+              <Select
+                value={database}
+                onValueChange={(v) => {
+                  setSelectedDatabase(String(v));
+                  setSelectedCollection("");
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="pick a database" />
                 </SelectTrigger>
@@ -189,12 +191,17 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <FieldError errors={[errors.database]} />
+
             </Field>
             <div className="flex justify-end">
               <Button
                 onClick={async () => {
-                  if (await trigger(["connection", "database"])) setStep(2);
+                  if (!(await trigger("connection"))) return;
+                  if (!database) {
+                    toast.error("choose a database");
+                    return;
+                  }
+                  setStep(2);
                 }}
               >
                 Next <ChevronRight />
@@ -209,15 +216,15 @@ export default function MongoRequestNewPage() {
           <CardHeader>
             <CardTitle className="text-base">Which collection, and what kind of write?</CardTitle>
             <CardDescription>
-              {collectionValue
-                ? `${collections.find((c) => c.name === collectionValue)?.count ?? 0} document(s) currently`
+              {collection
+                ? `${collections.find((c) => c.name === collection)?.count ?? 0} document(s) currently`
                 : "pick the collection the request targets"}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <Field>
               <FieldLabel>Collection</FieldLabel>
-              <Select value={watch("collection")} onValueChange={(v) => setValue("collection", String(v))}>
+              <Select value={collection} onValueChange={(v) => setSelectedCollection(String(v))}>
                 <SelectTrigger>
                   <SelectValue placeholder="pick a collection" />
                 </SelectTrigger>
@@ -229,7 +236,7 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <FieldError errors={[errors.collection]} />
+
             </Field>
             <Field>
               <FieldLabel>Operation</FieldLabel>
@@ -252,7 +259,11 @@ export default function MongoRequestNewPage() {
               </Button>
               <Button
                 onClick={async () => {
-                  if (await trigger(["collection"])) setStep(3);
+                  if (!collection) {
+                    toast.error("choose a collection");
+                    return;
+                  }
+                  setStep(3);
                 }}
               >
                 Next <ChevronRight />
@@ -266,7 +277,7 @@ export default function MongoRequestNewPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              {opValue} on {watch("database")}.{watch("collection")}
+              {opValue} on {database}.{collection}
             </CardTitle>
             <CardDescription>
               {spec?.hint}. Validation copies the matching documents into a scratch collection, applies the write
@@ -278,7 +289,7 @@ export default function MongoRequestNewPage() {
               <FieldLabel htmlFor="notes">Notes (why)</FieldLabel>
               <Input
                 id="notes"
-                placeholder={`${opValue} on ${watch("database")}.${watch("collection")}`}
+                placeholder={`${opValue} on ${database}.${collection}`}
                 {...register("notes")}
               />
             </Field>

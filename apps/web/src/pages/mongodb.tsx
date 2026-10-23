@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Braces, Database, FileJson, Leaf, ListTree, Play, RefreshCw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,11 +36,13 @@ export default function MongoExplorePage() {
   const { collections, isFetching: loadingColls, refetch: reloadColls } = useMongoCollectionsQuery(connection, database);
   const read = useMongoRunMutation();
 
-  // a new collection starts a fresh read
-  useEffect(() => {
-    read.reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connection, database, collection]);
+  const readTarget = read.variables;
+  const readMatchesSelection =
+    readTarget?.connection === connection &&
+    readTarget.body.database === database &&
+    readTarget.body.collection === collection &&
+    readTarget.body.filter === filter;
+  const readResult = readMatchesSelection ? read.data : undefined;
 
   const needle = filter.trim().toLowerCase();
   const visible = needle
@@ -49,7 +50,7 @@ export default function MongoExplorePage() {
     : collections;
 
   const selected = collections.find((c) => c.name === collection);
-  const documents = (read.data?.documents ?? []).map((doc) => {
+  const documents = (readResult?.documents ?? []).map((doc) => {
     try {
       return JSON.parse(doc) as unknown;
     } catch {
@@ -246,20 +247,20 @@ export default function MongoExplorePage() {
                     value={filter.startsWith("{") ? filter : "{}"}
                     onChange={setFilter}
                     height="6rem"
-                    fields={read.data?.columns ?? []}
+                    fields={readResult?.columns ?? []}
                     placeholder="{}"
                   />
                 </div>
-                <Button onClick={query} disabled={read.isPending || !collection} className="mt-1">
+                <Button onClick={query} disabled={(readMatchesSelection && read.isPending) || !collection} className="mt-1">
                   <Play /> Run
                 </Button>
               </div>
 
               <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border">
-                {!read.data ? (
+                {!readResult ? (
                   <P size="sm" className="p-3">no documents loaded yet</P>
                 ) : view === "raw" ? (
-                  <ResultTable result={read.data} title={`${database}.${collection}`} />
+                  <ResultTable result={readResult} title={`${database}.${collection}`} />
                 ) : view === "json" ? (
                   <pre className="p-3 font-mono text-xs whitespace-pre-wrap">
                     {JSON.stringify(documents, null, 2)}
@@ -271,9 +272,9 @@ export default function MongoExplorePage() {
                 )}
               </div>
 
-              {read.data && (
+              {readResult && (
                 <P>
-                  {read.data.message} · {read.data.durationMs ?? 0} ms
+                  {readResult.message} · {readResult.durationMs ?? 0} ms
                 </P>
               )}
             </CardContent>

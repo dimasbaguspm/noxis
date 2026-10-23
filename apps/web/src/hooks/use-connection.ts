@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useConnections } from "@/hooks/use-connections";
 import { FAMILY } from "@/lib/families";
 
@@ -7,14 +7,11 @@ import { FAMILY } from "@/lib/families";
 // seed. The list comes from the cached instances query.
 export function useConnectionSelection(seed?: string) {
   const { connections, active, setActive, busy } = useConnections(FAMILY.SQL);
-  const [connection, setConnection] = useState<string | undefined>(seed ?? active);
-
-  useEffect(() => {
-    if (!connection && connections.length > 0) setConnection(active ?? connections[0]?.name);
-  }, [connection, connections, active]);
+  const [selected, setSelected] = useState<string | undefined>(seed);
+  const connection = selected ?? active ?? connections[0]?.name;
 
   function pick(name: string) {
-    setConnection(name);
+    setSelected(name);
     setActive(name);
   }
 

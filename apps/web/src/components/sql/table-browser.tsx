@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { debounce, group, title } from "radash";
 import { Activity, ChevronDown, ChevronRight, ListTree, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,17 +23,12 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
   const [filter, setFilter] = useState("");
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [schemaFilter, setSchemaFilter] = useState<string>("");
+  const [selectedSchema, setSelectedSchema] = useState("");
 
   const setFilterDebounced = useMemo(() => debounce({ delay: 200 }, (v: string) => setQuery(v)), []);
 
   const schemas = useMemo(() => Object.keys(group(tables, (t) => t.schema || "public")).sort(), [tables]);
-
-  // the schema is chosen explicitly and defaults to the first one, so the
-  // list is always scoped to a single schema
-  useEffect(() => {
-    if (!schemaFilter && schemas.length > 0) setSchemaFilter(schemas[0]);
-  }, [schemas, schemaFilter]);
+  const schemaFilter = schemas.includes(selectedSchema) ? selectedSchema : (schemas[0] ?? "");
 
   const entries = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -47,7 +42,7 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="grid gap-1.5">
         <Label>Schema</Label>
-        <Select value={schemaFilter} onValueChange={(next) => setSchemaFilter(String(next))}>
+        <Select value={schemaFilter} onValueChange={(next) => setSelectedSchema(String(next))}>
         <SelectTrigger className="w-full" aria-label="schema">
           <SelectValue placeholder="pick a schema" />
         </SelectTrigger>

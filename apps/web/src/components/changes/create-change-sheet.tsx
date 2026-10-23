@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -56,9 +56,11 @@ export function CreateChangeSheet({
   const [busy, setBusy] = useState(false);
   const [serverError, setServerError] = useState<string>();
 
-  useEffect(() => {
-    if (open) reset({ notes: "", query: "", rollback: "" });
-  }, [open, reset]);
+  function setSheetOpen(next: boolean) {
+    if (next) reset({ notes: "", query: "", rollback: "" });
+    setOpen(next);
+    setServerError(undefined);
+  }
 
   const detected = classify(watch("query"));
 
@@ -87,10 +89,7 @@ export function CreateChangeSheet({
   });
 
   return (
-    <Sheet open={open} onOpenChange={(next) => {
-      setOpen(next);
-      setServerError(undefined);
-    }}>
+    <Sheet open={open} onOpenChange={setSheetOpen}>
       <SheetTrigger render={<Button />}>Create</SheetTrigger>
       <SheetContent>
         <SheetHeader>
