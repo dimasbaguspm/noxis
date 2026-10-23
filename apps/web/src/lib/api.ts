@@ -26,6 +26,7 @@ export type Permission = components["schemas"]["entity.Permission"];
 export type MemberUser = components["schemas"]["permission.memberUser"];
 export type User = components["schemas"]["entity.User"];
 export type UserRole = User["role"];
+export type UserStatus = User["status"];
 export type UserDetail = components["schemas"]["user.Detail"];
 export type AccessEvent = components["schemas"]["entity.AccessEvent"];
 export type AccessLevel = components["schemas"]["metadata.LevelInfo"];

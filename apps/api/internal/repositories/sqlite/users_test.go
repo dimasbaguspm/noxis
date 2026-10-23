@@ -29,7 +29,7 @@ func TestUserLookups(t *testing.T) {
 
 	root := entity.User{
 		Subject: entity.LocalSubject("root@example.com"), Email: "root@example.com", Username: "root@example.com",
-		Password: "hash", Role: entity.RoleSuper,
+		Password: "hash", Role: entity.RoleSuper, Status: entity.StatusActive,
 	}
 	if err := store.SaveUser(ctx, root); err != nil {
 		t.Fatalf("save root: %v", err)
@@ -48,7 +48,7 @@ func TestUserLookups(t *testing.T) {
 		t.Fatalf("an unknown username must not match: %v", err)
 	}
 	// a second super is demoted on the next boot
-	if err := store.SaveUser(ctx, entity.User{Subject: "local:bob@example.com", Email: "bob@example.com", Username: "bob@example.com", Role: entity.RoleSuper}); err != nil {
+	if err := store.SaveUser(ctx, entity.User{Subject: "local:bob@example.com", Email: "bob@example.com", Username: "bob@example.com", Role: entity.RoleSuper, Status: entity.StatusActive}); err != nil {
 		t.Fatalf("save bob: %v", err)
 	}
 	if err := store.SetSoleSuper(ctx, root.Subject); err != nil {

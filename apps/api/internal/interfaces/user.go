@@ -29,8 +29,8 @@ type UserRepository interface {
 	SetUserPassword(ctx context.Context, subject, passwordHash string) error
 	// SetUserToken makes tokenHash the account's single active token.
 	SetUserToken(ctx context.Context, subject, tokenHash string, expiresAt int64) error
-	// SetUserDisabled disables or re-enables an account.
-	SetUserDisabled(ctx context.Context, subject string, disabled bool) error
+	// SetUserStatus sets active or banned. A ban also drops the session.
+	SetUserStatus(ctx context.Context, subject, status string) error
 	// SetUserRole sets the global role (super, admin or member).
 	SetUserRole(ctx context.Context, subject, role string) error
 	// SetLastLogin records the moment of a successful login.

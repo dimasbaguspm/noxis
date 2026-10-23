@@ -104,6 +104,7 @@ func (s *Service) EnsureRoot(ctx context.Context, email, password string) error 
 			Username: email,
 			Password: hash,
 			Role:     entity.RoleSuper,
+			Status:   entity.StatusActive,
 		}); err != nil {
 			return err
 		}
@@ -122,7 +123,7 @@ func (s *Service) Login(ctx context.Context, login, password string) (string, en
 		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
 		return "", entity.User{}, constants.ErrInvalidCredentials
 	}
-	if u.Disabled || bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)) != nil {
+	if !u.Active() || bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)) != nil {
 		return "", entity.User{}, constants.ErrInvalidCredentials
 	}
 	token, hash, err := newToken()

@@ -42,10 +42,10 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		if q != "" && !matches(u, q) {
 			continue
 		}
-		if status == "active" && u.Disabled {
+		if status == entity.StatusActive && !u.Active() {
 			continue
 		}
-		if status == "disabled" && !u.Disabled {
+		if status == entity.StatusBanned && u.Active() {
 			continue
 		}
 		out = append(out, *u)
@@ -106,18 +106,21 @@ func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 	uc.Respond(w, Detail{User: *u, Access: access, Events: events})
 }
 
-// updateBody is the role payload.
+// updateBody is the status/role payload. Both fields are optional; the caller
+// changes only what it sends.
 type updateBody struct {
-	Role *string `json:"role"`
+	Status *string `json:"status"`
+	Role   *string `json:"role"`
 }
 
-// Update sets an account's global role. Nobody changes their own account and the
-// super admin is never demotable.
+// Update sets an account's status (active/banned) and, for the super admin only,
+// its global role. Nobody changes their own account, the super admin is never
+// bannable or demotable, and an admin may not touch another admin.
 type Update struct{ usecases.RegistryDeps }
 
-// @Summary Promote or demote an admin (super only)
+// @Summary Ban/enable an account, or promote/demote an admin (admin only; role changes are super only)
 // @Param subject path string true "user subject"
-// @Param body body updateBody true "role"
+// @Param body body updateBody true "status and/or role"
 // @Success 200 {object} entity.User
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 403 {object} entity.ErrorResponse
@@ -136,12 +139,18 @@ func (uc Update) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(w, err)
 		return
 	}
-	if body.Role == nil {
-		uc.Fail(w, fmt.Errorf("role is required"))
+	if body.Status == nil && body.Role == nil {
+		uc.Fail(w, fmt.Errorf("status or role is required"))
 		return
 	}
 	u, err := uc.Users.GetUser(ctx, subject)
 	if err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	// validate the whole patch before mutating, so a bad field cannot leave a
+	// half-applied change
+	if err := uc.checkPatch(caller, u, body); err != nil {
 		uc.Fail(w, err)
 		return
 	}
@@ -154,6 +163,10 @@ func (uc Update) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := uc.applyRole(ctx, caller, u, body.Role); err != nil {
+		uc.Fail(w, err)
+		return
+	}
+	if err := uc.applyStatus(ctx, caller, u, body.Status); err != nil {
 		uc.Fail(w, err)
 		return
 	}
@@ -178,5 +191,46 @@ func (uc Update) applyRole(ctx context.Context, caller entity.Identity, u *entit
 		return err
 	}
 	u.Role = *role
+	return nil
+}
+
+// applyStatus bans or re-enables an account. An admin may only act on members,
+// so peers cannot lock each other out; the super admin may act on admins too.
+func (uc Update) applyStatus(ctx context.Context, caller entity.Identity, u *entity.User, status *string) error {
+	if status == nil {
+		return nil
+	}
+	if !caller.IsSuper() && u.IsAdmin() {
+		return fmt.Errorf("%w: only the super admin changes another admin's status", constants.ErrForbidden)
+	}
+	if *status == u.Status {
+		return nil
+	}
+	if err := uc.Users.SetUserStatus(ctx, u.Subject, *status); err != nil {
+		return err
+	}
+	u.Status = *status
+	return nil
+}
+
+// checkPatch validates the whole patch against the caller and target, so Serve
+// can mutate without a second field failing halfway through.
+func (uc Update) checkPatch(caller entity.Identity, u *entity.User, body updateBody) error {
+	if body.Role != nil {
+		if !caller.IsSuper() {
+			return fmt.Errorf("%w: only the super admin changes roles", constants.ErrForbidden)
+		}
+		if *body.Role != entity.RoleAdmin && *body.Role != entity.RoleMember {
+			return fmt.Errorf("role must be %s or %s", entity.RoleAdmin, entity.RoleMember)
+		}
+	}
+	if body.Status != nil {
+		if *body.Status != entity.StatusActive && *body.Status != entity.StatusBanned {
+			return fmt.Errorf("status must be %s or %s", entity.StatusActive, entity.StatusBanned)
+		}
+		if !caller.IsSuper() && u.IsAdmin() {
+			return fmt.Errorf("%w: only the super admin changes another admin's status", constants.ErrForbidden)
+		}
+	}
 	return nil
 }

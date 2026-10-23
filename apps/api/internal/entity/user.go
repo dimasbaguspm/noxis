@@ -1,13 +1,19 @@
 package entity
 
 // Global roles. Exactly one account holds Super: the env root, named by
-// NOXIS_ADMIN_EMAIL. An Admin runs the instance — directory and every
+// NOXIS_ADMIN_EMAIL. An Admin runs the instance — directory, bans and every
 // connection's grants — but cannot promote, and cannot manage connections.
 // Everyone else is a Member whose reach is per-connection grants.
 const (
 	RoleSuper  = "super"
 	RoleAdmin  = "admin"
 	RoleMember = "member"
+)
+
+// Account statuses. A banned account keeps its grants but cannot authenticate.
+const (
+	StatusActive = "active"
+	StatusBanned = "banned"
 )
 
 // User is a local account or an OIDC identity reference. Subject is the stable
@@ -22,7 +28,7 @@ type User struct {
 	Password    string   `json:"-"`
 	Groups      []string `json:"groups"`
 	Role        string   `json:"role" validate:"required,oneof=super admin member"`
-	Disabled    bool     `json:"disabled"`
+	Status      string   `json:"status" validate:"required,oneof=active banned"`
 	LastLoginAt int64    `json:"lastLoginAt"`
 	CreatedAt   int64    `json:"createdAt"`
 }
@@ -46,6 +52,9 @@ func (u User) IsSuper() bool { return u.Role == RoleSuper }
 
 // IsAdmin reports whether the account holds a global management role.
 func (u User) IsAdmin() bool { return u.Role == RoleSuper || u.Role == RoleAdmin }
+
+// Active reports whether the account may authenticate.
+func (u User) Active() bool { return u.Status != StatusBanned }
 
 // Identity renders the account as the request principal.
 func (u User) Identity() Identity {

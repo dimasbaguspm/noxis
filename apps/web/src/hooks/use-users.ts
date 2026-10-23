@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { api, type UserRole } from "@/lib/api";
+import { api, type UserRole, type UserStatus } from "@/lib/api";
 import { useUrlState } from "@/hooks/use-url-state";
 
 const USERS_DEFAULTS = { q: "", status: "all" };
@@ -34,14 +34,14 @@ export function useUserQuery(subject: string) {
   });
 }
 
-// useUpdateUser owns the role mutation and its cache invalidation, so the
+// useUpdateUser owns the status/role mutation and its cache invalidation, so the
 // pages stay rendering surfaces.
 export function useUpdateUser(subject: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (patch: { role?: UserRole }) => api.users.update(subject, patch),
+    mutationFn: (patch: { status?: UserStatus; role?: UserRole }) => api.users.update(subject, patch),
     onSuccess: (_data, patch) => {
-      toast.success(`role changed to ${patch.role}`);
+      toast.success(patch.role ? `role changed to ${patch.role}` : `account is now ${patch.status}`);
       void queryClient.invalidateQueries({ queryKey: ["user", subject] });
       void queryClient.invalidateQueries({ queryKey: ["users"] });
       void queryClient.invalidateQueries({ queryKey: ["access", "matrix"] });

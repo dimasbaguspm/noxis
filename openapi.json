@@ -2434,7 +2434,7 @@
                 }
             },
             "patch": {
-                "summary": "Promote or demote an admin (super only)",
+                "summary": "Ban/enable an account, or promote/demote an admin (admin only; role changes are super only)",
                 "parameters": [
                     {
                         "description": "user subject",
@@ -2454,7 +2454,7 @@
                             }
                         }
                     },
-                    "description": "role",
+                    "description": "status and/or role",
                     "required": true
                 },
                 "responses": {
@@ -3261,14 +3261,12 @@
                 "type": "object",
                 "required": [
                     "role",
+                    "status",
                     "subject"
                 ],
                 "properties": {
                     "createdAt": {
                         "type": "integer"
-                    },
-                    "disabled": {
-                        "type": "boolean"
                     },
                     "email": {
                         "type": "string"
@@ -3288,6 +3286,13 @@
                             "super",
                             "admin",
                             "member"
+                        ]
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "active",
+                            "banned"
                         ]
                     },
                     "subject": {
@@ -3360,6 +3365,7 @@
                 "type": "object",
                 "required": [
                     "role",
+                    "status",
                     "subject"
                 ],
                 "properties": {
@@ -3371,9 +3377,6 @@
                     },
                     "createdAt": {
                         "type": "integer"
-                    },
-                    "disabled": {
-                        "type": "boolean"
                     },
                     "email": {
                         "type": "string"
@@ -3401,6 +3404,13 @@
                             "member"
                         ]
                     },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "active",
+                            "banned"
+                        ]
+                    },
                     "subject": {
                         "type": "string"
                     },
@@ -3413,6 +3423,9 @@
                 "type": "object",
                 "properties": {
                     "role": {
+                        "type": "string"
+                    },
+                    "status": {
                         "type": "string"
                     }
                 }

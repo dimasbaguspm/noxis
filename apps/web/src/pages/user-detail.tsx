@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,7 +20,7 @@ import type { UserRole } from "@/lib/api";
 // the super admin may change the role; an admin may only ban members.
 export default function UserDetailPage() {
   const { subject = "" } = useParams();
-  const { isAdmin, isSuper, identity } = useAuth();
+  const { isAdmin, canBan, canSetRole } = useAuth();
   const { data: user, isPending } = useUserQuery(isAdmin ? subject : "");
   const update = useUpdateUser(subject);
   const levels = useLevelsQuery().data?.levels ?? [];
@@ -34,11 +35,6 @@ export default function UserDetailPage() {
   }
   if (isPending || !user) return <Skeleton className="h-64 w-full" />;
 
-  const isSelf = identity?.sub === user.subject;
-  
-  // only the super admin changes a role: never their own, never the root
-  const canSetRole = isSuper && !isSelf && user.role !== "super";
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -48,8 +44,8 @@ export default function UserDetailPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <RoleBadge role={user.role} />
-          {user.disabled && <Badge variant="destructive">Disabled</Badge>}
-          {canSetRole && (
+          {user.status === "banned" && <Badge variant="destructive">Banned</Badge>}
+          {canSetRole(user) && (
             <Select
               value={user.role}
               onValueChange={(v) => v && update.mutate({ role: v as UserRole })}
@@ -62,6 +58,16 @@ export default function UserDetailPage() {
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
+          )}
+          {canBan(user) && (
+            <Button
+              size="sm"
+              variant={user.status === "banned" ? "outline" : "destructive"}
+              disabled={update.isPending}
+              onClick={() => update.mutate({ status: user.status === "banned" ? "active" : "banned" })}
+            >
+              {user.status === "banned" ? "Reinstate" : "Ban"}
+            </Button>
           )}
         </div>
       </div>
@@ -78,6 +84,10 @@ export default function UserDetailPage() {
             <div>
               <dt className="text-muted-foreground">Email</dt>
               <dd>{user.email || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Status</dt>
+              <dd>{user.status === "banned" ? "banned" : "active"}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Last login</dt>
