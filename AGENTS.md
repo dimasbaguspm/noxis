@@ -42,6 +42,7 @@ make test        # go test ./...            (~30s)
 make lint        # golangci-lint v2         (~60s)
 make build       # bin/noxis
 make web         # build console into embed dir (needs pnpm)
+make mocks       # regenerate internal/mocks from internal/interfaces (go.uber.org/mock)
 make uat         # godog over real compose stack (needs docker, tags ~@slow)
                  #   UAT_BUILD=1 rebuilds · UAT_KEEP=1 reuses the stack
 ```
@@ -105,6 +106,11 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 - **Errors:** wrap with `%w`; compare with `errors.Is`. Sentinel errors live in `interfaces` / `usecases`.
 - **Spans:** `ctx, end := logging.StartSpan(ctx); defer func(){ end(err) }()` at the top of every repository/module/use case method.
 - **No new dependency** for a few lines; no abstraction or option nobody asked for.
+- **Test doubles are generated**: `apps/api/internal/mocks` comes from
+  `internal/interfaces` via `make mocks`. Regenerate it whenever an interface in
+  that package changes shape, and commit the result — a stale mock fails to
+  compile or lies about the seam. A use-case test states its own expectations;
+  real SQLite covers persistence.
 - **Migrations are append-only**: add to the `migrations` slice in `apps/api/internal/repositories/sqlite/sqlite.go`; never edit an existing statement.
 - **Changes are artifacts**: never delete a recorded change; a failed submission is returned, not stored.
 

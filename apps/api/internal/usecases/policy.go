@@ -20,7 +20,7 @@ import (
 // and instance credentials. Super is the env root's single global role; a
 // missing principal is denied.
 func (d RegistryDeps) RequireSuper(ctx context.Context) error {
-	if p, ok := Principal(ctx); ok && p.IsSuper() {
+	if p, ok := entity.Principal(ctx); ok && p.IsSuper() {
 		return nil
 	}
 	logging.WarnWithCtx(ctx, "super admin required", "gate", "super")
@@ -30,7 +30,7 @@ func (d RegistryDeps) RequireSuper(ctx context.Context) error {
 // RequireAdmin gates the instance-management surfaces: the user directory,
 // account status and the per-connection grant policy. The super admin passes.
 func (d RegistryDeps) RequireAdmin(ctx context.Context) error {
-	if p, ok := Principal(ctx); ok && p.IsAdmin() {
+	if p, ok := entity.Principal(ctx); ok && p.IsAdmin() {
 		return nil
 	}
 	logging.WarnWithCtx(ctx, "admin role required", "gate", "admin")
@@ -77,7 +77,7 @@ func (d RegistryDeps) Authorize(ctx context.Context, connection, need string) er
 	if need == "" {
 		return nil
 	}
-	p, ok := Principal(ctx)
+	p, ok := entity.Principal(ctx)
 	if !ok || p.IsSuper() {
 		return nil
 	}
@@ -96,7 +96,7 @@ func (d RegistryDeps) Authorize(ctx context.Context, connection, need string) er
 // CanRead reports whether the caller may read a connection; used to hide
 // connections from listings rather than failing the whole list.
 func (d RegistryDeps) CanRead(ctx context.Context, connection string) (bool, error) {
-	p, ok := Principal(ctx)
+	p, ok := entity.Principal(ctx)
 	if !ok || p.IsSuper() {
 		return true, nil
 	}

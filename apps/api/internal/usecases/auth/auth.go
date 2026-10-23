@@ -60,7 +60,7 @@ type Logout struct{ usecases.RegistryDeps }
 func (uc Logout) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	p, ok := usecases.Principal(ctx)
+	p, ok := entity.Principal(ctx)
 	if !ok {
 		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
@@ -84,7 +84,7 @@ type Password struct{ usecases.RegistryDeps }
 func (uc Password) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	p, ok := usecases.Principal(ctx)
+	p, ok := entity.Principal(ctx)
 	if !ok {
 		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
@@ -115,7 +115,7 @@ type Me struct{ usecases.RegistryDeps }
 func (uc Me) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	p, ok := usecases.Principal(ctx)
+	p, ok := entity.Principal(ctx)
 	if !ok {
 		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return

@@ -1,6 +1,6 @@
 PATH := $(HOME)/.local/bin:$(HOME)/go/bin:$(PATH)
 
-.PHONY: build test lint swagger web dev down uat
+.PHONY: build test lint swagger web dev down uat mocks
 
 build:
 	cd apps/api && go build -o ../../bin/noxis ./cmd/noxis
@@ -21,6 +21,9 @@ uat:
 lint:  ## run golangci-lint (installs it on first use)
 	command -v golangci-lint >/dev/null 2>&1 || go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
 	cd apps/api && golangci-lint run ./...
+
+mocks:  ## regenerate the test doubles from internal/interfaces
+	cd apps/api && go generate ./internal/mocks
 
 swagger:  ## regenerate openapi.yaml|json (OpenAPI 3) from handler annotations
 	cd apps/api && go run github.com/swaggo/swag/cmd/swag@latest init -g cmd/noxis/server/server.go --output ../../.swagger-tmp

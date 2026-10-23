@@ -33,6 +33,8 @@ repo-specific: the generic review skill covers the rest.
 business logic, no direct repository access, no engine-family literal. Swag
 annotation block updated and `make swagger` run if the route changed.
 
+**Use cases (tests)** — a use-case test drives `Serve` through `internal/common/testkit` and states its own expectations on the generated mocks in `internal/mocks` (`make mocks` after an interface changes). Persistence behaviour is tested against real SQLite, not mocks.
+
 **Use cases** — one file, one `Serve(w, r)` + `Run` core, deps as explicit struct fields. `Serve` opens its own span and passes `ctx` to `uc.Fail`; a decision that changes the outcome is recorded with `logging.InfoWithCtx`/`WarnWithCtx`/`ErrorWithCtx`.
 Shared logic lives in a package helper, not by calling another use case. Errors
 wrapped with `%w`; sentinel compares with `errors.Is`.

@@ -132,6 +132,18 @@ the same declaration a reader can find.
   metadata only (names, drivers, grants) and exists so an admin can see the whole
   access landscape without a grant on each connection.
 
+## Test doubles
+
+The authenticated caller rides the request context via `entity.WithPrincipal` /
+`entity.Principal`, so every layer above entity reads it the same way.
+
+`apps/api/internal/mocks` holds `go.uber.org/mock` doubles for the repository and
+engine-module seams, generated from `internal/interfaces` with `make mocks`.
+`apps/api/internal/common/testkit` holds the two helpers a use-case test needs to
+send one request; it holds no fakes. A test
+declares only the calls it expects, and persistence is covered against real
+SQLite (`sqlite/users_test.go`, `modules/sql/sqlite_test.go`).
+
 ## Tracing & span naming
 
 One span per request, opened by `middlewares.Trace` **outside** `WithAuth` so a

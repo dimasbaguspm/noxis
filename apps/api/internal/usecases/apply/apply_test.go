@@ -1,45 +1,103 @@
 package apply
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
 
+	"go.uber.org/mock/gomock"
+
 	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/usecases/ucstest"
+	"noxis/internal/interfaces"
+	"noxis/internal/mocks"
+	"noxis/internal/modules"
+	"noxis/internal/repositories"
+	"noxis/internal/common/testkit"
+	"noxis/internal/usecases"
 )
 
 func approved(id string) entity.Change {
 	return entity.Change{ID: id, Connection: "demo", Kind: constants.KindDDL, Status: constants.ChangeApproved, Query: "CREATE TABLE things (id INT)"}
 }
 
-func TestApplyAfterApprove(t *testing.T) {
-	f := ucstest.New(&ucstest.SQL{})
-	f.Changes.M["x"] = approved("x")
+// harness holds the change store and the SQL module, both mocked.
+type harness struct {
+	deps    usecases.RegistryDeps
+	sq      *mocks.MockSQLModule
+	changes *mocks.MockChangeRepository
+	stored  map[string]entity.Change
+}
 
-	mux := ucstest.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: f.Deps()}.Serve)
-	rec := ucstest.Do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
+func newHarness(t *testing.T, store ...entity.Change) *harness {
+	t.Helper()
+	ctrl := gomock.NewController(t)
+	h := &harness{
+		sq:      mocks.NewMockSQLModule(ctrl),
+		changes: mocks.NewMockChangeRepository(ctrl),
+		stored:  map[string]entity.Change{},
+	}
+	for i := range store {
+		h.stored[store[i].ID] = store[i]
+	}
+	conns := mocks.NewMockConnectionRepository(ctrl)
+	conns.EXPECT().Get(gomock.Any(), "demo").Return(&entity.Connection{
+		Name: "demo", Driver: constants.DriverPostgres,
+	}, nil).AnyTimes()
+	h.changes.EXPECT().GetChange(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, id string) (*entity.Change, error) {
+		c, ok := h.stored[id]
+		if !ok {
+			return nil, constants.ErrNotFound
+		}
+		return &c, nil
+	}).AnyTimes()
+	h.changes.EXPECT().SaveChange(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, c entity.Change) error {
+		h.stored[c.ID] = c
+		return nil
+	}).AnyTimes()
+	h.changes.EXPECT().ListChanges(gomock.Any()).DoAndReturn(func(context.Context) ([]entity.Change, error) {
+		out := make([]entity.Change, 0, len(h.stored))
+		for id := range h.stored {
+			out = append(out, h.stored[id])
+		}
+		return out, nil
+	}).AnyTimes()
+	h.sq.EXPECT().Family().Return(constants.FamilySQL).AnyTimes()
+	h.sq.EXPECT().Supports(constants.DriverPostgres).Return(true).AnyTimes()
+	h.deps = usecases.RegistryDeps{
+		Registry: repositories.Registry{Connections: conns, Changes: h.changes},
+		Modules:  modules.New(map[string]interfaces.Module{constants.FamilySQL: h.sq}, nil),
+	}
+	return h
+}
+
+func TestApplyAfterApprove(t *testing.T) {
+	h := newHarness(t, approved("x"))
+	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{Affected: 1, Message: "applied: 1 statement(s)"}, nil)
+
+	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
+	rec := testkit.Do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("apply status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	if got := f.Changes.M["x"].Status; got != constants.ChangeApplied {
+	if got := h.stored["x"].Status; got != constants.ChangeApplied {
 		t.Fatalf("status=%q want applied", got)
 	}
 }
 
 func TestApplyFailureIsRecorded(t *testing.T) {
-	f := ucstest.New(&ucstest.SQL{ApplyErr: errors.New("statement 1: duplicate key")})
-	f.Changes.M["x"] = approved("x")
+	h := newHarness(t, approved("x"))
+	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, errors.New("statement 1: duplicate key"))
 
-	mux := ucstest.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: f.Deps()}.Serve)
-	rec := ucstest.Do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
+	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
+	rec := testkit.Do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code == http.StatusOK {
 		t.Fatalf("apply must surface the failure: %s", rec.Body.String())
 	}
-	stored := f.Changes.M["x"]
+	stored := h.stored["x"]
 	if stored.Status != constants.ChangeFailed {
 		t.Fatalf("failure must be recorded: %+v", stored)
 	}
@@ -50,21 +108,20 @@ func TestApplyFailureIsRecorded(t *testing.T) {
 }
 
 func TestTickAppliesDueScheduledChange(t *testing.T) {
-	f := ucstest.New(&ucstest.SQL{})
 	due := approved("due")
 	due.ScheduledAt = time.Now().Add(-time.Minute).Unix()
-	f.Changes.M["due"] = due
-	f.Changes.M["wait"] = approved("wait") // immediate: not due
+	h := newHarness(t, due, approved("wait")) // "wait" is immediate: not due
+	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{Message: "applied"}, nil)
 
-	rec := ucstest.Do(ucstest.Mux("POST", "/internal/callback/scheduler", Tick{RegistryDeps: f.Deps()}.Serve),
+	rec := testkit.Do(testkit.Mux("POST", "/internal/callback/scheduler", Tick{RegistryDeps: h.deps}.Serve),
 		http.MethodPost, "/internal/callback/scheduler", "", nil)
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"due"`) {
 		t.Fatalf("tick status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	if got := f.Changes.M["due"].Status; got != constants.ChangeApplied {
+	if got := h.stored["due"].Status; got != constants.ChangeApplied {
 		t.Fatalf("due status=%q want applied", got)
 	}
-	if got := f.Changes.M["wait"].Status; got != constants.ChangeApproved {
+	if got := h.stored["wait"].Status; got != constants.ChangeApproved {
 		t.Fatalf("immediate status=%q want approved", got)
 	}
 }

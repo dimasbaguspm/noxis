@@ -103,7 +103,7 @@ func firstNonEmpty(values ...string) string {
 // A policy endpoint resolves it before RawConn so the two gates — global role
 // and per-connection grant — stay one call instead of two.
 func adminLevel(ctx context.Context, need string) (string, error) {
-	p, ok := usecases.Principal(ctx)
+	p, ok := entity.Principal(ctx)
 	if !ok {
 		return "", constants.ErrUnauthorized
 	}
@@ -152,7 +152,7 @@ func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
 	p := entity.Permission{
 		Connection: r.PathValue("name"), Member: body.Member, MemberType: body.MemberType, Level: body.Level,
 		ExpiresAt: now.Add(uc.GrantTTL()).Unix(),
-		CreatedBy: usecases.Actor(ctx),
+		CreatedBy: entity.Actor(ctx),
 		CreatedAt: now.Unix(),
 		UpdatedAt: now.Unix(),
 	}
@@ -203,7 +203,7 @@ func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	if err := uc.Permissions.DeletePermission(ctx, r.PathValue("name"), member, usecases.Actor(ctx)); err != nil {
+	if err := uc.Permissions.DeletePermission(ctx, r.PathValue("name"), member, entity.Actor(ctx)); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
