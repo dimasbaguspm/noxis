@@ -18,7 +18,15 @@ interface AuthState {
   ready: boolean;
   canAccess: (connection: string | undefined, need: Level) => boolean;
   isInstanceAdmin: (connection: string) => boolean;
+  canBan: (target: AccountTarget) => boolean;
+  canSetRole: (target: AccountTarget) => boolean;
   signout: () => Promise<void>;
+}
+
+// AccountTarget is the part of an account the console's guards read.
+interface AccountTarget {
+  subject: string;
+  role?: string;
 }
 
 const LEVEL_RANK: Record<string, number> = { read: 1, write: 2, admin: 3 };
@@ -73,6 +81,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [authOn, identity],
   );
 
+  // canManage is the shared guard for the account controls: nobody edits
+  // themselves and the env root is untouchable. The server enforces the same.
+  const canManage = useCallback(
+    (target: AccountTarget) => Boolean(identity) && target.subject !== identity?.sub && target.role !== "super",
+    [identity],
+  );
+
+  // canBan: an admin acts on members only; the super admin may also act on admins.
+  const canBan = useCallback(
+    (target: AccountTarget) => canManage(target) && (isSuper || target.role === "member"),
+    [canManage, isSuper],
+  );
+
+  // canSetRole: only the super admin promotes or demotes.
+  const canSetRole = useCallback(
+    (target: AccountTarget) => isSuper && canManage(target),
+    [canManage, isSuper],
+  );
+
   const signout = useCallback(async () => {
     await doSignout();
   }, []);
@@ -89,9 +116,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ready,
       canAccess,
       isInstanceAdmin: (connection: string) => canAccess(connection, "admin"),
+      canBan,
+      canSetRole,
       signout,
     }),
-    [authOn, localOn, oidcOn, authenticated, identity, isSuper, isAdmin, ready, canAccess, signout],
+    [authOn, localOn, oidcOn, authenticated, identity, isSuper, isAdmin, ready, canAccess, canBan, canSetRole, signout],
   );
 
   if (!ready && !isCallback) {

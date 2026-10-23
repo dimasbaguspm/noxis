@@ -20,7 +20,7 @@ import type { UserRole } from "@/lib/api";
 // the super admin may change the role; an admin may only ban members.
 export default function UserDetailPage() {
   const { subject = "" } = useParams();
-  const { isAdmin, isSuper, identity } = useAuth();
+  const { isAdmin, canBan, canSetRole } = useAuth();
   const { data: user, isPending } = useUserQuery(isAdmin ? subject : "");
   const update = useUpdateUser(subject);
   const levels = useLevelsQuery().data?.levels ?? [];
@@ -35,12 +35,6 @@ export default function UserDetailPage() {
   }
   if (isPending || !user) return <Skeleton className="h-64 w-full" />;
 
-  const isSelf = identity?.sub === user.subject;
-  // an admin may only ban members: never a peer admin, never the root, never
-  // themselves
-  const canBan = !isSelf && user.role !== "super" && (isSuper || user.role === "member");
-  const canSetRole = isSuper && !isSelf && user.role !== "super";
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -51,7 +45,7 @@ export default function UserDetailPage() {
         <div className="flex flex-wrap items-center gap-2">
           <RoleBadge role={user.role} />
           {user.status === "banned" && <Badge variant="destructive">Banned</Badge>}
-          {canSetRole && (
+          {canSetRole(user) && (
             <Select
               value={user.role}
               onValueChange={(v) => v && update.mutate({ role: v as UserRole })}
@@ -65,7 +59,7 @@ export default function UserDetailPage() {
               </SelectContent>
             </Select>
           )}
-          {canBan && (
+          {canBan(user) && (
             <Button
               size="sm"
               variant={user.status === "banned" ? "outline" : "destructive"}
