@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -54,7 +55,9 @@ func NewService(users interfaces.UserRepository, oidc interfaces.Verifier) *Serv
 // account is blended into it — same subject, role and grants — so the env root
 // keeps one identity whichever way it signs in. An unmatched OIDC identity is
 // recorded as a reference row. Anything else is rejected.
-func (s *Service) Verify(ctx context.Context, rawToken string) (entity.Identity, error) {
+func (s *Service) Verify(ctx context.Context, rawToken string) (identity entity.Identity, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
 	if rawToken == "" {
 		return entity.Identity{}, constants.ErrInvalidCredentials
 	}
@@ -88,7 +91,9 @@ func (s *Service) Verify(ctx context.Context, rawToken string) (entity.Identity,
 // creates the account; on an existing store it promotes that account and clears
 // any other super, so the env is always the source of the one global role. It
 // fails closed when no email is configured.
-func (s *Service) EnsureRoot(ctx context.Context, email, password string) error {
+func (s *Service) EnsureRoot(ctx context.Context, email, password string) (err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
 	email = normalizeEmail(email)
 	if email == "" {
 		return errors.New("NOXIS_ADMIN_EMAIL is required: it names the single super admin")
@@ -97,7 +102,7 @@ func (s *Service) EnsureRoot(ctx context.Context, email, password string) error 
 		return fmt.Errorf("NOXIS_ADMIN_EMAIL %q is not an email address: %w", email, err)
 	}
 	subject := entity.LocalSubject(email)
-	_, err := s.users.GetUser(ctx, subject)
+	_, err = s.users.GetUser(ctx, subject)
 	switch {
 	case errors.Is(err, constants.ErrNotFound):
 		if password == "" {
@@ -128,7 +133,9 @@ func (s *Service) EnsureRoot(ctx context.Context, email, password string) error 
 
 // Login verifies a password and issues the account's single active token. The
 // identifier is the account's email (or the username it was created with).
-func (s *Service) Login(ctx context.Context, login, password string) (string, entity.User, error) {
+func (s *Service) Login(ctx context.Context, login, password string) (token string, user entity.User, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
 	u, err := s.users.GetUserByLogin(ctx, normalizeEmail(login))
 	if err != nil {
 		// pay the bcrypt cost anyway: timing must not reveal a known account
@@ -154,14 +161,18 @@ func (s *Service) Login(ctx context.Context, login, password string) (string, en
 }
 
 // Logout clears the account's active token.
-func (s *Service) Logout(ctx context.Context, subject string) error {
+func (s *Service) Logout(ctx context.Context, subject string) (err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
 	return s.users.ClearUserToken(ctx, subject)
 }
 
 // ChangePassword verifies the old password, stores the new hash, and rotates the
 // token so a stolen session does not survive the change. Only local accounts
 // have a password.
-func (s *Service) ChangePassword(ctx context.Context, subject, oldPassword, newPassword string) error {
+func (s *Service) ChangePassword(ctx context.Context, subject, oldPassword, newPassword string) (err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
 	u, err := s.users.GetUser(ctx, subject)
 	if err != nil || u.Password == "" || bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(oldPassword)) != nil {
 		return constants.ErrInvalidCredentials

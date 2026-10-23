@@ -43,7 +43,9 @@ var _ interfaces.SQLChangeFlow = (*Changes)(nil)
 
 // Submit validates a batch and records it. The caller has already authorized
 // write on the connection.
-func (c *Changes) Submit(ctx context.Context, conn entity.Connection, actor string, ch entity.Change) (entity.Change, error) {
+func (c *Changes) Submit(ctx context.Context, conn entity.Connection, actor string, ch entity.Change) (out entity.Change, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
 	if err := ch.Validate(); err != nil {
 		return entity.Change{}, err
 	}
@@ -73,34 +75,56 @@ func (c *Changes) Submit(ctx context.Context, conn entity.Connection, actor stri
 	ch.Checks = append(ch.Checks, dry)
 	switch ch.Status {
 	case constants.ChangeFailed:
-		logging.WarnWithCtx(ctx, "change rejected: "+dry.Error, "connection", ch.Connection, "kind", ch.Kind)
+		logging.WarnWithCtx(ctx, "change rejected: "+dry.Error, "connection", ch.Connection, "kind", ch.Kind, "actor", actor)
 	case constants.ChangeUnverified:
 		logging.WarnWithCtx(ctx, "change recorded unverified: the driver cannot dry-run it",
-			"change", ch.ID, "connection", ch.Connection, "kind", ch.Kind)
+			"change", ch.ID, "connection", ch.Connection, "kind", ch.Kind, "actor", actor)
 	default:
 		logging.InfoWithCtx(ctx, "change validated",
-			"change", ch.ID, "connection", ch.Connection, "kind", ch.Kind, "scratch", ch.ScratchSchema)
+			"change", ch.ID, "connection", ch.Connection, "kind", ch.Kind, "scratch", ch.ScratchSchema, "actor", actor)
 	}
 	return c.Record(ctx, ch)
 }
 
 // Approve signs off a validated batch.
-func (c *Changes) Approve(ctx context.Context, ch *entity.Change, actor string) error {
-	return c.Flow.Approve(ctx, ch, actor)
+func (c *Changes) Approve(ctx context.Context, ch *entity.Change, actor string) (err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	previous := ch.Status
+	if err = c.Flow.Approve(ctx, ch, actor); err != nil {
+		return err
+	}
+	logging.InfoWithCtx(ctx, "change approved", "change", ch.ID, "connection", ch.Connection, "actor", actor, "from", previous, "to", ch.Status)
+	return nil
 }
 
 // Reject closes a batch without running it.
-func (c *Changes) Reject(ctx context.Context, ch *entity.Change, actor string) error {
-	return c.Flow.Reject(ctx, ch, actor)
+func (c *Changes) Reject(ctx context.Context, ch *entity.Change, actor string) (err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	previous := ch.Status
+	if err = c.Flow.Reject(ctx, ch, actor); err != nil {
+		return err
+	}
+	logging.InfoWithCtx(ctx, "change rejected", "change", ch.ID, "connection", ch.Connection, "actor", actor, "from", previous, "to", ch.Status)
+	return nil
 }
 
 // Schedule sets or clears an approved batch's slot.
-func (c *Changes) Schedule(ctx context.Context, ch *entity.Change, at int64, actor string) error {
-	return c.Flow.Schedule(ctx, ch, at, actor)
+func (c *Changes) Schedule(ctx context.Context, ch *entity.Change, at int64, actor string) (err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	if err = c.Flow.Schedule(ctx, ch, at, actor); err != nil {
+		return err
+	}
+	logging.InfoWithCtx(ctx, "change schedule updated", "change", ch.ID, "connection", ch.Connection, "actor", actor, "scheduledAt", at)
+	return nil
 }
 
 // Apply runs an approved batch in a transaction and records the outcome.
-func (c *Changes) Apply(ctx context.Context, ch *entity.Change, actor string) (entity.Change, error) {
+func (c *Changes) Apply(ctx context.Context, ch *entity.Change, actor string) (out entity.Change, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
 	now := time.Now().Unix()
 	if err := changeflow.Applyable(ch, now); err != nil {
 		logging.WarnWithCtx(ctx, "change cannot be applied", "change", ch.ID, "reason", err.Error())
@@ -114,9 +138,9 @@ func (c *Changes) Apply(ctx context.Context, ch *entity.Change, actor string) (e
 		return *ch, err
 	}
 	res, err := c.Engine.Apply(ctx, *conn, ch.Query)
-	c.count(conn.Family, err)
+	c.count(ctx, c.Family(), err)
 	if err != nil {
-		logging.ErrorWithCtx(ctx, "change failed to apply", err, "change", ch.ID, "connection", ch.Connection)
+		logging.ErrorWithCtx(ctx, "change failed to apply", err, "change", ch.ID, "connection", ch.Connection, "actor", actor)
 		changeflow.Failed(ch, err)
 		if saveErr := c.Save(ctx, ch); saveErr != nil {
 			return *ch, errors.Join(err, fmt.Errorf("save failed apply outcome for change %s: %w", ch.ID, saveErr))
@@ -125,7 +149,7 @@ func (c *Changes) Apply(ctx context.Context, ch *entity.Change, actor string) (e
 	}
 	changeflow.Applied(ch, res, now)
 	logging.InfoWithCtx(ctx, "change applied",
-		"change", ch.ID, "connection", ch.Connection, "affected", res.Affected, "durationMs", res.DurationMs)
+		"change", ch.ID, "connection", ch.Connection, "affected", res.Affected, "durationMs", res.DurationMs, "actor", actor)
 	if err := c.Save(ctx, ch); err != nil {
 		return entity.Change{}, err
 	}
@@ -133,7 +157,9 @@ func (c *Changes) Apply(ctx context.Context, ch *entity.Change, actor string) (e
 }
 
 // Tick applies every due scheduled SQL change.
-func (c *Changes) Tick(ctx context.Context, now int64, actor string) (entity.TickResult, error) {
+func (c *Changes) Tick(ctx context.Context, now int64, actor string) (out entity.TickResult, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
 	return changeflow.Tick(ctx, c.Store, now, func(ch entity.Change) bool {
 		return ch.Kind == constants.KindDML || ch.Kind == constants.KindDDL
 	}, func(ctx context.Context, ch *entity.Change) (entity.Change, error) {
@@ -142,13 +168,13 @@ func (c *Changes) Tick(ctx context.Context, now int64, actor string) (entity.Tic
 }
 
 // count records the outcome of an apply.
-func (c *Changes) count(family string, err error) {
+func (c *Changes) count(ctx context.Context, family string, err error) {
 	if c.Metrics == nil {
 		return
 	}
 	if err != nil {
-		c.Metrics.ChangeFailed(context.Background(), family, "apply")
+		c.Metrics.ChangeFailed(ctx, family, "apply")
 		return
 	}
-	c.Metrics.ChangeApplied(context.Background(), family)
+	c.Metrics.ChangeApplied(ctx, family)
 }
