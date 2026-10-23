@@ -116,6 +116,9 @@ plus a swag annotation on `Serve`, then `make swagger`.
   `super`: the env root named by `NOXIS_ADMIN_EMAIL`, promoted on every boot. A
   `member` still needs a grant per connection, and an `admin` role never widens
   data access.
+- An OIDC login whose verified email equals an account's `email` is blended into
+  it (`modules/auth.Service.Verify` → `GetUserByEmail`): same subject, role and
+  grants. Unmatched or unverified OIDC identities are recorded as reference rows.
 - Levels: `read < write < admin` (`entity.LevelAllows`). `OpLevel` maps a SQL op
   to a level (only `query` is read; `analyze` mutates planner stats = write).
 - List endpoints hide unreadable connections (`CanRead`/`readableConnections`).

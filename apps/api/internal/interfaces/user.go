@@ -15,6 +15,9 @@ type UserRepository interface {
 	CountUsers(ctx context.Context) (int, error)
 	// GetUser returns an account by subject, or ErrNotFound.
 	GetUser(ctx context.Context, subject string) (*entity.User, error)
+	// GetUserByEmail returns the account blended to a verified email, or
+	// ErrNotFound. It is how an OIDC login joins its local account.
+	GetUserByEmail(ctx context.Context, email string) (*entity.User, error)
 	// ListUsers returns every account, for the permission editor's member picker.
 	ListUsers(ctx context.Context) ([]entity.User, error)
 	// GetUserByLogin returns a local account by the identifier its owner types
@@ -22,7 +25,7 @@ type UserRepository interface {
 	GetUserByLogin(ctx context.Context, login string) (*entity.User, error)
 	// EnsureSubject records an OIDC identity reference the first time it is
 	// seen, so grants and the directory can point at it.
-	EnsureSubject(ctx context.Context, subject string) error
+	EnsureSubject(ctx context.Context, subject, email string) error
 	// SaveUser inserts or updates an account (password already hashed).
 	SaveUser(ctx context.Context, u entity.User) error
 	// SetUserPassword replaces the stored hash.

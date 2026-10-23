@@ -50,8 +50,10 @@ func NewService(users interfaces.UserRepository, oidc interfaces.Verifier) *Serv
 }
 
 // Verify resolves a bearer token: a local session first (cheap, indexed), then
-// OIDC when configured. Every OIDC identity is recorded as a reference row the
-// first time it is seen. Anything else is rejected.
+// OIDC when configured. An OIDC identity whose verified email matches a local
+// account is blended into it — same subject, role and grants — so the env root
+// keeps one identity whichever way it signs in. An unmatched OIDC identity is
+// recorded as a reference row. Anything else is rejected.
 func (s *Service) Verify(ctx context.Context, rawToken string) (entity.Identity, error) {
 	if rawToken == "" {
 		return entity.Identity{}, constants.ErrInvalidCredentials
@@ -66,7 +68,17 @@ func (s *Service) Verify(ctx context.Context, rawToken string) (entity.Identity,
 	if err != nil {
 		return entity.Identity{}, err
 	}
-	if err := s.users.EnsureSubject(ctx, id.Subject); err != nil {
+	if u, err := s.users.GetUserByEmail(ctx, id.Email); err == nil && id.EmailVerified {
+		if !u.Active() {
+			return entity.Identity{}, constants.ErrForbidden
+		}
+		blended := u.Identity()
+		blended.Name = firstNonEmpty(id.Name, blended.Name)
+		blended.Email = firstNonEmpty(u.Email, id.Email)
+		blended.EmailVerified = true
+		return blended, nil
+	}
+	if err := s.users.EnsureSubject(ctx, id.Subject, id.Email); err != nil {
 		return entity.Identity{}, err
 	}
 	return id, nil

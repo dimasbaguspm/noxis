@@ -184,11 +184,18 @@ func (f *Users) GetUserByLogin(_ context.Context, login string) (*entity.User, e
 	})
 }
 
-func (f *Users) EnsureSubject(ctx context.Context, subject string) error {
+func (f *Users) GetUserByEmail(_ context.Context, email string) (*entity.User, error) {
+	if email == "" {
+		return nil, constants.ErrNotFound
+	}
+	return f.find(func(u *entity.User) bool { return u.Email == email })
+}
+
+func (f *Users) EnsureSubject(ctx context.Context, subject, email string) error {
 	if _, err := f.GetUser(ctx, subject); err == nil {
 		return nil
 	}
-	f.Accounts = append(f.Accounts, entity.User{Subject: subject, Role: entity.RoleMember})
+	f.Accounts = append(f.Accounts, entity.User{Subject: subject, Email: email, Role: entity.RoleMember, Status: entity.StatusActive})
 	return nil
 }
 
