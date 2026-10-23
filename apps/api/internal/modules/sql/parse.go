@@ -1,7 +1,6 @@
 package sql
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -21,13 +20,6 @@ func verifyKind(sqlText string, allowed kindSet) error {
 	}
 	return nil
 }
-
-// ErrUnverifiable reports that a change cannot be dry-run on this driver
-// (mysql commits DDL implicitly), so validation is skipped honestly.
-var ErrUnverifiable = errors.New("unverifiable on this driver")
-
-// IsUnverifiable reports the driver-cannot-dry-run case.
-func IsUnverifiable(err error) bool { return errors.Is(err, ErrUnverifiable) }
 
 // containsDDL reports whether any statement is a DDL kind.
 func containsDDL(sqlText string) bool {

@@ -12,10 +12,10 @@ import (
 
 	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 	"noxis/internal/mocks"
 	"noxis/internal/modules"
 	"noxis/internal/modules/sql"
+	"noxis/internal/interfaces"
 	"noxis/internal/repositories"
 	"noxis/internal/common/testkit"
 	"noxis/internal/usecases"
@@ -46,12 +46,18 @@ func newHarness(t *testing.T) *harness {
 	h.sq.EXPECT().Family().Return(constants.FamilySQL).AnyTimes()
 	h.sq.EXPECT().Supports(constants.DriverPostgres).Return(true).AnyTimes()
 	h.sq.EXPECT().Kind(gomock.Any()).Return(constants.KindDDL).AnyTimes()
+	h.sq.EXPECT().Referenced(gomock.Any()).Return([]string{"things"}, []string{"id"}).AnyTimes()
 	h.conns.EXPECT().Get(gomock.Any(), "demo").Return(&entity.Connection{
 		Name: "demo", Driver: constants.DriverPostgres,
 	}, nil).AnyTimes()
+	registry := modules.New(
+		map[string]interfaces.Module{constants.FamilySQL: h.sq},
+		interfaces.ChangeFlows{SQL: sql.NewChanges(h.conns, h.changes, h.sq, nil)},
+		nil,
+	)
 	h.deps = usecases.RegistryDeps{
 		Registry: repositories.Registry{Connections: h.conns, Changes: h.changes},
-		Modules:  modules.New(map[string]interfaces.Module{constants.FamilySQL: h.sq}, nil),
+		Modules:  registry,
 	}
 	return h
 }
@@ -143,7 +149,7 @@ func TestSubmitValidationFailures(t *testing.T) {
 	// mysql DDL cannot be dry-run: unverified, still approvable
 	h3 := newHarness(t)
 	h3.sq.EXPECT().VerifyWrite(gomock.Any()).Return(nil).AnyTimes()
-	h3.sq.EXPECT().ValidateChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, sql.ErrUnverifiable)
+	h3.sq.EXPECT().ValidateChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, interfaces.ErrUnverifiable)
 	unverified := entity.Change{}
 	h3.changes.EXPECT().SaveChange(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, c entity.Change) error {
 		unverified = c

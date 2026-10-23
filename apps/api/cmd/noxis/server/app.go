@@ -14,6 +14,7 @@ import (
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules"
+	authmod "noxis/internal/modules/auth"
 	"noxis/internal/repositories"
 	"noxis/internal/usecases"
 	"noxis/internal/usecases/access"
@@ -42,6 +43,7 @@ type sources struct {
 	AccessRequests interfaces.AccessRequestRepository
 	Modules        modules.Registry
 	Auth           entity.AuthConfig
+	AuthService    *authmod.Service
 	AccessTTL      time.Duration
 }
 
@@ -115,6 +117,12 @@ func newApp(s sources) app {
 	m, err := metrics.New(otel.Meter(metrics.Scope))
 	if err != nil {
 		slog.Error("metric instruments", "error", err)
+	}
+
+	// The registry owns the engine families and their change queues, so it is
+	// built here where the instruments it reports through exist.
+	if s.Modules == nil {
+		s.Modules = modules.Default(s.Connections, s.Changes, m, s.AuthService)
 	}
 
 	deps := usecases.RegistryDeps{

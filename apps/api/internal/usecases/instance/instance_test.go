@@ -34,7 +34,7 @@ func deps(t *testing.T) (usecases.RegistryDeps, *mocks.MockConnectionRepository)
 		Registry: repositories.Registry{Connections: conns},
 		Modules: modules.New(map[string]interfaces.Module{
 			constants.FamilySQL: sq, constants.FamilyMemcache: mc,
-		}, nil),
+		}, interfaces.ChangeFlows{}, nil),
 	}, conns
 }
 

@@ -159,6 +159,21 @@ func (mr *MockSQLModuleMockRecorder) Query(ctx, c, sqlText any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockSQLModule)(nil).Query), ctx, c, sqlText)
 }
 
+// Referenced mocks base method.
+func (m *MockSQLModule) Referenced(sqlText string) ([]string, []string) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Referenced", sqlText)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].([]string)
+	return ret0, ret1
+}
+
+// Referenced indicates an expected call of Referenced.
+func (mr *MockSQLModuleMockRecorder) Referenced(sqlText any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Referenced", reflect.TypeOf((*MockSQLModule)(nil).Referenced), sqlText)
+}
+
 // Rows mocks base method.
 func (m *MockSQLModule) Rows(ctx context.Context, c entity.Connection, schema, table string, limit int) (interfaces.Result, error) {
 	m.ctrl.T.Helper()
@@ -438,6 +453,20 @@ func (m *MockMongoModule) Family() string {
 func (mr *MockMongoModuleMockRecorder) Family() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Family", reflect.TypeOf((*MockMongoModule)(nil).Family))
+}
+
+// IsWrite mocks base method.
+func (m *MockMongoModule) IsWrite(op string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsWrite", op)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsWrite indicates an expected call of IsWrite.
+func (mr *MockMongoModuleMockRecorder) IsWrite(op any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsWrite", reflect.TypeOf((*MockMongoModule)(nil).IsWrite), op)
 }
 
 // Ping mocks base method.

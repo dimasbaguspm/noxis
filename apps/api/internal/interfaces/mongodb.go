@@ -27,6 +27,9 @@ type MongoModule interface {
 	ValidateRequest(ctx context.Context, c entity.Connection, req MongoRequest) (MongoResult, error)
 	// Apply executes a write for real, after review.
 	Apply(ctx context.Context, c entity.Connection, req MongoRequest) (MongoResult, error)
+	// IsWrite reports whether an op mutates documents; a read is refused on the
+	// change path.
+	IsWrite(op string) bool
 }
 
 // Satisfier.

@@ -1,38 +1,37 @@
 // Package change holds the change-queue use cases. SQL and MongoDB keep
 // separate queues behind one route: the {engine} path parameter decides which
-// flow runs, and a memory cache serves no changes at all.
+// flow runs, and a memory cache serves no changes at all. The rules live in
+// modules/changes; these use cases authorize, translate and answer.
 package change
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
-	"noxis/internal/common/idgen"
 	"noxis/internal/common/logging"
 	"noxis/internal/common/pagination"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/modules/mongodb"
-	"noxis/internal/modules/sql"
 	"noxis/internal/usecases"
 )
 
-// unsupportedChangeFlow reports a family that serves no changes queue.
-func unsupportedChangeFlow(mod interfaces.Module) error {
-	return fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, mod.Family())
+// supports reports whether a family serves a change queue at all.
+func supports(mod interfaces.Module) bool {
+	switch mod.(type) {
+	case interfaces.SQLModule, interfaces.MongoModule:
+		return true
+	}
+	return false
 }
 
 // readable filters a family's changes to the ones the caller may see.
-func readable(changes []entity.Change, mod interfaces.Module, allowed map[string]bool) []entity.Change {
-	out := make([]entity.Change, 0, len(changes))
-	for i := range changes {
-		ch := changes[i]
+func readable(all []entity.Change, mod interfaces.Module, allowed map[string]bool) []entity.Change {
+	out := make([]entity.Change, 0, len(all))
+	for i := range all {
+		ch := all[i]
 		if !allowed[ch.Connection] {
 			continue
 		}
@@ -52,30 +51,30 @@ func readable(changes []entity.Change, mod interfaces.Module, allowed map[string
 
 // filterByConnection keeps changes whose connection name contains the
 // case-insensitive needle; an empty needle keeps everything.
-func filterByConnection(changes []entity.Change, needle string) []entity.Change {
+func filterByConnection(all []entity.Change, needle string) []entity.Change {
 	needle = strings.TrimSpace(strings.ToLower(needle))
 	if needle == "" {
-		return changes
+		return all
 	}
-	out := make([]entity.Change, 0, len(changes))
-	for i := range changes {
-		if strings.Contains(strings.ToLower(changes[i].Connection), needle) {
-			out = append(out, changes[i])
+	out := make([]entity.Change, 0, len(all))
+	for i := range all {
+		if strings.Contains(strings.ToLower(all[i].Connection), needle) {
+			out = append(out, all[i])
 		}
 	}
 	return out
 }
 
 // filterByStatus keeps changes whose status matches exactly; empty keeps all.
-func filterByStatus(changes []entity.Change, status string) []entity.Change {
+func filterByStatus(all []entity.Change, status string) []entity.Change {
 	status = strings.TrimSpace(status)
 	if status == "" {
-		return changes
+		return all
 	}
-	out := make([]entity.Change, 0, len(changes))
-	for i := range changes {
-		if changes[i].Status == status {
-			out = append(out, changes[i])
+	out := make([]entity.Change, 0, len(all))
+	for i := range all {
+		if all[i].Status == status {
+			out = append(out, all[i])
 		}
 	}
 	return out
@@ -101,9 +100,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	switch mod.(type) {
-	case interfaces.SQLModule, interfaces.MongoModule:
-	default:
+	if !supports(mod) {
 		uc.Fail(ctx, w, unsupportedChangeFlow(mod))
 		return
 	}
@@ -117,12 +114,17 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	changes := readable(all, mod, allowed)
 	q := r.URL.Query()
-	changes = filterByConnection(changes, q.Get("connection"))
-	changes = filterByStatus(changes, q.Get("status"))
+	visible := readable(all, mod, allowed)
+	visible = filterByConnection(visible, q.Get("connection"))
+	visible = filterByStatus(visible, q.Get("status"))
 	page, perPage := pagination.Params(q.Get("page"), q.Get("perPage"), constants.DefaultPageSize)
-	uc.Respond(w, entity.ChangeList{Changes: pagination.Slice(changes, page, perPage), Total: len(changes)})
+	uc.Respond(w, entity.ChangeList{Changes: pagination.Slice(visible, page, perPage), Total: len(visible)})
+}
+
+// unsupportedChangeFlow reports a family that serves no changes queue.
+func unsupportedChangeFlow(mod interfaces.Module) error {
+	return fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, mod.Family())
 }
 
 // Submit submits a change (validates before recording).
@@ -150,7 +152,12 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 			uc.Fail(ctx, w, err)
 			return
 		}
-		out, err := uc.submitSQL(ctx, m, ch)
+		conn, err := uc.RawConn(ctx, m, ch.Connection, entity.LevelWrite)
+		if err != nil {
+			uc.Fail(ctx, w, err)
+			return
+		}
+		out, err := uc.Modules.Changes().SQL.Submit(ctx, *conn, entity.Actor(ctx), ch)
 		if err != nil {
 			uc.Fail(ctx, w, err)
 			return
@@ -163,7 +170,12 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 			uc.Fail(ctx, w, err)
 			return
 		}
-		out, err := uc.submitMongo(ctx, m, body.Connection, body.Notes, body.MongoRequest)
+		conn, err := uc.RawConn(ctx, m, body.Connection, entity.LevelWrite)
+		if err != nil {
+			uc.Fail(ctx, w, err)
+			return
+		}
+		out, err := uc.Modules.Changes().Mongo.Submit(ctx, *conn, entity.Actor(ctx), body.Notes, body.MongoRequest)
 		if err != nil {
 			uc.Fail(ctx, w, err)
 			return
@@ -173,106 +185,6 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 	default:
 		uc.Fail(ctx, w, unsupportedChangeFlow(mod))
 	}
-}
-
-func (uc Submit) submitSQL(ctx context.Context, sq interfaces.SQLModule, ch entity.Change) (entity.Change, error) {
-	if err := ch.Validate(); err != nil {
-		return entity.Change{}, err
-	}
-	conn, err := uc.RawConn(ctx, sq, ch.Connection, entity.LevelWrite)
-	if err != nil {
-		return entity.Change{}, err
-	}
-	ch.ID = idgen.UUID()
-	ch.CreatedAt = time.Now().Unix()
-	ch.CreatedBy = entity.Actor(ctx)
-	ch.Kind = sq.Kind(ch.Query)
-	ch.AffectedTables, ch.AffectedColumns = sql.Referenced(ch.Query)
-	ch.Status = constants.ChangeValidated
-	ch.Checks = []entity.ChangeCheck{{Target: "query kind"}}
-	if err := sq.VerifyWrite(ch.Query); err != nil {
-		ch.Checks[0].Error = err.Error()
-		ch.Status = constants.ChangeFailed
-	} else {
-		ch.Checks[0].OK = true
-		ch.Checks[0].Detail = "write statements only"
-	}
-	dry := entity.ChangeCheck{Target: "dry-run (query + rollback)"}
-	res, err := sq.ValidateChange(ctx, *conn, ch.Query, ch.Rollback)
-	switch {
-	case err == nil:
-		dry.OK, dry.Detail = true, res.Message
-		ch.EstDurationMs, ch.EstAffected = res.DurationMs, res.Affected
-		ch.ScratchSchema = res.ScratchSchema
-	case errors.Is(err, sql.ErrUnverifiable):
-		ch.Status, dry.Error = constants.ChangeUnverified, err.Error()
-	default:
-		ch.Status, dry.Error = constants.ChangeFailed, err.Error()
-	}
-	ch.Checks = append(ch.Checks, dry)
-	if ch.Status == constants.ChangeFailed {
-		logging.WarnWithCtx(ctx, "change rejected: "+dry.Error, "connection", ch.Connection, "kind", ch.Kind)
-		ch.ID = ""
-		return ch, nil
-	}
-	logging.InfoWithCtx(ctx, "change validated",
-		"change", ch.ID, "connection", ch.Connection, "kind", ch.Kind)
-	if err := uc.Changes.SaveChange(ctx, ch); err != nil {
-		return entity.Change{}, err
-	}
-	return ch, nil
-}
-
-func (uc Submit) submitMongo(ctx context.Context, m interfaces.MongoModule, conn, notes string, req interfaces.MongoRequest) (entity.Change, error) {
-	raw, err := uc.RawConn(ctx, m, conn, entity.LevelWrite)
-	if err != nil {
-		return entity.Change{}, err
-	}
-	ch := entity.Change{
-		ID:         idgen.UUID(),
-		Connection: conn,
-		Notes:      notes,
-		Kind:       constants.KindMongo,
-		Status:     constants.ChangeValidated,
-		CreatedAt:  time.Now().Unix(),
-		CreatedBy:  entity.Actor(ctx),
-	}
-	encoded, err := json.Marshal(req)
-	if err != nil {
-		return entity.Change{}, err
-	}
-	ch.Query = string(encoded)
-	target := req.Database + "." + req.Collection
-	ch.AffectedTables = []string{target}
-
-	kind := entity.ChangeCheck{Target: "op kind"}
-	if !mongodb.IsWrite(req.Op) {
-		kind.Error = fmt.Sprintf("op %q reads only: run it in Explore", req.Op)
-		ch.Status = constants.ChangeFailed
-	} else {
-		kind.OK, kind.Detail = true, req.Op+" on "+target
-	}
-	ch.Checks = append(ch.Checks, kind)
-
-	dry := entity.ChangeCheck{Target: "dry-run (scratch collection)"}
-	if res, err := m.ValidateRequest(ctx, *raw, req); err == nil {
-		dry.OK, dry.Detail = true, res.Message
-		ch.EstDurationMs, ch.EstAffected = res.DurationMs, res.Affected
-	} else {
-		ch.Status, dry.Error = constants.ChangeFailed, err.Error()
-	}
-	ch.Checks = append(ch.Checks, dry)
-
-	if ch.Status == constants.ChangeFailed {
-		logging.WarnWithCtx(ctx, "change rejected: "+dry.Error, "connection", ch.Connection, "kind", ch.Kind)
-		ch.ID = ""
-		return ch, nil
-	}
-	logging.InfoWithCtx(ctx, "change validated", "change", ch.ID, "connection", ch.Connection, "kind", ch.Kind)
-	if err := uc.Changes.SaveChange(ctx, ch); err != nil {
-		return entity.Change{}, err
-	}
-	return ch, nil
 }
 
 // Get loads one change for the engine's family.
@@ -292,35 +204,25 @@ func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	var out *entity.Change
-	switch mod.(type) {
-	case interfaces.SQLModule:
-		out, err = uc.SQLChange(ctx, r.PathValue("id"))
-	case interfaces.MongoModule:
-		out, err = uc.MongoChange(ctx, r.PathValue("id"))
-	default:
-		uc.Fail(ctx, w, unsupportedChangeFlow(mod))
-		return
-	}
+	ch, err := changeFor(ctx, uc.RegistryDeps, mod, r.PathValue("id"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	uc.Respond(w, out)
+	uc.Respond(w, ch)
 }
 
-// guard loads a change for the engine's family so a SQL URL cannot touch a
-// MongoDB request and the reverse.
-func (uc Get) guard(ctx context.Context, mod interfaces.Module, id string) error {
+// changeFor loads one change for the addressed family, after the family gate and
+// the caller's read grant. Every mutating flow starts here, so a SQL URL cannot
+// touch a MongoDB request and the reverse.
+func changeFor(ctx context.Context, uc usecases.RegistryDeps, mod interfaces.Module, id string) (*entity.Change, error) {
 	switch mod.(type) {
 	case interfaces.SQLModule:
-		_, err := uc.SQLChange(ctx, id)
-		return err
+		return uc.SQLChange(ctx, id)
 	case interfaces.MongoModule:
-		_, err := uc.MongoChange(ctx, id)
-		return err
+		return uc.MongoChange(ctx, id)
 	}
-	return unsupportedChangeFlow(mod)
+	return nil, unsupportedChangeFlow(mod)
 }
 
 // Approve approves a validated change (self-approval allowed).
@@ -336,34 +238,7 @@ type Approve struct{ usecases.RegistryDeps }
 func (uc Approve) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	mod, err := uc.Modules.Engine(r.PathValue("engine"))
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	if err := Get(uc).guard(ctx, mod, r.PathValue("id")); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	ch, err := uc.Changes.GetChange(ctx, r.PathValue("id"))
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	if err := uc.Authorize(ctx, ch.Connection, entity.LevelAdmin); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	if ch.Status != constants.ChangeValidated && ch.Status != constants.ChangeUnverified {
-		uc.Fail(ctx, w, fmt.Errorf("change is %s, not validated — cannot approve", ch.Status))
-		return
-	}
-	ch.Status, ch.ApprovedAt = constants.ChangeApproved, time.Now().Unix()
-	if err := uc.Changes.SaveChange(ctx, *ch); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, ch)
+	decide(ctx, uc.RegistryDeps, w, r, func(ch *entity.Change) error { return uc.Modules.Changes().SQL.Approve(ctx, ch) })
 }
 
 // Reject rejects a change (kept as an artifact, never deleted).
@@ -379,16 +254,18 @@ type Reject struct{ usecases.RegistryDeps }
 func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
+	decide(ctx, uc.RegistryDeps, w, r, func(ch *entity.Change) error { return uc.Modules.Changes().SQL.Reject(ctx, ch) })
+}
+
+// decide is the shared shape of a decision route: resolve the family, load the
+// change, require admin on its connection, then let the lifecycle apply the rule.
+func decide(ctx context.Context, uc usecases.RegistryDeps, w http.ResponseWriter, r *http.Request, apply func(*entity.Change) error) {
 	mod, err := uc.Modules.Engine(r.PathValue("engine"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	if err := Get(uc).guard(ctx, mod, r.PathValue("id")); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	ch, err := uc.Changes.GetChange(ctx, r.PathValue("id"))
+	ch, err := changeFor(ctx, uc, mod, r.PathValue("id"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -397,18 +274,12 @@ func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	if ch.Status == constants.ChangeApplied {
-		uc.Fail(ctx, w, fmt.Errorf("change already applied — it cannot be rejected"))
-		return
-	}
-	ch.Status, ch.RejectedAt = constants.ChangeRejected, time.Now().Unix()
-	if err := uc.Changes.SaveChange(ctx, *ch); err != nil {
+	if err := apply(ch); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, ch)
 }
-
 
 // Schedule schedules or unschedules an approved change.
 type Schedule struct{ usecases.RegistryDeps }
@@ -424,43 +295,17 @@ type Schedule struct{ usecases.RegistryDeps }
 func (uc Schedule) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	mod, err := uc.Modules.Engine(r.PathValue("engine"))
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
 	var body entity.ScheduleRequest
 	if err := uc.Decode(r, &body); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	if err := Get(uc).guard(ctx, mod, r.PathValue("id")); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	ch, err := uc.Changes.GetChange(ctx, r.PathValue("id"))
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	if err := uc.Authorize(ctx, ch.Connection, entity.LevelAdmin); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	if ch.Status != constants.ChangeApproved {
-		uc.Fail(ctx, w, fmt.Errorf("change is %s, not approved — cannot schedule", ch.Status))
-		return
-	}
-	if body.ScheduledAt > 0 && body.ScheduledAt <= time.Now().Unix() {
-		uc.Fail(ctx, w, fmt.Errorf("scheduled time must be in the future"))
-		return
-	}
-	ch.ScheduledAt = body.ScheduledAt
-	if err := uc.Changes.SaveChange(ctx, *ch); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, ch)
+	decide(ctx, uc.RegistryDeps, w, r, func(ch *entity.Change) error {
+		if ch.Kind == constants.KindMongo {
+			return uc.Modules.Changes().Mongo.Schedule(ctx, ch, body.ScheduledAt)
+		}
+		return uc.Modules.Changes().SQL.Schedule(ctx, ch, body.ScheduledAt)
+	})
 }
 
 // SwaggerMongoChangeBody documents the MongoDB change-submit body: the submit

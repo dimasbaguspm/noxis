@@ -6,6 +6,7 @@ package sql
 import (
 	"context"
 	stdsql "database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -143,7 +144,7 @@ func (u *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Resu
 			return Result{}, err
 		}
 		if n == 0 {
-			return Result{}, fmt.Errorf("no statements to run")
+			return Result{}, errNoStatements
 		}
 		last.DurationMs = time.Since(started).Milliseconds()
 		last.RowsReturned = len(last.Rows)
@@ -162,14 +163,12 @@ func (u *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (r
 		return Result{}, fmt.Errorf("dry run of DDL is not safe on %s (implicit commit) — try it on a postgres connection", c.Driver)
 	}
 	started := time.Now()
-	n, err := inTx(c, true, func(tx *stdsql.Tx) (int, error) {
-		return execEach(sqlText, func(stmt string) error {
-			_, err := tx.ExecContext(ctx, stmt)
-			return hintOf(stmt, err)
-		})
-	})
+	_, n, err := runBatch(ctx, c, sqlText, true)
 	if err != nil {
 		return Result{}, err
+	}
+	if n == 0 {
+		return Result{}, errNoStatements
 	}
 	return Result{DurationMs: time.Since(started).Milliseconds(), Message: fmt.Sprintf("rolled back (dry run): %d statement(s)", n)}, nil
 }
@@ -185,12 +184,33 @@ func (u *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (re
 		return Result{}, err
 	}
 	started := time.Now()
-	var affected int64
-	n, err := inTx(c, false, func(tx *stdsql.Tx) (int, error) {
+	affected, n, err := runBatch(ctx, c, sqlText, false)
+	if err != nil {
+		return Result{}, err
+	}
+	if n == 0 {
+		return Result{}, errNoStatements
+	}
+	return Result{
+		Affected:   affected,
+		DurationMs: time.Since(started).Milliseconds(),
+		Message:    fmt.Sprintf("applied: %d statement(s)", n),
+	}, nil
+}
+
+// errNoStatements reports an empty batch: a change or a console op with nothing
+// to run is a caller mistake, not a success.
+var errNoStatements = errors.New("no statements to run")
+
+// runBatch executes every statement of a batch inside one transaction and
+// commits unless rollback is set. It returns the affected-row total and how many
+// statements ran, so a dry run and a real apply share one loop.
+func runBatch(ctx context.Context, c entity.Connection, sqlText string, rollback bool) (affected int64, n int, err error) {
+	n, err = inTx(c, rollback, func(tx *stdsql.Tx) (int, error) {
 		return execEach(sqlText, func(stmt string) error {
 			out, err := tx.ExecContext(ctx, stmt)
 			if err != nil {
-				return err
+				return hintOf(stmt, err)
 			}
 			if a, err := out.RowsAffected(); err == nil {
 				affected += a
@@ -198,17 +218,7 @@ func (u *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (re
 			return nil
 		})
 	})
-	if err != nil {
-		return Result{}, err
-	}
-	if n == 0 {
-		return Result{}, fmt.Errorf("no statements to apply")
-	}
-	return Result{
-		Affected:   affected,
-		DurationMs: time.Since(started).Milliseconds(),
-		Message:    fmt.Sprintf("applied: %d statement(s)", n),
-	}, nil
+	return affected, n, err
 }
 
 // inTx runs fn inside a transaction and commits when it returns nil error. With
@@ -274,6 +284,12 @@ func (u *DB) Analyze(ctx context.Context, c entity.Connection, table string) (re
 		stmt = "ANALYZE TABLE " + table
 	}
 	return u.run(ctx, c, stmt)
+}
+
+// Referenced reports the tables and columns a batch mentions, so the change
+// record can list what it touches.
+func (u *DB) Referenced(sqlText string) (tables []string, columns []string) {
+	return Referenced(sqlText)
 }
 
 // VerifyWrite exposes the write guard (a change's query must be a write).

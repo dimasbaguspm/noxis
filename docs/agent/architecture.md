@@ -66,8 +66,23 @@ module. This is why one handler serves all families instead of a copy per family
 | `MemcacheModule` | `interfaces/memcache.go` | `memcache.DB` |
 | `MongoModule` | `interfaces/mongodb.go` | `mongodb.DB` |
 | `Verifier` | `interfaces/auth.go` | `auth.OIDC` (tests use a fake) |
+| `SQLChangeFlow` / `MongoChangeFlow` | `interfaces/change.go` | `sql.Changes`, `mongodb.Changes` |
 
 `ErrNotFound` and `ErrUnsupported` live in `constants` and drive HTTP 404.
+
+## Where the rules live
+
+A use case authorizes the caller, decodes the request, maps the answer to a
+status, and nothing else. Domain rules live in a module: the change lifecycle
+belongs to the family that runs it, so `modules/sql.Changes` and
+`modules/mongodb.Changes` each own submit → validate → approve/reject/schedule →
+apply. Their shared state rules come from `internal/common/changeflow`, a base
+that both embed — it is a library, not a registered module.
+
+Both queues are registered in `modules.Default()` next to the engines, so a use
+case reaches them the same way it reaches a family: `uc.Modules.Changes().SQL`
+and `.Mongo`. A module may read repositories; it never imports the registry or a
+sibling family package.
 
 ## Use-case pattern
 
@@ -178,7 +193,9 @@ add a family const + driver consts, add a route family in `newHandler`, add
 **New SQL-looking operation:** add the op const, add a method to `SQLModule`,
 implement it in `modules/sql`, add a use case (or extend `usecases.Op` if it fits
 the op map), add a handler + route + swag. Keep the family split: SQL-only ops
-must never leak into the memcache/mongo namespaces.
+must never leak into the memcache/mongo namespaces. A batch that runs statements
+goes through `runBatch` (`modules/sql/sql.go`): one transaction, commit unless the
+caller is a dry run, so apply and dry-run never diverge.
 
 **New persisted field:** add to `entity`, add a **new** `ALTER TABLE` line to the
 `migrations` slice in `sqlite.go`, update the `Save`/scan in the relevant
