@@ -47,6 +47,16 @@ func (f *fakeUsers) GetUser(_ context.Context, subject string) (*entity.User, er
 	return &cp, nil
 }
 
+func (f *fakeUsers) GetUserByEmail(_ context.Context, email string) (*entity.User, error) {
+	for _, u := range f.bySubject {
+		if u.Email == email && email != "" {
+			cp := *u
+			return &cp, nil
+		}
+	}
+	return nil, constants.ErrNotFound
+}
+
 func (f *fakeUsers) GetUserByLogin(_ context.Context, login string) (*entity.User, error) {
 	for _, u := range f.bySubject {
 		if login != "" && u.Password != "" && (u.Email == login || u.Username == login) {
@@ -57,9 +67,9 @@ func (f *fakeUsers) GetUserByLogin(_ context.Context, login string) (*entity.Use
 	return nil, constants.ErrNotFound
 }
 
-func (f *fakeUsers) EnsureSubject(_ context.Context, subject string) error {
+func (f *fakeUsers) EnsureSubject(_ context.Context, subject, email string) error {
 	if _, ok := f.bySubject[subject]; !ok {
-		f.bySubject[subject] = &entity.User{Subject: subject}
+		f.bySubject[subject] = &entity.User{Subject: subject, Email: email, Role: entity.RoleMember, Status: entity.StatusActive}
 	}
 	return nil
 }
@@ -321,4 +331,61 @@ func TestServiceLocalOnlyRejects(t *testing.T) {
 	if _, err := svc.Verify(context.Background(), "oidc-looking-token"); err == nil {
 		t.Fatal("with no OIDC verifier, a non-local token must be rejected")
 	}
+}
+
+// An OIDC login whose verified email matches a local account signs in as that
+// account: same subject, same role. It is how the env root keeps one identity
+// whichever way it authenticates. An unverified claim never blends.
+func TestVerifyBlendsVerifiedOIDCEmail(t *testing.T) {
+	repo := newFakeUsers()
+	ctx := context.Background()
+	svc := NewService(repo, fakeVerifier{identity: entity.Identity{Subject: "oidc|root", Email: rootEmail, Name: "Root", EmailVerified: true}})
+	if err := svc.EnsureRoot(ctx, rootEmail, "supersecret"); err != nil {
+		t.Fatalf("seed root: %v", err)
+	}
+	id, err := svc.Verify(ctx, "an-oidc-token")
+	if err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+	if id.Subject != entity.LocalSubject(rootEmail) || !id.IsSuper() {
+		t.Fatalf("blend: %+v", id)
+	}
+	if _, err := repo.GetUser(ctx, "oidc|root"); err == nil {
+		t.Fatal("a blended identity must not create a second account")
+	}
+
+	// a banned local account rejects the blended login instead of creating one
+	u, _ := repo.GetUser(ctx, entity.LocalSubject(rootEmail))
+	u.Status = entity.StatusBanned
+	_ = repo.SaveUser(ctx, *u)
+	if _, err := svc.Verify(ctx, "an-oidc-token"); !errors.Is(err, constants.ErrForbidden) {
+		t.Fatalf("banned blend: %v", err)
+	}
+}
+
+// An unverified or absent email_verified claim must not join a local account,
+// no matter which email it carries: it is recorded as a plain member reference.
+func TestVerifyRejectsUnverifiedOIDCEmail(t *testing.T) {
+	repo := newFakeUsers()
+	ctx := context.Background()
+	if err := svcRoot(ctx, repo); err != nil {
+		t.Fatal(err)
+	}
+	svc := NewService(repo, fakeVerifier{identity: entity.Identity{Subject: "oidc|attacker", Email: rootEmail, EmailVerified: false}})
+	if _, err := svc.Verify(ctx, "an-oidc-token"); err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+	id, err := svc.Verify(ctx, "an-oidc-token")
+	if err != nil || id.Subject != "oidc|attacker" || id.IsAdmin() {
+		t.Fatalf("an unverified claim must stay a plain member reference: %+v err=%v", id, err)
+	}
+	// the local account was never touched
+	if u, _ := repo.GetUser(ctx, entity.LocalSubject(rootEmail)); u.Email != rootEmail || u.Subject == "oidc|attacker" {
+		t.Fatalf("local account: %+v", u)
+	}
+}
+
+func svcRoot(ctx context.Context, repo *fakeUsers) error {
+	svc := NewService(repo, nil)
+	return svc.EnsureRoot(ctx, rootEmail, "supersecret")
 }

@@ -41,13 +41,15 @@ a user subject (`local:<name>` or an OIDC sub) or a group name; `member_type` �
 `connection_grants` table is migrated in as `member_type='group'` and dropped.
 
 ### `users`
-Local accounts. `subject` PK (`local:<email>` or the OIDC sub), `email` is the
-account identifier (unique when non-empty; login resolves by email or legacy
+Accounts. `subject` PK (`local:<email>` or the OIDC sub), `email` is the blend
+key: an OIDC login whose verified email equals an account's email signs in as
+that account (unique when non-empty; login resolves by email or legacy
 username), `username` (login name for a named local account, empty for OIDC
 rows), `password` is a **bcrypt hash** (one-way, unlike `connections.password`),
-`groups` JSON, `role` ∈ `super|admin|member`, `disabled` flag, `last_login_at`,
-and the single active session: `token_hash` (SHA-256 of the raw token) +
-`token_expires_at`. The raw token and password are never stored.
+`groups` JSON, `role` ∈ `super|admin|member`, `status` ∈ `active|banned`,
+`last_login_at`, and the single active session: `token_hash` (SHA-256 of the raw
+token) + `token_expires_at`. The raw token and password are never stored. A ban
+clears the session; `UserByToken` only matches `status='active'`.
 
 Exactly one row holds `role='super'`: the env root. Boot promotes it and demotes
 any other `super` (`SetSoleSuper`); promoted admins are left alone.

@@ -124,8 +124,10 @@ Valkey server to keep that claim honest.
 Every `/external/v1/*` call needs a bearer token; there is no open mode. Local
 accounts sign in with an email and password (bcrypt, one opaque session token
 each); the env root is the account created on first boot from
-`NOXIS_ADMIN_EMAIL` + `NOXIS_ADMIN_PASSWORD`. OIDC can run alongside them
-(`NOXIS_OIDC_ISSUER`, `NOXIS_OIDC_CLIENT_ID`, …).
+`NOXIS_ADMIN_EMAIL` + `NOXIS_ADMIN_PASSWORD`. OIDC can run alongside it
+(`NOXIS_OIDC_ISSUER`, `NOXIS_OIDC_CLIENT_ID`, …): an OIDC login whose verified
+email matches an account's email *blends* into that account, so the root keeps
+one identity whichever way it signs in.
 
 Upgrading from `NOXIS_ADMIN_USERNAME`: set `NOXIS_ADMIN_EMAIL` and, once,
 `NOXIS_ADMIN_PASSWORD`; on an existing store the new root is created and the old
