@@ -11,6 +11,30 @@ already run (Postgres, MySQL/MariaDB, Redis, Valkey, MongoDB), browse them,
 run reads directly, and ship writes through a reviewed change workflow. No
 agents, no Kafka, no docker socket. State lives in one SQLite file.
 
+## Workflow (epic → tickets → one MR per ticket)
+
+Every change lands through the tracker, never as an uncommitted blob on `master`:
+
+1. **Epic** — open one plan issue describing the outcome. Its body follows the
+   repo template (`.github/ISSUE_TEMPLATE/ticket.md`):
+   `What problem does this solve? → What is the user facing? → How will I solve
+   it? → Done when → Risks & notes`. Write one line per paragraph; never
+   hard-wrap.
+2. **Tickets** — split the epic into issues, one vertical slice each (cuts every
+   layer, demoable alone, finishes in a session). Load the `ticket` skill for the
+   title/body format; show the draft list for approval before creating.
+3. **Branch + MR per ticket** — one branch and one PR per issue, never a second
+   ticket's work in the same PR. Load the `mr` skill; title
+   `[ai:y][#<issue>] <type>: <subject>`, body follows
+   `.github/PULL_REQUEST_TEMPLATE.md` and closes the issue.
+4. **Review before merge** — the human reviews the MR against its ticket's
+   `Done when` checklist. `make lint`/`make test`/`make uat` and the web checks
+   pass in CI before merge.
+5. **Record** — snapshot the completed plan into `docs/plan/<id>-<slug>.md` and
+   add it to the index, per `docs/plan/README.md`.
+
+Do not start implementation until the epic and its tickets exist.
+
 ## Next action (verify the tree before touching it)
 
 ```bash

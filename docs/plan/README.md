@@ -6,9 +6,11 @@ the index.
 
 **Convention:** a plan is one issue (or PR when no issue exists). The issue body
 is the plan of record and follows the sections
-_What's problem? → What's affected and how? → Definition of Done → Additional
-Notes_. Each commit carries `[ai:y][#<issue>] <type>(<scope>): <subject> (#<pr>)`.
-This directory makes the plan survive even if the tracker does not.
+_What problem does this solve? → What is the user facing? → How will I solve it?
+→ Done when → Risks & notes_, matching the repo templates in `.github/`. Write
+each paragraph on one line; never hard-wrap the body. Each commit carries
+`[ai:y][#<issue>] <type>(<scope>): <subject> (#<pr>)`. This directory makes the
+plan survive even if the tracker does not.
 
 **Fresh session:** read the most recent plans under `backend/`-tagged areas to
 learn the current architecture, then `AGENTS.md` + `docs/agent/`.
