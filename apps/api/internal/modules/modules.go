@@ -7,6 +7,7 @@ package modules
 import (
 	"fmt"
 
+	"noxis/internal/common/metrics"
 	"noxis/internal/constants"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules/auth"
@@ -30,29 +31,44 @@ type Registry interface {
 	Serves(driver string) (interfaces.Module, bool)
 	// Auth is the process auth service: local accounts plus OIDC.
 	Auth() *auth.Service
+	// Changes is every family's change queue, so a use case reaches the flow it
+	// serves the same way it reaches an engine.
+	Changes() interfaces.ChangeFlows
 }
 
-// New wraps a family map and the auth service in a registry (Default builds the
-// built-in set).
-func New(mods map[string]interfaces.Module, authSvc *auth.Service) Registry {
-	return registry{mods: mods, auth: authSvc}
+// New wraps a family map, the change queues and the auth service in a registry
+// (Default builds the built-in set).
+func New(mods map[string]interfaces.Module, changes interfaces.ChangeFlows, authSvc *auth.Service) Registry {
+	return registry{mods: mods, changes: changes, auth: authSvc}
 }
 
-// Default builds the built-in engine-family registry with the auth service.
-func Default(authSvc *auth.Service) Registry {
-	return New(map[string]interfaces.Module{
-		constants.FamilySQL:      sql.New(),
-		constants.FamilyMemcache: memcache.New(),
-		constants.FamilyMongo:    mongodb.New(),
-	}, authSvc)
+// Default builds the built-in registry: every engine family, its change queue
+// and the auth service, so nothing else declares what the process can do.
+func Default(connections interfaces.ConnectionRepository, store interfaces.ChangeRepository, m *metrics.Metrics, authSvc *auth.Service) Registry {
+	sqlDB, mongoDB := sql.New(), mongodb.New()
+	return New(
+		map[string]interfaces.Module{
+			constants.FamilySQL:      sqlDB,
+			constants.FamilyMemcache: memcache.New(),
+			constants.FamilyMongo:    mongoDB,
+		},
+		interfaces.ChangeFlows{
+			SQL:   sql.NewChanges(connections, store, sqlDB, m),
+			Mongo: mongodb.NewChanges(connections, store, mongoDB, m),
+		},
+		authSvc,
+	)
 }
 
 type registry struct {
-	mods map[string]interfaces.Module
-	auth *auth.Service
+	mods    map[string]interfaces.Module
+	changes interfaces.ChangeFlows
+	auth    *auth.Service
 }
 
 func (r registry) Auth() *auth.Service { return r.auth }
+
+func (r registry) Changes() interfaces.ChangeFlows { return r.changes }
 
 func (r registry) Engine(name string) (interfaces.Module, error) {
 	mod, ok := r.mods[name]

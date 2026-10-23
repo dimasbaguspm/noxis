@@ -39,7 +39,9 @@ annotation block updated and `make swagger` run if the route changed.
 Shared logic lives in a package helper, not by calling another use case. Errors
 wrapped with `%w`; sentinel compares with `errors.Is`.
 
-**Modules** — implements an `interfaces.*Module`; has the `var _ interfaces.X`
+**Modules** — owns the domain rules for its area (`sql.Changes` and
+`mongodb.Changes` are the change lifecycle). A rule inside a `Serve` that is not
+about HTTP is a finding: it belongs in the module. Implements an `interfaces.*Module`; has the `var _ interfaces.X`
 satisfier; no engine-specific literal outside `apps/api/internal/constants`; times out
 every network call.
 

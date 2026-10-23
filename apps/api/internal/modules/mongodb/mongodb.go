@@ -56,6 +56,9 @@ var _ interfaces.MongoModule = (*DB)(nil)
 // Family is the namespace this module serves.
 func (m *DB) Family() string { return constants.FamilyMongo }
 
+// IsWrite reports whether an op mutates documents.
+func (m *DB) IsWrite(op string) bool { return IsWrite(op) }
+
 // Supports reports whether this module serves the driver.
 func (m *DB) Supports(driver string) bool {
 	return strings.EqualFold(driver, constants.DriverMongo) || strings.EqualFold(driver, "mongodb")

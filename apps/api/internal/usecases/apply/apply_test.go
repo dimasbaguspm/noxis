@@ -15,6 +15,7 @@ import (
 	"noxis/internal/interfaces"
 	"noxis/internal/mocks"
 	"noxis/internal/modules"
+	"noxis/internal/modules/sql"
 	"noxis/internal/repositories"
 	"noxis/internal/common/testkit"
 	"noxis/internal/usecases"
@@ -67,9 +68,14 @@ func newHarness(t *testing.T, store ...entity.Change) *harness {
 	}).AnyTimes()
 	h.sq.EXPECT().Family().Return(constants.FamilySQL).AnyTimes()
 	h.sq.EXPECT().Supports(constants.DriverPostgres).Return(true).AnyTimes()
+	registry := modules.New(
+		map[string]interfaces.Module{constants.FamilySQL: h.sq},
+		interfaces.ChangeFlows{SQL: sql.NewChanges(conns, h.changes, h.sq, nil)},
+		nil,
+	)
 	h.deps = usecases.RegistryDeps{
 		Registry: repositories.Registry{Connections: conns, Changes: h.changes},
-		Modules:  modules.New(map[string]interfaces.Module{constants.FamilySQL: h.sq}, nil),
+		Modules:  registry,
 	}
 	return h
 }

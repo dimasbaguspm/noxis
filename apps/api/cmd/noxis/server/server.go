@@ -18,7 +18,6 @@ import (
 	"noxis/internal/common/config"
 	"noxis/internal/constants"
 	"noxis/internal/interfaces"
-	"noxis/internal/modules"
 	"noxis/internal/modules/auth"
 	"noxis/internal/repositories/sqlite"
 )
@@ -35,8 +34,9 @@ func newDeps(store *sqlite.Store, cfg config.Config, authSvc *auth.Service) app 
 		Users:          store,
 		AccessEvents:   store,
 		AccessRequests: store,
-		Modules:        modules.Default(authSvc),
+		Modules:        nil, // built in newApp, where the instruments exist
 		Auth:           cfg.AuthInfo(),
+		AuthService:    authSvc,
 	})
 }
 

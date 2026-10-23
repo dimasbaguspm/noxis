@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"context"
+	"errors"
 
 	"noxis/internal/entity"
 )
@@ -38,6 +39,16 @@ type SQLModule interface {
 	Rows(ctx context.Context, c entity.Connection, schema, table string, limit int) (Result, error)
 	VerifyWrite(sqlText string) error
 	Kind(sqlText string) string
+	// Referenced reports the tables and columns a batch mentions, so a change
+	// records what it touches without the caller parsing SQL.
+	Referenced(sqlText string) (tables []string, columns []string)
 }
+
+// ErrUnverifiable reports that a change cannot be dry-run on this driver
+// (mysql commits DDL implicitly), so validation is skipped honestly.
+var ErrUnverifiable = errors.New("unverifiable on this driver")
+
+// IsUnverifiable reports the driver-cannot-dry-run case.
+func IsUnverifiable(err error) bool { return errors.Is(err, ErrUnverifiable) }
 
 // Satisfier.
