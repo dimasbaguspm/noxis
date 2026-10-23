@@ -19,7 +19,7 @@
   ],
   "connection": "demo",
   "createdAt": "<ts>",
-  "createdBy": "local:admin",
+  "createdBy": "local:root@noxis.local",
   "estDurationMs": 0,
   "id": "<id>",
   "kind": "ddl",

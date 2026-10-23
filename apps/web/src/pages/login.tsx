@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { H1 } from "@/components/ui/typography";
 
 const credentialsSchema = z.object({
-  username: z.string().trim().min(1, "username is required"),
+  email: z.email("enter a valid email address"),
   password: z.string().min(1, "password is required"),
 });
 type Credentials = z.infer<typeof credentialsSchema>;
@@ -29,7 +29,7 @@ export default function LoginPage({ className, ...props }: React.ComponentProps<
     formState: { errors, isSubmitting },
   } = useForm<Credentials>({
     resolver: zodResolver(credentialsSchema),
-    defaultValues: { username: "", password: "" },
+    defaultValues: { email: "", password: "" },
   });
 
   if (authenticated) return <Navigate to="/" replace />;
@@ -37,7 +37,7 @@ export default function LoginPage({ className, ...props }: React.ComponentProps<
   const onValid = handleSubmit(async (values) => {
     setError(null);
     try {
-      await localLogin(values.username, values.password);
+      await localLogin(values.email, values.password);
       window.location.assign("/"); // reload so the provider bootstraps the identity
     } catch (err) {
       setError(err instanceof Error ? err.message : "sign in failed");
@@ -64,15 +64,16 @@ export default function LoginPage({ className, ...props }: React.ComponentProps<
           <form onSubmit={onValid}>
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="login-username">Username</FieldLabel>
+                <FieldLabel htmlFor="login-email">Email</FieldLabel>
                 <Input
-                  id="login-username"
-                  autoComplete="username"
+                  id="login-email"
+                  type="email"
+                  autoComplete="email"
                   autoFocus
-                  aria-invalid={!!errors.username}
-                  {...register("username")}
+                  aria-invalid={!!errors.email}
+                  {...register("email")}
                 />
-                <FieldError errors={[errors.username]} />
+                <FieldError errors={[errors.email]} />
               </Field>
               <Field>
                 <FieldLabel htmlFor="login-password">Password</FieldLabel>

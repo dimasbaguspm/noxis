@@ -64,7 +64,8 @@ func Open(ctx context.Context, path, secretKey string) (*Store, error) {
 		db.Close()
 		return nil, fmt.Errorf("schema: %w", err)
 	}
-	// pre-existing volumes: add columns introduced after the first release
+	// pre-existing volumes: add columns introduced after the first release.
+	// Each step is independent and best-effort; duplicates are ignored.
 	for _, ddl := range migrations {
 		_, _ = db.Exec(ddl)
 	}
@@ -151,6 +152,11 @@ var migrations = []string{
 	`ALTER TABLE connections ADD COLUMN id TEXT NOT NULL DEFAULT ''`,
 	`ALTER TABLE users ADD COLUMN last_login_at INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE users ADD COLUMN is_super INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT ''`,
+	// legacy local accounts were namespaced by username: keep it as the email
+	// so the account keeps signing in by the name it was created with
+	`UPDATE users SET email = username WHERE email = '' AND username != ''`,
+	`CREATE UNIQUE INDEX IF NOT EXISTS users_email ON users(email) WHERE email != ''`,
 	`ALTER TABLE permissions ADD COLUMN expires_at INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE permissions ADD COLUMN created_by TEXT NOT NULL DEFAULT ''`,
 	`ALTER TABLE permissions ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0`,
@@ -258,6 +264,7 @@ CREATE TABLE IF NOT EXISTS permissions (
 
 CREATE TABLE IF NOT EXISTS users (
   subject          TEXT PRIMARY KEY,
+  email            TEXT NOT NULL DEFAULT '',
   username         TEXT NOT NULL DEFAULT '',
   password         TEXT NOT NULL DEFAULT '',
   groups           TEXT NOT NULL DEFAULT '[]',
@@ -265,11 +272,12 @@ CREATE TABLE IF NOT EXISTS users (
   disabled         INTEGER NOT NULL DEFAULT 0,
   token_hash       TEXT NOT NULL DEFAULT '',
   token_expires_at INTEGER NOT NULL DEFAULT 0,
+  last_login_at    INTEGER NOT NULL DEFAULT 0,
   created_at       INTEGER NOT NULL,
   updated_at       INTEGER NOT NULL
 );
 
--- local accounts log in by name; OIDC reference rows have no username
+-- a local account may be named; OIDC reference rows have no username
 CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users(username) WHERE username != '';
 -- one active token per account; empty means logged out
 CREATE UNIQUE INDEX IF NOT EXISTS users_token_hash ON users(token_hash) WHERE token_hash != '';`

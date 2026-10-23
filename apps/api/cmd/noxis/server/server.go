@@ -162,7 +162,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 	log.InfoContext(ctx, "noxis serving", "addr", cfg.Listen, "db", cfg.DB)
 
 	d := newDeps(store, cfg, authSvc)
-	if err := d.Modules.Auth().EnsureRoot(ctx, cfg.AdminUsername, cfg.AdminPassword); err != nil {
+	if err := d.Modules.Auth().EnsureRoot(ctx, cfg.AdminEmail, cfg.AdminPassword); err != nil {
 		return err
 	}
 

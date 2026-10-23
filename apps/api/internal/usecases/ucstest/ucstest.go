@@ -109,6 +109,14 @@ func (f *Permissions) ListPermissions(context.Context, string) ([]entity.Permiss
 	return out, nil
 }
 
+func (f *Permissions) ListAllPermissions(context.Context) ([]entity.Permission, error) {
+	out := make([]entity.Permission, 0, len(f.M))
+	for _, p := range f.M {
+		out = append(out, p)
+	}
+	return out, nil
+}
+
 func (f *Permissions) SetPermission(_ context.Context, p entity.Permission) error {
 	f.M[p.Member] = p
 	return nil
@@ -167,11 +175,13 @@ func (f *Users) GetUser(_ context.Context, subject string) (*entity.User, error)
 	return f.find(func(u *entity.User) bool { return u.Subject == subject })
 }
 
-func (f *Users) GetUserByUsername(_ context.Context, username string) (*entity.User, error) {
-	if username == "" {
+func (f *Users) GetUserByLogin(_ context.Context, login string) (*entity.User, error) {
+	if login == "" {
 		return nil, constants.ErrNotFound
 	}
-	return f.find(func(u *entity.User) bool { return u.Username == username })
+	return f.find(func(u *entity.User) bool {
+		return u.Password != "" && (u.Email == login || (u.Username != "" && u.Username == login))
+	})
 }
 
 func (f *Users) EnsureSubject(ctx context.Context, subject string) error {

@@ -25,7 +25,7 @@ registers the routes and starts the server with a 10s graceful shutdown.
 | `NOXIS_LISTEN` | REST listen addr (default `:9000`) |
 | `NOXIS_DB` | SQLite path (default `/data/noxis.db`) |
 | `NOXIS_SECRET_KEY` | 64 hex chars / 32 bytes; **required** |
-| `NOXIS_ADMIN_USERNAME` / `NOXIS_ADMIN_PASSWORD` | root local admin; required only while no accounts exist |
+| `NOXIS_ADMIN_EMAIL` / `NOXIS_ADMIN_PASSWORD` | the root super admin's email (it also blends the same-email OIDC login) and password; the password is required only while that account does not exist |
 | `NOXIS_SCHEDULER_API_KEY` | external scheduler: shared api key (bearer) |
 | `NOXIS_SCHEDULER_SECRET` | external scheduler: HMAC secret signing the trigger |
 | `NOXIS_OTEL_COLLECTOR` | OTLP/HTTP endpoint URL (optional); `https://` uses TLS, a bare `host:port` is plaintext, and the signal path is added when the URL has no path. Set: traces, logs and metrics are exported and logs skip stdout. Unset: logs stay JSON on stdout |

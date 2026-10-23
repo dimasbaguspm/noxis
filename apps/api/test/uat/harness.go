@@ -49,7 +49,7 @@ var (
 	// Read from the compose file by loadTargets, so the suite and the stack share
 	// one source of truth for the base URL and the credentials.
 	baseURL         string
-	adminUser       string
+	adminEmail      string
 	adminPassword   string
 	schedulerKey    string
 	schedulerSecret string
@@ -80,19 +80,19 @@ type world struct {
 	client    kit.Client
 	snapshots kit.Snapshots
 	headers   map[string]string // per-scenario header overrides
-	cookies []*http.Cookie    // per-scenario cookies
-	resp    kit.Response      // the last response
-	code    int               // resp.Status, kept for the existing assertions
-	body    string            // resp.String(), kept for the existing assertions
+	cookies   []*http.Cookie    // per-scenario cookies
+	resp      kit.Response      // the last response
+	code      int               // resp.Status, kept for the existing assertions
+	body      string            // resp.String(), kept for the existing assertions
 
 	conn      string // connection name under test
 	host      string // the compose service backing that connection
 	targetKey string // the key into targets for that connection
 	changeID  string
-	key      redisKey // the redis key a scenario picked out of a browse
-	page     redisPage
-	result   resultBody
-	change   changeBody
+	key       redisKey // the redis key a scenario picked out of a browse
+	page      redisPage
+	result    resultBody
+	change    changeBody
 
 	database       mongoDatabase   // the mongo database a scenario picked out
 	collection     mongoCollection // the mongo collection a scenario picked out
@@ -194,14 +194,14 @@ func stackUp() error {
 	return login()
 }
 
-// login exchanges the dev root admin for a session token; every /v1 call needs
+// login exchanges the dev root super admin for a session token; every /v1 call needs
 // it now that there is no open mode.
 func login() error {
 	c := kit.Client{BaseURL: baseURL}
 	resp, err := c.Send(kit.Request{
 		Method: http.MethodPost,
 		Path:   "/external/v1/auth/login",
-		Body:   []byte(`{"username":"` + adminUser + `","password":"` + adminPassword + `"}`),
+		Body:   []byte(`{"email":"` + adminEmail + `","password":"` + adminPassword + `"}`),
 	})
 	if err != nil {
 		return err

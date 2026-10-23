@@ -63,7 +63,7 @@ rollback actually undoes the change, and keeps the whole story afterward.
 docker run -d --name noxis -p 9000:9000 \
   -v noxis-data:/data \
   -e NOXIS_SECRET_KEY="$(openssl rand -hex 32)" \
-  -e NOXIS_ADMIN_USERNAME=admin \
+  -e NOXIS_ADMIN_EMAIL=root@example.com \
   -e NOXIS_ADMIN_PASSWORD=change-me \
   ghcr.io/dimasbaguspm/noxis:nightly
 ```
@@ -76,7 +76,7 @@ Working on noXis itself, or want a throwaway stack to play with?
 make dev        # noxis + a demo postgres, redis, valkey, mongo and mariadb
 ```
 
-The dev stack seeds a root admin (`admin` / `noxis-admin`).
+The dev stack seeds the root super admin (`root@noxis.local` / `noxis-admin`).
 
 ### Drive it from the API
 
@@ -86,7 +86,7 @@ Every call needs the bearer token from `POST /external/v1/auth/login`:
 ```bash
 TOKEN=$(curl -s localhost:9000/external/v1/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"username":"admin","password":"noxis-admin"}' | jq -r .token)
+  -d '{"email":"root@noxis.local","password":"noxis-admin"}' | jq -r .token)
 
 curl -s -X POST localhost:9000/external/v1/engine/sql/connections/demo/query \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
@@ -122,8 +122,15 @@ Valkey server to keep that claim honest.
 ## Authentication
 
 Every `/external/v1/*` call needs a bearer token; there is no open mode. Local
-accounts are the default (bcrypt passwords, one opaque session token each).
-OIDC can run alongside them (`NOXIS_OIDC_ISSUER`, `NOXIS_OIDC_CLIENT_ID`, …).
+accounts sign in with an email and password (bcrypt, one opaque session token
+each); the env root is the account created on first boot from
+`NOXIS_ADMIN_EMAIL` + `NOXIS_ADMIN_PASSWORD`. OIDC can run alongside them
+(`NOXIS_OIDC_ISSUER`, `NOXIS_OIDC_CLIENT_ID`, …).
+
+Upgrading from `NOXIS_ADMIN_USERNAME`: set `NOXIS_ADMIN_EMAIL` and, once,
+`NOXIS_ADMIN_PASSWORD`; on an existing store the new root is created and the old
+root account is demoted.
+
 Access is per connection — `read` < `write` < `admin` — granted to users or
 groups, default deny.
 

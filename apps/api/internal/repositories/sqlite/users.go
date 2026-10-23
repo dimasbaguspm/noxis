@@ -14,7 +14,7 @@ import (
 )
 
 // userColumns is the shared SELECT list, so every scan stays in step.
-const userColumns = `subject, username, password, groups, is_super, disabled, last_login_at, created_at`
+const userColumns = `subject, email, username, password, groups, is_super, disabled, last_login_at, created_at`
 
 // CountUsers reports how many accounts exist.
 func (s *Store) CountUsers(ctx context.Context) (n int, err error) {
@@ -33,12 +33,17 @@ func (s *Store) GetUser(ctx context.Context, subject string) (u *entity.User, er
 	return scanUser(s.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE subject = ?`, subject))
 }
 
-// GetUserByUsername returns a local account by login name. OIDC reference rows
-// have no username, so they never match.
-func (s *Store) GetUserByUsername(ctx context.Context, username string) (u *entity.User, err error) {
+// GetUserByLogin returns a local account by the identifier its owner types to
+// sign in: the email, or the username for an account created with one.
+func (s *Store) GetUserByLogin(ctx context.Context, login string) (u *entity.User, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	return scanUser(s.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE username = ? AND username != ''`, username))
+	if login == "" {
+		return nil, constants.ErrNotFound
+	}
+	return scanUser(s.db.QueryRowContext(ctx,
+		`SELECT `+userColumns+` FROM users WHERE (email = ? OR (username = ? AND username != '')) AND password != ''`,
+		login, login))
 }
 
 // ListUsers returns every account, local names first, for the permission
@@ -55,7 +60,7 @@ func (s *Store) ListUsers(ctx context.Context) (out []entity.User, err error) {
 	for rows.Next() {
 		var u entity.User
 		var groups string
-		if err := rows.Scan(&u.Subject, &u.Username, &u.Password, &groups, &u.Super, &u.Disabled, &u.LastLoginAt, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.Subject, &u.Email, &u.Username, &u.Password, &groups, &u.Super, &u.Disabled, &u.LastLoginAt, &u.CreatedAt); err != nil {
 			return nil, err
 		}
 		u.Groups = decodeGroups(groups)
@@ -90,15 +95,16 @@ func (s *Store) SaveUser(ctx context.Context, u entity.User) (err error) {
 	}
 	now := time.Now().Unix()
 	if _, err := s.db.ExecContext(ctx, `
-		INSERT INTO users (subject, username, password, groups, is_super, disabled, last_login_at, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO users (subject, email, username, password, groups, is_super, disabled, last_login_at, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(subject) DO UPDATE SET
+			email = excluded.email,
 			username = excluded.username,
 			password = excluded.password,
 			groups = excluded.groups,
 			disabled = excluded.disabled,
 			updated_at = excluded.updated_at`,
-		u.Subject, u.Username, u.Password, encodeGroups(u.Groups), u.Super, u.Disabled, u.LastLoginAt, now, now); err != nil {
+		u.Subject, u.Email, u.Username, u.Password, encodeGroups(u.Groups), u.Super, u.Disabled, u.LastLoginAt, now, now); err != nil {
 		return fmt.Errorf("save user %s: %w", u.Subject, err)
 	}
 	return nil
@@ -152,7 +158,7 @@ func (s *Store) UserByToken(ctx context.Context, tokenHash string, now int64) (u
 		 WHERE token_hash = ? AND token_expires_at > ? AND disabled = 0`, tokenHash, now))
 }
 
-// SetLastLogin records a successful login. It is informational only.
+// SetUserDisabled disables or re-enables an account.
 func (s *Store) SetUserDisabled(ctx context.Context, subject string, disabled bool) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -199,7 +205,7 @@ func (s *Store) SetSoleSuper(ctx context.Context, subject string) (err error) {
 func scanUser(row *sql.Row) (*entity.User, error) {
 	u := &entity.User{}
 	var groups string
-	if err := row.Scan(&u.Subject, &u.Username, &u.Password, &groups, &u.Super, &u.Disabled, &u.LastLoginAt, &u.CreatedAt); err != nil {
+	if err := row.Scan(&u.Subject, &u.Email, &u.Username, &u.Password, &groups, &u.Super, &u.Disabled, &u.LastLoginAt, &u.CreatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, constants.ErrNotFound
 		}
