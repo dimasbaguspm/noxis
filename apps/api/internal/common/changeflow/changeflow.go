@@ -33,30 +33,30 @@ func (f Flow) Family() string { return f.family }
 
 // Approve signs off a validated change. Unverified is allowed on purpose: some
 // drivers cannot dry-run DDL, and the reviewer approves with eyes open.
-func (f Flow) Approve(ctx context.Context, ch *entity.Change) error {
+func (f Flow) Approve(ctx context.Context, ch *entity.Change, actor string) error {
 	if ch.Status != constants.ChangeValidated && ch.Status != constants.ChangeUnverified {
 		return fmt.Errorf("change is %s, not validated — cannot approve", ch.Status)
 	}
-	ch.Status, ch.ApprovedAt = constants.ChangeApproved, time.Now().Unix()
+	ch.Status, ch.ApprovedAt, ch.ApprovedBy = constants.ChangeApproved, time.Now().Unix(), actor
 	return f.Save(ctx, ch)
 }
 
 // Reject closes a change without running it. An applied change is history: it
 // stays applied.
-func (f Flow) Reject(ctx context.Context, ch *entity.Change) error {
+func (f Flow) Reject(ctx context.Context, ch *entity.Change, actor string) error {
 	if ch.Status == constants.ChangeApplying {
 		return constants.ErrConflict
 	}
 	if ch.Status == constants.ChangeApplied {
 		return fmt.Errorf("change already applied — it cannot be rejected")
 	}
-	ch.Status, ch.RejectedAt = constants.ChangeRejected, time.Now().Unix()
+	ch.Status, ch.RejectedAt, ch.RejectedBy = constants.ChangeRejected, time.Now().Unix(), actor
 	return f.Save(ctx, ch)
 }
 
 // Schedule sets (or, with 0, clears) an approved change's slot. A slot in the
 // past would never be due, so it is refused rather than silently ignored.
-func (f Flow) Schedule(ctx context.Context, ch *entity.Change, at int64) error {
+func (f Flow) Schedule(ctx context.Context, ch *entity.Change, at int64, actor string) error {
 	if ch.Status == constants.ChangeApplying {
 		return constants.ErrConflict
 	}
@@ -66,20 +66,20 @@ func (f Flow) Schedule(ctx context.Context, ch *entity.Change, at int64) error {
 	if at > 0 && at <= time.Now().Unix() {
 		return fmt.Errorf("scheduled time must be in the future")
 	}
-	ch.ScheduledAt = at
+	ch.ScheduledAt, ch.ScheduledBy = at, actor
 	return f.Save(ctx, ch)
 }
 
 // Claim atomically reserves an approved change before an engine write.
-func (f Flow) Claim(ctx context.Context, ch *entity.Change, at int64) error {
-	claimed, err := f.Store.ClaimChange(ctx, ch.ID, at)
+func (f Flow) Claim(ctx context.Context, ch *entity.Change, at int64, actor string) error {
+	claimed, err := f.Store.ClaimChange(ctx, ch.ID, at, actor)
 	if err != nil {
 		return err
 	}
 	if !claimed {
 		return constants.ErrConflict
 	}
-	ch.Status, ch.ApplyingAt = constants.ChangeApplying, at
+	ch.Status, ch.ApplyingAt, ch.AppliedBy = constants.ChangeApplying, at, actor
 	return nil
 }
 

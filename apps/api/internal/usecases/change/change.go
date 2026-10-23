@@ -238,7 +238,7 @@ type Approve struct{ usecases.RegistryDeps }
 func (uc Approve) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	decide(ctx, uc.RegistryDeps, w, r, func(ch *entity.Change) error { return uc.Modules.Changes().SQL.Approve(ctx, ch) })
+	decide(ctx, uc.RegistryDeps, w, r, func(ch *entity.Change) error { return uc.Modules.Changes().SQL.Approve(ctx, ch, entity.Actor(ctx)) })
 }
 
 // Reject rejects a change (kept as an artifact, never deleted).
@@ -255,7 +255,7 @@ type Reject struct{ usecases.RegistryDeps }
 func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	decide(ctx, uc.RegistryDeps, w, r, func(ch *entity.Change) error { return uc.Modules.Changes().SQL.Reject(ctx, ch) })
+	decide(ctx, uc.RegistryDeps, w, r, func(ch *entity.Change) error { return uc.Modules.Changes().SQL.Reject(ctx, ch, entity.Actor(ctx)) })
 }
 
 // decide is the shared shape of a decision route: resolve the family, load the
@@ -304,9 +304,9 @@ func (uc Schedule) Serve(w http.ResponseWriter, r *http.Request) {
 	}
 	decide(ctx, uc.RegistryDeps, w, r, func(ch *entity.Change) error {
 		if ch.Kind == constants.KindMongo {
-			return uc.Modules.Changes().Mongo.Schedule(ctx, ch, body.ScheduledAt)
+			return uc.Modules.Changes().Mongo.Schedule(ctx, ch, body.ScheduledAt, entity.Actor(ctx))
 		}
-		return uc.Modules.Changes().SQL.Schedule(ctx, ch, body.ScheduledAt)
+		return uc.Modules.Changes().SQL.Schedule(ctx, ch, body.ScheduledAt, entity.Actor(ctx))
 	})
 }
 

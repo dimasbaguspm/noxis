@@ -51,7 +51,7 @@ func (uc Apply) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	out, err := flow.Apply(ctx, ch)
+	out, err := flow.Apply(ctx, ch, entity.Actor(ctx))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -102,7 +102,7 @@ func (uc Tick) Serve(w http.ResponseWriter, r *http.Request) {
 		if flow == nil {
 			continue // a registry that serves no queue for this family
 		}
-		out, err := flow.Tick(ctx, time.Now().Unix())
+		out, err := flow.Tick(ctx, time.Now().Unix(), constants.SchedulerActor)
 		if err != nil {
 			uc.Fail(ctx, w, err)
 			return

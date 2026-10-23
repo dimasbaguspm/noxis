@@ -1693,12 +1693,16 @@ components:
           type: integer
         appliedAt:
           type: integer
+        appliedBy:
+          type: string
         appliedDurationMs:
           type: integer
         applyingAt:
           type: integer
         approvedAt:
           type: integer
+        approvedBy:
+          type: string
         checks:
           type: array
           items:
@@ -1725,6 +1729,8 @@ components:
           type: string
         rejectedAt:
           type: integer
+        rejectedBy:
+          type: string
         rollback:
           type: string
         scheduledAt:
@@ -1732,6 +1738,8 @@ components:
             ScheduledAt is the unix time the change should run; 0 means execute
             immediately (on manual apply, as before).
           type: integer
+        scheduledBy:
+          type: string
         scratchSchema:
           type: string
         status:

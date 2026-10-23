@@ -12,13 +12,13 @@ import (
 type ChangeFlow interface {
 	// Family is the engine family this flow serves.
 	Family() string
-	Approve(ctx context.Context, ch *entity.Change) error
-	Reject(ctx context.Context, ch *entity.Change) error
-	Schedule(ctx context.Context, ch *entity.Change, at int64) error
+	Approve(ctx context.Context, ch *entity.Change, actor string) error
+	Reject(ctx context.Context, ch *entity.Change, actor string) error
+	Schedule(ctx context.Context, ch *entity.Change, at int64, actor string) error
 	// Apply runs an approved change and records the outcome on it.
-	Apply(ctx context.Context, ch *entity.Change) (entity.Change, error)
+	Apply(ctx context.Context, ch *entity.Change, actor string) (entity.Change, error)
 	// Tick applies every due scheduled change of this family.
-	Tick(ctx context.Context, now int64) (entity.TickResult, error)
+	Tick(ctx context.Context, now int64, actor string) (entity.TickResult, error)
 }
 
 // SQLChangeFlow submits SQL batches on top of ChangeFlow.

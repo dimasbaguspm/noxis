@@ -191,6 +191,10 @@ var migrations = []string{
 	  note       TEXT NOT NULL DEFAULT ''
 	)`,
 	`ALTER TABLE changes ADD COLUMN applying_at INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE changes ADD COLUMN approved_by TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE changes ADD COLUMN applied_by TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE changes ADD COLUMN rejected_by TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE changes ADD COLUMN scheduled_by TEXT NOT NULL DEFAULT ''`,
 }
 
 // backfillConnectionIDs gives every pre-migration row a stable id. New rows
@@ -234,14 +238,18 @@ CREATE TABLE IF NOT EXISTS changes (
   created_at  INTEGER NOT NULL,
   created_by  TEXT NOT NULL DEFAULT '',
   approved_at INTEGER NOT NULL DEFAULT 0,
+  approved_by TEXT NOT NULL DEFAULT '',
   applying_at INTEGER NOT NULL DEFAULT 0,
   applied_at  INTEGER NOT NULL DEFAULT 0,
+  applied_by  TEXT NOT NULL DEFAULT '',
   rejected_at INTEGER NOT NULL DEFAULT 0,
+  rejected_by TEXT NOT NULL DEFAULT '',
   est_duration_ms INTEGER NOT NULL DEFAULT 0,
   est_affected    INTEGER NOT NULL DEFAULT 0,
   applied_affected   INTEGER NOT NULL DEFAULT 0,
   applied_duration_ms INTEGER NOT NULL DEFAULT 0,
   scheduled_at INTEGER NOT NULL DEFAULT 0,
+  scheduled_by TEXT NOT NULL DEFAULT '',
   affected_tables  TEXT NOT NULL DEFAULT '[]',
   affected_columns TEXT NOT NULL DEFAULT '[]'
 );

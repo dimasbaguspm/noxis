@@ -10,14 +10,14 @@ import (
 
 	"go.uber.org/mock/gomock"
 
+	"noxis/internal/common/testkit"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 	"noxis/internal/mocks"
 	"noxis/internal/modules"
 	"noxis/internal/modules/sql"
-	"noxis/internal/interfaces"
 	"noxis/internal/repositories"
-	"noxis/internal/common/testkit"
 	"noxis/internal/usecases"
 )
 
@@ -115,7 +115,7 @@ func TestSubmitThenApprove(t *testing.T) {
 	}
 	var approved entity.Change
 	_ = json.Unmarshal(rec.Body.Bytes(), &approved)
-	if approved.Status != constants.ChangeApproved || approved.ApprovedAt == 0 {
+	if approved.Status != constants.ChangeApproved || approved.ApprovedAt == 0 || approved.ApprovedBy != "root" {
 		t.Fatalf("approve result: %+v", approved)
 	}
 }

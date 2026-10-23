@@ -33,7 +33,7 @@ The reviewed-change artifact. Never deleted. `status` ∈
 the remote outcome is unknown, so the scheduler never retries it automatically.
 Keep it visible for manual investigation; do not reset it without confirming the
 target outcome. The row also carries checks, estimates and actuals, scratch schema,
-affected identifiers, schedule, creator, and review/apply timestamps.
+affected identifiers, `scheduled_by`, `created_by`, `approved_by`, `rejected_by`, `applied_by`, and review/apply timestamps.
 
 ### `permissions`
 `(connection, member, member_type, level)` PK `(connection, member)`. `member` is

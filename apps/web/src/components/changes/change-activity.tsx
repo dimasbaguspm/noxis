@@ -30,18 +30,44 @@ export function ChangeActivity({ change }: { change: Change }) {
     },
   ];
   if (change.rejectedAt) {
-    steps.push({ label: "Rejected", at: change.rejectedAt, icon: CircleSlash, tone: "text-destructive" });
+    steps.push({
+      label: "Rejected",
+      at: change.rejectedAt,
+      icon: CircleSlash,
+      tone: "text-destructive",
+      hint: change.rejectedBy ? `by ${change.rejectedBy}` : undefined,
+    });
   }
   if (change.approvedAt) {
-    steps.push({ label: "Approved", at: change.approvedAt, icon: ShieldCheck, tone: "text-amber-500" });
-  }
-  if (change.scheduledAt) {
     steps.push({
-      label: "Scheduled",
+      label: "Approved",
+      at: change.approvedAt,
+      icon: ShieldCheck,
+      tone: "text-amber-500",
+      hint: change.approvedBy ? `by ${change.approvedBy}` : undefined,
+    });
+  }
+  if (change.scheduledAt || change.scheduledBy) {
+    steps.push({
+      label: change.scheduledAt ? "Scheduled" : "Schedule cleared",
       at: change.scheduledAt,
       icon: Clock,
       tone: "text-muted-foreground",
-      hint: change.appliedAt ? "ran on the scheduled tick" : "runs on the next tick",
+      hint: [
+        change.scheduledBy && `by ${change.scheduledBy}`,
+        change.scheduledAt && (change.appliedAt ? "ran on the scheduled tick" : "runs on the next tick"),
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    });
+  }
+  if (change.status === "applying") {
+    steps.push({
+      label: "Applying",
+      at: change.applyingAt,
+      icon: Clock,
+      tone: "text-amber-500",
+      hint: change.appliedBy ? `claimed by ${change.appliedBy}; outcome may be unknown` : "outcome may be unknown",
     });
   }
   if (change.appliedAt) {
@@ -50,11 +76,19 @@ export function ChangeActivity({ change }: { change: Change }) {
       at: change.appliedAt,
       icon: Play,
       tone: "text-emerald-500",
-      hint: `${change.appliedDurationMs ?? 0} ms · ${change.appliedAffected ?? 0} row(s) affected`,
+      hint: [change.appliedBy && `by ${change.appliedBy}`, `${change.appliedDurationMs ?? 0} ms · ${change.appliedAffected ?? 0} row(s) affected`]
+        .filter(Boolean)
+        .join(" · "),
     });
   }
   if (change.status === "failed") {
-    steps.push({ label: "Failed", at: change.appliedAt ?? change.createdAt, icon: Undo2, tone: "text-destructive" });
+    steps.push({
+      label: "Failed",
+      at: change.applyingAt ?? change.createdAt,
+      icon: Undo2,
+      tone: "text-destructive",
+      hint: change.appliedBy ? `attempted by ${change.appliedBy}` : undefined,
+    });
   }
 
   return (
