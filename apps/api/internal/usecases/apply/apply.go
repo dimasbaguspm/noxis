@@ -166,13 +166,6 @@ func applyChange(ctx context.Context, d usecases.RegistryDeps, ch entity.Change)
 	return out, nil
 }
 
-// TickResult is one scheduler pass: the ids it applied and the ids it failed
-// to apply (the failure is already recorded on the change itself).
-type TickResult struct {
-	Applied []string `json:"applied"`
-	Failed  []string `json:"failed"`
-}
-
 // dueChange reports whether an approved change is scheduled and its slot has
 // arrived. An immediate change (no schedule) is never due: the operator
 // applies it by hand.
@@ -184,7 +177,7 @@ func dueChange(ch entity.Change, now int64) bool {
 type Tick struct{ usecases.RegistryDeps }
 
 // @Summary Apply every due scheduled change (external cron / scheduler)
-// @Success 200 {object} TickResult
+// @Success 200 {object} entity.TickResult
 // @Router /internal/callback/scheduler [post]
 func (uc Tick) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
@@ -194,7 +187,7 @@ func (uc Tick) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	res := TickResult{}
+	res := entity.TickResult{}
 	now := time.Now().Unix()
 	for i := range all {
 		if !dueChange(all[i], now) {

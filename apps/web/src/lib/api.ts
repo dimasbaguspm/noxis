@@ -3,7 +3,7 @@ import { FAMILY, type FamilyKey } from "@/lib/families";
 import { accessToken, authEnabled, clearSession } from "@/lib/auth";
 
 export type Level = "read" | "write" | "admin";
-export type Identity = components["schemas"]["auth.MeResponse"];
+export type Identity = components["schemas"]["entity.MeResponse"];
 
 export type Connection = components["schemas"]["entity.Connection"];
 export type Change = components["schemas"]["entity.Change"];
@@ -23,14 +23,14 @@ export interface MongoChangeInput extends MongoRequest {
 export type MemcacheKey = components["schemas"]["entity.Key"];
 export type MemcacheKeyPage = components["schemas"]["entity.KeyPage"];
 export type Permission = components["schemas"]["entity.Permission"];
-export type MemberUser = components["schemas"]["permission.memberUser"];
+export type MemberUser = components["schemas"]["entity.Member"];
 export type User = components["schemas"]["entity.User"];
 export type UserRole = User["role"];
 export type UserStatus = User["status"];
-export type InstanceAccess = components["schemas"]["permission.InstanceAccess"];
-export type UserDetail = components["schemas"]["user.Detail"];
+export type InstanceAccess = components["schemas"]["entity.InstanceAccess"];
+export type UserDetail = components["schemas"]["entity.UserDetail"];
 export type AccessEvent = components["schemas"]["entity.AccessEvent"];
-export type AccessLevel = components["schemas"]["metadata.LevelInfo"];
+export type AccessLevel = components["schemas"]["entity.LevelInfo"];
 export type AccessRequest = components["schemas"]["entity.AccessRequest"];
 
 // DriverInfo is one entry of the server's hardcoded driver catalog.

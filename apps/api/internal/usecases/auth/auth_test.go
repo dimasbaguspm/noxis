@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"noxis/internal/common/config"
 	"noxis/internal/entity"
 	"noxis/internal/usecases/ucstest"
 )
@@ -27,7 +26,7 @@ func TestMe(t *testing.T) {
 
 func TestConfig(t *testing.T) {
 	f := ucstest.New(&ucstest.SQL{})
-	c := Config{RegistryDeps: f.Deps(), Auth: config.AuthInfo{Local: true}}
+	c := Config{RegistryDeps: f.Deps(), Auth: entity.AuthConfig{Local: true}}
 	rec := ucstest.Do(ucstest.Mux("GET", "/external/v1/auth/config", c.Serve), http.MethodGet, "/external/v1/auth/config", "", nil)
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"local":true`) {
 		t.Fatalf("config status=%d body=%s", rec.Code, rec.Body.String())

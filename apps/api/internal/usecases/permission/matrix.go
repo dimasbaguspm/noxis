@@ -8,23 +8,12 @@ import (
 	"noxis/internal/usecases"
 )
 
-// InstanceAccess is one instance with its whole access policy: who holds what,
-// and until when. It is metadata only — a grant here says nothing about the
-// caller's own reach.
-type InstanceAccess struct {
-	ID          string              `json:"id"`
-	Connection  string              `json:"connection"`
-	Driver      string              `json:"driver"`
-	Family      string              `json:"family"`
-	Permissions []entity.Permission `json:"permissions"`
-}
-
 // Matrix lists every instance with its grants, so an admin can see the access
 // landscape per instance without opening each connection.
 type Matrix struct{ usecases.RegistryDeps }
 
 // @Summary Every instance and its access policy (admin only)
-// @Success 200 {object} object{instances=[]InstanceAccess}
+// @Success 200 {object} entity.InstanceAccessList
 // @Failure 403 {object} entity.ErrorResponse
 // @Router /external/v1/access [get]
 func (uc Matrix) Serve(w http.ResponseWriter, r *http.Request) {
@@ -48,10 +37,10 @@ func (uc Matrix) Serve(w http.ResponseWriter, r *http.Request) {
 	for _, grant := range grants {
 		byConnection[grant.Connection] = append(byConnection[grant.Connection], grant)
 	}
-	out := make([]InstanceAccess, 0, len(connections))
+	out := make([]entity.InstanceAccess, 0, len(connections))
 	for i := range connections {
 		c := &connections[i]
-		row := InstanceAccess{
+		row := entity.InstanceAccess{
 			ID: c.ID, Connection: c.Name, Driver: c.Driver,
 			Permissions: byConnection[c.Name],
 		}
@@ -63,5 +52,5 @@ func (uc Matrix) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 		out = append(out, row)
 	}
-	uc.Respond(w, map[string]any{"instances": out})
+	uc.Respond(w, entity.InstanceAccessList{Instances: out})
 }

@@ -6,32 +6,26 @@ import (
 
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
+	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
 
-// DriverInfo is one entry of the driver catalog the console reads to build its
-// pickers. A driver is code, not data, so the catalog is hardcoded Go-side and
-// this endpoint is the only source: no UI constant drifts from the server.
-type DriverInfo struct {
-	Driver string `json:"driver"`
-	Family string `json:"family"`
-	Label  string `json:"label"`
-}
-
-var driverCatalog = []DriverInfo{
-	{constants.DriverPostgres, constants.FamilySQL, "PostgreSQL"},
-	{constants.DriverMySQL, constants.FamilySQL, "MySQL / MariaDB"},
-	{constants.DriverSQLite, constants.FamilySQL, "SQLite"},
-	{constants.DriverRedis, constants.FamilyMemcache, "Redis"},
-	{constants.DriverValkey, constants.FamilyMemcache, "Valkey"},
-	{constants.DriverMongo, constants.FamilyMongo, "MongoDB"},
+// driverCatalog is the only source of the console's driver pickers: a driver is
+// code, not data, so no UI constant can drift from the server.
+var driverCatalog = []entity.DriverInfo{
+	{Driver: constants.DriverPostgres, Family: constants.FamilySQL, Label: "PostgreSQL"},
+	{Driver: constants.DriverMySQL, Family: constants.FamilySQL, Label: "MySQL / MariaDB"},
+	{Driver: constants.DriverSQLite, Family: constants.FamilySQL, Label: "SQLite"},
+	{Driver: constants.DriverRedis, Family: constants.FamilyMemcache, Label: "Redis"},
+	{Driver: constants.DriverValkey, Family: constants.FamilyMemcache, Label: "Valkey"},
+	{Driver: constants.DriverMongo, Family: constants.FamilyMongo, Label: "MongoDB"},
 }
 
 // Drivers serves the driver catalog.
 type Drivers struct{ usecases.RegistryDeps }
 
 // @Summary List the drivers the console can register
-// @Success 200 {array} driver.DriverInfo
+// @Success 200 {array} entity.DriverInfo
 // @Router /external/v1/config/drivers [get]
 func (uc Drivers) Serve(w http.ResponseWriter, r *http.Request) {
 	_, end := logging.StartSpan(r.Context())

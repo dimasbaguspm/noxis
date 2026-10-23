@@ -19,7 +19,7 @@ type Databases struct{ usecases.RegistryDeps }
 // @Summary List databases with their sizes
 // @Param engine path string true "engine family (mongodb)"
 // @Param name path string true "connection name"
-// @Success 200 {object} object{databases=[]entity.Database}
+// @Success 200 {object} entity.DatabaseList
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/databases [get]
@@ -41,7 +41,7 @@ func (uc Databases) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	uc.Respond(w, map[string]any{"databases": out})
+	uc.Respond(w, entity.DatabaseList{Databases: out})
 }
 
 // Collections lists a database's collections with their sizes.
@@ -51,7 +51,7 @@ type Collections struct{ usecases.RegistryDeps }
 // @Param engine path string true "engine family (mongodb)"
 // @Param name path string true "connection name"
 // @Param database query string true "database name"
-// @Success 200 {object} object{collections=[]entity.Collection}
+// @Success 200 {object} entity.CollectionList
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/collections [get]
@@ -73,7 +73,7 @@ func (uc Collections) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	uc.Respond(w, map[string]any{"collections": out})
+	uc.Respond(w, entity.CollectionList{Collections: out})
 }
 
 // Run runs a read request (find | aggregate | count).

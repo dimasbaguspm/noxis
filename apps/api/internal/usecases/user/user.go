@@ -21,7 +21,7 @@ type List struct{ usecases.RegistryDeps }
 // @Summary List accounts (admin only)
 // @Param q query string false "match subject, email or username"
 // @Param status query string false "all, active or banned"
-// @Success 200 {object} object{users=[]entity.User}
+// @Success 200 {object} entity.UserList
 // @Failure 403 {object} entity.ErrorResponse
 // @Router /external/v1/users [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +52,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 		out = append(out, *u)
 	}
-	uc.Respond(w, map[string]any{"users": out})
+	uc.Respond(w, entity.UserList{Users: out})
 }
 
 // matches reports whether one account matches a lowercased search term.
@@ -62,19 +62,12 @@ func matches(u *entity.User, q string) bool {
 		strings.Contains(strings.ToLower(u.Username), q)
 }
 
-// Detail is one account with the access it holds and its activity trail.
-type Detail struct {
-	entity.User
-	Access []entity.Permission  `json:"access"`
-	Events []entity.AccessEvent `json:"events"`
-}
-
 // Get returns one account, its access (direct and via groups) and its activity.
 type Get struct{ usecases.RegistryDeps }
 
 // @Summary One account with its access and activity (admin only)
 // @Param subject path string true "user subject"
-// @Success 200 {object} Detail
+// @Success 200 {object} entity.UserDetail
 // @Failure 403 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/users/{subject} [get]
@@ -106,14 +99,7 @@ func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 	if events == nil {
 		events = []entity.AccessEvent{}
 	}
-	uc.Respond(w, Detail{User: *u, Access: access, Events: events})
-}
-
-// updateBody is the status/role payload. Both fields are optional; the caller
-// changes only what it sends.
-type updateBody struct {
-	Status *string `json:"status"`
-	Role   *string `json:"role"`
+	uc.Respond(w, entity.UserDetail{User: *u, Access: access, Events: events})
 }
 
 // Update sets an account's status (active/banned) and, for the super admin only,
@@ -123,7 +109,7 @@ type Update struct{ usecases.RegistryDeps }
 
 // @Summary Ban/enable an account, or promote/demote an admin (admin only; role changes are super only)
 // @Param subject path string true "user subject"
-// @Param body body updateBody true "status and/or role"
+// @Param body body entity.UserUpdate true "status and/or role"
 // @Success 200 {object} entity.User
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 403 {object} entity.ErrorResponse
@@ -138,7 +124,7 @@ func (uc Update) Serve(w http.ResponseWriter, r *http.Request) {
 	}
 	caller, _ := usecases.Principal(ctx)
 	subject := r.PathValue("subject")
-	var body updateBody
+	var body entity.UserUpdate
 	if err := uc.Decode(r, &body); err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -219,7 +205,7 @@ func (uc Update) applyStatus(ctx context.Context, caller entity.Identity, u *ent
 
 // checkPatch validates the whole patch against the caller and target, so Serve
 // can mutate without a second field failing halfway through.
-func (uc Update) checkPatch(caller entity.Identity, u *entity.User, body updateBody) error {
+func (uc Update) checkPatch(caller entity.Identity, u *entity.User, body entity.UserUpdate) error {
 	if body.Role != nil {
 		if !caller.IsSuper() {
 			return fmt.Errorf("%w: only the super admin changes roles", constants.ErrForbidden)

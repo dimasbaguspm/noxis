@@ -27,9 +27,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            instances?: components["schemas"]["permission.InstanceAccess"][];
-                        };
+                        "*/*": components["schemas"]["entity.InstanceAccessList"];
                     };
                 };
                 /** @description Forbidden */
@@ -77,9 +75,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            requests?: components["schemas"]["entity.AccessRequest"][];
-                        };
+                        "*/*": components["schemas"]["entity.AccessRequestList"];
                     };
                 };
                 /** @description Unauthorized */
@@ -105,7 +101,7 @@ export interface paths {
             /** @description connection, level and reason */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["access.createBody"];
+                    "application/json": components["schemas"]["entity.AccessRequestCreate"];
                 };
             };
             responses: {
@@ -164,7 +160,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: components["requestBodies"]["access.decisionBody"];
+            requestBody?: components["requestBodies"]["entity.AccessDecision"];
             responses: {
                 /** @description OK */
                 200: {
@@ -221,7 +217,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: components["requestBodies"]["access.decisionBody"];
+            requestBody?: components["requestBodies"]["entity.AccessDecision"];
             responses: {
                 /** @description OK */
                 200: {
@@ -281,7 +277,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["config.AuthInfo"];
+                        "*/*": components["schemas"]["entity.AuthConfig"];
                     };
                 };
             };
@@ -314,7 +310,7 @@ export interface paths {
             /** @description email and password */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["auth.loginRequest"];
+                    "application/json": components["schemas"]["entity.LoginRequest"];
                 };
             };
             responses: {
@@ -324,7 +320,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["auth.loginResponse"];
+                        "*/*": components["schemas"]["entity.LoginResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -407,7 +403,7 @@ export interface paths {
             /** @description old and new password */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["auth.changePasswordRequest"];
+                    "application/json": components["schemas"]["entity.PasswordChange"];
                 };
             };
             responses: {
@@ -458,7 +454,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["driver.DriverInfo"][];
+                        "*/*": components["schemas"]["entity.DriverInfo"][];
                     };
                 };
             };
@@ -494,9 +490,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            levels?: components["schemas"]["metadata.LevelInfo"][];
-                        };
+                        "*/*": components["schemas"]["entity.LevelList"];
                     };
                 };
             };
@@ -532,10 +526,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            groups?: string[];
-                            users?: components["schemas"]["permission.memberUser"][];
-                        };
+                        "*/*": components["schemas"]["entity.MemberList"];
                     };
                 };
                 /** @description Forbidden */
@@ -592,10 +583,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            changes?: components["schemas"]["entity.Change"][];
-                            total?: number;
-                        };
+                        "*/*": components["schemas"]["entity.ChangeList"];
                     };
                 };
                 /** @description Not Found */
@@ -915,7 +903,7 @@ export interface paths {
             /** @description scheduledAt unix seconds; 0 clears the schedule */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["change.scheduleBody"];
+                    "application/json": components["schemas"]["entity.ScheduleRequest"];
                 };
             };
             responses: {
@@ -980,9 +968,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            connections?: components["schemas"]["entity.Connection"][];
-                        };
+                        "*/*": components["schemas"]["entity.ConnectionList"];
                     };
                 };
             };
@@ -1136,7 +1122,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["schema.opBody"];
+            requestBody: components["requestBodies"]["entity.OpRequest"];
             responses: {
                 /** @description OK */
                 200: {
@@ -1198,7 +1184,7 @@ export interface paths {
             /** @description table */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["schema.opBody"];
+                    "application/json": components["schemas"]["entity.OpRequest"];
                 };
             };
             responses: {
@@ -1268,9 +1254,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            collections?: components["schemas"]["entity.Collection"][];
-                        };
+                        "*/*": components["schemas"]["entity.CollectionList"];
                     };
                 };
                 /** @description Bad Request */
@@ -1329,9 +1313,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            databases?: components["schemas"]["entity.Database"][];
-                        };
+                        "*/*": components["schemas"]["entity.DatabaseList"];
                     };
                 };
                 /** @description Bad Request */
@@ -1387,7 +1369,7 @@ export interface paths {
             /** @description confirm must repeat the connection name */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["cache.flushBody"];
+                    "application/json": components["schemas"]["entity.CacheFlushRequest"];
                 };
             };
             responses: {
@@ -1500,7 +1482,7 @@ export interface paths {
             /** @description keys to remove */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["cache.keysBody"];
+                    "application/json": components["schemas"]["entity.CacheDeleteRequest"];
                 };
             };
             responses: {
@@ -1510,9 +1492,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            deleted?: number;
-                        };
+                        "*/*": components["schemas"]["entity.CacheDeleteResult"];
                     };
                 };
                 /** @description Bad Request */
@@ -1568,9 +1548,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            permissions?: components["schemas"]["entity.Permission"][];
-                        };
+                        "*/*": components["schemas"]["entity.PermissionList"];
                     };
                 };
                 /** @description Unauthorized */
@@ -1618,7 +1596,7 @@ export interface paths {
             /** @description member, member type and level */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["permission.permissionBody"];
+                    "application/json": components["schemas"]["entity.PermissionGrant"];
                 };
             };
             responses: {
@@ -1751,7 +1729,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["schema.opBody"];
+            requestBody: components["requestBodies"]["entity.OpRequest"];
             responses: {
                 /** @description OK */
                 200: {
@@ -1874,7 +1852,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody: components["requestBodies"]["schema.opBody"];
+            requestBody: components["requestBodies"]["entity.OpRequest"];
             responses: {
                 /** @description OK */
                 200: {
@@ -1939,9 +1917,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            tables?: components["schemas"]["entity.Table"][];
-                        };
+                        "*/*": components["schemas"]["entity.TableList"];
                     };
                 };
                 /** @description Bad Request */
@@ -2184,10 +2160,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            instances?: components["schemas"]["entity.Connection"][];
-                            total?: number;
-                        };
+                        "*/*": components["schemas"]["entity.InstanceList"];
                     };
                 };
             };
@@ -2271,7 +2244,7 @@ export interface paths {
             /** @description new password */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["instance.passwordBody"];
+                    "application/json": components["schemas"]["entity.InstancePassword"];
                 };
             };
             responses: {
@@ -2333,7 +2306,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["auth.MeResponse"];
+                        "*/*": components["schemas"]["entity.MeResponse"];
                     };
                 };
                 /** @description Unauthorized */
@@ -2383,9 +2356,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": {
-                            users?: components["schemas"]["entity.User"][];
-                        };
+                        "*/*": components["schemas"]["entity.UserList"];
                     };
                 };
                 /** @description Forbidden */
@@ -2433,7 +2404,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["user.Detail"];
+                        "*/*": components["schemas"]["entity.UserDetail"];
                     };
                 };
                 /** @description Forbidden */
@@ -2475,7 +2446,7 @@ export interface paths {
             /** @description status and/or role */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["user.updateBody"];
+                    "application/json": components["schemas"]["entity.UserUpdate"];
                 };
             };
             responses: {
@@ -2578,7 +2549,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "*/*": components["schemas"]["apply.TickResult"];
+                        "*/*": components["schemas"]["entity.TickResult"];
                     };
                 };
             };
@@ -2593,78 +2564,8 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "access.createBody": {
-            connection?: string;
-            level?: string;
-            reason?: string;
-        };
-        "access.decisionBody": {
+        "entity.AccessDecision": {
             note?: string;
-        };
-        "apply.TickResult": {
-            applied?: string[];
-            failed?: string[];
-        };
-        "auth.AccessGrant": {
-            expiresAt?: number;
-            level?: string;
-        };
-        "auth.MeResponse": {
-            connections?: {
-                [key: string]: components["schemas"]["auth.AccessGrant"];
-            };
-            email?: string;
-            groups?: string[];
-            lastLoginAt?: number;
-            name?: string;
-            role?: string;
-            sub?: string;
-        };
-        "auth.changePasswordRequest": {
-            newPassword?: string;
-            oldPassword?: string;
-        };
-        "auth.loginRequest": {
-            email?: string;
-            password?: string;
-        };
-        "auth.loginResponse": {
-            token?: string;
-            user?: components["schemas"]["entity.User"];
-        };
-        "cache.flushBody": {
-            confirm?: string;
-        };
-        "cache.keysBody": {
-            keys?: string[];
-        };
-        "change.mongoChangeBody": {
-            collection?: string;
-            connection?: string;
-            database?: string;
-            filter?: string;
-            limit?: number;
-            many?: boolean;
-            notes?: string;
-            op?: string;
-            sort?: string;
-            value?: string;
-        };
-        "change.scheduleBody": {
-            scheduledAt?: number;
-        };
-        "config.AuthInfo": {
-            local?: boolean;
-            oidc?: components["schemas"]["config.OIDCInfo"];
-        };
-        "config.OIDCInfo": {
-            clientId?: string;
-            issuer?: string;
-        };
-        "driver.DriverInfo": {
-            driver?: string;
-            family?: string;
-            label?: string;
         };
         "entity.AccessEvent": {
             action?: string;
@@ -2676,6 +2577,10 @@ export interface components {
             note?: string;
             requestId?: string;
             subject?: string;
+        };
+        "entity.AccessGrant": {
+            expiresAt?: number;
+            level?: string;
         };
         "entity.AccessRequest": {
             connection?: string;
@@ -2689,6 +2594,27 @@ export interface components {
             requestedAt?: number;
             status?: string;
             subject?: string;
+        };
+        "entity.AccessRequestCreate": {
+            connection?: string;
+            level?: string;
+            reason?: string;
+        };
+        "entity.AccessRequestList": {
+            requests?: components["schemas"]["entity.AccessRequest"][];
+        };
+        "entity.AuthConfig": {
+            local?: boolean;
+            oidc?: components["schemas"]["entity.OIDCConfig"];
+        };
+        "entity.CacheDeleteRequest": {
+            keys?: string[];
+        };
+        "entity.CacheDeleteResult": {
+            deleted?: number;
+        };
+        "entity.CacheFlushRequest": {
+            confirm?: string;
         };
         "entity.Change": {
             affectedColumns?: string[];
@@ -2728,6 +2654,10 @@ export interface components {
             /** @description query | rollback */
             target?: string;
         };
+        "entity.ChangeList": {
+            changes?: components["schemas"]["entity.Change"][];
+            total?: number;
+        };
         "entity.Collection": {
             avgObjectSizeBytes?: number;
             capped?: boolean;
@@ -2739,6 +2669,9 @@ export interface components {
             storageBytes?: number;
             /** @description collection | view | timeseries */
             type?: string;
+        };
+        "entity.CollectionList": {
+            collections?: components["schemas"]["entity.Collection"][];
         };
         "entity.Column": {
             name?: string;
@@ -2771,6 +2704,9 @@ export interface components {
             port?: number;
             user?: string;
         };
+        "entity.ConnectionList": {
+            connections?: components["schemas"]["entity.Connection"][];
+        };
         "entity.Database": {
             avgObjectSizeBytes?: number;
             collections?: number;
@@ -2780,8 +2716,33 @@ export interface components {
             sizeBytes?: number;
             storageBytes?: number;
         };
+        "entity.DatabaseList": {
+            databases?: components["schemas"]["entity.Database"][];
+        };
+        "entity.DriverInfo": {
+            driver?: string;
+            family?: string;
+            label?: string;
+        };
         "entity.ErrorResponse": {
             error?: string;
+        };
+        "entity.InstanceAccess": {
+            connection?: string;
+            driver?: string;
+            family?: string;
+            id?: string;
+            permissions?: components["schemas"]["entity.Permission"][];
+        };
+        "entity.InstanceAccessList": {
+            instances?: components["schemas"]["entity.InstanceAccess"][];
+        };
+        "entity.InstanceList": {
+            instances?: components["schemas"]["entity.Connection"][];
+            total?: number;
+        };
+        "entity.InstancePassword": {
+            password?: string;
         };
         "entity.Key": {
             name?: string;
@@ -2795,6 +2756,53 @@ export interface components {
             total?: number;
             truncated?: boolean;
         };
+        "entity.LevelInfo": {
+            label?: string;
+            value?: string;
+        };
+        "entity.LevelList": {
+            levels?: components["schemas"]["entity.LevelInfo"][];
+        };
+        "entity.LoginRequest": {
+            email?: string;
+            password?: string;
+        };
+        "entity.LoginResponse": {
+            token?: string;
+            user?: components["schemas"]["entity.User"];
+        };
+        "entity.MeResponse": {
+            connections?: {
+                [key: string]: components["schemas"]["entity.AccessGrant"];
+            };
+            email?: string;
+            groups?: string[];
+            lastLoginAt?: number;
+            name?: string;
+            role?: string;
+            sub?: string;
+        };
+        "entity.Member": {
+            label?: string;
+            role?: string;
+            subject?: string;
+        };
+        "entity.MemberList": {
+            groups?: string[];
+            users?: components["schemas"]["entity.Member"][];
+        };
+        "entity.MongoChangeRequest": {
+            collection?: string;
+            connection?: string;
+            database?: string;
+            filter?: string;
+            limit?: number;
+            many?: boolean;
+            notes?: string;
+            op?: string;
+            sort?: string;
+            value?: string;
+        };
         "entity.MongoRequest": {
             collection?: string;
             database?: string;
@@ -2804,6 +2812,18 @@ export interface components {
             op?: string;
             sort?: string;
             value?: string;
+        };
+        "entity.OIDCConfig": {
+            clientId?: string;
+            issuer?: string;
+        };
+        "entity.OpRequest": {
+            sql?: string;
+            table?: string;
+        };
+        "entity.PasswordChange": {
+            newPassword?: string;
+            oldPassword?: string;
         };
         "entity.Permission": {
             connection?: string;
@@ -2816,6 +2836,14 @@ export interface components {
             /** @enum {string} */
             memberType: "user" | "group";
             updatedAt?: number;
+        };
+        "entity.PermissionGrant": {
+            level?: string;
+            member?: string;
+            memberType?: string;
+        };
+        "entity.PermissionList": {
+            permissions?: components["schemas"]["entity.Permission"][];
         };
         "entity.Result": {
             affected?: number;
@@ -2833,6 +2861,9 @@ export interface components {
              */
             scratchSchema?: string;
         };
+        "entity.ScheduleRequest": {
+            scheduledAt?: number;
+        };
         "entity.StatusResponse": {
             status?: string;
         };
@@ -2840,6 +2871,13 @@ export interface components {
             columns?: components["schemas"]["entity.Column"][];
             name?: string;
             schema?: string;
+        };
+        "entity.TableList": {
+            tables?: components["schemas"]["entity.Table"][];
+        };
+        "entity.TickResult": {
+            applied?: string[];
+            failed?: string[];
         };
         "entity.User": {
             createdAt?: number;
@@ -2853,35 +2891,7 @@ export interface components {
             subject: string;
             username?: string;
         };
-        "instance.passwordBody": {
-            password?: string;
-        };
-        "metadata.LevelInfo": {
-            label?: string;
-            value?: string;
-        };
-        "permission.InstanceAccess": {
-            connection?: string;
-            driver?: string;
-            family?: string;
-            id?: string;
-            permissions?: components["schemas"]["entity.Permission"][];
-        };
-        "permission.memberUser": {
-            label?: string;
-            role?: string;
-            subject?: string;
-        };
-        "permission.permissionBody": {
-            level?: string;
-            member?: string;
-            memberType?: string;
-        };
-        "schema.opBody": {
-            sql?: string;
-            table?: string;
-        };
-        "user.Detail": {
+        "entity.UserDetail": {
             access?: components["schemas"]["entity.Permission"][];
             createdAt?: number;
             email?: string;
@@ -2895,7 +2905,10 @@ export interface components {
             subject: string;
             username?: string;
         };
-        "user.updateBody": {
+        "entity.UserList": {
+            users?: components["schemas"]["entity.User"][];
+        };
+        "entity.UserUpdate": {
             role?: string;
             status?: string;
         };
@@ -2904,15 +2917,15 @@ export interface components {
     parameters: never;
     requestBodies: {
         /** @description sql */
-        "schema.opBody": {
+        "entity.OpRequest": {
             content: {
-                "application/json": components["schemas"]["schema.opBody"];
+                "application/json": components["schemas"]["entity.OpRequest"];
             };
         };
         /** @description optional note */
-        "access.decisionBody": {
+        "entity.AccessDecision": {
             content: {
-                "application/json": components["schemas"]["access.decisionBody"];
+                "application/json": components["schemas"]["entity.AccessDecision"];
             };
         };
     };

@@ -99,8 +99,14 @@ func (uc Foo) Serve(w http.ResponseWriter, r *http.Request) {
 ```
 
 Routes are declared in `apps/api/cmd/noxis/server/server.go` (`newHandler`) and
-point straight at a use case `Serve`: there is no handler package. Add a route
-plus a swag annotation on `Serve`, then `make swagger`.
+point straight at a use case `Serve` wrapped in `middlewares.UseCase`: there is
+no handler package. Add a route plus a swag annotation on `Serve`, then
+`make swagger`.
+
+Every request body and response envelope is a struct in
+`apps/api/internal/entity/api.go` — a use case never answers with a
+`map[string]any`, so the OpenAPI schema and the generated web client come from
+the same declaration a reader can find.
 
 ## Auth & policy
 

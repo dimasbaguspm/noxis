@@ -85,26 +85,21 @@ func (uc Value) Serve(w http.ResponseWriter, r *http.Request) {
 	uc.Respond(w, out)
 }
 
-// keysBody is the remove-keys payload.
-type keysBody struct {
-	Keys []string `json:"keys"`
-}
-
 // Delete removes the selected keys only.
 type Delete struct{ usecases.RegistryDeps }
 
 // @Summary Remove keys (the selected ones only)
 // @Param engine path string true "engine family (memcache)"
 // @Param name path string true "connection name"
-// @Param body body keysBody true "keys to remove"
-// @Success 200 {object} object{deleted=int}
+// @Param body body entity.CacheDeleteRequest true "keys to remove"
+// @Success 200 {object} entity.CacheDeleteResult
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/connections/{name}/keys [delete]
 func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	var body keysBody
+	var body entity.CacheDeleteRequest
 	if err := uc.Decode(r, &body); err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -124,12 +119,7 @@ func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	uc.Respond(w, map[string]any{"deleted": deleted})
-}
-
-// flushBody is the flush payload: confirm must repeat the connection name.
-type flushBody struct {
-	Confirm string `json:"confirm"`
+	uc.Respond(w, entity.CacheDeleteResult{Deleted: deleted})
 }
 
 // Flush empties the connected database (FLUSHDB, never FLUSHALL).
@@ -138,7 +128,7 @@ type Flush struct{ usecases.RegistryDeps }
 // @Summary Empty the connected database (FLUSHDB, never FLUSHALL)
 // @Param engine path string true "engine family (memcache)"
 // @Param name path string true "connection name"
-// @Param body body flushBody true "confirm must repeat the connection name"
+// @Param body body entity.CacheFlushRequest true "confirm must repeat the connection name"
 // @Success 200 {object} entity.StatusResponse
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
@@ -146,7 +136,7 @@ type Flush struct{ usecases.RegistryDeps }
 func (uc Flush) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	var body flushBody
+	var body entity.CacheFlushRequest
 	if err := uc.Decode(r, &body); err != nil {
 		uc.Fail(ctx, w, err)
 		return

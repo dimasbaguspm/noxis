@@ -22,7 +22,7 @@ type List struct{ usecases.RegistryDeps }
 // @Param host query string false "substring match on host"
 // @Param page query int false "page number, starting at 1"
 // @Param perPage query int false "items per page (default 20, max 100)"
-// @Success 200 {object} object{instances=[]entity.Connection,total=int}
+// @Success 200 {object} entity.InstanceList
 // @Router /external/v1/instances [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
@@ -64,10 +64,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		out = append(out, c.Redacted())
 	}
 	page, perPage := pagination.Params(q.Get("page"), q.Get("perPage"), constants.DefaultPageSize)
-	uc.Respond(w, map[string]any{
-		"instances": pagination.Slice(out, page, perPage),
-		"total":     len(out),
-	})
+	uc.Respond(w, entity.InstanceList{Instances: pagination.Slice(out, page, perPage), Total: len(out)})
 }
 
 // Get returns one instance across engine families (password redacted).
@@ -104,17 +101,12 @@ func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 	uc.Respond(w, c.Redacted())
 }
 
-// passwordBody is the rotate-password payload.
-type passwordBody struct {
-	Password string `json:"password"`
-}
-
 // RotatePassword rotates an instance's password.
 type RotatePassword struct{ usecases.RegistryDeps }
 
 // @Summary Rotate an instance's password (identity fields stay locked)
 // @Param id path string true "instance id"
-// @Param body body passwordBody true "new password"
+// @Param body body entity.InstancePassword true "new password"
 // @Success 200 {object} entity.StatusResponse
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 403 {object} entity.ErrorResponse
@@ -126,7 +118,7 @@ func (uc RotatePassword) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	var body passwordBody
+	var body entity.InstancePassword
 	if err := uc.Decode(r, &body); err != nil {
 		uc.Fail(ctx, w, err)
 		return

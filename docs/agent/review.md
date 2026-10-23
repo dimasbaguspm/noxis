@@ -44,7 +44,8 @@ every network call.
 **Repositories** — new method added to both the interface and `Store`;
 `ErrNotFound` for missing rows; transactions via `WithTx`; no env reads.
 
-**Web** — `pnpm lint` + `pnpm build` pass; API types come from
+**Wire shapes** — a request body or response envelope is a struct in
+`entity/api.go`; a `map[string]any` response is a review blocker. `pnpm lint` + `pnpm build` pass; API types come from
 `src/api/generated.ts` (run `gen:api` if the spec changed); no hardcoded driver
 list that drifts from `GET /external/v1/config/drivers`.
 

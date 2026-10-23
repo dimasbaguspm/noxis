@@ -16,19 +16,12 @@ import (
 	"noxis/internal/usecases"
 )
 
-// createBody is the request payload.
-type createBody struct {
-	Connection string `json:"connection"`
-	Level      string `json:"level"`
-	Reason     string `json:"reason"`
-}
-
 // Create files an access request for the caller.
 type Create struct{ usecases.RegistryDeps }
 
 // @Summary Request access to a connection
 // @Accept json
-// @Param body body createBody true "connection, level and reason"
+// @Param body body entity.AccessRequestCreate true "connection, level and reason"
 // @Success 200 {object} entity.AccessRequest
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 401 {object} entity.ErrorResponse
@@ -41,7 +34,7 @@ func (uc Create) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
 	}
-	var body createBody
+	var body entity.AccessRequestCreate
 	if err := uc.Decode(r, &body); err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -80,7 +73,7 @@ type List struct{ usecases.RegistryDeps }
 
 // @Summary List access requests (mine, or the ones I may decide)
 // @Param scope query string false "mine (default) or to-approve"
-// @Success 200 {object} object{requests=[]entity.AccessRequest}
+// @Success 200 {object} entity.AccessRequestList
 // @Failure 401 {object} entity.ErrorResponse
 // @Router /external/v1/access-requests [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
@@ -100,7 +93,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		if list == nil {
 			list = []entity.AccessRequest{}
 		}
-		uc.Respond(w, map[string]any{"requests": list})
+		uc.Respond(w, entity.AccessRequestList{Requests: list})
 		return
 	}
 	var connections []string
@@ -130,12 +123,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	if list == nil {
 		list = []entity.AccessRequest{}
 	}
-	uc.Respond(w, map[string]any{"requests": list})
-}
-
-// decisionBody is the approve/reject payload.
-type decisionBody struct {
-	Note string `json:"note"`
+	uc.Respond(w, entity.AccessRequestList{Requests: list})
 }
 
 // canDecide enforces who may decide a request: never the requester, then a
@@ -163,7 +151,7 @@ type Approve struct{ usecases.RegistryDeps }
 
 // @Summary Approve an access request
 // @Param id path string true "request id"
-// @Param body body decisionBody false "optional note"
+// @Param body body entity.AccessDecision false "optional note"
 // @Success 200 {object} entity.AccessRequest
 // @Failure 403 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
@@ -189,7 +177,7 @@ func (uc Approve) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	var body decisionBody
+	var body entity.AccessDecision
 	if err := uc.Decode(r, &body); err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -218,7 +206,7 @@ type Reject struct{ usecases.RegistryDeps }
 
 // @Summary Reject an access request
 // @Param id path string true "request id"
-// @Param body body decisionBody false "optional note"
+// @Param body body entity.AccessDecision false "optional note"
 // @Success 200 {object} entity.AccessRequest
 // @Failure 403 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
@@ -244,7 +232,7 @@ func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	var body decisionBody
+	var body entity.AccessDecision
 	if err := uc.Decode(r, &body); err != nil {
 		uc.Fail(ctx, w, err)
 		return
