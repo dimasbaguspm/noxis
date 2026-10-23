@@ -56,7 +56,7 @@ export default function UsersPage() {
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="disabled">Disabled</SelectItem>
+            <SelectItem value="banned">Banned</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -90,8 +90,8 @@ export default function UsersPage() {
                     <RoleBadge role={u.role} />
                   </TableCell>
                   <TableCell>
-                    {u.disabled ? (
-                      <Badge variant="destructive">Disabled</Badge>
+                    {u.status === "banned" ? (
+                      <Badge variant="destructive">Banned</Badge>
                     ) : (
                       <Badge variant="outline">Active</Badge>
                     )}

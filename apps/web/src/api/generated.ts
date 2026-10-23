@@ -2414,7 +2414,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Promote or demote an admin (super only) */
+        /** Ban/enable an account, or promote/demote an admin (admin only; role changes are super only) */
         patch: {
             parameters: {
                 query?: never;
@@ -2425,7 +2425,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            /** @description role */
+            /** @description status and/or role */
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["user.updateBody"];
@@ -2796,12 +2796,13 @@ export interface components {
         };
         "entity.User": {
             createdAt?: number;
-            disabled?: boolean;
             email?: string;
             groups?: string[];
             lastLoginAt?: number;
             /** @enum {string} */
             role: "super" | "admin" | "member";
+            /** @enum {string} */
+            status: "active" | "banned";
             subject: string;
             username?: string;
         };
@@ -2829,18 +2830,20 @@ export interface components {
         "user.Detail": {
             access?: components["schemas"]["entity.Permission"][];
             createdAt?: number;
-            disabled?: boolean;
             email?: string;
             events?: components["schemas"]["entity.AccessEvent"][];
             groups?: string[];
             lastLoginAt?: number;
             /** @enum {string} */
             role: "super" | "admin" | "member";
+            /** @enum {string} */
+            status: "active" | "banned";
             subject: string;
             username?: string;
         };
         "user.updateBody": {
             role?: string;
+            status?: string;
         };
     };
     responses: never;

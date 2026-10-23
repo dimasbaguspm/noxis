@@ -14,7 +14,7 @@ import (
 )
 
 // userColumns is the shared SELECT list, so every scan stays in step.
-const userColumns = `subject, email, username, password, groups, role, disabled, last_login_at, created_at`
+const userColumns = `subject, email, username, password, groups, role, status, last_login_at, created_at`
 
 // CountUsers reports how many accounts exist.
 func (s *Store) CountUsers(ctx context.Context) (n int, err error) {
@@ -60,7 +60,7 @@ func (s *Store) ListUsers(ctx context.Context) (out []entity.User, err error) {
 	for rows.Next() {
 		var u entity.User
 		var groups string
-		if err := rows.Scan(&u.Subject, &u.Email, &u.Username, &u.Password, &groups, &u.Role, &u.Disabled, &u.LastLoginAt, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.Subject, &u.Email, &u.Username, &u.Password, &groups, &u.Role, &u.Status, &u.LastLoginAt, &u.CreatedAt); err != nil {
 			return nil, err
 		}
 		u.Groups = decodeGroups(groups)
@@ -95,16 +95,16 @@ func (s *Store) SaveUser(ctx context.Context, u entity.User) (err error) {
 	}
 	now := time.Now().Unix()
 	if _, err := s.db.ExecContext(ctx, `
-		INSERT INTO users (subject, email, username, password, groups, role, disabled, last_login_at, created_at, updated_at)
+		INSERT INTO users (subject, email, username, password, groups, role, status, last_login_at, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(subject) DO UPDATE SET
 			email = excluded.email,
 			username = excluded.username,
 			password = excluded.password,
 			groups = excluded.groups,
-			disabled = excluded.disabled,
+			status = excluded.status,
 			updated_at = excluded.updated_at`,
-		u.Subject, u.Email, u.Username, u.Password, encodeGroups(u.Groups), u.Role, u.Disabled, u.LastLoginAt, now, now); err != nil {
+		u.Subject, u.Email, u.Username, u.Password, encodeGroups(u.Groups), u.Role, u.Status, u.LastLoginAt, now, now); err != nil {
 		return fmt.Errorf("save user %s: %w", u.Subject, err)
 	}
 	return nil
@@ -146,7 +146,7 @@ func (s *Store) ClearUserToken(ctx context.Context, subject string) (err error) 
 	return nil
 }
 
-// UserByToken returns the enabled account owning an unexpired token.
+// UserByToken returns the active account owning an unexpired token.
 func (s *Store) UserByToken(ctx context.Context, tokenHash string, now int64) (u *entity.User, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -155,17 +155,26 @@ func (s *Store) UserByToken(ctx context.Context, tokenHash string, now int64) (u
 	}
 	return scanUser(s.db.QueryRowContext(ctx,
 		`SELECT `+userColumns+` FROM users
-		 WHERE token_hash = ? AND token_expires_at > ? AND disabled = 0`, tokenHash, now))
+		 WHERE token_hash = ? AND token_expires_at > ? AND status = ?`, tokenHash, now, entity.StatusActive))
 }
 
-// SetUserDisabled disables or re-enables an account.
-func (s *Store) SetUserDisabled(ctx context.Context, subject string, disabled bool) (err error) {
+// SetUserStatus bans or re-activates an account. A ban also drops the session,
+// so the account stops working on its next request rather than on expiry.
+func (s *Store) SetUserStatus(ctx context.Context, subject, status string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
+	switch status {
+	case entity.StatusActive, entity.StatusBanned:
+	default:
+		return fmt.Errorf("set status %s: unknown status %q", subject, status)
+	}
+	clearToken := status == entity.StatusBanned
 	if _, err := s.db.ExecContext(ctx,
-		`UPDATE users SET disabled = ?, updated_at = ? WHERE subject = ?`,
-		disabled, time.Now().Unix(), subject); err != nil {
-		return fmt.Errorf("set disabled %s: %w", subject, err)
+		`UPDATE users SET status = ?, token_hash = CASE WHEN ? THEN '' ELSE token_hash END,
+		        token_expires_at = CASE WHEN ? THEN 0 ELSE token_expires_at END, updated_at = ?
+		 WHERE subject = ?`,
+		status, clearToken, clearToken, time.Now().Unix(), subject); err != nil {
+		return fmt.Errorf("set status %s: %w", subject, err)
 	}
 	return nil
 }
@@ -225,7 +234,7 @@ func (s *Store) SetSoleSuper(ctx context.Context, subject string) (err error) {
 func scanUser(row *sql.Row) (*entity.User, error) {
 	u := &entity.User{}
 	var groups string
-	if err := row.Scan(&u.Subject, &u.Email, &u.Username, &u.Password, &groups, &u.Role, &u.Disabled, &u.LastLoginAt, &u.CreatedAt); err != nil {
+	if err := row.Scan(&u.Subject, &u.Email, &u.Username, &u.Password, &groups, &u.Role, &u.Status, &u.LastLoginAt, &u.CreatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, constants.ErrNotFound
 		}

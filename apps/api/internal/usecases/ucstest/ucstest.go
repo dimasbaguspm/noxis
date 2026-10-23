@@ -205,12 +205,12 @@ func (f *Users) SaveUser(_ context.Context, u entity.User) error {
 
 func (f *Users) SetUserPassword(context.Context, string, string) error { return nil }
 
-func (f *Users) SetUserDisabled(ctx context.Context, subject string, disabled bool) error {
+func (f *Users) SetUserStatus(ctx context.Context, subject, status string) error {
 	u, err := f.GetUser(ctx, subject)
 	if err != nil {
 		return err
 	}
-	u.Disabled = disabled
+	u.Status = status
 	return f.SaveUser(ctx, *u)
 }
 

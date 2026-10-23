@@ -92,9 +92,9 @@ func (f *fakeUsers) SetUserToken(_ context.Context, subject, tokenHash string, e
 	return nil
 }
 
-func (f *fakeUsers) SetUserDisabled(_ context.Context, subject string, disabled bool) error {
+func (f *fakeUsers) SetUserStatus(_ context.Context, subject, status string) error {
 	if u, ok := f.bySubject[subject]; ok {
-		u.Disabled = disabled
+		u.Status = status
 	}
 	return nil
 }
@@ -140,7 +140,7 @@ func (f *fakeUsers) UserByToken(_ context.Context, tokenHash string, now int64) 
 		return nil, constants.ErrNotFound
 	}
 	u, ok := f.bySubject[t.subject]
-	if !ok || u.Disabled {
+	if !ok || !u.Active() {
 		return nil, constants.ErrNotFound
 	}
 	cp := *u
@@ -250,7 +250,7 @@ func TestLoginRejects(t *testing.T) {
 		t.Fatalf("unknown user: %v", err)
 	}
 	u, _ := repo.GetUser(ctx, entity.LocalSubject(rootEmail))
-	u.Disabled = true
+	u.Status = entity.StatusBanned
 	_ = repo.SaveUser(ctx, *u)
 	if _, _, err := svc.Login(ctx, rootEmail, "supersecret"); !errors.Is(err, constants.ErrInvalidCredentials) {
 		t.Fatalf("disabled user: %v", err)
@@ -322,4 +322,3 @@ func TestServiceLocalOnlyRejects(t *testing.T) {
 		t.Fatal("with no OIDC verifier, a non-local token must be rejected")
 	}
 }
-
