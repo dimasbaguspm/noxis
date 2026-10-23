@@ -11,6 +11,9 @@ type Identity struct {
 	Groups      []string `json:"groups"`
 	Role        string   `json:"role"`
 	LastLoginAt int64    `json:"lastLoginAt,omitempty"`
+	// EmailVerified is the issuer's claim, never the store's truth; only a
+	// verified email may blend an OIDC login into a local account.
+	EmailVerified bool `json:"-"`
 }
 
 // IsSuper reports whether the caller holds the env root's single global role.

@@ -33,6 +33,18 @@ func (s *Store) GetUser(ctx context.Context, subject string) (u *entity.User, er
 	return scanUser(s.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE subject = ?`, subject))
 }
 
+// GetUserByEmail returns the account blended to a verified email. Only rows with
+// an email can match, so a blank claim never joins two strangers.
+func (s *Store) GetUserByEmail(ctx context.Context, email string) (u *entity.User, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	if email == "" {
+		return nil, constants.ErrNotFound
+	}
+	return scanUser(s.db.QueryRowContext(ctx,
+		`SELECT `+userColumns+` FROM users WHERE email = ? AND email != ''`, email))
+}
+
 // GetUserByLogin returns a local account by the identifier its owner types to
 // sign in: the email, or the username for an account created with one.
 func (s *Store) GetUserByLogin(ctx context.Context, login string) (u *entity.User, err error) {
@@ -70,7 +82,7 @@ func (s *Store) ListUsers(ctx context.Context) (out []entity.User, err error) {
 }
 
 // EnsureSubject records an OIDC identity the first time it is seen.
-func (s *Store) EnsureSubject(ctx context.Context, subject string) (err error) {
+func (s *Store) EnsureSubject(ctx context.Context, subject, email string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if subject == "" {
@@ -78,8 +90,9 @@ func (s *Store) EnsureSubject(ctx context.Context, subject string) (err error) {
 	}
 	now := time.Now().Unix()
 	if _, err := s.db.ExecContext(ctx,
-		`INSERT INTO users (subject, created_at, updated_at) VALUES (?, ?, ?) ON CONFLICT(subject) DO NOTHING`,
-		subject, now, now); err != nil {
+		`INSERT INTO users (subject, email, role, status, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(subject) DO NOTHING`,
+		subject, email, entity.RoleMember, entity.StatusActive, now, now); err != nil {
 		return fmt.Errorf("ensure subject %s: %w", subject, err)
 	}
 	return nil

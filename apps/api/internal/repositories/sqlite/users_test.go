@@ -62,12 +62,12 @@ func TestUserLookups(t *testing.T) {
 	}
 }
 
-// EnsureSubject records an OIDC row once, without a password or an email.
+// EnsureSubject records an OIDC row once, carrying its email but no password.
 func TestEnsureSubjectIsIdempotent(t *testing.T) {
 	ctx := context.Background()
 	store := newStore(t)
 	for i := 0; i < 2; i++ {
-		if err := store.EnsureSubject(ctx, "oidc|42"); err != nil {
+		if err := store.EnsureSubject(ctx, "oidc|42", "carol@example.com"); err != nil {
 			t.Fatalf("ensure %d: %v", i, err)
 		}
 	}
@@ -75,7 +75,11 @@ func TestEnsureSubjectIsIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
-	if u.Email != "" || u.Password != "" {
+	if u.Email != "carol@example.com" || u.Password != "" || u.Role != entity.RoleMember || !u.Active() {
 		t.Fatalf("row: %+v", u)
+	}
+	// an OIDC row must not sign in locally: no password to check
+	if _, err := store.GetUserByLogin(ctx, "carol@example.com"); !errors.Is(err, constants.ErrNotFound) {
+		t.Fatalf("an OIDC row has no password and must not log in locally: %v", err)
 	}
 }

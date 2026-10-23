@@ -82,12 +82,20 @@ func principalFromClaims(subject string, claims map[string]any, groupsClaim stri
 		Email:  normalizeEmail(stringClaim(claims["email"])),
 		Groups: groups,
 		Role:   entity.RoleMember,
+		// an issuer never grants a global role: OIDC identities are members
+		// until the super admin promotes them
+		EmailVerified: boolClaim(claims["email_verified"]),
 	}
 }
 
 func stringClaim(value any) string {
 	s, _ := value.(string)
 	return s
+}
+
+func boolClaim(value any) bool {
+	b, _ := value.(bool)
+	return b
 }
 
 func stringSlice(value any) []string {
