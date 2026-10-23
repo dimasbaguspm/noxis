@@ -13,7 +13,7 @@ import (
 	"noxis/internal/usecases/ucstest"
 )
 
-func admin() *entity.Identity { return &entity.Identity{Subject: "root", Super: true} }
+func admin() *entity.Identity { return &entity.Identity{Subject: "root", Role: entity.RoleSuper} }
 
 const sampleSQL = `{"connection":"demo","notes":"add things","query":"CREATE TABLE things (id INT)","rollback":"DROP TABLE things"}`
 

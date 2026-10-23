@@ -99,6 +99,13 @@ func (f *fakeUsers) SetUserDisabled(_ context.Context, subject string, disabled 
 	return nil
 }
 
+func (f *fakeUsers) SetUserRole(_ context.Context, subject, role string) error {
+	if u, ok := f.bySubject[subject]; ok {
+		u.Role = role
+	}
+	return nil
+}
+
 func (f *fakeUsers) SetLastLogin(_ context.Context, subject string, at int64) error {
 	if u, ok := f.bySubject[subject]; ok {
 		u.LastLoginAt = at
@@ -108,7 +115,12 @@ func (f *fakeUsers) SetLastLogin(_ context.Context, subject string, at int64) er
 
 func (f *fakeUsers) SetSoleSuper(_ context.Context, subject string) error {
 	for s, u := range f.bySubject {
-		u.Super = s == subject
+		switch {
+		case s == subject:
+			u.Role = entity.RoleSuper
+		case u.Role == entity.RoleSuper:
+			u.Role = entity.RoleMember
+		}
 	}
 	return nil
 }
@@ -187,16 +199,16 @@ func TestEnsureRootIsSoleSuper(t *testing.T) {
 		t.Fatalf("seed root: %v", err)
 	}
 	// a second super, as an older build might have stored, is cleared on boot
-	if err := repo.SaveUser(ctx, entity.User{Subject: "local:bob@example.com", Email: "bob@example.com", Super: true}); err != nil {
+	if err := repo.SaveUser(ctx, entity.User{Subject: "local:bob@example.com", Email: "bob@example.com", Role: entity.RoleSuper}); err != nil {
 		t.Fatalf("seed bob: %v", err)
 	}
 	if err := svc.EnsureRoot(ctx, rootEmail, ""); err != nil {
 		t.Fatalf("reboot: %v", err)
 	}
-	if u, _ := repo.GetUser(ctx, "local:bob@example.com"); u.Super {
+	if u, _ := repo.GetUser(ctx, "local:bob@example.com"); u.IsSuper() {
 		t.Fatal("only the env account may be super")
 	}
-	if u, _ := repo.GetUser(ctx, entity.LocalSubject(rootEmail)); !u.Super {
+	if u, _ := repo.GetUser(ctx, entity.LocalSubject(rootEmail)); !u.IsSuper() {
 		t.Fatal("the env account must be super")
 	}
 	if err := svc.EnsureRoot(ctx, "ghost@example.com", ""); err == nil {
@@ -213,7 +225,7 @@ func TestLoginVerifyLogout(t *testing.T) {
 		t.Fatalf("login: %v", err)
 	}
 	id, err := svc.Verify(ctx, token)
-	if err != nil || id.Subject != entity.LocalSubject(rootEmail) || !id.Super {
+	if err != nil || id.Subject != entity.LocalSubject(rootEmail) || !id.IsSuper() {
 		t.Fatalf("verify: %+v err=%v", id, err)
 	}
 	if _, err := svc.Verify(ctx, "not-a-token"); err == nil {

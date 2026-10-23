@@ -1555,7 +1555,7 @@ export interface paths {
                 };
             };
         };
-        /** Grant a user or group a level on a connection */
+        /** Grant a user or group a level on a connection (admin only) */
         put: {
             parameters: {
                 query?: never;
@@ -2315,13 +2315,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List accounts (super admin only) */
+        /** List accounts (admin only) */
         get: {
             parameters: {
                 query?: {
-                    /** @description match subject or username */
+                    /** @description match subject, email or username */
                     q?: string;
-                    /** @description all, active or disabled */
+                    /** @description all, active or banned */
                     status?: string;
                 };
                 header?: never;
@@ -2367,7 +2367,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** One account with its access and activity (super admin only) */
+        /** One account with its access and activity (admin only) */
         get: {
             parameters: {
                 query?: never;
@@ -2414,7 +2414,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Disable or re-enable an account (super admin only) */
+        /** Promote or demote an admin (super only) */
         patch: {
             parameters: {
                 query?: never;
@@ -2425,7 +2425,7 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            /** @description disabled */
+            /** @description role */
             requestBody: {
                 content: {
                     "application/json": components["schemas"]["user.updateBody"];
@@ -2570,8 +2570,8 @@ export interface components {
             groups?: string[];
             lastLoginAt?: number;
             name?: string;
+            role?: string;
             sub?: string;
-            super?: boolean;
         };
         "auth.changePasswordRequest": {
             newPassword?: string;
@@ -2800,8 +2800,9 @@ export interface components {
             email?: string;
             groups?: string[];
             lastLoginAt?: number;
+            /** @enum {string} */
+            role: "super" | "admin" | "member";
             subject: string;
-            super?: boolean;
             username?: string;
         };
         "instance.passwordBody": {
@@ -2813,6 +2814,7 @@ export interface components {
         };
         "permission.memberUser": {
             label?: string;
+            role?: string;
             subject?: string;
         };
         "permission.permissionBody": {
@@ -2832,12 +2834,13 @@ export interface components {
             events?: components["schemas"]["entity.AccessEvent"][];
             groups?: string[];
             lastLoginAt?: number;
+            /** @enum {string} */
+            role: "super" | "admin" | "member";
             subject: string;
-            super?: boolean;
             username?: string;
         };
         "user.updateBody": {
-            disabled?: boolean;
+            role?: string;
         };
     };
     responses: never;

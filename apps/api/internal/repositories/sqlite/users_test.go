@@ -29,7 +29,7 @@ func TestUserLookups(t *testing.T) {
 
 	root := entity.User{
 		Subject: entity.LocalSubject("root@example.com"), Email: "root@example.com", Username: "root@example.com",
-		Password: "hash", Super: true,
+		Password: "hash", Role: entity.RoleSuper,
 	}
 	if err := store.SaveUser(ctx, root); err != nil {
 		t.Fatalf("save root: %v", err)
@@ -48,16 +48,16 @@ func TestUserLookups(t *testing.T) {
 		t.Fatalf("an unknown username must not match: %v", err)
 	}
 	// a second super is demoted on the next boot
-	if err := store.SaveUser(ctx, entity.User{Subject: "local:bob@example.com", Email: "bob@example.com", Username: "bob@example.com", Super: true}); err != nil {
+	if err := store.SaveUser(ctx, entity.User{Subject: "local:bob@example.com", Email: "bob@example.com", Username: "bob@example.com", Role: entity.RoleSuper}); err != nil {
 		t.Fatalf("save bob: %v", err)
 	}
 	if err := store.SetSoleSuper(ctx, root.Subject); err != nil {
 		t.Fatalf("sole super: %v", err)
 	}
-	if u, _ := store.GetUser(ctx, "local:bob@example.com"); u.Super {
+	if u, _ := store.GetUser(ctx, "local:bob@example.com"); u.IsSuper() {
 		t.Fatal("the second super must be demoted")
 	}
-	if u, _ := store.GetUser(ctx, root.Subject); !u.Super {
+	if u, _ := store.GetUser(ctx, root.Subject); !u.IsSuper() {
 		t.Fatal("the env account must stay super")
 	}
 }

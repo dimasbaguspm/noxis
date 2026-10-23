@@ -45,9 +45,12 @@ Local accounts. `subject` PK (`local:<email>` or the OIDC sub), `email` is the
 account identifier (unique when non-empty; login resolves by email or legacy
 username), `username` (login name for a named local account, empty for OIDC
 rows), `password` is a **bcrypt hash** (one-way, unlike `connections.password`),
-`groups` JSON, `is_super`/`disabled` flags, `last_login_at`, and the
-single active session: `token_hash` (SHA-256 of the raw token) +
+`groups` JSON, `role` ∈ `super|admin|member`, `disabled` flag, `last_login_at`,
+and the single active session: `token_hash` (SHA-256 of the raw token) +
 `token_expires_at`. The raw token and password are never stored.
+
+Exactly one row holds `role='super'`: the env root. Boot promotes it and demotes
+any other `super` (`SetSoleSuper`); promoted admins are left alone.
 
 ## Migrations
 

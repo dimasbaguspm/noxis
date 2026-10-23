@@ -27,7 +27,7 @@ func TestListRequiresInstanceAdmin(t *testing.T) {
 
 func TestCRUD(t *testing.T) {
 	f := ucstest.New(&ucstest.SQL{})
-	admin := &entity.Identity{Subject: "root", Super: true}
+	admin := &entity.Identity{Subject: "root", Role: entity.RoleSuper}
 
 	put := ucstest.Mux("PUT", "/external/v1/engine/{engine}/connections/{name}/permissions", Set{RegistryDeps: f.Deps()}.Serve)
 	rec := ucstest.Do(put, http.MethodPut, "/external/v1/engine/sql/connections/demo/permissions", `{"member":"dev","memberType":"group","level":"write"}`, admin)
@@ -59,7 +59,7 @@ func TestMembers(t *testing.T) {
 	f.Users.Accounts = []entity.User{{Subject: "local:alice", Username: "alice"}}
 
 	rec := ucstest.Do(ucstest.Mux("GET", "/external/v1/config/members", Members{RegistryDeps: f.Deps()}.Serve),
-		http.MethodGet, "/external/v1/config/members", "", &entity.Identity{Subject: "root", Super: true})
+		http.MethodGet, "/external/v1/config/members", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"readers"`) || !strings.Contains(rec.Body.String(), `"local:alice"`) {
 		t.Fatalf("members status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -103,5 +103,30 @@ func TestInstanceAdminCanReadAndRevokeButNotGrant(t *testing.T) {
 		http.MethodDelete, "/x/sql/c/demo?member=dev", "", carol)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("non-admin must not revoke: %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+// A promoted admin manages the grant policy of every connection without holding
+// a grant on it; a member still cannot.
+func TestGlobalAdminManagesEveryConnection(t *testing.T) {
+	f := ucstest.New(&ucstest.SQL{})
+	f.Conns.M["demo"] = entity.Connection{Name: "demo", Driver: constants.DriverPostgres, Family: constants.FamilySQL}
+	admin := &entity.Identity{Subject: "local:admin", Role: entity.RoleAdmin}
+	member := &entity.Identity{Subject: "local:bob", Role: entity.RoleMember}
+
+	rec := ucstest.Do(ucstest.Mux("PUT", "/x/{engine}/c/{name}", Set{RegistryDeps: f.Deps()}.Serve),
+		http.MethodPut, "/x/sql/c/demo", `{"member":"dev","memberType":"group","level":"write"}`, admin)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("global admin grant: %d %s", rec.Code, rec.Body.String())
+	}
+	rec = ucstest.Do(ucstest.Mux("PUT", "/x/{engine}/c/{name}", Set{RegistryDeps: f.Deps()}.Serve),
+		http.MethodPut, "/x/sql/c/demo", `{"member":"dev","memberType":"group","level":"write"}`, member)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("member grant must be forbidden: %d %s", rec.Code, rec.Body.String())
+	}
+	rec = ucstest.Do(ucstest.Mux("GET", "/x/{engine}/c/{name}", List{RegistryDeps: f.Deps()}.Serve),
+		http.MethodGet, "/x/sql/c/demo", "", admin)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"dev"`) {
+		t.Fatalf("global admin list: %d %s", rec.Code, rec.Body.String())
 	}
 }

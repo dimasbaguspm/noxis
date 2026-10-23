@@ -1,13 +1,21 @@
 package entity
 
 // Identity is the authenticated caller, derived from the bearer token on every
-// request. Super is the console's one global role: exactly one account (the env
-// root) holds it and it never expires. Everything else is per-connection.
+// request. Role is the one global role (super, admin or member); everything else
+// is per-connection. A blended OIDC login carries the local account's subject
+// and role, so grants apply unchanged.
 type Identity struct {
 	Subject     string   `json:"sub"`
 	Name        string   `json:"name,omitempty"`
 	Email       string   `json:"email,omitempty"`
 	Groups      []string `json:"groups"`
-	Super       bool     `json:"super"`
+	Role        string   `json:"role"`
 	LastLoginAt int64    `json:"lastLoginAt,omitempty"`
 }
+
+// IsSuper reports whether the caller holds the env root's single global role.
+func (i Identity) IsSuper() bool { return i.Role == RoleSuper }
+
+// IsAdmin reports whether the caller may run the instance: the super admin or a
+// promoted admin.
+func (i Identity) IsAdmin() bool { return i.Role == RoleSuper || i.Role == RoleAdmin }

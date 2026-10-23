@@ -947,7 +947,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
     put:
-      summary: Grant a user or group a level on a connection
+      summary: Grant a user or group a level on a connection (admin only)
       parameters:
         - description: engine family (sql, memcache, mongodb)
           name: engine
@@ -1438,14 +1438,14 @@ paths:
                 $ref: "#/components/schemas/entity.ErrorResponse"
   /external/v1/users:
     get:
-      summary: List accounts (super admin only)
+      summary: List accounts (admin only)
       parameters:
-        - description: match subject or username
+        - description: match subject, email or username
           name: q
           in: query
           schema:
             type: string
-        - description: all, active or disabled
+        - description: all, active or banned
           name: status
           in: query
           schema:
@@ -1470,7 +1470,7 @@ paths:
                 $ref: "#/components/schemas/entity.ErrorResponse"
   "/external/v1/users/{subject}":
     get:
-      summary: One account with its access and activity (super admin only)
+      summary: One account with its access and activity (admin only)
       parameters:
         - description: user subject
           name: subject
@@ -1498,7 +1498,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
     patch:
-      summary: Disable or re-enable an account (super admin only)
+      summary: Promote or demote an admin (super only)
       parameters:
         - description: user subject
           name: subject
@@ -1511,7 +1511,7 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/user.updateBody"
-        description: disabled
+        description: role
         required: true
       responses:
         "200":
@@ -1619,10 +1619,10 @@ components:
           type: integer
         name:
           type: string
+        role:
+          type: string
         sub:
           type: string
-        super:
-          type: boolean
     auth.changePasswordRequest:
       type: object
       properties:
@@ -2048,6 +2048,7 @@ components:
     entity.User:
       type: object
       required:
+        - role
         - subject
       properties:
         createdAt:
@@ -2062,10 +2063,14 @@ components:
             type: string
         lastLoginAt:
           type: integer
+        role:
+          type: string
+          enum:
+            - super
+            - admin
+            - member
         subject:
           type: string
-        super:
-          type: boolean
         username:
           type: string
     instance.passwordBody:
@@ -2084,6 +2089,8 @@ components:
       type: object
       properties:
         label:
+          type: string
+        role:
           type: string
         subject:
           type: string
@@ -2106,6 +2113,7 @@ components:
     user.Detail:
       type: object
       required:
+        - role
         - subject
       properties:
         access:
@@ -2128,14 +2136,18 @@ components:
             type: string
         lastLoginAt:
           type: integer
+        role:
+          type: string
+          enum:
+            - super
+            - admin
+            - member
         subject:
           type: string
-        super:
-          type: boolean
         username:
           type: string
     user.updateBody:
       type: object
       properties:
-        disabled:
-          type: boolean
+        role:
+          type: string

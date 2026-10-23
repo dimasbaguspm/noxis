@@ -78,8 +78,8 @@ module. This is why one handler serves all families instead of a copy per family
 - One exported struct per operation, one `Serve(w, r)`. It embeds
   `usecases.RegistryDeps`, so the shared steps are methods on the receiver:
   `uc.RawConn` (load connection + check family + authorize), `uc.Authorize` /
-  `uc.RequireSuper` / `uc.EffectiveGrant` (policy), `uc.Respond` / `uc.Fail` /
-  `uc.Decode` (transport). `applyChange`/`applySQL`/`applyMongo` live in `apply`.
+  `uc.RequireSuper` / `uc.RequireAdmin` / `uc.EffectiveGrant` (policy),
+  `uc.Respond` / `uc.Fail` / `uc.Decode` (transport). `applyChange`/`applySQL`/`applyMongo` live in `apply`.
 - Domain rejects are returned, not panicked. `constants.ErrForbidden` → 403.
 
 ## Serve pattern
@@ -107,8 +107,15 @@ plus a swag annotation on `Serve`, then `make swagger`.
 - `middlewares.WithAuth(verifier, next)` verifies bearer tokens; the
   `entity.Identity` lands on the ctx (`usecases.Principal`).
 - Open mode is gone: `WithAuth` denies when no verifier is configured.
-- `usecases.rawConn` is the single per-connection gate. `RequireSuper` gates the
-  management surfaces (connection CRUD, permissions).
+- `usecases.rawConn` is the single per-connection gate. Two global gates sit on
+  top of it: `RequireSuper` for root-only surfaces (connection CRUD, instance
+  credentials, role changes) and `RequireAdmin` for the instance-management
+  surfaces (user directory, account status, every connection's grant policy,
+  access-request decisions).
+- Three global roles (`entity.RoleSuper/Admin/Member`). Exactly one account is
+  `super`: the env root named by `NOXIS_ADMIN_EMAIL`, promoted on every boot. A
+  `member` still needs a grant per connection, and an `admin` role never widens
+  data access.
 - Levels: `read < write < admin` (`entity.LevelAllows`). `OpLevel` maps a SQL op
   to a level (only `query` is read; `analyze` mutates planner stats = write).
 - List endpoints hide unreadable connections (`CanRead`/`readableConnections`).

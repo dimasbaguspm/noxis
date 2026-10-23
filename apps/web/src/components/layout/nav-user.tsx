@@ -38,7 +38,7 @@ export function NavUser() {
           <div className="grid min-w-0 flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
             <span className="truncate font-medium">{name}</span>
             <span className="truncate text-xs text-muted-foreground">
-              {identity?.super ? "super admin" : email || "member"}
+              {identity?.role === "super" ? "super admin" : identity?.role === "admin" ? "admin" : email || "member"}
             </span>
           </div>
           <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />

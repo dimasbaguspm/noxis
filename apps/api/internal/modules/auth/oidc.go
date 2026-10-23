@@ -70,30 +70,24 @@ func (o *OIDC) Verify(ctx context.Context, rawToken string) (entity.Identity, er
 }
 
 // principalFromClaims builds the caller. The groups claim may be absent (no
-// groups) or a JSON array; anything else is ignored rather than trusted.
+// groups) or a JSON array; anything else is ignored rather than trusted. An
+// issuer never grants a global role: OIDC identities are members until the
+// super admin promotes them.
 func principalFromClaims(subject string, claims map[string]any, groupsClaim string) entity.Identity {
 	groups := stringSlice(claims[groupsClaim])
 	return entity.Identity{
 		Subject: subject,
 		// display name: "name", falling back to the username claim
 		Name:   firstNonEmpty(stringClaim(claims["name"]), stringClaim(claims["preferred_username"])),
-		Email:  stringClaim(claims["email"]),
+		Email:  normalizeEmail(stringClaim(claims["email"])),
 		Groups: groups,
+		Role:   entity.RoleMember,
 	}
 }
 
 func stringClaim(value any) string {
 	s, _ := value.(string)
 	return s
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, v := range values {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
 }
 
 func stringSlice(value any) []string {

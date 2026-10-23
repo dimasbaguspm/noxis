@@ -24,11 +24,15 @@ const MEMBER_TYPES = [
 ] as const;
 
 // InstancePermissions is one instance's access policy: everyone who can reach
-// it, at what level and until when. The super admin and the instance's own
-// admin grant and revoke; levels come from the backend catalog, and the
-// grant-form choices live in the URL.
-export function InstancePermissions({ instance }: { instance: Connection }) {
-  const { isSuper, isInstanceAdmin } = useAuth();
+// it, at what level and until when. A global admin and the instance's own admin
+// grant and revoke; levels come from the backend catalog, and the grant-form
+// choices live in the URL.
+export function InstancePermissions({
+  instance,
+}: {
+  instance: Pick<Connection, "name" | "driver" | "family">
+}) {
+  const { isAdmin, isInstanceAdmin } = useAuth();
   const family = instance.family as FamilyKey | undefined;
   const name = instance.name;
   const [params, setParams] = useSearchParams();
@@ -44,7 +48,7 @@ export function InstancePermissions({ instance }: { instance: Connection }) {
   };
 
   const permissions = usePermissionsQuery(family, name);
-  const members = useMembersQuery(isSuper);
+  const members = useMembersQuery(isAdmin);
   const levels = useLevelsQuery().data?.levels ?? [];
   const add = useSetPermission(family, name);
   const remove = useRemovePermission(family, name);
@@ -52,7 +56,8 @@ export function InstancePermissions({ instance }: { instance: Connection }) {
   const groups = knownGroups(members.data?.groups);
   const meta = family ? familyByKey[family] : undefined;
   const Icon = meta?.icon;
-  const canRevoke = isSuper || isInstanceAdmin(name);
+  const canGrant = isAdmin;
+  const canRevoke = isAdmin || isInstanceAdmin(name);
 
   return (
     <Card>
@@ -98,7 +103,7 @@ export function InstancePermissions({ instance }: { instance: Connection }) {
           </ul>
         )}
 
-        {isSuper && (
+        {canGrant && (
           <form
             className="flex flex-wrap items-center gap-2"
             onSubmit={(e) => {

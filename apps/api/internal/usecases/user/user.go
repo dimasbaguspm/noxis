@@ -1,7 +1,10 @@
-// Package user holds the super-only user directory use cases.
+// Package user holds the admin user directory use cases. The super admin and
+// promoted admins read it and set account status; only the super admin changes
+// a global role.
 package user
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -14,15 +17,15 @@ import (
 // List is the directory: every account, filtered by a search term and status.
 type List struct{ usecases.RegistryDeps }
 
-// @Summary List accounts (super admin only)
-// @Param q query string false "match subject or username"
-// @Param status query string false "all, active or disabled"
+// @Summary List accounts (admin only)
+// @Param q query string false "match subject, email or username"
+// @Param status query string false "all, active or banned"
 // @Success 200 {object} object{users=[]entity.User}
 // @Failure 403 {object} entity.ErrorResponse
 // @Router /external/v1/users [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if err := uc.RequireSuper(ctx); err != nil {
+	if err := uc.RequireAdmin(ctx); err != nil {
 		uc.Fail(w, err)
 		return
 	}
@@ -36,7 +39,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	out := make([]entity.User, 0, len(users))
 	for i := range users {
 		u := &users[i]
-		if q != "" && !strings.Contains(strings.ToLower(u.Subject), q) && !strings.Contains(strings.ToLower(u.Username), q) {
+		if q != "" && !matches(u, q) {
 			continue
 		}
 		if status == "active" && u.Disabled {
@@ -50,6 +53,13 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	uc.Respond(w, map[string]any{"users": out})
 }
 
+// matches reports whether one account matches a lowercased search term.
+func matches(u *entity.User, q string) bool {
+	return strings.Contains(strings.ToLower(u.Subject), q) ||
+		strings.Contains(strings.ToLower(u.Email), q) ||
+		strings.Contains(strings.ToLower(u.Username), q)
+}
+
 // Detail is one account with the access it holds and its activity trail.
 type Detail struct {
 	entity.User
@@ -60,7 +70,7 @@ type Detail struct {
 // Get returns one account, its access (direct and via groups) and its activity.
 type Get struct{ usecases.RegistryDeps }
 
-// @Summary One account with its access and activity (super admin only)
+// @Summary One account with its access and activity (admin only)
 // @Param subject path string true "user subject"
 // @Success 200 {object} Detail
 // @Failure 403 {object} entity.ErrorResponse
@@ -68,7 +78,7 @@ type Get struct{ usecases.RegistryDeps }
 // @Router /external/v1/users/{subject} [get]
 func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if err := uc.RequireSuper(ctx); err != nil {
+	if err := uc.RequireAdmin(ctx); err != nil {
 		uc.Fail(w, err)
 		return
 	}
@@ -96,18 +106,18 @@ func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 	uc.Respond(w, Detail{User: *u, Access: access, Events: events})
 }
 
-// updateBody is the enable/disable payload.
+// updateBody is the role payload.
 type updateBody struct {
-	Disabled *bool `json:"disabled"`
+	Role *string `json:"role"`
 }
 
-// Update disables or re-enables an account. The super admin and the caller are
-// never disableable, so a store cannot lock itself out.
+// Update sets an account's global role. Nobody changes their own account and the
+// super admin is never demotable.
 type Update struct{ usecases.RegistryDeps }
 
-// @Summary Disable or re-enable an account (super admin only)
+// @Summary Promote or demote an admin (super only)
 // @Param subject path string true "user subject"
-// @Param body body updateBody true "disabled"
+// @Param body body updateBody true "role"
 // @Success 200 {object} entity.User
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 403 {object} entity.ErrorResponse
@@ -115,7 +125,7 @@ type Update struct{ usecases.RegistryDeps }
 // @Router /external/v1/users/{subject} [patch]
 func (uc Update) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	if err := uc.RequireSuper(ctx); err != nil {
+	if err := uc.RequireAdmin(ctx); err != nil {
 		uc.Fail(w, err)
 		return
 	}
@@ -126,8 +136,8 @@ func (uc Update) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(w, err)
 		return
 	}
-	if body.Disabled == nil {
-		uc.Fail(w, fmt.Errorf("disabled is required"))
+	if body.Role == nil {
+		uc.Fail(w, fmt.Errorf("role is required"))
 		return
 	}
 	u, err := uc.Users.GetUser(ctx, subject)
@@ -135,14 +145,38 @@ func (uc Update) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(w, err)
 		return
 	}
-	if *body.Disabled && (subject == caller.Subject || u.Super) {
-		uc.Fail(w, constants.ErrForbidden)
+	if subject == caller.Subject {
+		uc.Fail(w, fmt.Errorf("%w: you cannot change your own account", constants.ErrForbidden))
 		return
 	}
-	if err := uc.Users.SetUserDisabled(ctx, subject, *body.Disabled); err != nil {
+	if u.IsSuper() {
+		uc.Fail(w, fmt.Errorf("%w: the super admin cannot be changed", constants.ErrForbidden))
+		return
+	}
+	if err := uc.applyRole(ctx, caller, u, body.Role); err != nil {
 		uc.Fail(w, err)
 		return
 	}
-	u.Disabled = *body.Disabled
 	uc.Respond(w, u)
+}
+
+// applyRole changes the global role: super only, and never to super.
+func (uc Update) applyRole(ctx context.Context, caller entity.Identity, u *entity.User, role *string) error {
+	if role == nil {
+		return nil
+	}
+	if !caller.IsSuper() {
+		return fmt.Errorf("%w: only the super admin changes roles", constants.ErrForbidden)
+	}
+	if *role != entity.RoleAdmin && *role != entity.RoleMember {
+		return fmt.Errorf("role must be %s or %s", entity.RoleAdmin, entity.RoleMember)
+	}
+	if *role == u.Role {
+		return nil
+	}
+	if err := uc.Users.SetUserRole(ctx, u.Subject, *role); err != nil {
+		return err
+	}
+	u.Role = *role
+	return nil
 }

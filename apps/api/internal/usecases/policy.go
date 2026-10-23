@@ -15,10 +15,20 @@ import (
 	"noxis/internal/entity"
 )
 
-// RequireSuper gates the global surfaces (connections, users, permissions).
-// Super is the env root's single global role; a missing principal is denied.
+// RequireSuper gates the root-only surfaces: connection lifecycle, promotions
+// and instance credentials. Super is the env root's single global role; a
+// missing principal is denied.
 func (d RegistryDeps) RequireSuper(ctx context.Context) error {
-	if p, ok := Principal(ctx); ok && p.Super {
+	if p, ok := Principal(ctx); ok && p.IsSuper() {
+		return nil
+	}
+	return constants.ErrForbidden
+}
+
+// RequireAdmin gates the instance-management surfaces: the user directory,
+// account status and the per-connection grant policy. The super admin passes.
+func (d RegistryDeps) RequireAdmin(ctx context.Context) error {
+	if p, ok := Principal(ctx); ok && p.IsAdmin() {
 		return nil
 	}
 	return constants.ErrForbidden
@@ -58,13 +68,14 @@ func (d RegistryDeps) EffectiveLevel(ctx context.Context, connection string, p e
 }
 
 // Authorize enforces need on a connection. The super admin passes without a
-// per-connection check; everyone else needs a matching, unexpired permission.
+// per-connection check; everyone else — a promoted admin included — needs a
+// matching, unexpired permission.
 func (d RegistryDeps) Authorize(ctx context.Context, connection, need string) error {
 	if need == "" {
 		return nil
 	}
 	p, ok := Principal(ctx)
-	if !ok || p.Super {
+	if !ok || p.IsSuper() {
 		return nil
 	}
 	level, err := d.EffectiveLevel(ctx, connection, p)
@@ -81,7 +92,7 @@ func (d RegistryDeps) Authorize(ctx context.Context, connection, need string) er
 // connections from listings rather than failing the whole list.
 func (d RegistryDeps) CanRead(ctx context.Context, connection string) (bool, error) {
 	p, ok := Principal(ctx)
-	if !ok || p.Super {
+	if !ok || p.IsSuper() {
 		return true, nil
 	}
 	level, err := d.EffectiveLevel(ctx, connection, p)

@@ -7,26 +7,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/app/auth-provider";
+import { RoleBadge } from "@/components/access/role-badge";
 import { useUsersQuery, useUsersUrlParams } from "@/hooks/use-users";
 import { formatDateTime } from "@/lib/dates";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { H1, P } from "@/components/ui/typography";
 
-// UsersPage is the super admin's directory: every account, filterable by a
-// search term and status. The filters live in the URL, so a filtered view can
-// be shared or reloaded.
+// UsersPage is the admin directory: every account, filterable by a search term
+// and status. The filters live in the URL, so a filtered view can be shared or
+// reloaded.
 export default function UsersPage() {
-  const { isSuper } = useAuth();
+  const { isAdmin } = useAuth();
   const { q, status, setQ, setStatus } = useUsersUrlParams();
-  const { data, isPending } = useUsersQuery(isSuper);
+  const { data, isPending } = useUsersQuery(isAdmin);
 
-  if (!isSuper) {
+  if (!isAdmin) {
     return (
       <div className="mx-auto mt-8 max-w-lg">
         <Empty
           icon={ShieldCheck}
-          title="Super admin only"
-          description="The user directory is reserved for the super admin."
+          title="Admin only"
+          description="The user directory is reserved for admins."
         />
       </div>
     );
@@ -38,9 +39,7 @@ export default function UsersPage() {
     <div className="flex flex-col gap-4">
       <div>
         <H1>Users</H1>
-        <P>
-          Every account that can sign in, its role, and when it was last seen.
-        </P>
+        <P>Every account that can sign in, its role, and when it was last seen.</P>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -48,7 +47,7 @@ export default function UsersPage() {
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
-          <InputGroupInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search subject or username" />
+          <InputGroupInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search email or subject" />
         </InputGroup>
         <Select value={status} onValueChange={(v) => setStatus(v ?? "all")}>
           <SelectTrigger className="h-8 w-40">
@@ -83,12 +82,12 @@ export default function UsersPage() {
                 <TableRow key={u.subject}>
                   <TableCell>
                     <Link to={PAGE_ROUTES.USER_DETAIL(u.subject)} className="font-medium hover:underline">
-                      {u.username || u.subject}
+                      {u.email || u.username || u.subject}
                     </Link>
                     <div className="font-mono text-xs text-muted-foreground">{u.subject}</div>
                   </TableCell>
                   <TableCell>
-                    {u.super ? <Badge variant="success">Super</Badge> : <Badge variant="secondary">Member</Badge>}
+                    <RoleBadge role={u.role} />
                   </TableCell>
                   <TableCell>
                     {u.disabled ? (

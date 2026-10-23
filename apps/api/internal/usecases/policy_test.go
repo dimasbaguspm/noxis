@@ -19,7 +19,7 @@ func TestRequireSuper(t *testing.T) {
 	if err := d.RequireSuper(member); err == nil {
 		t.Fatal("a member must be denied")
 	}
-	root := usecases.WithPrincipal(context.Background(), entity.Identity{Subject: "root", Super: true})
+	root := usecases.WithPrincipal(context.Background(), entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if err := d.RequireSuper(root); err != nil {
 		t.Fatalf("the super admin must pass: %v", err)
 	}
