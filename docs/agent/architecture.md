@@ -12,7 +12,7 @@ domain      apps/api/internal/entity             (data model, imports nothing in
             apps/api/internal/interfaces          (seams)
 infra       apps/api/internal/modules/*          (engine adapters)
             apps/api/internal/repositories/*     (persistence)
-cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagination, secret)
+cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagination, secret, shared changeflow rules)
             apps/api/internal/constants          (universal values)
 ```
 
@@ -46,8 +46,8 @@ constructor boilerplate, no reflection.
 
 - `Registry` resolves a family by name (`Engine`), by interface (`EngineSQL`,
   `EngineMongo`, `EngineMemcache`), and a driver → family (`Serves`).
-- `Default()` builds `{sql, memcache, mongodb}`. **This map is the only place
-  families are declared.**
+- `Default(connections, changes, metrics, auth)` builds `{sql, memcache, mongodb}` and their change flows. **This map
+  is the only place families are declared.**
 - The registry is an explicit dependency: a use case that resolves a family
   embeds `usecases.RegistryDeps`, so `uc.Modules` is set at the composition root.
 
@@ -77,7 +77,9 @@ status, and nothing else. Domain rules live in a module: the change lifecycle
 belongs to the family that runs it, so `modules/sql.Changes` and
 `modules/mongodb.Changes` each own submit → validate → approve/reject/schedule →
 apply. Their shared state rules come from `internal/common/changeflow`, a base
-that both embed — it is a library, not a registered module.
+that both embed — it is a library, not a registered module. It sits below both
+family modules in the enforced dependency graph; engine execution and decision
+logging stay with the family modules.
 
 Both queues are registered in `modules.Default()` next to the engines, so a use
 case reaches them the same way it reaches a family: `uc.Modules.Changes().SQL`
@@ -105,17 +107,19 @@ A `Serve` resolves the engine, decodes, does the work and writes:
 
 ```go
 func (uc Foo) Serve(w http.ResponseWriter, r *http.Request) {
+    ctx, end := logging.StartSpan(r.Context())
+    defer end(nil)
     mod, err := uc.Modules.Engine(r.PathValue("engine"))
-    if err != nil { uc.Fail(w, err); return }
-    out, err := doWork(r.Context(), mod, /* path/query/body */)
-    if err != nil { uc.Fail(w, err); return }
+    if err != nil { uc.Fail(ctx, w, err); return }
+    out, err := doWork(ctx, mod, /* path/query/body */)
+    if err != nil { uc.Fail(ctx, w, err); return }
     uc.Respond(w, out)
 }
 ```
 
 Routes are declared in `apps/api/cmd/noxis/server/server.go` (`newHandler`) and
-point straight at a use case `Serve` wrapped in `middlewares.UseCase`: there is
-no handler package. Add a route plus a swag annotation on `Serve`, then
+point straight at a use case `Serve`; there is no handler package or use-case
+middleware wrapper. Add a route plus a swag annotation on `Serve`, then
 `make swagger`.
 
 Every request body and response envelope is a struct in
@@ -126,9 +130,10 @@ the same declaration a reader can find.
 ## Auth & policy
 
 - `middlewares.WithAuth(verifier, next)` verifies bearer tokens; the
-  `entity.Identity` lands on the ctx (`usecases.Principal`).
+  `entity.Identity` lands on the context (`entity.Principal`).
 - Open mode is gone: `WithAuth` denies when no verifier is configured.
-- `usecases.rawConn` is the single per-connection gate. Two global gates sit on
+- `usecases.RegistryDeps.RawConn` is the single per-connection gate. Two global gates
+  sit on
   top of it: `RequireSuper` for root-only surfaces (connection CRUD, instance
   credentials, role changes) and `RequireAdmin` for the instance-management
   surfaces (user directory, account status, every connection's grant policy,

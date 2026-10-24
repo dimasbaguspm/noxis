@@ -81,7 +81,7 @@ func (c *Changes) Submit(ctx context.Context, conn entity.Connection, actor stri
 		logging.InfoWithCtx(ctx, "change validated",
 			"change", ch.ID, "connection", ch.Connection, "kind", ch.Kind, "scratch", ch.ScratchSchema)
 	}
-	return c.Record(ctx, ch, dry.Error)
+	return c.Record(ctx, ch)
 }
 
 // Approve signs off a validated batch.

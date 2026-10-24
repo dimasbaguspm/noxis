@@ -38,7 +38,7 @@ func (f Flow) Approve(ctx context.Context, ch *entity.Change) error {
 		return fmt.Errorf("change is %s, not validated — cannot approve", ch.Status)
 	}
 	ch.Status, ch.ApprovedAt = constants.ChangeApproved, time.Now().Unix()
-	return f.save(ctx, ch)
+	return f.Save(ctx, ch)
 }
 
 // Reject closes a change without running it. An applied change is history: it
@@ -51,7 +51,7 @@ func (f Flow) Reject(ctx context.Context, ch *entity.Change) error {
 		return fmt.Errorf("change already applied — it cannot be rejected")
 	}
 	ch.Status, ch.RejectedAt = constants.ChangeRejected, time.Now().Unix()
-	return f.save(ctx, ch)
+	return f.Save(ctx, ch)
 }
 
 // Schedule sets (or, with 0, clears) an approved change's slot. A slot in the
@@ -67,7 +67,7 @@ func (f Flow) Schedule(ctx context.Context, ch *entity.Change, at int64) error {
 		return fmt.Errorf("scheduled time must be in the future")
 	}
 	ch.ScheduledAt = at
-	return f.save(ctx, ch)
+	return f.Save(ctx, ch)
 }
 
 // Claim atomically reserves an approved change before an engine write.
@@ -107,7 +107,7 @@ func Due(ch entity.Change, now int64) bool {
 
 // Record stores a validated change. A failed submission is returned unrecorded:
 // a change that cannot run is never queued, but the caller still sees why.
-func (f Flow) Record(ctx context.Context, ch entity.Change, reason string) (entity.Change, error) {
+func (f Flow) Record(ctx context.Context, ch entity.Change) (entity.Change, error) {
 	if ch.Status == constants.ChangeFailed {
 		ch.ID = ""
 		return ch, nil
@@ -132,9 +132,7 @@ func Failed(ch *entity.Change, err error) {
 }
 
 // Save persists a decided change.
-func (f Flow) Save(ctx context.Context, ch *entity.Change) error { return f.save(ctx, ch) }
-
-func (f Flow) save(ctx context.Context, ch *entity.Change) error {
+func (f Flow) Save(ctx context.Context, ch *entity.Change) error {
 	return f.Store.SaveChange(ctx, *ch)
 }
 
