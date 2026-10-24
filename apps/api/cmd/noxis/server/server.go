@@ -26,6 +26,10 @@ import (
 
 const shutdownTimeout = 10 * time.Second
 
+// The store must satisfy every repository seam Default() fills; the assertion
+// lives here because a package may not import its own sibling.
+var _ repositories.Store = (*sqlite.Store)(nil)
+
 // newDeps assembles the runtime container once: the stores, the registry (with the auth service) and the transport values, then builds every use case.
 func newDeps(store *sqlite.Store, cfg config.Config, authSvc *auth.Service) app {
 	return newApp(sources{

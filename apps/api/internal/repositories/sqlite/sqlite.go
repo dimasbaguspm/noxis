@@ -15,13 +15,10 @@ import (
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/repositories"
 
 	// modernc SQLite driver: pure-Go, cgo-free (interface is database/sql).
 	_ "modernc.org/sqlite"
 )
-
-var _ repositories.Store = (*Store)(nil)
 
 type Store struct {
 	db     *sql.DB
