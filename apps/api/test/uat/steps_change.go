@@ -22,6 +22,7 @@ type changeBody struct {
 	EstDurationMs int64       `json:"estDurationMs"`
 	EstAffected   int64       `json:"estAffected"`
 	ScratchSchema string      `json:"scratchSchema"`
+	ScheduledAt   int64       `json:"scheduledAt"`
 	BatchID       string      `json:"batchId"`
 }
 
@@ -51,6 +52,9 @@ func (w *world) changeSteps(sc *godog.ScenarioContext) {
 	sc.Step("the change list still contains it", w.changeStillPresent)
 	sc.Step("the change was not recorded", w.changeNotRecorded)
 	sc.Step("the change was verified in a scratch schema", w.changeScratchSchema)
+	sc.Step("I open the change", w.openChange)
+	sc.Step("I schedule the change for now", w.scheduleChange)
+	sc.Step("the change is scheduled", w.changeScheduled)
 	sc.Step(`^the change records an estimated duration and affected count$`, w.changeEstimates)
 }
 
@@ -164,8 +168,8 @@ func (w *world) changeStillPresent(ctx context.Context) error {
 	if err := w.api(http.MethodGet, "/external/v1/engine/sql/changes", nil, &body); err != nil {
 		return err
 	}
-	for _, c := range body.Changes {
-		if c.ID == w.changeID {
+	for i := range body.Changes {
+		if body.Changes[i].ID == w.changeID {
 			return nil
 		}
 	}
@@ -183,10 +187,40 @@ func (w *world) changeNotRecorded(ctx context.Context) error {
 	if err := w.api(http.MethodGet, "/external/v1/engine/sql/changes", nil, &body); err != nil {
 		return err
 	}
-	for _, c := range body.Changes {
-		if c.Notes == "uat change" && c.Status == "failed" {
-			return fmt.Errorf("failed change was recorded: %+v", c)
+	for i := range body.Changes {
+		if body.Changes[i].Notes == "uat change" && body.Changes[i].Status == "failed" {
+			return fmt.Errorf("failed change was recorded: %+v", body.Changes[i])
 		}
+	}
+	return nil
+}
+
+// openChange reads the artifact back by id, proving the detail route.
+func (w *world) openChange(ctx context.Context) error {
+	w.change = changeBody{}
+	if err := w.api(http.MethodGet, "/external/v1/engine/sql/changes/"+w.changeID, nil, &w.change); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK || w.change.ID != w.changeID {
+		return fmt.Errorf("open change: %d %s", w.code, w.body)
+	}
+	return nil
+}
+
+func (w *world) scheduleChange(ctx context.Context) error {
+	body := map[string]int64{"scheduledAt": time.Now().Add(time.Minute).Unix()}
+	if err := w.api(http.MethodPost, "/external/v1/engine/sql/changes/"+w.changeID+"/schedule", body, &w.change); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("schedule: %d %s", w.code, w.body)
+	}
+	return nil
+}
+
+func (w *world) changeScheduled(ctx context.Context) error {
+	if w.change.ScheduledAt == 0 {
+		return fmt.Errorf("change is not scheduled: %+v", w.change)
 	}
 	return nil
 }
