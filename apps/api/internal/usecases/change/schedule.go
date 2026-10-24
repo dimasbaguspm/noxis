@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"noxis/internal/common/logging"
-	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -30,10 +29,10 @@ func (uc Schedule) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decide(ctx, uc.RegistryDeps, w, r, func(change *entity.Change) error {
-		actor := entity.Actor(ctx)
-		if change.Kind == constants.KindMongo {
-			return uc.Modules.Changes().Mongo.Schedule(ctx, change, body.ScheduledAt, actor)
+		flow, err := flowFor(ctx, change)
+		if err != nil {
+			return err
 		}
-		return uc.Modules.Changes().SQL.Schedule(ctx, change, body.ScheduledAt, actor)
+		return flow.Schedule(ctx, change, body.ScheduledAt, entity.Actor(ctx))
 	})
 }

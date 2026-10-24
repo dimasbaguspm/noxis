@@ -2,6 +2,7 @@
 package testkit
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -19,11 +20,16 @@ func Mux(method, pattern string, h http.HandlerFunc) *http.ServeMux {
 
 // Do runs one request against a handler and returns the recorder.
 func Do(h http.Handler, method, path, body string, p *entity.Identity) *httptest.ResponseRecorder {
+	return DoContext(context.Background(), h, method, path, body, p)
+}
+
+// DoContext runs one request with a caller-supplied context.
+func DoContext(ctx context.Context, h http.Handler, method, path, body string, p *entity.Identity) *httptest.ResponseRecorder {
 	var r io.Reader
 	if body != "" {
 		r = strings.NewReader(body)
 	}
-	req := httptest.NewRequest(method, path, r)
+	req := httptest.NewRequest(method, path, r).WithContext(ctx)
 	if p != nil {
 		req = req.WithContext(entity.WithPrincipal(req.Context(), *p))
 	}

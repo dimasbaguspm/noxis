@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	"go.uber.org/mock/gomock"
 
+	"noxis/internal/common"
 	"noxis/internal/common/testkit"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
@@ -97,12 +99,17 @@ func newHarness(t *testing.T, store ...entity.Change) *harness {
 	return h
 }
 
+func (h *harness) do(handler http.Handler, method, path, body string, p *entity.Identity) *httptest.ResponseRecorder {
+	ctx := common.WithModuleLoader(context.Background(), h.deps.Modules)
+	return testkit.DoContext(ctx, handler, method, path, body, p)
+}
+
 func TestApplyAfterApprove(t *testing.T) {
 	h := newHarness(t, approved("x"))
 	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{Affected: 1, Message: "applied: 1 statement(s)"}, nil)
 
 	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
-	rec := testkit.Do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
+	rec := h.do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("apply status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -119,7 +126,7 @@ func TestApplyFailureIsRecorded(t *testing.T) {
 	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, errors.New("statement 1: duplicate key"))
 
 	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
-	rec := testkit.Do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
+	rec := h.do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code == http.StatusOK {
 		t.Fatalf("apply must surface the failure: %s", rec.Body.String())
 	}
@@ -139,7 +146,7 @@ func TestApplyFailureReportsOutcomeSaveFailure(t *testing.T) {
 	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, errors.New("duplicate key"))
 
 	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
-	rec := testkit.Do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
+	rec := h.do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code == http.StatusOK || !strings.Contains(rec.Body.String(), "sqlite unavailable") || !strings.Contains(rec.Body.String(), "duplicate key") {
 		t.Fatalf("apply must surface both errors: status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -152,7 +159,7 @@ func TestApplyConflictDoesNotRunEngine(t *testing.T) {
 	h := newHarness(t, approved("x"))
 	h.claimDenied = true
 	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
-	rec := testkit.Do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
+	rec := h.do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("status=%d body=%s, want 409", rec.Code, rec.Body.String())
 	}
@@ -164,7 +171,7 @@ func TestTickSkipsChangeClaimedElsewhere(t *testing.T) {
 	h := newHarness(t, due)
 	h.claimDenied = true
 
-	rec := testkit.Do(testkit.Mux("POST", "/internal/callback/scheduler", Tick{RegistryDeps: h.deps}.Serve),
+	rec := h.do(testkit.Mux("POST", "/internal/callback/scheduler", Tick{RegistryDeps: h.deps}.Serve),
 		http.MethodPost, "/internal/callback/scheduler", "", nil)
 	if rec.Code != http.StatusOK || strings.Contains(rec.Body.String(), `"due"`) {
 		t.Fatalf("tick status=%d body=%s; a concurrent claim is not an apply failure", rec.Code, rec.Body.String())
@@ -177,7 +184,7 @@ func TestTickAppliesDueScheduledChange(t *testing.T) {
 	h := newHarness(t, due, approved("wait")) // "wait" is immediate: not due
 	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{Message: "applied"}, nil)
 
-	rec := testkit.Do(testkit.Mux("POST", "/internal/callback/scheduler", Tick{RegistryDeps: h.deps}.Serve),
+	rec := h.do(testkit.Mux("POST", "/internal/callback/scheduler", Tick{RegistryDeps: h.deps}.Serve),
 		http.MethodPost, "/internal/callback/scheduler", "", nil)
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"due"`) {
 		t.Fatalf("tick status=%d body=%s", rec.Code, rec.Body.String())

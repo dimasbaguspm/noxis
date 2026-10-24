@@ -2,9 +2,10 @@
 package apply
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 
+	"noxis/internal/common"
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
@@ -40,7 +41,7 @@ func (uc Apply) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	flow, err := uc.flowFor(change)
+	flow, err := flowFor(ctx, change)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -54,16 +55,17 @@ func (uc Apply) Serve(w http.ResponseWriter, r *http.Request) {
 }
 
 // flowFor is the queue that owns a change's kind.
-func (uc Apply) flowFor(change *entity.Change) (interfaces.ChangeFlow, error) {
-	flows := uc.Modules.Changes()
+func flowFor(ctx context.Context, change *entity.Change) (interfaces.ChangeFlow, error) {
 	if change.Kind == constants.KindMongo {
-		if flows.Mongo == nil {
-			return nil, fmt.Errorf("%w: no change queue for %s", constants.ErrUnsupported, change.Kind)
+		var flow interfaces.MongoChangeFlow
+		if err := common.LoadModule(ctx, &flow); err != nil {
+			return nil, err
 		}
-		return flows.Mongo, nil
+		return flow, nil
 	}
-	if flows.SQL == nil {
-		return nil, fmt.Errorf("%w: no change queue for %s", constants.ErrUnsupported, change.Kind)
+	var flow interfaces.SQLChangeFlow
+	if err := common.LoadModule(ctx, &flow); err != nil {
+		return nil, err
 	}
-	return flows.SQL, nil
+	return flow, nil
 }

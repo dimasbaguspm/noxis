@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"noxis/cmd/noxis/server/middlewares"
+	"noxis/internal/common"
 	"noxis/internal/common/config"
 	"noxis/internal/constants"
 	"noxis/internal/interfaces"
@@ -154,9 +155,10 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 	// Middleware order is CORS → trace → auth → request log, so denied tokens are traced and actor fields attach after auth.
 	handler := middlewares.CORS(middlewares.Trace(middlewares.WithAuth(authSvc, middlewares.RequestLog(newHandler(d, cfg), log), log)))
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler}
+	baseCtx := common.WithModuleLoader(ctx, d.Modules)
 	// every request ctx descends from ours
 	srv.BaseContext = func(net.Listener) context.Context {
-		return ctx
+		return baseCtx
 	}
 
 	errCh := make(chan error, 1)

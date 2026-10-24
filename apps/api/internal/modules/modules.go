@@ -2,8 +2,10 @@
 package modules
 
 import (
+	"errors"
 	"fmt"
 
+	"noxis/internal/common"
 	"noxis/internal/common/metrics"
 	"noxis/internal/constants"
 	"noxis/internal/interfaces"
@@ -15,6 +17,7 @@ import (
 
 // Registry resolves an engine family by its {engine} name and by driver, and carries the process auth service.
 type Registry interface {
+	common.ModuleLoader
 	// Engine resolves the module named by an engine family.
 	Engine(name string) (interfaces.Module, error)
 	EngineSQL(name string) (interfaces.SQLModule, error)
@@ -24,8 +27,6 @@ type Registry interface {
 	Serves(driver string) (interfaces.Module, bool)
 	// Auth is the process auth service: local accounts plus OIDC.
 	Auth() *auth.Service
-	// Changes is every family's change queue, so a use case reaches the flow it serves the same way it reaches an engine.
-	Changes() interfaces.ChangeFlows
 }
 
 // New wraps a family map, the change queues and the auth service in a registry (Default builds the built-in set).
@@ -58,7 +59,37 @@ type registry struct {
 
 func (r registry) Auth() *auth.Service { return r.auth }
 
-func (r registry) Changes() interfaces.ChangeFlows { return r.changes }
+// LoadModule fills a requested change-flow capability from the registry.
+func (r registry) LoadModule(target any) error {
+	switch dst := target.(type) {
+	case *interfaces.ChangeFlows:
+		if dst == nil {
+			return errors.New("nil module target")
+		}
+		*dst = r.changes
+		return nil
+	case *interfaces.SQLChangeFlow:
+		if dst == nil {
+			return errors.New("nil module target")
+		}
+		if r.changes.SQL == nil {
+			return fmt.Errorf("%w: no SQL change flow registered", constants.ErrUnsupported)
+		}
+		*dst = r.changes.SQL
+		return nil
+	case *interfaces.MongoChangeFlow:
+		if dst == nil {
+			return errors.New("nil module target")
+		}
+		if r.changes.Mongo == nil {
+			return fmt.Errorf("%w: no Mongo change flow registered", constants.ErrUnsupported)
+		}
+		*dst = r.changes.Mongo
+		return nil
+	default:
+		return fmt.Errorf("%w: no module registered for %T", constants.ErrUnsupported, target)
+	}
+}
 
 func (r registry) Engine(name string) (interfaces.Module, error) {
 	mod, ok := r.mods[name]

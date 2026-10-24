@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"noxis/internal/common"
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
@@ -20,7 +21,11 @@ type Tick struct{ usecases.RegistryDeps }
 func (uc Tick) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	flows := uc.Modules.Changes()
+	var flows interfaces.ChangeFlows
+	if err := common.LoadModule(ctx, &flows); err != nil {
+		uc.Fail(ctx, w, err)
+		return
+	}
 	result := entity.TickResult{Applied: []string{}, Failed: []string{}}
 	for _, flow := range []interfaces.ChangeFlow{flows.SQL, flows.Mongo} {
 		if flow == nil {
