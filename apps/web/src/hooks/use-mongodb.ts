@@ -5,14 +5,11 @@ import { useUrlState } from "@/hooks/use-url-state";
 import { FAMILY } from "@/lib/families";
 import { queryClient, queryKeys } from "@/lib/query-client";
 
-// useMongoConnections reads the MongoDB list from the cached instances query,
-// so the dashboard and these pages never disagree.
+// useMongoConnections reads the MongoDB list from the cached instances query, so the dashboard and these pages never disagree.
 export type MongoView = "json" | "raw" | "tree";
 const MONGO_DEFAULTS = { database: "", collection: "", filter: "{}", view: "json" };
 
-// useMongoUrlParams is the explore page's selection, kept in the URL: database,
-// collection, filter and view. Changing the database or collection resets the
-// filter, so a new target starts from an empty read.
+// useMongoUrlParams keeps selection in the URL and clears filters when the database or collection changes.
 export function useMongoUrlParams() {
   const [state, patch] = useUrlState(MONGO_DEFAULTS);
   return {
@@ -52,8 +49,7 @@ export function useMongoCollectionsQuery(connection?: string, database?: string)
   return { ...query, collections: query.data ?? [] };
 }
 
-// useMongoRunMutation executes one read (find, aggregate, count); writes are
-// not accepted here and belong in the request queue.
+// useMongoRunMutation executes one read (find, aggregate, count); writes are not accepted here and belong in the request queue.
 export function useMongoRunMutation() {
   return useMutation({
     mutationFn: ({ connection, body }: { connection: string; body: Parameters<typeof api.mongodb.run>[1] }) =>
@@ -61,8 +57,7 @@ export function useMongoRunMutation() {
   });
 }
 
-// Request queue: list, detail and the review actions. Every action invalidates
-// the queue so the list and detail refetch by themselves.
+// Request queue: list, detail and the review actions. Every action invalidates the queue so the list and detail refetch by themselves.
 function invalidateRequests() {
   void queryClient.invalidateQueries({ queryKey: queryKeys.mongodb.requests.list() });
 }

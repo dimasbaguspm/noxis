@@ -53,10 +53,7 @@ const requestSchema = z.object({
 });
 type RequestForm = z.infer<typeof requestSchema>;
 
-// MongoRequestNewPage is the request wizard: pick the database, pick the
-// collection, write the filter and the value, submit for review. Nothing is
-// applied here — validation runs on a scratch collection and the request waits
-// in the queue.
+// MongoRequestNewPage is the request wizard: pick the database, pick the collection, write the filter and the value, submit for review.
 export default function MongoRequestNewPage() {
   const navigate = useNavigate();
   const { connections, connection, pick } = useMongoConnections();

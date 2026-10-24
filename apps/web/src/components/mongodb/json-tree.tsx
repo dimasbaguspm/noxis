@@ -3,8 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-// JsonTree renders documents as a collapsible tree: objects and arrays open,
-// scalars print, and MongoDB's Extended JSON values stay readable.
+// JsonTree renders documents as a collapsible tree: objects and arrays open, scalars print, and MongoDB's Extended JSON values stay readable.
 export function JsonTree({ value, name }: { value: unknown; name?: string }) {
   if (Array.isArray(value)) {
     return (

@@ -18,8 +18,7 @@ const credentialsSchema = z.object({
 });
 type Credentials = z.infer<typeof credentialsSchema>;
 
-// LoginPage is the console's entry point when a session is missing. It offers
-// the local account form and, when configured, the OIDC flow.
+// LoginPage is the console's entry point when a session is missing.
 export default function LoginPage({ className, ...props }: React.ComponentProps<"div">) {
   const { authenticated, localEnabled, oidcEnabled } = useAuth();
   const [error, setError] = useState<string | null>(null);

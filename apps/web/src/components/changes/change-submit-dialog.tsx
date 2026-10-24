@@ -34,10 +34,7 @@ const submitSchema = z.object({
 
 type FormValues = z.infer<typeof submitSchema>;
 
-// ChangeSubmitDialog collects {notes, query, rollback} and closes as soon as
-// the change is recorded — validation results live on the detail page, so the
-// modal never lingers. react-hook-form owns the fields; the statement editors
-// are wired by setValue because they are custom components, not inputs.
+// ChangeSubmitDialog closes after recording; validation details belong on the change page.
 export type ChangeSubmitInitial = {
   connection?: string;
   notes?: string;
@@ -55,8 +52,7 @@ export function ChangeSubmitDialog({
   onSubmit: (input: { connection: string; notes: string; query: string; rollback: string }) => Promise<
     { id?: string; status?: string; checks?: { target?: string; ok?: boolean; detail?: string; error?: string }[] } | undefined
   >;
-  // initial prefills the form (raising the inverse of a reviewed change);
-  // trigger replaces the default "Create ..." button.
+  // initial prefills the form (raising the inverse of a reviewed change); trigger replaces the default "Create ..." button.
   initial?: ChangeSubmitInitial;
   trigger?: React.ReactElement;
 }) {

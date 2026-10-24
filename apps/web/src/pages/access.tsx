@@ -9,18 +9,14 @@ import { useAccessMatrixQuery } from "@/hooks/use-access";
 import { useUsersUrlParams } from "@/hooks/use-users";
 import { H1, P } from "@/components/ui/typography";
 
-// AccessPage is the per-instance access overview: every instance with its whole
-// policy and the grant/revoke form inline, so an admin works the whole access
-// landscape in one place without needing a grant on each instance. The filter
-// lives in the URL, like every other filtered view.
+// AccessPage shows all instances and grants so admins can manage policy without per-instance access.
 export default function AccessPage() {
   const { isAdmin } = useAuth();
   const { q, setQ } = useUsersUrlParams();
   const matrix = useAccessMatrixQuery(isAdmin);
 
   const instances = useMemo(() => {
-    // the generated schema marks every field optional: an instance without a
-    // name is not addressable, so drop it rather than render a ghost card
+    // the generated schema marks every field optional: an instance without a name is not addressable, so drop it rather than render a ghost card
     const all = (matrix.data?.instances ?? []).flatMap((i) =>
       i.connection ? [{ name: i.connection, driver: i.driver ?? "", family: i.family ?? "" }] : [],
     );

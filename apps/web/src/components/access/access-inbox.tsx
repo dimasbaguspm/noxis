@@ -5,8 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useDecideRequest, useToApproveQuery } from "@/hooks/use-access-requests";
 import { formatDateTime } from "@/lib/dates";
 
-// AccessInbox is the pending requests the caller may decide (super admin, or
-// the admin of the connection). Approving writes the grant and the audit row.
+// AccessInbox is the pending requests the caller may decide (super admin, or the admin of the connection).
 export function AccessInbox({ connection }: { connection?: string }) {
   const { data } = useToApproveQuery();
   const decide = useDecideRequest();

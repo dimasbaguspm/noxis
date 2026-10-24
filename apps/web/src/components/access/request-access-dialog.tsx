@@ -26,9 +26,7 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-// RequestAccessDialog asks for a level on one connection. The request lands
-// pending; the super admin or that instance's admin decides and the grant then
-// runs for the configured lifetime. Levels come from the backend catalog.
+// RequestAccessDialog asks for a level on one connection.
 export function RequestAccessDialog({ connection }: { connection?: string }) {
   const [open, setOpen] = useState(false);
   const { data } = usePagedInstancesQuery();

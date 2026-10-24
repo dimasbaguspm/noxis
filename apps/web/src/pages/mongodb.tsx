@@ -15,9 +15,7 @@ import { cn } from "@/lib/utils";
 import { P } from "@/components/ui/typography";
 
 
-// MongoExplorePage walks a server and queries it: databases, their
-// collections, and the documents of the one you pick. The three panes resize,
-// and the documents render as JSON, as a grid or as a tree.
+// MongoExplorePage walks a server and queries it: databases, their collections, and the documents of the one you pick.
 export default function MongoExplorePage() {
   const { connections, connection, pick } = useMongoConnections();
   const { databases, isFetching: loadingDbs, refetch: reloadDbs } = useMongoDatabasesQuery(connection);

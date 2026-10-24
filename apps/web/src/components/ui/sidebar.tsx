@@ -19,8 +19,7 @@ const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
 const SIDEBAR_KEYBOARD_SHORTCUT = "b";
 
-// readSidebarCookie restores the collapsed state after a reload. The console is
-// a static SPA, so the browser is the only place to remember it.
+// readSidebarCookie restores the collapsed state after a reload. The console is a static SPA, so the browser is the only place to remember it.
 function readSidebarCookie(): boolean | undefined {
   const match = document.cookie.match(/(?:^|;\s*)noxis_sidebar=(true|false)/);
   return match ? match[1] === "true" : undefined;
@@ -363,9 +362,7 @@ type SidebarMenuButtonProps = useRender.ComponentProps<"button"> &
     tooltip?: string | React.ComponentProps<typeof TooltipContent>;
   } & VariantProps<typeof sidebarMenuButtonVariants>;
 
-// forwardRef is load-bearing: a dropdown trigger rendered as this button needs
-// the button's node to anchor its popup to. React 18 drops a ref handed to a
-// plain function component, which left the menu unpositioned.
+// forwardRef is load-bearing: a dropdown trigger rendered as this button needs the button's node to anchor its popup to.
 export const SidebarMenuButton = React.forwardRef<HTMLButtonElement, SidebarMenuButtonProps>(
   function SidebarMenuButton({ render, isActive = false, variant = "default", size = "default", tooltip, className, ...props }, ref) {
     const { isMobile, state } = useSidebar();

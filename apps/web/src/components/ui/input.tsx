@@ -2,9 +2,7 @@ import * as React from "react"
 import { Input as InputPrimitive } from "@base-ui/react/input"
 import { cn } from "cn"
 
-// forwardRef is load-bearing: react-hook-form's register() hands the control a
-// ref, and React 18 drops refs on plain function components, which left every
-// registered field value undefined.
+// forwardRef lets React Hook Form register inputs; plain function components drop its ref.
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
   ({ className, type, ...props }, ref) => {
     return (

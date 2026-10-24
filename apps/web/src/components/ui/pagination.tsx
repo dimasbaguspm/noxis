@@ -16,8 +16,7 @@ function pageNumbers(page: number, pages: number): (number | "gap")[] {
   return out;
 }
 
-// Pagination is the shared pager for the list surfaces: numbered buttons plus
-// prev/next, hidden when there is a single page.
+// Pagination is the shared pager for the list surfaces: numbered buttons plus prev/next, hidden when there is a single page.
 export function Pagination({
   page,
   perPage,

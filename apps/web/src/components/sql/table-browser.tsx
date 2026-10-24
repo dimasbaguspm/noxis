@@ -17,8 +17,7 @@ interface Props {
   onAnalyze?: (table: Table) => void;
 }
 
-// TableBrowser: schemas first, then their tables. Rows expand to columns and
-// carry per-table actions.
+// TableBrowser: schemas first, then their tables.
 export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
   const [filter, setFilter] = useState("");
   const [query, setQuery] = useState("");

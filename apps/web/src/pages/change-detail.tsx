@@ -58,8 +58,7 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
   rejected: "outline",
 };
 
-// ChangeDetailPage is the reviewer's focus view. Actions live here and only
-// here: the queue stays a queue.
+// ChangeDetailPage is the reviewer's focus view. Actions live here and only here: the queue stays a queue.
 export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
@@ -277,8 +276,7 @@ const scheduleSchema = z.object({
 });
 type ScheduleForm = z.infer<typeof scheduleSchema>;
 
-// ScheduleMenu is the approved-change schedule control: Immediate clears the
-// slot, Schedule it opens a small picker for a future time.
+// ScheduleMenu is the approved-change schedule control: Immediate clears the slot, Schedule it opens a small picker for a future time.
 function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at: number) => void }) {
   const [open, setOpen] = useState(false);
   const scheduled = (change.scheduledAt ?? 0) > 0;
@@ -343,8 +341,7 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
   );
 }
 
-// Unavailable is the state for an id that is not in the queue: the shared
-// empty state, centered, with the way out.
+// Unavailable is the state for an id that is not in the queue: the shared empty state, centered, with the way out.
 function Unavailable({ kind, id }: { kind: ChangeKind; id: string }) {
   const queue = kind === "ddl" ? PAGE_ROUTES.SQL.DDL : PAGE_ROUTES.SQL.DML;
   return (

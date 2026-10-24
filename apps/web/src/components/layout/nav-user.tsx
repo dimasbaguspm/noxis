@@ -20,8 +20,7 @@ function initials(name: string, email: string): string {
   return (parts[0]?.[0] ?? "?").concat(parts[1]?.[0] ?? "").toUpperCase();
 }
 
-// NavUser is the sidebar's bottom-left identity card and account menu: profile,
-// settings, access and sign out all live here, on every page.
+// NavUser is the sidebar's bottom-left identity card and account menu: profile, settings, access and sign out all live here, on every page.
 export function NavUser() {
   const { identity, signout } = useAuth();
   const navigate = useNavigate();

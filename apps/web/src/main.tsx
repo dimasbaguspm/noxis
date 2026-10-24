@@ -36,12 +36,10 @@ const AccessPage = lazy(() => import("@/pages/access"));
 const UsersPage = lazy(() => import("@/pages/users"));
 const UserDetailPage = lazy(() => import("@/pages/user-detail"));
 
-// Every page carries its engine family prefix (/sql, /memcache, /mongodb); the
-// dashboard is the only family-less route. Paths come from PAGE_ROUTES.
+// Pages use family-prefixed routes except the dashboard; PAGE_ROUTES supplies their paths.
 const router = createBrowserRouter([
-  // the OIDC redirect target and the login page sit outside the shell: no
-  // chrome, no auth guard on them
-  { path: "auth/callback", element: <AuthCallbackPage /> },
+  // OIDC callback and login stay outside the shell and auth guard.
+    { path: "auth/callback", element: <AuthCallbackPage /> },
   { path: "login", element: <LoginPage /> },
   {
     element: (

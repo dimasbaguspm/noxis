@@ -12,8 +12,7 @@ import { FAMILY } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
-// MongoRequestsPage is the review queue: every write request waits here until
-// someone approves and applies it. Reads never appear (they run in Explore).
+// MongoRequestsPage is the review queue: every write request waits here until someone approves and applies it. Reads never appear (they run in Explore).
 export default function MongoRequestsPage() {
   const { canAccess } = useAuth();
   const { connections } = useMongoConnections();

@@ -16,9 +16,7 @@ interface Props {
   connection?: string;
 }
 
-// ErdDialog renders one connection's schema as a Mermaid ER diagram. Mermaid is
-// a large dependency and is only needed here, so it is imported when the dialog
-// opens instead of in the console's first bundle.
+// ErdDialog lazy-loads Mermaid only when its diagram opens.
 export function ErdDialog({ connection }: Props) {
   const [open, setOpen] = useState(false);
   const erd = useErdQuery(connection, open);

@@ -10,8 +10,7 @@ type Step = {
   hint?: string;
 };
 
-// ChangeActivity renders the audit trail: what happened, when, and by which
-// status — the timeline a reviewer needs.
+// ChangeActivity renders the audit trail: what happened, when, and by which status — the timeline a reviewer needs.
 export function ChangeActivity({ change }: { change: Change }) {
   const steps: Step[] = [
     {

@@ -1,11 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 
-// useUrlState binds a set of string filters to the query string: the URL is the
-// state, so a filtered view can be shared, reloaded and reached with
-// back/forward. defaults must be a stable object (module-level), so the derived
-// state keeps its identity across renders. A value equal to its default clears
-// the key, so a caller never has to pass undefined to reset a filter.
+// useUrlState makes filters shareable and back/forward aware; define defaults at module scope to keep them stable.
 export function useUrlState<T extends Record<string, string>>(defaults: T) {
   const [params, setParams] = useSearchParams();
 

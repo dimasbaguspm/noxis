@@ -29,9 +29,7 @@ type Outcome =
   | { id?: string; status?: string; checks?: { target?: string; ok?: boolean; detail?: string; error?: string }[] }
   | undefined;
 
-// CreateChangeSheet is the "new change" form: one roomy Sheet asking only for
-// the instance, notes, the original query and its rollback. Each query can be
-// loaded from an attached .sql file; validation errors appear below the field.
+// CreateChangeSheet is the "new change" form: one roomy Sheet asking only for the instance, notes, the original query and its rollback.
 export function CreateChangeSheet({
   kind,
   onSubmit,

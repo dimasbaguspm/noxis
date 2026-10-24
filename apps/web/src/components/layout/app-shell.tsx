@@ -5,9 +5,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 
-// AppShell is the sidebar + header frame every engine page renders inside:
-// the shadcn sidebar structure on the left, an inset column with breadcrumbs,
-// the Cmd+K page search and the routed outlet.
+// AppShell wraps engine pages in the shared sidebar, header, breadcrumbs, search, and route outlet.
 export function AppShell() {
   const crumbs = useBreadcrumbs();
 

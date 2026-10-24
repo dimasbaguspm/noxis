@@ -13,9 +13,7 @@ import { formatDateTime } from "@/lib/dates";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { H1, P } from "@/components/ui/typography";
 
-// UsersPage is the admin directory: every account, filterable by a search term
-// and status. The filters live in the URL, so a filtered view can be shared or
-// reloaded.
+// UsersPage lists accounts with shareable URL-backed search and status filters.
 export default function UsersPage() {
   const { isAdmin } = useAuth();
   const { q, status, setQ, setStatus } = useUsersUrlParams();

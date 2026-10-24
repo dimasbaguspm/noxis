@@ -4,10 +4,7 @@ import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
-// Field is the one form-field composition in the console: a set of labelled
-// controls where each field shows a label, an optional description and, on
-// failure, the message from the resolver. Pair it with react-hook-form's
-// register or Controller; FieldError takes the resolver's error array as-is.
+// Field composes a labelled control, optional description, and validation message.
 
 export function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   return <fieldset data-slot="field-set" className={cn("flex flex-col gap-6", className)} {...props} />;
@@ -126,9 +123,7 @@ export function FieldSeparator({
   );
 }
 
-// FieldError renders the resolver's messages: one inline, or a deduped list
-// when a field carries several. Children win, for a message the resolver did
-// not produce (a server failure, for instance).
+// FieldError renders the resolver's messages: one inline, or a deduped list when a field carries several.
 export function FieldError({
   className,
   children,

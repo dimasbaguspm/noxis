@@ -6,9 +6,7 @@ export interface SelectOption<T extends string = string> {
   detail?: string;
 }
 
-// SingleSelect is a radio-backed picker: one option, styled as a full-width
-// card, keyboard- and screen-reader-friendly. It stands in for the kind
-// choices in the connection wizard (and any one-of list in a form).
+// SingleSelect is a radio-backed picker: one option, styled as a full-width card, keyboard- and screen-reader-friendly.
 export function SingleSelect<T extends string = string>({
   name,
   value,

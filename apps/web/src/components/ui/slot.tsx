@@ -1,9 +1,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// Slot renders its single child with the caller's props merged on top, the
-// same contract Radix's Slot provides: asChild consumers get a real <a>/<Link>
-// while the styling stays on the parent. No DOM node of its own is added.
+// Slot merges parent props onto one child so asChild keeps the child's native element.
 export function Slot({ children, ...props }: React.HTMLAttributes<HTMLElement>) {
   if (!React.isValidElement<Record<string, unknown>>(children)) return null;
   const child = children;

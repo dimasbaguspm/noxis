@@ -1,6 +1,4 @@
-// parseDsn turns a pasted connection string into the fields the connection
-// dialog collects. It is deliberately client-side and pure: the API shape and
-// the stored connection are unchanged, and the server still validates on probe.
+// parseDsn turns a pasted connection string into the fields the connection dialog collects.
 
 export interface ParsedDsn {
   driver: string;
@@ -14,8 +12,7 @@ export interface ParsedDsn {
 
 export type DsnResult = { ok: true; value: ParsedDsn } | { ok: false; error: string };
 
-// scheme maps to a driver and its default port, mirroring the dialog's
-// DRIVER_PORT table and the server's driver vocabulary.
+// scheme maps to a driver and its default port, mirroring the dialog's DRIVER_PORT table and the server's driver vocabulary.
 const SCHEMES: Record<string, { driver: string; port: number }> = {
   postgres: { driver: "postgres", port: 5432 },
   postgresql: { driver: "postgres", port: 5432 },

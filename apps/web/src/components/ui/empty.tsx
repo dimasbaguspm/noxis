@@ -2,9 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { H2, P } from "@/components/ui/typography";
 
-// Empty is the shared no-content state: an icon, a title, an optional
-// explanation and an optional action, centered so every surface renders the
-// same "nothing here" instead of an ad-hoc message.
+// Empty is a shared no-content state with optional explanation and action.
 export function Empty({
   icon: Icon,
   title,

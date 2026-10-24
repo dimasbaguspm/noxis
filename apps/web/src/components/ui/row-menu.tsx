@@ -9,10 +9,7 @@ export interface RowMenuItem {
   onSelect: () => void;
 }
 
-// RowMenu is the per-row action menu: a plain button plus an absolutely
-// positioned panel. No portal, no positioning library — inside a scroll
-// container the shadcn dropdown's popup never became visible, and this is
-// both smaller and predictable.
+// RowMenu uses an in-container panel because portaled dropdowns clip inside scroll areas.
 export function RowMenu({ items, label = "actions" }: { items: RowMenuItem[]; label?: string }) {
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);

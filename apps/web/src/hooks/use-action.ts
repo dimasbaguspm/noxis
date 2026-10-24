@@ -1,8 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
-// useAction wraps an async action with loading state and error toasts, so
-// components stay declarative and no call site repeats try/catch.
+// useAction wraps an async action with loading state and error toasts, so components stay declarative and no call site repeats try/catch.
 export function useAction<TArgs extends unknown[], T>(fn: (...args: TArgs) => Promise<T>) {
   const [loading, setLoading] = useState(false);
   const fnRef = useRef(fn);

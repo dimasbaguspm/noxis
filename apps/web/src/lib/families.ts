@@ -2,13 +2,9 @@ import type { ComponentType } from "react";
 import { Activity, Boxes, Database, Leaf, PenLine } from "lucide-react";
 import { PAGE_ROUTES } from "./routes";
 
-// The engine-family registry: one place that names every family, its landing
-// page, the API namespace it is served under and its navigation entries. The
-// sidebar, the palette, the breadcrumbs and the connection state all read from
-// here, so adding a family means adding one entry, not editing four lists.
+// FAMILY is the source for engine landing pages, API namespaces, and navigation.
 
-// FAMILY is the family key vocabulary. The strings are the API Namespace
-// segment too, so they are written once here.
+// FAMILY is the family key vocabulary. The strings are the API Namespace segment too, so they are written once here.
 export const FAMILY = {
   SQL: "sql",
   MEMCACHE: "memcache",
@@ -71,8 +67,7 @@ export const FAMILIES: Family[] = [
   },
 ];
 
-// familyByKey resolves a family descriptor, for the cross-family surfaces
-// (dashboard, new-connection wizard).
+// familyByKey resolves a family descriptor, for the cross-family surfaces (dashboard, new-connection wizard).
 export const familyByKey = FAMILIES.reduce(
   (acc, family) => ({ ...acc, [family.key]: family }),
   {} as Record<FamilyKey, Family>,

@@ -8,8 +8,7 @@ import { H1, P } from "@/components/ui/typography";
 import { useAuth } from "@/app/auth-provider";
 import { useInstanceQuery } from "@/hooks/use-instances";
 
-// InstanceDashboardPage is the instance admin's home: who can reach this
-// instance and when their access lapses.
+// InstanceDashboardPage is the instance admin's home: who can reach this instance and when their access lapses.
 export default function InstanceDashboardPage() {
   const { id = "" } = useParams();
   const { isInstanceAdmin } = useAuth();

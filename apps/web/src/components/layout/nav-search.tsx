@@ -16,8 +16,7 @@ interface Entry {
 
 const entries: Entry[] = NAV.flatMap((group) => group.items.map((item) => ({ group: group.label, item })));
 
-// NavSearch is the header's navigator: a field that behaves like a button and
-// opens a modal palette (⌘K / Ctrl+K). Type to filter, ↑↓ to move, ↵ to go.
+// NavSearch is the header's navigator: a field that behaves like a button and opens a modal palette (⌘K / Ctrl+K).
 export function NavSearch() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
