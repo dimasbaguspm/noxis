@@ -7,7 +7,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// Mermaid renders tables as a Mermaid erDiagram. The diagram carries only what the catalog declares: a column is a key because a constraint says so, and a relationship exists because a foreign key says so.
+// Mermaid renders only catalog-declared keys and foreign-key relationships with valid identifiers.
 func Mermaid(tables []entity.Table) string {
 	if len(tables) == 0 {
 		return "erDiagram\n"

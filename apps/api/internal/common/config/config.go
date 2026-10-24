@@ -107,7 +107,7 @@ func (c Config) GrantTTL() time.Duration {
 	return c.AccessGrantTTL
 }
 
-// LogState logs the deployment-relevant facts once, at boot: how secrets and auth are configured. Field-level warnings live here, not in command code, so a config decision is decided in exactly one place.
+// LogState reports secret and authentication configuration once at boot.
 func LogState(ctx context.Context, log *slog.Logger, c Config) {
 	log.InfoContext(ctx, "connection passwords are encrypted at rest")
 	log.InfoContext(ctx, "access grants expire", "ttl", c.GrantTTL().String())

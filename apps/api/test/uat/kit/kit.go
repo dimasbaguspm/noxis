@@ -1,4 +1,4 @@
-// Package kit is the acceptance suite's HTTP client: one Send for every request, headers and cookies set per test, a default bearer token that a test can override or clear, and the reply captured whole. It does not import the noxis module, so it is unit-tested against httptest without docker.
+// Package kit provides the UAT HTTP client, per-test auth state, and response replay.
 package kit
 
 import (

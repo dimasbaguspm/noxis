@@ -187,7 +187,7 @@ type LevelList struct {
 	Levels []LevelInfo `json:"levels"`
 }
 
-// DriverInfo is one entry of the driver catalog the console builds its pickers from. A driver is code, not data, so the catalog is served from one place and no UI constant drifts from the server.
+// DriverInfo is one entry in the server-owned driver picker catalog.
 type DriverInfo struct {
 	Driver string `json:"driver"`
 	Family string `json:"family"`

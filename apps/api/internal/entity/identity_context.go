@@ -2,7 +2,7 @@ package entity
 
 import "context"
 
-// The authenticated caller travels on the request context. It sits here, with the identity it carries, so every layer above — a use case, a middleware, a test helper — reads it the same way.
+// The request principal lives here so every layer reads it without importing usecases.
 
 type principalKey struct{}
 
@@ -17,7 +17,7 @@ func Principal(ctx context.Context) (Identity, bool) {
 	return p, ok
 }
 
-// LogAttrs renders the authenticated caller for structured logs: the subject as user_id, the role and the full group list. No principal returns nil so logs stay unattributed rather than empty.
+// LogAttrs returns subject, role, and groups for structured logs; no principal yields no attributes.
 func LogAttrs(ctx context.Context) []any {
 	p, ok := Principal(ctx)
 	if !ok {

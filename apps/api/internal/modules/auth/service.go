@@ -192,7 +192,7 @@ func TokenHash(rawToken string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// normalizeEmail is the single spelling of an email: trimmed, lowercased. The env root, the login identifier and the OIDC claim all pass through here, so a case difference cannot split one identity into two.
+// normalizeEmail trims and lowercases local logins and OIDC email claims to keep one identity.
 func normalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }

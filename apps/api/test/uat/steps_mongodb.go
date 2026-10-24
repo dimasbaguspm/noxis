@@ -10,7 +10,7 @@ import (
 	"github.com/cucumber/godog"
 )
 
-// The MongoDB scenarios drive the /external/v1/engine/mongodb namespace: register the compose server, explore databases and collections with their sizes, run CRUD requests with separate filter and value documents, and read stats. Documents are seeded with mongosh because noXis has no "seed" endpoint.
+// MongoDB scenarios browse and review writes; mongosh seeds documents because noXis has no seed endpoint.
 
 // mongoDatabase is one row of the explorer.
 type mongoDatabase struct {

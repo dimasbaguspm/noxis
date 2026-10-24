@@ -9,7 +9,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// verifyKind rejects every statement whose first keyword is not allowed. The check runs per statement — split outside quoted strings and comments — so DDL cannot be smuggled behind a read (`SELECT 1; DROP TABLE x`).
+// verifyKind checks every statement independently so writes cannot be hidden behind a read.
 func verifyKind(sqlText string, allowed kindSet) error {
 	for _, stmt := range splitStatements(sqlText) {
 		if kind := firstKeyword(stmt); kind != "" && !allowed.set[kind] {

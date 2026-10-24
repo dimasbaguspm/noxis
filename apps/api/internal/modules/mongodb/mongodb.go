@@ -205,7 +205,7 @@ func (m *DB) Apply(ctx context.Context, c entity.Connection, req entity.MongoReq
 	return m.run(ctx, c, req)
 }
 
-// applyOn copies the documents a request matches into target and applies the write there. It is the body of the dry run, and the only difference from a real apply is which collection it writes to.
+// applyOn stages matching documents in target and applies the write there for both dry-run and real apply.
 func applyOn(ctx context.Context, source, target *mongo.Collection, req entity.MongoRequest) (int64, error) {
 	if req.Op == constants.MongoInsert {
 		doc, err := parseValue(req.Value)

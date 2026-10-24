@@ -1,4 +1,4 @@
-// Package arch locks the project's layering: routes → middlewares → usecases → modules → repositories → common → constants/entity/interfaces. A package may import only packages strictly below its layer, and two packages in the same layer may not import each other.
+// Package arch enforces inward-only dependencies and forbids same-layer imports.
 package arch
 
 import (
@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// layerOf maps a noxis import path to its layer index, lowest first. The second return is false for packages outside the model (the composition root and test-only packages), which the rule does not constrain.
+// layerOf classifies packages by layer and excludes test-only packages.
 func layerOf(pkg string) (int, bool) {
 	switch {
 	case pkg == "noxis/internal/constants":

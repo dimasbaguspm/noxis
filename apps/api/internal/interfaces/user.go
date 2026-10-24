@@ -6,7 +6,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// UserRepository persists local accounts and OIDC identity references, and each account's single active session token. Passwords are stored as bcrypt hashes; the token as a SHA-256 hash, so the raw credential never touches the database.
+// UserRepository stores accounts and OIDC references; passwords and session tokens are persisted only as hashes.
 type UserRepository interface {
 	// CountUsers reports how many accounts exist (root seeding decides on it).
 	CountUsers(ctx context.Context) (int, error)

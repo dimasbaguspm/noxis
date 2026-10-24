@@ -138,7 +138,7 @@ func (w *world) listRedacted(ctx context.Context) error {
 	if code != http.StatusOK {
 		return fmt.Errorf("list connections: %d", code)
 	}
-	// the wire omits the field entirely (json:"password,omitempty"), so the strongest check is that no key named password is present at all — not a substring match, which a host name or a subject can trip.
+	// Assert the password key is absent; substring checks can match unrelated host names or subjects.
 	if strings.Contains(strings.ToLower(body), `"password"`) {
 		return fmt.Errorf("connection list must not carry a password: %s", body)
 	}

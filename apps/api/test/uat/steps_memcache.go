@@ -9,7 +9,7 @@ import (
 	"github.com/cucumber/godog"
 )
 
-// The memory-cache scenarios drive the /external/v1/engine/memcache namespace (Redis and Valkey): browse keys with their type and TTL, inspect a value, remove keys, and read INFO. Keys are seeded with the server's CLI inside the compose stack because noXis deliberately has no "set a key" endpoint.
+// Memory-cache scenarios browse Redis/Valkey; server CLIs seed keys because noXis has no set-key endpoint.
 
 // redisKey is one entry of a browse.
 type redisKey struct {

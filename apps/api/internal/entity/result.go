@@ -1,6 +1,6 @@
 package entity
 
-// Result is one operation's outcome on any engine: a grid for reads, counts and timings for writes. It is the wire shape shared by the SQL and Redis modules, so the console renders both with one component.
+// Result is the shared engine outcome: read grids, write counts, and timings.
 type Result struct {
 	Columns       []string   `json:"columns,omitempty"`
 	Rows          [][]string `json:"rows,omitempty"`

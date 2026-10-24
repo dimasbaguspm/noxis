@@ -1,4 +1,4 @@
-// Package uat is the acceptance suite: the real compose stack (noxis + a target postgres) comes up and is driven exclusively through its public REST surface — the same moves an operator makes, encoded in Gherkin.
+// Package uat runs Gherkin scenarios against the real compose stack through REST.
 package uat
 
 import (

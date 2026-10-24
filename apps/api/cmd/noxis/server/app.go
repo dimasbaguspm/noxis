@@ -198,7 +198,7 @@ func newApp(s sources) app {
 	}
 }
 
-// registerConnectionGauge reports how many connections exist per family and driver, sampled on the collector's cadence. The callback lives here because it needs the repository, which the instrument builder does not have.
+// registerConnectionGauge reports connections per family and driver from the repository on the collector's cadence.
 func registerConnectionGauge(m *metrics.Metrics, connections interfaces.ConnectionRepository) {
 	if m == nil {
 		return

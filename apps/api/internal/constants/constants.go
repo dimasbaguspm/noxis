@@ -43,7 +43,7 @@ const (
 	DriverMongo  = "mongo"
 )
 
-// Engine families: the API namespace and console section that serve a connection's driver. A family's module reports its own name (interfaces.Module.Family), so no driver-to-family switch lives here.
+// Engine families name API namespaces; modules report membership so no driver-to-family switch is needed.
 const (
 	FamilySQL      = "sql"
 	FamilyMemcache = "memcache"

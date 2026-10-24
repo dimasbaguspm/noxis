@@ -10,7 +10,7 @@ import (
 	"noxis/internal/interfaces"
 )
 
-// RawConn returns the password-bearing connection for a module: a connection of another engine family is not addressable in this namespace. The repositories and the registry ride in the receiver, so this stays a method rather than a function taking three dependencies.
+// RawConn checks family and access before returning a password-bearing connection.
 func (d RegistryDeps) RawConn(ctx context.Context, mod interfaces.Module, name, level string) (*entity.Connection, error) {
 	c, err := d.Connections.Get(ctx, name)
 	if err != nil {

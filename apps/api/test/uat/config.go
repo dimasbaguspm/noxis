@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-// target is a connection the suite registers: the compose service that stands in for it and the credentials to reach it. Every value is read from the compose file at startup, so the suite and the stack never drift.
+// target maps a test driver to its compose service and resolved credentials.
 type target struct {
 	Driver   string
 	Host     string // the compose service name

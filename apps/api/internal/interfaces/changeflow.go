@@ -6,7 +6,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// ChangeFlow is one engine family's change lifecycle: submit, review, apply. The rules live with the engine that runs them, so a use case only authorizes the caller, translates the request and answers.
+// ChangeFlow owns one family's change lifecycle; use cases authorize, translate, and answer.
 type ChangeFlow interface {
 	// Family is the engine family this flow serves.
 	Family() string

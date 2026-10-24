@@ -15,7 +15,7 @@ import (
 
 const modulePrefix = "noxis/"
 
-// Attach sets attributes on the current span from key/value pairs (string, bool and []string values; other types render with fmt). It is a no-op when there is no recording span, so callers (the middleware layer) set request attributes without caring whether tracing is enabled.
+// Attach sets attributes on a recording span and no-ops when tracing is disabled.
 func Attach(ctx context.Context, keyValues ...any) {
 	span := trace.SpanFromContext(ctx)
 	if !span.IsRecording() || len(keyValues) == 0 {
@@ -34,7 +34,7 @@ func WarnWithCtx(ctx context.Context, msg string, attrs ...any) {
 	record(ctx, slog.LevelWarn, msg, attrs)
 }
 
-// ErrorWithCtx records a failure once, where it happens: the error goes on the span (status error, so the trace is marked failed) and into the log record with its chain, which keeps the wrapped cause visible.
+// ErrorWithCtx records the wrapped cause on the span and log and marks the span failed.
 func ErrorWithCtx(ctx context.Context, msg string, err error, attrs ...any) {
 	if span := trace.SpanFromContext(ctx); span.IsRecording() {
 		span.RecordError(err)
@@ -94,7 +94,7 @@ func CallerName(skip int) string {
 	return formatSpanName(runtime.FuncForPC(pc).Name())
 }
 
-// formatSpanName turns a runtime function name into the project convention: noxis/internal/repositories/sqlite.(*Store).List -> Repository.Sqlite.Store.List noxis/internal/usecases.(*App).SubmitChange -> Usecases.App.SubmitChange noxis/cmd/noxis/server/api.(*Server).handle.func1 -> Noxis.Api.Server.handle.func1 noxis/internal/modules/sql.(*DB).query -> Modules.Sql.DB.query
+// formatSpanName maps Go runtime function names to the project's span-name convention.
 func formatSpanName(full string) string {
 	full = strings.TrimPrefix(full, modulePrefix)
 	slash := strings.LastIndex(full, "/")

@@ -112,7 +112,7 @@ func newHandler(d app, cfg config.Config) http.Handler {
 	mux.Handle("GET /assets/", http.HandlerFunc(getAssets)) // embedded FS keeps the assets/ prefix
 	mux.HandleFunc("GET /", getConsole)                     // the operator console (SPA shell)
 
-	// Scheduling: an external service drives due changes through this trigger, authenticated with the shared scheduler key + secret; there is no in-process scheduler and no ticker sidecar.
+	// Scheduling uses an authenticated external callback; no in-process ticker runs.
 	mux.Handle("POST /internal/callback/scheduler", middlewares.WithSchedulerAuth(cfg.SchedulerKey, cfg.SchedulerSecret, http.HandlerFunc(d.Tick.Serve)))
 
 	// Instances address a connection by its stable id, across families. The family routes live under {api}/engine/{engine}/..., so these paths never collide with the {engine} wildcard.
@@ -151,7 +151,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 		return err
 	}
 
-	// CORS, then the request trace, then authentication, then request logging: the span covers the whole request (a refused token is traced too), and the request log runs after the principal is attached, so the user's log fields are set once, in the middleware layer.
+	// Middleware order is CORS → trace → auth → request log, so denied tokens are traced and actor fields attach after auth.
 	handler := middlewares.CORS(middlewares.Trace(middlewares.WithAuth(authSvc, middlewares.RequestLog(newHandler(d, cfg), log), log)))
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler}
 	// every request ctx descends from ours

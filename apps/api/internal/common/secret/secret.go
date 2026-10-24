@@ -1,4 +1,4 @@
-// Package secret encrypts stored credentials reversibly. Passwords cannot be hashed — noxis must send them to the database — so they are encrypted at rest instead, with a key that never lives in the same file.
+// Package secret encrypts database credentials at rest with a separately configured key.
 package secret
 
 import (
@@ -15,7 +15,7 @@ import (
 // prefix marks an encrypted value, so plaintext rows from before the key existed remain readable and can be migrated.
 const prefix = "enc:v1:"
 
-// Cipher uses AES-256-GCM; a nil cipher passes stored values through unchanged.
+// Cipher encrypts with AES-256-GCM; nil cipher preserves plaintext mode.
 type Cipher struct {
 	aead cipher.AEAD
 }
@@ -65,7 +65,7 @@ func (c *Cipher) Encrypt(plain string) (string, error) {
 	return prefix + base64.RawStdEncoding.EncodeToString(sealed), nil
 }
 
-// Decrypt opens encrypted secrets, passes legacy plaintext through, and rejects ciphertext without a key.
+// Decrypt opens ciphertext, passes legacy plaintext through, and errors when the key is missing.
 func (c *Cipher) Decrypt(stored string) (string, error) {
 	if !Encrypted(stored) {
 		return stored, nil

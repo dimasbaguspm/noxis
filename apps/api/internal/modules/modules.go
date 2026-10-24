@@ -1,4 +1,4 @@
-// Package modules contains the engine-family adapters (SQL, memory-cache, MongoDB) and the registry that names them. Registry is a single reference interface every layer receives — passed explicitly, so a use case resolves an engine from a dependency, never from the request context.
+// Package modules contains engine adapters and the explicit registry use cases receive.
 package modules
 
 import (

@@ -16,7 +16,7 @@ import (
 
 const connectTimeout = 10 * time.Second
 
-// connect builds the URI from the structured fields and opens a client. The database doubles as the auth source unless params say otherwise, which is what an operator expects from "user, password, database".
+// connect builds the Mongo URI; authSource defaults to the selected database unless overridden.
 func connect(ctx context.Context, c entity.Connection) (*mongo.Client, error) {
 	uri, err := dsn(c)
 	if err != nil {

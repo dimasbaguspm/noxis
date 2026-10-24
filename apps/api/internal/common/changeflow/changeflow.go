@@ -1,4 +1,4 @@
-// Package changeflow is the lifecycle every engine family's change queue shares: a write is submitted, validated against its own rollback, reviewed, and applied — or rejected and kept as an artifact.
+// Package changeflow holds state rules shared by the SQL and MongoDB change queues.
 package changeflow
 
 import (

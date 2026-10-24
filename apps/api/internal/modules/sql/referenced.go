@@ -72,7 +72,7 @@ func Referenced(sqlText string) (tables []string, columns []string) {
 	return sorted(tableSet), sorted(columnSet)
 }
 
-// createdTables lists the tables a batch itself creates, so the scratch verifier does not mirror a table the change is about to create (which would make a plain CREATE fail as "already exists").
+// createdTables finds tables the batch creates so scratch verification does not mirror them first.
 func createdTables(sqlText string) map[string]bool {
 	set := map[string]bool{}
 	for _, stmt := range splitStatements(sqlText) {

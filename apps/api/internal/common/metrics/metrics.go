@@ -1,4 +1,4 @@
-// Package metrics holds the instruments the API records into. The catalog in the constants package is the single source of truth — every name, kind and label key comes from there, so a call site and the catalog cannot drift.
+// Package metrics builds API instruments from the constants catalog.
 package metrics
 
 import (

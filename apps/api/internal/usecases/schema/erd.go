@@ -8,7 +8,7 @@ import (
 	"noxis/internal/usecases"
 )
 
-// ERD returns one connection's schema as a diagram: its tables with declared keys and foreign keys, plus the Mermaid erDiagram rendered from them. It is read-authorized per connection, and the connection summary never carries a password.
+// ERD returns a read-authorized diagram of declared keys and foreign keys without exposing the connection password.
 type ERD struct{ usecases.RegistryDeps }
 
 // @Summary One connection's schema as a Mermaid ER diagram

@@ -15,7 +15,7 @@ import (
 // scratchPrefix names the throwaway schema each change is verified in.
 const scratchPrefix = "noxis_verify_"
 
-// ValidateChange mirrors referenced structures into a scratch schema and runs query plus rollback there; SQLite uses a rolled-back transaction because its DDL is transactional. shortcut: explicitly qualified references can target live objects; add SQL rewriting if operators use them.
+// ValidateChange runs query and rollback in scratch; SQLite uses a rolled-back transaction. shortcut: qualified names may target live objects; add rewriting if operators use them.
 func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -84,7 +84,7 @@ func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rol
 	}, nil
 }
 
-// validateChangeTx dry-runs a change and its rollback in one transaction that always rolls back. SQLite is the driver this exists for: it supports transactional DDL, so the live tables can be exercised directly.
+// validateChangeTx exercises live SQLite tables because SQLite rolls back DDL transactionally.
 func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback string) (Result, error) {
 	started := time.Now()
 	var affected int64

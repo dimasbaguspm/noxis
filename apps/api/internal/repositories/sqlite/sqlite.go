@@ -112,7 +112,7 @@ func migrateGrantsToPermissions(ctx context.Context, db *sql.DB) error {
 	return err
 }
 
-// backfillAccessExpiry gives every permission written before the 120-day rule an expiry and attributes it to "system". Rows with an expiry are left alone, so it is effectively one-time.
+// backfillAccessExpiry assigns the default expiry to legacy grants and leaves existing expiries unchanged.
 func backfillAccessExpiry(ctx context.Context, db *sql.DB) error {
 	now := time.Now()
 	if _, err := db.ExecContext(ctx,

@@ -1,4 +1,4 @@
-// Package memcache inspects a memory-cache server (Redis or Valkey): browse keys with their type and TTL, inspect a value, read INFO metrics, and remove keys. Every operation is a typed client call, so no user-supplied command text exists to inject into.
+// Package memcache browses and removes Redis/Valkey keys through typed clients, never raw commands.
 package memcache
 
 import (

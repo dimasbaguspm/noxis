@@ -1,4 +1,4 @@
-// Package logging wires slog + OTLP; traces and logs both leave through the collector, and the ctx-aware fallback handler stamps trace_id/span_id into every record when there is nowhere to export to.
+// Package logging wires slog and OTLP, adding trace ids to stdout records when no collector is configured.
 package logging
 
 import (
@@ -273,7 +273,7 @@ func firstNonEmpty(a, b string) string {
 
 func noShutdown(context.Context) error { return nil }
 
-// signalURL makes NOXIS_OTEL_COLLECTOR a URL an OTLP/HTTP exporter accepts. It wants a scheme — https enables TLS, a bare host:port is plaintext http — and a path, so a bare host gets the signal's own path.
+// signalURL adds an HTTP scheme and signal path to a bare OTLP collector host.
 func signalURL(collector, path string) string {
 	raw := collector
 	if !strings.Contains(raw, "://") {
