@@ -34,6 +34,7 @@ func (w *world) memcacheSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the redis key "([^"]*)" lives for (\d+) seconds$`, w.redisSeedTTL)
 	sc.Step(`^the redis list "([^"]*)" contains "([^"]*)"$`, w.redisSeedList)
 	sc.Step(`^I browse redis keys matching "([^"]*)"$`, w.redisBrowse)
+	sc.Step(`^I try to browse redis keys matching "([^"]*)"$`, w.redisBrowseToleratingFailure)
 	sc.Step(`^the browse finds the key "([^"]*)"$`, w.redisBrowseFinds)
 	sc.Step(`^the browse does not find the key "([^"]*)"$`, w.redisBrowseMisses)
 	sc.Step(`^the key "([^"]*)" reports a ttl$`, w.redisKeyHasTTL)
@@ -105,6 +106,13 @@ func (w *world) redisBrowse(ctx context.Context, pattern string) error {
 		return fmt.Errorf("browse: %d", w.code)
 	}
 	return nil
+}
+
+// redisBrowseToleratingFailure browses without insisting on success, so a rejected request can be asserted next.
+func (w *world) redisBrowseToleratingFailure(ctx context.Context, pattern string) error {
+	w.page = redisPage{}
+	path := fmt.Sprintf("/external/v1/engine/memcache/connections/%s/keys?pattern=%s", w.conn, pattern)
+	return w.api(http.MethodGet, path, nil, &w.page)
 }
 
 func (w *world) redisBrowseFinds(ctx context.Context, key string) error {
