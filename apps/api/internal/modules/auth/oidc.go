@@ -11,6 +11,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 
 	"noxis/internal/common/config"
+	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
@@ -29,7 +30,9 @@ var _ interfaces.Verifier = (*OIDC)(nil)
 
 // New discovers the issuer and builds a verifier. An empty issuer returns
 // (nil, nil): the caller decides whether to run open.
-func New(ctx context.Context, cfg config.Config) (*OIDC, error) {
+func New(ctx context.Context, cfg config.Config) (configured *OIDC, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
 	issuer := strings.TrimSpace(cfg.OIDCIssuer)
 	if issuer == "" {
 		return nil, nil
@@ -57,7 +60,9 @@ func New(ctx context.Context, cfg config.Config) (*OIDC, error) {
 
 // Verify checks the token's signature, issuer, audience and expiry, then reads
 // the subject and groups off its claims.
-func (o *OIDC) Verify(ctx context.Context, rawToken string) (entity.Identity, error) {
+func (o *OIDC) Verify(ctx context.Context, rawToken string) (identity entity.Identity, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
 	tok, err := o.verifier.Verify(ctx, rawToken)
 	if err != nil {
 		return entity.Identity{}, fmt.Errorf("verify token: %w", err)
