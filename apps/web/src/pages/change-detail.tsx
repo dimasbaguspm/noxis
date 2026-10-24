@@ -3,12 +3,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useParams } from "react-router-dom";
-import { title } from "radash";
-import { CalendarClock, Check, CircleHelp, FileWarning, Loader2, Play, Undo2 } from "lucide-react";
+import { CalendarClock, Check, FileWarning, Loader2, Play, Undo2 } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import {
   DropdownMenu,
@@ -27,11 +26,10 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
-import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChangeActivity } from "@/components/changes/change-activity";
 import { ChangeSubmitDialog } from "@/components/changes/change-submit-dialog";
 import { SqlEditor } from "@/components/sql/sql-editor";
+import { Workspace } from "@/components/layout/workspace";
 import { useAuth } from "@/app/auth-provider";
 import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { usePagedInstancesQuery } from "@/hooks/use-instances";
@@ -63,7 +61,6 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const { id = "" } = useParams();
   const { canAccess, isInstanceAdmin } = useAuth();
-  const [sqlView, setSqlView] = useState<"query" | "rollback">("query");
   const { data: instancesData } = usePagedInstancesQuery();
   const detail = useChangeGetQuery(id);
   const change = detail.data;
@@ -100,144 +97,41 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const canReject = mayReview && change.status !== "applied" && change.status !== "rejected" && change.status !== "applying";
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <Badge variant={STATUS_VARIANT[change.status ?? ""] ?? "outline"}>{change.status}</Badge>
-        <span className="font-mono text-xs text-muted-foreground">{change.id?.slice(0, 8)}</span>
-        <span className="text-sm">{change.notes}</span>
-        {change.createdBy && (
-          <span className="text-xs text-muted-foreground/70">by {change.createdBy}</span>
-        )}
-        <span className="flex-1" />
-        {canApprove && (
-          <Button size="sm" variant="secondary" onClick={act(approve.mutate)}>
-            <Check /> Approve
-          </Button>
-        )}
-        {canApply && (
-          <>
-            <ScheduleMenu
-              change={change}
-              onSchedule={(at) => void schedule.mutate({ id, scheduledAt: at })}
-            />
-            <Button size="sm" onClick={act(apply.mutate)}>
-              <Play /> Apply
-            </Button>
-          </>
-        )}
-        {canReject && (
-          <Button size="sm" variant="ghost" onClick={act(reject.mutate)}>
-            <Undo2 /> Reject
-          </Button>
-        )}
-      </div>
+    <div className="flex h-full min-h-0">
+      <Workspace
+        leftLabel="Change details"
+        rightLabel="Change SQL"
+        left={
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
+            {change.notes && (
+              <section className="grid gap-1">
+                <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Notes</h3>
+                <p className="text-sm">{change.notes}</p>
+              </section>
+            )}
 
-      {change.scheduledAt && change.scheduledAt > Math.floor(Date.now() / 1000) ? (
-        <Alert variant="warning" title="Scheduled">
-          The scheduler will apply this change at{" "}
-          {new Date(change.scheduledAt * 1000).toLocaleString()}. Apply stays refused until then.
-        </Alert>
-      ) : change.status === "applying" ? (
-        <Alert variant="warning" title="Apply outcome unknown">
-          {change.applyingAt ? `Claimed for execution at ${new Date(change.applyingAt * 1000).toLocaleString()}. ` : "The claim time is unavailable. "}Inspect the target database before taking further action.
-        </Alert>
-      ) : change.status === "failed" ? (
-        <Alert variant="destructive" title="Apply failed">
-          The last apply attempt failed and was recorded on this change.
-        </Alert>
-      ) : change.status === "approved" ? (
-        <Alert variant="success" title="Approved">
-          Ready to apply now, or schedule it for later.
-        </Alert>
-      ) : null}
+            {change.scheduledAt && change.scheduledAt > Math.floor(Date.now() / 1000) ? (
+              <Alert variant="warning" title="Scheduled">
+                The scheduler will apply this change at{" "}
+                {new Date(change.scheduledAt * 1000).toLocaleString()}. Apply stays refused until then.
+              </Alert>
+            ) : change.status === "applying" ? (
+              <Alert variant="warning" title="Apply outcome unknown">
+                {change.applyingAt ? `Claimed for execution at ${new Date(change.applyingAt * 1000).toLocaleString()}. ` : "The claim time is unavailable. "}Inspect the target database before taking further action.
+              </Alert>
+            ) : change.status === "failed" ? (
+              <Alert variant="destructive" title="Apply failed">
+                The last apply attempt failed and was recorded on this change.
+              </Alert>
+            ) : change.status === "approved" ? (
+              <Alert variant="success" title="Approved">
+                Ready to apply now, or schedule it for later.
+              </Alert>
+            ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="flex flex-col gap-4">
-          <Card>
-            <CardContent className="flex flex-col gap-4 pt-6">
-              <div className="flex items-center gap-1">
-                <Button
-                  size="xs"
-                  variant={sqlView === "query" ? "secondary" : "ghost"}
-                  onClick={() => setSqlView("query")}
-                >
-                  Original
-                </Button>
-                <Button
-                  size="xs"
-                  variant={sqlView === "rollback" ? "secondary" : "ghost"}
-                  onClick={() => setSqlView("rollback")}
-                >
-                  Rollback
-                </Button>
-              </div>
-              <SqlEditor
-                value={(sqlView === "query" ? change.query : change.rollback) ?? ""}
-                readOnly
-                height="16rem"
-                tables={tables}
-              />
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs text-muted-foreground">
-                  Prefills this rollback as the new original query
-                </span>
-                {mayWrite && (
-                  <ChangeSubmitDialog
-                    kind={kind}
-                    onSubmit={(input) => submit.mutateAsync(input)}
-                    initial={{
-                      connection: change.connection,
-                      notes: change.notes ? `[Rollback] ${change.notes}` : "[Rollback]",
-                      query: change.rollback ?? "",
-                      rollback: change.query ?? "",
-                    }}
-                    trigger={
-                      <Button size="xs" variant="outline">
-                        <Undo2 /> Raise inverse change
-                      </Button>
-                    }
-                  />
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-1.5 text-base">
-                Validation
-                <Tooltip>
-                  <TooltipTrigger render={<span className="text-muted-foreground" />}>
-                    <CircleHelp className="size-3.5" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    The dry run applies the query and then its rollback inside a transaction that is always
-                    rolled back, so nothing persists.
-                  </TooltipContent>
-                </Tooltip>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-1.5">
-              {(change.checks ?? []).map((check) => (
-                <p
-                  key={`${check.target}:${check.error ?? check.detail ?? ""}`}
-                  className={cn("text-sm", check.ok ? "text-muted-foreground" : "text-destructive")}
-                >
-                  {check.ok ? "✓" : "✗"} <span className="font-medium text-foreground">{check.target}</span>
-                  {check.ok ? `: ${check.detail ?? ""}` : `: ${check.error ?? ""}`}
-                </p>
-              ))}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Instance</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2 text-sm">
-              <div className="flex items-center gap-2">
+            <section className="grid gap-2">
+              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Instance</h3>
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{change.connection}</span>
                 {instance?.driver && <Badge variant="secondary">{instance.driver}</Badge>}
               </div>
@@ -255,49 +149,106 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
               ) : (
                 <p className="text-xs text-muted-foreground">Instance details are unavailable.</p>
               )}
-            </CardContent>
-          </Card>
+            </section>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <section className="grid gap-2">
+              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Activity</h3>
               <ChangeActivity change={change} />
-            </CardContent>
-          </Card>
+            </section>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Touches</CardTitle>
-              <CardDescription>Parsed from the statements</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-2 text-sm">
-              <Identifiers label={title("tables")} values={change.affectedTables} />
-              <Identifiers label={title("columns")} values={change.affectedColumns} variant="outline" />
-            </CardContent>
-          </Card>
+            <section className="grid gap-2">
+              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Touches</h3>
+              <Identifiers label="Tables" values={change.affectedTables} />
+              <Identifiers label="Columns" values={change.affectedColumns} variant="outline" />
+            </section>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Impact</CardTitle>
-              <CardDescription>Dry run estimates, apply actuals</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3">
+            <section className="grid gap-2">
+              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Impact</h3>
               <div className="grid grid-cols-2 gap-3">
-                <Metric label={title("est. duration")} value={`${change.estDurationMs ?? 0} ms`} />
-                <Metric label={title("est. rows")} value={`~${change.estAffected ?? 0}`} />
-                <Metric label={title("duration")} value={change.appliedAt ? `${change.appliedDurationMs ?? 0} ms` : "—"} />
-                <Metric label={title("rows affected")} value={change.appliedAt ? String(change.appliedAffected ?? 0) : "—"} />
+                <Metric label="Est. duration" value={`${change.estDurationMs ?? 0} ms`} />
+                <Metric label="Est. rows" value={`~${change.estAffected ?? 0}`} />
+                <Metric label="Duration" value={change.appliedAt ? `${change.appliedDurationMs ?? 0} ms` : "—"} />
+                <Metric label="Rows affected" value={change.appliedAt ? String(change.appliedAffected ?? 0) : "—"} />
               </div>
-              <Separator />
-              <P>
-                Rejected changes stay in the queue as artifacts. Nothing is deleted.
-              </P>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            </section>
+
+            <section className="grid gap-2">
+              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Checks</h3>
+              {(change.checks ?? []).length === 0 ? (
+                <P>No checks recorded.</P>
+              ) : (
+                (change.checks ?? []).map((check) => (
+                  <p
+                    key={`${check.target}:${check.error ?? check.detail ?? ""}`}
+                    className={cn("text-xs", check.ok ? "text-muted-foreground" : "text-destructive")}
+                  >
+                    {check.ok ? "✓" : "✗"} <span className="font-medium text-foreground">{check.target}</span>
+                    {check.ok ? `: ${check.detail ?? ""}` : `: ${check.error ?? ""}`}
+                  </p>
+                ))
+              )}
+            </section>
+          </div>
+        }
+        right={
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <div className="flex min-h-0 flex-1 flex-col gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Original</span>
+              <div className="min-h-0 flex-1">
+                <SqlEditor value={change.query ?? ""} readOnly height="100%" tables={tables} />
+              </div>
+            </div>
+            <div className="flex min-h-0 flex-1 flex-col gap-1">
+              <span className="text-xs font-medium text-muted-foreground">Rollback</span>
+              <div className="min-h-0 flex-1">
+                <SqlEditor value={change.rollback ?? ""} readOnly height="100%" tables={tables} />
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+              <Badge variant={STATUS_VARIANT[change.status ?? ""] ?? "outline"}>{change.status}</Badge>
+              {mayWrite && (
+                <ChangeSubmitDialog
+                  kind={kind}
+                  onSubmit={(input) => submit.mutateAsync(input)}
+                  initial={{
+                    connection: change.connection,
+                    notes: change.notes ? `[Rollback] ${change.notes}` : "[Rollback]",
+                    query: change.rollback ?? "",
+                    rollback: change.query ?? "",
+                  }}
+                  trigger={
+                    <Button size="xs" variant="outline">
+                      <Undo2 /> Raise inverse change
+                    </Button>
+                  }
+                />
+              )}
+              <span className="flex-1" />
+              {canApprove && (
+                <Button size="sm" variant="secondary" onClick={act(approve.mutate)}>
+                  <Check /> Approve
+                </Button>
+              )}
+              {canApply && (
+                <>
+                  <ScheduleMenu
+                    change={change}
+                    onSchedule={(at) => void schedule.mutate({ id, scheduledAt: at })}
+                  />
+                  <Button size="sm" onClick={act(apply.mutate)}>
+                    <Play /> Apply
+                  </Button>
+                </>
+              )}
+              {canReject && (
+                <Button size="sm" variant="ghost" onClick={act(reject.mutate)}>
+                  <Undo2 /> Reject
+                </Button>
+              )}
+            </div>
+          </div>
+        }
+      />
     </div>
   );
 }
