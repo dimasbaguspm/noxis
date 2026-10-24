@@ -22,8 +22,6 @@ export default function InstanceDetailTab() {
   return (
     <div className="flex h-full min-h-0">
       <Workspace
-        leftLabel="Instance metadata"
-        rightLabel="Instance schemas"
         left={
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
             <dl className="grid grid-cols-[6rem_1fr] gap-y-2 text-sm">
