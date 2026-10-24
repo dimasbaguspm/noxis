@@ -33,15 +33,12 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
   } = useChangeListUrlParams();
   const { changes = [], total = 0, isPending, isFetching, refetch } = useChangeListQuery(kind);
   const submit = useSubmitChangeMutation();
-  const label = kind.toUpperCase();
   // raising a change needs a write permission on some SQL instance; the form still lets the server refuse a specific connection
   const mayRaise = sqlConnections.some((c) => canAccess(c.name, "write"));
 
   return (
     <div className="flex h-full min-h-0">
       <Workspace
-        leftLabel={`${label} filters`}
-        rightLabel={`${label} changes`}
         left={
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
             <div className="flex flex-col gap-1.5">

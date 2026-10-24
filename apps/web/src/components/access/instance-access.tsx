@@ -124,8 +124,6 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
     <>
       <div className="flex h-full min-h-0">
         <Workspace
-          leftLabel="Access views"
-          rightLabel={view === "granted" ? "Granted access" : "Pending requests"}
           left={
             <div className="flex min-h-0 flex-1 flex-col gap-1">
               <button
