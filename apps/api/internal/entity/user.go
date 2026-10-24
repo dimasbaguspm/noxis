@@ -1,9 +1,6 @@
 package entity
 
-// Global roles. Exactly one account holds Super: the env root, named by
-// NOXIS_ADMIN_EMAIL. An Admin runs the instance — directory, bans and every
-// connection's grants — but cannot promote, and cannot manage connections.
-// Everyone else is a Member whose reach is per-connection grants.
+// Global roles. An Admin runs the instance — directory, bans and every connection's grants — but cannot promote, and cannot manage connections.
 const (
 	RoleSuper  = "super"
 	RoleAdmin  = "admin"
@@ -16,11 +13,7 @@ const (
 	StatusBanned = "banned"
 )
 
-// User is a local account or an OIDC identity reference. Subject is the stable
-// key: "local:<login>" for a local account, the OIDC sub otherwise. Email is the
-// account identifier: a local account signs in with it. Role is the one global
-// role. Password is empty for OIDC rows, which exist so grants and the directory
-// can reference every authenticated principal.
+// User is a local account or an OIDC identity reference. Password is empty for OIDC rows, which exist so grants and the directory can reference every authenticated principal.
 type User struct {
 	Subject     string   `json:"subject" validate:"required"`
 	Email       string   `json:"email,omitempty" validate:"omitempty,email"`
@@ -33,12 +26,10 @@ type User struct {
 	CreatedAt   int64    `json:"createdAt"`
 }
 
-// LocalSubject namespaces a local account, so it can never collide with an OIDC
-// subject.
+// LocalSubject namespaces a local account, so it can never collide with an OIDC subject.
 func LocalSubject(login string) string { return "local:" + login }
 
-// LocalUsername returns the login name for a local subject, or "" when the
-// subject is not local.
+// LocalUsername returns the login name for a local subject, or "" when the subject is not local.
 func LocalUsername(subject string) string {
 	const prefix = "local:"
 	if len(subject) <= len(prefix) || subject[:len(prefix)] != prefix {

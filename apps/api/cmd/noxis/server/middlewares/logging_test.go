@@ -18,8 +18,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// RequestLog records the request line including the status code written by
-// the handler, even when no explicit WriteHeader call sets it.
+// RequestLog records the request line including the status code written by the handler, even when no explicit WriteHeader call sets it.
 func TestRequestLogRecordsStatus(t *testing.T) {
 	var buf bytes.Buffer
 	log := slog.New(slog.NewJSONHandler(&buf, nil))
@@ -37,8 +36,7 @@ func TestRequestLogRecordsStatus(t *testing.T) {
 	}
 }
 
-// The request log carries the authenticated caller's attributes once, from
-// the context (the middleware that set the principal ran before this).
+// The request log carries the authenticated caller's attributes once, from the context (the middleware that set the principal ran before this).
 func TestRequestLogAttachesPrincipal(t *testing.T) {
 	var buf bytes.Buffer
 	log := slog.New(slog.NewJSONHandler(&buf, nil))
@@ -56,8 +54,7 @@ func TestRequestLogAttachesPrincipal(t *testing.T) {
 	}
 }
 
-// The span-attribute attach is a no-op without a recording tracer (the
-// default SDK), so RequestLog must serve fine with no OTEL configured.
+// The span-attribute attach is a no-op without a recording tracer (the default SDK), so RequestLog must serve fine with no OTEL configured.
 func TestRequestLogWithoutTracingDoesNotPanic(t *testing.T) {
 	var buf bytes.Buffer
 	log := slog.New(slog.NewTextHandler(&buf, nil))
@@ -70,8 +67,7 @@ func TestRequestLogWithoutTracingDoesNotPanic(t *testing.T) {
 	}
 }
 
-// setupTracing installs a recording provider and the W3C propagator for the
-// test, restoring the process globals afterwards.
+// setupTracing installs a recording provider and the W3C propagator for the test, restoring the process globals afterwards.
 func setupTracing(t *testing.T) *tracetest.SpanRecorder {
 	t.Helper()
 	prevTP, prevProp := otel.GetTracerProvider(), otel.GetTextMapPropagator()

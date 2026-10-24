@@ -6,8 +6,7 @@ import (
 	"testing"
 )
 
-// splitStatements returns raw fragments; empty ones (trailing separators)
-// are skipped by the callers, so counts here include them.
+// splitStatements returns raw fragments; empty ones (trailing separators) are skipped by the callers, so counts here include them.
 func TestSplitStatements(t *testing.T) {
 	cases := []struct {
 		sql  string

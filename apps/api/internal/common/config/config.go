@@ -27,8 +27,7 @@ const (
 	EnvOTELName        = "NOXIS_OTEL_NAME"         // service name reported to OTEL (optional)
 	EnvAccessGrantDays = "NOXIS_ACCESS_GRANT_DAYS" // per-connection grant lifetime (default 120, super never expires)
 
-	// OIDC: when the issuer is set, the API accepts OIDC tokens; it is additive
-	// to local accounts. Empty leaves OIDC off.
+	// OIDC: when the issuer is set, the API accepts OIDC tokens; it is additive to local accounts.
 	EnvOIDCIssuer      = "NOXIS_OIDC_ISSUER"
 	EnvOIDCClientID    = "NOXIS_OIDC_CLIENT_ID"
 	EnvOIDCAudience    = "NOXIS_OIDC_AUDIENCE"     // defaults to the client id
@@ -42,8 +41,7 @@ const (
 	defaultAccessGrantDays = 120
 )
 
-// Config is the resolved process environment: defaults applied, nothing else
-// reads os.Getenv.
+// Config is the resolved process environment: defaults applied, nothing else reads os.Getenv.
 type Config struct {
 	Listen          string
 	DB              string
@@ -84,8 +82,7 @@ func LoadConfig() Config {
 	return cfg
 }
 
-// Validate enforces the rules defaults cannot: connection passwords are always
-// encrypted at rest, so the secret key is required.
+// Validate enforces the rules defaults cannot: connection passwords are always encrypted at rest, so the secret key is required.
 func (c Config) Validate() error {
 	if c.SecretKey == "" {
 		return fmt.Errorf("%s is required (64 hex characters, e.g. openssl rand -hex 32)", EnvSecretKey)
@@ -93,8 +90,7 @@ func (c Config) Validate() error {
 	return nil
 }
 
-// accessGrantDays parses the grant lifetime in days, falling back to the 120-day
-// default when the value is absent, unparseable or not positive.
+// accessGrantDays parses the grant lifetime in days, falling back to the 120-day default when the value is absent, unparseable or not positive.
 func accessGrantDays(raw string) int {
 	n, err := strconv.Atoi(strings.TrimSpace(raw))
 	if err != nil || n <= 0 {
@@ -111,9 +107,7 @@ func (c Config) GrantTTL() time.Duration {
 	return c.AccessGrantTTL
 }
 
-// LogState logs the deployment-relevant facts once, at boot: how secrets and
-// auth are configured. Field-level warnings live here, not in command code, so
-// a config decision is decided in exactly one place.
+// LogState logs the deployment-relevant facts once, at boot: how secrets and auth are configured. Field-level warnings live here, not in command code, so a config decision is decided in exactly one place.
 func LogState(ctx context.Context, log *slog.Logger, c Config) {
 	log.InfoContext(ctx, "connection passwords are encrypted at rest")
 	log.InfoContext(ctx, "access grants expire", "ttl", c.GrantTTL().String())
@@ -138,8 +132,7 @@ func firstNonEmpty(values ...string) string {
 	return ""
 }
 
-// AuthInfo derives the console's auth bootstrap from the config, so no route or
-// server wiring hardcodes what is available. The wire shape lives in entity.
+// AuthInfo derives the console's auth bootstrap from the config, so no route or server wiring hardcodes what is available.
 func (c Config) AuthInfo() entity.AuthConfig {
 	info := entity.AuthConfig{Local: true}
 	if c.OIDCIssuer != "" {

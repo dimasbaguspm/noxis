@@ -6,8 +6,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// AccessRequestRepository persists access requests. Writes append the matching
-// access event in the same transaction.
+// AccessRequestRepository persists access requests.
 type AccessRequestRepository interface {
 	CreateAccessRequest(ctx context.Context, r entity.AccessRequest) error
 	PendingRequestExists(ctx context.Context, subject, connection string) (bool, error)

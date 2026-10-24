@@ -39,8 +39,7 @@ func TestMermaidRendersTablesKeysAndRelationships(t *testing.T) {
 	}
 }
 
-// Only declared constraints are drawn: a column named owner_id with no foreign
-// key in the catalog is just a column.
+// Only declared constraints are drawn: a column named owner_id with no foreign key in the catalog is just a column.
 func TestMermaidIgnoresUndeclaredReferences(t *testing.T) {
 	tables := []entity.Table{{Schema: "public", Name: "pets", Columns: []entity.Column{
 		{Name: "owner_id", Type: "integer"},
@@ -51,8 +50,7 @@ func TestMermaidIgnoresUndeclaredReferences(t *testing.T) {
 	}
 }
 
-// A schema-qualified name is normalised, a name repeated across schemas keeps
-// its schema, and a type with a length does not break the identifier rules.
+// A schema-qualified name is normalised, a name repeated across schemas keeps its schema, and a type with a length does not break the identifier rules.
 func TestMermaidNormalisesNames(t *testing.T) {
 	tables := []entity.Table{
 		{Schema: "public", Name: "order.detail", Columns: []entity.Column{{Name: "line 1", Type: "numeric(10,2)"}}},
@@ -70,8 +68,7 @@ func TestMermaidNormalisesNames(t *testing.T) {
 	}
 }
 
-// A foreign key to a table the connection does not list is skipped rather than
-// drawn against a non-existent entity.
+// A foreign key to a table the connection does not list is skipped rather than drawn against a non-existent entity.
 func TestMermaidSkipsUnknownParent(t *testing.T) {
 	tables := []entity.Table{{Schema: "public", Name: "pets", Columns: []entity.Column{
 		{Name: "owner_id", Type: "integer", References: &entity.Reference{Schema: "auth", Table: "users", Column: "id"}},

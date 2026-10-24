@@ -1,7 +1,4 @@
-// Package kit is the acceptance suite's HTTP client: one Send for every
-// request, headers and cookies set per test, a default bearer token that a test
-// can override or clear, and the reply captured whole. It does not import the
-// noxis module, so it is unit-tested against httptest without docker.
+// Package kit is the acceptance suite's HTTP client: one Send for every request, headers and cookies set per test, a default bearer token that a test can override or clear, and the reply captured whole. It does not import the noxis module, so it is unit-tested against httptest without docker.
 package kit
 
 import (
@@ -19,8 +16,7 @@ type Request struct {
 	Body    []byte
 	Headers map[string]string
 	Cookies []*http.Cookie
-	// Sign, when set, decorates the outgoing request last — after the headers,
-	// so it wins. The scheduler HMAC uses it. body is the request body as sent.
+	// Sign, when set, decorates the outgoing request last — after the headers, so it wins.
 	Sign func(req *http.Request, body []byte)
 }
 
@@ -42,9 +38,7 @@ func (r Response) Decode(v any) error {
 	return json.Unmarshal(r.Body, v)
 }
 
-// Client sends requests to one base URL. Token, when set, is sent as the default
-// bearer; a request header overrides it, and an empty-string header removes it.
-// Jar, when set, carries cookies between calls.
+// Client sends requests to one base URL. Token, when set, is sent as the default bearer; a request header overrides it, and an empty-string header removes it.
 type Client struct {
 	BaseURL string
 	Token   string
@@ -54,8 +48,7 @@ type Client struct {
 	Stub    *Stub
 }
 
-// Send performs r, or serves it from the stub store when one is attached. With
-// Stub.Record the live response is written to the store first.
+// Send performs r, or serves it from the stub store when one is attached.
 func (c *Client) Send(r Request) (Response, error) {
 	if c.Stub != nil {
 		if !c.Stub.Record {
@@ -73,8 +66,7 @@ func (c *Client) Send(r Request) (Response, error) {
 	return c.doSend(r)
 }
 
-// doSend performs r and captures the response. A JSON content type is set for a
-// body unless a header overrides it.
+// doSend performs r and captures the response. A JSON content type is set for a body unless a header overrides it.
 func (c *Client) doSend(r Request) (Response, error) {
 	var body io.Reader
 	if r.Body != nil {

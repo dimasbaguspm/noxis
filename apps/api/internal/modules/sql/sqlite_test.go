@@ -9,8 +9,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// newSQLiteFile creates a file-backed SQLite database with a small table and
-// returns a connection describing it.
+// newSQLiteFile creates a file-backed SQLite database with a small table and returns a connection describing it.
 func newSQLiteFile(t *testing.T) entity.Connection {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "app.db")
@@ -66,8 +65,7 @@ func TestSQLiteTablesAndRows(t *testing.T) {
 	}
 }
 
-// TestSQLiteValidateChangeRollsBack proves the SQLite dry run exercises the live
-// schema inside a transaction and leaves it untouched.
+// TestSQLiteValidateChangeRollsBack proves the SQLite dry run exercises the live schema inside a transaction and leaves it untouched.
 func TestSQLiteValidateChangeRollsBack(t *testing.T) {
 	conn := newSQLiteFile(t)
 	u := New()
@@ -88,8 +86,7 @@ func TestSQLiteValidateChangeRollsBack(t *testing.T) {
 	}
 }
 
-// TestSQLiteOperations covers the operations the compatibility suite runs on the
-// server drivers: apply, dry-run, analyze, and the statement-kind guards.
+// TestSQLiteOperations covers the operations the compatibility suite runs on the server drivers: apply, dry-run, analyze, and the statement-kind guards.
 func TestSQLiteOperations(t *testing.T) {
 	conn := newSQLiteFile(t)
 	u := New()

@@ -11,8 +11,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// recordEvent appends one audit row inside the caller's transaction, so a grant
-// and its trail commit or roll back together.
+// recordEvent appends an audit row in the caller's transaction so the event and grant commit together.
 func recordEvent(ctx context.Context, tx *sql.Tx, e entity.AccessEvent) error {
 	if e.ID == "" {
 		e.ID = idgen.UUID()
@@ -29,8 +28,7 @@ func recordEvent(ctx context.Context, tx *sql.Tx, e entity.AccessEvent) error {
 	return nil
 }
 
-// ListAccessEvents returns the audit trail for a subject: events about them or
-// performed by them, newest first.
+// ListAccessEvents returns the audit trail for a subject: events about them or performed by them, newest first.
 func (s *Store) ListAccessEvents(ctx context.Context, subject string, limit int) (out []entity.AccessEvent, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()

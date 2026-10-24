@@ -16,9 +16,7 @@ import (
 	"noxis/internal/interfaces"
 )
 
-// Changes is the MongoDB change queue: a document write has no generic
-// rollback, so it is validated against a scratch collection and reviewed, then
-// applied for real. The shared lifecycle lives in changeflow.
+// Changes is the MongoDB change queue: a document write has no generic rollback, so it is validated against a scratch collection and reviewed, then applied for real.
 type Changes struct {
 	changeflow.Flow
 	Conns   interfaces.ConnectionRepository
@@ -42,8 +40,7 @@ func (c *Changes) Family() string { return c.Flow.Family() }
 // Satisfier.
 var _ interfaces.MongoChangeFlow = (*Changes)(nil)
 
-// Submit validates a request and records it. The caller has already authorized
-// write on the connection.
+// Submit validates a request and records it.
 func (c *Changes) Submit(ctx context.Context, conn entity.Connection, actor, notes string, req entity.MongoRequest) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()

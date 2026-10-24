@@ -1,6 +1,4 @@
-// Package secret encrypts stored credentials reversibly. Passwords cannot be
-// hashed — noxis must send them to the database — so they are encrypted at
-// rest instead, with a key that never lives in the same file.
+// Package secret encrypts stored credentials reversibly. Passwords cannot be hashed — noxis must send them to the database — so they are encrypted at rest instead, with a key that never lives in the same file.
 package secret
 
 import (
@@ -14,18 +12,15 @@ import (
 	"strings"
 )
 
-// prefix marks an encrypted value, so plaintext rows from before the key
-// existed remain readable and can be migrated.
+// prefix marks an encrypted value, so plaintext rows from before the key existed remain readable and can be migrated.
 const prefix = "enc:v1:"
 
-// Cipher encrypts and decrypts stored secrets with AES-256-GCM. A nil Cipher is
-// a pass-through: values are returned as stored (open mode, no key set).
+// Cipher uses AES-256-GCM; a nil cipher passes stored values through unchanged.
 type Cipher struct {
 	aead cipher.AEAD
 }
 
-// New builds a cipher from a 32-byte key, given as 64 hex characters or 32 raw
-// bytes. An empty key returns a nil Cipher (plaintext mode).
+// New builds a cipher from a 32-byte key, given as 64 hex characters or 32 raw bytes.
 func New(key string) (*Cipher, error) {
 	if key == "" {
 		return nil, nil
@@ -57,8 +52,7 @@ func decodeKey(key string) ([]byte, error) {
 	return nil, fmt.Errorf("secret key must be 64 hex characters or 32 raw bytes, got %d characters", len(key))
 }
 
-// Encrypt seals a plaintext secret. Empty input, or a nil Cipher, passes it
-// through unchanged.
+// Encrypt seals non-empty secrets; nil cipher or empty input passes through unchanged.
 func (c *Cipher) Encrypt(plain string) (string, error) {
 	if c == nil || plain == "" {
 		return plain, nil
@@ -71,9 +65,7 @@ func (c *Cipher) Encrypt(plain string) (string, error) {
 	return prefix + base64.RawStdEncoding.EncodeToString(sealed), nil
 }
 
-// Decrypt opens a stored secret. A value without the encrypted prefix is
-// returned as-is (legacy plaintext); an encrypted value with no key is an
-// explicit error, never silent garbage.
+// Decrypt opens encrypted secrets, passes legacy plaintext through, and rejects ciphertext without a key.
 func (c *Cipher) Decrypt(stored string) (string, error) {
 	if !Encrypted(stored) {
 		return stored, nil

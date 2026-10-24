@@ -15,9 +15,7 @@ import (
 	"noxis/internal/interfaces"
 )
 
-// Changes is the SQL change queue: a batch is validated against its own
-// rollback, reviewed, then applied in a transaction. The shared lifecycle lives
-// in changeflow; the engine step is this package's.
+// Changes is the SQL change queue: a batch is validated against its own rollback, reviewed, then applied in a transaction.
 type Changes struct {
 	changeflow.Flow
 	Conns   interfaces.ConnectionRepository
@@ -41,8 +39,7 @@ func (c *Changes) Family() string { return c.Flow.Family() }
 // Satisfier.
 var _ interfaces.SQLChangeFlow = (*Changes)(nil)
 
-// Submit validates a batch and records it. The caller has already authorized
-// write on the connection.
+// Submit validates a batch and records it.
 func (c *Changes) Submit(ctx context.Context, conn entity.Connection, actor string, ch entity.Change) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()

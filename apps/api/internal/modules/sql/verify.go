@@ -12,27 +12,14 @@ import (
 	"noxis/internal/entity"
 )
 
-// scratchPrefix names the throwaway schema each change is verified in. The
-// random suffix keeps concurrent submissions from colliding.
+// scratchPrefix names the throwaway schema each change is verified in.
 const scratchPrefix = "noxis_verify_"
 
-// ValidateChange verifies a change and its rollback in a throwaway scratch
-// schema on the target server: the objects the batch references are mirrored
-// there structure-only (no rows), the query and its rollback run against the
-// scratch, and the scratch is dropped on the way out — success or failure.
-//
-// This is what makes MySQL/MariaDB DDL verifiable: mysql commits DDL
-// implicitly, so a transaction dry run was never safe there; a scratch schema
-// is.
-//
-// ponytail: the batch resolves unqualified names against the scratch (pg
-// search_path, mysql USE); a statement that names a live schema explicitly is
-// the operator's own call. Add SQL rewriting if that shows up.
+// ValidateChange mirrors referenced structures into a scratch schema and runs query plus rollback there; SQLite uses a rolled-back transaction because its DDL is transactional. shortcut: explicitly qualified references can target live objects; add SQL rewriting if operators use them.
 func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	// SQLite DDL is transactional, so a rolled-back transaction is a safe dry
-	// run on the live schema; no scratch database is needed.
+	// SQLite DDL is transactional, so a rolled-back transaction is a safe dry run on the live schema; no scratch database is needed.
 	if isSQLite(c.Driver) {
 		return validateChangeTx(ctx, c, query, rollback)
 	}
@@ -51,8 +38,7 @@ func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rol
 		if err := createScratch(ctx, conn, c.Driver, schema); err != nil {
 			return struct{}{}, err
 		}
-		// Cleanup must survive a cancelled request: the schema exists on the
-		// server the moment it is created.
+		// Cleanup must survive a cancelled request: the schema exists on the server the moment it is created.
 		defer func() { _ = dropScratch(context.WithoutCancel(ctx), conn, c.Driver, schema) }()
 
 		mirrored, err = mirrorReferenced(ctx, conn, c, schema, query+"\n"+rollback)
@@ -98,9 +84,7 @@ func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rol
 	}, nil
 }
 
-// validateChangeTx dry-runs a change and its rollback in one transaction that
-// always rolls back. SQLite is the driver this exists for: it supports
-// transactional DDL, so the live tables can be exercised directly.
+// validateChangeTx dry-runs a change and its rollback in one transaction that always rolls back. SQLite is the driver this exists for: it supports transactional DDL, so the live tables can be exercised directly.
 func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback string) (Result, error) {
 	started := time.Now()
 	var affected int64
@@ -140,9 +124,7 @@ func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback 
 	}, nil
 }
 
-// mirrorReferenced copies the structure of every referenced table that already
-// exists live into the scratch schema, so the change has something to act on.
-// Tables the batch creates itself are skipped.
+// mirrorReferenced copies the structure of every referenced table that already exists live into the scratch schema, so the change has something to act on.
 func mirrorReferenced(ctx context.Context, conn *stdsql.Conn, c entity.Connection, scratch, sqlText string) ([]string, error) {
 	created := createdTables(sqlText)
 	refs, _ := Referenced(sqlText)
@@ -170,9 +152,7 @@ func mirrorReferenced(ctx context.Context, conn *stdsql.Conn, c entity.Connectio
 	return mirrored, nil
 }
 
-// splitRef resolves a referenced table to its schema; a bare name lives in
-// the connection's default schema, the same place the live statement would
-// have resolved it.
+// splitRef resolves a referenced table to its schema; a bare name lives in the connection's default schema, the same place the live statement would have resolved it.
 func splitRef(c entity.Connection, ref string) (schema, table string) {
 	if i := strings.LastIndex(ref, "."); i > 0 {
 		return ref[:i], ref[i+1:]
@@ -188,8 +168,7 @@ func splitRef(c entity.Connection, ref string) (schema, table string) {
 
 // tableExists reports whether a base table exists in the live schema.
 func tableExists(ctx context.Context, conn *stdsql.Conn, schema, table string) (bool, error) {
-	// identifiers were validated by identOK; placeholders are not portable
-	// between pgx and the mysql driver.
+	// identifiers were validated by identOK; placeholders are not portable between pgx and the mysql driver.
 	stmt := fmt.Sprintf(
 		"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '%s' AND table_name = '%s' AND table_type = 'BASE TABLE'",
 		schema, table)
@@ -200,8 +179,7 @@ func tableExists(ctx context.Context, conn *stdsql.Conn, schema, table string) (
 	return n > 0, nil
 }
 
-// mirrorTable creates a structure-only copy (columns, defaults, indexes,
-// constraints) of a live table in the scratch schema. No rows are copied.
+// mirrorTable creates a structure-only copy (columns, defaults, indexes, constraints) of a live table in the scratch schema.
 func mirrorTable(ctx context.Context, conn *stdsql.Conn, driver, scratch, schema, table string) error {
 	target, source := quoteRef(driver, scratch, table), quoteRef(driver, schema, table)
 	stmt := "CREATE TABLE " + target + " (LIKE " + source + " INCLUDING ALL)"
@@ -232,8 +210,7 @@ func dropScratch(ctx context.Context, conn *stdsql.Conn, driver, schema string) 
 	return err
 }
 
-// useScratch points the pinned connection at the scratch schema so unqualified
-// names in the change resolve there.
+// useScratch points the pinned connection at the scratch schema so unqualified names in the change resolve there.
 func useScratch(ctx context.Context, conn *stdsql.Conn, driver, schema string) error {
 	stmt := `SET search_path TO "` + schema + `", public`
 	if isMySQL(driver) {

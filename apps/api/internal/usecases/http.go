@@ -27,11 +27,7 @@ func (d RegistryDeps) RespondNoContent(w http.ResponseWriter) { w.WriteHeader(ht
 // Decode reads the request body as JSON into v.
 func (d RegistryDeps) Decode(r *http.Request, v any) error { return json.NewDecoder(r.Body).Decode(v) }
 
-// Fail maps err to a status, records it on the operation's span and writes the
-// error envelope. It is the single place the API's errors become HTTP: a missing
-// row and a missing engine both read as "not here", bad credentials and a missing
-// caller as 401. Being the one exit for failures, it is also where they are
-// counted and logged — once, with the cause, not again by every caller.
+// Fail maps err to a status, records it on the operation's span and writes the error envelope.
 func (d RegistryDeps) Fail(ctx context.Context, w http.ResponseWriter, err error) {
 	code := http.StatusBadRequest
 	switch {

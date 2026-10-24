@@ -1,7 +1,6 @@
 package entity
 
-// AccessEvent is one line of the access audit trail: who did what, to whom, on
-// which connection, and when. The table is append-only.
+// AccessEvent is one line of the access audit trail: who did what, to whom, on which connection, and when.
 type AccessEvent struct {
 	ID         string `json:"id"`
 	At         int64  `json:"at"`

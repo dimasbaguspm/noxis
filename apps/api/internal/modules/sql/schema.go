@@ -11,8 +11,7 @@ import (
 // sysSchemaFilter excludes engine-internal schemas (valid for postgres and mysql).
 const sysSchemaFilter = `table_schema NOT IN ('pg_catalog', 'information_schema', 'mysql', 'performance_schema', 'sys')`
 
-// listTables reports every browsable table with its columns and declared keys, so
-// the schema browser and the ERD view read one pass per driver.
+// listTables reports every browsable table with its columns and declared keys, so the schema browser and the ERD view read one pass per driver.
 func listTables(ctx context.Context, db *stdsql.DB, driver string) ([]entity.Table, error) {
 	if isSQLite(driver) {
 		tables, err := listTablesSQLite(ctx, db)
@@ -51,9 +50,7 @@ func listTables(ctx context.Context, db *stdsql.DB, driver string) ([]entity.Tab
 	return out, attachKeys(ctx, db, driver, out)
 }
 
-// listTablesSQLite lists main-schema tables and their columns. SQLite has no
-// information_schema: sqlite_master names the tables, pragma_table_info the
-// columns. The schema is always "main" (attached databases are not browsed).
+// listTablesSQLite lists main-schema tables and their columns.
 func listTablesSQLite(ctx context.Context, db *stdsql.DB) ([]entity.Table, error) {
 	rows, err := db.QueryContext(ctx,
 		`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name`)

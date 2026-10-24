@@ -7,8 +7,7 @@ import (
 	"strings"
 )
 
-// estimateRows asks the planner how many rows a read will touch (EXPLAIN
-// only — the query is not executed). Zero means "unknown".
+// estimateRows asks the planner how many rows a read will touch (EXPLAIN only — the query is not executed).
 func estimateRows(ctx context.Context, db *stdsql.DB, driver, stmt string) int64 {
 	if isSQLite(driver) {
 		// SQLite's EXPLAIN QUERY PLAN reports access paths, not row counts.
@@ -29,8 +28,7 @@ func estimateRows(ctx context.Context, db *stdsql.DB, driver, stmt string) int64
 	return findRows(doc)
 }
 
-// findRows walks a plan document for the first rows estimate both drivers
-// expose ("Plan Rows" for postgres, "rows_examined_per_scan" for mysql).
+// findRows walks a plan document for the first rows estimate both drivers expose ("Plan Rows" for postgres, "rows_examined_per_scan" for mysql).
 func findRows(node any) int64 {
 	switch v := node.(type) {
 	case map[string]any:

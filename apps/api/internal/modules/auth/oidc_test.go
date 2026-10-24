@@ -2,8 +2,7 @@ package auth
 
 import "testing"
 
-// TestPrincipalFromClaims locks the claim handling: a configurable claim name,
-// non-string entries ignored, and no global role from the issuer.
+// TestPrincipalFromClaims locks the claim handling: a configurable claim name, non-string entries ignored, and no global role from the issuer.
 func TestPrincipalFromClaims(t *testing.T) {
 	claims := map[string]any{
 		"groups": []any{"dev", "noxis-admins", 42},

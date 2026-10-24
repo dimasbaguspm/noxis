@@ -1,10 +1,4 @@
-// Package arch locks the project's layering: routes → middlewares → usecases →
-// modules → repositories → common → constants/entity/interfaces. A package may
-// import only packages strictly below its layer, and two packages in the same
-// layer may not import each other. The composition root (cmd/noxis) is exempt.
-//
-// The graph is read from `go list`, so the test needs no dependency and no
-// hand-maintained import list: it fails the moment a layer edge is bent.
+// Package arch locks the project's layering: routes → middlewares → usecases → modules → repositories → common → constants/entity/interfaces. A package may import only packages strictly below its layer, and two packages in the same layer may not import each other.
 package arch
 
 import (
@@ -15,12 +9,7 @@ import (
 	"testing"
 )
 
-// layerOf maps a noxis import path to its layer index, lowest first. The second
-// return is false for packages outside the model (the composition root and
-// test-only packages), which the rule does not constrain.
-//
-// Order matters: the more specific module families are matched before the bare
-// registry package, and middlewares before the routes package.
+// layerOf maps a noxis import path to its layer index, lowest first. The second return is false for packages outside the model (the composition root and test-only packages), which the rule does not constrain.
 func layerOf(pkg string) (int, bool) {
 	switch {
 	case pkg == "noxis/internal/constants":

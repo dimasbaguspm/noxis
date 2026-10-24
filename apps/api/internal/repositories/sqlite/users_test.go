@@ -21,8 +21,7 @@ func newStore(t *testing.T) *Store {
 	return store
 }
 
-// The email is the account identifier: the login identifier resolves through it,
-// and a legacy username still matches until an email takes over.
+// The email is the account identifier: the login identifier resolves through it, and a legacy username still matches until an email takes over.
 func TestUserLookups(t *testing.T) {
 	ctx := context.Background()
 	store := newStore(t)

@@ -10,9 +10,7 @@ import (
 	"noxis/test/uat/kit"
 )
 
-// httpSteps are the generic request controls: headers, the default bearer, and
-// cookies set per test, plus a raw-payload sender. They are not tied to any one
-// engine family.
+// httpSteps are the generic request controls: headers, the default bearer, and cookies set per test, plus a raw-payload sender.
 func (w *world) httpSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I set header "([^"]*)" to "([^"]*)"$`, w.setHeader)
 	sc.Step(`^I set the auth token to "([^"]*)"$`, w.setAuthToken)
@@ -34,8 +32,7 @@ func (w *world) setAuthToken(ctx context.Context, tok string) error {
 	return nil
 }
 
-// clearAuthHeader makes the default bearer absent for this test: the kit removes
-// a header whose override value is empty.
+// clearAuthHeader makes the default bearer absent for this test: the kit removes a header whose override value is empty.
 func (w *world) clearAuthHeader(ctx context.Context) error {
 	w.headers["Authorization"] = ""
 	return nil
@@ -60,14 +57,12 @@ func (w *world) responseStatusIs(ctx context.Context, want int) error {
 	return nil
 }
 
-// responseMatchesSnapshot compares the last response against a committed golden
-// under test/uat/snapshots. Volatile fields are scrubbed first.
+// responseMatchesSnapshot compares the last response against a committed golden under test/uat/snapshots.
 func (w *world) responseMatchesSnapshot(ctx context.Context, name string) error {
 	return w.snapshots.Match(name, w.resp.Body)
 }
 
-// sendPayload sends a request whose body is the step's docstring, verbatim, and
-// decodes the reply into the shared result grid.
+// sendPayload sends a request whose body is the step's docstring, verbatim, and decodes the reply into the shared result grid.
 func (w *world) sendPayload(ctx context.Context, method, path string, payload *godog.DocString) error {
 	if err := w.send(kit.Request{Method: method, Path: path, Body: []byte(payload.Content)}); err != nil {
 		return err

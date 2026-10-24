@@ -44,8 +44,7 @@ func TestWithAuthNilVerifierDenies(t *testing.T) {
 	}
 }
 
-// WithAuth guards /external/v1/* with a bearer token; the console shell, assets and
-// health stay reachable so login can happen.
+// WithAuth guards /external/v1/* with a bearer token; the console shell, assets and health stay reachable so login can happen.
 func TestWithAuthGuardsAPI(t *testing.T) {
 	verifier := &fakeVerifier{err: errors.New("bad token")}
 	h := WithAuth(verifier, okHandler(), discardLog())

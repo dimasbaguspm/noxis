@@ -7,8 +7,7 @@ import (
 	"noxis/internal/constants"
 )
 
-// Guards the env contract: defaults make an empty environment runnable, and the
-// secret key is always required.
+// Guards the env contract: defaults make an empty environment runnable, and the secret key is always required.
 func TestLoadConfigDefaultsAndValidate(t *testing.T) {
 	for _, e := range []string{EnvListen, EnvDB, EnvSecretKey} {
 		t.Setenv(e, "")

@@ -1,8 +1,6 @@
 package entity
 
-// Key is one memory-cache browse entry: its name, type and TTL (-1 = no
-// expiry). KeyPage is a browse result; Truncated reports that the keyspace
-// held more keys than the limit, so the counts are a lower bound.
+// Key is one memory-cache browse entry: its name, type and TTL (-1 = no expiry). KeyPage is a browse result; Truncated reports that the keyspace held more keys than the limit, so the counts are a lower bound.
 type Key struct {
 	Name string `json:"name"`
 	Type string `json:"type"`

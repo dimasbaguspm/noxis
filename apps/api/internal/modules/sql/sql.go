@@ -1,6 +1,4 @@
-// Package sql runs verified SQL against registered connections: reads,
-// writes, dry-run transactions, analyze, and schema introspection. Statement
-// kinds are checked before execute, per statement.
+// Package sql runs verified SQL against registered connections: reads, writes, dry-run transactions, analyze, and schema introspection.
 package sql
 
 import (
@@ -26,8 +24,7 @@ type DB struct{}
 
 func New() *DB { return &DB{} }
 
-// Result is the shared operation outcome; SQL fills Columns/Rows for reads
-// and EstimatedRows from EXPLAIN when the driver allows it.
+// Result is the shared operation outcome; SQL fills Columns/Rows for reads and EstimatedRows from EXPLAIN when the driver allows it.
 type Result = entity.Result
 
 // Satisfier.
@@ -60,8 +57,7 @@ func withDB[T any](c entity.Connection, fn func(db *stdsql.DB) (T, error)) (T, e
 	return fn(db)
 }
 
-// execEach runs every non-empty statement of a batch through fn, numbering
-// failures and returning how many ran.
+// execEach runs every non-empty statement of a batch through fn, numbering failures and returning how many ran.
 func execEach(sqlText string, fn func(stmt string) error) (int, error) {
 	n := 0
 	for _, stmt := range splitStatements(sqlText) {
@@ -100,8 +96,7 @@ func (u *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 	return err
 }
 
-// Query runs read-only statements; DML and DDL are rejected (writes belong on
-// Alter or the change workflow).
+// Query runs read-only statements; DML and DDL are rejected (writes belong on Alter or the change workflow).
 func (u *DB) Query(ctx context.Context, c entity.Connection, sqlText string) (Result, error) {
 	return u.verifyRun(ctx, c, sqlText, reads)
 }
@@ -120,8 +115,7 @@ func (u *DB) verifyRun(ctx context.Context, c entity.Connection, sqlText string,
 	return u.run(ctx, c, sqlText)
 }
 
-// run executes each statement separately (verified incrementally, no
-// multi-statement driver quirks) and returns the last statement's outcome.
+// run executes each statement separately (verified incrementally, no multi-statement driver quirks) and returns the last statement's outcome.
 func (u *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Result, error) {
 	return withDB(c, func(db *stdsql.DB) (Result, error) {
 		ctx, cancel := context.WithTimeout(ctx, stmtTimeout)
@@ -153,9 +147,7 @@ func (u *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Resu
 	})
 }
 
-// DryRun runs statements inside a transaction that always rolls back. On
-// mysql-family drivers DDL is refused: MySQL commits DDL implicitly, so a
-// "dry run" there would apply it.
+// DryRun always rolls back; it refuses MySQL-family DDL because implicit commits would make the dry run destructive.
 func (u *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -175,8 +167,7 @@ func (u *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (r
 
 // Apply executes write statements in a transaction and commits.
 //
-// ponytail: mysql commits DDL implicitly, so a batch mixing DDL and DML there
-// is not all-or-nothing; postgres is.
+// shortcut: MySQL commits DDL implicitly, so mixed DDL/DML batches are not atomic; split them or use PostgreSQL when atomicity is required.
 func (u *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -198,13 +189,10 @@ func (u *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (re
 	}, nil
 }
 
-// errNoStatements reports an empty batch: a change or a console op with nothing
-// to run is a caller mistake, not a success.
+// errNoStatements reports an empty batch: a change or a console op with nothing to run is a caller mistake, not a success.
 var errNoStatements = errors.New("no statements to run")
 
-// runBatch executes every statement of a batch inside one transaction and
-// commits unless rollback is set. It returns the affected-row total and how many
-// statements ran, so a dry run and a real apply share one loop.
+// runBatch executes every statement of a batch inside one transaction and commits unless rollback is set.
 func runBatch(ctx context.Context, c entity.Connection, sqlText string, rollback bool) (affected int64, n int, err error) {
 	n, err = inTx(c, rollback, func(tx *stdsql.Tx) (int, error) {
 		return execEach(sqlText, func(stmt string) error {
@@ -221,8 +209,7 @@ func runBatch(ctx context.Context, c entity.Connection, sqlText string, rollback
 	return affected, n, err
 }
 
-// inTx runs fn inside a transaction and commits when it returns nil error. With
-// rollback set it never commits: a dry run must leave nothing behind.
+// inTx commits on success unless rollback is set; dry runs leave data untouched.
 func inTx(c entity.Connection, rollback bool, fn func(tx *stdsql.Tx) (int, error)) (int, error) {
 	return withDB(c, func(db *stdsql.DB) (int, error) {
 		tx, err := db.Begin()
@@ -286,8 +273,7 @@ func (u *DB) Analyze(ctx context.Context, c entity.Connection, table string) (re
 	return u.run(ctx, c, stmt)
 }
 
-// Referenced reports the tables and columns a batch mentions, so the change
-// record can list what it touches.
+// Referenced reports the tables and columns a batch mentions, so the change record can list what it touches.
 func (u *DB) Referenced(sqlText string) (tables []string, columns []string) {
 	return Referenced(sqlText)
 }
@@ -295,8 +281,7 @@ func (u *DB) Referenced(sqlText string) (tables []string, columns []string) {
 // VerifyWrite exposes the write guard (a change's query must be a write).
 func (u *DB) VerifyWrite(sqlText string) error { return verifyKind(sqlText, writes) }
 
-// Kind classifies a batch as dml, ddl, or read (mixed batches report ddl when
-// any DDL appears — that is the stricter review).
+// Kind classifies a batch as dml, ddl, or read (mixed batches report ddl when any DDL appears — that is the stricter review).
 func (u *DB) Kind(sqlText string) string {
 	kind := constants.KindDML
 	for _, stmt := range splitStatements(sqlText) {

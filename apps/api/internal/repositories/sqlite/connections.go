@@ -16,8 +16,7 @@ import (
 
 const connColumns = `id, name, driver, host, port, user, password, database, params, created_at, created_by`
 
-// Save upserts a connection (created_at is set on first insert). The id is
-// generated when missing and never overwritten on update (name is the key).
+// Save upserts a connection (created_at is set on first insert). The id is generated when missing and never overwritten on update (name is the key).
 func (s *Store) Save(ctx context.Context, c entity.Connection) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -76,8 +75,7 @@ func (s *Store) getOne(ctx context.Context, q string, arg any) (*entity.Connecti
 	return &conn, nil
 }
 
-// Delete removes a connection and its changes atomically (orphaned changes
-// would point at a database nobody can reach).
+// Delete removes a connection and its changes atomically (orphaned changes would point at a database nobody can reach).
 func (s *Store) Delete(ctx context.Context, name string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()

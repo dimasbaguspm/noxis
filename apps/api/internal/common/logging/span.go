@@ -15,10 +15,7 @@ import (
 
 const modulePrefix = "noxis/"
 
-// Attach sets attributes on the current span from key/value pairs (string,
-// bool and []string values; other types render with fmt). It is a no-op when
-// there is no recording span, so callers (the middleware layer) set request
-// attributes without caring whether tracing is enabled.
+// Attach sets attributes on the current span from key/value pairs (string, bool and []string values; other types render with fmt). It is a no-op when there is no recording span, so callers (the middleware layer) set request attributes without caring whether tracing is enabled.
 func Attach(ctx context.Context, keyValues ...any) {
 	span := trace.SpanFromContext(ctx)
 	if !span.IsRecording() || len(keyValues) == 0 {
@@ -27,21 +24,17 @@ func Attach(ctx context.Context, keyValues ...any) {
 	span.SetAttributes(keyValuesOf(keyValues)...)
 }
 
-// InfoWithCtx records a state change: a log record and a span event on the
-// active span, so the trace explains what happened and the log survives alone.
+// InfoWithCtx records a state change: a log record and a span event on the active span, so the trace explains what happened and the log survives alone.
 func InfoWithCtx(ctx context.Context, msg string, attrs ...any) {
 	record(ctx, slog.LevelInfo, msg, attrs)
 }
 
-// WarnWithCtx records an expected but notable outcome — a refusal, a skipped
-// step — on the span and in the log.
+// WarnWithCtx records an expected but notable outcome — a refusal, a skipped step — on the span and in the log.
 func WarnWithCtx(ctx context.Context, msg string, attrs ...any) {
 	record(ctx, slog.LevelWarn, msg, attrs)
 }
 
-// ErrorWithCtx records a failure once, where it happens: the error goes on the
-// span (status error, so the trace is marked failed) and into the log record
-// with its chain, which keeps the wrapped cause visible.
+// ErrorWithCtx records a failure once, where it happens: the error goes on the span (status error, so the trace is marked failed) and into the log record with its chain, which keeps the wrapped cause visible.
 func ErrorWithCtx(ctx context.Context, msg string, err error, attrs ...any) {
 	if span := trace.SpanFromContext(ctx); span.IsRecording() {
 		span.RecordError(err)
@@ -76,9 +69,7 @@ func keyValuesOf(keyValues []any) []attribute.KeyValue {
 	return attrs
 }
 
-// StartSpan opens a span for the calling function. Name it explicitly, or let
-// it derive the project convention: <Module>.<Package>.<Type>.<Method>
-// (Repository.Sqlite.Store.List, Services.Sql.DB.query, …).
+// StartSpan opens a span for the calling function.
 func StartSpan(ctx context.Context, name ...string) (ctxOut context.Context, end func(error)) {
 	spanName := CallerName(1)
 	if len(name) > 0 && name[0] != "" {
@@ -94,8 +85,7 @@ func StartSpan(ctx context.Context, name ...string) (ctxOut context.Context, end
 	}
 }
 
-// CallerName is the span name of the function skip frames above the caller of
-// CallerName (1 = the caller's own name).
+// CallerName is the span name of the function skip frames above the caller of CallerName (1 = the caller's own name).
 func CallerName(skip int) string {
 	pc, _, _, ok := runtime.Caller(skip + 1)
 	if !ok {
@@ -104,12 +94,7 @@ func CallerName(skip int) string {
 	return formatSpanName(runtime.FuncForPC(pc).Name())
 }
 
-// formatSpanName turns a runtime function name into the project convention:
-//
-//	noxis/internal/repositories/sqlite.(*Store).List -> Repository.Sqlite.Store.List
-//	noxis/internal/usecases.(*App).SubmitChange -> Usecases.App.SubmitChange
-//	noxis/cmd/noxis/server/api.(*Server).handle.func1 -> Noxis.Api.Server.handle.func1
-//	noxis/internal/modules/sql.(*DB).query -> Modules.Sql.DB.query
+// formatSpanName turns a runtime function name into the project convention: noxis/internal/repositories/sqlite.(*Store).List -> Repository.Sqlite.Store.List noxis/internal/usecases.(*App).SubmitChange -> Usecases.App.SubmitChange noxis/cmd/noxis/server/api.(*Server).handle.func1 -> Noxis.Api.Server.handle.func1 noxis/internal/modules/sql.(*DB).query -> Modules.Sql.DB.query
 func formatSpanName(full string) string {
 	full = strings.TrimPrefix(full, modulePrefix)
 	slash := strings.LastIndex(full, "/")

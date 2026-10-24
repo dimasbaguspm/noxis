@@ -8,9 +8,7 @@ import (
 	"strings"
 )
 
-// target is a connection the suite registers: the compose service that stands in
-// for it and the credentials to reach it. Every value is read from the compose
-// file at startup, so the suite and the stack never drift.
+// target is a connection the suite registers: the compose service that stands in for it and the credentials to reach it. Every value is read from the compose file at startup, so the suite and the stack never drift.
 type target struct {
 	Driver   string
 	Host     string // the compose service name
@@ -20,9 +18,7 @@ type target struct {
 	Database string
 }
 
-// loadTargets reads the resolved compose config once and fills the package vars
-// the suite drives the stack with. `docker compose config` renders the env the
-// services actually get and needs no daemon.
+// loadTargets reads the resolved compose config once and fills the package vars the suite drives the stack with.
 func loadTargets() error {
 	out, err := exec.Command("docker", "compose", "-f", stackFile, "config", "--format", "json").Output()
 	if err != nil {
@@ -43,8 +39,7 @@ func loadTargets() error {
 	}
 	env := func(service, key string) string { return cfg.Services[service].Environment[key] }
 
-	// Match each driver to the service whose image stands in for it, so the
-	// service name and its port come from compose, not from a literal here.
+	// Match each driver to the service whose image stands in for it, so the service name and its port come from compose, not from a literal here.
 	hostOf := func(image string) (string, error) {
 		for name, svc := range cfg.Services {
 			if strings.HasPrefix(svc.Image, image) {

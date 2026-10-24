@@ -10,9 +10,7 @@ import (
 	"strings"
 )
 
-// Stub records live responses and replays them, keyed by "<METHOD> <path>". A
-// scenario records with Record set and replays without it, so one scenario runs
-// against the real stack or fully offline.
+// Stub records live responses and replays them, keyed by "<METHOD> <path>". A scenario records with Record set and replays without it, so one scenario runs against the real stack or fully offline.
 type Stub struct {
 	Dir    string
 	Record bool

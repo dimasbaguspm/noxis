@@ -10,10 +10,7 @@ import (
 	"github.com/cucumber/godog"
 )
 
-// The MongoDB scenarios drive the /external/v1/engine/mongodb namespace: register the compose
-// server, explore databases and collections with their sizes, run CRUD
-// requests with separate filter and value documents, and read stats.
-// Documents are seeded with mongosh because noXis has no "seed" endpoint.
+// The MongoDB scenarios drive the /external/v1/engine/mongodb namespace: register the compose server, explore databases and collections with their sizes, run CRUD requests with separate filter and value documents, and read stats. Documents are seeded with mongosh because noXis has no "seed" endpoint.
 
 // mongoDatabase is one row of the explorer.
 type mongoDatabase struct {
@@ -51,8 +48,7 @@ func (w *world) mongoSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the mongo request checks mention "([^"]*)"$`, w.mongoChecksMention)
 }
 
-// mongoRequestChange submits a write as a request for review, the way the
-// console does.
+// mongoRequestChange submits a write as a request for review, the way the console does.
 func (w *world) mongoRequestChange(ctx context.Context, op, collection, filter, value string) error {
 	w.change = changeBody{}
 	w.mongoQueueSize = w.mongoQueueLen()
@@ -83,8 +79,7 @@ func (w *world) mongoRequestEstimate(ctx context.Context, want int) error {
 	return nil
 }
 
-// mongoChecksMention asserts a validation check says why a request was
-// refused (a delete with no filter, an unknown update operator).
+// mongoChecksMention asserts a validation check says why a request was refused (a delete with no filter, an unknown update operator).
 func (w *world) mongoChecksMention(ctx context.Context, fragment string) error {
 	for _, check := range w.change.Checks {
 		if strings.Contains(check.Error, fragment) {
@@ -105,8 +100,7 @@ func (w *world) mongoQueueLen() int {
 	return len(out.Changes)
 }
 
-// mongoRequestNotRecorded proves a failed validation is a rejected proposal:
-// it is returned with its checks and never enters the queue.
+// mongoRequestNotRecorded proves a failed validation is a rejected proposal: it is returned with its checks and never enters the queue.
 func (w *world) mongoRequestNotRecorded(ctx context.Context) error {
 	if w.change.ID != "" {
 		return fmt.Errorf("failed request was recorded with id %s", w.change.ID)
@@ -256,8 +250,7 @@ func (w *world) mongoRequest(ctx context.Context, op, collection, filter, value 
 	if err := w.api(http.MethodPost, path, body, &w.result); err != nil {
 		return err
 	}
-	// 400 is left to the rejection step to assert; anything else unexpected is
-	// a failure right here.
+	// 400 is left to the rejection step to assert; anything else unexpected is a failure right here.
 	if w.code != http.StatusOK && w.code != http.StatusBadRequest {
 		return fmt.Errorf("mongo %s: %d", op, w.code)
 	}
@@ -278,8 +271,7 @@ func (w *world) mongoAffected(ctx context.Context, want int) error {
 	return nil
 }
 
-// mongoRejected asserts a refused request (an empty filter on a delete, for
-// instance) and that the message says why.
+// mongoRejected asserts a refused request (an empty filter on a delete, for instance) and that the message says why.
 func (w *world) mongoRejected(ctx context.Context, fragment string) error {
 	if w.code != http.StatusBadRequest {
 		return fmt.Errorf("request status %d, want 400", w.code)

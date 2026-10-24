@@ -11,20 +11,16 @@ import (
 	"strings"
 )
 
-// scratchRe matches the throwaway schema names a change verifies in, which
-// differ on every run.
+// scratchRe matches the throwaway schema names a change verifies in, which differ on every run.
 var scratchRe = regexp.MustCompile(`noxis_verify_[0-9a-zA-Z]+`)
 
-// Snapshots compares response bodies against committed golden files. Update
-// rewrites them instead of comparing; it is driven by UPDATE_SNAPSHOTS=1.
+// Snapshots compares response bodies against committed golden files.
 type Snapshots struct {
 	Dir    string
 	Update bool
 }
 
 // Match scrubs volatile fields from body and compares it against Dir/name.json.
-// With Update set it writes that file instead. A missing golden is an error
-// telling the reader how to create it.
 func (s Snapshots) Match(name string, body []byte) error {
 	got, err := scrubJSON(body)
 	if err != nil {
@@ -50,9 +46,7 @@ func (s Snapshots) Match(name string, body []byte) error {
 	return nil
 }
 
-// scrubJSON rewrites a JSON body with its volatile fields replaced, indented so
-// the golden diff reads well. HTML escaping is off, so a placeholder stays
-// readable ("<id>", not "\u003cid\u003e").
+// scrubJSON rewrites a JSON body with its volatile fields replaced, indented so the golden diff reads well.
 func scrubJSON(body []byte) ([]byte, error) {
 	var v any
 	if err := json.Unmarshal(body, &v); err != nil {
@@ -68,8 +62,7 @@ func scrubJSON(body []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// scrub walks the decoded body: name-keyed fields are replaced by a placeholder,
-// and scratch schema names in any string are masked.
+// scrub walks the decoded body: name-keyed fields are replaced by a placeholder, and scratch schema names in any string are masked.
 func scrub(v any) any {
 	switch t := v.(type) {
 	case map[string]any:
@@ -93,8 +86,7 @@ func scrub(v any) any {
 	}
 }
 
-// placeholder reports the mask for a volatile key: ids, timestamps and
-// durations differ on every run and must not enter a golden.
+// placeholder reports the mask for a volatile key: ids, timestamps and durations differ on every run and must not enter a golden.
 func placeholder(key string) (any, bool) {
 	switch {
 	case key == "id" || strings.HasSuffix(key, "Id"):

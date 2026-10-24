@@ -49,9 +49,7 @@ func TestReferenced(t *testing.T) {
 	}
 }
 
-// A foreign key names a table the verifier must mirror into the scratch schema:
-// mysql-family engines resolve unqualified names only inside the scratch
-// database, so a missed reference fails the change.
+// A foreign key names a table the verifier must mirror into the scratch schema: mysql-family engines resolve unqualified names only inside the scratch database, so a missed reference fails the change.
 func TestReferencedIncludesForeignKeyTargets(t *testing.T) {
 	tables, _ := Referenced(`CREATE TABLE child (id INT PRIMARY KEY, parent_id INT REFERENCES parent (id))`)
 	if len(tables) != 2 || tables[0] != "child" || tables[1] != "parent" {

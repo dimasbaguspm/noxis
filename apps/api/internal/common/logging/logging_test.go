@@ -19,9 +19,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-// TestSignalURL pins the forms NOXIS_OTEL_COLLECTOR accepts: a full URL (https
-// enables TLS) and a bare host:port, which stays plaintext. A URL with no path
-// gets the signal's own path; one that carries a path keeps it.
+// TestSignalURL pins the forms NOXIS_OTEL_COLLECTOR accepts: a full URL (https enables TLS) and a bare host:port, which stays plaintext.
 func TestSignalURL(t *testing.T) {
 	cases := []struct {
 		collector string
@@ -79,8 +77,7 @@ func TestFlattenNestedGroup(t *testing.T) {
 	}
 }
 
-// A decision is recorded twice: as a span event for the trace and as a log
-// record at the requested level, so either sink alone explains it.
+// A decision is recorded twice: as a span event for the trace and as a log record at the requested level, so either sink alone explains it.
 func TestInfoAndWarnRecordSpanEventAndLog(t *testing.T) {
 	for _, tc := range []struct {
 		level slog.Level

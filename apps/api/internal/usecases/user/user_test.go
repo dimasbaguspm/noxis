@@ -17,8 +17,7 @@ import (
 	"noxis/internal/usecases/user"
 )
 
-// harness keeps the account rows in one slice and serves them through the
-// repository mocks, so a test asserts on the stored state after the request.
+// harness keeps the account rows in one slice and serves them through the repository mocks, so a test asserts on the stored state after the request.
 type harness struct {
 	deps    usecases.RegistryDeps
 	users   []entity.User

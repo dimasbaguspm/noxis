@@ -177,8 +177,7 @@ func TestInstanceAdminCanReadAndRevokeButNotGrant(t *testing.T) {
 	}
 }
 
-// A promoted admin manages the grant policy of every connection without holding
-// a grant on it; a member still cannot.
+// A promoted admin manages the grant policy of every connection without holding a grant on it; a member still cannot.
 func TestGlobalAdminManagesEveryConnection(t *testing.T) {
 	h := newHarness(t)
 	admin := &entity.Identity{Subject: "local:admin", Role: entity.RoleAdmin}

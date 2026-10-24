@@ -1,7 +1,4 @@
-// Package changeflow is the lifecycle every engine family's change queue shares:
-// a write is submitted, validated against its own rollback, reviewed, and
-// applied — or rejected and kept as an artifact. A family module embeds a Flow
-// and supplies the one step that differs: running the change on its engine.
+// Package changeflow is the lifecycle every engine family's change queue shares: a write is submitted, validated against its own rollback, reviewed, and applied — or rejected and kept as an artifact.
 package changeflow
 
 import (
@@ -15,8 +12,7 @@ import (
 	"noxis/internal/interfaces"
 )
 
-// Flow is the state side of a change queue: the rules of the artifact and the
-// store that records it.
+// Flow is the state side of a change queue: the rules of the artifact and the store that records it.
 type Flow struct {
 	Store interfaces.ChangeRepository
 	// family is the engine family this flow serves (constants.FamilySQL).
@@ -31,8 +27,7 @@ func New(store interfaces.ChangeRepository, family string) Flow {
 // Family is the engine family this flow serves.
 func (f Flow) Family() string { return f.family }
 
-// Approve signs off a validated change. Unverified is allowed on purpose: some
-// drivers cannot dry-run DDL, and the reviewer approves with eyes open.
+// Approve signs off a validated change. Unverified is allowed on purpose: some drivers cannot dry-run DDL, and the reviewer approves with eyes open.
 func (f Flow) Approve(ctx context.Context, ch *entity.Change, actor string) error {
 	if ch.Status != constants.ChangeValidated && ch.Status != constants.ChangeUnverified {
 		return fmt.Errorf("change is %s, not validated — cannot approve", ch.Status)
@@ -41,8 +36,7 @@ func (f Flow) Approve(ctx context.Context, ch *entity.Change, actor string) erro
 	return f.Save(ctx, ch)
 }
 
-// Reject closes a change without running it. An applied change is history: it
-// stays applied.
+// Reject closes a change without running it.
 func (f Flow) Reject(ctx context.Context, ch *entity.Change, actor string) error {
 	if ch.Status == constants.ChangeApplying {
 		return constants.ErrConflict
@@ -54,8 +48,7 @@ func (f Flow) Reject(ctx context.Context, ch *entity.Change, actor string) error
 	return f.Save(ctx, ch)
 }
 
-// Schedule sets (or, with 0, clears) an approved change's slot. A slot in the
-// past would never be due, so it is refused rather than silently ignored.
+// Schedule sets (or, with 0, clears) an approved change's slot. A slot in the past would never be due, so it is refused rather than silently ignored.
 func (f Flow) Schedule(ctx context.Context, ch *entity.Change, at int64, actor string) error {
 	if ch.Status == constants.ChangeApplying {
 		return constants.ErrConflict
@@ -83,8 +76,7 @@ func (f Flow) Claim(ctx context.Context, ch *entity.Change, at int64, actor stri
 	return nil
 }
 
-// Applyable reports whether a change may run now: approved, and not waiting for
-// a scheduled slot.
+// Applyable reports whether a change may run now: approved, and not waiting for a scheduled slot.
 func Applyable(ch *entity.Change, now int64) error {
 	if ch.Status == constants.ChangeApplying {
 		return constants.ErrConflict
@@ -99,14 +91,12 @@ func Applyable(ch *entity.Change, now int64) error {
 	return nil
 }
 
-// Due reports whether an approved change's scheduled slot has arrived. An
-// immediate change (no schedule) is never due: the operator applies it by hand.
+// Due reports whether an approved change's scheduled slot has arrived. An immediate change (no schedule) is never due: the operator applies it by hand.
 func Due(ch entity.Change, now int64) bool {
 	return ch.Status == constants.ChangeApproved && ch.ScheduledAt > 0 && ch.ScheduledAt <= now
 }
 
-// Record stores a validated change. A failed submission is returned unrecorded:
-// a change that cannot run is never queued, but the caller still sees why.
+// Record stores a validated change. A failed submission is returned unrecorded: a change that cannot run is never queued, but the caller still sees why.
 func (f Flow) Record(ctx context.Context, ch entity.Change) (entity.Change, error) {
 	if ch.Status == constants.ChangeFailed {
 		ch.ID = ""
@@ -136,8 +126,7 @@ func (f Flow) Save(ctx context.Context, ch *entity.Change) error {
 	return f.Store.SaveChange(ctx, *ch)
 }
 
-// Tick applies every due change of this family through apply. A change that
-// fails does not stop the pass, and the caller decides what else to report.
+// Tick applies every due change of this family through apply.
 func Tick(ctx context.Context, store interfaces.ChangeRepository, now int64, mine func(entity.Change) bool, apply func(context.Context, *entity.Change) (entity.Change, error)) (entity.TickResult, error) {
 	all, err := store.ListChanges(ctx)
 	if err != nil {

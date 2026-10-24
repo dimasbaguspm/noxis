@@ -7,13 +7,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// Mermaid renders tables as a Mermaid erDiagram. The diagram carries only what
-// the catalog declares: a column is a key because a constraint says so, and a
-// relationship exists because a foreign key says so.
-//
-// Mermaid entity and attribute names must be plain identifiers, so a name that
-// is not (a schema-qualified table, a type with a length) is normalised, and a
-// table keeps its bare name when that name is unique in the connection.
+// Mermaid renders tables as a Mermaid erDiagram. The diagram carries only what the catalog declares: a column is a key because a constraint says so, and a relationship exists because a foreign key says so.
 func Mermaid(tables []entity.Table) string {
 	if len(tables) == 0 {
 		return "erDiagram\n"
@@ -35,8 +29,7 @@ func Mermaid(tables []entity.Table) string {
 			if col.References == nil {
 				continue
 			}
-			// a foreign key to a table the connection does not list (another
-			// schema, a dropped table) cannot be drawn
+			// a foreign key to a table the connection does not list (another schema, a dropped table) cannot be drawn
 			from := indexOf(tables, col.References)
 			if from < 0 {
 				continue
@@ -47,8 +40,7 @@ func Mermaid(tables []entity.Table) string {
 	return b.String()
 }
 
-// entityIDs names every table: the bare name when it is unique, otherwise the
-// schema-qualified one, always normalised and never duplicated.
+// entityIDs names every table: the bare name when it is unique, otherwise the schema-qualified one, always normalised and never duplicated.
 func entityIDs(tables []entity.Table) []string {
 	count := make(map[string]int, len(tables))
 	for i := range tables {
@@ -84,8 +76,7 @@ func keySuffix(col *entity.Column) string {
 	return ""
 }
 
-// cardinality is the child side of the relationship: a unique foreign key makes
-// it one-to-(zero or one), a nullable one makes the child optional.
+// cardinality is the child side of the relationship: a unique foreign key makes it one-to-(zero or one), a nullable one makes the child optional.
 func cardinality(col *entity.Column) string {
 	switch {
 	case col.Unique:

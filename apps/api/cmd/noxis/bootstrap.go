@@ -1,5 +1,4 @@
-// Package main is the noxis CLI entry: `run server` (env → config →
-// logging → root command).
+// Package main is the noxis CLI entry: `run server` (env → config → logging → root command).
 package main
 
 import (

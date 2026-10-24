@@ -1,7 +1,4 @@
-// Package uat is the acceptance suite: the real compose stack (noxis + a
-// target postgres) comes up and is driven exclusively through its public
-// REST surface — the same moves an operator makes, encoded in Gherkin.
-// Run via `make uat` (godog).
+// Package uat is the acceptance suite: the real compose stack (noxis + a target postgres) comes up and is driven exclusively through its public REST surface — the same moves an operator makes, encoded in Gherkin.
 package uat
 
 import (
@@ -22,8 +19,7 @@ import (
 	"noxis/test/uat/kit"
 )
 
-// root is the repository root, found via .git: `go test` runs with the package
-// dir as cwd (apps/api/test/uat), so stack paths resolve against it.
+// root is the repository root, found via .git: `go test` runs with the package dir as cwd (apps/api/test/uat), so stack paths resolve against it.
 var root = func() string {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -46,8 +42,7 @@ var (
 	snapshotDir = root + "/apps/api/test/uat/snapshots"
 	stubDir     = root + "/apps/api/test/uat/stubs"
 
-	// Read from the compose file by loadTargets, so the suite and the stack share
-	// one source of truth for the base URL and the credentials.
+	// Read from the compose file by loadTargets, so the suite and the stack share one source of truth for the base URL and the credentials.
 	baseURL         string
 	adminEmail      string
 	adminPassword   string
@@ -56,13 +51,10 @@ var (
 	targets         map[string]target
 )
 
-// token is the local session the suite obtains once in BeforeSuite and sends as
-// a bearer token on every /v1 request.
+// token is the local session the suite obtains once in BeforeSuite and sends as a bearer token on every /v1 request.
 var token string
 
-// signScheduler authenticates the trigger the way the external service must:
-// api key as bearer + HMAC over "<timestamp>.<body>". Kept independent of the
-// server middleware, so the suite cross-checks the scheme rather than reusing it.
+// signScheduler authenticates the trigger the way the external service must: api key as bearer + HMAC over "<timestamp>.<body>".
 func signScheduler(req *http.Request, body []byte) {
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
 	mac := hmac.New(sha256.New, []byte(schedulerSecret))
@@ -74,8 +66,7 @@ func signScheduler(req *http.Request, body []byte) {
 	req.Header.Set("X-Noxis-Signature", hex.EncodeToString(mac.Sum(nil)))
 }
 
-// world carries state between steps; godog runs scenarios sequentially and
-// hands each one a fresh world.
+// world carries state between steps; godog runs scenarios sequentially and hands each one a fresh world.
 type world struct {
 	client    kit.Client
 	snapshots kit.Snapshots
@@ -102,8 +93,7 @@ type world struct {
 	snaps map[string]dbSnapshot // named database dumps, for this scenario
 }
 
-// reset clears the per-scenario state. godog reuses one world across scenarios,
-// so this runs before each one and gives every scenario a clean client.
+// reset clears the per-scenario state. godog reuses one world across scenarios, so this runs before each one and gives every scenario a clean client.
 func (w *world) reset() {
 	jar, _ := cookiejar.New(nil)
 	*w = world{
@@ -113,8 +103,7 @@ func (w *world) reset() {
 	}
 }
 
-// send is the suite's single request path: it folds in the per-scenario headers
-// and cookies and captures the response whole.
+// send is the suite's single request path: it folds in the per-scenario headers and cookies and captures the response whole.
 func (w *world) send(r kit.Request) error {
 	if r.Headers == nil {
 		r.Headers = map[string]string{}
@@ -139,9 +128,7 @@ type tickBody struct {
 	Failed  []string `json:"failed"`
 }
 
-// redisSeed runs the CLI inside a compose key-value service: the scenarios
-// need keys to browse, and noxis has no endpoint that writes one. The service
-// and its CLI differ per server (redis-cli / valkey-cli).
+// redisSeed runs the CLI inside a compose key-value service: the scenarios need keys to browse, and noxis has no endpoint that writes one.
 func redisSeed(service string, args ...string) error {
 	cli := "redis-cli"
 	if service == "valkey" {
@@ -169,10 +156,7 @@ type checkBody struct {
 	Error  string `json:"error"`
 }
 
-// stackUp brings the compose stack up. It rebuilds only when UAT_BUILD=1; a run
-// against a cold cache still builds, because compose builds a missing image.
-// UAT_KEEP reuses the stack: the image and noxis's volume stay, but every
-// container is recreated, so the target databases start empty.
+// stackUp brings the compose stack up. It rebuilds only when UAT_BUILD=1; a run against a cold cache still builds, because compose builds a missing image.
 func stackUp() error {
 	if err := loadTargets(); err != nil {
 		return err
@@ -194,8 +178,7 @@ func stackUp() error {
 	return login()
 }
 
-// login exchanges the dev root super admin for a session token; every /v1 call needs
-// it now that there is no open mode.
+// login exchanges the dev root super admin for a session token; every /v1 call needs it now that there is no open mode.
 func login() error {
 	c := kit.Client{BaseURL: baseURL}
 	resp, err := c.Send(kit.Request{
@@ -219,8 +202,7 @@ func login() error {
 	return nil
 }
 
-// stackDown tears the stack down, volumes included, unless UAT_KEEP=1 leaves it
-// up so the next run reuses it.
+// stackDown tears the stack down, volumes included, unless UAT_KEEP=1 leaves it up so the next run reuses it.
 func stackDown() {
 	if envTrue("UAT_KEEP") {
 		return
@@ -252,8 +234,7 @@ func waitHTTP(url string, timeout time.Duration) error {
 	return fmt.Errorf("%s not ready within %v", url, timeout)
 }
 
-// api hits the noxis REST surface with an optional JSON body and decodes the
-// reply into out.
+// api hits the noxis REST surface with an optional JSON body and decodes the reply into out.
 func (w *world) api(method, path string, body any, out any) error {
 	var raw []byte
 	if body != nil {

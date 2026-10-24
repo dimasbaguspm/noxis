@@ -1,12 +1,4 @@
-// Package mongodb explores and queries a MongoDB server: databases and
-// collections with their sizes, CRUD requests with separate filter and value
-// documents, and the metrics worth watching (server status, db and collection
-// stats).
-//
-// ponytail: requests run directly, with no validated rollback like the SQL
-// change queue has. A document change cannot be dry-run generically, so the
-// guards here are the honest ones: an op allowlist, and no update or delete
-// without a filter.
+// Package mongodb explores databases, collections, documents, and server stats; shortcut: writes use scratch-copy validation until transactions are available on replica sets.
 package mongodb
 
 import (
@@ -33,9 +25,7 @@ const (
 	pingTimeout = 10 * time.Second
 	opTimeout   = 30 * time.Second
 
-	// maxGridColumns bounds a rendered document grid: the union of keys across
-	// the returned documents is capped so one wide collection cannot produce a
-	// thousand-column table.
+	// maxGridColumns bounds a rendered document grid: the union of keys across the returned documents is capped so one wide collection cannot produce a thousand-column table.
 	maxGridColumns = 40
 
 	// maxGridRows bounds how many documents a read request renders.
@@ -142,8 +132,7 @@ func (m *DB) Collections(ctx context.Context, c entity.Connection, database stri
 			return fmt.Errorf("iterate collections: %w", err)
 		}
 
-		// collStats is one round trip per collection; bounded workers keep a
-		// wide database from serialising.
+		// collStats is one round trip per collection; bounded workers keep a wide database from serialising.
 		out = describeAll(ctx, cl.Database(database), described)
 		sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 		return nil
@@ -151,8 +140,7 @@ func (m *DB) Collections(ctx context.Context, c entity.Connection, database stri
 	return out, err
 }
 
-// ReadOps are the ops the console runs directly; WriteOps go through the
-// request queue instead (validated on a scratch collection, then reviewed).
+// ReadOps are the ops the console runs directly; WriteOps go through the request queue instead (validated on a scratch collection, then reviewed).
 var (
 	ReadOps  = []string{constants.MongoFind, constants.MongoAggregate, constants.MongoCount}
 	WriteOps = []string{constants.MongoInsert, constants.MongoUpdate, constants.MongoDelete}
@@ -168,8 +156,7 @@ func IsWrite(op string) bool {
 	return false
 }
 
-// Run executes one read request. Writes are refused here on purpose: they go
-// through ValidateRequest and the review queue.
+// Run executes one read request.
 func (m *DB) Run(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -179,14 +166,7 @@ func (m *DB) Run(ctx context.Context, c entity.Connection, req entity.MongoReque
 	return m.run(ctx, c, req)
 }
 
-// ValidateRequest dry-runs a write on a scratch collection: the matching
-// documents are copied into a throwaway database, the write runs there, and
-// the scratch database is dropped whatever happens. It proves the filter, the
-// value document and the affected count against real data without touching
-// the collection.
-//
-// ponytail: a scratch copy, not a transaction (transactions need a replica
-// set). Switch to a real transaction when the server is one.
+// ValidateRequest copies matching documents to a scratch collection, applies the write, then drops it; shortcut: this is not a transaction, so use transactions on replica sets.
 func (m *DB) ValidateRequest(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -225,9 +205,7 @@ func (m *DB) Apply(ctx context.Context, c entity.Connection, req entity.MongoReq
 	return m.run(ctx, c, req)
 }
 
-// applyOn copies the documents a request matches into target and applies the
-// write there. It is the body of the dry run, and the only difference from a
-// real apply is which collection it writes to.
+// applyOn copies the documents a request matches into target and applies the write there. It is the body of the dry run, and the only difference from a real apply is which collection it writes to.
 func applyOn(ctx context.Context, source, target *mongo.Collection, req entity.MongoRequest) (int64, error) {
 	if req.Op == constants.MongoInsert {
 		doc, err := parseValue(req.Value)
@@ -313,8 +291,7 @@ func applyOn(ctx context.Context, source, target *mongo.Collection, req entity.M
 	return 0, fmt.Errorf("unsupported op %q", req.Op)
 }
 
-// randSuffix names a scratch database uniquely, so two validations running at
-// once cannot drop each other's work.
+// randSuffix names a scratch database uniquely, so two validations running at once cannot drop each other's work.
 func randSuffix() string {
 	buf := make([]byte, 8)
 	if _, err := rand.Read(buf); err != nil {
@@ -368,9 +345,7 @@ func (m *DB) run(ctx context.Context, c entity.Connection, req entity.MongoReque
 	return res, err
 }
 
-// validateRequest keeps the request honest: a known op, a target, and no
-// update or delete without a filter (an empty filter would rewrite or empty
-// the whole collection).
+// validateRequest keeps the request honest: a known op, a target, and no update or delete without a filter (an empty filter would rewrite or empty the whole collection).
 func validateRequest(r entity.MongoRequest) error {
 	if r.Database == "" || r.Collection == "" {
 		return fmt.Errorf("database and collection are required")
@@ -520,8 +495,7 @@ func remove(ctx context.Context, collection *mongo.Collection, req entity.MongoR
 	return nil
 }
 
-// renderCursor turns documents into the shared grid: the columns are the union
-// of top-level keys, values are Extended JSON.
+// renderCursor turns documents into the shared grid: the columns are the union of top-level keys, values are Extended JSON.
 func renderCursor(ctx context.Context, cursor *mongo.Cursor, res *entity.Result) error {
 	defer func() { _ = cursor.Close(ctx) }()
 	docs := make([]bson.M, 0, maxGridRows)
@@ -546,8 +520,7 @@ func renderCursor(ctx context.Context, cursor *mongo.Cursor, res *entity.Result)
 	sort.Strings(columns)
 	res.Columns = columns
 	res.Rows = make([][]string, 0, len(docs))
-	// the documents ride along as Extended JSON so the console can render them
-	// as JSON or as a tree without guessing from the grid
+	// the documents ride along as Extended JSON so the console can render them as JSON or as a tree without guessing from the grid
 	res.Documents = make([]string, 0, len(docs))
 	for _, doc := range docs {
 		row := make([]string, len(columns))
@@ -583,8 +556,7 @@ func describeAll(ctx context.Context, database *mongo.Database, collections []en
 	return out
 }
 
-// describeOne asks for one collection's stats; a refused collection keeps its
-// name so the list is still usable.
+// describeOne asks for one collection's stats; a refused collection keeps its name so the list is still usable.
 func describeOne(ctx context.Context, database *mongo.Database, name string) entity.Collection {
 	out := entity.Collection{Name: name, Type: "collection"}
 	var stats bson.M
@@ -614,8 +586,7 @@ func parseFilter(text string) (bson.M, error) {
 	return doc, nil
 }
 
-// parseValue keeps the update operator document intact ({"$set": {...}}), and
-// accepts a plain document for inserts.
+// parseValue keeps the update operator document intact ({"$set": {...}}), and accepts a plain document for inserts.
 func parseValue(text string) (any, error) {
 	trimmed := strings.TrimSpace(text)
 	if trimmed == "" {
@@ -635,8 +606,7 @@ func parseValue(text string) (any, error) {
 	return doc, nil
 }
 
-// withClient opens a client for one operation and closes it; the caller's
-// context rides along so spans and cancellation keep working.
+// withClient opens a client for one operation and closes it; the caller's context rides along so spans and cancellation keep working.
 func withClient(ctx context.Context, c entity.Connection, fn func(ctx context.Context, cl *mongo.Client) error) error {
 	client, err := connect(ctx, c)
 	if err != nil {

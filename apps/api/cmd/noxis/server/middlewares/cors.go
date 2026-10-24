@@ -1,11 +1,9 @@
-// Package middlewares wraps the route table: CORS, request logging and bearer
-// authentication. One middleware per file; WithMiddleware composes them.
+// Package middlewares wraps the route table: CORS, request logging and bearer authentication.
 package middlewares
 
 import "net/http"
 
-// CORS answers cross-origin browser calls (the console runs on another port)
-// and short-circuits OPTIONS preflights.
+// CORS answers cross-origin browser calls (the console runs on another port) and short-circuits OPTIONS preflights.
 func CORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")

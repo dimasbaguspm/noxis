@@ -32,8 +32,7 @@ import (
 	"noxis/internal/usecases/user"
 )
 
-// sources are the seams the composition root builds the use cases from. They
-// are interfaces, so a test can hand in fakes without a store or an HTTP stack.
+// sources are the seams the composition root builds the use cases from. They are interfaces, so a test can hand in fakes without a store or an HTTP stack.
 type sources struct {
 	Connections    interfaces.ConnectionRepository
 	Changes        interfaces.ChangeRepository
@@ -110,18 +109,15 @@ type app struct {
 	Tick        apply.Tick
 }
 
-// newApp builds every use case from s. It is the single place the use cases
-// are constructed.
+// newApp builds every use case from s.
 func newApp(s sources) app {
-	// Instruments come from the global meter provider the logger setup
-	// registered; without a collector every instrument is a no-op.
+	// Instruments come from the global meter provider the logger setup registered; without a collector every instrument is a no-op.
 	m, err := metrics.New(otel.Meter(metrics.Scope))
 	if err != nil {
 		slog.Error("metric instruments", "error", err)
 	}
 
-	// The registry owns the engine families and their change queues, so it is
-	// built here where the instruments it reports through exist.
+	// The registry owns the engine families and their change queues, so it is built here where the instruments it reports through exist.
 	if s.Modules == nil {
 		s.Modules = modules.Default(s.Connections, s.Changes, m, s.AuthService)
 	}
@@ -202,9 +198,7 @@ func newApp(s sources) app {
 	}
 }
 
-// registerConnectionGauge reports how many connections exist per family and
-// driver, sampled on the collector's cadence. The callback lives here because
-// it needs the repository, which the instrument builder does not have.
+// registerConnectionGauge reports how many connections exist per family and driver, sampled on the collector's cadence. The callback lives here because it needs the repository, which the instrument builder does not have.
 func registerConnectionGauge(m *metrics.Metrics, connections interfaces.ConnectionRepository) {
 	if m == nil {
 		return
