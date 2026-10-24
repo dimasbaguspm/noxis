@@ -26,8 +26,6 @@ export function CacheBrowser({ connection }: { connection: string }) {
   return (
     <div className="flex h-full min-h-0">
       <Workspace
-        leftLabel="Cache filters"
-        rightLabel="Cache value"
         left={
           <div className="flex min-h-0 flex-1 flex-col gap-2">
             <div className="relative">
