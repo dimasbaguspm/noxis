@@ -86,7 +86,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
                   <Skeleton key={n} className="h-9 w-full" />
                 ))}
               </div>
-            ) : total === 0 ? (
+            ) : changes.length === 0 ? (
               <Empty
                 title={`no ${kind} changes`}
                 description={filter.trim() ? "no change matches this instance filter" : "raise one and it will land here"}
@@ -95,7 +95,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
               <ChangeTable changes={changes} emptyHint={`no ${kind} changes on this page`} />
             )}
 
-            {!isPending && total > PER_PAGE && (
+            {!isPending && changes.length > 0 && total > PER_PAGE && (
               <Pagination page={page} perPage={PER_PAGE} total={total} onChange={setPage} />
             )}
           </div>
