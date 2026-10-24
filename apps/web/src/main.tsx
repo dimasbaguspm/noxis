@@ -21,7 +21,6 @@ const InstanceErdTab = lazy(() => import("@/pages/instance/erd"));
 const InstanceDocumentsTab = lazy(() => import("@/pages/instance/documents"));
 const InstanceKeysTab = lazy(() => import("@/pages/instance/keys"));
 const InstanceAccessTab = lazy(() => import("@/pages/instance/access"));
-const InstanceDashboardPage = lazy(() => import("@/pages/instance-dashboard"));
 const QueryPage = lazy(() => import("@/pages/query"));
 const SqlErdPage = lazy(() => import("@/pages/sql-erd"));
 const DmlPage = lazy(() => import("@/pages/dml"));
@@ -83,7 +82,6 @@ const router = createBrowserRouter([
           { path: "access", element: <InstanceAccessTab /> },
         ],
       },
-      { path: routePath(PAGE_ROUTES.INSTANCE_DASHBOARD(":id")), element: <InstanceDashboardPage /> },
       { path: routePath(PAGE_ROUTES.SQL.QUERY), element: <QueryPage /> },
       { path: routePath(PAGE_ROUTES.SQL.ERD), element: <SqlErdPage /> },
       { path: routePath(PAGE_ROUTES.SQL.DML), element: <DmlPage /> },

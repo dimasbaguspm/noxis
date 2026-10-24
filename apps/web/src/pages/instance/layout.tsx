@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, Navigate, Outlet, useLocation, useNavigate, useParams, useSearchParams, useOutletContext } from "react-router-dom";
-import { Database, ExternalLink, KeyRound, MoreHorizontal, Play, ShieldCheck, Trash2, Zap } from "lucide-react";
+import { Database, KeyRound, MoreHorizontal, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RequestAccessDialog } from "@/components/access/request-access-dialog";
 import type { InstanceTable } from "@/components/instance/tables-tab";
 import { useAction } from "@/hooks/use-action";
-import { useConnections } from "@/hooks/use-connections";
 import { useInstanceQuery, useRotatePasswordMutation } from "@/hooks/use-instances";
 import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { useAuth } from "@/app/auth-provider";
@@ -222,12 +221,6 @@ export default function InstanceLayout() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!isSuper && <RequestAccessDialog connection={instance.name} />}
-          {canRead && <OpenFamily family={family} name={instance.name} />}
-          {canAdmin && (
-            <Button size="sm" variant="outline" render={<Link to={PAGE_ROUTES.INSTANCE_DASHBOARD(instance.id ?? "")} />}>
-              <ShieldCheck /> Dashboard
-            </Button>
-          )}
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button size="sm" variant="outline" aria-label="Instance actions" />}>
               <MoreHorizontal />
@@ -318,20 +311,3 @@ export default function InstanceLayout() {
   );
 }
 
-// OpenFamily is the family-specific primary action: the query page takes a connection seed, the other pages reuse the active instance.
-function OpenFamily({ family, name }: { family: FamilyKey; name: string }) {
-  const { setActive } = useConnections(family);
-  const meta = familyByKey[family];
-  if (family === FAMILY.SQL) {
-    return (
-      <Button size="sm" render={<Link to={`${PAGE_ROUTES.SQL.QUERY}?connection=${encodeURIComponent(name)}`} />}>
-        <Play /> Query
-      </Button>
-    );
-  }
-  return (
-    <Button size="sm" render={<Link to={meta.page} onClick={() => setActive(name)} />}>
-      <ExternalLink /> {family === FAMILY.MONGODB ? "Explore" : "Browse keys"}
-    </Button>
-  );
-}

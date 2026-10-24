@@ -7,7 +7,6 @@ export const PAGE_ROUTES = {
   MY_ACCESS: "/my/access",
   INSTANCE_DETAIL: (id: string) => `/instances/${id}`,
   INSTANCE_TAB: (id: string, tab: string) => `/instances/${id}/${tab}`,
-  INSTANCE_DASHBOARD: (id: string) => `/instances/${id}/dashboard`,
   ACCESS: "/access",
   USERS: "/users",
   USER_DETAIL: (subject: string) => `/users/${encodeURIComponent(subject)}`,
