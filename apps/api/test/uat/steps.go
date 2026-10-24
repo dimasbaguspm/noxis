@@ -28,10 +28,6 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	w.changeSteps(sc)
 	w.sqlSteps(sc)
 	w.erdSteps(sc)
-	w.postgresMockSteps(sc)
-	w.mysqlMockSteps(sc)
-	w.mongoMockSteps(sc)
-	w.redisMockSteps(sc)
 	w.authSteps(sc)
 	w.accessSteps(sc)
 }

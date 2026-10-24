@@ -17,10 +17,6 @@ import (
 	"time"
 
 	"noxis/test/uat/kit"
-	"noxis/test/uat/mongomock"
-	"noxis/test/uat/mysqlmock"
-	"noxis/test/uat/pgmock"
-	"noxis/test/uat/redismock"
 )
 
 // root is the repository root, found via .git: `go test` runs with the package dir as cwd (apps/api/test/uat), so stack paths resolve against it.
@@ -96,11 +92,6 @@ type world struct {
 
 	snaps map[string]dbSnapshot // named database dumps, for this scenario
 
-	pgMock    *pgmock.Server // a protocol mock target, for this scenario
-	myMock    *mysqlmock.Server
-	mongoMock *mongomock.Server
-	redisMock *redismock.Server
-
 	accessRequest requestBody
 	accessRefused bool
 	instanceID    string
@@ -108,18 +99,6 @@ type world struct {
 
 // reset clears the per-scenario state. godog reuses one world across scenarios, so this runs before each one and gives every scenario a clean client.
 func (w *world) reset() {
-	if w.pgMock != nil {
-		_ = w.pgMock.Close()
-	}
-	if w.myMock != nil {
-		_ = w.myMock.Close()
-	}
-	if w.mongoMock != nil {
-		_ = w.mongoMock.Close()
-	}
-	if w.redisMock != nil {
-		_ = w.redisMock.Close()
-	}
 	jar, _ := cookiejar.New(nil)
 	*w = world{
 		client:    kit.Client{BaseURL: baseURL, Token: token, Jar: jar},

@@ -26,8 +26,6 @@ services:
     ports:
       - "9000:9000"
     # UAT protocol mocks listen on the host; the container reaches them through the gateway.
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - noxis-data:/data
     # The console is only as useful as the targets it can reach, so the demo
