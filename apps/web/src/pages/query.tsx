@@ -19,7 +19,10 @@ import { Play } from "lucide-react";
 export default function QueryPage() {
   const { canAccess, isSuper } = useAuth();
   const [params] = useSearchParams();
-  const { connection, connections, busy, pick } = useConnectionSelection(params.get("connection") ?? undefined);
+  const { connection, connections, busy, pick } = useConnectionSelection(
+    params.get("connection") ?? undefined,
+    params.get("instance") ?? undefined,
+  );
 
   const tabs = useSqlTabs(params.get("sql") ?? undefined);
   const tables = useConnectionSchemaQuery(connection).data ?? [];

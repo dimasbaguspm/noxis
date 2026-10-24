@@ -15,10 +15,11 @@ interface Props {
   tables: Table[];
   onRecords?: (table: Table) => void;
   onAnalyze?: (table: Table) => void;
+  onSelect?: (table: Table) => void;
 }
 
 // TableBrowser: schemas first, then their tables.
-export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
+export function TableBrowser({ tables, onRecords, onAnalyze, onSelect }: Props) {
   const [filter, setFilter] = useState("");
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -27,7 +28,7 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
   const setFilterDebounced = useMemo(() => debounce({ delay: 200 }, (v: string) => setQuery(v)), []);
 
   const schemas = useMemo(() => Object.keys(group(tables, (t) => t.schema || "public")).sort(), [tables]);
-  const schemaFilter = schemas.includes(selectedSchema) ? selectedSchema : (schemas[0] ?? "");
+  const schemaFilter = schemas.includes(selectedSchema) ? selectedSchema : "";
 
   const entries = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -41,11 +42,12 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="grid gap-1.5">
         <Label>Schema</Label>
-        <Select value={schemaFilter} onValueChange={(next) => setSelectedSchema(String(next))}>
+        <Select value={schemaFilter || "all"} onValueChange={(next) => setSelectedSchema(String(next) === "all" ? "" : String(next))}>
         <SelectTrigger className="w-full" aria-label="schema">
-          <SelectValue placeholder="pick a schema" />
+          <SelectValue placeholder="All schemas" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="all">All schemas</SelectItem>
           {schemas.map((s) => (
             <SelectItem key={s} value={s}>
               {s}
@@ -94,7 +96,10 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
                       variant="ghost"
                       size="sm"
                       className="flex min-w-0 flex-1 items-center gap-1 justify-start px-1"
-                      onClick={() => setExpanded(open ? null : key)}
+                      onClick={() => {
+                        setExpanded(open ? null : key);
+                        onSelect?.(t);
+                      }}
                     >
                       {open ? (
                         <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
@@ -104,7 +109,7 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
                       <span className="truncate">{t.name}</span>
                       <span className="ml-1 text-xs text-muted-foreground">{t.columns.length}</span>
                     </Button>
-                    <RowMenu
+                    {(onRecords || onAnalyze) && <RowMenu
                       label={`actions for ${t.name}`}
                       items={[
                         {
@@ -123,7 +128,7 @@ export function TableBrowser({ tables, onRecords, onAnalyze }: Props) {
                             ]
                           : []),
                       ]}
-                    />
+                    />}
                   </div>
                   {open && (
                     <ul className="mb-1 ml-5 grid gap-0.5 border-l border-border py-1 pl-2">

@@ -22,5 +22,6 @@ export function toErdTables(data?: SchemaGraph): ErdTable[] {
       primary: idx.primary,
     })),
     estimatedRows: table.estimatedRows,
+    sizeBytes: table.sizeBytes,
   }));
 }
