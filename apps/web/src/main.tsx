@@ -30,6 +30,7 @@ const ChangeDetail = lazy(() =>
 );
 const AuthCallbackPage = lazy(() => import("@/pages/auth-callback"));
 const LoginPage = lazy(() => import("@/pages/login"));
+const MyLayout = lazy(() => import("@/pages/my"));
 const MyProfilePage = lazy(() => import("@/pages/my-profile"));
 const MySettingsPage = lazy(() => import("@/pages/my-settings"));
 const MyAccessPage = lazy(() => import("@/pages/my-access"));
@@ -50,9 +51,15 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <DashboardPage /> },
-      { path: routePath(PAGE_ROUTES.MY), element: <MyProfilePage /> },
-      { path: routePath(PAGE_ROUTES.MY_SETTINGS), element: <MySettingsPage /> },
-      { path: routePath(PAGE_ROUTES.MY_ACCESS), element: <MyAccessPage /> },
+      {
+        path: routePath(PAGE_ROUTES.MY),
+        element: <MyLayout />,
+        children: [
+          { index: true, element: <MyProfilePage /> },
+          { path: "settings", element: <MySettingsPage /> },
+          { path: "access", element: <MyAccessPage /> },
+        ],
+      },
       { path: "profile", element: <Navigate to={PAGE_ROUTES.MY} replace /> },
       { path: "settings", element: <Navigate to={PAGE_ROUTES.MY_SETTINGS} replace /> },
       { path: routePath(PAGE_ROUTES.ACCESS), element: <AccessPage /> },
