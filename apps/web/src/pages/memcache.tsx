@@ -139,8 +139,6 @@ export default function MemcachePage() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <Workspace
-        leftLabel="Memory cache filters"
-        rightLabel="Keys"
         left={
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
             <div className="flex flex-col gap-1.5">
