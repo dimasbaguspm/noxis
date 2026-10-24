@@ -16,7 +16,7 @@ import (
 
 func TestMe(t *testing.T) {
 	conns := mocks.NewMockConnectionRepository(gomock.NewController(t))
-	deps := usecases.RegistryDeps{Registry: repositories.Registry{Connections: conns}}
+	deps := usecases.RegistryDeps{Repositories: repositories.Registry{Connections: conns}}
 	mux := testkit.Mux("GET", "/external/v1/me", Me{RegistryDeps: deps}.Serve)
 
 	// a super admin holds admin on every connection without a grant lookup

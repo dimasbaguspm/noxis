@@ -26,7 +26,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.URL.Query().Get("scope") != "to-approve" {
-		requests, err := uc.AccessRequests.ListAccessRequests(ctx, principal.Subject)
+		requests, err := uc.Repositories.AccessRequests.ListAccessRequests(ctx, principal.Subject)
 		if err != nil {
 			uc.Fail(ctx, w, err)
 			return
@@ -39,7 +39,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	}
 	var connections []string
 	if !principal.IsAdmin() {
-		all, err := uc.Connections.List(ctx)
+		all, err := uc.Repositories.Connections.List(ctx)
 		if err != nil {
 			uc.Fail(ctx, w, err)
 			return
@@ -56,7 +56,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	requests, err := uc.AccessRequests.ListPendingRequests(ctx, connections)
+	requests, err := uc.Repositories.AccessRequests.ListPendingRequests(ctx, connections)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

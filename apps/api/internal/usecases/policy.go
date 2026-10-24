@@ -37,7 +37,7 @@ func identities(p entity.Identity) []string {
 
 // EffectiveGrant is the strongest non-expired level the caller holds on a connection, with the expiry of the grant that supplies it. "" when none.
 func (d RegistryDeps) EffectiveGrant(ctx context.Context, connection string, p entity.Identity) (level string, expiresAt int64, err error) {
-	list, err := d.Permissions.ListPermissions(ctx, connection)
+	list, err := d.Repositories.Permissions.ListPermissions(ctx, connection)
 	if err != nil {
 		return "", 0, err
 	}
@@ -97,7 +97,7 @@ func (d RegistryDeps) CanRead(ctx context.Context, connection string) (bool, err
 
 // ReadableConnections is the set of connection names the caller may read, so a change list can drop rows for connections the caller cannot see.
 func (d RegistryDeps) ReadableConnections(ctx context.Context) (map[string]bool, error) {
-	list, err := d.Connections.List(ctx)
+	list, err := d.Repositories.Connections.List(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -24,17 +24,17 @@ func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	user, err := uc.Users.GetUser(ctx, r.PathValue("subject"))
+	user, err := uc.Repositories.Users.GetUser(ctx, r.PathValue("subject"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	access, err := uc.Permissions.ListPermissionsForMembers(ctx, append([]string{user.Subject}, user.Groups...))
+	access, err := uc.Repositories.Permissions.ListPermissionsForMembers(ctx, append([]string{user.Subject}, user.Groups...))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	events, err := uc.AccessEvents.ListAccessEvents(ctx, user.Subject, 50)
+	events, err := uc.Repositories.AccessEvents.ListAccessEvents(ctx, user.Subject, 50)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

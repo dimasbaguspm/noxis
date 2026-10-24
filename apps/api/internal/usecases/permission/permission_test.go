@@ -77,8 +77,8 @@ func newHarness(t *testing.T) *harness {
 	}).AnyTimes()
 
 	h.deps = usecases.RegistryDeps{
-		Registry: repositories.Registry{Connections: conns, Permissions: perms, Users: users},
-		Modules:  modules.New(map[string]interfaces.Module{constants.FamilySQL: sq}, interfaces.ChangeFlows{}, nil),
+		Repositories: repositories.Registry{Connections: conns, Permissions: perms, Users: users},
+		Modules:      modules.New(map[string]interfaces.Module{constants.FamilySQL: sq}, interfaces.ChangeFlows{}, nil),
 	}
 	return h
 }

@@ -36,7 +36,7 @@ func (uc RotatePassword) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, errors.New("password is required"))
 		return
 	}
-	connection, err := uc.Connections.GetByID(ctx, r.PathValue("id"))
+	connection, err := uc.Repositories.Connections.GetByID(ctx, r.PathValue("id"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -46,7 +46,7 @@ func (uc RotatePassword) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	connection.Password = body.Password
-	if err := uc.Connections.Save(ctx, *connection); err != nil {
+	if err := uc.Repositories.Connections.Save(ctx, *connection); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}

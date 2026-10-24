@@ -28,7 +28,7 @@ func (uc Update) applyRole(ctx context.Context, caller entity.Identity, user *en
 	if *role == user.Role {
 		return nil
 	}
-	if err := uc.Users.SetUserRole(ctx, user.Subject, *role); err != nil {
+	if err := uc.Repositories.Users.SetUserRole(ctx, user.Subject, *role); err != nil {
 		return err
 	}
 	user.Role = *role
@@ -45,7 +45,7 @@ func (uc Update) applyStatus(ctx context.Context, caller entity.Identity, user *
 	if *status == user.Status {
 		return nil
 	}
-	if err := uc.Users.SetUserStatus(ctx, user.Subject, *status); err != nil {
+	if err := uc.Repositories.Users.SetUserStatus(ctx, user.Subject, *status); err != nil {
 		return err
 	}
 	user.Status = *status

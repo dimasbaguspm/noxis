@@ -12,7 +12,7 @@ import (
 
 // RawConn checks family and access before returning a password-bearing connection.
 func (d RegistryDeps) RawConn(ctx context.Context, mod interfaces.Module, name, level string) (*entity.Connection, error) {
-	c, err := d.Connections.Get(ctx, name)
+	c, err := d.Repositories.Connections.Get(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (d RegistryDeps) RawConn(ctx context.Context, mod interfaces.Module, name, 
 
 // SqlChange loads a change and insists it is a SQL one, so a MongoDB request cannot be opened through the SQL flow.
 func (d RegistryDeps) SQLChange(ctx context.Context, id string) (*entity.Change, error) {
-	ch, err := d.Changes.GetChange(ctx, id)
+	ch, err := d.Repositories.Changes.GetChange(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (d RegistryDeps) SQLChange(ctx context.Context, id string) (*entity.Change,
 
 // MongoChange loads a change and insists it is a MongoDB request, so the SQL queue cannot be addressed through the MongoDB flow.
 func (d RegistryDeps) MongoChange(ctx context.Context, id string) (*entity.Change, error) {
-	ch, err := d.Changes.GetChange(ctx, id)
+	ch, err := d.Repositories.Changes.GetChange(ctx, id)
 	if err != nil {
 		return nil, err
 	}

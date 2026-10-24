@@ -19,7 +19,7 @@ type Get struct{ usecases.RegistryDeps }
 func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	connection, err := uc.Connections.GetByID(ctx, r.PathValue("id"))
+	connection, err := uc.Repositories.Connections.GetByID(ctx, r.PathValue("id"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

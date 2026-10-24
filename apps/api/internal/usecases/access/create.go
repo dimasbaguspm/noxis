@@ -40,11 +40,11 @@ func (uc Create) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, fmt.Errorf("connection and a known level are required"))
 		return
 	}
-	if _, err := uc.Connections.Get(ctx, body.Connection); err != nil {
+	if _, err := uc.Repositories.Connections.Get(ctx, body.Connection); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	open, err := uc.AccessRequests.PendingRequestExists(ctx, principal.Subject, body.Connection)
+	open, err := uc.Repositories.AccessRequests.PendingRequestExists(ctx, principal.Subject, body.Connection)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -57,7 +57,7 @@ func (uc Create) Serve(w http.ResponseWriter, r *http.Request) {
 		ID: idgen.UUID(), Subject: principal.Subject, Connection: body.Connection, Level: body.Level,
 		Reason: strings.TrimSpace(body.Reason), Status: entity.RequestPending, RequestedAt: time.Now().Unix(),
 	}
-	if err := uc.AccessRequests.CreateAccessRequest(ctx, request); err != nil {
+	if err := uc.Repositories.AccessRequests.CreateAccessRequest(ctx, request); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}

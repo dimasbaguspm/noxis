@@ -29,7 +29,7 @@ func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
 	}
-	request, err := uc.AccessRequests.GetAccessRequest(ctx, r.PathValue("id"))
+	request, err := uc.Repositories.AccessRequests.GetAccessRequest(ctx, r.PathValue("id"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -48,7 +48,7 @@ func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now().Unix()
-	if err := uc.AccessRequests.SetAccessRequestDecision(ctx, request.ID, entity.RequestRejected, principal.Subject, now, body.Note); err != nil {
+	if err := uc.Repositories.AccessRequests.SetAccessRequestDecision(ctx, request.ID, entity.RequestRejected, principal.Subject, now, body.Note); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}

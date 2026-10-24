@@ -31,7 +31,7 @@ func TestRequireSuper(t *testing.T) {
 
 func TestAuthorizeIgnoresExpiredGrant(t *testing.T) {
 	perms := mocks.NewMockPermissionRepository(gomock.NewController(t))
-	deps := usecases.RegistryDeps{Registry: repositories.Registry{Permissions: perms}}
+	deps := usecases.RegistryDeps{Repositories: repositories.Registry{Permissions: perms}}
 	ctx := entity.WithPrincipal(context.Background(), entity.Identity{Subject: "local:alice"})
 	grant := func(expiresAt int64) []entity.Permission {
 		return []entity.Permission{{

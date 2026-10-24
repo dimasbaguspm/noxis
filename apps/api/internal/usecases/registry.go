@@ -11,8 +11,8 @@ import (
 
 // RegistryDeps is embedded by every use case.
 type RegistryDeps struct {
-	repositories.Registry
-	Modules modules.Registry
+	Repositories repositories.Registry
+	Modules      modules.Registry
 	// Metrics records the catalog's instruments. A nil value is a no-op, so a use case built by hand in a test needs no instrumentation.
 	Metrics *metrics.Metrics
 	// AccessTTL is how long a per-connection grant lasts. Zero falls back to constants.AccessGrantTTL, so a hand-built dep in a test still works.

@@ -23,7 +23,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	connections, err := uc.Connections.List(ctx)
+	connections, err := uc.Repositories.Connections.List(ctx)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

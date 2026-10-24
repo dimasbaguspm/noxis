@@ -34,16 +34,11 @@ import (
 
 // sources are the seams the composition root builds the use cases from. They are interfaces, so a test can hand in fakes without a store or an HTTP stack.
 type sources struct {
-	Connections    interfaces.ConnectionRepository
-	Changes        interfaces.ChangeRepository
-	Permissions    interfaces.PermissionRepository
-	Users          interfaces.UserRepository
-	AccessEvents   interfaces.AccessEventRepository
-	AccessRequests interfaces.AccessRequestRepository
-	Modules        modules.Registry
-	Auth           entity.AuthConfig
-	AuthService    *authmod.Service
-	AccessTTL      time.Duration
+	Repositories repositories.Registry
+	Modules      modules.Registry
+	Auth         entity.AuthConfig
+	AuthService  *authmod.Service
+	AccessTTL    time.Duration
 }
 
 // app is the composition root: every use case built once, explicitly.
@@ -119,23 +114,16 @@ func newApp(s sources) app {
 
 	// The registry owns the engine families and their change queues, so it is built here where the instruments it reports through exist.
 	if s.Modules == nil {
-		s.Modules = modules.Default(s.Connections, s.Changes, m, s.AuthService)
+		s.Modules = modules.Default(s.Repositories, m, s.AuthService)
 	}
 
 	deps := usecases.RegistryDeps{
-		Registry: repositories.Registry{
-			Connections:    s.Connections,
-			Changes:        s.Changes,
-			Permissions:    s.Permissions,
-			Users:          s.Users,
-			AccessEvents:   s.AccessEvents,
-			AccessRequests: s.AccessRequests,
-		},
-		Modules:   s.Modules,
-		AccessTTL: s.AccessTTL,
-		Metrics:   m,
+		Repositories: s.Repositories,
+		Modules:      s.Modules,
+		AccessTTL:    s.AccessTTL,
+		Metrics:      m,
 	}
-	registerConnectionGauge(m, s.Connections)
+	registerConnectionGauge(m, s.Repositories.Connections)
 	return app{
 		Modules: s.Modules,
 		Auth:    s.Auth,

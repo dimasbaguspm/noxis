@@ -43,7 +43,7 @@ func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	if err := uc.Permissions.DeletePermission(ctx, r.PathValue("name"), member, entity.Actor(ctx)); err != nil {
+	if err := uc.Repositories.Permissions.DeletePermission(ctx, r.PathValue("name"), member, entity.Actor(ctx)); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
