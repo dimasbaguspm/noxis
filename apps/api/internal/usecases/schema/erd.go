@@ -13,7 +13,7 @@ import (
 // ERD returns a read-authorized diagram of declared keys and foreign keys without exposing the connection password.
 type ERD struct{ usecases.RegistryDeps }
 
-// @Summary One connection's schema as a Mermaid ER diagram
+// @Summary One connection's schema graph
 // @Param engine path string true "engine family (sql)"
 // @Param name path string true "connection name"
 // @Success 200 {object} entity.SchemaGraph
@@ -42,11 +42,11 @@ func (uc ERD) Serve(w http.ResponseWriter, r *http.Request) {
 	if tables == nil {
 		tables = []entity.Table{}
 	}
+	assignTableIDs(tables)
 	uc.Respond(w, entity.SchemaGraph{
 		Connection: entity.SchemaConnection{
 			Name: c.Name, Driver: c.Driver, Family: c.Family, Database: c.Database,
 		},
-		Tables:  tables,
-		Mermaid: Mermaid(tables),
+		Tables: tables,
 	})
 }

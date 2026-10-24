@@ -1255,7 +1255,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** One connection's schema as a Mermaid ER diagram */
+        /** One connection's schema graph */
         get: {
             parameters: {
                 query?: never;
@@ -2783,7 +2783,6 @@ export interface components {
         };
         "entity.SchemaGraph": {
             connection?: components["schemas"]["entity.SchemaConnection"];
-            mermaid?: string;
             tables?: components["schemas"]["entity.Table"][];
         };
         "entity.StatusResponse": {
@@ -2791,6 +2790,7 @@ export interface components {
         };
         "entity.Table": {
             columns?: components["schemas"]["entity.Column"][];
+            id?: string;
             name?: string;
             schema?: string;
         };

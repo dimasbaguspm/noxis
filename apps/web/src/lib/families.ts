@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { Activity, Boxes, Database, Leaf, PenLine } from "lucide-react";
+import { Activity, Boxes, Database, Leaf, Network, PenLine } from "lucide-react";
 import { PAGE_ROUTES } from "./routes";
 
 // FAMILY is the source for engine landing pages, API namespaces, and navigation.
@@ -40,6 +40,7 @@ export const FAMILIES: Family[] = [
     openLabel: "Open in Query",
     nav: [
       { to: PAGE_ROUTES.SQL.QUERY, label: "Query", icon: Database },
+      { to: PAGE_ROUTES.SQL.ERD, label: "ERD", icon: Network },
       { to: PAGE_ROUTES.SQL.DML, label: "DML", icon: PenLine },
       { to: PAGE_ROUTES.SQL.DDL, label: "DDL", icon: Activity },
     ],
