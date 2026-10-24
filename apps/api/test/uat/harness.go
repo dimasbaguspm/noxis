@@ -122,12 +122,6 @@ func (w *world) send(r kit.Request) error {
 	return nil
 }
 
-// tickBody is the /internal/callback/scheduler response shape.
-type tickBody struct {
-	Applied []string `json:"applied"`
-	Failed  []string `json:"failed"`
-}
-
 // redisSeed runs the CLI inside a compose key-value service: the scenarios need keys to browse, and noxis has no endpoint that writes one.
 func redisSeed(service string, args ...string) error {
 	cli := "redis-cli"
@@ -140,20 +134,6 @@ func redisSeed(service string, args ...string) error {
 		return fmt.Errorf("%s %s: %w\n%s", cli, strings.Join(args, " "), err, out)
 	}
 	return nil
-}
-
-type resultBody struct {
-	Columns  []string   `json:"columns"`
-	Rows     [][]string `json:"rows"`
-	Affected int64      `json:"affected"`
-	Message  string     `json:"message"`
-}
-
-type checkBody struct {
-	Target string `json:"target"`
-	OK     bool   `json:"ok"`
-	Detail string `json:"detail"`
-	Error  string `json:"error"`
 }
 
 // stackUp brings the compose stack up. It rebuilds only when UAT_BUILD=1; a run against a cold cache still builds, because compose builds a missing image.
