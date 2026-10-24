@@ -16,7 +16,7 @@ import (
 const scratchPrefix = "noxis_verify_"
 
 // ValidateChange runs query and rollback in scratch; SQLite uses a rolled-back transaction. shortcut: qualified names may target live objects; add rewriting if operators use them.
-func (u *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
+func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	// SQLite DDL is transactional, so a rolled-back transaction is a safe dry run on the live schema; no scratch database is needed.

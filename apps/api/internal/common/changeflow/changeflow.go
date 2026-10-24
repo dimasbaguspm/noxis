@@ -25,19 +25,19 @@ func New(store interfaces.ChangeRepository, family string) Flow {
 }
 
 // Family is the engine family this flow serves.
-func (f Flow) Family() string { return f.family }
+func (flow Flow) Family() string { return flow.family }
 
 // Approve signs off a validated change. Unverified is allowed on purpose: some drivers cannot dry-run DDL, and the reviewer approves with eyes open.
-func (f Flow) Approve(ctx context.Context, ch *entity.Change, actor string) error {
+func (flow Flow) Approve(ctx context.Context, ch *entity.Change, actor string) error {
 	if ch.Status != constants.ChangeValidated && ch.Status != constants.ChangeUnverified {
 		return fmt.Errorf("change is %s, not validated — cannot approve", ch.Status)
 	}
 	ch.Status, ch.ApprovedAt, ch.ApprovedBy = constants.ChangeApproved, time.Now().Unix(), actor
-	return f.Save(ctx, ch)
+	return flow.Save(ctx, ch)
 }
 
 // Reject closes a change without running it.
-func (f Flow) Reject(ctx context.Context, ch *entity.Change, actor string) error {
+func (flow Flow) Reject(ctx context.Context, ch *entity.Change, actor string) error {
 	if ch.Status == constants.ChangeApplying {
 		return constants.ErrConflict
 	}
@@ -45,11 +45,11 @@ func (f Flow) Reject(ctx context.Context, ch *entity.Change, actor string) error
 		return fmt.Errorf("change already applied — it cannot be rejected")
 	}
 	ch.Status, ch.RejectedAt, ch.RejectedBy = constants.ChangeRejected, time.Now().Unix(), actor
-	return f.Save(ctx, ch)
+	return flow.Save(ctx, ch)
 }
 
 // Schedule sets (or, with 0, clears) an approved change's slot. A slot in the past would never be due, so it is refused rather than silently ignored.
-func (f Flow) Schedule(ctx context.Context, ch *entity.Change, at int64, actor string) error {
+func (flow Flow) Schedule(ctx context.Context, ch *entity.Change, at int64, actor string) error {
 	if ch.Status == constants.ChangeApplying {
 		return constants.ErrConflict
 	}
@@ -60,12 +60,12 @@ func (f Flow) Schedule(ctx context.Context, ch *entity.Change, at int64, actor s
 		return fmt.Errorf("scheduled time must be in the future")
 	}
 	ch.ScheduledAt, ch.ScheduledBy = at, actor
-	return f.Save(ctx, ch)
+	return flow.Save(ctx, ch)
 }
 
 // Claim atomically reserves an approved change before an engine write.
-func (f Flow) Claim(ctx context.Context, ch *entity.Change, at int64, actor string) error {
-	claimed, err := f.Store.ClaimChange(ctx, ch.ID, at, actor)
+func (flow Flow) Claim(ctx context.Context, ch *entity.Change, at int64, actor string) error {
+	claimed, err := flow.Store.ClaimChange(ctx, ch.ID, at, actor)
 	if err != nil {
 		return err
 	}
@@ -97,12 +97,12 @@ func Due(ch entity.Change, now int64) bool {
 }
 
 // Record stores a validated change. A failed submission is returned unrecorded: a change that cannot run is never queued, but the caller still sees why.
-func (f Flow) Record(ctx context.Context, ch entity.Change) (entity.Change, error) {
+func (flow Flow) Record(ctx context.Context, ch entity.Change) (entity.Change, error) {
 	if ch.Status == constants.ChangeFailed {
 		ch.ID = ""
 		return ch, nil
 	}
-	if err := f.Store.SaveChange(ctx, ch); err != nil {
+	if err := flow.Store.SaveChange(ctx, ch); err != nil {
 		return entity.Change{}, err
 	}
 	return ch, nil
@@ -122,8 +122,8 @@ func Failed(ch *entity.Change, err error) {
 }
 
 // Save persists a decided change.
-func (f Flow) Save(ctx context.Context, ch *entity.Change) error {
-	return f.Store.SaveChange(ctx, *ch)
+func (flow Flow) Save(ctx context.Context, ch *entity.Change) error {
+	return flow.Store.SaveChange(ctx, *ch)
 }
 
 // Tick applies every due change of this family through apply.
