@@ -31,7 +31,7 @@ export default function QueryPage() {
   const readResult = run.data;
   const loading = run.isPending;
   const execute = (sql: string) => {
-    if (!connection) return;
+    if (!connection || !sql.trim()) return;
     void run.mutateAsync({ connection, sql });
   };
 
@@ -41,6 +41,7 @@ export default function QueryPage() {
     connection ? analyze.mutate({ connection, table: `${table.schema}.${table.name}` }) : undefined;
 
   const sql = tabs.active?.sql ?? "";
+  const canRun = !!connection && sql.trim().length > 0;
   const kind = classify(sql);
   const result = analyzed ?? readResult ?? null;
 
@@ -104,17 +105,17 @@ export default function QueryPage() {
                     height="100%"
                     placeholder="SELECT …"
                     onRun={() => {
-                      if (!loading && connection) void execute(sql);
+                      if (canRun) void execute(sql);
                     }}
                   />
                   <div className="flex items-center gap-2">
-                    <Button onClick={() => void execute(sql)} disabled={loading || !connection || !sql.trim()}>
-                      <Play /> Run
+                    <Button onClick={() => void execute(sql)} disabled={!canRun} aria-busy={loading}>
+                      <Play /> {loading ? "Running…" : "Run"}
                     </Button>
                     <Button
                       variant="outline"
                       onClick={() => void execute(`EXPLAIN ${sql}`)}
-                      disabled={kind !== "read" || !connection || !sql.trim()}
+                      disabled={!canRun || kind !== "read"}
                     >
                       Explain
                     </Button>
