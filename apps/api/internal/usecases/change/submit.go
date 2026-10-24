@@ -3,6 +3,7 @@ package change
 import (
 	"net/http"
 
+	"noxis/internal/common"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -39,7 +40,12 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 			uc.Fail(ctx, w, err)
 			return
 		}
-		out, err := uc.Modules.Changes().SQL.Submit(ctx, *connection, entity.Actor(ctx), change)
+		var flow interfaces.SQLChangeFlow
+		if err := common.LoadModule(ctx, &flow); err != nil {
+			uc.Fail(ctx, w, err)
+			return
+		}
+		out, err := flow.Submit(ctx, *connection, entity.Actor(ctx), change)
 		if err != nil {
 			uc.Fail(ctx, w, err)
 			return
@@ -57,7 +63,12 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 			uc.Fail(ctx, w, err)
 			return
 		}
-		out, err := uc.Modules.Changes().Mongo.Submit(ctx, *connection, entity.Actor(ctx), body.Notes, body.MongoRequest)
+		var flow interfaces.MongoChangeFlow
+		if err := common.LoadModule(ctx, &flow); err != nil {
+			uc.Fail(ctx, w, err)
+			return
+		}
+		out, err := flow.Submit(ctx, *connection, entity.Actor(ctx), body.Notes, body.MongoRequest)
 		if err != nil {
 			uc.Fail(ctx, w, err)
 			return

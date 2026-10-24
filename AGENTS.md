@@ -91,7 +91,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 
 1. `middlewares.CORS → Trace → WithAuth → RequestLog` wrap the `http.ServeMux`: the span covers the whole request (a refused token is traced), and the request log runs after the principal is attached.
 2. `newHandler(app, cfg)` registers each route straight at a use case `Serve(w, r)`.
-3. `Serve` reads the path/query/body and resolves the engine family via `uc.Modules.Engine(...)`.
+3. `Serve` reads the path/query/body and resolves `{engine}` via `uc.Modules.Engine(...)`; cross-family modules such as change flows load by typed target through `common.LoadModule(ctx, &target)`.
 4. It calls its `Run(ctx, ...)` domain core and writes the response with `respond`/`fail`.
 5. The use case reads repositories/modules from its own struct fields (set explicitly in `newApp`), enforces access via `RawConn`/`Authorize`, persists via a repository.
 6. `fail` maps `constants.ErrNotFound`/`constants.ErrUnsupported`→404, `constants.ErrForbidden`→403, `constants.ErrInvalidCredentials`/`constants.ErrUnauthorized`→401, else 400.
@@ -99,6 +99,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 ## Conventions
 
 - **One use case = one file = one `Serve` method.** No use case calls another; shared steps are package helpers in `usecases` (`raw.go`, `policy.go`, `apply.go`).
+- **Context:** authenticated principal and immutable module loader only. Repositories and other app dependencies stay explicit; use `common.LoadModule(ctx, &target)` for registered typed modules.
 - **No env reads outside `apps/api/internal/common/config`.** Add a `EnvX` const + field + `fieldOf` case.
 - **No hardcoded drivers/families/statuses.** Add to `apps/api/internal/constants`.
 - **Secrets:** passwords are redacted on every response (`Connection.Redacted()`); encrypted at rest via `apps/api/internal/common/secret` when `NOXIS_SECRET_KEY` set.

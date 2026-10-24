@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"noxis/internal/common"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -81,6 +82,21 @@ func changeFor(ctx context.Context, deps usecases.RegistryDeps, module interface
 		return deps.MongoChange(ctx, id)
 	}
 	return nil, unsupportedChangeFlow(module)
+}
+
+func flowFor(ctx context.Context, change *entity.Change) (interfaces.ChangeFlow, error) {
+	if change.Kind == constants.KindMongo {
+		var flow interfaces.MongoChangeFlow
+		if err := common.LoadModule(ctx, &flow); err != nil {
+			return nil, err
+		}
+		return flow, nil
+	}
+	var flow interfaces.SQLChangeFlow
+	if err := common.LoadModule(ctx, &flow); err != nil {
+		return nil, err
+	}
+	return flow, nil
 }
 
 func decide(ctx context.Context, deps usecases.RegistryDeps, w http.ResponseWriter, r *http.Request, apply func(*entity.Change) error) {

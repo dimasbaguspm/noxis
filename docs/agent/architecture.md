@@ -32,8 +32,13 @@ One file does all wiring, at boot, once: `apps/api/cmd/noxis/server/app.go`.
 - `sources` holds the seams: the repositories, `modules.Registry`, `config.AuthInfo`.
 - `app` lists every use case as a named field.
 - `newApp(sources)` builds each use case **explicitly** — the fields it needs are
-  named at the call site. There is no reflection and no dependency container in a
-  request context; the only thing on the context is the authenticated principal.
+  named at the call site. The request context carries the authenticated principal
+  and immutable module loader only; repositories, configuration, and the rest of
+  the app dependencies remain explicit.
+- `server.Run` attaches the loader to the server base context once. A use case loads
+  a cross-family capability with `common.LoadModule(ctx, &target)`; the registry
+  resolves it by target type. Engine modules selected by `{engine}` still use
+  `Modules.Engine(name)`.
 
 Add a new use case: create `apps/api/internal/usecases/<domain>/foo.go` with a
 `Foo struct` embedding `usecases.RegistryDeps` and a `Serve(w, r)` → add a field
@@ -48,6 +53,9 @@ constructor boilerplate, no reflection.
   `EngineMongo`, `EngineMemcache`), and a driver → family (`Serves`).
 - `Default(connections, changes, metrics, auth)` builds `{sql, memcache, mongodb}` and their change flows. **This map
   is the only place families are declared.**
+- `Registry` implements the common typed `ModuleLoader` for registered change-flow
+  capabilities. `common.LoadModule(ctx, &flow)` resolves them from request context;
+  an absent or unsupported target returns an error.
 - The registry is an explicit dependency: a use case that resolves a family
   embeds `usecases.RegistryDeps`, so `uc.Modules` is set at the composition root.
 
@@ -81,9 +89,10 @@ that both embed — it is a library, not a registered module. It sits below both
 family modules in the enforced dependency graph; engine execution and decision
 logging stay with the family modules.
 
-Both queues are registered in `modules.Default()` next to the engines, so a use
-case reaches them the same way it reaches a family: `uc.Modules.Changes().SQL`
-and `.Mongo`. A module may read repositories; it never imports the registry or a
+Both queues are registered in `modules.Default()` next to the engines. Use cases
+load `interfaces.SQLChangeFlow` or `interfaces.MongoChangeFlow` through
+`common.LoadModule`; route-selected engine modules still resolve through the family
+registry. A module may read repositories; it never imports the registry or a
 sibling family package.
 
 ## Use-case pattern

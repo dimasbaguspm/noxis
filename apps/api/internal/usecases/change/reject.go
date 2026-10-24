@@ -23,6 +23,10 @@ func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
 	decide(ctx, uc.RegistryDeps, w, r, func(change *entity.Change) error {
-		return uc.Modules.Changes().SQL.Reject(ctx, change, entity.Actor(ctx))
+		flow, err := flowFor(ctx, change)
+		if err != nil {
+			return err
+		}
+		return flow.Reject(ctx, change, entity.Actor(ctx))
 	})
 }
