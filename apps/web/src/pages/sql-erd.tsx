@@ -76,8 +76,8 @@ export default function SqlErdPage() {
   return (
     <>
       <div className="flex h-full min-h-0">
-      <Workspace
-        left={
+      <Workspace>
+        <Workspace.Pane defaultSize={17} minSize={14}>
           <div className="flex min-h-0 flex-1 flex-col gap-3">
             <div className="grid gap-1.5">
               <Label>Instance</Label>
@@ -90,9 +90,9 @@ export default function SqlErdPage() {
               />
             </div>
           </div>
-        }
-        right={
-          erd.isPending ? (
+        </Workspace.Pane>
+        <Workspace.Pane defaultSize={83} minSize={40} padded={false}>
+          {erd.isPending ? (
             <Skeleton className="m-4 h-[60%] w-[calc(100%-2rem)]" />
           ) : erd.error ? (
             <Empty
@@ -108,11 +108,12 @@ export default function SqlErdPage() {
               tables={tables}
               selectedId={selectedId}
               query=""
+              layoutKey={picked?.id ?? connection}
               onSelect={setSelectedId}
             />
-          )
-        }
-      />
+          )}
+        </Workspace.Pane>
+      </Workspace>
       </div>
 
       <Sheet open={!!selected} onOpenChange={(open) => !open && setSelectedId(undefined)}>

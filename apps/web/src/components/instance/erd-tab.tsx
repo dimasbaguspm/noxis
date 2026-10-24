@@ -35,17 +35,17 @@ export function InstanceErd({ connection, instanceId }: { connection: string; in
   return (
     <>
       <div className="flex h-full min-h-0">
-        <Workspace
-          left={
-            erd.isPending ? (
+        <Workspace>
+          <Workspace.Pane defaultSize={17} minSize={14}>
+            {erd.isPending ? (
               <Skeleton className="h-48 w-full" />
             ) : (
               <TableBrowser tables={browserTables} onSelect={(table) => setSelectedId(table.id)} />
-            )
-          }
-          right={
-            erd.isPending ? (
-              <Skeleton className="h-64 w-full" />
+            )}
+          </Workspace.Pane>
+          <Workspace.Pane defaultSize={83} minSize={40} padded={false}>
+            {erd.isPending ? (
+              <Skeleton className="m-4 h-64 w-[calc(100%-2rem)]" />
             ) : erd.error ? (
               <Empty
                 icon={Network}
@@ -55,10 +55,17 @@ export function InstanceErd({ connection, instanceId }: { connection: string; in
             ) : tables.length === 0 ? (
               <Empty icon={Network} title="No tables" description="This instance has no tables to draw." />
             ) : (
-              <ErdCanvas key={connection} tables={tables} selectedId={selectedId} query="" onSelect={setSelectedId} />
-            )
-          }
-        />
+              <ErdCanvas
+                key={connection}
+                tables={tables}
+                selectedId={selectedId}
+                query=""
+                layoutKey={instanceId ?? connection}
+                onSelect={setSelectedId}
+              />
+            )}
+          </Workspace.Pane>
+        </Workspace>
       </div>
 
       <Sheet open={!!selected} onOpenChange={(open) => !open && setSelectedId(undefined)}>

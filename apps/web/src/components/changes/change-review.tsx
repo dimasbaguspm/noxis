@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -36,63 +36,59 @@ type ReviewOutcome =
   | { id?: string; status?: string; checks?: { target?: string; ok?: boolean; detail?: string; error?: string }[] }
   | undefined;
 
-const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-  validated: "secondary",
-  unverified: "outline",
-  approved: "default",
-  applying: "outline",
-  applied: "default",
-  failed: "destructive",
-  rejected: "outline",
-};
-
 // ChangeDetails is the review rail: context, warnings, activity, blast radius, impact and checks.
 export function ChangeDetails({ change, instance }: { change: Change; instance?: Connection }) {
+  const instanceHref = instance?.id ? PAGE_ROUTES.INSTANCE_DETAIL(instance.id) : undefined;
+  const hasNotes = !!change.notes;
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
-      {change.notes && (
-        <section className="grid gap-1">
+      {hasNotes ? (
+        <ReviewSection first>
           <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Notes</h3>
           <p className="text-sm">{change.notes}</p>
-        </section>
+          <SubmittedBy change={change} />
+        </ReviewSection>
+      ) : (
+        <SubmittedBy change={change} />
       )}
 
       <ChangeAlerts change={change} />
 
-      <section className="grid gap-2">
+      <ReviewSection first={!hasNotes}>
         <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Instance</h3>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium">{change.connection}</span>
+          {instanceHref ? (
+            <Link to={instanceHref} className="font-medium underline-offset-4 hover:underline">
+              {change.connection}
+            </Link>
+          ) : (
+            <span className="font-medium">{change.connection}</span>
+          )}
           {instance?.driver && <Badge variant="secondary">{instance.driver}</Badge>}
         </div>
         {instance ? (
-          <>
-            <p className="font-mono text-xs text-muted-foreground">
-              {instance.driver === "sqlite"
-                ? instance.database
-                : `${instance.host}:${instance.port} · ${instance.database}`}
-            </p>
-            <Button size="xs" variant="outline" className="w-fit" render={<Link to={PAGE_ROUTES.INSTANCE_DETAIL(instance.id ?? "")} />}>
-              Open instance
-            </Button>
-          </>
+          <p className="font-mono text-xs text-muted-foreground">
+            {instance.driver === "sqlite"
+              ? instance.database
+              : `${instance.host}:${instance.port} · ${instance.database}`}
+          </p>
         ) : (
           <p className="text-xs text-muted-foreground">Instance details are unavailable.</p>
         )}
-      </section>
+      </ReviewSection>
 
-      <section className="grid gap-2">
+      <ReviewSection>
         <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Activity</h3>
         <ChangeActivity change={change} />
-      </section>
+      </ReviewSection>
 
-      <section className="grid gap-2">
+      <ReviewSection>
         <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Touches</h3>
         <Identifiers label="Tables" values={change.affectedTables} />
         <Identifiers label="Columns" values={change.affectedColumns} variant="outline" />
-      </section>
+      </ReviewSection>
 
-      <section className="grid gap-2">
+      <ReviewSection>
         <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Impact</h3>
         <div className="grid grid-cols-2 gap-3">
           <Metric label="Est. duration" value={`${change.estDurationMs ?? 0} ms`} />
@@ -100,13 +96,28 @@ export function ChangeDetails({ change, instance }: { change: Change; instance?:
           <Metric label="Duration" value={change.appliedAt ? `${change.appliedDurationMs ?? 0} ms` : "—"} />
           <Metric label="Rows affected" value={change.appliedAt ? String(change.appliedAffected ?? 0) : "—"} />
         </div>
-      </section>
+      </ReviewSection>
 
-      <section className="grid gap-2">
+      <ReviewSection>
         <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Checks</h3>
         <ChangeChecks change={change} />
-      </section>
+      </ReviewSection>
     </div>
+  );
+}
+
+// ReviewSection keeps the rail's rhythm: one horizontal rule before every section except the first.
+function ReviewSection({ children, first = false }: { children: ReactNode; first?: boolean }) {
+  return <section className={cn("grid gap-2", !first && "border-t border-border pt-4")}>{children}</section>;
+}
+
+function SubmittedBy({ change }: { change: Change }) {
+  const submitted = change.createdAt ? new Date(change.createdAt * 1000).toLocaleString() : undefined;
+  return (
+    <p className="text-xs text-muted-foreground">
+      Submitted by {change.createdBy || "unknown"}
+      {submitted ? ` · ${submitted}` : ""}
+    </p>
   );
 }
 
@@ -190,13 +201,13 @@ export function ChangeSqlReview({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex min-h-0 flex-1 flex-col gap-1">
-        <span className="text-xs font-medium text-muted-foreground">Original</span>
+        <span className="text-sm font-medium text-muted-foreground">Original</span>
         <div className="min-h-0 flex-1">
           <SqlEditor value={change.query ?? ""} readOnly height="100%" tables={tables} />
         </div>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-1">
-        <span className="text-xs font-medium text-muted-foreground">Rollback</span>
+        <span className="text-sm font-medium text-muted-foreground">Rollback</span>
         <div className="min-h-0 flex-1">
           <SqlEditor value={change.rollback ?? ""} readOnly height="100%" tables={tables} />
         </div>
@@ -245,7 +256,6 @@ function ChangeActionBar({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
-      <Badge variant={STATUS_VARIANT[change.status ?? ""] ?? "outline"}>{change.status}</Badge>
       {mayWrite && (
         <ChangeSubmitDialog
           kind={kind}
@@ -265,20 +275,20 @@ function ChangeActionBar({
       )}
       <span className="flex-1" />
       {canApprove && (
-        <Button size="sm" variant="secondary" onClick={onApprove}>
+        <Button size="sm" variant="outline" className="border-border bg-white text-black hover:bg-white/90 dark:border-border dark:bg-white dark:text-black dark:hover:bg-white/90" onClick={onApprove}>
           <Check /> Approve
         </Button>
       )}
       {canApply && (
         <>
           <ScheduleMenu change={change} onSchedule={onSchedule} />
-          <Button size="sm" onClick={onApply}>
+          <Button size="sm" variant="outline" className="border-border bg-white text-black hover:bg-white/90 dark:border-border dark:bg-white dark:text-black dark:hover:bg-white/90" onClick={onApply}>
             <Play /> Apply
           </Button>
         </>
       )}
       {canReject && (
-        <Button size="sm" variant="ghost" onClick={onReject}>
+        <Button size="sm" variant="destructive" className="bg-destructive text-white hover:bg-destructive/90 dark:bg-destructive dark:text-white dark:hover:bg-destructive/90" onClick={onReject}>
           <Undo2 /> Reject
         </Button>
       )}
