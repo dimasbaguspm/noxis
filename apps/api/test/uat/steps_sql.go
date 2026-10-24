@@ -19,6 +19,7 @@ type resultBody struct {
 
 func (w *world) sqlSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I read "([^"]*)"$`, w.read)
+	sc.Step(`^I run the write "([^"]*)"$`, w.write)
 	sc.Step(`^the result has (\d+) row\(s\)$`, w.rowCount)
 	sc.Step(`^the first row's "([^"]*)" is "([^"]*)"$`, w.firstRowCell)
 	sc.Step("the request is rejected", w.rejected)
@@ -33,6 +34,18 @@ func (w *world) sqlSteps(sc *godog.ScenarioContext) {
 func (w *world) read(ctx context.Context, sqlText string) error {
 	w.result = resultBody{}
 	return w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/query", map[string]string{"sql": sqlText}, &w.result)
+}
+
+// write runs a direct DML/DDL statement through the alter route.
+func (w *world) write(ctx context.Context, sqlText string) error {
+	w.result = resultBody{}
+	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/alter", map[string]string{"sql": sqlText}, &w.result); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("write: %d %s", w.code, w.body)
+	}
+	return nil
 }
 
 func (w *world) rowCount(ctx context.Context, want int) error {
