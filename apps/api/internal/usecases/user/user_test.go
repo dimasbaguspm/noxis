@@ -8,21 +8,21 @@ import (
 
 	"go.uber.org/mock/gomock"
 
+	"noxis/internal/common/testkit"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/mocks"
 	"noxis/internal/repositories"
-	"noxis/internal/common/testkit"
 	"noxis/internal/usecases"
 	"noxis/internal/usecases/user"
 )
 
 // harness keeps the account rows in one slice and serves them through the repository mocks, so a test asserts on the stored state after the request.
 type harness struct {
-	deps    usecases.RegistryDeps
-	users   []entity.User
-	grants  []entity.Permission
-	events  []entity.AccessEvent
+	deps   usecases.RegistryDeps
+	users  []entity.User
+	grants []entity.Permission
+	events []entity.AccessEvent
 }
 
 func newHarness(t *testing.T) *harness {
