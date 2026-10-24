@@ -9,12 +9,12 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
+	authsvc "noxis/internal/auth"
 	"noxis/internal/common/metrics"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules"
-	authmod "noxis/internal/modules/auth"
 	"noxis/internal/repositories"
 	"noxis/internal/usecases"
 	"noxis/internal/usecases/access"
@@ -37,7 +37,7 @@ type sources struct {
 	Repositories repositories.Registry
 	Modules      modules.Registry
 	Auth         entity.AuthConfig
-	AuthService  *authmod.Service
+	AuthService  *authsvc.Service
 	AccessTTL    time.Duration
 }
 
@@ -114,12 +114,13 @@ func newApp(s sources) app {
 
 	// The registry owns the engine families and their change queues, so it is built here where the instruments it reports through exist.
 	if s.Modules == nil {
-		s.Modules = modules.Default(s.Repositories, m, s.AuthService)
+		s.Modules = modules.Default(s.Repositories, m)
 	}
 
 	deps := usecases.RegistryDeps{
 		Repositories: s.Repositories,
 		Modules:      s.Modules,
+		Auth:         s.AuthService,
 		AccessTTL:    s.AccessTTL,
 		Metrics:      m,
 	}

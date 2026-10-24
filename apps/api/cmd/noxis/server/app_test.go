@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"noxis/internal/auth"
 	"noxis/internal/common/config"
-	"noxis/internal/modules/auth"
 	"noxis/internal/repositories/sqlite"
 )
 
