@@ -7,7 +7,6 @@ import { TableBrowser } from "@/components/sql/table-browser";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Workspace } from "@/components/layout/workspace";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/app/auth-provider";
@@ -68,8 +67,8 @@ export default function QueryPage() {
 
   return (
     <div className="flex h-full min-h-0">
-      <Workspace
-        left={
+      <Workspace>
+        <Workspace.Pane defaultSize={17} minSize={14}>
           <div className="flex min-h-0 flex-1 flex-col gap-2">
             <div className="grid gap-1.5">
               <Label>Instance</Label>
@@ -83,58 +82,49 @@ export default function QueryPage() {
               />
             </div>
           </div>
-        }
-        right={
-          <ResizablePanelGroup orientation="vertical" className="flex min-h-0 flex-1 flex-col gap-2">
-            <ResizablePanel defaultSize={45} minSize={20}>
-              <Card className="flex h-full min-w-0 flex-col">
-                <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden">
-                  <SqlTabs
-                    tabs={tabs.tabs}
-                    activeId={tabs.activeId}
-                    onSelect={tabs.select}
-                    onClose={tabs.close}
-                    onAdd={() => tabs.add()}
-                  />
-                  <SqlEditor
-                    value={sql}
-                    onChange={tabs.update}
-                    tables={tables}
-                    height="100%"
-                    placeholder="SELECT …"
-                    onRun={() => {
-                      if (canRun) void execute(sql);
-                    }}
-                  />
-                  <div className="flex items-center gap-2">
-                    <Button onClick={() => void execute(sql)} disabled={!canRun} aria-busy={loading}>
-                      <Play /> Run
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => void execute(`EXPLAIN ${sql}`)}
-                      disabled={!canRun || kind !== "read"}
-                    >
-                      Explain
-                    </Button>
-                    <span className="text-xs text-muted-foreground">⌘/Ctrl + Enter</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </ResizablePanel>
+        </Workspace.Pane>
 
-            <ResizableHandle withHandle />
+        <Workspace.Split defaultSize={83} minSize={40} direction="vertical">
+          <Workspace.Pane defaultSize={45} minSize={20}>
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden">
+              <SqlTabs
+                tabs={tabs.tabs}
+                activeId={tabs.activeId}
+                onSelect={tabs.select}
+                onClose={tabs.close}
+                onAdd={() => tabs.add()}
+              />
+              <SqlEditor
+                value={sql}
+                onChange={tabs.update}
+                tables={tables}
+                height="100%"
+                placeholder="SELECT …"
+                onRun={() => {
+                  if (canRun) void execute(sql);
+                }}
+              />
+              <div className="flex items-center gap-2">
+                <Button onClick={() => void execute(sql)} disabled={!canRun} aria-busy={loading}>
+                  <Play /> Run
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => void execute(`EXPLAIN ${sql}`)}
+                  disabled={!canRun || kind !== "read"}
+                >
+                  Explain
+                </Button>
+                <span className="text-xs text-muted-foreground">⌘/Ctrl + Enter</span>
+              </div>
+            </div>
+          </Workspace.Pane>
 
-            <ResizablePanel defaultSize={55} minSize={20}>
-              <Card className="flex h-full min-h-0 min-w-0 flex-col">
-                <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col">
-                  <ResultTable result={result} title={tabs.active?.title ?? "query"} />
-                </CardContent>
-              </Card>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        }
-      />
+          <Workspace.Pane defaultSize={55} minSize={20}>
+            <ResultTable result={result} title={tabs.active?.title ?? "query"} />
+          </Workspace.Pane>
+        </Workspace.Split>
+      </Workspace>
     </div>
   );
 }

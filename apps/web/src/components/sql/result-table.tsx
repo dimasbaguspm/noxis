@@ -17,7 +17,7 @@ export function ResultTable({ result, title = "result" }: { result: Result | nul
   const rows = result.rows ?? [];
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-2">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden">
       <div className="flex min-w-0 items-center gap-2">
         <P className="flex min-w-0 flex-wrap items-center gap-x-3">
           <span className="break-words">{result.message}</span>
