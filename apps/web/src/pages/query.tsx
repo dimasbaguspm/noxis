@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { Workspace } from "@/components/layout/workspace";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/app/auth-provider";
 import { useConnectionSelection } from "@/hooks/use-connection";
@@ -65,30 +66,27 @@ export default function QueryPage() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-        <ResizablePanel defaultSize={20} minSize={16}>
-          <Card className="mr-2 h-full min-h-0 min-w-0">
-            <CardContent className="flex min-h-0 min-w-0 flex-col gap-2">
-              <div className="grid gap-1.5">
-                <Label>Instance</Label>
-                <ConnectionSelect value={connection} onChange={pick} className="w-full" />
-              </div>
-              <div className="min-h-0 flex-1">
-                <TableBrowser
-                  tables={tables}
-                  onRecords={(t) => tabs.add(`SELECT * FROM ${t.schema}.${t.name} LIMIT 100;`)}
-                  onAnalyze={canAccess(connection, "write") ? onAnalyze : undefined}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </ResizablePanel>
-
-        <ResizableHandle withHandle />
-
-        <ResizablePanel defaultSize={84} minSize={50} className="min-w-0 overflow-hidden">
-          <ResizablePanelGroup orientation="vertical" className="flex min-w-0 flex-col gap-2 pl-2">
+    <div className="flex h-full min-h-0">
+      <Workspace
+        leftLabel="Query filters"
+        rightLabel="Query editor and result"
+        left={
+          <div className="flex min-h-0 flex-1 flex-col gap-2">
+            <div className="grid gap-1.5">
+              <Label>Instance</Label>
+              <ConnectionSelect value={connection} onChange={pick} className="w-full" />
+            </div>
+            <div className="min-h-0 flex-1">
+              <TableBrowser
+                tables={tables}
+                onRecords={(t) => tabs.add(`SELECT * FROM ${t.schema}.${t.name} LIMIT 100;`)}
+                onAnalyze={canAccess(connection, "write") ? onAnalyze : undefined}
+              />
+            </div>
+          </div>
+        }
+        right={
+          <ResizablePanelGroup orientation="vertical" className="flex min-h-0 flex-1 flex-col gap-2">
             <ResizablePanel defaultSize={45} minSize={20}>
               <Card className="flex h-full min-w-0 flex-col">
                 <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden">
@@ -110,13 +108,13 @@ export default function QueryPage() {
                     }}
                   />
                   <div className="flex items-center gap-2">
-                    <Button onClick={() => void execute(sql)} disabled={loading || !connection}>
+                    <Button onClick={() => void execute(sql)} disabled={loading || !connection || !sql.trim()}>
                       <Play /> Run
                     </Button>
                     <Button
                       variant="outline"
                       onClick={() => void execute(`EXPLAIN ${sql}`)}
-                      disabled={kind !== "read" || !connection}
+                      disabled={kind !== "read" || !connection || !sql.trim()}
                     >
                       Explain
                     </Button>
@@ -130,17 +128,14 @@ export default function QueryPage() {
 
             <ResizablePanel defaultSize={55} minSize={20}>
               <Card className="flex h-full min-h-0 min-w-0 flex-col">
-                <CardHeader className="shrink-0">
-                  <CardTitle className="text-base">Result</CardTitle>
-                </CardHeader>
                 <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col">
                   <ResultTable result={result} title={tabs.active?.title ?? "query"} />
                 </CardContent>
               </Card>
             </ResizablePanel>
           </ResizablePanelGroup>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+        }
+      />
     </div>
   );
 }

@@ -1,18 +1,15 @@
 import { useEffect, useMemo } from "react";
 import { KeyRound, Search, ShieldCheck } from "lucide-react";
 import { Empty } from "@/components/ui/empty";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InstancePermissions } from "@/components/access/instance-permissions";
 import { useAuth } from "@/app/auth-provider";
 import { useAccessMatrixQuery } from "@/hooks/use-access";
 import { useUrlState } from "@/hooks/use-url-state";
 import { familyByKey, type FamilyKey } from "@/lib/families";
-import { H1, P } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
+import { Workspace } from "@/components/layout/workspace";
 
 const ACCESS_DEFAULTS = { q: "", instance: "" };
 
@@ -62,41 +59,29 @@ export default function AccessPage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-3">
-      <div>
-        <H1>Access by instance</H1>
-        <P>Who can reach every instance, across all engine families. Editing stays on the instance dashboard.</P>
-      </div>
-
-      {matrix.isPending ? (
-        <Skeleton className="h-64 w-full" />
-      ) : (matrix.data?.instances ?? []).length === 0 ? (
-        <Empty icon={KeyRound} title="No instances" description="No instance is registered yet." />
-      ) : (
-        <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-          <ResizablePanel defaultSize={20} minSize={16}>
-            <Card className="mr-2 flex h-full min-h-0 flex-col">
-              <CardHeader className="gap-2">
-                <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-base">Instances</CardTitle>
-                  <Badge variant="secondary">{instances.length}</Badge>
-                </div>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute top-2 left-2 size-3.5 text-muted-foreground" />
-                  <Input
-                    value={state.q}
-                    onChange={(e) => patch({ q: e.target.value })}
-                    placeholder="Filter by instance"
-                    className="h-8 pl-7"
-                    aria-label="Filter by instance"
-                  />
-                </div>
-              </CardHeader>
-              <CardContent className="min-h-0 flex-1 overflow-auto">
+    <div className="flex h-full min-h-0">
+      <Workspace
+        leftLabel="Access instances"
+        rightLabel="Instance access"
+        left={
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <div className="relative">
+              <Search className="pointer-events-none absolute top-2 left-2 size-3.5 text-muted-foreground" />
+              <Input
+                value={state.q}
+                onChange={(e) => patch({ q: e.target.value })}
+                placeholder="Filter by instance"
+                className="h-8 pl-7"
+                aria-label="Filter by instance"
+              />
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto">
+              {matrix.isPending ? (
+                <Skeleton className="h-48 w-full" />
+              ) : instances.length === 0 ? (
+                <Empty icon={KeyRound} title="No instances" description="No instance matches this view." />
+              ) : (
                 <div className="grid gap-0.5">
-                  {instances.length === 0 && (
-                    <p className="px-2 py-3 text-xs text-muted-foreground">No instance matches this filter.</p>
-                  )}
                   {instances.map((instance) => {
                     const meta = familyByKey[instance.family as FamilyKey];
                     const Icon = meta?.icon;
@@ -121,23 +106,23 @@ export default function AccessPage() {
                     );
                   })}
                 </div>
-              </CardContent>
-            </Card>
-          </ResizablePanel>
-
-          <ResizableHandle withHandle />
-
-          <ResizablePanel defaultSize={80} minSize={40} className="min-w-0">
-            <div className="ml-2 h-full overflow-auto">
-              {selected ? (
-                <InstancePermissions instance={selected} readOnly />
-              ) : (
-                <Empty icon={KeyRound} title="No instance selected" description="Pick an instance on the left." />
               )}
             </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      )}
+          </div>
+        }
+        right={
+          matrix.isPending ? (
+            <Skeleton className="h-64 w-full" />
+          ) : selected ? (
+            <div className="min-h-0 flex-1 overflow-auto">
+              <InstancePermissions instance={selected} readOnly />
+            </div>
+          ) : (
+            <Empty icon={KeyRound} title="No instance selected" description="Pick an instance on the left." />
+          )
+        }
+      />
     </div>
   );
+
 }

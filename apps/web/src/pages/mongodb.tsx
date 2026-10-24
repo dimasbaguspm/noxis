@@ -3,8 +3,10 @@ import { Badge } from "@/components/ui/badge";
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { Workspace } from "@/components/layout/workspace";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { JsonEditor } from "@/components/sql/json-editor";
@@ -83,45 +85,40 @@ export default function MongoExplorePage() {
   }
 
   return (
-    <div className="flex h-[calc(100svh-7rem)] flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <Select value={connection ?? ""} onValueChange={(v) => pick(String(v))}>
-          <SelectTrigger className="w-56">
-            <SelectValue placeholder="no mongodb registered" />
-          </SelectTrigger>
-          <SelectContent>
-            {connections.length === 0 && <SelectItem value="none">none registered yet</SelectItem>}
-            {connections.map((c) => (
-              <SelectItem key={c.name} value={c.name}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={!connection || loadingDbs}
-          onClick={() => {
-            reloadDbs();
-            reloadColls();
-          }}
-        >
-          <RefreshCw className={cn((loadingDbs || loadingColls) && "animate-spin")} /> Refresh
-        </Button>
-        <span className="text-xs text-muted-foreground">
-          reads run here; writes are requested from Requests
-        </span>
-      </div>
-
-      <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
-        <ResizablePanel defaultSize={20} minSize={12}>
-          <Card className="mr-2 flex h-full min-h-0 flex-col">
-            <CardHeader>
-              <CardTitle className="text-base">Databases</CardTitle>
-              <CardDescription>{databases.length} on this server</CardDescription>
-            </CardHeader>
-            <CardContent className="min-h-0 overflow-auto">
+    <div className="flex h-full min-h-0">
+      <Workspace
+        leftLabel="Mongo databases"
+        rightLabel="Mongo collections and documents"
+        left={
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <Select value={connection ?? ""} onValueChange={(v) => pick(String(v))}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="no mongodb registered" />
+              </SelectTrigger>
+              <SelectContent>
+                {connections.length === 0 && <SelectItem value="none">none registered yet</SelectItem>}
+                {connections.map((c) => (
+                  <SelectItem key={c.name} value={c.name}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!connection || loadingDbs}
+              onClick={() => {
+                reloadDbs();
+                reloadColls();
+              }}
+            >
+              <RefreshCw className={cn((loadingDbs || loadingColls) && "animate-spin")} /> Refresh
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              reads run here; writes are requested from Requests
+            </span>
+            <div className="min-h-0 flex-1 overflow-auto">
               <div className="grid gap-1">
                 {databases.length === 0 && (
                   <P size="sm">
@@ -145,161 +142,144 @@ export default function MongoExplorePage() {
                   </Button>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        </ResizablePanel>
-
-        <ResizableHandle withHandle />
-
-        <ResizablePanel defaultSize={38} minSize={18}>
-          <Card className="mx-2 flex h-full min-h-0 flex-col">
-            <CardHeader className="gap-3">
-              <div>
-                <CardTitle className="text-base">{database ?? "Collections"}</CardTitle>
-                <CardDescription>
-                  {collections.length} collection(s) ·{" "}
-                  {compact(databases.find((d) => d.name === database)?.objects ?? 0)} document(s)
-                </CardDescription>
-              </div>
-              <div className="relative">
-                <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-7"
-                  placeholder="filter collections"
-                  value={filter.startsWith("{") ? "" : filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                />
-              </div>
-            </CardHeader>
-            <CardContent className="min-h-0 overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Collection</TableHead>
-                    <TableHead>Documents</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Indexes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {visible.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-muted-foreground">
-                        {database ? "no collection matches" : "pick a database"}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {visible.map((c) => (
-                    <TableRow
-                      key={c.name}
-                      className={cn("cursor-pointer", collection === c.name && "bg-accent/60")}
-                      onClick={() => setCollection(c.name)}
-                    >
-                      <TableCell className="flex items-center gap-2 font-mono text-xs">
-                        <Leaf className="size-3.5 text-muted-foreground" />
-                        {c.name}
-                        {c.capped && (
-                          <Badge variant="outline" className="text-[10px]">
-                            capped
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm tabular-nums">{compact(c.count ?? 0)}</TableCell>
-                      <TableCell className="text-xs tabular-nums text-muted-foreground">
-                        {bytes(c.sizeBytes ?? 0)}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {c.indexes ?? 0} · {bytes(c.indexSizeBytes ?? 0)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </ResizablePanel>
-
-        <ResizableHandle withHandle />
-
-        <ResizablePanel defaultSize={42} minSize={20}>
-          <Card className="ml-2 flex h-full min-h-0 flex-col">
-            <CardHeader className="gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="font-mono text-base">
-                  {collection ? `${database}.${collection}` : "Documents"}
-                </CardTitle>
-                {selected && (
-                  <Badge variant="outline">
-                    {compact(selected.count ?? 0)} docs · {bytes(selected.sizeBytes ?? 0)}
-                  </Badge>
-                )}
-                <span className="flex-1" />
-                <div className="flex gap-0.5">
-                  {(
-                    [
-                      { id: "json", label: "JSON", icon: <FileJson className="size-3.5" /> },
-                      { id: "raw", label: "Raw", icon: <Braces className="size-3.5" /> },
-                      { id: "tree", label: "Tree", icon: <ListTree className="size-3.5" /> },
-                    ] as const
-                  ).map((mode) => (
-                    <Button
-                      key={mode.id}
-                      size="xs"
-                      variant={view === mode.id ? "secondary" : "ghost"}
-                      onClick={() => setView(mode.id)}
-                    >
-                      {mode.icon} {mode.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              <CardDescription>
-                {collection
-                  ? "filter the documents, then read them as JSON, as a grid or as a tree"
-                  : "pick a collection to query it"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-              <div className="flex items-start gap-2">
-                <div className="min-w-0 flex-1">
-                  <JsonEditor
-                    value={filter.startsWith("{") ? filter : "{}"}
-                    onChange={setFilter}
-                    height="6rem"
-                    fields={readResult?.columns ?? []}
-                    placeholder="{}"
+            </div>
+          </div>
+        }
+        right={
+          <ResizablePanelGroup orientation="vertical" className="flex min-h-0 flex-1 flex-col gap-2">
+            <ResizablePanel defaultSize={30} minSize={18}>
+              <div className="flex h-full min-h-0 flex-col gap-2">
+                <div className="relative">
+                  <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-7"
+                    placeholder="filter collections"
+                    value={filter.startsWith("{") ? "" : filter}
+                    onChange={(e) => setFilter(e.target.value)}
                   />
                 </div>
-                <Button onClick={query} disabled={(readMatchesSelection && read.isPending) || !collection} className="mt-1">
-                  <Play /> Run
-                </Button>
+                <div className="min-h-0 flex-1 overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Collection</TableHead>
+                        <TableHead>Documents</TableHead>
+                        <TableHead>Size</TableHead>
+                        <TableHead>Indexes</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {visible.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-muted-foreground">
+                            {database ? "no collection matches" : "pick a database"}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {visible.map((c) => (
+                        <TableRow
+                          key={c.name}
+                          className={cn("cursor-pointer", collection === c.name && "bg-accent/60")}
+                          onClick={() => setCollection(c.name)}
+                        >
+                          <TableCell className="flex items-center gap-2 font-mono text-xs">
+                            <Leaf className="size-3.5 text-muted-foreground" />
+                            {c.name}
+                            {c.capped && (
+                              <Badge variant="outline" className="text-[10px]">
+                                capped
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm tabular-nums">{compact(c.count ?? 0)}</TableCell>
+                          <TableCell className="text-xs tabular-nums text-muted-foreground">
+                            {bytes(c.sizeBytes ?? 0)}
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {c.indexes ?? 0} · {bytes(c.indexSizeBytes ?? 0)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
+            </ResizablePanel>
 
-              <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border">
-                {!readResult ? (
-                  <P size="sm" className="p-3">no documents loaded yet</P>
-                ) : view === "raw" ? (
-                  <ResultTable result={readResult} title={`${database}.${collection}`} />
-                ) : view === "json" ? (
-                  <pre className="p-3 font-mono text-xs whitespace-pre-wrap">
-                    {JSON.stringify(documents, null, 2)}
-                  </pre>
-                ) : (
-                  <div className="p-3">
-                    <JsonTree value={documents} />
+            <ResizableHandle withHandle />
+
+            <ResizablePanel defaultSize={70} minSize={30}>
+              <div className="flex h-full min-h-0 flex-col gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {collection ? `${database}.${collection}` : "pick a collection to query it"}
+                  </span>
+                  {selected && (
+                    <Badge variant="outline">
+                      {compact(selected.count ?? 0)} docs · {bytes(selected.sizeBytes ?? 0)}
+                    </Badge>
+                  )}
+                  <span className="flex-1" />
+                  <div className="flex gap-0.5">
+                    {(
+                      [
+                        { id: "json", label: "JSON", icon: <FileJson className="size-3.5" /> },
+                        { id: "raw", label: "Raw", icon: <Braces className="size-3.5" /> },
+                        { id: "tree", label: "Tree", icon: <ListTree className="size-3.5" /> },
+                      ] as const
+                    ).map((mode) => (
+                      <Button
+                        key={mode.id}
+                        size="xs"
+                        variant={view === mode.id ? "secondary" : "ghost"}
+                        onClick={() => setView(mode.id)}
+                      >
+                        {mode.icon} {mode.label}
+                      </Button>
+                    ))}
                   </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <JsonEditor
+                      value={filter.startsWith("{") ? filter : "{}"}
+                      onChange={setFilter}
+                      height="6rem"
+                      fields={readResult?.columns ?? []}
+                      placeholder="{}"
+                    />
+                  </div>
+                  <Button onClick={query} disabled={(readMatchesSelection && read.isPending) || !collection} className="mt-1">
+                    <Play /> Run
+                  </Button>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border">
+                  {!readResult ? (
+                    <Empty title="No documents" description="Run the filter to load the first documents." />
+                  ) : view === "raw" ? (
+                    <ResultTable result={readResult} title={`${database}.${collection}`} />
+                  ) : view === "json" ? (
+                    <pre className="p-3 font-mono text-xs whitespace-pre-wrap">
+                      {JSON.stringify(documents, null, 2)}
+                    </pre>
+                  ) : (
+                    <div className="p-3">
+                      <JsonTree value={documents} />
+                    </div>
+                  )}
+                </div>
+
+                {readResult && (
+                  <P>
+                    {readResult.message} · {readResult.durationMs ?? 0} ms
+                  </P>
                 )}
               </div>
-
-              {readResult && (
-                <P>
-                  {readResult.message} · {readResult.durationMs ?? 0} ms
-                </P>
-              )}
-            </CardContent>
-          </Card>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        }
+      />
     </div>
   );
 }

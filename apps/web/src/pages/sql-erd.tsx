@@ -10,13 +10,13 @@ import { TableDetails } from "@/components/sql/table-details";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { Label } from "@/components/ui/label";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/app/auth-provider";
 import { useErdQuery } from "@/hooks/use-sql";
 import type { Table } from "@/lib/api";
 import { useConnections } from "@/hooks/use-connections";
+import { Workspace } from "@/components/layout/workspace";
 import { FAMILY } from "@/lib/families";
 
 // SqlErdPage is the full-screen schema graph: pick an instance and a table on the left, read and zoom the graph on the right.
@@ -74,60 +74,48 @@ export default function SqlErdPage() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-        <ResizablePanel defaultSize={20} minSize={16}>
-          <Card className="mr-2 flex h-full min-h-0 flex-col">
-            <CardHeader className="gap-1">
-              <CardTitle className="text-base">Schema</CardTitle>
-              <CardDescription>Pick an instance, then a table to focus.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
-              <div className="grid gap-1.5">
-                <Label>Instance</Label>
-                <ConnectionSelect value={connection} onChange={pick} className="w-full" />
-              </div>
-              <div className="min-h-0 flex-1">
-                <TableBrowser
-                  tables={schemaTables}
-                  onSelect={(t) => setSelectedId(t.id ?? `${t.schema ?? ""}.${t.name ?? ""}`)}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {tables.length} table(s) · {connections.length} instance(s)
-              </p>
-            </CardContent>
-          </Card>
-        </ResizablePanel>
-
-        <ResizableHandle withHandle />
-
-        <ResizablePanel defaultSize={74} minSize={45} className="min-w-0">
-          <Card className="ml-2 flex h-full min-h-0 flex-col overflow-hidden">
-            <CardContent className="relative min-h-0 flex-1 p-0">
-              {erd.isPending ? (
-                <Skeleton className="m-4 h-[60%] w-[calc(100%-2rem)]" />
-              ) : erd.error ? (
-                <Empty
-                  icon={Network}
-                  title="The diagram could not load"
-                  description={erd.error instanceof Error ? erd.error.message : "the schema request failed"}
-                />
-              ) : tables.length === 0 ? (
-                <Empty icon={Network} title="No tables" description="This instance has no tables to draw." />
-              ) : (
-                <ErdCanvas
-                  key={connection}
-                  tables={tables}
-                  selectedId={selectedId}
-                  query=""
-                  onSelect={setSelectedId}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+    <>
+      <div className="flex h-full min-h-0">
+      <Workspace
+        leftLabel="Schema filters"
+        rightLabel="Entity relationship diagram"
+        left={
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <div className="grid gap-1.5">
+              <Label>Instance</Label>
+              <ConnectionSelect value={connection} onChange={pick} className="w-full" />
+            </div>
+            <div className="min-h-0 flex-1">
+              <TableBrowser
+                tables={schemaTables}
+                onSelect={(t) => setSelectedId(t.id ?? `${t.schema ?? ""}.${t.name ?? ""}`)}
+              />
+            </div>
+          </div>
+        }
+        right={
+          erd.isPending ? (
+            <Skeleton className="m-4 h-[60%] w-[calc(100%-2rem)]" />
+          ) : erd.error ? (
+            <Empty
+              icon={Network}
+              title="The diagram could not load"
+              description={erd.error instanceof Error ? erd.error.message : "the schema request failed"}
+            />
+          ) : tables.length === 0 ? (
+            <Empty icon={Network} title="No tables" description="This instance has no tables to draw." />
+          ) : (
+            <ErdCanvas
+              key={connection}
+              tables={tables}
+              selectedId={selectedId}
+              query=""
+              onSelect={setSelectedId}
+            />
+          )
+        }
+      />
+      </div>
 
       <Sheet open={!!selected} onOpenChange={(open) => !open && setSelectedId(undefined)}>
         <SheetContent className="sm:max-w-md">
@@ -142,6 +130,6 @@ export default function SqlErdPage() {
           </SheetBody>
         </SheetContent>
       </Sheet>
-    </div>
+    </>
   );
 }
