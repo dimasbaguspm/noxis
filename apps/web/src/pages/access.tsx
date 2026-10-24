@@ -27,6 +27,7 @@ export default function AccessPage() {
     const all = (matrix.data?.instances ?? []).flatMap((i) =>
       i.connection
         ? [{
+            id: i.id ?? "",
             name: i.connection,
             driver: i.driver ?? "",
             family: i.family ?? "",
@@ -38,10 +39,14 @@ export default function AccessPage() {
     return needle ? all.filter((i) => i.name.toLowerCase().includes(needle)) : all;
   }, [matrix.data, state.q]);
 
-  const selected = instances.find((i) => i.name === state.instance) ?? instances[0] ?? null;
+  const selected =
+    instances.find((i) => i.id === state.instance) ??
+    instances.find((i) => i.name === state.instance) ??
+    instances[0] ??
+    null;
 
   useEffect(() => {
-    if (selected && selected.name !== state.instance) patch({ instance: selected.name });
+    if (selected && selected.id !== state.instance) patch({ instance: selected.id });
   }, [selected, state.instance, patch]);
 
   if (!isAdmin) {
@@ -97,12 +102,12 @@ export default function AccessPage() {
                     const Icon = meta?.icon;
                     return (
                       <button
-                        key={instance.name}
+                        key={instance.id || instance.name}
                         type="button"
-                        onClick={() => patch({ instance: instance.name })}
+                        onClick={() => patch({ instance: instance.id || instance.name })}
                         className={cn(
                           "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent/60",
-                          instance.name === selected?.name && "bg-accent text-accent-foreground",
+                          instance.id === selected?.id && "bg-accent text-accent-foreground",
                         )}
                       >
                         {Icon ? <Icon className="size-3.5 shrink-0 text-muted-foreground" /> : <KeyRound className="size-3.5 shrink-0 text-muted-foreground" />}

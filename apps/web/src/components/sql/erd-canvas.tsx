@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dagre from "@dagrejs/dagre";
 import {
   Background,
@@ -17,7 +17,7 @@ import {
   useNodesState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Maximize2, RotateCcw } from "lucide-react";
+import { Maximize2, Minimize2, RotateCcw, Scan } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -174,15 +174,24 @@ function FocusSelection({ id }: { id?: string }) {
   return null;
 }
 
-function GraphActions() {
+function GraphActions({ fullscreen, onFullscreen }: { fullscreen: boolean; onFullscreen: () => void }) {
   const { fitView, zoomTo } = useReactFlow();
   return (
     <Panel position="top-right" className="flex gap-1">
       <Button size="icon-sm" variant="outline" title="Fit diagram" onClick={() => void fitView({ duration: 300, padding: 0.2 })}>
-        <Maximize2 />
+        <Scan />
       </Button>
       <Button size="icon-sm" variant="outline" title="Actual size" onClick={() => void zoomTo(1, { duration: 200 })}>
         <RotateCcw />
+      </Button>
+      <Button
+        size="icon-sm"
+        variant="outline"
+        title={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+        aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+        onClick={onFullscreen}
+      >
+        {fullscreen ? <Minimize2 /> : <Maximize2 />}
       </Button>
     </Panel>
   );
@@ -201,7 +210,24 @@ export function ErdCanvas({
 }) {
   const graph = useMemo(() => layoutTables(tables), [tables]);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<TableNodeData>>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
   const needle = query.trim().toLowerCase();
+
+  useEffect(() => {
+    const onChange = () => setFullscreen(document.fullscreenElement === containerRef.current);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await containerRef.current?.requestFullscreen();
+    } catch {
+      // browsers may refuse fullscreen; the graph stays usable in place
+    }
+  }
 
   // A new schema replaces the layout, but selection and filtering must not undo a drag.
   useEffect(() => {
@@ -222,8 +248,9 @@ export function ErdCanvas({
   );
 
   return (
-    <ReactFlow
-      nodes={viewNodes}
+    <div ref={containerRef} className="h-full w-full bg-background">
+      <ReactFlow
+        nodes={viewNodes}
       edges={graph.edges}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
@@ -234,15 +261,16 @@ export function ErdCanvas({
       maxZoom={2}
       nodesConnectable={false}
       onNodeClick={(_, node) => onSelect(node.id)}
-      className="bg-muted/20"
-    >
-      <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
-      <Controls showInteractive={false} />
-      <MiniMap pannable zoomable nodeColor="#94a3b8" maskColor="rgba(2, 6, 23, 0.72)" />
-      <GraphActions />
-      <FocusSelection id={selectedId} />
-      <FitOnLoad count={nodes.length} />
-    </ReactFlow>
+        className="bg-muted/20"
+      >
+        <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
+        <Controls showInteractive={false} />
+        <MiniMap pannable zoomable nodeColor="#94a3b8" maskColor="rgba(2, 6, 23, 0.72)" />
+        <GraphActions fullscreen={fullscreen} onFullscreen={() => void toggleFullscreen()} />
+        <FocusSelection id={selectedId} />
+        <FitOnLoad count={nodes.length} />
+      </ReactFlow>
+    </div>
   );
 }
 
