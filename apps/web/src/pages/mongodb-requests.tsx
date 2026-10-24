@@ -29,8 +29,6 @@ export default function MongoRequestsPage() {
   return (
     <div className="flex h-full min-h-0">
       <Workspace
-        leftLabel="Request filters"
-        rightLabel="Mongo requests"
         left={
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
             <Button variant="outline" size="sm" onClick={() => void reload()} disabled={loading}>

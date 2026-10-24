@@ -35,8 +35,6 @@ export default function UserDetailPage() {
   return (
     <div className="flex h-full min-h-0">
       <Workspace
-        leftLabel="User identity"
-        rightLabel="User access and activity"
         left={
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
             <div className="flex flex-wrap items-center gap-2">

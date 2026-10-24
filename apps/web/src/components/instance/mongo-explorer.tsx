@@ -61,8 +61,6 @@ export function MongoExplorer({ connection }: { connection: string }) {
   return (
     <div className="flex h-full min-h-0">
       <Workspace
-        leftLabel="Mongo filters"
-        rightLabel="Mongo documents"
         left={
           <div className="flex min-h-0 flex-1 flex-col gap-3">
             <Select value={db ?? ""} onValueChange={(v) => setDatabase(String(v))}>

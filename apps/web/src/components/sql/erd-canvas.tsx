@@ -6,7 +6,6 @@ import {
   Controls,
   Handle,
   MarkerType,
-  MiniMap,
   Panel,
   Position,
   ReactFlow,
@@ -321,7 +320,6 @@ export function ErdCanvas({
       >
         <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
         <Controls showInteractive={false} />
-        <MiniMap pannable zoomable nodeColor="#94a3b8" maskColor="rgba(2, 6, 23, 0.72)" />
         <GraphActions fullscreen={fullscreen} onFullscreen={() => void toggleFullscreen()} />
         <FocusSelection id={selectedId} />
         <FitOnLoad count={nodes.length} />
