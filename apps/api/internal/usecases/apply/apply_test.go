@@ -10,6 +10,7 @@ import (
 
 	"go.uber.org/mock/gomock"
 
+	"noxis/internal/common/testkit"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -17,7 +18,6 @@ import (
 	"noxis/internal/modules"
 	"noxis/internal/modules/sql"
 	"noxis/internal/repositories"
-	"noxis/internal/common/testkit"
 	"noxis/internal/usecases"
 )
 
@@ -31,6 +31,7 @@ type harness struct {
 	sq      *mocks.MockSQLModule
 	changes *mocks.MockChangeRepository
 	stored  map[string]entity.Change
+	saveErr error
 }
 
 func newHarness(t *testing.T, store ...entity.Change) *harness {
@@ -56,6 +57,9 @@ func newHarness(t *testing.T, store ...entity.Change) *harness {
 		return &c, nil
 	}).AnyTimes()
 	h.changes.EXPECT().SaveChange(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, c entity.Change) error {
+		if h.saveErr != nil {
+			return h.saveErr
+		}
 		h.stored[c.ID] = c
 		return nil
 	}).AnyTimes()
@@ -110,6 +114,21 @@ func TestApplyFailureIsRecorded(t *testing.T) {
 	last := stored.Checks[len(stored.Checks)-1]
 	if last.OK || !strings.Contains(last.Error, "duplicate key") {
 		t.Fatalf("apply check: %+v", last)
+	}
+}
+
+func TestApplyFailureReportsOutcomeSaveFailure(t *testing.T) {
+	h := newHarness(t, approved("x"))
+	h.saveErr = errors.New("sqlite unavailable")
+	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, errors.New("duplicate key"))
+
+	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
+	rec := testkit.Do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
+	if rec.Code == http.StatusOK || !strings.Contains(rec.Body.String(), "sqlite unavailable") || !strings.Contains(rec.Body.String(), "duplicate key") {
+		t.Fatalf("apply must surface both errors: status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if got := h.stored["x"].Status; got != constants.ChangeApproved {
+		t.Fatalf("stored status=%q want approved when failed outcome cannot be saved", got)
 	}
 }
 
