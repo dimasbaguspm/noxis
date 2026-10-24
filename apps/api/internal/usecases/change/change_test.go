@@ -57,8 +57,8 @@ func newHarness(t *testing.T) *harness {
 		nil,
 	)
 	h.deps = usecases.RegistryDeps{
-		Registry: repositories.Registry{Connections: h.conns, Changes: h.changes},
-		Modules:  registry,
+		Repositories: repositories.Registry{Connections: h.conns, Changes: h.changes},
+		Modules:      registry,
 	}
 	return h
 }

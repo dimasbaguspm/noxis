@@ -20,13 +20,13 @@ func TestNewDepsWiresRepositories(t *testing.T) {
 
 	d := newDeps(store, config.Config{}, auth.NewService(store, nil))
 	for name, got := range map[string]any{
-		"AccessRequests": d.AccessList.AccessRequests,
-		"AccessApprove":  d.AccessApprove.AccessRequests,
-		"AccessEvents":   d.UserGet.AccessEvents,
-		"Permissions":    d.SetPermission.Permissions,
-		"Users":          d.UserList.Users,
-		"Connections":    d.ConnectionList.Connections,
-		"Changes":        d.ChangeList.Changes,
+		"AccessRequests": d.AccessList.Repositories.AccessRequests,
+		"AccessApprove":  d.AccessApprove.Repositories.AccessRequests,
+		"AccessEvents":   d.UserGet.Repositories.AccessEvents,
+		"Permissions":    d.SetPermission.Repositories.Permissions,
+		"Users":          d.UserList.Repositories.Users,
+		"Connections":    d.ConnectionList.Repositories.Connections,
+		"Changes":        d.ChangeList.Repositories.Changes,
 	} {
 		if got == nil {
 			t.Errorf("%s is not wired into the composition root", name)

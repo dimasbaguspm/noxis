@@ -47,7 +47,7 @@ func (uc Save) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	existing, err := uc.Connections.Get(ctx, connection.Name)
+	existing, err := uc.Repositories.Connections.Get(ctx, connection.Name)
 	switch {
 	case err == nil:
 		if connection.Driver != existing.Driver || connection.Host != existing.Host ||
@@ -71,7 +71,7 @@ func (uc Save) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	if err := uc.Connections.Save(ctx, connection); err != nil {
+	if err := uc.Repositories.Connections.Save(ctx, connection); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}

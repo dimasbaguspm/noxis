@@ -39,7 +39,7 @@ func (uc Update) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, fmt.Errorf("status or role is required"))
 		return
 	}
-	user, err := uc.Users.GetUser(ctx, subject)
+	user, err := uc.Repositories.Users.GetUser(ctx, subject)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

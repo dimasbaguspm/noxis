@@ -25,7 +25,7 @@ func (uc Me) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	grants := map[string]entity.AccessGrant{}
-	connections, err := uc.Connections.List(ctx)
+	connections, err := uc.Repositories.Connections.List(ctx)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

@@ -106,7 +106,7 @@ func newHarness(t *testing.T) *harness {
 			return constants.ErrNotFound
 		}).AnyTimes()
 
-	h.deps = usecases.RegistryDeps{Registry: repositories.Registry{
+	h.deps = usecases.RegistryDeps{Repositories: repositories.Registry{
 		Connections: conns, Permissions: perms, AccessRequests: requests,
 	}}
 	// alice is the instance admin

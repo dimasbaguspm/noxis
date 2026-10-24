@@ -55,7 +55,7 @@ func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	if err := uc.Permissions.SetPermission(ctx, permission); err != nil {
+	if err := uc.Repositories.Permissions.SetPermission(ctx, permission); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}

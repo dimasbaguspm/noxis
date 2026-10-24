@@ -29,7 +29,7 @@ func (uc Approve) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
 	}
-	request, err := uc.AccessRequests.GetAccessRequest(ctx, r.PathValue("id"))
+	request, err := uc.Repositories.AccessRequests.GetAccessRequest(ctx, r.PathValue("id"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -53,11 +53,11 @@ func (uc Approve) Serve(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt: now.Add(uc.GrantTTL()).Unix(), CreatedBy: principal.Subject,
 		CreatedAt: now.Unix(), UpdatedAt: now.Unix(),
 	}
-	if err := uc.Permissions.SetPermission(ctx, grant); err != nil {
+	if err := uc.Repositories.Permissions.SetPermission(ctx, grant); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	if err := uc.AccessRequests.SetAccessRequestDecision(ctx, request.ID, entity.RequestApproved, principal.Subject, now.Unix(), body.Note); err != nil {
+	if err := uc.Repositories.AccessRequests.SetAccessRequestDecision(ctx, request.ID, entity.RequestApproved, principal.Subject, now.Unix(), body.Note); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}

@@ -26,7 +26,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
 	query := r.URL.Query()
-	all, err := uc.Connections.List(ctx)
+	all, err := uc.Repositories.Connections.List(ctx)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

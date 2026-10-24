@@ -22,12 +22,12 @@ func (uc Members) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	groups, err := uc.Permissions.ListGroupNames(ctx)
+	groups, err := uc.Repositories.Permissions.ListGroupNames(ctx)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	users, err := uc.Users.ListUsers(ctx)
+	users, err := uc.Repositories.Users.ListUsers(ctx)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

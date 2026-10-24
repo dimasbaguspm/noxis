@@ -27,8 +27,8 @@ func deps(t *testing.T) (usecases.RegistryDeps, *mocks.MockConnectionRepository,
 	sq.EXPECT().Family().Return(constants.FamilySQL).AnyTimes()
 	sq.EXPECT().Supports(gomock.Any()).Return(true).AnyTimes()
 	return usecases.RegistryDeps{
-		Registry: repositories.Registry{Connections: conns, Permissions: perms},
-		Modules:  modules.New(map[string]interfaces.Module{constants.FamilySQL: sq}, interfaces.ChangeFlows{}, nil),
+		Repositories: repositories.Registry{Connections: conns, Permissions: perms},
+		Modules:      modules.New(map[string]interfaces.Module{constants.FamilySQL: sq}, interfaces.ChangeFlows{}, nil),
 	}, conns, perms
 }
 

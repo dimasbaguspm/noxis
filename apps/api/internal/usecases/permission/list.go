@@ -36,7 +36,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	permissions, err := uc.Permissions.ListPermissions(ctx, r.PathValue("name"))
+	permissions, err := uc.Repositories.Permissions.ListPermissions(ctx, r.PathValue("name"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

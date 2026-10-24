@@ -22,12 +22,12 @@ func (uc Matrix) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	connections, err := uc.Connections.List(ctx)
+	connections, err := uc.Repositories.Connections.List(ctx)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	grants, err := uc.Permissions.ListAllPermissions(ctx)
+	grants, err := uc.Repositories.Permissions.ListAllPermissions(ctx)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

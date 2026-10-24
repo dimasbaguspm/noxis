@@ -25,7 +25,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	users, err := uc.Users.ListUsers(ctx)
+	users, err := uc.Repositories.Users.ListUsers(ctx)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

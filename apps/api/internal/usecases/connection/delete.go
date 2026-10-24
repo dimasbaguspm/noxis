@@ -33,7 +33,7 @@ func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	if err := uc.Connections.Delete(ctx, r.PathValue("name")); err != nil {
+	if err := uc.Repositories.Connections.Delete(ctx, r.PathValue("name")); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}

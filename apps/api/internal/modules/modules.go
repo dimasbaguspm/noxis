@@ -14,6 +14,7 @@ import (
 	"noxis/internal/modules/memcache"
 	"noxis/internal/modules/mongodb"
 	"noxis/internal/modules/sql"
+	"noxis/internal/repositories"
 )
 
 // Registry resolves an engine family by its {engine} name and by driver, and carries the process auth service.
@@ -36,7 +37,7 @@ func New(mods map[string]interfaces.Module, changes interfaces.ChangeFlows, auth
 }
 
 // Default builds the built-in registry: every engine family, its change queue and the auth service, so nothing else declares what the process can do.
-func Default(connections interfaces.ConnectionRepository, store interfaces.ChangeRepository, m *metrics.Metrics, authSvc *auth.Service) Registry {
+func Default(repos repositories.Registry, m *metrics.Metrics, authSvc *auth.Service) Registry {
 	sqlDB, mongoDB := sql.New(), mongodb.New()
 	return New(
 		map[string]interfaces.Module{
@@ -45,8 +46,8 @@ func Default(connections interfaces.ConnectionRepository, store interfaces.Chang
 			constants.FamilyMongo:    mongoDB,
 		},
 		interfaces.ChangeFlows{
-			SQL:   sql.NewChanges(connections, store, sqlDB, m),
-			Mongo: mongodb.NewChanges(connections, store, mongoDB, m),
+			SQL:   sql.NewChanges(repos.Connections, repos.Changes, sqlDB, m),
+			Mongo: mongodb.NewChanges(repos.Connections, repos.Changes, mongoDB, m),
 		},
 		authSvc,
 	)

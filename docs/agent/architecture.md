@@ -29,10 +29,11 @@ modules keep their `var _ interfaces.X` satisfier asserts next to the struct.
 
 One file does all wiring, at boot, once: `apps/api/cmd/noxis/server/app.go`.
 
-- `sources` holds the seams: the repositories, `modules.Registry`, `config.AuthInfo`.
+- `sources` holds the seams: `repositories.Registry`, `modules.Registry`, and `config.AuthInfo`.
 - `app` lists every use case as a named field.
 - `newApp(sources)` builds each use case **explicitly** — the fields it needs are
-  named at the call site. The request context carries the authenticated principal
+  named at the call site, and repositories stay under `Deps.Repositories`.
+  The request context carries the authenticated principal
   and immutable module loader only; repositories, configuration, and the rest of
   the app dependencies remain explicit.
 - `server.Run` attaches the loader to the server base context once. A use case loads
@@ -98,8 +99,8 @@ the registry or a sibling family package.
 
 ## Use-case pattern
 
-- The root package `internal/usecases` is the framework: `RegistryDeps` (the
-  repositories + the module registry) and its methods. Domain subpackages
+- The root package `internal/usecases` is the framework: `RegistryDeps` (named
+  `Repositories` bundle plus the module registry) and its methods. Domain subpackages
   (`connection`, `change`, `apply`, `schema`, `permission`, `instance`, `auth`,
   `cache`, `mongo`, `driver`) hold the use cases; siblings never import each other.
 - One exported struct per operation, one `Serve(w, r)`. It embeds

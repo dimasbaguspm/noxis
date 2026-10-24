@@ -106,7 +106,7 @@ func newHarness(t *testing.T) *harness {
 			return out, nil
 		}).AnyTimes()
 
-	h.deps = usecases.RegistryDeps{Registry: repositories.Registry{
+	h.deps = usecases.RegistryDeps{Repositories: repositories.Registry{
 		Users: users, Permissions: perms, AccessEvents: events,
 	}}
 	return h

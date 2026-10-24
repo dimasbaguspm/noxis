@@ -31,7 +31,7 @@ func deps(t *testing.T) (usecases.RegistryDeps, *mocks.MockConnectionRepository)
 	mc.EXPECT().Supports(constants.DriverRedis).Return(true).AnyTimes()
 	mc.EXPECT().Supports(gomock.Any()).Return(false).AnyTimes()
 	return usecases.RegistryDeps{
-		Registry: repositories.Registry{Connections: conns},
+		Repositories: repositories.Registry{Connections: conns},
 		Modules: modules.New(map[string]interfaces.Module{
 			constants.FamilySQL: sq, constants.FamilyMemcache: mc,
 		}, interfaces.ChangeFlows{}, nil),
