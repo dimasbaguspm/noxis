@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -135,132 +137,160 @@ export default function MemcachePage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <Select
-          value={connection ?? ""}
-          onValueChange={(v) => {
-            setInspected(undefined);
-            pick(String(v));
-          }}
-        >
-          <SelectTrigger className="w-56">
-            <SelectValue placeholder="no memory cache registered" />
-          </SelectTrigger>
-          <SelectContent>
-            {connections.length === 0 && <SelectItem value="none">none registered yet</SelectItem>}
-            {connections.map((c) => (
-              <SelectItem key={c.name} value={c.name}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <div className="flex items-center gap-2">
-          <Search className="size-4 text-muted-foreground" />
-          <Input
-            value={pattern}
-            onChange={(e) => {
-              setSelection({ scope: selectionScope, keys: [] });
-              setInspected(undefined);
-              setPattern(e.target.value);
-            }}
-            placeholder="key pattern, e.g. session:*"
-            className="w-64"
-          />
-        </div>
-        <Button variant="outline" size="sm" onClick={() => void reloadKeys()} disabled={loading || !connection}>
-          <RefreshCw className={cn(loading && "animate-spin")} /> Refresh
-        </Button>
-        <Badge variant="outline">{page.total} key(s) in db</Badge>
-        {page.truncated && (
-          <Tooltip>
-            <TooltipTrigger render={<span className="text-xs text-amber-500" />}>scan truncated</TooltipTrigger>
-            <TooltipContent>
-              The keyspace holds more keys than one scan reads (500 by default). Narrow the pattern.
-            </TooltipContent>
-          </Tooltip>
-        )}
-      </div>
-
-      <Card className="flex min-h-0 flex-col">
-        <CardHeader>
-          <CardTitle className="text-base">Keys</CardTitle>
-          <CardDescription>
-            {selected.length > 0 ? `${selected.length} selected` : "click a key to open its value"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="min-h-0 overflow-auto">
-          {mayAdmin && (
-            <div className="mb-2 flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={selected.length === 0 || removeKeys.isPending}
-                onClick={() => void onRemoveKeys()}
-              >
-                <Trash2 /> Remove selected
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive"
-                disabled={!connection}
-                onClick={() => setFlushOpen(true)}
-              >
-                <Eraser /> Empty database
-              </Button>
-            </div>
-          )}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8" />
-                <TableHead>{head("name", "Key")}</TableHead>
-                <TableHead>{head("type", "Type")}</TableHead>
-                <TableHead>{head("ttl", "TTL")}</TableHead>
-                <TableHead>{head("size", "Size")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {keys.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground">
-                    {connection ? "no key matches" : "register a memory cache from the dashboard to browse"}
-                  </TableCell>
-                </TableRow>
-              )}
-              {keys.map((key) => (
-                <TableRow
-                  key={key.name}
-                  className={cn("cursor-pointer", inspected === key.name && "bg-accent/60")}
-                  onClick={() => setInspected(key.name)}
+    <div className="flex h-full flex-col">
+      <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
+        <ResizablePanel defaultSize={20} minSize={16}>
+          <Card className="mr-2 flex h-full min-h-0 flex-col">
+            <CardHeader className="gap-1">
+              <CardTitle className="text-base">Memory cache</CardTitle>
+              <CardDescription>Pick a server and scan a key pattern.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
+              <div className="flex flex-col gap-1.5">
+                <Label>Instance</Label>
+                <Select
+                  value={connection ?? ""}
+                  onValueChange={(v) => {
+                    setInspected(undefined);
+                    pick(String(v));
+                  }}
                 >
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      aria-label={`select ${key.name}`}
-                      checked={selected.includes(key.name)}
-                      onCheckedChange={() => toggle(key.name)}
-                    />
-                  </TableCell>
-                  <TableCell className="max-w-96 truncate font-mono text-xs" title={key.name}>
-                    {key.name}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-[10px]">
-                      {key.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{ttl(key.ttl)}</TableCell>
-                  <TableCell className="text-xs tabular-nums text-muted-foreground">
-                    {key.size ? bytes(key.size) : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="no memory cache registered" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {connections.length === 0 && <SelectItem value="none">none registered yet</SelectItem>}
+                    {connections.map((c) => (
+                      <SelectItem key={c.name} value={c.name}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="key-pattern">Key pattern</Label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="key-pattern"
+                    value={pattern}
+                    onChange={(e) => {
+                      setSelection({ scope: selectionScope, keys: [] });
+                      setInspected(undefined);
+                      setPattern(e.target.value);
+                    }}
+                    placeholder="session:*"
+                    className="w-full pl-7"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => void reloadKeys()} disabled={loading || !connection}>
+                  <RefreshCw className={cn(loading && "animate-spin")} /> Refresh
+                </Button>
+                <Badge variant="outline">{page.total} key(s) in db</Badge>
+              </div>
+
+              {page.truncated && (
+                <Tooltip>
+                  <TooltipTrigger render={<span className="text-xs text-amber-500" />}>scan truncated</TooltipTrigger>
+                  <TooltipContent>
+                    The keyspace holds more keys than one scan reads (500 by default). Narrow the pattern.
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {mayAdmin && (
+                <div className="mt-auto flex flex-col gap-2 border-t border-border pt-3">
+                  <Label>Selected</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={selected.length === 0 || removeKeys.isPending}
+                    onClick={() => void onRemoveKeys()}
+                  >
+                    <Trash2 /> Remove selected
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start text-destructive"
+                    disabled={!connection}
+                    onClick={() => setFlushOpen(true)}
+                  >
+                    <Eraser /> Empty database
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        <ResizablePanel defaultSize={80} minSize={40} className="min-w-0">
+          <Card className="ml-2 flex h-full min-h-0 flex-col">
+            <CardHeader className="gap-1">
+              <CardTitle className="text-base">Keys</CardTitle>
+              <CardDescription>
+                {selected.length > 0 ? `${selected.length} selected` : "click a key to open its value"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="min-h-0 flex-1 overflow-auto pt-0">
+              <Table>
+                <TableHeader className="sticky top-0 bg-card">
+                  <TableRow>
+                    <TableHead className="w-8" />
+                    <TableHead>{head("name", "Key")}</TableHead>
+                    <TableHead>{head("type", "Type")}</TableHead>
+                    <TableHead>{head("ttl", "TTL")}</TableHead>
+                    <TableHead>{head("size", "Size")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {keys.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-muted-foreground">
+                        {connection ? "no key matches" : "register a memory cache from the dashboard to browse"}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {keys.map((key) => (
+                    <TableRow
+                      key={key.name}
+                      className={cn("cursor-pointer", inspected === key.name && "bg-accent/60")}
+                      onClick={() => setInspected(key.name)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          aria-label={`select ${key.name}`}
+                          checked={selected.includes(key.name)}
+                          onCheckedChange={() => toggle(key.name)}
+                        />
+                      </TableCell>
+                      <TableCell className="max-w-96 truncate font-mono text-xs" title={key.name}>
+                        {key.name}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px]">
+                          {key.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{ttl(key.ttl)}</TableCell>
+                      <TableCell className="text-xs tabular-nums text-muted-foreground">
+                        {key.size ? bytes(key.size) : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </ResizablePanel>
+      </ResizablePanelGroup>
 
       <Dialog open={inspected !== undefined} onOpenChange={(open) => !open && setInspected(undefined)}>
         <DialogContent className="sm:max-w-2xl">
