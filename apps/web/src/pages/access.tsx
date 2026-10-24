@@ -1,28 +1,48 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { KeyRound, Search, ShieldCheck } from "lucide-react";
 import { Empty } from "@/components/ui/empty";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InstancePermissions } from "@/components/access/instance-permissions";
 import { useAuth } from "@/app/auth-provider";
 import { useAccessMatrixQuery } from "@/hooks/use-access";
-import { useUsersUrlParams } from "@/hooks/use-users";
+import { useUrlState } from "@/hooks/use-url-state";
+import { familyByKey, type FamilyKey } from "@/lib/families";
 import { H1, P } from "@/components/ui/typography";
+import { cn } from "@/lib/utils";
 
-// AccessPage shows all instances and grants so admins can manage policy without per-instance access.
+const ACCESS_DEFAULTS = { q: "", instance: "" };
+
+// AccessPage keeps the instance list in view while one policy is edited: a resizable list on the left, the selected policy on the right.
 export default function AccessPage() {
   const { isAdmin } = useAuth();
-  const { q, setQ } = useUsersUrlParams();
+  const [state, patch] = useUrlState(ACCESS_DEFAULTS);
   const matrix = useAccessMatrixQuery(isAdmin);
 
   const instances = useMemo(() => {
-    // the generated schema marks every field optional: an instance without a name is not addressable, so drop it rather than render a ghost card
+    // the generated schema marks every field optional: an instance without a name is not addressable, so drop it rather than render a ghost row
     const all = (matrix.data?.instances ?? []).flatMap((i) =>
-      i.connection ? [{ name: i.connection, driver: i.driver ?? "", family: i.family ?? "" }] : [],
+      i.connection
+        ? [{
+            name: i.connection,
+            driver: i.driver ?? "",
+            family: i.family ?? "",
+            grants: i.permissions?.length ?? 0,
+          }]
+        : [],
     );
-    const needle = q.trim().toLowerCase();
+    const needle = state.q.trim().toLowerCase();
     return needle ? all.filter((i) => i.name.toLowerCase().includes(needle)) : all;
-  }, [matrix.data, q]);
+  }, [matrix.data, state.q]);
+
+  const selected = instances.find((i) => i.name === state.instance) ?? instances[0] ?? null;
+
+  useEffect(() => {
+    if (selected && selected.name !== state.instance) patch({ instance: selected.name });
+  }, [selected, state.instance, patch]);
 
   if (!isAdmin) {
     return (
@@ -37,29 +57,81 @@ export default function AccessPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex h-full flex-col gap-3">
       <div>
         <H1>Access by instance</H1>
         <P>Every instance and who holds which level on it, across all engine families.</P>
       </div>
 
-      <InputGroup className="h-8 w-64">
-        <InputGroupAddon>
-          <Search />
-        </InputGroupAddon>
-        <InputGroupInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter by instance" />
-      </InputGroup>
-
       {matrix.isPending ? (
-        <Skeleton className="h-32 w-full" />
-      ) : instances.length === 0 ? (
-        <Empty icon={KeyRound} title="No instances" description="No instance matches this filter." />
+        <Skeleton className="h-64 w-full" />
+      ) : (matrix.data?.instances ?? []).length === 0 ? (
+        <Empty icon={KeyRound} title="No instances" description="No instance is registered yet." />
       ) : (
-        <div className="grid items-start gap-4 xl:grid-cols-2">
-          {instances.map((instance) => (
-            <InstancePermissions key={instance.name} instance={instance} />
-          ))}
-        </div>
+        <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
+          <ResizablePanel defaultSize={30} minSize={20}>
+            <Card className="mr-2 flex h-full min-h-0 flex-col">
+              <CardHeader className="gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base">Instances</CardTitle>
+                  <Badge variant="secondary">{instances.length}</Badge>
+                </div>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute top-2 left-2 size-3.5 text-muted-foreground" />
+                  <Input
+                    value={state.q}
+                    onChange={(e) => patch({ q: e.target.value })}
+                    placeholder="Filter by instance"
+                    className="h-8 pl-7"
+                    aria-label="Filter by instance"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="min-h-0 flex-1 overflow-auto">
+                <div className="grid gap-0.5">
+                  {instances.length === 0 && (
+                    <p className="px-2 py-3 text-xs text-muted-foreground">No instance matches this filter.</p>
+                  )}
+                  {instances.map((instance) => {
+                    const meta = familyByKey[instance.family as FamilyKey];
+                    const Icon = meta?.icon;
+                    return (
+                      <button
+                        key={instance.name}
+                        type="button"
+                        onClick={() => patch({ instance: instance.name })}
+                        className={cn(
+                          "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-accent/60",
+                          instance.name === selected?.name && "bg-accent text-accent-foreground",
+                        )}
+                      >
+                        {Icon ? <Icon className="size-3.5 shrink-0 text-muted-foreground" /> : <KeyRound className="size-3.5 shrink-0 text-muted-foreground" />}
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate">{instance.name}</span>
+                          <span className="block truncate text-[10px] text-muted-foreground">
+                            {instance.driver} · {instance.grants} grant(s)
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          <ResizablePanel defaultSize={70} minSize={40} className="min-w-0">
+            <div className="ml-2 h-full overflow-auto">
+              {selected ? (
+                <InstancePermissions instance={selected} />
+              ) : (
+                <Empty icon={KeyRound} title="No instance selected" description="Pick an instance on the left." />
+              )}
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       )}
     </div>
   );
