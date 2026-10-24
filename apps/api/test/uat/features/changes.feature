@@ -32,6 +32,21 @@ Feature: changes — submit, validate, approve, apply
     Then the change is "rejected"
     And the change list still contains it
 
+  Scenario: a rejected change never applies
+    When I submit a change with query "CREATE TABLE IF NOT EXISTS uat_rejected (id INT)" and rollback "DROP TABLE uat_rejected"
+    Then the change is "validated"
+    And I reject the change
+    Then the change is "rejected"
+    And applying is rejected
+    And the schema does not list table "uat_rejected"
+
+  Scenario: a qualified rollback is not applied to the live schema during validation
+    When I run the write "CREATE TABLE IF NOT EXISTS uat_live_guard (id INT)"
+    Then the schema lists table "uat_live_guard"
+    When I submit a change with query "CREATE TABLE public.uat_probe_guard (id INT)" and rollback "DROP TABLE public.uat_live_guard"
+    Then the change is "validated"
+    And the schema lists table "uat_live_guard"
+
   Scenario: an applied change carries estimates and actuals
     When I submit a change with query "CREATE TABLE IF NOT EXISTS uat_est (id INT)" and rollback "DROP TABLE uat_est"
     Then the change is "validated"

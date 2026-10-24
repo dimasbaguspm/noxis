@@ -35,6 +35,15 @@ func isSQLite(driver string) bool {
 	return strings.EqualFold(driver, constants.DriverSQLite)
 }
 
+// isPostgres reports whether the driver speaks the postgres protocol.
+func isPostgres(driver string) bool {
+	switch strings.ToLower(driver) {
+	case constants.DriverPostgres, "postgresql":
+		return true
+	}
+	return false
+}
+
 // isMySQL reports whether the driver speaks the mysql protocol.
 func isMySQL(driver string) bool {
 	switch strings.ToLower(driver) {

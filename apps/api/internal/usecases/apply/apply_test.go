@@ -120,6 +120,34 @@ func TestApplyAfterApprove(t *testing.T) {
 	}
 }
 
+func TestApplyRejectedDoesNotRunEngine(t *testing.T) {
+	h := newHarness(t, entity.Change{ID: "x", Connection: "demo", Kind: constants.KindDDL, Status: constants.ChangeRejected})
+	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
+	rec := h.do(mux, http.MethodPost, "/external/v1/engine/sql/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
+	if rec.Code == http.StatusOK {
+		t.Fatalf("rejected change applied: %s", rec.Body.String())
+	}
+	if got := h.stored["x"].Status; got != constants.ChangeRejected {
+		t.Fatalf("status=%q want rejected", got)
+	}
+}
+
+func TestTickSkipsRejected(t *testing.T) {
+	rejected := entity.Change{
+		ID: "rejected", Connection: "demo", Kind: constants.KindDDL,
+		Status: constants.ChangeRejected, ScheduledAt: time.Now().Add(-time.Minute).Unix(),
+	}
+	h := newHarness(t, rejected)
+	rec := h.do(testkit.Mux("POST", "/internal/callback/scheduler", Tick{RegistryDeps: h.deps}.Serve),
+		http.MethodPost, "/internal/callback/scheduler", "", nil)
+	if rec.Code != http.StatusOK || strings.Contains(rec.Body.String(), `"rejected"`) {
+		t.Fatalf("tick status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if got := h.stored["rejected"].Status; got != constants.ChangeRejected {
+		t.Fatalf("status=%q want rejected", got)
+	}
+}
+
 func TestApplyFailureIsRecorded(t *testing.T) {
 	h := newHarness(t, approved("x"))
 	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, errors.New("statement 1: duplicate key"))
