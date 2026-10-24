@@ -29,6 +29,7 @@ func (w *world) sqlSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I dry-run "([^"]*)" and it is refused$`, w.dryRunRefused)
 	sc.Step(`^analyze on table "([^"]*)" succeeds$`, w.analyze)
 	sc.Step(`^the schema lists table "([^"]*)"$`, w.schemaLists)
+	sc.Step(`^the schema does not list table "([^"]*)"$`, w.schemaOmits)
 	sc.Step(`^table "([^"]*)" has (\d+) row\(s\)$`, w.tableRows)
 	sc.Step("no scratch schemas remain", w.noScratchSchemas)
 }
@@ -154,6 +155,27 @@ func (w *world) schemaLists(ctx context.Context, table string) error {
 		}
 	}
 	return fmt.Errorf("table %q not in schema (%d tables)", table, len(body.Tables))
+}
+
+// schemaOmits proves a rejected or failed write never reached the target.
+func (w *world) schemaOmits(ctx context.Context, table string) error {
+	var body struct {
+		Tables []struct {
+			Name string `json:"name"`
+		} `json:"tables"`
+	}
+	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn+"/schema", nil, &body); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("schema list: %d", w.code)
+	}
+	for _, t := range body.Tables {
+		if t.Name == table {
+			return fmt.Errorf("table %q exists after a rejected change", table)
+		}
+	}
+	return nil
 }
 
 // noScratchSchemas proves cleanup: no verification schema survived, pass or fail.
