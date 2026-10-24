@@ -3,8 +3,10 @@ package schema
 import (
 	"net/http"
 
+	"noxis/internal/common"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
 )
 
@@ -21,8 +23,9 @@ type Tables struct{ usecases.RegistryDeps }
 func (uc Tables) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	module, err := uc.Modules.EngineSQL(r.PathValue("engine"))
-	if err != nil {
+	ctx = common.WithModuleFamily(ctx, r.PathValue("engine"))
+	var module interfaces.SQLModule
+	if err := common.LoadModule(ctx, &module); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
