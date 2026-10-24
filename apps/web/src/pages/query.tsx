@@ -8,14 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/app/auth-provider";
 import { useConnectionSelection } from "@/hooks/use-connection";
 import { useAnalyzeMutation, useConnectionSchemaQuery, useRunQueryMutation } from "@/hooks/use-sql";
 import { useSqlTabs } from "@/hooks/use-sql-tabs";
-import { PAGE_ROUTES } from "@/lib/routes";
 import { classify } from "@/lib/statements";
-import { Network, Play } from "lucide-react";
+import { Play } from "lucide-react";
 
 export default function QueryPage() {
   const { canAccess, isSuper } = useAuth();
@@ -118,18 +117,6 @@ export default function QueryPage() {
                     >
                       Explain
                     </Button>
-                    {connection ? (
-                      <Button
-                        variant="outline"
-                        render={<Link to={`${PAGE_ROUTES.SQL.ERD}?connection=${encodeURIComponent(connection)}`} />}
-                      >
-                        <Network /> ERD
-                      </Button>
-                    ) : (
-                      <Button variant="outline" disabled>
-                        <Network /> ERD
-                      </Button>
-                    )}
                     <span className="text-xs text-muted-foreground">⌘/Ctrl + Enter</span>
                   </div>
                 </CardContent>
