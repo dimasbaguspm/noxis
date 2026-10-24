@@ -1,6 +1,7 @@
 import { Download } from "lucide-react";
 import { title as startCase } from "radash";
 import { Button } from "@/components/ui/button";
+import { Empty } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { downloadCSV, toCSV } from "@/lib/csv";
 import type { Result } from "@/lib/api";
@@ -9,7 +10,7 @@ import { P } from "@/components/ui/typography";
 // ResultTable renders a query grid and can export it as CSV.
 export function ResultTable({ result, title = "result" }: { result: Result | null; title?: string }) {
   if (!result) {
-    return <P size="sm">{startCase("nothing to show yet")}</P>;
+    return <Empty title="Nothing to show yet" description="Run an action to see its result here." />;
   }
 
   const columns = result.columns ?? [];
