@@ -18,6 +18,7 @@ func (w *world) connectionSteps(sc *godog.ScenarioContext) {
 	sc.Step("the connection test passes", w.testConnection)
 	sc.Step("the connection list hides the password", w.listRedacted)
 	sc.Step(`^the operator console is served at "/"$`, w.consoleServed)
+	sc.Step(`^the current connection matches snapshot "([^"]*)"$`, w.connectionSnapshot)
 }
 
 // registerConnection upserts the default SQL target as a noxis connection.
@@ -78,6 +79,17 @@ func (w *world) listRedacted(ctx context.Context) error {
 		return fmt.Errorf("connection list looks wrong: %s", body)
 	}
 	return nil
+}
+
+// connectionSnapshot compares the current connection's detail response with a golden.
+func (w *world) connectionSnapshot(ctx context.Context, name string) error {
+	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn, nil, nil); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("connection detail: %d %s", w.code, w.body)
+	}
+	return w.snapshots.Match(name, w.resp.Body)
 }
 
 // consoleServed asserts the root path returns the embedded console shell.
