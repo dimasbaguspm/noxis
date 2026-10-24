@@ -66,3 +66,8 @@ func writeUnauthorized(w http.ResponseWriter, message string) {
 	w.WriteHeader(http.StatusUnauthorized)
 	_ = json.NewEncoder(w).Encode(entity.ErrorResponse{Error: message})
 }
+
+// Auth returns the middleware form so a route declares its own access rule.
+func Auth(verifier interfaces.Verifier, log *slog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler { return WithAuth(verifier, next, log) }
+}
