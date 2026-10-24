@@ -69,7 +69,7 @@ export default function AccessPage() {
         <Empty icon={KeyRound} title="No instances" description="No instance is registered yet." />
       ) : (
         <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-          <ResizablePanel defaultSize={30} minSize={20}>
+          <ResizablePanel defaultSize={20} minSize={16}>
             <Card className="mr-2 flex h-full min-h-0 flex-col">
               <CardHeader className="gap-2">
                 <div className="flex items-center justify-between gap-2">
@@ -122,7 +122,7 @@ export default function AccessPage() {
 
           <ResizableHandle withHandle />
 
-          <ResizablePanel defaultSize={70} minSize={40} className="min-w-0">
+          <ResizablePanel defaultSize={80} minSize={40} className="min-w-0">
             <div className="ml-2 h-full overflow-auto">
               {selected ? (
                 <InstancePermissions instance={selected} />

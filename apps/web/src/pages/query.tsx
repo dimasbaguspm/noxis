@@ -64,7 +64,7 @@ export default function QueryPage() {
   return (
     <div className="flex h-full flex-col">
       <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-        <ResizablePanel defaultSize={16} minSize={12}>
+        <ResizablePanel defaultSize={20} minSize={16}>
           <Card className="mr-2 h-full min-h-0 min-w-0">
             <CardContent className="flex min-h-0 min-w-0 flex-col gap-2">
               <div className="grid gap-1.5">
