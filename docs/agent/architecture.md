@@ -216,6 +216,4 @@ must never leak into the memcache/mongo namespaces. A batch that runs statements
 goes through `runBatch` (`modules/sql/sql.go`): one transaction, commit unless the
 caller is a dry run, so apply and dry-run never diverge.
 
-**New persisted field:** add to `entity`, add a **new** `ALTER TABLE` line to the
-`migrations` slice in `sqlite.go`, update the `Save`/scan in the relevant
-`apps/api/internal/repositories/sqlite/*.go` file. Never edit an existing migration.
+**New persisted field:** update the canonical SQLite schema and repository `Save`/scan, bump the schema version, and update schema tests. Existing stores are not migrated; startup rejects older versions and requires an intentional reset.

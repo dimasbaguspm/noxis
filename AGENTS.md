@@ -113,7 +113,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
   that package changes shape, and commit the result — a stale mock fails to
   compile or lies about the seam. A use-case test states its own expectations;
   real SQLite covers persistence.
-- **Migrations are append-only**: add to the `migrations` slice in `apps/api/internal/repositories/sqlite/sqlite.go`; never edit an existing statement.
+- **SQLite schema:** `schemaTemplate` is canonical and versioned with `PRAGMA user_version`; no runtime migrations/backfills. Old or mismatched stores fail with a reset instruction; never silently drop them.
 - **Changes are artifacts**: never delete a recorded change; a failed submission is returned, not stored.
 
 ## Notes that bite
@@ -126,7 +126,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 
 - `docs/agent/architecture.md` — layers, DI, registry, patterns, how to extend.
 - `docs/agent/infrastructure.md` — env vars, docker, CI/CD, local dev, build.
-- `docs/agent/database.md` — SQLite schema, migrations, repositories, secrets.
+- `docs/agent/database.md` — SQLite schema lifecycle, repositories, secrets.
 - `docs/agent/review.md` — code-review checklist, invariants, definition of done.
 - `docs/plan/` — one snapshot per `ai:y` plan (issue body + commit + PR) with an index; the plan of record for how the current tree got here.
 

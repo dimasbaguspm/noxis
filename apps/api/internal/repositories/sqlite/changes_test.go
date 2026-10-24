@@ -2,7 +2,6 @@ package sqlite
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"path/filepath"
 	"testing"
@@ -10,50 +9,6 @@ import (
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 )
-
-func TestOpenAddsChangeActorColumnsToExistingStore(t *testing.T) {
-	ctx := context.Background()
-	path := filepath.Join(t.TempDir(), "noxis.db")
-	store, err := Open(ctx, path, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, column := range []string{"approved_by", "applied_by", "rejected_by", "scheduled_by"} {
-		if _, err := store.db.Exec(`ALTER TABLE changes DROP COLUMN ` + column); err != nil {
-			t.Fatalf("drop %s to simulate an older store: %v", column, err)
-		}
-	}
-	store.Close()
-
-	store, err = Open(ctx, path, "")
-	if err != nil {
-		t.Fatalf("reopen existing store: %v", err)
-	}
-	defer store.Close()
-	rows, err := store.db.Query(`PRAGMA table_info(changes)`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer rows.Close()
-	columns := map[string]bool{}
-	for rows.Next() {
-		var cid, notNull, primaryKey int
-		var name, columnType string
-		var defaultValue sql.NullString
-		if err := rows.Scan(&cid, &name, &columnType, &notNull, &defaultValue, &primaryKey); err != nil {
-			t.Fatal(err)
-		}
-		columns[name] = true
-	}
-	if err := rows.Err(); err != nil {
-		t.Fatal(err)
-	}
-	for _, column := range []string{"approved_by", "applied_by", "rejected_by", "scheduled_by"} {
-		if !columns[column] {
-			t.Errorf("migration did not restore %s", column)
-		}
-	}
-}
 
 func TestClaimChangeIsAtomicAndProtectsApplyingState(t *testing.T) {
 	ctx := context.Background()

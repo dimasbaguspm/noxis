@@ -21,8 +21,7 @@ repo-specific: the generic review skill covers the rest.
    family switch in code.
 5. **Changes are artifacts** — never delete a `changes` row; a failed
    submission is returned to the caller, not persisted (see `SubmitChange`).
-6. **Migrations are append-only** — a new column is a new `ALTER TABLE` line;
-   never edit or reorder existing ones.
+6. **SQLite schema is canonical and versioned** — schema changes update the DDL, schema version, and tests; there is no runtime migration path, and old stores fail with a reset instruction.
 7. **SQL guard** — statement-kind checks run **per statement** (split outside
    string literals/comments). A read endpoint must reject DML/DDL smuggled
    behind `SELECT 1; DROP ...`.
@@ -101,6 +100,6 @@ is one SQLite-backed binary with no broker and no docker socket. A diff that
 - [ ] REST surface changed ⇒ `make swagger` run and `openapi.*` committed.
 - [ ] UI changed ⇒ `make web` (or `pnpm build`) green.
 - [ ] Auth/engine behaviour changed ⇒ `make uat` green.
-- [ ] New persisted column ⇒ appended migration + interface/Store updated.
+- [ ] New persisted field ⇒ canonical schema, schema version, interface/Store, and constraint tests updated; no migration is implied.
 - [ ] Access gate present on any new connection-scoped route.
 - [ ] No password on the wire; no secret logged.

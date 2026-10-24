@@ -6,20 +6,22 @@ Detail for `AGENTS.md`.
 
 `apps/api/internal/repositories/sqlite.Store` is the **only** state. It opens a
 `modernc.org/sqlite` (pure Go, cgo-free) database at `NOXIS_DB`, sets
-`SetMaxOpenConns(1)` (SQLite writer serialization), applies the schema, then
-the migrations, then backfills, then encrypts legacy passwords.
+`SetMaxOpenConns(1)` (SQLite writer serialization), bootstraps the canonical schema
+on an empty file, then encrypts any stored plaintext connection passwords when a key is configured.
 
 `Open()` guards the classic bind-mount trap: a missing bind target becomes a
 **directory**, and sqlite cannot open a directory — it returns a clear error
 instead of crash-looping.
 
-## Schema (`apps/api/internal/repositories/sqlite/sqlite.go`, `schema` const)
+## Schema (`apps/api/internal/repositories/sqlite/sqlite.go`, `schemaTemplate`)
+
+All six tables use SQLite `STRICT` typing, explicit `CHECK` constraints, and query-path indexes. The schema version is stored in `PRAGMA user_version`.
 
 ### `connections`
 | column | notes |
 | --- | --- |
 | `name` | PK, the connection's addressable name |
-| `id` | stable instance id (`/external/v1/instances`), unique index, backfilled |
+| `id` | stable instance id (`/external/v1/instances`), unique and generated on save |
 | `driver` | `postgres`/`mysql`/`redis`/`valkey`/`mongo` |
 | `host`, `port`, `user`, `database` | identity fields, locked after registration |
 | `password` | plaintext or `enc:v1:...` (AES-256-GCM) |
@@ -39,13 +41,12 @@ affected identifiers, `scheduled_by`, `created_by`, `approved_by`, `rejected_by`
 `(connection, member, member_type, level)` PK `(connection, member)`. `member` is
 a user subject (`local:<name>` or an OIDC sub) or a group name; `member_type` ∈
 `user|group`; `level` ∈ `read|write|admin`. The only policy table. The old
-`connection_grants` table is migrated in as `member_type='group'` and dropped.
+Old stores containing `connection_grants` are rejected and must be reset; no rows are migrated.
 
 ### `users`
 Accounts. `subject` PK (`local:<email>` or the OIDC sub), `email` is the blend
 key: an OIDC login whose verified email equals an account's email signs in as
-that account (unique when non-empty; login resolves by email or legacy
-username), `username` (login name for a named local account, empty for OIDC
+that account (unique when non-empty; login resolves by email or username), `username` (login name for a named local account, empty for OIDC
 rows), `password` is a **bcrypt hash** (one-way, unlike `connections.password`),
 `groups` JSON, `role` ∈ `super|admin|member`, `status` ∈ `active|banned`,
 `last_login_at`, and the single active session: `token_hash` (SHA-256 of the raw
@@ -55,15 +56,12 @@ clears the session; `UserByToken` only matches `status='active'`.
 Exactly one row holds `role='super'`: the env root. Boot promotes it and demotes
 any other `super` (`SetSoleSuper`); promoted admins are left alone.
 
-## Migrations
+## Schema version and reset policy
 
-- Append-only slice `migrations []string` of `ALTER TABLE ... ADD COLUMN`.
-- Applied best-effort; duplicates (fresh DBs) error and are ignored.
-- Never edit an existing line; add a new one. SQLite has no transactional DDL
-  rollback here, so columns must be nullable or have a `DEFAULT`.
-- Index creation that depends on backfill runs **after** the backfill
-  (`connections_id` unique index), because an index over an empty default would
-  collide.
+- An empty file is initialized transactionally from the current schema and marked with `PRAGMA user_version`.
+- Existing unversioned stores and unknown schema versions fail closed with an instruction to reset `NOXIS_DB`; startup never drops or migrates data.
+- A schema change updates the canonical DDL, `schemaVersion`, and repository constraint tests. Deployments use a fresh SQLite file after such a change.
+- Connection deletion removes its permissions but preserves change artifacts and access history.
 
 ## Repositories (the pattern)
 
@@ -101,5 +99,6 @@ to start without it unless `NOXIS_ALLOW_PLAINTEXT=true` (local dev only).
 ## What is *not* in the DB
 
 Runtime engines are separate servers noxis connects to — noxis does not
-provision them. There is no desired-state/status oplog, no audit table beyond the
-`changes` artifact, and no user table (identity is OIDC).
+provision them. There is no desired-state/status oplog or general-purpose audit
+log; the store keeps reviewed changes and access events. User rows hold local
+accounts and OIDC reference identities, not provider tokens or identity-provider state.
