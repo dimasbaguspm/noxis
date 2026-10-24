@@ -118,8 +118,11 @@ export function MongoExplorer({ connection }: { connection: string }) {
             <Empty icon={FileJson} title="No matches" description="No document matches this filter." />
           ) : (
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
-              {documents.map((doc, i) => (
-                <div key={i} className="border-b border-border pb-2 last:border-0 last:pb-0">
+              {documents.map((doc) => (
+                <div
+                  key={typeof doc === "object" && doc !== null && "_id" in doc ? String((doc as { _id: unknown })._id) : JSON.stringify(doc)}
+                  className="border-b border-border pb-2 last:border-0 last:pb-0"
+                >
                   <JsonTree value={doc} />
                 </div>
               ))}
