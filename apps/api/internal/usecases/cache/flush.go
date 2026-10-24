@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"noxis/internal/common"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
 )
 
@@ -28,8 +30,9 @@ func (uc Flush) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
-	if err != nil {
+	ctx = common.WithModuleFamily(ctx, r.PathValue("engine"))
+	var mc interfaces.MemcacheModule
+	if err := common.LoadModule(ctx, &mc); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
