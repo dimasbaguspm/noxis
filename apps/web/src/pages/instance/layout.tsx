@@ -2,12 +2,12 @@ import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, Navigate, Outlet, useLocation, useNavigate, useParams, useSearchParams, useOutletContext } from "react-router-dom";
 import { Database, ExternalLink, KeyRound, MoreHorizontal, Play, ShieldCheck, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardDescription } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,44 +29,55 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequestAccessDialog } from "@/components/access/request-access-dialog";
-import { InstancePermissions } from "@/components/access/instance-permissions";
-import { CacheBrowser } from "@/components/instance/cache-browser";
-import { InstanceErd } from "@/components/instance/erd-tab";
-import { MongoExplorer } from "@/components/instance/mongo-explorer";
-import { TablesTab, type InstanceTable } from "@/components/instance/tables-tab";
+import type { InstanceTable } from "@/components/instance/tables-tab";
 import { useAction } from "@/hooks/use-action";
 import { useConnections } from "@/hooks/use-connections";
 import { useInstanceQuery, useRotatePasswordMutation } from "@/hooks/use-instances";
 import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { useAuth } from "@/app/auth-provider";
-import { api } from "@/lib/api";
+import { api, type Connection } from "@/lib/api";
 import { queryClient } from "@/lib/query-client";
 import { FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
-import { P } from "@/components/ui/typography";
 
 export type InstanceTab = "detail" | "tables" | "access" | "erd" | "documents" | "keys";
 
-const TABS = {
+export interface InstanceContextValue {
+  instance: Connection;
+  family: FamilyKey;
+  canRead: boolean;
+  canAdmin: boolean;
+  tables: InstanceTable[];
+  schemaPending: boolean;
+  schemas: string[];
+  selectedSchema: string;
+  updateSchema: (schema: string) => void;
+}
+
+export function useInstanceContext() {
+  return useOutletContext<InstanceContextValue>();
+}
+
+const TABS: Record<InstanceTab, string> = {
   detail: "Detail",
   tables: "Tables",
   access: "Access",
   erd: "ERD",
   documents: "Documents",
   keys: "Keys",
-} as const;
+};
 
-// InstanceDetailPage is the cross-family home of one instance: shared information, family tabs and the lifecycle actions.
-export default function InstanceDetailPage({ tab = "detail" }: { tab?: InstanceTab }) {
+// InstanceLayout is the cross-family home of one instance: shared header, routed tabs and the lifecycle actions.
+export default function InstanceLayout() {
   const { id = "" } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const { isSuper, isInstanceAdmin, canAccess } = useAuth();
   const [rotateOpen, setRotateOpen] = useState(false);
   const detail = useInstanceQuery(id);
   const instance = detail.data;
-  const error = detail.error instanceof Error ? detail.error.message : undefined;
 
   const family = instance?.family as FamilyKey | undefined;
   const name = instance?.name ?? "";
@@ -114,9 +125,7 @@ export default function InstanceDetailPage({ tab = "detail" }: { tab?: InstanceT
     formState: { errors },
   } = useForm<{ password: string }>({
     defaultValues: { password: "" },
-    resolver: zodResolver(
-      z.object({ password: z.string().min(1, "new password is required") }),
-    ),
+    resolver: zodResolver(z.object({ password: z.string().min(1, "new password is required") })),
   });
   const onRotate = handleSubmit(async ({ password }) => {
     await rotate.mutateAsync({ id, password });
@@ -125,13 +134,24 @@ export default function InstanceDetailPage({ tab = "detail" }: { tab?: InstanceT
     toast.success("password rotated");
   });
 
-  if (error) {
+  const schemas = useMemo(() => [...new Set(tables.map((t) => t.schema))].sort(), [tables]);
+  const schemaParam = params.get("schema") ?? "";
+  const selectedSchema = schemas.includes(schemaParam) ? schemaParam : "";
+
+  function updateSchema(next: string) {
+    const query = new URLSearchParams(params);
+    if (next) query.set("schema", next);
+    else query.delete("schema");
+    setParams(query, { replace: true });
+  }
+
+  if (detail.error) {
     return (
       <div className="flex flex-col gap-4">
         <Empty
           icon={Database}
           title="Instance not found"
-          description={error}
+          description={detail.error instanceof Error ? detail.error.message : "the instance request failed"}
           action={
             <Button size="sm" render={<Link to={PAGE_ROUTES.DASHBOARD} />}>
               Back to Instances
@@ -151,40 +171,38 @@ export default function InstanceDetailPage({ tab = "detail" }: { tab?: InstanceT
     );
   }
 
-  const schemas = [...new Set(tables.map((t) => t.schema))].sort();
-  const schemaParam = params.get("schema") ?? "";
-  const selectedSchema = schemas.includes(schemaParam) ? schemaParam : "";
-  const visibleTabs = [
+  const visibleTabs: { id: InstanceTab; label: string }[] = [
     { id: "detail", label: TABS.detail },
     ...(family === FAMILY.SQL && canRead
       ? [
-          { id: "tables", label: TABS.tables },
-          { id: "erd", label: TABS.erd },
+          { id: "tables" as const, label: TABS.tables },
+          { id: "erd" as const, label: TABS.erd },
         ]
       : []),
-    ...(family === FAMILY.MONGODB && canRead ? [{ id: "documents", label: TABS.documents }] : []),
-    ...(family === FAMILY.MEMCACHE && canRead ? [{ id: "keys", label: TABS.keys }] : []),
-    ...(canAdmin ? [{ id: "access", label: TABS.access }] : []),
+    ...(family === FAMILY.MONGODB && canRead ? [{ id: "documents" as const, label: TABS.documents }] : []),
+    ...(family === FAMILY.MEMCACHE && canRead ? [{ id: "keys" as const, label: TABS.keys }] : []),
+    ...(canAdmin ? [{ id: "access" as const, label: TABS.access }] : []),
   ];
-  const active = visibleTabs.find((t) => t.id === tab) ?? visibleTabs[0];
-
-  function updateSchema(next: string) {
-    const query = new URLSearchParams(params);
-    if (next) query.set("schema", next);
-    else query.delete("schema");
-    setParams(query, { replace: true });
+  const base = PAGE_ROUTES.INSTANCE_DETAIL(instance.id ?? id);
+  const leaf = location.pathname.slice(base.length).replace(/^\//, "");
+  const activeId = (leaf || "detail") as InstanceTab;
+  if (!visibleTabs.some((t) => t.id === activeId)) {
+    return <Navigate to={base} replace />;
   }
 
   const meta = familyByKey[family];
   const Icon = meta.icon;
-  const fileDriver = instance.driver === "sqlite";
-  const databaseLabel = fileDriver
-    ? "File path"
-    : family === FAMILY.SQL
-      ? "Database"
-      : family === FAMILY.MONGODB
-        ? "Database (auth)"
-        : "DB index";
+  const context: InstanceContextValue = {
+    instance,
+    family,
+    canRead,
+    canAdmin,
+    tables,
+    schemaPending: schema.isPending,
+    schemas,
+    selectedSchema,
+    updateSchema,
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
@@ -205,11 +223,7 @@ export default function InstanceDetailPage({ tab = "detail" }: { tab?: InstanceT
           {!isSuper && <RequestAccessDialog connection={instance.name} />}
           {canRead && <OpenFamily family={family} name={instance.name} />}
           {canAdmin && (
-            <Button
-              size="sm"
-              variant="outline"
-              render={<Link to={PAGE_ROUTES.INSTANCE_DASHBOARD(instance.id ?? "")} />}
-            >
+            <Button size="sm" variant="outline" render={<Link to={PAGE_ROUTES.INSTANCE_DASHBOARD(instance.id ?? "")} />}>
               <ShieldCheck /> Dashboard
             </Button>
           )}
@@ -244,11 +258,11 @@ export default function InstanceDetailPage({ tab = "detail" }: { tab?: InstanceT
           <Link
             key={item.id}
             role="tab"
-            aria-selected={active.id === item.id}
-            to={PAGE_ROUTES.INSTANCE_TAB(instance.id ?? id, item.id)}
+            aria-selected={activeId === item.id}
+            to={item.id === "detail" ? base : PAGE_ROUTES.INSTANCE_TAB(instance.id ?? id, item.id)}
             className={cn(
               "-mb-px border-b-2 border-transparent px-3 py-2 text-sm text-muted-foreground hover:text-foreground",
-              active.id === item.id && "border-foreground text-foreground",
+              activeId === item.id && "border-foreground text-foreground",
             )}
           >
             {item.label}
@@ -257,96 +271,7 @@ export default function InstanceDetailPage({ tab = "detail" }: { tab?: InstanceT
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
-      {active.id === "detail" && (
-        <div className="flex flex-col gap-4">
-          <Card>
-            <CardHeader className="gap-1">
-              <CardTitle className="text-base">Details</CardTitle>
-              <CardDescription>Driver, endpoint and registration metadata.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm sm:grid-cols-[10rem_1fr]">
-                <dt className="text-muted-foreground">Driver</dt>
-                <dd>
-                  <Badge variant="secondary">{instance.driver}</Badge>
-                </dd>
-                {!fileDriver && (
-                  <>
-                    <dt className="text-muted-foreground">Endpoint</dt>
-                    <dd className="font-mono text-xs">
-                      {instance.host}:{instance.port}
-                    </dd>
-                  </>
-                )}
-                <dt className="text-muted-foreground">{databaseLabel}</dt>
-                <dd>{instance.database}</dd>
-                {instance.user && (
-                  <>
-                    <dt className="text-muted-foreground">User</dt>
-                    <dd>{instance.user}</dd>
-                  </>
-                )}
-                <dt className="text-muted-foreground">Registered</dt>
-                <dd className="text-xs">
-                  {instance.createdAt ? new Date(instance.createdAt * 1000).toLocaleString() : "—"}
-                  {instance.createdBy ? ` · by ${instance.createdBy}` : ""}
-                </dd>
-              </dl>
-              <P className="mt-4 border-t border-border pt-3">
-                Driver, host, database and user are fixed once registered. Only the password can be rotated.
-              </P>
-            </CardContent>
-          </Card>
-
-          {family === FAMILY.SQL && canRead && (
-            <Card>
-              <CardHeader className="gap-1">
-                <CardTitle className="text-base">Schemas</CardTitle>
-                <CardDescription>Available schemas and how many tables each holds.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {schema.isPending ? (
-                  <Skeleton className="h-20 w-full" />
-                ) : schemas.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No tables in this instance.</p>
-                ) : (
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {schemas.map((s) => {
-                      const count = tables.filter((t) => t.schema === s).length;
-                      return (
-                        <Link
-                          key={s}
-                          to={`${PAGE_ROUTES.INSTANCE_TAB(instance.id ?? id, "tables")}?schema=${encodeURIComponent(s)}`}
-                          className="min-w-32 shrink-0 rounded-lg border p-3 text-left hover:bg-accent/50"
-                        >
-                          <div className="truncate font-mono text-xs">{s}</div>
-                          <div className="mt-1 text-lg font-medium tabular-nums">{count}</div>
-                          <div className="text-[10px] text-muted-foreground">table(s)</div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {active.id === "tables" && (
-        <TablesTab
-          tables={tables}
-          loading={schema.isPending}
-          schema={selectedSchema}
-          onSchema={updateSchema}
-          connection={instance.name}
-        />
-      )}
-
-      {active.id === "erd" && <InstanceErd connection={instance.name} />}
-      {active.id === "documents" && <MongoExplorer connection={instance.name} />}
-      {active.id === "keys" && <CacheBrowser connection={instance.name} />}
-      {active.id === "access" && <InstancePermissions instance={instance} readOnly />}
+        <Outlet context={context} />
       </div>
 
       <Sheet

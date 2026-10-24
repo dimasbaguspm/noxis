@@ -14,7 +14,13 @@ import "./app.css";
 
 // route-level splitting: monaco (query/changes) loads with the page that needs it
 const DashboardPage = lazy(() => import("@/pages/dashboard"));
-const InstanceDetailPage = lazy(() => import("@/pages/instance-detail"));
+const InstanceLayout = lazy(() => import("@/pages/instance/layout"));
+const InstanceDetailTab = lazy(() => import("@/pages/instance/detail"));
+const InstanceTablesTab = lazy(() => import("@/pages/instance/tables"));
+const InstanceErdTab = lazy(() => import("@/pages/instance/erd"));
+const InstanceDocumentsTab = lazy(() => import("@/pages/instance/documents"));
+const InstanceKeysTab = lazy(() => import("@/pages/instance/keys"));
+const InstanceAccessTab = lazy(() => import("@/pages/instance/access"));
 const InstanceDashboardPage = lazy(() => import("@/pages/instance-dashboard"));
 const QueryPage = lazy(() => import("@/pages/query"));
 const SqlErdPage = lazy(() => import("@/pages/sql-erd"));
@@ -65,12 +71,18 @@ const router = createBrowserRouter([
       { path: routePath(PAGE_ROUTES.ACCESS), element: <AccessPage /> },
       { path: routePath(PAGE_ROUTES.USERS), element: <UsersPage /> },
       { path: `${routePath(PAGE_ROUTES.USERS)}/:subject`, element: <UserDetailPage /> },
-      { path: routePath(PAGE_ROUTES.INSTANCE_DETAIL(":id")), element: <InstanceDetailPage /> },
-      { path: routePath(PAGE_ROUTES.INSTANCE_TAB(":id", "tables")), element: <InstanceDetailPage tab="tables" /> },
-      { path: routePath(PAGE_ROUTES.INSTANCE_TAB(":id", "erd")), element: <InstanceDetailPage tab="erd" /> },
-      { path: routePath(PAGE_ROUTES.INSTANCE_TAB(":id", "documents")), element: <InstanceDetailPage tab="documents" /> },
-      { path: routePath(PAGE_ROUTES.INSTANCE_TAB(":id", "keys")), element: <InstanceDetailPage tab="keys" /> },
-      { path: routePath(PAGE_ROUTES.INSTANCE_TAB(":id", "access")), element: <InstanceDetailPage tab="access" /> },
+      {
+        path: routePath(PAGE_ROUTES.INSTANCE_DETAIL(":id")),
+        element: <InstanceLayout />,
+        children: [
+          { index: true, element: <InstanceDetailTab /> },
+          { path: "tables", element: <InstanceTablesTab /> },
+          { path: "erd", element: <InstanceErdTab /> },
+          { path: "documents", element: <InstanceDocumentsTab /> },
+          { path: "keys", element: <InstanceKeysTab /> },
+          { path: "access", element: <InstanceAccessTab /> },
+        ],
+      },
       { path: routePath(PAGE_ROUTES.INSTANCE_DASHBOARD(":id")), element: <InstanceDashboardPage /> },
       { path: routePath(PAGE_ROUTES.SQL.QUERY), element: <QueryPage /> },
       { path: routePath(PAGE_ROUTES.SQL.ERD), element: <SqlErdPage /> },
