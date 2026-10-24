@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequestAccessDialog } from "@/components/access/request-access-dialog";
+import { SqlConsole } from "@/components/instance/sql-console";
 import { useAction } from "@/hooks/use-action";
 import { useInstanceQuery, useRotatePasswordMutation } from "@/hooks/use-instances";
 import { useAuth } from "@/app/auth-provider";
@@ -35,7 +36,7 @@ import { P } from "@/components/ui/typography";
 export default function InstanceDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
-  const { isSuper, isInstanceAdmin } = useAuth();
+  const { isSuper, isInstanceAdmin, canAccess } = useAuth();
   const [rotateOpen, setRotateOpen] = useState(false);
   const detail = useInstanceQuery(id);
   const instance = detail.data;
@@ -216,6 +217,10 @@ export default function InstanceDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {family === FAMILY.SQL && canAccess(instance.name, "read") && (
+        <SqlConsole key={instance.name} connection={instance.name} />
+      )}
 
       <Sheet
         open={rotateOpen}
