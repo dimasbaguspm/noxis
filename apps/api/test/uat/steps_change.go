@@ -81,11 +81,11 @@ func (w *world) changeStatus(ctx context.Context, want string) error {
 }
 
 func (w *world) approve(ctx context.Context) error {
-	return w.changeAction("/approve")
+	return w.changeAction("approve")
 }
 
 func (w *world) apply(ctx context.Context) error {
-	return w.changeAction("/apply")
+	return w.changeAction("apply")
 }
 
 // submitScheduledChange is submitChange with a due schedule, so the tick has something to pick up without waiting.
@@ -133,10 +133,11 @@ func (w *world) tick(ctx context.Context) error {
 	return w.api(http.MethodGet, "/external/v1/engine/sql/changes/"+w.changeID, nil, &w.change)
 }
 
-// changeAction POSTs to a change sub-resource and records the new state.
+// changeAction sends one workflow action and records the new state.
 func (w *world) changeAction(action string) error {
 	w.change = changeBody{}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/changes/"+w.changeID+action, map[string]string{}, &w.change); err != nil {
+	body := map[string]string{"action": action}
+	if err := w.api(http.MethodPost, "/external/v1/engine/sql/changes/"+w.changeID+"/action", body, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -147,7 +148,7 @@ func (w *world) changeAction(action string) error {
 
 func (w *world) applyRejected(ctx context.Context) error {
 	w.change = changeBody{}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/changes/"+w.changeID+"/apply", map[string]string{}, &w.change); err != nil {
+	if err := w.api(http.MethodPost, "/external/v1/engine/sql/changes/"+w.changeID+"/action", map[string]string{"action": "apply"}, &w.change); err != nil {
 		return err
 	}
 	if w.code == http.StatusOK {
@@ -157,7 +158,7 @@ func (w *world) applyRejected(ctx context.Context) error {
 }
 
 func (w *world) rejectChange(ctx context.Context) error {
-	return w.changeAction("/reject")
+	return w.changeAction("reject")
 }
 
 // changeStillPresent proves rejection keeps the artifact (no hard delete).
@@ -208,8 +209,8 @@ func (w *world) openChange(ctx context.Context) error {
 }
 
 func (w *world) scheduleChange(ctx context.Context) error {
-	body := map[string]int64{"scheduledAt": time.Now().Add(time.Minute).Unix()}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/changes/"+w.changeID+"/schedule", body, &w.change); err != nil {
+	body := map[string]any{"action": "schedule", "scheduledAt": time.Now().Add(time.Minute).Unix()}
+	if err := w.api(http.MethodPost, "/external/v1/engine/sql/changes/"+w.changeID+"/action", body, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {

@@ -117,9 +117,9 @@
                 }
             }
         },
-        "/external/v1/access-requests/{id}/approve": {
+        "/external/v1/access-requests/{id}/action": {
             "post": {
-                "summary": "Approve an access request",
+                "summary": "Approve or reject an access request",
                 "parameters": [
                     {
                         "description": "request id",
@@ -132,58 +132,15 @@
                     }
                 ],
                 "requestBody": {
-                    "$ref": "#/components/requestBodies/entity.AccessDecision"
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.AccessRequest"
-                                }
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/entity.TransitionRequest"
                             }
                         }
                     },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/external/v1/access-requests/{id}/reject": {
-            "post": {
-                "summary": "Reject an access request",
-                "parameters": [
-                    {
-                        "description": "request id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "$ref": "#/components/requestBodies/entity.AccessDecision"
+                    "description": "action plus an optional note",
+                    "required": true
                 },
                 "responses": {
                     "200": {
@@ -563,200 +520,9 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/changes/{id}/apply": {
+        "/external/v1/engine/{engine}/changes/{id}/action": {
             "post": {
-                "summary": "Apply an approved change",
-                "parameters": [
-                    {
-                        "description": "engine family (sql, mongodb)",
-                        "name": "engine",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "change id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Change"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/external/v1/engine/{engine}/changes/{id}/approve": {
-            "post": {
-                "summary": "Approve a validated change (self-approval allowed)",
-                "parameters": [
-                    {
-                        "description": "engine family (sql, mongodb)",
-                        "name": "engine",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "change id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Change"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/external/v1/engine/{engine}/changes/{id}/reject": {
-            "post": {
-                "summary": "Reject a change (kept as an artifact, never deleted)",
-                "parameters": [
-                    {
-                        "description": "engine family (sql, mongodb)",
-                        "name": "engine",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "change id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.Change"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/entity.ErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/external/v1/engine/{engine}/changes/{id}/schedule": {
-            "post": {
-                "summary": "Schedule or unschedule an approved change",
+                "summary": "Approve, reject, apply or schedule a change",
                 "parameters": [
                     {
                         "description": "engine family (sql, mongodb)",
@@ -781,11 +547,11 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/entity.ScheduleRequest"
+                                "$ref": "#/components/schemas/entity.TransitionRequest"
                             }
                         }
                     },
-                    "description": "scheduledAt unix seconds; 0 clears the schedule",
+                    "description": "action plus scheduledAt when scheduling",
                     "required": true
                 },
                 "responses": {
@@ -2359,27 +2125,7 @@
         }
     },
     "components": {
-        "requestBodies": {
-            "entity.AccessDecision": {
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "$ref": "#/components/schemas/entity.AccessDecision"
-                        }
-                    }
-                },
-                "description": "optional note"
-            }
-        },
         "schemas": {
-            "entity.AccessDecision": {
-                "type": "object",
-                "properties": {
-                    "note": {
-                        "type": "string"
-                    }
-                }
-            },
             "entity.AccessEvent": {
                 "type": "object",
                 "properties": {
@@ -3277,14 +3023,6 @@
                     }
                 }
             },
-            "entity.ScheduleRequest": {
-                "type": "object",
-                "properties": {
-                    "scheduledAt": {
-                        "type": "integer"
-                    }
-                }
-            },
             "entity.SchemaConnection": {
                 "type": "object",
                 "properties": {
@@ -3369,6 +3107,20 @@
                         "items": {
                             "type": "string"
                         }
+                    }
+                }
+            },
+            "entity.TransitionRequest": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string"
+                    },
+                    "note": {
+                        "type": "string"
+                    },
+                    "scheduledAt": {
+                        "type": "integer"
                     }
                 }
             },

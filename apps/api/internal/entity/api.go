@@ -177,6 +177,13 @@ type OpRequest struct {
 	Table string `json:"table,omitempty"`
 }
 
+// TransitionRequest is the one payload every workflow action route accepts; each action reads the field it needs.
+type TransitionRequest struct {
+	Action      string `json:"action"`
+	ScheduledAt int64  `json:"scheduledAt,omitempty"`
+	Note        string `json:"note,omitempty"`
+}
+
 // LevelInfo is one access level and its human label.
 type LevelInfo struct {
 	Value string `json:"value"`

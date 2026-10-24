@@ -140,7 +140,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/access-requests/{id}/approve": {
+    "/external/v1/access-requests/{id}/action": {
         parameters: {
             query?: never;
             header?: never;
@@ -149,7 +149,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Approve an access request */
+        /** Approve or reject an access request */
         post: {
             parameters: {
                 query?: never;
@@ -160,64 +160,12 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: components["requestBodies"]["entity.AccessDecision"];
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.AccessRequest"];
-                    };
-                };
-                /** @description Forbidden */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
+            /** @description action plus an optional note */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["entity.TransitionRequest"];
                 };
             };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/external/v1/access-requests/{id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Reject an access request */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description request id */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: components["requestBodies"]["entity.AccessDecision"];
             responses: {
                 /** @description OK */
                 200: {
@@ -701,7 +649,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/changes/{id}/apply": {
+    "/external/v1/engine/{engine}/changes/{id}/action": {
         parameters: {
             query?: never;
             header?: never;
@@ -710,7 +658,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Apply an approved change */
+        /** Approve, reject, apply or schedule a change */
         post: {
             parameters: {
                 query?: never;
@@ -723,205 +671,10 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Change"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/external/v1/engine/{engine}/changes/{id}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Approve a validated change (self-approval allowed) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description engine family (sql, mongodb) */
-                    engine: string;
-                    /** @description change id */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Change"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/external/v1/engine/{engine}/changes/{id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Reject a change (kept as an artifact, never deleted) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description engine family (sql, mongodb) */
-                    engine: string;
-                    /** @description change id */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Change"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-                /** @description Conflict */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/external/v1/engine/{engine}/changes/{id}/schedule": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Schedule or unschedule an approved change */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description engine family (sql, mongodb) */
-                    engine: string;
-                    /** @description change id */
-                    id: string;
-                };
-                cookie?: never;
-            };
-            /** @description scheduledAt unix seconds; 0 clears the schedule */
+            /** @description action plus scheduledAt when scheduling */
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["entity.ScheduleRequest"];
+                    "application/json": components["schemas"]["entity.TransitionRequest"];
                 };
             };
             responses: {
@@ -2473,9 +2226,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        "entity.AccessDecision": {
-            note?: string;
-        };
         "entity.AccessEvent": {
             action?: string;
             actor?: string;
@@ -2772,9 +2522,6 @@ export interface components {
             /** @description ScratchSchema is set by change validation: the throwaway schema the change was verified against, if any. */
             scratchSchema?: string;
         };
-        "entity.ScheduleRequest": {
-            scheduledAt?: number;
-        };
         "entity.SchemaConnection": {
             database?: string;
             driver?: string;
@@ -2800,6 +2547,11 @@ export interface components {
         "entity.TickResult": {
             applied?: string[];
             failed?: string[];
+        };
+        "entity.TransitionRequest": {
+            action?: string;
+            note?: string;
+            scheduledAt?: number;
         };
         "entity.User": {
             createdAt?: number;
@@ -2837,14 +2589,7 @@ export interface components {
     };
     responses: never;
     parameters: never;
-    requestBodies: {
-        /** @description optional note */
-        "entity.AccessDecision": {
-            content: {
-                "application/json": components["schemas"]["entity.AccessDecision"];
-            };
-        };
-    };
+    requestBodies: never;
     headers: never;
     pathItems: never;
 }

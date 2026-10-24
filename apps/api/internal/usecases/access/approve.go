@@ -14,13 +14,6 @@ import (
 // Approve grants the requested level for the standard 120 days.
 type Approve struct{ usecases.RegistryDeps }
 
-// @Summary Approve an access request
-// @Param id path string true "request id"
-// @Param body body entity.AccessDecision false "optional note"
-// @Success 200 {object} entity.AccessRequest
-// @Failure 403 {object} entity.ErrorResponse
-// @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/access-requests/{id}/approve [post]
 func (uc Approve) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)

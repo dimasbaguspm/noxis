@@ -122,8 +122,8 @@ func (w *world) accessRequestListed(ctx context.Context) error {
 }
 
 func (w *world) decideAccessRequest(ctx context.Context, decision string) error {
-	body := map[string]string{"note": "uat " + decision}
-	path := "/external/v1/access-requests/" + w.accessRequest.ID + "/" + decision
+	body := map[string]string{"action": decision, "note": "uat " + decision}
+	path := "/external/v1/access-requests/" + w.accessRequest.ID + "/action"
 	if err := w.api(http.MethodPost, path, body, &w.accessRequest); err != nil {
 		return err
 	}

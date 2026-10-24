@@ -14,13 +14,6 @@ import (
 // Reject closes an access request without granting anything.
 type Reject struct{ usecases.RegistryDeps }
 
-// @Summary Reject an access request
-// @Param id path string true "request id"
-// @Param body body entity.AccessDecision false "optional note"
-// @Success 200 {object} entity.AccessRequest
-// @Failure 403 {object} entity.ErrorResponse
-// @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/access-requests/{id}/reject [post]
 func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)

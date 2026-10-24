@@ -173,9 +173,9 @@ export const api = {
       list: () => request<{ changes: Change[] }>("GET", v1(FAMILY.MONGODB, "changes")),
       submit: (input: MongoChangeInput) => request<Change>("POST", v1(FAMILY.MONGODB, "changes"), input),
       get: (id: string) => request<Change>("GET", v1(FAMILY.MONGODB, `changes/${id}`)),
-      approve: (id: string) => request<Change>("POST", v1(FAMILY.MONGODB, `changes/${id}/approve`)),
-      apply: (id: string) => request<Change>("POST", v1(FAMILY.MONGODB, `changes/${id}/apply`)),
-      reject: (id: string) => request<Change>("POST", v1(FAMILY.MONGODB, `changes/${id}/reject`)),
+      approve: (id: string) => request<Change>("POST", v1(FAMILY.MONGODB, `changes/${id}/action`), { action: "approve" }),
+      apply: (id: string) => request<Change>("POST", v1(FAMILY.MONGODB, `changes/${id}/action`), { action: "apply" }),
+      reject: (id: string) => request<Change>("POST", v1(FAMILY.MONGODB, `changes/${id}/action`), { action: "reject" }),
     },
   },
   changes: {
@@ -193,11 +193,11 @@ export const api = {
     },
     get: (id: string) => request<Change>("GET", v1(FAMILY.SQL, `changes/${id}`)),
     submit: (input: ChangeInput) => request<Change>("POST", v1(FAMILY.SQL, "changes"), input),
-    approve: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/approve`)),
-    apply: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/apply`)),
-    reject: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/reject`)),
+    approve: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/action`), { action: "approve" }),
+    apply: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/action`), { action: "apply" }),
+    reject: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/action`), { action: "reject" }),
     schedule: (id: string, scheduledAt: number) =>
-      request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/schedule`), { scheduledAt }),
+      request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/action`), { action: "schedule", scheduledAt }),
   },
   // config is the server's console-facing configuration (hardcoded Go-side). permissions: per-connection RBAC policy (users and groups), admin-managed.
   permissions: {
@@ -224,9 +224,9 @@ export const api = {
     mine: () => request<{ requests: AccessRequest[] }>("GET", "/external/v1/access-requests?scope=mine"),
     toApprove: () => request<{ requests: AccessRequest[] }>("GET", "/external/v1/access-requests?scope=to-approve"),
     approve: (id: string, note = "") =>
-      request<AccessRequest>("POST", `/external/v1/access-requests/${id}/approve`, { note }),
+      request<AccessRequest>("POST", `/external/v1/access-requests/${id}/action`, { action: "approve", note }),
     reject: (id: string, note = "") =>
-      request<AccessRequest>("POST", `/external/v1/access-requests/${id}/reject`, { note }),
+      request<AccessRequest>("POST", `/external/v1/access-requests/${id}/action`, { action: "reject", note }),
   },
   // users: the admin directory. Read-only plus the status/role controls; only the super admin may send a role.
   users: {

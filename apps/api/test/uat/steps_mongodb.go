@@ -118,7 +118,7 @@ func (w *world) mongoRequestNotRecorded(ctx context.Context) error {
 }
 
 func (w *world) mongoRequestApprove(ctx context.Context) error {
-	if err := w.api(http.MethodPost, "/external/v1/engine/mongodb/changes/"+w.change.ID+"/approve", map[string]string{}, &w.change); err != nil {
+	if err := w.api(http.MethodPost, "/external/v1/engine/mongodb/changes/"+w.change.ID+"/action", map[string]string{"action": "approve"}, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -128,7 +128,7 @@ func (w *world) mongoRequestApprove(ctx context.Context) error {
 }
 
 func (w *world) mongoRequestApply(ctx context.Context) error {
-	if err := w.api(http.MethodPost, "/external/v1/engine/mongodb/changes/"+w.change.ID+"/apply", map[string]string{}, &w.change); err != nil {
+	if err := w.api(http.MethodPost, "/external/v1/engine/mongodb/changes/"+w.change.ID+"/action", map[string]string{"action": "apply"}, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {

@@ -50,8 +50,7 @@ func routes(d app, cfg config.Config) []route {
 		// Access requests: a user asks, an admin or the instance's admin decides.
 		{Method: http.MethodPost, Endpoint: api + "/access-requests", Handler: http.HandlerFunc(d.AccessCreate.Serve)},
 		{Method: http.MethodGet, Endpoint: api + "/access-requests", Handler: http.HandlerFunc(d.AccessList.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/access-requests/{id}/approve", Handler: http.HandlerFunc(d.AccessApprove.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/access-requests/{id}/reject", Handler: http.HandlerFunc(d.AccessReject.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/access-requests/{id}/action", Handler: accessAction(d)},
 
 		// Users: the admin directory.
 		{Method: http.MethodGet, Endpoint: api + "/users", Handler: http.HandlerFunc(d.UserList.Serve)},
@@ -72,10 +71,7 @@ func routes(d app, cfg config.Config) []route {
 		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/changes", Handler: http.HandlerFunc(d.ChangeList.Serve)},
 		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/changes", Handler: http.HandlerFunc(d.ChangeSubmit.Serve)},
 		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/changes/{id}", Handler: http.HandlerFunc(d.ChangeGet.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/changes/{id}/approve", Handler: http.HandlerFunc(d.ChangeApprove.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/changes/{id}/apply", Handler: http.HandlerFunc(d.ChangeApply.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/changes/{id}/reject", Handler: http.HandlerFunc(d.ChangeReject.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/changes/{id}/schedule", Handler: http.HandlerFunc(d.ChangeSchedule.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/changes/{id}/action", Handler: changeAction(d)},
 
 		// Memory-cache-only: keys, values, removal and emptying the database.
 		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/keys", Handler: http.HandlerFunc(d.CacheKeys.Serve)},
