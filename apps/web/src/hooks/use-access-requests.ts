@@ -30,8 +30,8 @@ export function useToApproveQuery(enabled = true) {
 export function useDecideRequest() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, approve }: { id: string; approve: boolean }) =>
-      approve ? api.accessRequests.approve(id) : api.accessRequests.reject(id),
+    mutationFn: ({ id, approve, note }: { id: string; approve: boolean; note?: string }) =>
+      approve ? api.accessRequests.approve(id, note) : api.accessRequests.reject(id, note),
     onSuccess: (_data, vars) => {
       toast.success(vars.approve ? "request approved" : "request rejected");
       void queryClient.invalidateQueries({ queryKey: ["access-requests"] });
