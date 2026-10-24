@@ -44,6 +44,7 @@ export interface ErdTable {
   columns: ErdColumn[];
   indexes?: ErdIndex[];
   estimatedRows?: number;
+  sizeBytes?: number;
 }
 
 const NODE_WIDTH = 260;

@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useErdQuery } from "@/hooks/use-sql";
 
 // InstanceErd is the same graph as /sql/erd without the instance picker: the tab already knows which connection it is.
-export function InstanceErd({ connection }: { connection: string }) {
+export function InstanceErd({ connection, instanceId }: { connection: string; instanceId?: string }) {
   const erd = useErdQuery(connection);
   const tables = useMemo(() => toErdTables(erd.data), [erd.data]);
   const [selectedId, setSelectedId] = useState<string>();
@@ -47,7 +47,7 @@ export function InstanceErd({ connection }: { connection: string }) {
               {selected?.schema} · {selected?.columns.length ?? 0} column(s)
             </SheetDescription>
           </SheetHeader>
-          <SheetBody>{selected && <TableDetails table={selected} tables={tables} connection={connection} />}</SheetBody>
+          <SheetBody>{selected && <TableDetails table={selected} tables={tables} connection={connection} instanceId={instanceId} />}</SheetBody>
         </SheetContent>
       </Sheet>
     </div>
