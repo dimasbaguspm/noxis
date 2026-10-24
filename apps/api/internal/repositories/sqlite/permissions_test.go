@@ -2,8 +2,6 @@ package sqlite
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"path/filepath"
 	"testing"
 
@@ -87,48 +85,4 @@ func hasAction(events []entity.AccessEvent, action string) bool {
 		}
 	}
 	return false
-}
-
-// TestMigrateGrantsToPermissions opens a pre-rename database (old connection_grants table) and proves Open moves the rows into permissions as groups and drops the old table.
-func TestMigrateGrantsToPermissions(t *testing.T) {
-	ctx := context.Background()
-	path := filepath.Join(t.TempDir(), "legacy.db")
-
-	raw, err := sql.Open("sqlite", path)
-	if err != nil {
-		t.Fatalf("open raw: %v", err)
-	}
-	if _, err := raw.Exec(`
-		CREATE TABLE connection_grants (
-			connection TEXT NOT NULL,
-			group_name TEXT NOT NULL,
-			level      TEXT NOT NULL,
-			PRIMARY KEY (connection, group_name)
-		);
-		INSERT INTO connection_grants VALUES ('demo', 'ops', 'admin');`); err != nil {
-		raw.Close()
-		t.Fatalf("seed legacy: %v", err)
-	}
-	raw.Close()
-
-	store, err := Open(ctx, path, "")
-	if err != nil {
-		t.Fatalf("open store: %v", err)
-	}
-	defer store.Close()
-
-	list, err := store.ListPermissions(ctx, "demo")
-	if err != nil {
-		t.Fatalf("list: %v", err)
-	}
-	if len(list) != 1 || list[0].Member != "ops" || list[0].MemberType != entity.MemberGroup || list[0].Level != entity.LevelAdmin {
-		t.Fatalf("migrated permissions=%+v", list)
-	}
-
-	var name string
-	err = store.db.QueryRowContext(ctx,
-		`SELECT name FROM sqlite_master WHERE type='table' AND name='connection_grants'`).Scan(&name)
-	if !errors.Is(err, sql.ErrNoRows) {
-		t.Fatalf("connection_grants must be dropped, err=%v", err)
-	}
 }

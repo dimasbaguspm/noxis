@@ -121,6 +121,7 @@ Valkey server to keep that claim honest.
 - **An interrupted apply is indeterminate.** A change claimed for execution stays `applying` after a process crash; noXis will not retry it automatically. Inspect the target before taking further action.
 - **SQLite is a file.** Point the connection at the database file on the noXis
   host or volume — never at noXis’s own registry.
+- **The noXis registry schema is reset-only.** Older `NOXIS_DB` files are rejected; reset the file to start with the current schema. This removes stored connections, users, permissions, change history, and access events.
 
 ## Authentication
 

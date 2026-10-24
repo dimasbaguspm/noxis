@@ -8,11 +8,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
-	"noxis/internal/common/idgen"
 	"noxis/internal/common/secret"
 	"noxis/internal/constants"
+	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 
 	// modernc SQLite driver: pure-Go, cgo-free (interface is database/sql).
@@ -33,7 +34,7 @@ var (
 	_ interfaces.AccessEventRepository = (*Store)(nil)
 )
 
-// Open creates the database path, applies migrations and backfills, then verifies the store with a ping.
+// Open creates a fresh current-schema database or rejects an incompatible existing file, then verifies the store with a ping.
 func Open(ctx context.Context, path, secretKey string) (*Store, error) {
 	cipher, err := secret.New(secretKey)
 	if err != nil {
@@ -54,34 +55,13 @@ func Open(ctx context.Context, path, secretKey string) (*Store, error) {
 	}
 	db.SetMaxOpenConns(1)
 	s := &Store{db: db, secret: cipher}
-	if _, err := db.Exec(schema); err != nil {
+	if err := initializeSchema(ctx, db); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("schema: %w", err)
+		return nil, err
 	}
-	// pre-existing volumes: add columns introduced after the first release.
-	for _, ddl := range migrations {
-		_, _ = db.Exec(ddl)
-	}
-	// instance ids were added after the first release: backfill existing rows, then enforce uniqueness (an index over the not-yet-filled column would collide on the empty default).
-	if err := backfillConnectionIDs(ctx, db); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("backfill connection ids: %w", err)
-	}
-	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS connections_id ON connections(id)`); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("connection id index: %w", err)
-	}
-	if err := s.encryptLegacyPasswords(ctx); err != nil {
+	if err := s.encryptPlaintextPasswords(ctx); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("encrypt stored passwords: %w", err)
-	}
-	if err := migrateGrantsToPermissions(ctx, db); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("migrate grants: %w", err)
-	}
-	if err := backfillAccessExpiry(ctx, db); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("backfill access expiry: %w", err)
 	}
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
@@ -92,197 +72,180 @@ func Open(ctx context.Context, path, secretKey string) (*Store, error) {
 	return s, nil
 }
 
-// migrateGrantsToPermissions moves a pre-rename connection_grants table into permissions once, then drops it.
-func migrateGrantsToPermissions(ctx context.Context, db *sql.DB) error {
-	var name string
-	err := db.QueryRowContext(ctx,
-		`SELECT name FROM sqlite_master WHERE type='table' AND name='connection_grants'`).Scan(&name)
-	if errors.Is(err, sql.ErrNoRows) {
+const schemaVersion = 1
+
+func initializeSchema(ctx context.Context, db *sql.DB) error {
+	var version int
+	if err := db.QueryRowContext(ctx, `PRAGMA user_version`).Scan(&version); err != nil {
+		return fmt.Errorf("read SQLite schema version: %w", err)
+	}
+	if version == schemaVersion {
 		return nil
 	}
+	if version != 0 {
+		return fmt.Errorf("SQLite schema version %d is unsupported; reset NOXIS_DB for version %d", version, schemaVersion)
+	}
+	var tables int
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`).Scan(&tables); err != nil {
+		return fmt.Errorf("inspect SQLite schema: %w", err)
+	}
+	if tables != 0 {
+		return errors.New("existing SQLite schema is unsupported; reset NOXIS_DB to create the current schema")
+	}
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin SQLite schema: %w", err)
 	}
-	if _, err := db.ExecContext(ctx, `
-		INSERT OR IGNORE INTO permissions (connection, member, member_type, level)
-		SELECT connection, group_name, 'group', level FROM connection_grants`); err != nil {
-		return err
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, schemaSQL()); err != nil {
+		return fmt.Errorf("create SQLite schema: %w", err)
 	}
-	_, err = db.ExecContext(ctx, `DROP TABLE connection_grants`)
-	return err
-}
-
-// backfillAccessExpiry assigns the default expiry to legacy grants and leaves existing expiries unchanged.
-func backfillAccessExpiry(ctx context.Context, db *sql.DB) error {
-	now := time.Now()
-	if _, err := db.ExecContext(ctx,
-		`UPDATE permissions SET expires_at = ?, created_by = 'system', created_at = ?, updated_at = ?
-		 WHERE expires_at = 0`,
-		now.Add(constants.AccessGrantTTL).Unix(), now.Unix(), now.Unix()); err != nil {
-		return fmt.Errorf("backfill permission expiry: %w", err)
+	if _, err := tx.ExecContext(ctx, fmt.Sprintf(`PRAGMA user_version = %d`, schemaVersion)); err != nil {
+		return fmt.Errorf("set SQLite schema version: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit SQLite schema: %w", err)
 	}
 	return nil
 }
 
-// migrations are applied best-effort; duplicates (fresh databases) error and are ignored.
-var migrations = []string{
-	`ALTER TABLE changes ADD COLUMN kind TEXT NOT NULL DEFAULT ''`,
-	`ALTER TABLE changes ADD COLUMN rejected_at INTEGER NOT NULL DEFAULT 0`,
-	`ALTER TABLE changes ADD COLUMN est_duration_ms INTEGER NOT NULL DEFAULT 0`,
-	`ALTER TABLE changes ADD COLUMN est_affected INTEGER NOT NULL DEFAULT 0`,
-	`ALTER TABLE changes ADD COLUMN applied_affected INTEGER NOT NULL DEFAULT 0`,
-	`ALTER TABLE changes ADD COLUMN applied_duration_ms INTEGER NOT NULL DEFAULT 0`,
-	`ALTER TABLE changes ADD COLUMN affected_tables TEXT NOT NULL DEFAULT '[]'`,
-	`ALTER TABLE changes ADD COLUMN affected_columns TEXT NOT NULL DEFAULT '[]'`,
-	`ALTER TABLE changes ADD COLUMN scheduled_at INTEGER NOT NULL DEFAULT 0`,
-	`ALTER TABLE changes ADD COLUMN created_by TEXT NOT NULL DEFAULT ''`,
-	`ALTER TABLE connections ADD COLUMN id TEXT NOT NULL DEFAULT ''`,
-	`ALTER TABLE users ADD COLUMN last_login_at INTEGER NOT NULL DEFAULT 0`,
-	`ALTER TABLE users ADD COLUMN is_super INTEGER NOT NULL DEFAULT 0`,
-	`ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT ''`,
-	// legacy local accounts were namespaced by username: keep it as the email so the account keeps signing in by the name it was created with
-	`UPDATE users SET email = username WHERE email = '' AND username != ''`,
-	`CREATE UNIQUE INDEX IF NOT EXISTS users_email ON users(email) WHERE email != ''`,
-	`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'member'`,
-	`UPDATE users SET role = 'super' WHERE is_super = 1`,
-	`ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'active'`,
-	`UPDATE users SET status = 'banned' WHERE disabled = 1`,
-	`ALTER TABLE permissions ADD COLUMN expires_at INTEGER NOT NULL DEFAULT 0`,
-	`ALTER TABLE permissions ADD COLUMN created_by TEXT NOT NULL DEFAULT ''`,
-	`ALTER TABLE permissions ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0`,
-	`ALTER TABLE permissions ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0`,
-	`CREATE TABLE IF NOT EXISTS access_requests (
-	  id            TEXT PRIMARY KEY,
-	  subject       TEXT NOT NULL,
-	  connection    TEXT NOT NULL,
-	  level         TEXT NOT NULL,
-	  reason        TEXT NOT NULL DEFAULT '',
-	  status        TEXT NOT NULL,
-	  requested_at  INTEGER NOT NULL,
-	  decided_by    TEXT NOT NULL DEFAULT '',
-	  decided_at    INTEGER NOT NULL DEFAULT 0,
-	  decision_note TEXT NOT NULL DEFAULT '',
-	  expires_at    INTEGER NOT NULL DEFAULT 0
-	)`,
-	`CREATE INDEX IF NOT EXISTS access_requests_pending ON access_requests(status, connection)`,
-	`CREATE TABLE IF NOT EXISTS access_events (
-	  id         TEXT PRIMARY KEY,
-	  at         INTEGER NOT NULL,
-	  actor      TEXT NOT NULL DEFAULT '',
-	  action     TEXT NOT NULL,
-	  subject    TEXT NOT NULL DEFAULT '',
-	  connection TEXT NOT NULL DEFAULT '',
-	  level      TEXT NOT NULL DEFAULT '',
-	  request_id TEXT NOT NULL DEFAULT '',
-	  note       TEXT NOT NULL DEFAULT ''
-	)`,
-	`ALTER TABLE changes ADD COLUMN applying_at INTEGER NOT NULL DEFAULT 0`,
-	`ALTER TABLE changes ADD COLUMN approved_by TEXT NOT NULL DEFAULT ''`,
-	`ALTER TABLE changes ADD COLUMN applied_by TEXT NOT NULL DEFAULT ''`,
-	`ALTER TABLE changes ADD COLUMN rejected_by TEXT NOT NULL DEFAULT ''`,
-	`ALTER TABLE changes ADD COLUMN scheduled_by TEXT NOT NULL DEFAULT ''`,
-}
-
-// backfillConnectionIDs gives every pre-migration row a stable id. New rows get one in Save; this only touches legacy volumes.
-func backfillConnectionIDs(ctx context.Context, db *sql.DB) error {
-	rows, err := db.QueryContext(ctx, `SELECT name FROM connections WHERE id = '' OR id IS NULL`)
-	if err != nil {
-		return err
-	}
-	var names []string
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			rows.Close()
-			return err
-		}
-		names = append(names, name)
-	}
-	rows.Close()
-	if err := rows.Err(); err != nil {
-		return err
-	}
-	for _, name := range names {
-		if _, err := db.ExecContext(ctx, `UPDATE connections SET id = ? WHERE name = ?`, idgen.UUID(), name); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-const schema = `
-CREATE TABLE IF NOT EXISTS changes (
-  id          TEXT PRIMARY KEY,
-  connection  TEXT NOT NULL,
-  notes       TEXT NOT NULL,
-  query       TEXT NOT NULL,
-  rollback    TEXT NOT NULL,
-  kind        TEXT NOT NULL DEFAULT '',
-  status      TEXT NOT NULL,
-  checks      TEXT NOT NULL DEFAULT '[]',
-  created_at  INTEGER NOT NULL,
+const schemaTemplate = `
+CREATE TABLE changes (
+  id          TEXT PRIMARY KEY CHECK (length(id) > 0),
+  connection  TEXT NOT NULL CHECK (length(connection) > 0),
+  notes       TEXT NOT NULL CHECK (length(notes) > 0),
+  query       TEXT NOT NULL DEFAULT '',
+  rollback    TEXT NOT NULL DEFAULT '',
+  kind        TEXT NOT NULL CHECK (kind IN (%s)),
+  status      TEXT NOT NULL CHECK (status IN (%s)),
+  checks      TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(checks)),
+  created_at  INTEGER NOT NULL CHECK (created_at > 0),
   created_by  TEXT NOT NULL DEFAULT '',
-  approved_at INTEGER NOT NULL DEFAULT 0,
+  approved_at INTEGER NOT NULL DEFAULT 0 CHECK (approved_at >= 0),
   approved_by TEXT NOT NULL DEFAULT '',
-  applying_at INTEGER NOT NULL DEFAULT 0,
-  applied_at  INTEGER NOT NULL DEFAULT 0,
+  applying_at INTEGER NOT NULL DEFAULT 0 CHECK (applying_at >= 0),
+  applied_at  INTEGER NOT NULL DEFAULT 0 CHECK (applied_at >= 0),
   applied_by  TEXT NOT NULL DEFAULT '',
-  rejected_at INTEGER NOT NULL DEFAULT 0,
+  rejected_at INTEGER NOT NULL DEFAULT 0 CHECK (rejected_at >= 0),
   rejected_by TEXT NOT NULL DEFAULT '',
-  est_duration_ms INTEGER NOT NULL DEFAULT 0,
-  est_affected    INTEGER NOT NULL DEFAULT 0,
-  applied_affected   INTEGER NOT NULL DEFAULT 0,
-  applied_duration_ms INTEGER NOT NULL DEFAULT 0,
-  scheduled_at INTEGER NOT NULL DEFAULT 0,
+  est_duration_ms INTEGER NOT NULL DEFAULT 0 CHECK (est_duration_ms >= 0),
+  est_affected INTEGER NOT NULL DEFAULT 0 CHECK (est_affected >= 0),
+  applied_affected INTEGER NOT NULL DEFAULT 0 CHECK (applied_affected >= 0),
+  applied_duration_ms INTEGER NOT NULL DEFAULT 0 CHECK (applied_duration_ms >= 0),
+  scheduled_at INTEGER NOT NULL DEFAULT 0 CHECK (scheduled_at >= 0),
   scheduled_by TEXT NOT NULL DEFAULT '',
-  affected_tables  TEXT NOT NULL DEFAULT '[]',
-  affected_columns TEXT NOT NULL DEFAULT '[]'
-);
+  affected_tables TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(affected_tables)),
+  affected_columns TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(affected_columns))
+) STRICT;
 
-CREATE TABLE IF NOT EXISTS connections (
-  name       TEXT PRIMARY KEY,
-  id         TEXT NOT NULL DEFAULT '',
-  driver     TEXT NOT NULL,
-  host       TEXT NOT NULL,
-  port       INTEGER NOT NULL,
-  user       TEXT NOT NULL,
+CREATE TABLE connections (
+  name       TEXT PRIMARY KEY CHECK (length(trim(name)) > 0),
+  id         TEXT NOT NULL CHECK (length(id) > 0),
+  driver     TEXT NOT NULL CHECK (length(driver) > 0),
+  host       TEXT NOT NULL DEFAULT '',
+  port       INTEGER NOT NULL DEFAULT 0 CHECK (port BETWEEN 0 AND 65535),
+  user       TEXT NOT NULL DEFAULT '',
   password   TEXT NOT NULL DEFAULT '',
-  database   TEXT NOT NULL,
-  params     TEXT NOT NULL DEFAULT '{}',
-  created_at INTEGER NOT NULL,
+  database   TEXT NOT NULL CHECK (length(database) > 0),
+  params     TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(params)),
+  created_at INTEGER NOT NULL CHECK (created_at > 0),
   created_by TEXT NOT NULL DEFAULT ''
-);
+) STRICT;
 
-CREATE TABLE IF NOT EXISTS permissions (
-  connection  TEXT NOT NULL,
-  member      TEXT NOT NULL,
-  member_type TEXT NOT NULL,
-  level       TEXT NOT NULL,
+CREATE TABLE permissions (
+  connection  TEXT NOT NULL CHECK (length(connection) > 0),
+  member      TEXT NOT NULL CHECK (length(member) > 0),
+  member_type TEXT NOT NULL CHECK (member_type IN (%s)),
+  level       TEXT NOT NULL CHECK (level IN (%s)),
+  expires_at  INTEGER NOT NULL CHECK (expires_at > 0),
+  created_by  TEXT NOT NULL,
+  created_at  INTEGER NOT NULL CHECK (created_at > 0),
+  updated_at  INTEGER NOT NULL CHECK (updated_at > 0),
   PRIMARY KEY (connection, member)
-);
+) STRICT;
 
-CREATE TABLE IF NOT EXISTS users (
-  subject          TEXT PRIMARY KEY,
+CREATE TABLE users (
+  subject          TEXT PRIMARY KEY CHECK (length(trim(subject)) > 0),
   email            TEXT NOT NULL DEFAULT '',
   username         TEXT NOT NULL DEFAULT '',
   password         TEXT NOT NULL DEFAULT '',
-  groups           TEXT NOT NULL DEFAULT '[]',
-  role             TEXT NOT NULL DEFAULT 'member',
-  status           TEXT NOT NULL DEFAULT 'active',
+  groups           TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(groups)),
+  role             TEXT NOT NULL CHECK (role IN (%s)),
+  status           TEXT NOT NULL CHECK (status IN (%s)),
   token_hash       TEXT NOT NULL DEFAULT '',
-  token_expires_at INTEGER NOT NULL DEFAULT 0,
-  last_login_at    INTEGER NOT NULL DEFAULT 0,
-  created_at       INTEGER NOT NULL,
-  updated_at       INTEGER NOT NULL
-);
+  token_expires_at INTEGER NOT NULL DEFAULT 0 CHECK (token_expires_at >= 0),
+  last_login_at    INTEGER NOT NULL DEFAULT 0 CHECK (last_login_at >= 0),
+  created_at       INTEGER NOT NULL CHECK (created_at > 0),
+  updated_at       INTEGER NOT NULL CHECK (updated_at > 0)
+) STRICT;
 
--- a local account may be named; OIDC reference rows have no username
-CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users(username) WHERE username != '';
--- one active token per account; empty means logged out
-CREATE UNIQUE INDEX IF NOT EXISTS users_token_hash ON users(token_hash) WHERE token_hash != '';`
+CREATE TABLE access_requests (
+  id            TEXT PRIMARY KEY CHECK (length(id) > 0),
+  subject       TEXT NOT NULL CHECK (length(subject) > 0),
+  connection    TEXT NOT NULL CHECK (length(connection) > 0),
+  level         TEXT NOT NULL CHECK (level IN (%s)),
+  reason        TEXT NOT NULL DEFAULT '',
+  status        TEXT NOT NULL CHECK (status IN (%s)),
+  requested_at  INTEGER NOT NULL CHECK (requested_at > 0),
+  decided_by    TEXT NOT NULL DEFAULT '',
+  decided_at    INTEGER NOT NULL DEFAULT 0 CHECK (decided_at >= 0),
+  decision_note TEXT NOT NULL DEFAULT '',
+  expires_at    INTEGER NOT NULL DEFAULT 0 CHECK (expires_at >= 0)
+) STRICT;
 
-// encryptLegacyPasswords seals rows written before a key was set, so a store that gains a key converges to ciphertext.
-func (s *Store) encryptLegacyPasswords(ctx context.Context) error {
+CREATE TABLE access_events (
+  id         TEXT PRIMARY KEY CHECK (length(id) > 0),
+  at         INTEGER NOT NULL CHECK (at > 0),
+  actor      TEXT NOT NULL,
+  action     TEXT NOT NULL CHECK (length(action) > 0),
+  subject    TEXT NOT NULL DEFAULT '',
+  connection TEXT NOT NULL DEFAULT '',
+  level      TEXT NOT NULL DEFAULT '',
+  request_id TEXT NOT NULL DEFAULT '',
+  note       TEXT NOT NULL DEFAULT ''
+) STRICT;
+
+CREATE UNIQUE INDEX connections_id ON connections(id);
+CREATE UNIQUE INDEX users_email ON users(email) WHERE email != '';
+CREATE UNIQUE INDEX users_username ON users(username) WHERE username != '';
+CREATE UNIQUE INDEX users_token_hash ON users(token_hash) WHERE token_hash != '';
+CREATE UNIQUE INDEX access_requests_pending ON access_requests(subject, connection) WHERE status = %s;
+CREATE INDEX changes_by_created ON changes(created_at DESC, id);
+CREATE INDEX changes_by_connection_created ON changes(connection, created_at DESC, id);
+CREATE INDEX changes_by_schedule ON changes(status, scheduled_at) WHERE scheduled_at > 0;
+CREATE INDEX permissions_by_member ON permissions(member, connection);
+CREATE INDEX permissions_groups ON permissions(member_type, member);
+CREATE INDEX access_requests_by_subject ON access_requests(subject, requested_at DESC);
+CREATE INDEX access_requests_by_status_connection ON access_requests(status, connection, requested_at);
+CREATE INDEX access_events_by_subject ON access_events(subject, at DESC);
+CREATE INDEX access_events_by_actor ON access_events(actor, at DESC);
+CREATE INDEX access_events_by_connection ON access_events(connection, at DESC);
+`
+
+func schemaSQL() string {
+	return fmt.Sprintf(schemaTemplate,
+		sqlValues(constants.KindDML, constants.KindDDL, constants.KindMongo),
+		sqlValues(constants.ChangeValidated, constants.ChangeUnverified, constants.ChangeFailed, constants.ChangeApproved, constants.ChangeApplying, constants.ChangeApplied, constants.ChangeRejected),
+		sqlValues(entity.MemberUser, entity.MemberGroup),
+		sqlValues(entity.LevelRead, entity.LevelWrite, entity.LevelAdmin),
+		sqlValues(entity.RoleSuper, entity.RoleAdmin, entity.RoleMember),
+		sqlValues(entity.StatusActive, entity.StatusBanned),
+		sqlValues(entity.LevelRead, entity.LevelWrite, entity.LevelAdmin),
+		sqlValues(entity.RequestPending, entity.RequestApproved, entity.RequestRejected, entity.RequestCancelled, entity.RequestExpired),
+		sqlValues(entity.RequestPending),
+	)
+}
+
+func sqlValues(values ...string) string {
+	quoted := make([]string, len(values))
+	for i, value := range values {
+		quoted[i] = "'" + strings.ReplaceAll(value, "'", "''") + "'"
+	}
+	return strings.Join(quoted, ", ")
+}
+
+// encryptPlaintextPasswords seals connection passwords saved while no secret key was configured.
+func (s *Store) encryptPlaintextPasswords(ctx context.Context) error {
 	if s.secret == nil {
 		return nil
 	}

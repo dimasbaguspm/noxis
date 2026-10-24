@@ -75,16 +75,13 @@ func (s *Store) getOne(ctx context.Context, q string, arg any) (*entity.Connecti
 	return &conn, nil
 }
 
-// Delete removes a connection and its changes atomically (orphaned changes would point at a database nobody can reach).
+// Delete removes a connection and its grants atomically; changes and access events remain as history.
 func (s *Store) Delete(ctx context.Context, name string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	return s.WithTx(ctx, func(tx *sql.Tx) error {
-		if _, err := tx.ExecContext(ctx, `DELETE FROM changes WHERE connection = ?`, name); err != nil {
-			return fmt.Errorf("delete changes of %s: %w", name, err)
-		}
-		if _, err := tx.ExecContext(ctx, `DELETE FROM connection_grants WHERE connection = ?`, name); err != nil {
-			return fmt.Errorf("delete grants of %s: %w", name, err)
+		if _, err := tx.ExecContext(ctx, `DELETE FROM permissions WHERE connection = ?`, name); err != nil {
+			return fmt.Errorf("delete permissions of %s: %w", name, err)
 		}
 		if _, err := tx.ExecContext(ctx, `DELETE FROM connections WHERE name = ?`, name); err != nil {
 			return fmt.Errorf("delete connection %s: %w", name, err)
