@@ -50,9 +50,8 @@ constructor boilerplate, no reflection.
 
 `apps/api/internal/modules/modules.go`:
 
-- `Registry` resolves a family by name (`Engine`), by interface (`EngineSQL`,
-  `EngineMongo`, `EngineMemcache`), and a driver → family (`Serves`).
-- `Default(connections, changes, metrics, auth)` builds `{sql, memcache, mongodb}` and their change flows. **This map
+- `Registry` resolves a family by name (`Engine`) and a driver → family (`Serves`); typed lookups go through `common.ModuleLoader`, not one method per interface.
+- `Default(repositories, metrics)` builds `{sql, memcache, mongodb}` and their change flows. **This map
   is the only place families are declared.**
 - `Registry` implements the common typed `ModuleLoader` for registered engine and
   change-flow capabilities. `common.LoadModule(ctx, &target)` resolves them from
@@ -154,7 +153,7 @@ the same declaration a reader can find.
   `member` still needs a grant per connection, and an `admin` role never widens
   data access.
 - An OIDC login whose verified email equals an account's `email` is blended into
-  it (`modules/auth.Service.Verify` → `GetUserByEmail`): same subject, role and
+  it (`internal/auth.Service.Verify` → `GetUserByEmail`): same subject, role and
   grants. Unmatched or unverified OIDC identities are recorded as reference rows,
   then resolved from SQLite on every request; stored role/status are authoritative
   and banned identities are refused.

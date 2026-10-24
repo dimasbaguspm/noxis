@@ -35,7 +35,7 @@ func (uc Password) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	if err := uc.Modules.Auth().ChangePassword(ctx, principal.Subject, body.OldPassword, body.NewPassword); err != nil {
+	if err := uc.Auth.ChangePassword(ctx, principal.Subject, body.OldPassword, body.NewPassword); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
