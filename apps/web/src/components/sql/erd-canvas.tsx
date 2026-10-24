@@ -16,7 +16,7 @@ import {
   useNodesState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Maximize2, Minimize2, RotateCcw, Scan } from "lucide-react";
+import { LayoutGrid, Maximize2, Minimize2, RotateCcw, Scan } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -50,6 +50,29 @@ const NODE_WIDTH = 260;
 const HEADER_HEIGHT = 52;
 const ROW_HEIGHT = 20;
 const MAX_ROWS = 12;
+
+type SavedLayout = Record<string, { x: number; y: number }>;
+
+function readLayout(key?: string): SavedLayout {
+  if (!key) return {};
+  try {
+    const value = JSON.parse(localStorage.getItem(key) ?? "{}") as SavedLayout;
+    return Object.fromEntries(
+      Object.entries(value).filter(([, point]) => Number.isFinite(point?.x) && Number.isFinite(point?.y)),
+    );
+  } catch {
+    return {};
+  }
+}
+
+function writeLayout(key: string | undefined, layout: SavedLayout) {
+  if (!key) return;
+  try {
+    localStorage.setItem(key, JSON.stringify(layout));
+  } catch {
+    // private mode or a full quota: the graph still works, it just forgets the arrangement
+  }
+}
 
 interface TableNodeData extends Record<string, unknown> {
   table: ErdTable;
@@ -218,12 +241,32 @@ function FocusSelection({ id }: { id?: string }) {
   return null;
 }
 
-function GraphActions({ fullscreen, onFullscreen }: { fullscreen: boolean; onFullscreen: () => void }) {
+function GraphActions({
+  fullscreen,
+  onFullscreen,
+  onArrange,
+}: {
+  fullscreen: boolean;
+  onFullscreen: () => void;
+  onArrange: () => void;
+}) {
   const { fitView, zoomTo } = useReactFlow();
   return (
     <Panel position="top-right" className="flex gap-1">
       <Button size="icon-sm" variant="outline" title="Fit diagram" onClick={() => void fitView({ duration: 300, padding: 0.2 })}>
         <Scan />
+      </Button>
+      <Button
+        size="icon-sm"
+        variant="outline"
+        title="Auto arrange"
+        aria-label="Auto arrange"
+        onClick={() => {
+          onArrange();
+          requestAnimationFrame(() => void fitView({ duration: 300, padding: 0.2 }));
+        }}
+      >
+        <LayoutGrid />
       </Button>
       <Button size="icon-sm" variant="outline" title="Actual size" onClick={() => void zoomTo(1, { duration: 200 })}>
         <RotateCcw />
@@ -245,15 +288,19 @@ export function ErdCanvas({
   tables,
   selectedId,
   query,
+  layoutKey,
   onSelect,
 }: {
   tables: ErdTable[];
   selectedId?: string;
   query: string;
+  layoutKey?: string;
   onSelect: (id: string) => void;
 }) {
   const graph = useMemo(() => layoutTables(tables), [tables]);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<TableNodeData>>([]);
+  const storageKey = layoutKey ? `noxis.erd.layout:${layoutKey}` : undefined;
+  const savedLayout = useRef<SavedLayout>(readLayout(storageKey));
   const containerRef = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [colorMode, setColorMode] = useState<"dark" | "light">(() =>
@@ -286,7 +333,12 @@ export function ErdCanvas({
 
   // A new schema replaces the layout, but selection and filtering must not undo a drag.
   useEffect(() => {
-    setNodes(graph.nodes);
+    setNodes(
+      graph.nodes.map((node) => {
+        const saved = savedLayout.current[node.id];
+        return saved ? { ...node, position: saved } : node;
+      }),
+    );
   }, [graph.nodes, setNodes]);
 
   const viewNodes = useMemo(
@@ -309,6 +361,10 @@ export function ErdCanvas({
       edges={graph.edges}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
+      onNodeDragStop={(_, node) => {
+        savedLayout.current[node.id] = { x: node.position.x, y: node.position.y };
+        writeLayout(storageKey, savedLayout.current);
+      }}
       colorMode={colorMode}
       fitView
       fitViewOptions={{ padding: 0.2 }}
@@ -320,7 +376,15 @@ export function ErdCanvas({
       >
         <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
         <Controls showInteractive={false} />
-        <GraphActions fullscreen={fullscreen} onFullscreen={() => void toggleFullscreen()} />
+        <GraphActions
+          fullscreen={fullscreen}
+          onFullscreen={() => void toggleFullscreen()}
+          onArrange={() => {
+            savedLayout.current = {};
+            writeLayout(storageKey, {});
+            setNodes(graph.nodes);
+          }}
+        />
         <FocusSelection id={selectedId} />
         <FitOnLoad count={nodes.length} />
       </ReactFlow>

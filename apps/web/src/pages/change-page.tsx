@@ -88,6 +88,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
               </div>
             ) : changes.length === 0 ? (
               <Empty
+                className="flex-1"
                 title={`no ${kind} changes`}
                 description={filter.trim() ? "no change matches this instance filter" : "raise one and it will land here"}
               />
