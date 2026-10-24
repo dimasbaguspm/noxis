@@ -54,7 +54,7 @@ func startEngine(t *testing.T, image, port string, env map[string]string, ready 
 }
 
 // TestUATSQLModulePostgres proves the SQL module against a real Postgres started
-// for the acceptance suite, not a hand-written protocol mock.
+// for the acceptance suite.
 func TestUATSQLModulePostgres(t *testing.T) {
 	host, port := startEngine(t, "postgres:16-alpine", "5432", map[string]string{
 		"POSTGRES_PASSWORD": "uat", "POSTGRES_DB": "postgres",
