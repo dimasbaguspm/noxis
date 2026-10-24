@@ -25,9 +25,9 @@ Feature: per-test headers, the bearer token and cookies
     Then the result has 1 row(s)
 
   Scenario: a raw payload is sent verbatim
-    When I send a POST to "/external/v1/engine/sql/connections/demo/query" with payload:
+    When I send a POST to "/external/v1/engine/sql/connections/demo/operations" with payload:
       """
-      {"sql": "SELECT 7 AS n"}
+      {"op": "query", "sql": "SELECT 7 AS n"}
       """
     Then the result has 1 row(s)
     And the first row's "n" is "7"

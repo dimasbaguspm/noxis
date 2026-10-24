@@ -66,10 +66,7 @@ func routes(d app, cfg config.Config) []route {
 		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/schema", Handler: http.HandlerFunc(d.Schema.Serve)},
 		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/erd", Handler: http.HandlerFunc(d.ERD.Serve)},
 		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/tables/{table}/rows", Handler: http.HandlerFunc(d.Rows.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/connections/{name}/query", Handler: http.HandlerFunc(d.Op.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/connections/{name}/alter", Handler: http.HandlerFunc(d.Op.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/connections/{name}/rollback", Handler: http.HandlerFunc(d.Op.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/connections/{name}/analyze", Handler: http.HandlerFunc(d.Op.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/connections/{name}/operations", Handler: http.HandlerFunc(d.Op.Serve)},
 
 		// Changes: SQL and MongoDB keep separate queues behind one route.
 		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/changes", Handler: http.HandlerFunc(d.ChangeList.Serve)},

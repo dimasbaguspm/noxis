@@ -136,11 +136,11 @@ export const api = {
       ),
   },
   ops: {
-    query: (name: string, sql: string) => request<Result>("POST", connPath(FAMILY.SQL, name, "/query"), { sql }),
-    alter: (name: string, sql: string) => request<Result>("POST", connPath(FAMILY.SQL, name, "/alter"), { sql }),
-    rollback: (name: string, sql: string) => request<Result>("POST", connPath(FAMILY.SQL, name, "/rollback"), { sql }),
+    query: (name: string, sql: string) => request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "query", sql }),
+    alter: (name: string, sql: string) => request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "alter", sql }),
+    rollback: (name: string, sql: string) => request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "rollback", sql }),
     analyze: (name: string, table: string) =>
-      request<Result>("POST", connPath(FAMILY.SQL, name, "/analyze"), { table }),
+      request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "analyze", table }),
   },
   memcache: {
     ...connectionOps(FAMILY.MEMCACHE),

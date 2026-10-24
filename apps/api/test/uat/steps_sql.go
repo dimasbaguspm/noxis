@@ -20,6 +20,8 @@ type resultBody struct {
 func (w *world) sqlSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I read "([^"]*)"$`, w.read)
 	sc.Step(`^I run the write "([^"]*)"$`, w.write)
+	sc.Step(`^I send an unknown console operation$`, w.unknownOp)
+	sc.Step(`^the request is refused as a bad request$`, w.badRequest)
 	sc.Step(`^the result has (\d+) row\(s\)$`, w.rowCount)
 	sc.Step(`^the first row's "([^"]*)" is "([^"]*)"$`, w.firstRowCell)
 	sc.Step("the request is rejected", w.rejected)
@@ -33,13 +35,33 @@ func (w *world) sqlSteps(sc *godog.ScenarioContext) {
 
 func (w *world) read(ctx context.Context, sqlText string) error {
 	w.result = resultBody{}
-	return w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/query", map[string]string{"sql": sqlText}, &w.result)
+	return w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/operations", map[string]string{"op": "query", "sql": sqlText}, &w.result)
+}
+
+// unknownOp proves the operations route refuses an unknown op instead of guessing.
+// badRequest asserts the API rejected the last request as malformed input.
+func (w *world) badRequest(context.Context) error {
+	if w.code != http.StatusBadRequest {
+		return fmt.Errorf("want 400, got %d %s", w.code, w.body)
+	}
+	return nil
+}
+
+func (w *world) unknownOp(ctx context.Context) error {
+	w.result = resultBody{}
+	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/operations", map[string]string{"op": "bogus"}, &w.result); err != nil {
+		return err
+	}
+	if w.code != http.StatusBadRequest {
+		return fmt.Errorf("unknown op: %d %s", w.code, w.body)
+	}
+	return nil
 }
 
 // write runs a direct DML/DDL statement through the alter route.
 func (w *world) write(ctx context.Context, sqlText string) error {
 	w.result = resultBody{}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/alter", map[string]string{"sql": sqlText}, &w.result); err != nil {
+	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/operations", map[string]string{"op": "alter", "sql": sqlText}, &w.result); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -86,7 +108,7 @@ func (w *world) rejected(ctx context.Context) error {
 
 func (w *world) dryRun(ctx context.Context, sqlText string) error {
 	w.result = resultBody{}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/rollback", map[string]string{"sql": sqlText}, &w.result); err != nil {
+	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/operations", map[string]string{"op": "rollback", "sql": sqlText}, &w.result); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -98,7 +120,7 @@ func (w *world) dryRun(ctx context.Context, sqlText string) error {
 // dryRunRefused expects the driver to refuse a dry run: mysql-family engines commit DDL implicitly, so a rolled-back transaction there would not be a dry run at all.
 func (w *world) dryRunRefused(ctx context.Context, sqlText string) error {
 	w.result = resultBody{}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/rollback", map[string]string{"sql": sqlText}, &w.result); err != nil {
+	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/operations", map[string]string{"op": "rollback", "sql": sqlText}, &w.result); err != nil {
 		return err
 	}
 	if w.code == http.StatusOK {
@@ -108,7 +130,7 @@ func (w *world) dryRunRefused(ctx context.Context, sqlText string) error {
 }
 
 func (w *world) analyze(ctx context.Context, table string) error {
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/analyze", map[string]string{"table": table}, &w.result); err != nil {
+	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/operations", map[string]string{"op": "analyze", "table": table}, &w.result); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {

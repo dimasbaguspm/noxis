@@ -1127,129 +1127,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/alter": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Apply a write directly (DML or DDL) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description engine family (sql) */
-                    engine: string;
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody: components["requestBodies"]["entity.OpRequest"];
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Result"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/external/v1/engine/{engine}/connections/{name}/analyze": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Refresh planner statistics for a table */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description engine family (sql) */
-                    engine: string;
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            /** @description table */
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["entity.OpRequest"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Result"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/external/v1/engine/{engine}/connections/{name}/collections": {
         parameters: {
             query?: never;
@@ -1606,6 +1483,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/external/v1/engine/{engine}/connections/{name}/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run a SQL console operation */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description engine family (sql) */
+                    engine: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            /** @description op plus sql or table */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["entity.OpRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Result"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/external/v1/engine/{engine}/connections/{name}/permissions": {
         parameters: {
             query?: never;
@@ -1793,65 +1734,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/query": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Run a SQL console op (query) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description engine family (sql) */
-                    engine: string;
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody: components["requestBodies"]["entity.OpRequest"];
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Result"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/external/v1/engine/{engine}/connections/{name}/requests": {
         parameters: {
             query?: never;
@@ -1880,65 +1762,6 @@ export interface paths {
                     "application/json": components["schemas"]["entity.MongoRequest"];
                 };
             };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.Result"];
-                    };
-                };
-                /** @description Bad Request */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-                /** @description Not Found */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "*/*": components["schemas"]["entity.ErrorResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/external/v1/engine/{engine}/connections/{name}/rollback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Dry-run statements inside a transaction that always rolls back */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description engine family (sql) */
-                    engine: string;
-                    /** @description connection name */
-                    name: string;
-                };
-                cookie?: never;
-            };
-            requestBody: components["requestBodies"]["entity.OpRequest"];
             responses: {
                 /** @description OK */
                 200: {
@@ -2903,6 +2726,7 @@ export interface components {
             issuer?: string;
         };
         "entity.OpRequest": {
+            op?: string;
             sql?: string;
             table?: string;
         };
@@ -3014,12 +2838,6 @@ export interface components {
     responses: never;
     parameters: never;
     requestBodies: {
-        /** @description sql */
-        "entity.OpRequest": {
-            content: {
-                "application/json": components["schemas"]["entity.OpRequest"];
-            };
-        };
         /** @description optional note */
         "entity.AccessDecision": {
             content: {
