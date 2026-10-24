@@ -27,8 +27,10 @@ const MEMBER_TYPES = [
 // InstancePermissions is one instance's access policy: everyone who can reach it, at what level and until when.
 export function InstancePermissions({
   instance,
+  readOnly = false,
 }: {
   instance: Pick<Connection, "name" | "driver" | "family">
+  readOnly?: boolean
 }) {
   const { isAdmin, isInstanceAdmin } = useAuth();
   const family = instance.family as FamilyKey | undefined;
@@ -54,8 +56,8 @@ export function InstancePermissions({
   const groups = knownGroups(members.data?.groups);
   const meta = family ? familyByKey[family] : undefined;
   const Icon = meta?.icon;
-  const canGrant = isAdmin;
-  const canRevoke = isAdmin || isInstanceAdmin(name);
+  const canGrant = isAdmin && !readOnly;
+  const canRevoke = (isAdmin || isInstanceAdmin(name)) && !readOnly;
   const granted = new Set((permissions.data?.permissions ?? []).map((p) => p.member));
   // supers hold no grants: their access is implicit, so list only those without an explicit row
   const implicitSupers = (members.data?.users ?? []).filter(

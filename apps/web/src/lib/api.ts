@@ -55,9 +55,13 @@ export interface Column {
   nullable: boolean;
 }
 export interface Table {
+  id?: string;
   schema: string;
   name: string;
   columns: Column[];
+  indexes?: { name: string; columns: string[]; unique?: boolean; primary?: boolean }[];
+  estimatedRows?: number;
+  sizeBytes?: number;
 }
 export interface ChangeInput {
   connection: string;

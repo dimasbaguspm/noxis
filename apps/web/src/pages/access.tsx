@@ -60,7 +60,7 @@ export default function AccessPage() {
     <div className="flex h-full flex-col gap-3">
       <div>
         <H1>Access by instance</H1>
-        <P>Every instance and who holds which level on it, across all engine families.</P>
+        <P>Who can reach every instance, across all engine families. Editing stays on the instance dashboard.</P>
       </div>
 
       {matrix.isPending ? (
@@ -125,7 +125,7 @@ export default function AccessPage() {
           <ResizablePanel defaultSize={80} minSize={40} className="min-w-0">
             <div className="ml-2 h-full overflow-auto">
               {selected ? (
-                <InstancePermissions instance={selected} />
+                <InstancePermissions instance={selected} readOnly />
               ) : (
                 <Empty icon={KeyRound} title="No instance selected" description="Pick an instance on the left." />
               )}
