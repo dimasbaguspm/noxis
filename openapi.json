@@ -2849,6 +2849,26 @@
                     }
                 }
             },
+            "entity.Index": {
+                "type": "object",
+                "properties": {
+                    "columns": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "primary": {
+                        "type": "boolean"
+                    },
+                    "unique": {
+                        "type": "boolean"
+                    }
+                }
+            },
             "entity.InstanceAccess": {
                 "type": "object",
                 "properties": {
@@ -3333,8 +3353,17 @@
                             "$ref": "#/components/schemas/entity.Column"
                         }
                     },
+                    "estimatedRows": {
+                        "type": "integer"
+                    },
                     "id": {
                         "type": "string"
+                    },
+                    "indexes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/entity.Index"
+                        }
                     },
                     "name": {
                         "type": "string"
