@@ -2,9 +2,14 @@ package sql
 
 import (
 	"context"
+	"crypto/sha256"
 	stdsql "database/sql"
+	"encoding/binary"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -16,6 +21,9 @@ import (
 
 // scratchPrefix names the throwaway schema each change is verified in.
 const scratchPrefix = "noxis_verify_"
+
+// verifySampleRows bounds how much of a referenced table is copied and hashed during validation.
+const verifySampleRows = 100
 
 // qualifiedIdent matches an identifier with a dot-qualified part, including column references that a scratch search_path would not rewrite.
 var qualifiedIdent = regexp.MustCompile("(?i)(?:[a-z_][a-z0-9_$]*|\"[^\"]+\"|`[^`]+`)\\s*\\.\\s*(?:[a-z_*][a-z0-9_$]*|\"[^\"]+\"|`[^`]+`)")
@@ -36,6 +44,7 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 	schema := scratchPrefix + idgen.Hex(6)
 
 	var mirrored []string
+	var summary string
 	var affected int64
 	_, err = withDB(c, func(db *stdsql.DB) (struct{}, error) {
 		conn, err := db.Conn(ctx)
@@ -50,11 +59,16 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 		// Cleanup must survive a cancelled request: the schema exists on the server the moment it is created.
 		defer func() { _ = dropScratch(context.WithoutCancel(ctx), conn, c.Driver, schema) }()
 
-		mirrored, err = mirrorReferenced(ctx, conn, c, schema, query+"\n"+rollback)
+		refs := verificationRefs(c, text, schema)
+		mirrored, err = mirrorReferenced(ctx, conn, c, schema, text)
 		if err != nil {
 			return struct{}{}, err
 		}
 		if err := useScratch(ctx, conn, c.Driver, schema); err != nil {
+			return struct{}{}, err
+		}
+		before, err := captureStates(ctx, conn, c.Driver, refs)
+		if err != nil {
 			return struct{}{}, err
 		}
 		if _, err := execEach(query, func(stmt string) error {
@@ -75,13 +89,24 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 		}); err != nil {
 			return struct{}{}, fmt.Errorf("rollback %w", err)
 		}
+		after, err := captureStates(ctx, conn, c.Driver, refs)
+		if err != nil {
+			return struct{}{}, err
+		}
+		if err := compareStates(before, after, refs); err != nil {
+			return struct{}{}, err
+		}
+		if !containsDDL(query) && sampledRows(before) == 0 {
+			return struct{}{}, fmt.Errorf("%w: no sampled rows for the tables this change touches", interfaces.ErrUnverifiable)
+		}
+		summary = changeSummary(refs, before)
 		return struct{}{}, nil
 	})
 	if err != nil {
 		return Result{}, err
 	}
 
-	detail := fmt.Sprintf("verified in scratch schema %q on %s", schema, strings.ToLower(c.Driver))
+	detail := fmt.Sprintf("verified in scratch schema %q on %s; %s", schema, strings.ToLower(c.Driver), summary)
 	if len(mirrored) > 0 {
 		detail += "; mirrored " + strings.Join(mirrored, ", ")
 	}
@@ -117,16 +142,219 @@ func hasQualifiedIdent(text string) bool {
 	return false
 }
 
+// verifyRef is one table a change can read or write, resolved to the schema the validation runs in.
+type verifyRef struct {
+	schema string
+	table  string
+}
+
+func (r verifyRef) key() string { return r.schema + "." + r.table }
+
+// verificationRefs resolves every table named by the change, including tables the query creates.
+func verificationRefs(c entity.Connection, sqlText, scratch string) []verifyRef {
+	created := createdTables(sqlText)
+	names, _ := Referenced(sqlText)
+	for name := range created {
+		names = append(names, name)
+	}
+	seen := map[string]bool{}
+	var refs []verifyRef
+	for _, name := range names {
+		schema, table := splitRef(c, name)
+		// Unqualified names in scratch resolve to the scratch schema, not the live default.
+		if scratch != "" && !strings.Contains(name, ".") {
+			schema = scratch
+		}
+		if !identOK(schema) || !identOK(table) {
+			continue
+		}
+		key := schema + "." + table
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		refs = append(refs, verifyRef{schema: schema, table: table})
+	}
+	return refs
+}
+
+// tableState is the part of a table that must be identical before and after a rollback.
+type tableState struct {
+	exists bool
+	rows   int64
+	sample int
+	digest string
+}
+
+type queryer interface {
+	QueryContext(context.Context, string, ...any) (*stdsql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) *stdsql.Row
+}
+
+// captureStates fingerprints every referenced table, including absence, so a created or dropped table is compared too.
+func captureStates(ctx context.Context, q queryer, driver string, refs []verifyRef) (map[string]tableState, error) {
+	states := make(map[string]tableState, len(refs))
+	for _, ref := range refs {
+		exists, err := tablePresent(ctx, q, driver, ref.schema, ref.table)
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
+			states[ref.key()] = tableState{}
+			continue
+		}
+		state, err := snapshotTable(ctx, q, driver, ref.schema, ref.table)
+		if err != nil {
+			return nil, err
+		}
+		states[ref.key()] = state
+	}
+	return states, nil
+}
+
+// tablePresent asks the catalog, not the data, so a missing table is a normal state rather than a query error.
+func tablePresent(ctx context.Context, q queryer, driver, schema, table string) (bool, error) {
+	switch {
+	case isPostgres(driver):
+		var found stdsql.NullString
+		if err := q.QueryRowContext(ctx, `SELECT to_regclass($1)::text`, schema+"."+table).Scan(&found); err != nil {
+			return false, fmt.Errorf("look up %s.%s: %w", schema, table, err)
+		}
+		return found.Valid, nil
+	case isMySQL(driver):
+		var n int
+		if err := q.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ?`,
+			schema, table).Scan(&n); err != nil {
+			return false, fmt.Errorf("look up %s.%s: %w", schema, table, err)
+		}
+		return n > 0, nil
+	default:
+		var n int
+		if err := q.QueryRowContext(ctx,
+			`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, table).Scan(&n); err != nil {
+			return false, fmt.Errorf("look up %s: %w", table, err)
+		}
+		return n > 0, nil
+	}
+}
+
+// snapshotTable records the full row count and a deterministic hash of a bounded row sample.
+func snapshotTable(ctx context.Context, q queryer, driver, schema, table string) (tableState, error) {
+	ref := quoteRef(driver, schema, table)
+	var count int64
+	if err := q.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+ref).Scan(&count); err != nil {
+		return tableState{}, fmt.Errorf("count %s.%s: %w", schema, table, err)
+	}
+	rows, err := q.QueryContext(ctx, "SELECT * FROM "+ref+" LIMIT "+itoa(verifySampleRows))
+	if err != nil {
+		return tableState{}, fmt.Errorf("sample %s.%s: %w", schema, table, err)
+	}
+	defer rows.Close()
+	columns, err := rows.Columns()
+	if err != nil {
+		return tableState{}, err
+	}
+	values := make([]any, len(columns))
+	pointers := make([]any, len(columns))
+	for i := range values {
+		pointers[i] = &values[i]
+	}
+	var sample []string
+	for rows.Next() {
+		if err := rows.Scan(pointers...); err != nil {
+			return tableState{}, fmt.Errorf("sample %s.%s: %w", schema, table, err)
+		}
+		sample = append(sample, encodeRow(values))
+	}
+	if err := rows.Err(); err != nil {
+		return tableState{}, fmt.Errorf("sample %s.%s: %w", schema, table, err)
+	}
+	// The database may return the sample in any order; sorting makes the hash order-independent.
+	sort.Strings(sample)
+	hash := sha256.New()
+	for _, row := range sample {
+		var size [8]byte
+		binary.LittleEndian.PutUint64(size[:], uint64(len(row)))
+		_, _ = hash.Write(size[:])
+		_, _ = hash.Write([]byte(row))
+	}
+	return tableState{
+		exists: true,
+		rows:   count,
+		sample: len(sample),
+		digest: hex.EncodeToString(hash.Sum(nil)),
+	}, nil
+}
+
+func encodeRow(values []any) string {
+	var b strings.Builder
+	for _, value := range values {
+		var text string
+		switch v := value.(type) {
+		case nil:
+			text = "\x00"
+		case []byte:
+			text = string(v)
+		default:
+			text = fmt.Sprint(v)
+		}
+		var size [8]byte
+		binary.LittleEndian.PutUint64(size[:], uint64(len(text)))
+		b.Write(size[:])
+		b.WriteString(text)
+	}
+	return b.String()
+}
+
+// compareStates returns the first table whose row count, sample or digest changed.
+func compareStates(before, after map[string]tableState, refs []verifyRef) error {
+	for _, ref := range refs {
+		key := ref.key()
+		a, b := before[key], after[key]
+		if a.exists != b.exists || a.rows != b.rows || a.sample != b.sample || a.digest != b.digest {
+			if !a.exists {
+				return fmt.Errorf("rollback left table %s behind", key)
+			}
+			if !b.exists {
+				return fmt.Errorf("rollback removed table %s", key)
+			}
+			return fmt.Errorf("rollback did not restore %s (rows %d -> %d)", key, a.rows, b.rows)
+		}
+	}
+	return nil
+}
+
+func sampledRows(states map[string]tableState) int {
+	total := 0
+	for _, state := range states {
+		if state.exists {
+			total += state.sample
+		}
+	}
+	return total
+}
+
+func changeSummary(refs []verifyRef, states map[string]tableState) string {
+	return fmt.Sprintf("checked %d table(s), %d sampled row(s)", len(refs), sampledRows(states))
+}
+
 // validateChangeTx exercises live tables because the whole transaction is rolled back.
 func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback string) (Result, error) {
 	started := time.Now()
 	var affected int64
+	var summary string
+	refs := verificationRefs(c, query+"\n"+rollback, "")
 	_, err := withDB(c, func(db *stdsql.DB) (struct{}, error) {
 		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
 			return struct{}{}, fmt.Errorf("begin: %w", err)
 		}
 		defer func() { _ = tx.Rollback() }() // the dry run never persists
+		before, err := captureStates(ctx, tx, c.Driver, refs)
+		if err != nil {
+			return struct{}{}, err
+		}
 		if _, err := execEach(query, func(stmt string) error {
 			out, err := tx.ExecContext(ctx, stmt)
 			if err != nil {
@@ -145,6 +373,17 @@ func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback 
 		}); err != nil {
 			return struct{}{}, fmt.Errorf("rollback %w", err)
 		}
+		after, err := captureStates(ctx, tx, c.Driver, refs)
+		if err != nil {
+			return struct{}{}, err
+		}
+		if err := compareStates(before, after, refs); err != nil {
+			return struct{}{}, err
+		}
+		if !containsDDL(query) && sampledRows(before) == 0 {
+			return struct{}{}, fmt.Errorf("%w: no sampled rows for the tables this change touches", interfaces.ErrUnverifiable)
+		}
+		summary = changeSummary(refs, before)
 		return struct{}{}, nil
 	})
 	if err != nil {
@@ -153,7 +392,7 @@ func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback 
 	return Result{
 		Affected:   affected,
 		DurationMs: time.Since(started).Milliseconds(),
-		Message:    "verified in a rolled-back transaction",
+		Message:    "verified in a rolled-back transaction; " + summary,
 	}, nil
 }
 
@@ -179,6 +418,12 @@ func mirrorReferenced(ctx context.Context, conn *stdsql.Conn, c entity.Connectio
 		}
 		if err := mirrorTable(ctx, conn, c.Driver, scratch, schema, table); err != nil {
 			return nil, fmt.Errorf("mirror %s.%s: %w", schema, table, err)
+		}
+		if err := mirrorTableData(ctx, conn, c.Driver, scratch, schema, table); err != nil {
+			return nil, fmt.Errorf("copy sample of %s.%s: %w", schema, table, err)
+		}
+		if err := resetSequences(ctx, conn, c.Driver, scratch, table); err != nil {
+			return nil, fmt.Errorf("reset sequence for %s.%s: %w", scratch, table, err)
 		}
 		mirrored = append(mirrored, schema+"."+table)
 	}
@@ -221,6 +466,141 @@ func mirrorTable(ctx context.Context, conn *stdsql.Conn, driver, scratch, schema
 	}
 	_, err := conn.ExecContext(ctx, stmt)
 	return err
+}
+
+// mirrorTableData copies a bounded sample of rows so a DML rollback is tested against data, not an empty shell.
+// Generated columns are skipped, and identity columns keep their values on postgres.
+func mirrorTableData(ctx context.Context, conn *stdsql.Conn, driver, scratch, schema, table string) error {
+	columns, identity, err := copyColumns(ctx, conn, driver, schema, table)
+	if err != nil {
+		return err
+	}
+	if len(columns) == 0 {
+		return nil
+	}
+	target, source := quoteRef(driver, scratch, table), quoteRef(driver, schema, table)
+	list := strings.Join(columns, ", ")
+	stmt := "INSERT INTO " + target + " (" + list + ") "
+	if isPostgres(driver) && identity {
+		stmt += "OVERRIDING SYSTEM VALUE "
+	}
+	stmt += "SELECT " + list + " FROM " + source + " LIMIT " + itoa(verifySampleRows)
+	_, err = conn.ExecContext(ctx, stmt)
+	return err
+}
+
+// resetSequences moves generated-id sequences past the copied rows, so an insert that omits the id behaves like live.
+func resetSequences(ctx context.Context, conn *stdsql.Conn, driver, scratch, table string) error {
+	if isPostgres(driver) {
+		rows, err := conn.QueryContext(ctx, `SELECT column_name FROM information_schema.columns
+			WHERE table_schema = $1 AND table_name = $2
+			AND (is_identity = 'YES' OR column_default LIKE 'nextval(%')
+			ORDER BY ordinal_position`, scratch, table)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		var columns []string
+		for rows.Next() {
+			var column string
+			if err := rows.Scan(&column); err != nil {
+				return err
+			}
+			columns = append(columns, column)
+		}
+		if err := rows.Err(); err != nil {
+			return err
+		}
+		target := quoteRef(driver, scratch, table)
+		for _, column := range columns {
+			var sequence stdsql.NullString
+			if err := conn.QueryRowContext(ctx,
+				`SELECT pg_get_serial_sequence($1, $2)`, scratch+"."+table, column).Scan(&sequence); err != nil {
+				return err
+			}
+			if !sequence.Valid {
+				continue
+			}
+			if _, err := conn.ExecContext(ctx,
+				`SELECT setval($1, COALESCE(MAX(`+quoteColumn(driver, column)+`), 1), COUNT(*) > 0) FROM `+target,
+				sequence.String); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if isMySQL(driver) {
+		var column string
+		err := conn.QueryRowContext(ctx, `SELECT column_name FROM information_schema.columns
+			WHERE table_schema = ? AND table_name = ? AND LOWER(extra) LIKE '%auto_increment%'
+			LIMIT 1`, scratch, table).Scan(&column)
+		if errors.Is(err, stdsql.ErrNoRows) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		target := quoteRef(driver, scratch, table)
+		var next int64
+		if err := conn.QueryRowContext(ctx,
+			`SELECT COALESCE(MAX(`+quoteColumn(driver, column)+`), 0) + 1 FROM `+target).Scan(&next); err != nil {
+			return err
+		}
+		_, err = conn.ExecContext(ctx, `ALTER TABLE `+target+` AUTO_INCREMENT = `+fmt.Sprint(next))
+		return err
+	}
+	return nil
+}
+
+// copyColumns lists the columns that can be copied into the mirror and whether the table has an identity column.
+func copyColumns(ctx context.Context, conn *stdsql.Conn, driver, schema, table string) (columns []string, identity bool, err error) {
+	var query string
+	if isPostgres(driver) {
+		query = `SELECT column_name, is_generated, is_identity FROM information_schema.columns
+			WHERE table_schema = $1 AND table_name = $2 ORDER BY ordinal_position`
+	} else {
+		query = `SELECT column_name, extra FROM information_schema.columns
+			WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position`
+	}
+	rows, err := conn.QueryContext(ctx, query, schema, table)
+	if err != nil {
+		return nil, false, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name, first, second string
+		if isPostgres(driver) {
+			if err := rows.Scan(&name, &first, &second); err != nil {
+				return nil, false, err
+			}
+			if strings.EqualFold(first, "ALWAYS") {
+				continue
+			}
+			if strings.EqualFold(second, "YES") {
+				identity = true
+			}
+		} else {
+			if err := rows.Scan(&name, &first); err != nil {
+				return nil, false, err
+			}
+			extra := strings.ToUpper(first)
+			if strings.Contains(extra, "VIRTUAL GENERATED") || strings.Contains(extra, "STORED GENERATED") {
+				continue
+			}
+		}
+		columns = append(columns, quoteColumn(driver, name))
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false, err
+	}
+	return columns, identity, nil
+}
+
+func quoteColumn(driver, name string) string {
+	if isMySQL(driver) {
+		return "`" + strings.ReplaceAll(name, "`", "``") + "`"
+	}
+	return `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
 }
 
 func createScratch(ctx context.Context, conn *stdsql.Conn, driver, schema string) error {

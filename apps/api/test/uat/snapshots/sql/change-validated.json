@@ -12,7 +12,7 @@
       "target": "query kind"
     },
     {
-      "detail": "verified in scratch schema \"<scratch>\" on postgres",
+      "detail": "verified in scratch schema \"<scratch>\" on postgres; checked 1 table(s), 0 sampled row(s)",
       "ok": true,
       "target": "dry-run (query + rollback)"
     }
