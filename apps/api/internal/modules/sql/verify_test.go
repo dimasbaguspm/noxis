@@ -53,6 +53,39 @@ func TestSplitRef(t *testing.T) {
 	}
 }
 
+func TestQualifiedIdent(t *testing.T) {
+	for _, sql := range []string{
+		"DROP TABLE public.victim",
+		"UPDATE t SET t.name = 'x'",
+		"ALTER TABLE `demo`.`items` ADD COLUMN x INT",
+	} {
+		if !hasQualifiedIdent(sql) {
+			t.Errorf("hasQualifiedIdent(%q) = false", sql)
+		}
+	}
+	for _, sql := range []string{
+		"DROP TABLE victim",
+		"UPDATE items SET name = 'x'",
+		"SELECT 1",
+	} {
+		if hasQualifiedIdent(sql) {
+			t.Errorf("hasQualifiedIdent(%q) = true", sql)
+		}
+	}
+}
+
+func TestTransactionSafe(t *testing.T) {
+	if !transactionSafe(constants.DriverPostgres, "DROP TABLE public.victim") {
+		t.Fatal("qualified postgres statement must use a live transaction")
+	}
+	if !transactionSafe(constants.DriverMySQL, "UPDATE items SET name = 'x'") {
+		t.Fatal("mysql DML can use a live transaction")
+	}
+	if transactionSafe(constants.DriverMySQL, "DROP TABLE demo.victim") {
+		t.Fatal("qualified mysql DDL cannot use a live transaction")
+	}
+}
+
 func TestScratchSchemaName(t *testing.T) {
 	name := scratchPrefix + "0123456789ab"
 	if !strings.HasPrefix(name, "noxis_verify_") {
