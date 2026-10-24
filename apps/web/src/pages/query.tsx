@@ -108,7 +108,7 @@ export default function QueryPage() {
                   />
                   <div className="flex items-center gap-2">
                     <Button onClick={() => void execute(sql)} disabled={!canRun} aria-busy={loading}>
-                      <Play /> {loading ? "Running…" : "Run"}
+                      <Play /> Run
                     </Button>
                     <Button
                       variant="outline"
