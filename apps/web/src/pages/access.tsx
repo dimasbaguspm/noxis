@@ -113,7 +113,7 @@ export default function AccessPage() {
             <Skeleton className="h-64 w-full" />
           ) : selected ? (
             <div className="min-h-0 flex-1 overflow-auto">
-              <InstancePermissions instance={selected} readOnly />
+              <InstancePermissions instance={selected} />
             </div>
           ) : (
             <Empty icon={KeyRound} title="No instance selected" description="Pick an instance on the left." />
