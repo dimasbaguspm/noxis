@@ -25,7 +25,7 @@ func (uc Login) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	token, user, err := uc.Modules.Auth().Login(ctx, body.Email, body.Password)
+	token, user, err := uc.Auth.Login(ctx, body.Email, body.Password)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

@@ -24,7 +24,7 @@ func (uc Logout) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, constants.ErrUnauthorized)
 		return
 	}
-	if err := uc.Modules.Auth().Logout(ctx, principal.Subject); err != nil {
+	if err := uc.Auth.Logout(ctx, principal.Subject); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}

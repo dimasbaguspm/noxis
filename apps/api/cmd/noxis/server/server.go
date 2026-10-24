@@ -15,11 +15,11 @@ import (
 	"time"
 
 	"noxis/cmd/noxis/server/middlewares"
+	"noxis/internal/auth"
 	"noxis/internal/common"
 	"noxis/internal/common/config"
 	"noxis/internal/constants"
 	"noxis/internal/interfaces"
-	"noxis/internal/modules/auth"
 	"noxis/internal/repositories"
 	"noxis/internal/repositories/sqlite"
 )
@@ -144,7 +144,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 	log.InfoContext(ctx, "noxis serving", "addr", cfg.Listen, "db", cfg.DB)
 
 	d := newDeps(store, cfg, authSvc)
-	if err := d.Modules.Auth().EnsureRoot(ctx, cfg.AdminEmail, cfg.AdminPassword); err != nil {
+	if err := authSvc.EnsureRoot(ctx, cfg.AdminEmail, cfg.AdminPassword); err != nil {
 		return err
 	}
 

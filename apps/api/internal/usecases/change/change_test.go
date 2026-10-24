@@ -54,7 +54,6 @@ func newHarness(t *testing.T) *harness {
 	registry := modules.New(
 		map[string]interfaces.Module{constants.FamilySQL: h.sq},
 		interfaces.ChangeFlows{SQL: sql.NewChanges(h.conns, h.changes, h.sq, nil)},
-		nil,
 	)
 	h.deps = usecases.RegistryDeps{
 		Repositories: repositories.Registry{Connections: h.conns, Changes: h.changes},
