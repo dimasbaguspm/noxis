@@ -2,6 +2,7 @@
 package modules
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -60,8 +61,16 @@ type registry struct {
 func (r registry) Auth() *auth.Service { return r.auth }
 
 // LoadModule fills a requested change-flow capability from the registry.
-func (r registry) LoadModule(target any) error {
+func (r registry) LoadModule(ctx context.Context, target any) error {
 	switch dst := target.(type) {
+	case *interfaces.Module:
+		return loadEngine(ctx, r, dst, "engine operations")
+	case *interfaces.SQLModule:
+		return loadEngine(ctx, r, dst, "sql operations")
+	case *interfaces.MongoModule:
+		return loadEngine(ctx, r, dst, "mongodb operations")
+	case *interfaces.MemcacheModule:
+		return loadEngine(ctx, r, dst, "memory-cache operations")
 	case *interfaces.ChangeFlows:
 		if dst == nil {
 			return errors.New("nil module target")
@@ -89,6 +98,26 @@ func (r registry) LoadModule(target any) error {
 	default:
 		return fmt.Errorf("%w: no module registered for %T", constants.ErrUnsupported, target)
 	}
+}
+
+func loadEngine[T any](ctx context.Context, r registry, dst *T, what string) error {
+	if dst == nil {
+		return errors.New("nil module target")
+	}
+	family, ok := common.ModuleFamily(ctx)
+	if !ok {
+		return fmt.Errorf("%w: engine family missing from context", constants.ErrUnsupported)
+	}
+	module, err := r.Engine(family)
+	if err != nil {
+		return err
+	}
+	selected, ok := module.(T)
+	if !ok {
+		return unsupported(module, what)
+	}
+	*dst = selected
+	return nil
 }
 
 func (r registry) Engine(name string) (interfaces.Module, error) {

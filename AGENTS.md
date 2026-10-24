@@ -91,7 +91,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 
 1. `middlewares.CORS → Trace → WithAuth → RequestLog` wrap the `http.ServeMux`: the span covers the whole request (a refused token is traced), and the request log runs after the principal is attached.
 2. `newHandler(app, cfg)` registers each route straight at a use case `Serve(w, r)`.
-3. `Serve` reads the path/query/body and resolves `{engine}` via `uc.Modules.Engine(...)`; cross-family modules such as change flows load by typed target through `common.LoadModule(ctx, &target)`.
+3. `Serve` reads the path/query/body and resolves typed engine capabilities with `common.WithModuleFamily` + `common.LoadModule(ctx, &target)`; generic family checks use `uc.Modules.Engine(...)`.
 4. It calls its `Run(ctx, ...)` domain core and writes the response with `respond`/`fail`.
 5. The use case reads repositories/modules from its own struct fields (set explicitly in `newApp`), enforces access via `RawConn`/`Authorize`, persists via a repository.
 6. `fail` maps `constants.ErrNotFound`/`constants.ErrUnsupported`→404, `constants.ErrForbidden`→403, `constants.ErrInvalidCredentials`/`constants.ErrUnauthorized`→401, else 400.

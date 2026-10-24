@@ -36,9 +36,9 @@ One file does all wiring, at boot, once: `apps/api/cmd/noxis/server/app.go`.
   and immutable module loader only; repositories, configuration, and the rest of
   the app dependencies remain explicit.
 - `server.Run` attaches the loader to the server base context once. A use case loads
-  a cross-family capability with `common.LoadModule(ctx, &target)`; the registry
-  resolves it by target type. Engine modules selected by `{engine}` still use
-  `Modules.Engine(name)`.
+  a typed capability with `common.LoadModule(ctx, &target)`; route-specific engine
+  use cases first attach `{engine}` with `common.WithModuleFamily`. Generic engine
+  checks continue to use `Modules.Engine(name)`.
 
 Add a new use case: create `apps/api/internal/usecases/<domain>/foo.go` with a
 `Foo struct` embedding `usecases.RegistryDeps` and a `Serve(w, r)` → add a field
@@ -53,9 +53,10 @@ constructor boilerplate, no reflection.
   `EngineMongo`, `EngineMemcache`), and a driver → family (`Serves`).
 - `Default(connections, changes, metrics, auth)` builds `{sql, memcache, mongodb}` and their change flows. **This map
   is the only place families are declared.**
-- `Registry` implements the common typed `ModuleLoader` for registered change-flow
-  capabilities. `common.LoadModule(ctx, &flow)` resolves them from request context;
-  an absent or unsupported target returns an error.
+- `Registry` implements the common typed `ModuleLoader` for registered engine and
+  change-flow capabilities. `common.LoadModule(ctx, &target)` resolves them from
+  request context; engine lookups use the family attached by the route, and absent
+  or unsupported targets return an error.
 - The registry is an explicit dependency: a use case that resolves a family
   embeds `usecases.RegistryDeps`, so `uc.Modules` is set at the composition root.
 
@@ -91,9 +92,9 @@ logging stay with the family modules.
 
 Both queues are registered in `modules.Default()` next to the engines. Use cases
 load `interfaces.SQLChangeFlow` or `interfaces.MongoChangeFlow` through
-`common.LoadModule`; route-selected engine modules still resolve through the family
-registry. A module may read repositories; it never imports the registry or a
-sibling family package.
+`common.LoadModule`; SQL, Mongo, and cache engine capabilities use the same loader
+with the route family attached. A module may read repositories; it never imports
+the registry or a sibling family package.
 
 ## Use-case pattern
 
