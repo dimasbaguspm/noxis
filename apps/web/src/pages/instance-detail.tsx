@@ -144,7 +144,7 @@ export default function InstanceDetailPage() {
                   size="sm"
                   variant="outline"
                   render={
-                    <Link to={`${PAGE_ROUTES.SQL.ERD}?connection=${encodeURIComponent(instance.name)}`} />
+                    <Link to={`${PAGE_ROUTES.SQL.ERD}?instance=${encodeURIComponent(instance.id ?? instance.name)}`} />
                   }
                 >
                   <Network /> ERD
