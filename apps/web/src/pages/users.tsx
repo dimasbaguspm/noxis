@@ -37,8 +37,6 @@ export default function UsersPage() {
   return (
     <div className="flex h-full min-h-0">
       <Workspace
-        leftLabel="User filters"
-        rightLabel="Users"
         left={
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
             <div className="flex flex-col gap-1.5">
