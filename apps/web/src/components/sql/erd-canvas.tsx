@@ -6,7 +6,6 @@ import {
   Controls,
   Handle,
   MarkerType,
-  MiniMap,
   Panel,
   Position,
   ReactFlow,
@@ -55,6 +54,8 @@ const MAX_ROWS = 12;
 interface TableNodeData extends Record<string, unknown> {
   table: ErdTable;
   dimmed: boolean;
+  sourceColumns: string[];
+  targetColumns: string[];
 }
 
 type TableNodeType = Node<TableNodeData, "table">;
@@ -75,9 +76,11 @@ function keyLabel(col: ErdColumn) {
 
 // TableNode is the readable unit of the diagram: keys and types live on the node, so the graph does not need a legend.
 function TableNode({ data }: NodeProps<TableNodeType>) {
-  const { table, dimmed } = data;
+  const { table, dimmed, sourceColumns, targetColumns } = data;
   const columns = table.columns.slice(0, MAX_ROWS);
   const hidden = table.columns.length - columns.length;
+  const hasSource = (column: string) => sourceColumns.includes(column);
+  const hasTarget = (column: string) => targetColumns.includes(column);
   return (
     <div
       className={cn(
@@ -85,24 +88,40 @@ function TableNode({ data }: NodeProps<TableNodeType>) {
         dimmed && "opacity-25",
       )}
     >
-      <Handle type="target" position={Position.Top} className="!size-1.5 !border-0 !bg-muted-foreground" />
+      <Handle id="target-default" type="target" position={Position.Top} className="!size-1.5 !border-0 !bg-muted-foreground" />
       <div className="border-b bg-muted/40 px-3 py-2">
         <div className="truncate text-sm font-medium">{table.name}</div>
         <div className="truncate text-[10px] text-muted-foreground">{table.schema}</div>
       </div>
       <div className="py-1">
         {columns.map((col) => (
-          <div key={col.name} className="flex h-5 items-center gap-2 px-2 font-mono text-[11px]">
+          <div key={col.name} className="relative flex h-5 items-center gap-2 px-2 font-mono text-[11px]">
+            {hasTarget(col.name) && (
+              <Handle
+                id={`target-${col.name}`}
+                type="target"
+                position={Position.Left}
+                className="!size-1.5 !border-0 !bg-foreground"
+              />
+            )}
             <span className="w-4 shrink-0 text-[9px] font-semibold text-muted-foreground">{keyLabel(col)}</span>
             <span className={cn("truncate", col.primaryKey && "font-semibold")}>{col.name}</span>
             <span className="ml-auto max-w-[45%] truncate text-[10px] text-muted-foreground">{col.type}</span>
+            {hasSource(col.name) && (
+              <Handle
+                id={`source-${col.name}`}
+                type="source"
+                position={Position.Right}
+                className="!size-1.5 !border-0 !bg-foreground"
+              />
+            )}
           </div>
         ))}
         {hidden > 0 && (
           <div className="px-2 py-0.5 text-[10px] text-muted-foreground">+{hidden} more column(s)</div>
         )}
       </div>
-      <Handle type="source" position={Position.Bottom} className="!size-1.5 !border-0 !bg-muted-foreground" />
+      <Handle id="source-default" type="source" position={Position.Bottom} className="!size-1.5 !border-0 !bg-muted-foreground" />
     </div>
   );
 }
@@ -125,6 +144,9 @@ function layoutTables(tables: ErdTable[]) {
     byName.set(table.name, table);
   }
 
+  const sourceByTable = new Map<string, Set<string>>();
+  const targetByTable = new Map<string, Set<string>>();
+  const visibleColumns = (table: ErdTable) => new Set(table.columns.slice(0, MAX_ROWS).map((col) => col.name));
   const edges: Edge[] = [];
   for (const table of tables) {
     for (const col of table.columns) {
@@ -133,14 +155,30 @@ function layoutTables(tables: ErdTable[]) {
       const parent = (ref.schema ? byKey.get(refKey(ref.schema, ref.table)) : undefined) ?? byName.get(ref.table);
       if (!parent) continue;
       if (parent.id !== table.id) graph.setEdge(parent.id, table.id);
+      const visible = visibleColumns(table);
+      const parentVisible = visibleColumns(parent);
+      const sourceColumn = ref.column && parentVisible.has(ref.column) ? ref.column : undefined;
+      const targetColumn = visible.has(col.name) ? col.name : undefined;
+      if (sourceColumn) {
+        const set = sourceByTable.get(parent.id) ?? new Set();
+        set.add(sourceColumn);
+        sourceByTable.set(parent.id, set);
+      }
+      if (targetColumn) {
+        const set = targetByTable.get(table.id) ?? new Set();
+        set.add(targetColumn);
+        targetByTable.set(table.id, set);
+      }
       edges.push({
         id: `${table.id}.${col.name}`,
         source: parent.id,
         target: table.id,
+        sourceHandle: sourceColumn ? `source-${sourceColumn}` : "source-default",
+        targetHandle: targetColumn ? `target-${targetColumn}` : "target-default",
         label: col.name,
         type: "smoothstep",
-        markerEnd: { type: MarkerType.ArrowClosed, color: "var(--muted-foreground)" },
-        style: { stroke: "var(--border)" },
+        markerEnd: { type: MarkerType.ArrowClosed, color: "var(--foreground)" },
+        style: { stroke: "var(--foreground)", strokeWidth: 1.5 },
         labelStyle: { fill: "var(--muted-foreground)", fontSize: 10 },
         labelBgStyle: { fill: "var(--background)", fillOpacity: 0.85 },
       });
@@ -156,7 +194,12 @@ function layoutTables(tables: ErdTable[]) {
       position: { x: (point?.x ?? 0) - NODE_WIDTH / 2, y: (point?.y ?? 0) - tableHeight(table) / 2 },
       width: NODE_WIDTH,
       height: tableHeight(table),
-      data: { table, dimmed: false },
+      data: {
+        table,
+        dimmed: false,
+        sourceColumns: [...(sourceByTable.get(table.id) ?? [])],
+        targetColumns: [...(targetByTable.get(table.id) ?? [])],
+      },
     };
   });
   return { nodes, edges };
@@ -213,7 +256,18 @@ export function ErdCanvas({
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<TableNodeData>>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const [colorMode, setColorMode] = useState<"dark" | "light">(() =>
+    document.documentElement.classList.contains("dark") ? "dark" : "light",
+  );
   const needle = query.trim().toLowerCase();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const sync = () => setColorMode(root.classList.contains("dark") ? "dark" : "light");
+    const observer = new MutationObserver(sync);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const onChange = () => setFullscreen(document.fullscreenElement === containerRef.current);
@@ -255,7 +309,7 @@ export function ErdCanvas({
       edges={graph.edges}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
-      colorMode="dark"
+      colorMode={colorMode}
       fitView
       fitViewOptions={{ padding: 0.2 }}
       minZoom={0.1}
@@ -266,7 +320,6 @@ export function ErdCanvas({
       >
         <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
         <Controls showInteractive={false} />
-        <MiniMap pannable zoomable nodeColor="#94a3b8" maskColor="rgba(2, 6, 23, 0.72)" />
         <GraphActions fullscreen={fullscreen} onFullscreen={() => void toggleFullscreen()} />
         <FocusSelection id={selectedId} />
         <FitOnLoad count={nodes.length} />
