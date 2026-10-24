@@ -18,6 +18,7 @@ Feature: MongoDB exploration, requests and stats
     And I seed mongo collection "reads" with [{"sku": "a"}, {"sku": "b"}]
     When I run a mongo "find" request on "reads" with filter {"sku": "a"} and value {}
     Then the mongo result has 1 row(s)
+    And the response matches snapshot "mongodb/find"
 
   Scenario: an insert is requested, reviewed and applied
     Given the stack is running

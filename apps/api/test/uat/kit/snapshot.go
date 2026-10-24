@@ -12,7 +12,10 @@ import (
 )
 
 // scratchRe matches the throwaway schema names a change verifies in, which differ on every run.
-var scratchRe = regexp.MustCompile(`noxis_verify_[0-9a-zA-Z]+`)
+var (
+	scratchRe  = regexp.MustCompile(`noxis_verify_[0-9a-zA-Z]+`)
+	objectIDRe = regexp.MustCompile(`\b[0-9a-f]{24}\b`)
+)
 
 // Snapshots compares response bodies against committed golden files.
 type Snapshots struct {
@@ -80,7 +83,7 @@ func scrub(v any) any {
 		}
 		return t
 	case string:
-		return scratchRe.ReplaceAllString(t, "<scratch>")
+		return objectIDRe.ReplaceAllString(scratchRe.ReplaceAllString(t, "<scratch>"), "<id>")
 	default:
 		return v
 	}
@@ -113,8 +116,11 @@ func placeholder(key string) (any, bool) {
 		}
 	}
 	switch {
-	case key == "id" || strings.HasSuffix(key, "Id"):
+	case key == "id" || key == "_id" || key == "$oid" || strings.HasSuffix(key, "Id"):
 		return "<id>", true
+	case key == "documents":
+		// raw document text repeats the row values but embeds random ObjectIDs
+		return "<documents>", true
 	case strings.HasSuffix(key, "At"):
 		return "<ts>", true
 	case strings.HasSuffix(key, "Ms"):

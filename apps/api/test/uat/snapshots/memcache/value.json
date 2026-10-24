@@ -1,0 +1,14 @@
+{
+  "affected": 0,
+  "columns": [
+    "value"
+  ],
+  "durationMs": 0,
+  "message": "read",
+  "rows": [
+    [
+      "hello"
+    ]
+  ],
+  "rowsReturned": 1
+}

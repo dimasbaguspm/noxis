@@ -1,0 +1,17 @@
+{
+  "affected": 0,
+  "columns": [
+    "_id",
+    "sku"
+  ],
+  "documents": "<documents>",
+  "durationMs": 0,
+  "message": "1 document(s)",
+  "rows": [
+    [
+      "<id>",
+      "a"
+    ]
+  ],
+  "rowsReturned": 1
+}

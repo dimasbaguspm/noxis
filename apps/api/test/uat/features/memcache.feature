@@ -15,6 +15,7 @@ Feature: Memory cache keys and metrics
     And the key "greeting" reports a ttl
     And I inspect the redis key "greeting"
     And the value grid shows "hello"
+    And the response matches snapshot "memcache/value"
 
   Scenario: a list value renders every element
     Given the stack is running
