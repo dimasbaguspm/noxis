@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -57,7 +57,9 @@ export default function MemcachePage() {
   const mayAdmin = isInstanceAdmin(connection);
   const { pattern, inspected, setPattern, setInspected } = useMemcacheUrlParams();
   const glob = useDebounce(pattern || "*", 300);
-  const [selected, setSelected] = useState<string[]>([]);
+  const selectionScope = JSON.stringify([connection, glob]);
+  const [selection, setSelection] = useState<{ scope: string; keys: string[] }>({ scope: "", keys: [] });
+  const selected = selection.scope === selectionScope ? selection.keys : [];
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "name", desc: false });
   const [flushOpen, setFlushOpen] = useState(false);
   const {
@@ -78,11 +80,6 @@ export default function MemcachePage() {
 
   const { page, isFetching: loading, refetch: reloadKeys } = useMemcacheKeysQuery(connection, glob);
   const { result, isFetching: valueLoading } = useMemcacheValueQuery(connection, inspected);
-
-  useEffect(() => {
-    setSelected([]);
-    setInspected(undefined);
-  }, [connection, glob]);
 
   const keys = useMemo<Row[]>(() => {
     const rows: Row[] = (page.keys ?? [])
@@ -106,7 +103,7 @@ export default function MemcachePage() {
     if (!connection || selected.length === 0) return;
     const res = await removeKeys.mutateAsync({ connection, keys: selected });
     toast.success(`${res.deleted} key(s) removed`);
-    setSelected([]);
+    setSelection({ scope: selectionScope, keys: [] });
     if (inspected && selected.includes(inspected)) setInspected(undefined);
   };
 
@@ -117,12 +114,13 @@ export default function MemcachePage() {
     toast.success(`${connection}: database emptied`);
     setFlushOpen(false);
     resetFlush();
-    setSelected([]);
+    setSelection({ scope: selectionScope, keys: [] });
     setInspected(undefined);
   });
 
   function toggle(key: string) {
-    setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+    const keys = selected.includes(key) ? selected.filter((item) => item !== key) : [...selected, key];
+    setSelection({ scope: selectionScope, keys });
   }
 
   function head(key: SortKey, label: string) {
@@ -143,7 +141,13 @@ export default function MemcachePage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Select value={connection ?? ""} onValueChange={(v) => pick(String(v))}>
+        <Select
+          value={connection ?? ""}
+          onValueChange={(v) => {
+            setInspected(undefined);
+            pick(String(v));
+          }}
+        >
           <SelectTrigger className="w-56">
             <SelectValue placeholder="no memory cache registered" />
           </SelectTrigger>
@@ -160,7 +164,11 @@ export default function MemcachePage() {
           <Search className="size-4 text-muted-foreground" />
           <Input
             value={pattern}
-            onChange={(e) => setPattern(e.target.value)}
+            onChange={(e) => {
+              setSelection({ scope: selectionScope, keys: [] });
+              setInspected(undefined);
+              setPattern(e.target.value);
+            }}
             placeholder="key pattern, e.g. session:*"
             className="w-64"
           />

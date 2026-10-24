@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -78,10 +78,13 @@ export function ChangeSubmitDialog({
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<{ target?: string; ok?: boolean; detail?: string; error?: string }[]>([]);
 
-  // seed the form when the dialog opens (the initial may change after a refresh)
-  useEffect(() => {
-    if (open) reset({ notes: initial?.notes ?? "", query: initial?.query ?? "", rollback: initial?.rollback ?? "" });
-  }, [open, initial, reset]);
+  function setDialogOpen(next: boolean) {
+    if (next) {
+      reset({ notes: initial?.notes ?? "", query: initial?.query ?? "", rollback: initial?.rollback ?? "" });
+      setFailure([]);
+    }
+    setOpen(next);
+  }
 
   const onValid = handleSubmit(async (values) => {
     if (!connection) {
@@ -107,7 +110,7 @@ export function ChangeSubmitDialog({
   const detected = classify(watch("query"));
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={setDialogOpen}>
       {trigger ? (
         <SheetTrigger render={trigger} />
       ) : (
