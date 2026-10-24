@@ -3353,6 +3353,9 @@
                             "$ref": "#/components/schemas/entity.Column"
                         }
                     },
+                    "comment": {
+                        "type": "string"
+                    },
                     "estimatedRows": {
                         "type": "integer"
                     },

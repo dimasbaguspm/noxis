@@ -5,6 +5,7 @@ type Table struct {
 	ID            string   `json:"id,omitempty"`
 	Schema        string   `json:"schema"`
 	Name          string   `json:"name"`
+	Comment       string   `json:"comment,omitempty"`
 	Columns       []Column `json:"columns"`
 	Indexes       []Index  `json:"indexes,omitempty"`
 	EstimatedRows *int64   `json:"estimatedRows,omitempty"`

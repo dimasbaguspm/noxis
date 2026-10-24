@@ -2796,6 +2796,7 @@ export interface components {
         };
         "entity.Table": {
             columns?: components["schemas"]["entity.Column"][];
+            comment?: string;
             estimatedRows?: number;
             id?: string;
             indexes?: components["schemas"]["entity.Index"][];

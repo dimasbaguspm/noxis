@@ -18,6 +18,7 @@ export interface InstanceTable {
   id?: string;
   schema: string;
   name: string;
+  comment?: string;
   columns: { name: string; type: string; nullable: boolean }[];
   indexes?: { name: string; columns: string[]; unique?: boolean; primary?: boolean }[];
   estimatedRows?: number;
@@ -122,6 +123,7 @@ export function TablesTab({
                       <TableRow>
                         <TableHead>Table</TableHead>
                         <TableHead>Schema</TableHead>
+                        <TableHead>Comment</TableHead>
                         <TableHead>Rows</TableHead>
                         <TableHead>Size</TableHead>
                         <TableHead className="text-right">Records</TableHead>
@@ -132,6 +134,9 @@ export function TablesTab({
                         <TableRow key={`${t.schema}.${t.name}`}>
                           <TableCell className="font-mono text-xs">{t.name}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">{t.schema}</TableCell>
+                          <TableCell className="max-w-64 truncate text-xs text-muted-foreground" title={t.comment || undefined}>
+                            {t.comment || "—"}
+                          </TableCell>
                           <TableCell className="text-xs tabular-nums text-muted-foreground">
                             {t.estimatedRows !== undefined ? `~${compact(t.estimatedRows)}` : "—"}
                           </TableCell>
