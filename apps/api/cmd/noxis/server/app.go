@@ -141,6 +141,7 @@ func newApp(s sources) app {
 
 		Members:          permission.Members{RegistryDeps: deps},
 		AccessMatrix:     permission.Matrix{RegistryDeps: deps},
+		ListPermissions:  permission.List{RegistryDeps: deps},
 		SetPermission:    permission.Set{RegistryDeps: deps},
 		DeletePermission: permission.Delete{RegistryDeps: deps},
 
