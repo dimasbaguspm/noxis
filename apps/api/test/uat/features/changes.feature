@@ -44,7 +44,7 @@ Feature: changes — submit, validate, approve, apply
     When I run the write "CREATE TABLE IF NOT EXISTS uat_live_guard (id INT)"
     Then the schema lists table "uat_live_guard"
     When I submit a change with query "CREATE TABLE public.uat_probe_guard (id INT)" and rollback "DROP TABLE public.uat_live_guard"
-    Then the change is "validated"
+    Then the change is "failed"
     And the schema lists table "uat_live_guard"
 
   Scenario: an applied change carries estimates and actuals

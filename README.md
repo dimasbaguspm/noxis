@@ -53,8 +53,10 @@ rollback actually undoes the change, and keeps the whole story afterward.
 
 1. **Submit** — the query, a short note, and the rollback you’d run.
 2. **Validate** — query and rollback run together in a transaction that is
-   always rolled back. The estimate, the affected tables and the checks come back
-   with the change.
+   always rolled back. Referenced tables are fingerprinted before and after, so
+   a rollback that leaves data changed fails. Scratch mirrors carry a bounded
+   row sample. The estimate, the affected tables and the checks come back with
+   the change.
 3. **Approve** — self-approval is fine; this is a single-operator tool.
 4. **Apply** — executed in a transaction. Failures stay recorded with their
    reason, so the next person knows what happened.
@@ -102,7 +104,7 @@ The full OpenAPI spec is in [`openapi.yaml`](openapi.yaml).
 | You run | noXis gives you |
 | --- | --- |
 | **Postgres** | browse, reads, validated changes, scratch-schema dry runs |
-| **MySQL / MariaDB** | browse, reads, changes (see the DDL note below) |
+| **MySQL / MariaDB** | browse, reads, changes; unqualified DDL verifies in scratch, qualified DDL stays unverified |
 | **SQLite** | browse, reads, transactional dry runs against a file |
 | **Redis / Valkey** | browse keys by pattern, inspect values, TTL/size, remove keys |
 | **MongoDB** | explore databases/collections/documents, reviewed write requests |
@@ -113,8 +115,12 @@ Valkey server to keep that claim honest.
 
 ## Honest about limits
 
-- **MySQL commits DDL implicitly.** A change carrying DDL there is marked
+- **MySQL commits DDL implicitly.** Unqualified DDL is copied into a scratch
+  database; qualified DDL cannot be moved there safely and is marked
   `unverified` rather than pretending a dry run happened.
+- **Validation samples.** A scratch mirror copies at most 100 rows per table,
+  and DML against an empty table is `unverified` because there is no data to
+  prove the rollback restored.
 - **A cache value cannot be rolled back.** So memory cache has no change queue:
   you can browse, inspect and remove keys, and `FLUSHALL` is deliberately
   unreachable.

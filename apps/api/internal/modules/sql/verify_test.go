@@ -1,6 +1,9 @@
 package sql
 
 import (
+	"context"
+	stdsql "database/sql"
+	"errors"
 	"reflect"
 	"sort"
 	"strings"
@@ -8,6 +11,7 @@ import (
 
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 )
 
 func TestCreatedTables(t *testing.T) {
@@ -83,6 +87,42 @@ func TestTransactionSafe(t *testing.T) {
 	}
 	if transactionSafe(constants.DriverMySQL, "DROP TABLE demo.victim") {
 		t.Fatal("qualified mysql DDL cannot use a live transaction")
+	}
+}
+
+func TestSQLiteRejectsUnrestoredRollback(t *testing.T) {
+	conn := newSQLiteFile(t)
+	u := New()
+	ctx := context.Background()
+
+	_, err := u.ValidateChange(ctx, conn,
+		"UPDATE people SET name = 'changed' WHERE id = 1",
+		"UPDATE people SET name = 'changed' WHERE id = 1")
+	if err == nil {
+		t.Fatal("a rollback that leaves the row changed must fail validation")
+	}
+	if !strings.Contains(err.Error(), "did not restore") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestSQLiteEmptyDMLIsUnverifiable(t *testing.T) {
+	conn := newSQLiteFile(t)
+	db, err := stdsql.Open("sqlite", conn.Database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("CREATE TABLE empty_people (id INTEGER PRIMARY KEY, name TEXT)"); err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
+
+	u := New()
+	_, err = u.ValidateChange(context.Background(), conn,
+		"UPDATE empty_people SET name = 'x'",
+		"UPDATE empty_people SET name = ''")
+	if !errors.Is(err, interfaces.ErrUnverifiable) {
+		t.Fatalf("empty DML must be unverifiable, got %v", err)
 	}
 }
 
