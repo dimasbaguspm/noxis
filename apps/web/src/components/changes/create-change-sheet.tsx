@@ -92,26 +92,24 @@ export function CreateChangeSheet({
       <SheetContent>
         <SheetHeader>
           <SheetTitle>New {kind.toUpperCase()} change</SheetTitle>
-          <SheetDescription>
-            The query and its rollback are dry-run together before anything is recorded.
-          </SheetDescription>
+          <SheetDescription>Query and rollback are dry-run together before anything is recorded.</SheetDescription>
         </SheetHeader>
 
         <SheetBody>
           <form id="create-change" onSubmit={onValid} className="grid gap-4">
           <Field>
-            <FieldLabel>{title("instance")} *</FieldLabel>
+            <FieldLabel>Instance *</FieldLabel>
             <ConnectionSelect value={connection} onChange={pick} className="w-full" />
           </Field>
 
           <Field>
-            <FieldLabel htmlFor="sheet-notes">{title("notes")}</FieldLabel>
-            <Input id="sheet-notes" placeholder="what and why (optional)" {...register("notes")} />
+            <FieldLabel htmlFor="sheet-notes">Notes</FieldLabel>
+            <Input id="sheet-notes" placeholder="optional note" {...register("notes")} />
           </Field>
 
           <Field>
             <FieldLabel className="flex items-center gap-2">
-              {title("original query")} *
+              Query *
               {watch("query").trim() && <Badge variant="secondary">{title(detected)}</Badge>}
               <span className="flex-1" />
               <SqlFileInput onLoad={(sql) => setValue("query", sql)} />
@@ -123,7 +121,7 @@ export function CreateChangeSheet({
 
           <Field>
             <FieldLabel className="flex items-center gap-2">
-              {title("rollback query")} *
+              Rollback *
               <span className="flex-1" />
               <SqlFileInput onLoad={(sql) => setValue("rollback", sql)} />
             </FieldLabel>

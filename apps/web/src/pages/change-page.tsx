@@ -1,12 +1,14 @@
 import { Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/ui/pagination";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/app/auth-provider";
 import { useConnections } from "@/hooks/use-connections";
@@ -31,7 +33,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
     setStatus,
     setPage,
   } = useChangeListUrlParams();
-  const { changes = [], total = 0, isPending } = useChangeListQuery(kind);
+  const { changes = [], total = 0, isPending, isFetching, refetch } = useChangeListQuery(kind);
   const submit = useSubmitChangeMutation();
   const label = kind.toUpperCase();
   // raising a change needs a write permission on some SQL instance; the form still lets the server refuse a specific connection
@@ -77,6 +79,10 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
                   </SelectContent>
                 </Select>
               </div>
+              <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>
+                <Search /> Search
+              </Button>
+              <Separator />
               {mayRaise && <CreateChangeSheet kind={kind} onSubmit={(input) => submit.mutateAsync(input)} />}
             </CardContent>
           </Card>
