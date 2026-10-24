@@ -126,16 +126,17 @@ func attachIndexesSQLite(ctx context.Context, db *stdsql.DB, tables []entity.Tab
 // attachEstimates fills planner row estimates where the catalog reports them; SQLite has no statistics catalog.
 func attachEstimates(ctx context.Context, db *stdsql.DB, driver string, tables []entity.Table) error {
 	if isSQLite(driver) {
-		return nil
+		return attachSizesSQLite(ctx, db, tables)
 	}
 	query := `
-		SELECT n.nspname, c.relname, c.reltuples
+		SELECT n.nspname, c.relname, c.reltuples, pg_total_relation_size(c.oid)
 		FROM pg_class c
 		JOIN pg_namespace n ON n.oid = c.relnamespace
 		WHERE c.relkind IN ('r', 'p') AND n.nspname NOT IN ('pg_catalog', 'information_schema')`
 	if isMySQL(driver) {
 		query = `
-			SELECT table_schema, table_name, table_rows
+			SELECT table_schema, table_name, table_rows,
+			       COALESCE(data_length, 0) + COALESCE(index_length, 0)
 			FROM information_schema.tables
 			WHERE table_schema NOT IN ('pg_catalog', 'information_schema', 'mysql', 'performance_schema', 'sys')
 			  AND table_type = 'BASE TABLE'`
@@ -149,24 +150,41 @@ func attachEstimates(ctx context.Context, db *stdsql.DB, driver string, tables [
 	for rows.Next() {
 		var schema, table string
 		var estimate stdsql.NullFloat64
+		var size stdsql.NullInt64
 		if isMySQL(driver) {
 			var n stdsql.NullInt64
-			if err := rows.Scan(&schema, &table, &n); err != nil {
+			if err := rows.Scan(&schema, &table, &n, &size); err != nil {
 				return err
 			}
 			if n.Valid {
 				estimate = stdsql.NullFloat64{Float64: float64(n.Int64), Valid: true}
 			}
-		} else if err := rows.Scan(&schema, &table, &estimate); err != nil {
+		} else if err := rows.Scan(&schema, &table, &estimate, &size); err != nil {
 			return err
 		}
-		if !estimate.Valid || estimate.Float64 < 0 {
-			continue
-		}
 		if i, ok := index[refKey(schema, table)]; ok {
-			n := int64(estimate.Float64)
-			tables[i].EstimatedRows = &n
+			if estimate.Valid && estimate.Float64 >= 0 {
+				n := int64(estimate.Float64)
+				tables[i].EstimatedRows = &n
+			}
+			if size.Valid {
+				tables[i].SizeBytes = &size.Int64
+			}
 		}
 	}
 	return rows.Err()
+}
+
+// attachSizesSQLite sums dbstat pages when the extension is available; a missing dbstat leaves the size unknown.
+func attachSizesSQLite(ctx context.Context, db *stdsql.DB, tables []entity.Table) error {
+	for i := range tables {
+		var size stdsql.NullInt64
+		if err := db.QueryRowContext(ctx, `SELECT SUM(pgsize) FROM dbstat WHERE name = ?`, tables[i].Name).Scan(&size); err != nil {
+			continue
+		}
+		if size.Valid {
+			tables[i].SizeBytes = &size.Int64
+		}
+	}
+	return nil
 }

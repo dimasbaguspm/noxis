@@ -3370,6 +3370,9 @@
                     },
                     "schema": {
                         "type": "string"
+                    },
+                    "sizeBytes": {
+                        "type": "integer"
                     }
                 }
             },

@@ -25,7 +25,8 @@ type erdBody struct {
 			Unique  bool     `json:"unique"`
 			Primary bool     `json:"primary"`
 		} `json:"indexes"`
-		Columns []struct {
+		SizeBytes *int64 `json:"sizeBytes"`
+		Columns   []struct {
 			Name       string `json:"name"`
 			PrimaryKey bool   `json:"primaryKey"`
 			References *struct {
@@ -39,6 +40,7 @@ func (w *world) erdSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the ERD of "([^"]*)" marks "([^"]*)" as a primary key$`, w.erdPrimaryKey)
 	sc.Step(`^the ERD of "([^"]*)" links "([^"]*)" to "([^"]*)"$`, w.erdLinks)
 	sc.Step(`^the ERD of "([^"]*)" reports an index over "([^"]*)" on "([^"]*)"$`, w.erdIndex)
+	sc.Step(`^the ERD of "([^"]*)" reports a size for "([^"]*)"$`, w.erdSize)
 }
 
 // erd loads one connection's schema graph.
@@ -127,4 +129,18 @@ func (w *world) erdIndex(ctx context.Context, connection, column, table string) 
 		}
 	}
 	return fmt.Errorf("no index over %q on %q in %+v", column, table, body.Tables)
+}
+
+// erdSize asserts the catalog reports a positive table size.
+func (w *world) erdSize(ctx context.Context, connection, table string) error {
+	body, _, err := w.erd(ctx, connection)
+	if err != nil {
+		return err
+	}
+	for _, t := range body.Tables {
+		if t.Name == table && t.SizeBytes != nil && *t.SizeBytes > 0 {
+			return nil
+		}
+	}
+	return fmt.Errorf("no positive size for %q in %+v", table, body.Tables)
 }

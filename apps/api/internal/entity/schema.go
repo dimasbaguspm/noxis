@@ -8,6 +8,7 @@ type Table struct {
 	Columns       []Column `json:"columns"`
 	Indexes       []Index  `json:"indexes,omitempty"`
 	EstimatedRows *int64   `json:"estimatedRows,omitempty"`
+	SizeBytes     *int64   `json:"sizeBytes,omitempty"`
 }
 
 // Index is one catalog index with its columns in declaration order.
