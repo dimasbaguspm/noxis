@@ -103,6 +103,7 @@ type world struct {
 
 	accessRequest requestBody
 	accessRefused bool
+	instanceID    string
 }
 
 // reset clears the per-scenario state. godog reuses one world across scenarios, so this runs before each one and gives every scenario a clean client.
