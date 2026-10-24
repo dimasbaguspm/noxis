@@ -1,5 +1,4 @@
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
-import { ErdDialog } from "@/components/sql/erd-dialog";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { ResultTable } from "@/components/sql/result-table";
 import { SqlEditor } from "@/components/sql/sql-editor";
@@ -9,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/app/auth-provider";
 import { useConnectionSelection } from "@/hooks/use-connection";
 import { useAnalyzeMutation, useConnectionSchemaQuery, useRunQueryMutation } from "@/hooks/use-sql";
@@ -18,7 +18,8 @@ import { Play } from "lucide-react";
 
 export default function QueryPage() {
   const { canAccess, isSuper } = useAuth();
-  const { connection, connections, busy, pick } = useConnectionSelection();
+  const [params] = useSearchParams();
+  const { connection, connections, busy, pick } = useConnectionSelection(params.get("connection") ?? undefined);
 
   const tabs = useSqlTabs();
   const tables = useConnectionSchemaQuery(connection).data ?? [];
@@ -116,7 +117,6 @@ export default function QueryPage() {
                     >
                       Explain
                     </Button>
-                    <ErdDialog connection={connection} />
                     <span className="text-xs text-muted-foreground">⌘/Ctrl + Enter</span>
                   </div>
                 </CardContent>

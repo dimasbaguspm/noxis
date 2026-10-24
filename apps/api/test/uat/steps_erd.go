@@ -17,13 +17,16 @@ type erdBody struct {
 		Driver string `json:"driver"`
 	} `json:"connection"`
 	Tables []struct {
+		ID      string `json:"id"`
 		Name    string `json:"name"`
 		Columns []struct {
 			Name       string `json:"name"`
 			PrimaryKey bool   `json:"primaryKey"`
+			References *struct {
+				Table string `json:"table"`
+			} `json:"references"`
 		} `json:"columns"`
 	} `json:"tables"`
-	Mermaid string `json:"mermaid"`
 }
 
 func (w *world) erdSteps(sc *godog.ScenarioContext) {
@@ -50,6 +53,16 @@ func (w *world) erd(ctx context.Context, connection string) (erdBody, string, er
 	if strings.Contains(strings.ToLower(raw), `"password"`) {
 		return body, raw, fmt.Errorf("the erd must not carry a password: %s", raw)
 	}
+	seen := make(map[string]bool, len(body.Tables))
+	for _, t := range body.Tables {
+		if t.ID == "" {
+			return body, raw, fmt.Errorf("erd table %q has no graph id", t.Name)
+		}
+		if seen[t.ID] {
+			return body, raw, fmt.Errorf("erd graph id %q is not unique", t.ID)
+		}
+		seen[t.ID] = true
+	}
 	return body, raw, nil
 }
 
@@ -69,16 +82,21 @@ func (w *world) erdPrimaryKey(ctx context.Context, connection, column string) er
 	return fmt.Errorf("no column %q is marked as a primary key in %+v", column, body.Tables)
 }
 
-// erdLinks asserts a declared foreign key becomes a relationship in the Mermaid output, pointing from the parent to the child.
+// erdLinks asserts a declared foreign key reaches the graph as a reference.
 func (w *world) erdLinks(ctx context.Context, connection, child, parent string) error {
 	body, _, err := w.erd(ctx, connection)
 	if err != nil {
 		return err
 	}
-	for _, line := range strings.Split(body.Mermaid, "\n") {
-		if strings.Contains(line, "||--") && strings.Contains(line, parent) && strings.Contains(line, child) {
-			return nil
+	for _, t := range body.Tables {
+		if t.Name != child {
+			continue
+		}
+		for _, c := range t.Columns {
+			if c.References != nil && c.References.Table == parent {
+				return nil
+			}
 		}
 	}
-	return fmt.Errorf("no relationship from %q to %q in:\n%s", parent, child, body.Mermaid)
+	return fmt.Errorf("no reference from %q to %q in %+v", child, parent, body.Tables)
 }

@@ -17,6 +17,7 @@ const DashboardPage = lazy(() => import("@/pages/dashboard"));
 const InstanceDetailPage = lazy(() => import("@/pages/instance-detail"));
 const InstanceDashboardPage = lazy(() => import("@/pages/instance-dashboard"));
 const QueryPage = lazy(() => import("@/pages/query"));
+const SqlErdPage = lazy(() => import("@/pages/sql-erd"));
 const DmlPage = lazy(() => import("@/pages/dml"));
 const DdlPage = lazy(() => import("@/pages/ddl"));
 const MemcachePage = lazy(() => import("@/pages/memcache"));
@@ -60,6 +61,7 @@ const router = createBrowserRouter([
       { path: routePath(PAGE_ROUTES.INSTANCE_DETAIL(":id")), element: <InstanceDetailPage /> },
       { path: routePath(PAGE_ROUTES.INSTANCE_DASHBOARD(":id")), element: <InstanceDashboardPage /> },
       { path: routePath(PAGE_ROUTES.SQL.QUERY), element: <QueryPage /> },
+      { path: routePath(PAGE_ROUTES.SQL.ERD), element: <SqlErdPage /> },
       { path: routePath(PAGE_ROUTES.SQL.DML), element: <DmlPage /> },
       { path: `${routePath(PAGE_ROUTES.SQL.DML)}/:id`, element: <ChangeDetail kind="dml" /> },
       { path: routePath(PAGE_ROUTES.SQL.DDL), element: <DdlPage /> },

@@ -2,6 +2,7 @@ package entity
 
 // Table and Column describe SQL relations and catalog-declared keys; names never imply constraints.
 type Table struct {
+	ID      string   `json:"id,omitempty"`
 	Schema  string   `json:"schema"`
 	Name    string   `json:"name"`
 	Columns []Column `json:"columns"`
@@ -24,11 +25,10 @@ type Reference struct {
 	Column string `json:"column"`
 }
 
-// SchemaGraph contains a redacted connection, declared table keys and references, and Mermaid source.
+// SchemaGraph contains a redacted connection and its declared tables, keys and references.
 type SchemaGraph struct {
 	Connection SchemaConnection `json:"connection"`
 	Tables     []Table          `json:"tables"`
-	Mermaid    string           `json:"mermaid"`
 }
 
 // SchemaConnection identifies which connection the diagram describes.

@@ -12,6 +12,7 @@ export const PAGE_ROUTES = {
   USER_DETAIL: (subject: string) => `/users/${encodeURIComponent(subject)}`,
   SQL: {
     QUERY: "/sql/query",
+    ERD: "/sql/erd",
     DML: "/sql/dml",
     DML_DETAIL: (id: string) => `/sql/dml/${id}`,
     DDL: "/sql/ddl",

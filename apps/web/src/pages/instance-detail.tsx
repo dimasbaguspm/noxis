@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Database, ExternalLink, KeyRound, ShieldCheck, Trash2, Zap } from "lucide-react";
+import { ArrowLeft, Database, ExternalLink, KeyRound, Network, ShieldCheck, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -136,6 +136,17 @@ export default function InstanceDetailPage() {
             </div>
             <div className="flex items-center gap-2">
               {!isSuper && <RequestAccessDialog connection={instance.name} />}
+              {family === FAMILY.SQL && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  render={
+                    <Link to={`${PAGE_ROUTES.SQL.ERD}?connection=${encodeURIComponent(instance.name)}`} />
+                  }
+                >
+                  <Network /> ERD
+                </Button>
+              )}
               {(isSuper || isInstanceAdmin(instance.name)) && (
                 <Button
                   size="sm"

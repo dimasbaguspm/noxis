@@ -1117,7 +1117,7 @@
         },
         "/external/v1/engine/{engine}/connections/{name}/erd": {
             "get": {
-                "summary": "One connection's schema as a Mermaid ER diagram",
+                "summary": "One connection's schema graph",
                 "parameters": [
                     {
                         "description": "engine family (sql)",
@@ -3308,9 +3308,6 @@
                     "connection": {
                         "$ref": "#/components/schemas/entity.SchemaConnection"
                     },
-                    "mermaid": {
-                        "type": "string"
-                    },
                     "tables": {
                         "type": "array",
                         "items": {
@@ -3335,6 +3332,9 @@
                         "items": {
                             "$ref": "#/components/schemas/entity.Column"
                         }
+                    },
+                    "id": {
+                        "type": "string"
                     },
                     "name": {
                         "type": "string"
