@@ -100,6 +100,9 @@ type world struct {
 	myMock    *mysqlmock.Server
 	mongoMock *mongomock.Server
 	redisMock *redismock.Server
+
+	accessRequest requestBody
+	accessRefused bool
 }
 
 // reset clears the per-scenario state. godog reuses one world across scenarios, so this runs before each one and gives every scenario a clean client.

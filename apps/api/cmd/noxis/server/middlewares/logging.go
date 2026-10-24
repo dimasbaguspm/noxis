@@ -1,10 +1,10 @@
 package middlewares
 
 import (
-	"noxis/internal/entity"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"noxis/internal/entity"
 	"time"
 
 	"go.opentelemetry.io/otel"

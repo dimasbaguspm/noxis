@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/cucumber/godog"
 )
@@ -13,6 +14,7 @@ import (
 func (w *world) connectionSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^connection "([^"]*)" is registered$`, w.registerConnection)
 	sc.Step(`^connection "([^"]*)" is registered for driver "([^"]*)"$`, w.registerConnectionDriver)
+	sc.Step(`^a fresh connection "([^"]*)" is registered$`, w.registerFreshConnection)
 	sc.Step("the connection test passes", w.testConnection)
 	sc.Step("the connection list hides the password", w.listRedacted)
 	sc.Step(`^the operator console is served at "/"$`, w.consoleServed)
@@ -21,6 +23,11 @@ func (w *world) connectionSteps(sc *godog.ScenarioContext) {
 // registerConnection upserts the default SQL target as a noxis connection.
 func (w *world) registerConnection(ctx context.Context, name string) error {
 	return w.registerSQL(ctx, name, "postgres")
+}
+
+// registerFreshConnection registers a uniquely named connection, so a scenario that leaves state behind stays repeatable.
+func (w *world) registerFreshConnection(ctx context.Context, prefix string) error {
+	return w.registerSQL(ctx, fmt.Sprintf("%s_%d", prefix, time.Now().UnixNano()), "postgres")
 }
 
 // registerConnectionDriver registers a non-postgres SQL target.

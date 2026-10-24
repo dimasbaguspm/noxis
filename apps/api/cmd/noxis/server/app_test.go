@@ -24,6 +24,7 @@ func TestNewDepsWiresRepositories(t *testing.T) {
 		"AccessApprove":  d.AccessApprove.Repositories.AccessRequests,
 		"AccessEvents":   d.UserGet.Repositories.AccessEvents,
 		"Permissions":    d.SetPermission.Repositories.Permissions,
+		"PermissionList": d.ListPermissions.Repositories.Permissions,
 		"Users":          d.UserList.Repositories.Users,
 		"Connections":    d.ConnectionList.Repositories.Connections,
 		"Changes":        d.ChangeList.Repositories.Changes,
