@@ -69,8 +69,6 @@ export default function QueryPage() {
   return (
     <div className="flex h-full min-h-0">
       <Workspace
-        leftLabel="Query filters"
-        rightLabel="Query editor and result"
         left={
           <div className="flex min-h-0 flex-1 flex-col gap-2">
             <div className="grid gap-1.5">
