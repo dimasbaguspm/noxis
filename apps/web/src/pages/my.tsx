@@ -15,8 +15,6 @@ export default function MyLayout() {
   return (
     <div className="flex h-full min-h-0">
       <Workspace
-        leftLabel="My account"
-        rightLabel="Account page"
         left={
           <div className="grid gap-1">
             {ITEMS.map((item) => {

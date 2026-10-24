@@ -87,8 +87,6 @@ export default function MongoExplorePage() {
   return (
     <div className="flex h-full min-h-0">
       <Workspace
-        leftLabel="Mongo databases"
-        rightLabel="Mongo collections and documents"
         left={
           <div className="flex min-h-0 flex-1 flex-col gap-3">
             <Select value={connection ?? ""} onValueChange={(v) => pick(String(v))}>

@@ -4,24 +4,33 @@ import (
 	"context"
 	stdsql "database/sql"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
 	"noxis/internal/common/idgen"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 )
 
 // scratchPrefix names the throwaway schema each change is verified in.
 const scratchPrefix = "noxis_verify_"
 
-// ValidateChange runs query and rollback in scratch; SQLite uses a rolled-back transaction. shortcut: qualified names may target live objects; add rewriting if operators use them.
+// qualifiedIdent matches an identifier with a dot-qualified part, including column references that a scratch search_path would not rewrite.
+var qualifiedIdent = regexp.MustCompile("(?i)(?:[a-z_][a-z0-9_$]*|\"[^\"]+\"|`[^`]+`)\\s*\\.\\s*(?:[a-z_*][a-z0-9_$]*|\"[^\"]+\"|`[^`]+`)")
+
+// ValidateChange runs query and rollback in scratch, except when a qualified name could escape it; those fall back to a rolled-back transaction. MySQL DDL with qualifiers cannot be rolled back safely and is left unverified.
 func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	// SQLite DDL is transactional, so a rolled-back transaction is a safe dry run on the live schema; no scratch database is needed.
-	if isSQLite(c.Driver) {
+	text := query + "\n" + rollback
+	// SQLite DDL is transactional; postgres can always roll back the live statements, and mysql DML can too. Only an unqualified MySQL/MariaDB DDL uses scratch.
+	if isSQLite(c.Driver) || transactionSafe(c.Driver, text) {
 		return validateChangeTx(ctx, c, query, rollback)
+	}
+	if isMySQL(c.Driver) && containsDDL(text) && hasQualifiedIdent(text) {
+		return Result{}, fmt.Errorf("%w: qualified names in MySQL DDL cannot be dry-run safely; use unqualified names", interfaces.ErrUnverifiable)
 	}
 	started := time.Now()
 	schema := scratchPrefix + idgen.Hex(6)
@@ -84,7 +93,31 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 	}, nil
 }
 
-// validateChangeTx exercises live SQLite tables because SQLite rolls back DDL transactionally.
+// transactionSafe reports whether the batch can be proved by rolling back the live transaction instead of a scratch schema.
+func transactionSafe(driver, text string) bool {
+	if isSQLite(driver) {
+		return true
+	}
+	if isPostgres(driver) {
+		return hasQualifiedIdent(text)
+	}
+	if isMySQL(driver) {
+		return !containsDDL(text)
+	}
+	return false
+}
+
+// hasQualifiedIdent finds schema.table and table.column references; either can escape a scratch search_path.
+func hasQualifiedIdent(text string) bool {
+	for _, stmt := range splitStatements(text) {
+		if qualifiedIdent.MatchString(stmt) {
+			return true
+		}
+	}
+	return false
+}
+
+// validateChangeTx exercises live tables because the whole transaction is rolled back.
 func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback string) (Result, error) {
 	started := time.Now()
 	var affected int64
@@ -120,7 +153,7 @@ func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback 
 	return Result{
 		Affected:   affected,
 		DurationMs: time.Since(started).Milliseconds(),
-		Message:    "verified in a rolled-back transaction on sqlite",
+		Message:    "verified in a rolled-back transaction",
 	}, nil
 }
 
