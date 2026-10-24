@@ -13,24 +13,24 @@ import (
 	"noxis/internal/usecases"
 )
 
-var opRoutes = map[string]string{
-	"POST " + constants.APIPrefix + "/engine/{engine}/connections/{name}/query":    constants.OpQuery,
-	"POST " + constants.APIPrefix + "/engine/{engine}/connections/{name}/alter":    constants.OpAlter,
-	"POST " + constants.APIPrefix + "/engine/{engine}/connections/{name}/rollback": constants.OpRollback,
-	"POST " + constants.APIPrefix + "/engine/{engine}/connections/{name}/analyze":  constants.OpAnalyze,
+var opNames = map[string]bool{
+	constants.OpQuery:    true,
+	constants.OpAlter:    true,
+	constants.OpRollback: true,
+	constants.OpAnalyze:  true,
 }
 
 // Op runs a direct SQL console operation.
 type Op struct{ usecases.RegistryDeps }
 
-// @Summary Run a SQL console op (query)
+// @Summary Run a SQL console operation
 // @Param engine path string true "engine family (sql)"
 // @Param name path string true "connection name"
-// @Param body body entity.OpRequest true "sql"
+// @Param body body entity.OpRequest true "op plus sql or table"
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/query [post]
+// @Router /external/v1/engine/{engine}/connections/{name}/operations [post]
 func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
@@ -45,7 +45,11 @@ func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	operation := opRoutes[r.Pattern]
+	operation := body.Op
+	if !opNames[operation] {
+		uc.Fail(ctx, w, fmt.Errorf("unknown operation %q", operation))
+		return
+	}
 	connection, err := uc.RawConn(ctx, module, r.PathValue("name"), uc.OpLevel(operation))
 	if err != nil {
 		uc.Fail(ctx, w, err)
@@ -72,36 +76,3 @@ func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 	}
 	uc.Respond(w, result)
 }
-
-// OpAlter documents the alter route.
-// @Summary Apply a write directly (DML or DDL)
-// @Param engine path string true "engine family (sql)"
-// @Param name path string true "connection name"
-// @Param body body entity.OpRequest true "sql"
-// @Success 200 {object} entity.Result
-// @Failure 400 {object} entity.ErrorResponse
-// @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/alter [post]
-func OpAlter() {}
-
-// OpRollback documents the rollback route.
-// @Summary Dry-run statements inside a transaction that always rolls back
-// @Param engine path string true "engine family (sql)"
-// @Param name path string true "connection name"
-// @Param body body entity.OpRequest true "sql"
-// @Success 200 {object} entity.Result
-// @Failure 400 {object} entity.ErrorResponse
-// @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/rollback [post]
-func OpRollback() {}
-
-// OpAnalyze documents the analyze route.
-// @Summary Refresh planner statistics for a table
-// @Param engine path string true "engine family (sql)"
-// @Param name path string true "connection name"
-// @Param body body entity.OpRequest true "table"
-// @Success 200 {object} entity.Result
-// @Failure 400 {object} entity.ErrorResponse
-// @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/analyze [post]
-func OpAnalyze() {}

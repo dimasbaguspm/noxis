@@ -170,8 +170,9 @@ type TableList struct {
 	Tables []Table `json:"tables"`
 }
 
-// OpRequest is the SQL console op payload: sql for query/alter/rollback, table for analyze.
+// OpRequest is the SQL console op payload: op plus sql for query/alter/rollback, table for analyze.
 type OpRequest struct {
+	Op    string `json:"op"`
 	SQL   string `json:"sql,omitempty"`
 	Table string `json:"table,omitempty"`
 }
