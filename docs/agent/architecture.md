@@ -43,8 +43,8 @@ One file does all wiring, at boot, once: `apps/api/cmd/noxis/server/app.go`.
 
 Add a new use case: create `apps/api/internal/usecases/<domain>/foo.go` with a
 `Foo struct` embedding `usecases.RegistryDeps` and a `Serve(w, r)` → add a field
-to `app` and one line to `newApp` → register its `Serve` in `newHandler`. No
-constructor boilerplate, no reflection.
+to `app` and one line to `newApp` → add a `route` row with its method, path and
+access rule. No constructor boilerplate, no reflection.
 
 ## Engine registry
 

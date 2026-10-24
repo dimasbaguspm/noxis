@@ -18,7 +18,6 @@ import (
 	"noxis/internal/auth"
 	"noxis/internal/common"
 	"noxis/internal/common/config"
-	"noxis/internal/constants"
 	"noxis/internal/interfaces"
 	"noxis/internal/repositories"
 	"noxis/internal/repositories/sqlite"
@@ -34,90 +33,6 @@ func newDeps(store *sqlite.Store, cfg config.Config, authSvc *auth.Service) app 
 		Auth:         cfg.AuthInfo(),
 		AuthService:  authSvc,
 	})
-}
-
-// newHandler wires routes straight to use case methods.
-func newHandler(d app, cfg config.Config) http.Handler {
-	mux := http.NewServeMux()
-	// The public API is versioned and mounted under /external; internal triggers live under /internal; the console shell and health probes stay at the root.
-	const api = constants.APIPrefix
-
-	mux.HandleFunc("GET /healthz", getHealthz)
-	mux.HandleFunc("GET "+api+"/config/drivers", d.Drivers.Serve)
-	mux.HandleFunc("GET "+api+"/config/levels", d.Levels.Serve)
-	mux.HandleFunc("GET "+api+"/auth/config", d.AuthConfig.Serve)
-	mux.HandleFunc("POST "+api+"/auth/login", d.Login.Serve)
-	mux.HandleFunc("GET "+api+"/me", d.Me.Serve)
-	mux.HandleFunc("POST "+api+"/auth/logout", d.Logout.Serve)
-	mux.HandleFunc("POST "+api+"/auth/password", d.ChangePass.Serve)
-
-	// Connections: one generic route per operation, gated by the {engine} path parameter through the module registry.
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections", d.ConnectionList.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections", d.SaveConnection.Serve)
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}", d.Connection.Serve)
-	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}", d.DeleteConnection.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/test", d.TestConnection.Serve)
-
-	// Permissions: per-connection RBAC policy (users and groups), managed by admins.
-	mux.HandleFunc("GET "+api+"/config/members", d.Members.Serve)
-	mux.HandleFunc("GET "+api+"/access", d.AccessMatrix.Serve)
-
-	// Access requests: a user asks, an admin or the instance's admin decides.
-	mux.HandleFunc("POST "+api+"/access-requests", d.AccessCreate.Serve)
-	mux.HandleFunc("GET "+api+"/access-requests", d.AccessList.Serve)
-	mux.HandleFunc("POST "+api+"/access-requests/{id}/approve", d.AccessApprove.Serve)
-	mux.HandleFunc("POST "+api+"/access-requests/{id}/reject", d.AccessReject.Serve)
-
-	// Users: the admin directory.
-	mux.HandleFunc("GET "+api+"/users", d.UserList.Serve)
-	mux.HandleFunc("GET "+api+"/users/{subject}", d.UserGet.Serve)
-	mux.HandleFunc("PATCH "+api+"/users/{subject}", d.UserUpdate.Serve)
-	// The instance-scoped grant routes live under the engine path, so a family mismatch is reported like any other connection error.
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/permissions", d.ListPermissions.Serve)
-	mux.HandleFunc("PUT "+api+"/engine/{engine}/connections/{name}/permissions", d.SetPermission.Serve)
-	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}/permissions", d.DeletePermission.Serve)
-
-	// SQL-only: schema, row preview and the console ops.
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/schema", d.Schema.Serve)
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/erd", d.ERD.Serve)
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/tables/{table}/rows", d.Rows.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/query", d.Op.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/alter", d.Op.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/rollback", d.Op.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/analyze", d.Op.Serve)
-
-	// Changes: SQL and MongoDB keep separate queues behind one route.
-	mux.HandleFunc("GET "+api+"/engine/{engine}/changes", d.ChangeList.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/changes", d.ChangeSubmit.Serve)
-	mux.HandleFunc("GET "+api+"/engine/{engine}/changes/{id}", d.ChangeGet.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/approve", d.ChangeApprove.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/apply", d.ChangeApply.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/reject", d.ChangeReject.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/changes/{id}/schedule", d.ChangeSchedule.Serve)
-
-	// Memory-cache-only: keys, values, removal and emptying the database.
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/keys", d.CacheKeys.Serve)
-	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}/keys", d.CacheDel.Serve)
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/value", d.CacheVal.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/flush", d.CacheFlsh.Serve)
-
-	// MongoDB-only: databases, collections and read requests.
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/databases", d.MongoDbs.Serve)
-	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/collections", d.MongoColls.Serve)
-	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/requests", d.MongoRun.Serve)
-
-	mux.Handle("GET /assets/", http.HandlerFunc(getAssets)) // embedded FS keeps the assets/ prefix
-	mux.HandleFunc("GET /", getConsole)                     // the operator console (SPA shell)
-
-	// Scheduling uses an authenticated external callback; no in-process ticker runs.
-	mux.Handle("POST /internal/callback/scheduler", middlewares.WithSchedulerAuth(cfg.SchedulerKey, cfg.SchedulerSecret, http.HandlerFunc(d.Tick.Serve)))
-
-	// Instances address a connection by its stable id, across families. The family routes live under {api}/engine/{engine}/..., so these paths never collide with the {engine} wildcard.
-	mux.HandleFunc("GET "+api+"/instances", d.Instances.Serve)
-	mux.HandleFunc("GET "+api+"/instances/{id}", d.Instance.Serve)
-	mux.HandleFunc("POST "+api+"/instances/{id}/password", d.RotatePassword.Serve)
-
-	return mux
 }
 
 func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
@@ -149,7 +64,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 	}
 
 	// Middleware order is CORS → trace → auth → request log, so denied tokens are traced and actor fields attach after auth.
-	handler := middlewares.CORS(middlewares.Trace(middlewares.WithAuth(authSvc, middlewares.RequestLog(newHandler(d, cfg), log), log)))
+	handler := middlewares.CORS(middlewares.Trace(newHandler(d, cfg, authSvc, log)))
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler}
 	baseCtx := common.WithModuleLoader(ctx, d.Modules)
 	// every request ctx descends from ours
