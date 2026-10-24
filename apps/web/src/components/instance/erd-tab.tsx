@@ -36,8 +36,6 @@ export function InstanceErd({ connection, instanceId }: { connection: string; in
     <>
       <div className="flex h-full min-h-0">
         <Workspace
-          leftLabel="ERD tables"
-          rightLabel="Entity relationship diagram"
           left={
             erd.isPending ? (
               <Skeleton className="h-48 w-full" />
