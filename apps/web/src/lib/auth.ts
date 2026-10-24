@@ -125,7 +125,8 @@ export async function signin(): Promise<void> {
 }
 
 export async function handleCallback(): Promise<void> {
-  if (manager) await manager.signinRedirectCallback();
+  if (!manager) throw new Error("OIDC is not configured");
+  await manager.signinRedirectCallback();
 }
 
 // signout clears the local session and, when OIDC is configured, ends that too.
