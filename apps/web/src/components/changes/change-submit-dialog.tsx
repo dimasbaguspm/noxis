@@ -115,10 +115,7 @@ export function ChangeSubmitDialog({
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Submit {kind.toUpperCase()} change</SheetTitle>
-          <SheetDescription>
-            The query and its rollback are dry-run together in a transaction that always rolls back —
-            nothing changes until a reviewer approves and applies it.
-          </SheetDescription>
+          <SheetDescription>Dry-run together; nothing changes until this is approved and applied.</SheetDescription>
         </SheetHeader>
 
         <SheetBody>
@@ -126,13 +123,13 @@ export function ChangeSubmitDialog({
           <FieldGroup>
           <Field>
             <FieldLabel>
-              {title("instance")} <Required />
+              Instance <Required />
             </FieldLabel>
             <ConnectionSelect value={connection} onChange={pick} className="w-full" />
           </Field>
           <Field>
             <FieldLabel htmlFor="change-notes">
-              {title("notes")} <Required />
+              Notes <Required />
             </FieldLabel>
             <Input id="change-notes" placeholder="what and why" aria-invalid={!!errors.notes} {...register("notes")} />
             <FieldError errors={[errors.notes]} />
@@ -140,7 +137,7 @@ export function ChangeSubmitDialog({
 
           <Field>
             <FieldLabel className="flex items-center gap-2">
-              {title("original query")} <Required />
+              Query <Required />
               {watch("query").trim() && (
                 <Badge variant={detected === kind ? "secondary" : "destructive"}>{title(detected)}</Badge>
               )}
@@ -152,7 +149,7 @@ export function ChangeSubmitDialog({
 
           <Field>
             <FieldLabel>
-              {title("rollback query")} <Required />
+              Rollback <Required />
             </FieldLabel>
             <SqlEditor value={watch("rollback")} onChange={(sql) => setValue("rollback", sql)} tables={tables} height="9rem" />
             <input type="hidden" aria-hidden {...register("rollback")} />
@@ -180,9 +177,7 @@ export function ChangeSubmitDialog({
         </SheetBody>
 
         <SheetFooter className="items-center">
-            <P className="mr-auto">
-              validation runs on submit: syntax and dry run against the instance
-            </P>
+            <P className="mr-auto">Validated on submit against the selected instance.</P>
             <Button type="submit" form="submit-change" disabled={busy}>
               Submit for review
             </Button>

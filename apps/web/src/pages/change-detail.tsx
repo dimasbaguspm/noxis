@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { title } from "radash";
-import { ArrowLeft, CalendarClock, Check, CircleHelp, FileWarning, Loader2, Play, Undo2 } from "lucide-react";
+import { CalendarClock, Check, CircleHelp, FileWarning, Loader2, Play, Undo2 } from "lucide-react";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ import { ChangeSubmitDialog } from "@/components/changes/change-submit-dialog";
 import { SqlEditor } from "@/components/sql/sql-editor";
 import { useAuth } from "@/app/auth-provider";
 import { useConnectionSchemaQuery } from "@/hooks/use-sql";
+import { usePagedInstancesQuery } from "@/hooks/use-instances";
 import {
   useApproveChangeMutation,
   useApplyChangeMutation,
@@ -61,8 +62,9 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "
 // ChangeDetailPage is the reviewer's focus view. Actions live here and only here: the queue stays a queue.
 export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const { id = "" } = useParams();
-  const navigate = useNavigate();
   const { canAccess, isInstanceAdmin } = useAuth();
+  const [sqlView, setSqlView] = useState<"query" | "rollback">("query");
+  const { data: instancesData } = usePagedInstancesQuery();
   const detail = useChangeGetQuery(id);
   const change = detail.data;
   const gone = detail.isError;
@@ -89,7 +91,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
 
   if (gone || !change) return <Unavailable kind={kind} id={id} />;
 
-  const queue = kind === "ddl" ? PAGE_ROUTES.SQL.DDL : PAGE_ROUTES.SQL.DML;
+  const instance = (instancesData?.instances ?? []).find((i) => i.name === change.connection);
   const act = (fn: (id: string) => void) => () => fn(id);
   const mayReview = isInstanceAdmin(change.connection);
   const mayWrite = canAccess(change.connection, "write");
@@ -100,12 +102,9 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Button variant="ghost" size="sm" onClick={() => navigate(queue)}>
-          <ArrowLeft /> {kind.toUpperCase()}
-        </Button>
         <Badge variant={STATUS_VARIANT[change.status ?? ""] ?? "outline"}>{change.status}</Badge>
         <span className="font-mono text-xs text-muted-foreground">{change.id?.slice(0, 8)}</span>
-        <span className="text-sm text-muted-foreground">{change.connection}</span>
+        <span className="text-sm">{change.notes}</span>
         {change.createdBy && (
           <span className="text-xs text-muted-foreground/70">by {change.createdBy}</span>
         )}
@@ -155,14 +154,29 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">{change.notes}</CardTitle>
-              <CardDescription>Proposed {kind.toUpperCase()} change</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <Section label={title("original query")}>
-                <SqlEditor value={change.query ?? ""} readOnly height="11rem" tables={tables} />
-              </Section>
+            <CardContent className="flex flex-col gap-4 pt-6">
+              <div className="flex items-center gap-1">
+                <Button
+                  size="xs"
+                  variant={sqlView === "query" ? "secondary" : "ghost"}
+                  onClick={() => setSqlView("query")}
+                >
+                  Original
+                </Button>
+                <Button
+                  size="xs"
+                  variant={sqlView === "rollback" ? "secondary" : "ghost"}
+                  onClick={() => setSqlView("rollback")}
+                >
+                  Rollback
+                </Button>
+              </div>
+              <SqlEditor
+                value={(sqlView === "query" ? change.query : change.rollback) ?? ""}
+                readOnly
+                height="16rem"
+                tables={tables}
+              />
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs text-muted-foreground">
                   Prefills this rollback as the new original query
@@ -185,9 +199,6 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
                   />
                 )}
               </div>
-              <Section label={title("rollback query")}>
-                <SqlEditor value={change.rollback ?? ""} readOnly height="8rem" tables={tables} />
-              </Section>
             </CardContent>
           </Card>
 
@@ -221,6 +232,32 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
         </div>
 
         <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Instance</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{change.connection}</span>
+                {instance?.driver && <Badge variant="secondary">{instance.driver}</Badge>}
+              </div>
+              {instance ? (
+                <>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {instance.driver === "sqlite"
+                      ? instance.database
+                      : `${instance.host}:${instance.port} · ${instance.database}`}
+                  </p>
+                  <Button size="xs" variant="outline" className="w-fit" render={<Link to={PAGE_ROUTES.INSTANCE_DETAIL(instance.id ?? "")} />}>
+                    Open instance
+                  </Button>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">Instance details are unavailable.</p>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Activity</CardTitle>
@@ -360,15 +397,6 @@ function Unavailable({ kind, id }: { kind: ChangeKind; id: string }) {
         </div>
       }
     />
-  );
-}
-
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-1.5">
-      <P className="font-medium">{label}</P>
-      {children}
-    </div>
   );
 }
 
