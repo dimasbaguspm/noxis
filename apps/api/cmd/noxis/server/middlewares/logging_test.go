@@ -43,11 +43,11 @@ func TestRequestLogAttachesPrincipal(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/external/v1/me", http.NoBody)
-	req = req.WithContext(entity.WithPrincipal(req.Context(), entity.Identity{Subject: "bob", Groups: []string{"readers"}}))
+	req = req.WithContext(entity.WithPrincipal(req.Context(), entity.Identity{Subject: "bob", Groups: []string{"readers"}, Role: entity.RoleAdmin}))
 	RequestLog(okHandler(), log).ServeHTTP(rec, req)
 
 	line := buf.String()
-	for _, want := range []string{`"user_id":"bob"`, `"groups":["readers"]`} {
+	for _, want := range []string{`"user_id":"bob"`, `"user_role":"admin"`, `"groups":["readers"]`} {
 		if !strings.Contains(line, want) {
 			t.Fatalf("log %s missing %s", line, want)
 		}
@@ -165,4 +165,3 @@ func TestTraceSpansRejectedRequest(t *testing.T) {
 		t.Fatalf("a rejected request must still produce a span, got %+v", spans)
 	}
 }
-

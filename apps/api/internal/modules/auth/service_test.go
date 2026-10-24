@@ -12,8 +12,9 @@ import (
 
 // fakeUsers is an in-memory UserRepository for the service tests.
 type fakeUsers struct {
-	bySubject map[string]*entity.User
-	tokens    map[string]fakeToken
+	bySubject         map[string]*entity.User
+	tokens            map[string]fakeToken
+	getUserByEmailErr error
 }
 
 type fakeToken struct {
@@ -48,6 +49,9 @@ func (f *fakeUsers) GetUser(_ context.Context, subject string) (*entity.User, er
 }
 
 func (f *fakeUsers) GetUserByEmail(_ context.Context, email string) (*entity.User, error) {
+	if f.getUserByEmailErr != nil {
+		return nil, f.getUserByEmailErr
+	}
 	for _, u := range f.bySubject {
 		if u.Email == email && email != "" {
 			cp := *u
@@ -311,16 +315,48 @@ func TestTokenExpires(t *testing.T) {
 // An OIDC identity is recorded as a reference row the first time it is seen, so grants and the user directory can point at it.
 func TestVerifyRecordsOIDCSubject(t *testing.T) {
 	repo := newFakeUsers()
-	oidc := fakeVerifier{identity: entity.Identity{Subject: "oidc|42", Groups: []string{"dev"}}}
+	oidc := fakeVerifier{identity: entity.Identity{
+		Subject: "oidc|42", Name: "OIDC User", Email: "oidc@example.com",
+		Groups: []string{"dev"}, Role: entity.RoleSuper,
+	}}
 	svc := NewService(repo, oidc)
 	ctx := context.Background()
 
 	id, err := svc.Verify(ctx, "an-oidc-token")
-	if err != nil || id.Subject != "oidc|42" {
+	if err != nil || id.Subject != "oidc|42" || id.Role != entity.RoleMember || id.Name != "OIDC User" || len(id.Groups) != 1 || id.Groups[0] != "dev" {
 		t.Fatalf("verify: %+v err=%v", id, err)
 	}
 	if _, err := repo.GetUser(ctx, "oidc|42"); err != nil {
 		t.Fatalf("the OIDC subject must be recorded: %v", err)
+	}
+}
+
+// A previously recorded unmatched OIDC subject cannot authenticate after it is banned.
+func TestVerifyRejectsBannedUnmatchedOIDCSubject(t *testing.T) {
+	repo := newFakeUsers()
+	if err := repo.EnsureSubject(context.Background(), "oidc|banned", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.SetUserStatus(context.Background(), "oidc|banned", entity.StatusBanned); err != nil {
+		t.Fatal(err)
+	}
+	svc := NewService(repo, fakeVerifier{identity: entity.Identity{Subject: "oidc|banned"}})
+	if _, err := svc.Verify(context.Background(), "an-oidc-token"); !errors.Is(err, constants.ErrForbidden) {
+		t.Fatalf("banned unmatched OIDC user error = %v, want forbidden", err)
+	}
+}
+
+func TestVerifyPropagatesVerifiedEmailLookupFailure(t *testing.T) {
+	repo := newFakeUsers()
+	repo.getUserByEmailErr = errors.New("sqlite unavailable")
+	svc := NewService(repo, fakeVerifier{identity: entity.Identity{
+		Subject: "oidc|42", Email: "oidc@example.com", EmailVerified: true,
+	}})
+	if _, err := svc.Verify(context.Background(), "an-oidc-token"); err == nil || !errors.Is(err, repo.getUserByEmailErr) {
+		t.Fatalf("email lookup error = %v, want propagated storage error", err)
+	}
+	if _, err := repo.GetUser(context.Background(), "oidc|42"); !errors.Is(err, constants.ErrNotFound) {
+		t.Fatalf("lookup failure created OIDC user: err=%v", err)
 	}
 }
 
