@@ -1,86 +1,16 @@
-// Package schema holds the SQL schema and console-op use cases.
 package schema
 
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
-	"noxis/internal/constants"
 	"noxis/internal/common/logging"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
 
-// Tables introspects a connection's tables and columns.
-type Tables struct{ usecases.RegistryDeps }
-
-// @Summary Introspect a connection's tables and columns
-// @Param engine path string true "engine family (sql)"
-// @Param name path string true "connection name"
-// @Success 200 {object} entity.TableList
-// @Failure 400 {object} entity.ErrorResponse
-// @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/schema [get]
-func (uc Tables) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx, end := logging.StartSpan(r.Context())
-	defer end(nil)
-	sq, err := uc.Modules.EngineSQL(r.PathValue("engine"))
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	c, err := uc.RawConn(ctx, sq, r.PathValue("name"), entity.LevelRead)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	out, err := sq.Tables(ctx, *c)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, entity.TableList{Tables: out})
-}
-
-// Rows previews a table's rows.
-type Rows struct{ usecases.RegistryDeps }
-
-// @Summary Preview a table's rows
-// @Param engine path string true "engine family (sql)"
-// @Param name path string true "connection name"
-// @Param table path string true "table name (unqualified)"
-// @Param schema query string false "schema (defaults to the driver's)"
-// @Param limit query int false "row cap (default 100, max 500)"
-// @Success 200 {object} entity.Result
-// @Failure 400 {object} entity.ErrorResponse
-// @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/tables/{table}/rows [get]
-func (uc Rows) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx, end := logging.StartSpan(r.Context())
-	defer end(nil)
-	sq, err := uc.Modules.EngineSQL(r.PathValue("engine"))
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	c, err := uc.RawConn(ctx, sq, r.PathValue("name"), entity.LevelRead)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	out, err := sq.Rows(ctx, *c, r.URL.Query().Get("schema"), r.PathValue("table"), limit)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, out)
-}
-
-// opRoutes pins each op route to its operation name, read from the matched
-// pattern (a request's Pattern is the route it hit).
 var opRoutes = map[string]string{
 	"POST " + constants.APIPrefix + "/engine/{engine}/connections/{name}/query":    constants.OpQuery,
 	"POST " + constants.APIPrefix + "/engine/{engine}/connections/{name}/alter":    constants.OpAlter,
@@ -88,7 +18,7 @@ var opRoutes = map[string]string{
 	"POST " + constants.APIPrefix + "/engine/{engine}/connections/{name}/analyze":  constants.OpAnalyze,
 }
 
-// Op runs a direct SQL console op.
+// Op runs a direct SQL console operation.
 type Op struct{ usecases.RegistryDeps }
 
 // @Summary Run a SQL console op (query)
@@ -102,7 +32,7 @@ type Op struct{ usecases.RegistryDeps }
 func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	sq, err := uc.Modules.EngineSQL(r.PathValue("engine"))
+	module, err := uc.Modules.EngineSQL(r.PathValue("engine"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -113,32 +43,31 @@ func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	operation := opRoutes[r.Pattern]
-	c, err := uc.RawConn(ctx, sq, r.PathValue("name"), uc.OpLevel(operation))
+	connection, err := uc.RawConn(ctx, module, r.PathValue("name"), uc.OpLevel(operation))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
 	start := time.Now()
-	var out any
+	var result any
 	switch operation {
 	case constants.OpQuery:
-		out, err = sq.Query(ctx, *c, body.SQL)
+		result, err = module.Query(ctx, *connection, body.SQL)
 	case constants.OpAlter:
-		out, err = sq.Alter(ctx, *c, body.SQL)
+		result, err = module.Alter(ctx, *connection, body.SQL)
 	case constants.OpRollback:
-		out, err = sq.DryRun(ctx, *c, body.SQL)
+		result, err = module.DryRun(ctx, *connection, body.SQL)
 	case constants.OpAnalyze:
-		out, err = sq.Analyze(ctx, *c, body.Table)
+		result, err = module.Analyze(ctx, *connection, body.Table)
 	default:
 		err = fmt.Errorf("unknown op %q", operation)
 	}
-	// A failure's duration counts too: a slow failure is still slow.
 	uc.Metrics.OpDuration(ctx, r.PathValue("engine"), operation, time.Since(start).Seconds())
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	uc.Respond(w, out)
+	uc.Respond(w, result)
 }
 
 // OpAlter documents the alter route.
