@@ -2801,6 +2801,7 @@ export interface components {
             indexes?: components["schemas"]["entity.Index"][];
             name?: string;
             schema?: string;
+            sizeBytes?: number;
         };
         "entity.TableList": {
             tables?: components["schemas"]["entity.Table"][];

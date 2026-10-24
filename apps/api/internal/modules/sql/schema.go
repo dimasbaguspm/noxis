@@ -24,6 +24,9 @@ func listTables(ctx context.Context, db *stdsql.DB, driver string) ([]entity.Tab
 		if err := attachIndexes(ctx, db, driver, tables); err != nil {
 			return nil, err
 		}
+		if err := attachEstimates(ctx, db, driver, tables); err != nil {
+			return nil, err
+		}
 		return tables, nil
 	}
 	rows, err := db.QueryContext(ctx, `

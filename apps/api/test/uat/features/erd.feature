@@ -16,6 +16,7 @@ Feature: a connection's schema can be drawn as an ER diagram
     Then the ERD of "erd_<driver>" marks "id" as a primary key
     And the ERD of "erd_<driver>" links "uat_erd_child" to "uat_erd_parent"
     And the ERD of "erd_<driver>" reports an index over "code" on "uat_erd_child"
+    And the ERD of "erd_<driver>" reports a size for "uat_erd_child"
 
     Examples:
       | driver   |

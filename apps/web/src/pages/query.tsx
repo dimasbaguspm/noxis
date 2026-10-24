@@ -21,7 +21,7 @@ export default function QueryPage() {
   const [params] = useSearchParams();
   const { connection, connections, busy, pick } = useConnectionSelection(params.get("connection") ?? undefined);
 
-  const tabs = useSqlTabs();
+  const tabs = useSqlTabs(params.get("sql") ?? undefined);
   const tables = useConnectionSchemaQuery(connection).data ?? [];
   const run = useRunQueryMutation();
   const readResult = run.data;

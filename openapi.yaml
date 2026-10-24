@@ -2119,6 +2119,8 @@ components:
           type: string
         schema:
           type: string
+        sizeBytes:
+          type: integer
     entity.TableList:
       type: object
       properties:

@@ -34,6 +34,9 @@ func TestListTablesReadsSQLiteIndexes(t *testing.T) {
 	if tables[0].EstimatedRows != nil {
 		t.Fatalf("SQLite has no estimate, got %d", *tables[0].EstimatedRows)
 	}
+	if tables[0].SizeBytes == nil || *tables[0].SizeBytes <= 0 {
+		t.Fatalf("SQLite size = %v", tables[0].SizeBytes)
+	}
 	var named, unique bool
 	for _, idx := range tables[0].Indexes {
 		if idx.Name == "users_name" && len(idx.Columns) == 1 && idx.Columns[0] == "name" && !idx.Unique {

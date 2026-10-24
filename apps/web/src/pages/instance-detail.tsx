@@ -87,6 +87,7 @@ export default function InstanceDetailPage({ tab = "detail" }: { tab?: InstanceT
         })),
         indexes: table.indexes,
         estimatedRows: table.estimatedRows,
+        sizeBytes: table.sizeBytes,
       })),
     [schema.data],
   );
@@ -338,6 +339,7 @@ export default function InstanceDetailPage({ tab = "detail" }: { tab?: InstanceT
           loading={schema.isPending}
           schema={selectedSchema}
           onSchema={updateSchema}
+          connection={instance.name}
         />
       )}
 

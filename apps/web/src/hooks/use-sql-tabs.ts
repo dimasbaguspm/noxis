@@ -13,9 +13,9 @@ function newTab(title: string, sql = DEFAULT_SQL): SqlTab {
 }
 
 // useSqlTabs keeps the SQL editor's tabs: at least one always exists, there is no upper bound, and every visit starts fresh on a single "Query 1" tab.
-export function useSqlTabs() {
+export function useSqlTabs(initialSql = DEFAULT_SQL) {
   const [state, setState] = useState(() => {
-    const first = newTab("Query 1");
+    const first = newTab("Query 1", initialSql);
     return { tabs: [first], activeId: first.id };
   });
 
