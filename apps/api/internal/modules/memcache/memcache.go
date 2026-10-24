@@ -40,15 +40,15 @@ func New() *DB { return &DB{} }
 var _ interfaces.MemcacheModule = (*DB)(nil)
 
 // Family is the namespace this module serves.
-func (r *DB) Family() string { return constants.FamilyMemcache }
+func (db *DB) Family() string { return constants.FamilyMemcache }
 
 // Supports reports whether this module serves the driver.
-func (r *DB) Supports(driver string) bool {
+func (db *DB) Supports(driver string) bool {
 	return strings.EqualFold(driver, constants.DriverRedis) || strings.EqualFold(driver, constants.DriverValkey)
 }
 
 // Ping verifies the server answers and the credentials work.
-func (r *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
+func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	_, err = withClient(ctx, c, func(ctx context.Context, cl *goredis.Client) (struct{}, error) {
@@ -66,7 +66,7 @@ func (r *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 // key's type, TTL and size in one pipeline.
 //
 // shortcut: browsing scans at most 5000 keys; add cursor paging when larger keyspaces must be searched.
-func (r *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limit int) (page entity.KeyPage, err error) {
+func (db *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limit int) (page entity.KeyPage, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if pattern == "" {
@@ -144,7 +144,7 @@ func (r *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limi
 }
 
 // Value renders one key per its type as a two-column grid, reusing the SQL console's result shape.
-func (r *DB) Value(ctx context.Context, c entity.Connection, key string) (res Result, err error) {
+func (db *DB) Value(ctx context.Context, c entity.Connection, key string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	started := time.Now()
@@ -228,7 +228,7 @@ func (r *DB) Value(ctx context.Context, c entity.Connection, key string) (res Re
 }
 
 // Delete removes keys, returning how many were actually there.
-func (r *DB) Delete(ctx context.Context, c entity.Connection, keys []string) (deleted int64, err error) {
+func (db *DB) Delete(ctx context.Context, c entity.Connection, keys []string) (deleted int64, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if len(keys) == 0 {
@@ -251,7 +251,7 @@ func (r *DB) Delete(ctx context.Context, c entity.Connection, keys []string) (de
 }
 
 // Flush empties the connected logical database only.
-func (r *DB) Flush(ctx context.Context, c entity.Connection) (err error) {
+func (db *DB) Flush(ctx context.Context, c entity.Connection) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	_, err = withClient(ctx, c, func(ctx context.Context, cl *goredis.Client) (struct{}, error) {

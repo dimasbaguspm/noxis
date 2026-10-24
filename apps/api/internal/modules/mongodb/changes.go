@@ -35,13 +35,13 @@ func NewChanges(conns interfaces.ConnectionRepository, store interfaces.ChangeRe
 }
 
 // Family is the engine family this flow serves.
-func (c *Changes) Family() string { return c.Flow.Family() }
+func (changes *Changes) Family() string { return changes.Flow.Family() }
 
 // Satisfier.
 var _ interfaces.MongoChangeFlow = (*Changes)(nil)
 
 // Submit validates a request and records it.
-func (c *Changes) Submit(ctx context.Context, conn entity.Connection, actor, notes string, req entity.MongoRequest) (out entity.Change, err error) {
+func (changes *Changes) Submit(ctx context.Context, conn entity.Connection, actor, notes string, req entity.MongoRequest) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	encoded, err := json.Marshal(req)
@@ -56,7 +56,7 @@ func (c *Changes) Submit(ctx context.Context, conn entity.Connection, actor, not
 	}
 
 	kind := entity.ChangeCheck{Target: "op kind"}
-	if !c.Engine.IsWrite(req.Op) {
+	if !changes.Engine.IsWrite(req.Op) {
 		kind.Error = fmt.Sprintf("op %q reads only: run it in Explore", req.Op)
 		ch.Status = constants.ChangeFailed
 	} else {
@@ -65,7 +65,7 @@ func (c *Changes) Submit(ctx context.Context, conn entity.Connection, actor, not
 	ch.Checks = append(ch.Checks, kind)
 
 	dry := entity.ChangeCheck{Target: "dry-run (scratch collection)"}
-	if res, err := c.Engine.ValidateRequest(ctx, conn, req); err == nil {
+	if res, err := changes.Engine.ValidateRequest(ctx, conn, req); err == nil {
 		dry.OK, dry.Detail = true, res.Message
 		ch.EstDurationMs, ch.EstAffected = res.DurationMs, res.Affected
 	} else {
@@ -78,15 +78,15 @@ func (c *Changes) Submit(ctx context.Context, conn entity.Connection, actor, not
 	} else {
 		logging.InfoWithCtx(ctx, "change validated", "change", ch.ID, "connection", ch.Connection, "kind", ch.Kind, "actor", actor)
 	}
-	return c.Record(ctx, ch)
+	return changes.Record(ctx, ch)
 }
 
 // Approve signs off a validated request.
-func (c *Changes) Approve(ctx context.Context, ch *entity.Change, actor string) (err error) {
+func (changes *Changes) Approve(ctx context.Context, ch *entity.Change, actor string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	previous := ch.Status
-	if err = c.Flow.Approve(ctx, ch, actor); err != nil {
+	if err = changes.Flow.Approve(ctx, ch, actor); err != nil {
 		return err
 	}
 	logging.InfoWithCtx(ctx, "change approved", "change", ch.ID, "connection", ch.Connection, "actor", actor, "from", previous, "to", ch.Status)
@@ -94,11 +94,11 @@ func (c *Changes) Approve(ctx context.Context, ch *entity.Change, actor string) 
 }
 
 // Reject closes a request without running it.
-func (c *Changes) Reject(ctx context.Context, ch *entity.Change, actor string) (err error) {
+func (changes *Changes) Reject(ctx context.Context, ch *entity.Change, actor string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	previous := ch.Status
-	if err = c.Flow.Reject(ctx, ch, actor); err != nil {
+	if err = changes.Flow.Reject(ctx, ch, actor); err != nil {
 		return err
 	}
 	logging.InfoWithCtx(ctx, "change rejected", "change", ch.ID, "connection", ch.Connection, "actor", actor, "from", previous, "to", ch.Status)
@@ -106,10 +106,10 @@ func (c *Changes) Reject(ctx context.Context, ch *entity.Change, actor string) (
 }
 
 // Schedule sets or clears an approved request's slot.
-func (c *Changes) Schedule(ctx context.Context, ch *entity.Change, at int64, actor string) (err error) {
+func (changes *Changes) Schedule(ctx context.Context, ch *entity.Change, at int64, actor string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	if err = c.Flow.Schedule(ctx, ch, at, actor); err != nil {
+	if err = changes.Flow.Schedule(ctx, ch, at, actor); err != nil {
 		return err
 	}
 	logging.InfoWithCtx(ctx, "change schedule updated", "change", ch.ID, "connection", ch.Connection, "actor", actor, "scheduledAt", at)
@@ -117,7 +117,7 @@ func (c *Changes) Schedule(ctx context.Context, ch *entity.Change, at int64, act
 }
 
 // Apply runs an approved request and records the outcome.
-func (c *Changes) Apply(ctx context.Context, ch *entity.Change, actor string) (out entity.Change, err error) {
+func (changes *Changes) Apply(ctx context.Context, ch *entity.Change, actor string) (out entity.Change, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	now := time.Now().Unix()
@@ -125,7 +125,7 @@ func (c *Changes) Apply(ctx context.Context, ch *entity.Change, actor string) (o
 		logging.WarnWithCtx(ctx, "change cannot be applied", "change", ch.ID, "reason", err.Error())
 		return *ch, err
 	}
-	conn, err := c.Conns.Get(ctx, ch.Connection)
+	conn, err := changes.Conns.Get(ctx, ch.Connection)
 	if err != nil {
 		return entity.Change{}, err
 	}
@@ -133,15 +133,15 @@ func (c *Changes) Apply(ctx context.Context, ch *entity.Change, actor string) (o
 	if err := json.Unmarshal([]byte(ch.Query), &req); err != nil {
 		return entity.Change{}, fmt.Errorf("stored request is unreadable: %w", err)
 	}
-	if err := c.Claim(ctx, ch, now, actor); err != nil {
+	if err := changes.Claim(ctx, ch, now, actor); err != nil {
 		return *ch, err
 	}
-	res, err := c.Engine.Apply(ctx, *conn, req)
-	c.count(ctx, c.Family(), err)
+	res, err := changes.Engine.Apply(ctx, *conn, req)
+	changes.count(ctx, changes.Family(), err)
 	if err != nil {
 		logging.ErrorWithCtx(ctx, "change failed to apply", err, "change", ch.ID, "connection", ch.Connection, "actor", actor)
 		changeflow.Failed(ch, err)
-		if saveErr := c.Save(ctx, ch); saveErr != nil {
+		if saveErr := changes.Save(ctx, ch); saveErr != nil {
 			return *ch, errors.Join(err, fmt.Errorf("save failed apply outcome for change %s: %w", ch.ID, saveErr))
 		}
 		return *ch, err
@@ -149,31 +149,31 @@ func (c *Changes) Apply(ctx context.Context, ch *entity.Change, actor string) (o
 	changeflow.Applied(ch, res, now)
 	logging.InfoWithCtx(ctx, "change applied",
 		"change", ch.ID, "connection", ch.Connection, "affected", res.Affected, "durationMs", res.DurationMs, "actor", actor)
-	if err := c.Save(ctx, ch); err != nil {
+	if err := changes.Save(ctx, ch); err != nil {
 		return entity.Change{}, err
 	}
 	return *ch, nil
 }
 
 // Tick applies every due scheduled MongoDB request.
-func (c *Changes) Tick(ctx context.Context, now int64, actor string) (out entity.TickResult, err error) {
+func (changes *Changes) Tick(ctx context.Context, now int64, actor string) (out entity.TickResult, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	return changeflow.Tick(ctx, c.Store, now, func(ch entity.Change) bool {
+	return changeflow.Tick(ctx, changes.Store, now, func(ch entity.Change) bool {
 		return ch.Kind == constants.KindMongo
 	}, func(ctx context.Context, ch *entity.Change) (entity.Change, error) {
-		return c.Apply(ctx, ch, actor)
+		return changes.Apply(ctx, ch, actor)
 	})
 }
 
 // count records the outcome of an apply.
-func (c *Changes) count(ctx context.Context, family string, err error) {
-	if c.Metrics == nil {
+func (changes *Changes) count(ctx context.Context, family string, err error) {
+	if changes.Metrics == nil {
 		return
 	}
 	if err != nil {
-		c.Metrics.ChangeFailed(ctx, family, "apply")
+		changes.Metrics.ChangeFailed(ctx, family, "apply")
 		return
 	}
-	c.Metrics.ChangeApplied(ctx, family)
+	changes.Metrics.ChangeApplied(ctx, family)
 }

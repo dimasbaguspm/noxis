@@ -73,16 +73,16 @@ func execEach(sqlText string, fn func(stmt string) error) (int, error) {
 }
 
 // Family is the namespace this module serves.
-func (u *DB) Family() string { return constants.FamilySQL }
+func (db *DB) Family() string { return constants.FamilySQL }
 
 // Supports reports whether the driver speaks SQL.
-func (u *DB) Supports(driver string) bool {
+func (db *DB) Supports(driver string) bool {
 	_, err := sqlDriver(driver)
 	return err == nil
 }
 
 // Ping verifies a connection answers.
-func (u *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
+func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	_, err = withDB(c, func(db *stdsql.DB) (struct{}, error) {
@@ -97,26 +97,26 @@ func (u *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 }
 
 // Query runs read-only statements; DML and DDL are rejected (writes belong on Alter or the change workflow).
-func (u *DB) Query(ctx context.Context, c entity.Connection, sqlText string) (Result, error) {
-	return u.verifyRun(ctx, c, sqlText, reads)
+func (db *DB) Query(ctx context.Context, c entity.Connection, sqlText string) (Result, error) {
+	return db.verifyRun(ctx, c, sqlText, reads)
 }
 
 // Alter applies writes: DML and DDL; reads are rejected.
-func (u *DB) Alter(ctx context.Context, c entity.Connection, sqlText string) (Result, error) {
-	return u.verifyRun(ctx, c, sqlText, writes)
+func (db *DB) Alter(ctx context.Context, c entity.Connection, sqlText string) (Result, error) {
+	return db.verifyRun(ctx, c, sqlText, writes)
 }
 
-func (u *DB) verifyRun(ctx context.Context, c entity.Connection, sqlText string, allowed kindSet) (res Result, err error) {
+func (db *DB) verifyRun(ctx context.Context, c entity.Connection, sqlText string, allowed kindSet) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err = verifyKind(sqlText, allowed); err != nil {
 		return Result{}, err
 	}
-	return u.run(ctx, c, sqlText)
+	return db.run(ctx, c, sqlText)
 }
 
 // run executes each statement separately (verified incrementally, no multi-statement driver quirks) and returns the last statement's outcome.
-func (u *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Result, error) {
+func (db *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Result, error) {
 	return withDB(c, func(db *stdsql.DB) (Result, error) {
 		ctx, cancel := context.WithTimeout(ctx, stmtTimeout)
 		defer cancel()
@@ -148,7 +148,7 @@ func (u *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Resu
 }
 
 // DryRun always rolls back; it refuses MySQL-family DDL because implicit commits would make the dry run destructive.
-func (u *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
+func (db *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if isMySQL(c.Driver) && containsDDL(sqlText) {
@@ -168,7 +168,7 @@ func (u *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (r
 // Apply executes write statements in a transaction and commits.
 //
 // shortcut: MySQL commits DDL implicitly, so mixed DDL/DML batches are not atomic; split them or use PostgreSQL when atomicity is required.
-func (u *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
+func (db *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err = verifyKind(sqlText, writes); err != nil {
@@ -229,7 +229,7 @@ func inTx(c entity.Connection, rollback bool, fn func(tx *stdsql.Tx) (int, error
 }
 
 // Rows previews a table's rows (bounded).
-func (u *DB) Rows(ctx context.Context, c entity.Connection, schema, table string, limit int) (res Result, err error) {
+func (db *DB) Rows(ctx context.Context, c entity.Connection, schema, table string, limit int) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if !identOK(table) || (schema != "" && !identOK(schema)) {
@@ -251,7 +251,7 @@ func (u *DB) Rows(ctx context.Context, c entity.Connection, schema, table string
 }
 
 // Tables lists user relations and their columns.
-func (u *DB) Tables(ctx context.Context, c entity.Connection) (tables []entity.Table, err error) {
+func (db *DB) Tables(ctx context.Context, c entity.Connection) (tables []entity.Table, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	return withDB(c, func(db *stdsql.DB) ([]entity.Table, error) {
@@ -260,7 +260,7 @@ func (u *DB) Tables(ctx context.Context, c entity.Connection) (tables []entity.T
 }
 
 // Analyze refreshes planner statistics (ANALYZE / ANALYZE TABLE).
-func (u *DB) Analyze(ctx context.Context, c entity.Connection, table string) (res Result, err error) {
+func (db *DB) Analyze(ctx context.Context, c entity.Connection, table string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if !identOK(table) {
@@ -270,19 +270,19 @@ func (u *DB) Analyze(ctx context.Context, c entity.Connection, table string) (re
 	if isMySQL(c.Driver) {
 		stmt = "ANALYZE TABLE " + table
 	}
-	return u.run(ctx, c, stmt)
+	return db.run(ctx, c, stmt)
 }
 
 // Referenced reports the tables and columns a batch mentions, so the change record can list what it touches.
-func (u *DB) Referenced(sqlText string) (tables []string, columns []string) {
+func (db *DB) Referenced(sqlText string) (tables []string, columns []string) {
 	return Referenced(sqlText)
 }
 
 // VerifyWrite exposes the write guard (a change's query must be a write).
-func (u *DB) VerifyWrite(sqlText string) error { return verifyKind(sqlText, writes) }
+func (db *DB) VerifyWrite(sqlText string) error { return verifyKind(sqlText, writes) }
 
 // Kind classifies a batch as dml, ddl, or read (mixed batches report ddl when any DDL appears — that is the stricter review).
-func (u *DB) Kind(sqlText string) string {
+func (db *DB) Kind(sqlText string) string {
 	kind := constants.KindDML
 	for _, stmt := range splitStatements(sqlText) {
 		k := firstKeyword(stmt)

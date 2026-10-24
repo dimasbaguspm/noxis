@@ -44,18 +44,18 @@ func New() *DB { return &DB{} }
 var _ interfaces.MongoModule = (*DB)(nil)
 
 // Family is the namespace this module serves.
-func (m *DB) Family() string { return constants.FamilyMongo }
+func (db *DB) Family() string { return constants.FamilyMongo }
 
 // IsWrite reports whether an op mutates documents.
-func (m *DB) IsWrite(op string) bool { return IsWrite(op) }
+func (db *DB) IsWrite(op string) bool { return IsWrite(op) }
 
 // Supports reports whether this module serves the driver.
-func (m *DB) Supports(driver string) bool {
+func (db *DB) Supports(driver string) bool {
 	return strings.EqualFold(driver, constants.DriverMongo) || strings.EqualFold(driver, "mongodb")
 }
 
 // Ping verifies the server answers and the credentials work.
-func (m *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
+func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	return withClient(ctx, c, func(ctx context.Context, cl *mongo.Client) error {
@@ -69,7 +69,7 @@ func (m *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 }
 
 // Databases lists the databases with their sizes.
-func (m *DB) Databases(ctx context.Context, c entity.Connection) (out []entity.Database, err error) {
+func (db *DB) Databases(ctx context.Context, c entity.Connection) (out []entity.Database, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	err = withClient(ctx, c, func(ctx context.Context, cl *mongo.Client) error {
@@ -101,7 +101,7 @@ func (m *DB) Databases(ctx context.Context, c entity.Connection) (out []entity.D
 }
 
 // Collections lists a database's collections with their sizes.
-func (m *DB) Collections(ctx context.Context, c entity.Connection, database string) (out []entity.Collection, err error) {
+func (db *DB) Collections(ctx context.Context, c entity.Connection, database string) (out []entity.Collection, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if database == "" {
@@ -157,17 +157,17 @@ func IsWrite(op string) bool {
 }
 
 // Run executes one read request.
-func (m *DB) Run(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
+func (db *DB) Run(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if IsWrite(req.Op) {
 		return entity.Result{}, fmt.Errorf("op %q changes documents: submit it as a request for review", req.Op)
 	}
-	return m.run(ctx, c, req)
+	return db.run(ctx, c, req)
 }
 
 // ValidateRequest copies matching documents to a scratch collection, applies the write, then drops it; shortcut: this is not a transaction, so use transactions on replica sets.
-func (m *DB) ValidateRequest(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
+func (db *DB) ValidateRequest(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := validateRequest(req); err != nil {
@@ -196,13 +196,13 @@ func (m *DB) ValidateRequest(ctx context.Context, c entity.Connection, req entit
 }
 
 // Apply runs a write for real, after review.
-func (m *DB) Apply(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
+func (db *DB) Apply(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := validateRequest(req); err != nil {
 		return entity.Result{}, err
 	}
-	return m.run(ctx, c, req)
+	return db.run(ctx, c, req)
 }
 
 // applyOn stages matching documents in target and applies the write there for both dry-run and real apply.
@@ -301,7 +301,7 @@ func randSuffix() string {
 }
 
 // run executes a request against the real collection.
-func (m *DB) run(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
+func (db *DB) run(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	started := time.Now()
