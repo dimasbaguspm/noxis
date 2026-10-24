@@ -4,8 +4,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"noxis/internal/common"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
 )
 
@@ -24,8 +26,9 @@ type Keys struct{ usecases.RegistryDeps }
 func (uc Keys) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	mc, err := uc.Modules.EngineMemcache(r.PathValue("engine"))
-	if err != nil {
+	ctx = common.WithModuleFamily(ctx, r.PathValue("engine"))
+	var mc interfaces.MemcacheModule
+	if err := common.LoadModule(ctx, &mc); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
