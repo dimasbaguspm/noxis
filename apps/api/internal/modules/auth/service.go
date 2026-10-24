@@ -64,20 +64,38 @@ func (s *Service) Verify(ctx context.Context, rawToken string) (identity entity.
 	if err != nil {
 		return entity.Identity{}, err
 	}
-	if u, err := s.users.GetUserByEmail(ctx, id.Email); err == nil && id.EmailVerified {
-		if !u.Active() {
-			return entity.Identity{}, constants.ErrForbidden
+	if id.EmailVerified && id.Email != "" {
+		u, err := s.users.GetUserByEmail(ctx, id.Email)
+		if err == nil {
+			if !u.Active() {
+				return entity.Identity{}, constants.ErrForbidden
+			}
+			blended := u.Identity()
+			blended.Name = firstNonEmpty(id.Name, blended.Name)
+			blended.Email = firstNonEmpty(u.Email, id.Email)
+			blended.EmailVerified = true
+			return blended, nil
 		}
-		blended := u.Identity()
-		blended.Name = firstNonEmpty(id.Name, blended.Name)
-		blended.Email = firstNonEmpty(u.Email, id.Email)
-		blended.EmailVerified = true
-		return blended, nil
+		if !errors.Is(err, constants.ErrNotFound) {
+			return entity.Identity{}, err
+		}
 	}
 	if err := s.users.EnsureSubject(ctx, id.Subject, id.Email); err != nil {
 		return entity.Identity{}, err
 	}
-	return id, nil
+	u, err := s.users.GetUser(ctx, id.Subject)
+	if err != nil {
+		return entity.Identity{}, err
+	}
+	if !u.Active() {
+		return entity.Identity{}, constants.ErrForbidden
+	}
+	identity = u.Identity()
+	identity.Name = firstNonEmpty(id.Name, identity.Name)
+	identity.Email = firstNonEmpty(identity.Email, id.Email)
+	identity.Groups = id.Groups
+	identity.EmailVerified = id.EmailVerified
+	return identity, nil
 }
 
 // EnsureRoot creates or promotes the env super admin, demotes other supers, and fails closed without a valid email or a new root password.
