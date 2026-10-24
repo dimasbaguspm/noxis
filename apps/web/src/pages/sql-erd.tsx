@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Database, Network, Search } from "lucide-react";
+import { Network, Search } from "lucide-react";
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { ErdCanvas, type ErdTable } from "@/components/sql/erd-canvas";
-import { ResultTable } from "@/components/sql/result-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +14,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/app/auth-provider";
-import { useErdQuery, useTableRowsQuery } from "@/hooks/use-sql";
+import { useErdQuery } from "@/hooks/use-sql";
 import { useConnections } from "@/hooks/use-connections";
 import { FAMILY } from "@/lib/families";
 import { compact } from "@/lib/format";
@@ -30,7 +29,9 @@ export default function SqlErdPage() {
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string>();
 
-  const connection = params.get("connection") ?? active ?? connections[0]?.name;
+  const wanted = params.get("instance") ?? params.get("connection");
+  const picked = connections.find((c) => c.id === wanted || c.name === wanted);
+  const connection = picked?.name ?? active ?? connections[0]?.name;
   const erd = useErdQuery(connection);
 
   const tables = useMemo<ErdTable[]>(
@@ -73,16 +74,20 @@ export default function SqlErdPage() {
   }, [connection]);
 
   useEffect(() => {
-    if (!connection || params.get("connection") === connection) return;
+    const id = connections.find((c) => c.name === connection)?.id;
+    if (!id || params.get("instance") === id) return;
     const next = new URLSearchParams(params);
-    next.set("connection", connection);
+    next.delete("connection");
+    next.set("instance", id);
     setParams(next, { replace: true });
-  }, [connection, params, setParams]);
+  }, [connection, connections, params, setParams]);
 
   function pick(name: string) {
     setActive(name);
     const next = new URLSearchParams(params);
-    next.set("connection", name);
+    next.delete("connection");
+    const id = connections.find((c) => c.name === name)?.id;
+    if (id) next.set("instance", id);
     setParams(next, { replace: true });
   }
 
@@ -105,7 +110,7 @@ export default function SqlErdPage() {
   return (
     <div className="flex h-full flex-col">
       <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-        <ResizablePanel defaultSize={26} minSize={18}>
+        <ResizablePanel defaultSize={20} minSize={16}>
           <Card className="mr-2 flex h-full min-h-0 flex-col">
             <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
               <div className="grid gap-1.5">
@@ -216,7 +221,6 @@ export default function SqlErdPage() {
 }
 
 function TableDetails({ table, tables, connection }: { table: ErdTable; tables: ErdTable[]; connection?: string }) {
-  const rows = useTableRowsQuery(connection, table.schema, table.name);
   const incoming = tables.flatMap((t) =>
     t.columns
       .filter((col) => col.references?.table === table.name)
@@ -298,23 +302,6 @@ function TableDetails({ table, tables, connection }: { table: ErdTable; tables: 
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">No table references this one.</p>
-        )}
-      </section>
-
-      <section>
-        <h3 className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase">
-          <Database className="size-3.5" /> Preview (100 rows)
-        </h3>
-        {rows.isPending ? (
-          <p className="text-xs text-muted-foreground">Loading rows…</p>
-        ) : rows.error ? (
-          <p className="text-xs text-destructive">
-            {rows.error instanceof Error ? rows.error.message : "the rows could not load"}
-          </p>
-        ) : (
-          <div className="h-64">
-            <ResultTable result={rows.data ?? null} title={`${table.schema}.${table.name}`} />
-          </div>
         )}
       </section>
 

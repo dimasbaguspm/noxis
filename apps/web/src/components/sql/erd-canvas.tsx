@@ -14,6 +14,7 @@ import {
   type Edge,
   type Node,
   type NodeProps,
+  useNodesState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Maximize2, RotateCcw } from "lucide-react";
@@ -152,6 +153,8 @@ function layoutTables(tables: ErdTable[]) {
       id: table.id,
       type: "table",
       position: { x: (point?.x ?? 0) - NODE_WIDTH / 2, y: (point?.y ?? 0) - tableHeight(table) / 2 },
+      width: NODE_WIDTH,
+      height: tableHeight(table),
       data: { table, dimmed: false },
     };
   });
@@ -197,10 +200,17 @@ export function ErdCanvas({
   onSelect: (id: string) => void;
 }) {
   const graph = useMemo(() => layoutTables(tables), [tables]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node<TableNodeData>>([]);
   const needle = query.trim().toLowerCase();
-  const nodes = useMemo(
+
+  // A new schema replaces the layout, but selection and filtering must not undo a drag.
+  useEffect(() => {
+    setNodes(graph.nodes);
+  }, [graph.nodes, setNodes]);
+
+  const viewNodes = useMemo(
     () =>
-      graph.nodes.map((node) => ({
+      nodes.map((node) => ({
         ...node,
         selected: node.id === selectedId,
         data: {
@@ -208,14 +218,16 @@ export function ErdCanvas({
           dimmed: needle.length > 0 && !`${node.data.table.schema}.${node.data.table.name}`.toLowerCase().includes(needle),
         },
       })),
-    [graph.nodes, selectedId, needle],
+    [nodes, selectedId, needle],
   );
 
   return (
     <ReactFlow
-      nodes={nodes}
+      nodes={viewNodes}
       edges={graph.edges}
       nodeTypes={nodeTypes}
+      onNodesChange={onNodesChange}
+      colorMode="dark"
       fitView
       fitViewOptions={{ padding: 0.2 }}
       minZoom={0.1}
@@ -226,9 +238,19 @@ export function ErdCanvas({
     >
       <Background variant={BackgroundVariant.Dots} gap={18} size={1} />
       <Controls showInteractive={false} />
-      <MiniMap pannable zoomable nodeColor="var(--muted-foreground)" maskColor="var(--background)" />
+      <MiniMap pannable zoomable nodeColor="#94a3b8" maskColor="rgba(2, 6, 23, 0.72)" />
       <GraphActions />
       <FocusSelection id={selectedId} />
+      <FitOnLoad count={nodes.length} />
     </ReactFlow>
   );
+}
+
+// FitOnLoad waits for measured nodes, which the initial fitView cannot do while the schema is still loading.
+function FitOnLoad({ count }: { count: number }) {
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    if (count > 0) void fitView({ duration: 200, padding: 0.2 });
+  }, [count, fitView]);
+  return null;
 }
