@@ -23,10 +23,7 @@ const MEMBER_TYPES = [
   { value: "user", label: "User" },
 ] as const;
 
-// InstancePermissions is one instance's access policy: everyone who can reach
-// it, at what level and until when. A global admin and the instance's own admin
-// grant and revoke; levels come from the backend catalog, and the grant-form
-// choices live in the URL.
+// InstancePermissions is one instance's access policy: everyone who can reach it, at what level and until when.
 export function InstancePermissions({
   instance,
 }: {

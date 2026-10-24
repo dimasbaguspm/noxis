@@ -19,13 +19,11 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
 
-// One row per instance, whichever family it belongs to: the table shows only
-// what they have in common, and the detail page carries the rest.
+// One row per instance, whichever family it belongs to: the table shows only what they have in common, and the detail page carries the rest.
 const PER_PAGE = 20;
 const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 
-// DashboardPage filters through the instances API and pages the result, so the
-// server stays the source of truth for what the caller may see.
+// DashboardPage filters through the instances API and pages the result, so the server stays the source of truth for what the caller may see.
 export default function DashboardPage() {
   const { isSuper } = useAuth();
   const { data: drivers = [] } = useDriversQuery();

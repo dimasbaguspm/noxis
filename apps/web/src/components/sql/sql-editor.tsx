@@ -14,8 +14,7 @@ export interface SqlEditorProps {
   onRun?: () => void;
 }
 
-// SqlEditor is the console's SQL input: monaco (lazy-loaded, schema-aware
-// completion) with a plain textarea as the loading fallback.
+// SqlEditor is the console's SQL input: monaco (lazy-loaded, schema-aware completion) with a plain textarea as the loading fallback.
 export function SqlEditor({
   value,
   onChange,

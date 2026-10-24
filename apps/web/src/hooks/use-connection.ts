@@ -2,9 +2,7 @@ import { useState } from "react";
 import { useConnections } from "@/hooks/use-connections";
 import { FAMILY } from "@/lib/families";
 
-// useConnectionSelection gives a page its own instance choice, seeded from
-// the shared active connection (the last one anyone picked) or an explicit
-// seed. The list comes from the cached instances query.
+// useConnectionSelection gives a page its own instance choice, seeded from the shared active connection (the last one anyone picked) or an explicit seed.
 export function useConnectionSelection(seed?: string) {
   const { connections, active, setActive, busy } = useConnections(FAMILY.SQL);
   const [selected, setSelected] = useState<string | undefined>(seed);

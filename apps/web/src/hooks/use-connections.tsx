@@ -3,9 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { usePagedInstancesQuery } from "@/hooks/use-instances";
 import { FAMILIES, type FamilyKey } from "@/lib/families";
 
-// ActiveProvider remembers the per-family connection choice in memory only; it
-// holds no data. The lists themselves come from the cached instances query, so
-// saving or removing a connection only invalidates that cache.
+// ActiveProvider remembers the per-family connection choice in memory only; it holds no data.
 
 const DEFAULT_ACTIVE = FAMILIES.reduce(
   (acc, f) => ({ ...acc, [f.key]: undefined }),
@@ -34,8 +32,7 @@ export function useSetActiveConnection() {
   return ctx.setActive;
 }
 
-// useConnections gives a family its connections with the shared active choice
-// bound. Definitions live in the instances query; nothing fetches here.
+// useConnections gives a family its connections with the shared active choice bound.
 export function useConnections(family: FamilyKey) {
   const ctx = useContext(ActiveContext);
   if (!ctx) throw new Error("useConnections must be used inside ActiveProvider");

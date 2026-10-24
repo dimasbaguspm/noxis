@@ -34,8 +34,7 @@ export function useUserQuery(subject: string) {
   });
 }
 
-// useUpdateUser owns the status/role mutation and its cache invalidation, so the
-// pages stay rendering surfaces.
+// useUpdateUser owns the status/role mutation and its cache invalidation, so the pages stay rendering surfaces.
 export function useUpdateUser(subject: string) {
   const queryClient = useQueryClient();
   return useMutation({

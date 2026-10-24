@@ -20,8 +20,7 @@ const STATUS_VARIANT: Record<
   rejected: "outline",
 };
 
-// ChangeTable lists changes for triage. Actions live on the detail page, so
-// the only thing here is "review" — the list stays a queue, not a workbench.
+// ChangeTable lists changes for triage. Actions live on the detail page, so the only thing here is "review" — the list stays a queue, not a workbench.
 export function ChangeTable({ changes, emptyHint }: { changes: Change[]; emptyHint: string }) {
   if (changes.length === 0) {
     return <P size="sm">{emptyHint}</P>;

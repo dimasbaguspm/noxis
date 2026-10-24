@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { handleCallback, initAuth, loadAuthConfig } from "@/lib/auth";
 
-// AuthCallbackPage finishes the PKCE exchange, then reloads so the AppProvider
-// bootstraps with the stored user. It builds the OIDC manager itself: child
-// effects run before AppProvider's, so the exchange cannot wait for it.
+// AuthCallbackPage finishes the PKCE exchange, then reloads so the AppProvider bootstraps with the stored user.
 export default function AuthCallbackPage() {
   const started = useRef(false);
   const [failed, setFailed] = useState(false);

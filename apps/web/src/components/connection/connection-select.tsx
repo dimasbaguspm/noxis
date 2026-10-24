@@ -3,8 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useConnections } from "@/hooks/use-connections";
 import { FAMILY } from "@/lib/families";
 
-// ConnectionSelect is the page-local instance picker: pages own their choice
-// (the provider only remembers it as the default for the next page).
+// ConnectionSelect is the page-local instance picker: pages own their choice (the provider only remembers it as the default for the next page).
 export function ConnectionSelect({
   value,
   onChange,

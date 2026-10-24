@@ -8,9 +8,7 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-// One registry for the whole navigation: the sidebar, the header menu and the
-// breadcrumbs all read it. The engine families come from lib/families, so a
-// page only has to be added there once.
+// NAV is the shared source for sidebar, page search, and breadcrumbs.
 export const NAV: NavGroup[] = [
   {
     items: [{ to: "/", label: "Instances", icon: LayoutDashboard, end: true }],

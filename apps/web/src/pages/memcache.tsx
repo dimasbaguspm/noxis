@@ -37,8 +37,7 @@ import { P } from "@/components/ui/typography";
 
 type SortKey = "name" | "type" | "ttl" | "size";
 
-// The wire type marks every field optional; the browser works with a
-// normalized row so sorting and selection stay simple.
+// The wire type marks every field optional; the browser works with a normalized row so sorting and selection stay simple.
 interface Row {
   name: string;
   type: string;
@@ -46,10 +45,7 @@ interface Row {
   size: number;
 }
 
-// MemcachePage browses a live memory-cache server: keys with their type and
-// TTL, the value of a key in a dialog, removal of the selected keys, and
-// emptying the database behind a typed confirmation. New instances are
-// registered from the dashboard, the single entry point.
+// MemcachePage browses keys, inspects values, removes selections, and confirms database flushes by name.
 export default function MemcachePage() {
   const { isInstanceAdmin } = useAuth();
   const { connections, connection, pick } = useMemcacheConnections();

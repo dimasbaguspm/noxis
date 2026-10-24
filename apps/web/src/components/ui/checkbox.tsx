@@ -3,8 +3,7 @@ import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
 import { CheckIcon } from "lucide-react";
 import { cn } from "cn";
 
-// Checkbox is the console's single native checkbox: list selection rows and
-// the "many" toggle use it so the form control matches the design system.
+// Checkbox is the console's single native checkbox: list selection rows and the "many" toggle use it so the form control matches the design system.
 function Checkbox({ className, ...props }: CheckboxPrimitive.Root.Props) {
   return (
     <CheckboxPrimitive.Root

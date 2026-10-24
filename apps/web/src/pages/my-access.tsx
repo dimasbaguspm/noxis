@@ -10,9 +10,7 @@ import { useLevelsQuery } from "@/hooks/use-config";
 import { formatDateTime, grantExpiry } from "@/lib/dates";
 import { H1, P } from "@/components/ui/typography";
 
-// MyAccessPage lists the grants the caller holds (and when they lapse), the
-// requests they filed, and the way to ask for more. The status filter is in the
-// URL so a filtered view can be shared.
+// MyAccessPage lists the grants the caller holds (and when they lapse), the requests they filed, and the way to ask for more.
 export default function MyAccessPage() {
   const { identity } = useAuth();
   const { status, setStatus } = useMyAccessUrlParams();

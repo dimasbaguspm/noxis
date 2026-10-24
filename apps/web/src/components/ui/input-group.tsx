@@ -5,9 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-// InputGroup is one bordered control that holds an input plus decorations: an
-// icon, unit text, or a small button (paste, copy, reveal, clear). The border
-// and focus ring live on the group, so the input inside is bare.
+// InputGroup wraps an input and decorations under one border and focus ring.
 
 export function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (

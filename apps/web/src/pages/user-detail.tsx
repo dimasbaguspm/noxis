@@ -15,9 +15,7 @@ import { formatDateTime, grantExpiry } from "@/lib/dates";
 import { H1, P } from "@/components/ui/typography";
 import type { UserRole } from "@/lib/api";
 
-// UserDetailPage is an admin view of one account: identity, role and status,
-// the access it holds directly or through a group, and the activity trail. Only
-// the super admin may change the role; an admin may only ban members.
+// UserDetailPage shows account, grants, and activity; only super changes global roles, admins may ban members.
 export default function UserDetailPage() {
   const { subject = "" } = useParams();
   const { isAdmin, canBan, canSetRole } = useAuth();

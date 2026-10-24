@@ -1,8 +1,6 @@
 import { QueryClient } from "@tanstack/react-query";
 
-// The app-wide QueryClient: data lives in cache keys ("query key factory",
-// invalidation is centralized there), window refocus does not refetch, and
-// mutations trigger their own invalidations.
+// The shared QueryClient centralizes keys and invalidation; window refocus does not refetch.
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -13,8 +11,7 @@ export const queryClient = new QueryClient({
   },
 });
 
-// queryKeys centralizes every cache key so invalidations never drift from the
-// reads. Add a key here, never string-compare keys by hand.
+// queryKeys centralizes every cache key so invalidations never drift from the reads.
 export const queryKeys = {
   me: ["me"] as const,
   config: {

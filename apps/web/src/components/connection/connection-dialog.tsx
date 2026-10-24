@@ -27,9 +27,7 @@ import { FAMILY, type FamilyKey } from "@/lib/families";
 import { api, type Connection } from "@/lib/api";
 import { parseDsn } from "@/lib/dsn";
 
-// connectionSchema is the client-side contract for the registration form;
-// the server still enforces driver specifics on probe. A file driver (sqlite)
-// needs only its path; a networked driver needs host, port and user.
+// connectionSchema validates shared fields; the server probe enforces driver-specific host or file-path requirements.
 const FILE_DRIVERS = new Set(["sqlite"]);
 const isFileDriver = (driver?: string) => FILE_DRIVERS.has(driver ?? "");
 
@@ -87,11 +85,7 @@ const DRIVER_PORT: Record<string, number> = {
 
 const defaultPort = (driver: string) => (isFileDriver(driver) ? 0 : (DRIVER_PORT[driver] ?? 5432));
 
-// ConnectionDialog registers an instance. Nothing is kept unless it answers:
-// the probe runs first, and a failed probe removes the registry entry it just
-// wrote. With `wizard` it starts one step earlier, on the family choice, so
-// the console has a single "new connection" entry point. react-hook-form owns
-// the instance fields; the driver select writes the driver and its port.
+// ConnectionDialog keeps an instance only after its connection probe succeeds.
 export function ConnectionDialog({
   trigger = "New connection",
   initial,
@@ -107,8 +101,7 @@ export function ConnectionDialog({
   const { data: drivers = [] } = useDriversQuery();
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ConnectionForm>({
     defaultValues: (initial ?? BLANK[family]) as unknown as ConnectionForm,
-    // z.coerce makes the schema's input type differ from its output type;
-    // the resolver is cast so the form values are the coerced shape.
+    // Cast the resolver because z.coerce gives form inputs and parsed output different types.
     resolver: zodResolver(connectionSchema) as unknown as Resolver<ConnectionForm>,
   });
   const [open, setOpen] = useState(false);
@@ -131,8 +124,7 @@ export function ConnectionDialog({
     }
   }
 
-  // closing never keeps a half-filled form: the next visit starts over at the
-  // kind choice with pristine values for the dialog's own family
+  // Closing resets the form so the next visit starts with a clean family-specific draft.
   function onOpenChange(next: boolean) {
     setOpen(next);
     if (!next) {
@@ -161,8 +153,7 @@ export function ConnectionDialog({
     };
   };
 
-  // Saving writes a connection; the instances query already caches the list,
-  // so invalidating it is all a refresh takes.
+  // refresh invalidates the cached instance list after a connection write.
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["instances"] });
   }
@@ -174,8 +165,7 @@ export function ConnectionDialog({
     setStep(2);
   }
 
-  // applyDsn fills the form from a pasted connection string, switching the
-  // dialog's family when the string belongs to another one.
+  // applyDsn fills fields from a pasted DSN and switches to its driver family.
   function applyDsn() {
     if (!dsn.trim()) return;
     const parsed = parseDsn(dsn);

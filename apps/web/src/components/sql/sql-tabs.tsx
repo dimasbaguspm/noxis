@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SqlTab } from "@/hooks/use-sql-tabs";
 
-// SqlTabs is the editor's tab strip: horizontally scrollable, one tab minimum,
-// no maximum. The ✕ is hidden for the last remaining tab.
+// SqlTabs is the editor's tab strip: horizontally scrollable, one tab minimum, no maximum.
 export function SqlTabs({
   tabs,
   activeId,

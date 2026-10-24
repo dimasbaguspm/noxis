@@ -32,8 +32,7 @@ function isItemActive(pathname: string, url: string): boolean {
   return pathname === url || pathname.startsWith(`${url}/`);
 }
 
-// SiteTitle is the static brand: icon tile, product name and version. No
-// switcher — the console has one identity, whatever engine family you open.
+// SiteTitle is the static brand: icon tile, product name and version.
 function SiteTitle() {
   return (
     <SidebarHeader>
@@ -50,8 +49,7 @@ function SiteTitle() {
   );
 }
 
-// InstancesMenu is a plain link to the instance list; the fleet is big enough
-// that an expanding submenu only adds a level nobody asks for.
+// InstancesMenu is a plain link to the instance list; the fleet is big enough that an expanding submenu only adds a level nobody asks for.
 function InstancesMenu({ pathname }: { pathname: string }) {
   const active = pathname === "/" || pathname.startsWith("/instances/");
   return (
@@ -64,9 +62,7 @@ function InstancesMenu({ pathname }: { pathname: string }) {
   );
 }
 
-// FamilyMenu is the dashboard-01 nav-main item: an icon + label button that
-// expands its sub-menu. While the rail is collapsed a click would only reveal
-// hidden children, so it expands the sidebar first.
+// FamilyMenu expands the sidebar first when a collapsed rail hides its children.
 function FamilyMenu({ family, pathname }: { family: Family; pathname: string }) {
   const active = family.nav.some((item) => isItemActive(pathname, item.to));
   const [open, setOpen] = useState(active);
@@ -104,10 +100,7 @@ function FamilyMenu({ family, pathname }: { family: Family; pathname: string }) 
   );
 }
 
-// AppSidebar renders the dashboard-01 structure: static site title on top, one
-// labelled group of items — the Instances submenu first, then each engine
-// family expanding into its sub-menus — and a rail. On desktop it collapses to
-// an icon rail; below the mobile breakpoint it becomes the overlay sheet.
+// AppSidebar renders the static title and grouped instance/engine navigation.
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
   const { isAdmin } = useAuth();

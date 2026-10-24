@@ -1,9 +1,6 @@
 import { UserManager, WebStorageStateStore, type User } from "oidc-client-ts";
 
-// The console authenticates two ways, both bearer-token based:
-// - local accounts: email + password -> an opaque session token;
-// - OIDC: Authorization Code + PKCE against the issuer, when configured.
-// The server exposes which methods are available at /external/v1/auth/config.
+// Local accounts and OIDC Authorization Code + PKCE both produce bearer tokens.
 
 export interface AuthConfig {
   local?: boolean;
@@ -52,8 +49,7 @@ export function initAuth(config: AuthConfig): void {
   });
 }
 
-// authEnabled reports whether a login is required at all (always true today; the
-// server has no open mode).
+// authEnabled reports whether a login is required at all (always true today; the server has no open mode).
 export function authEnabled(): boolean {
   return authRequired;
 }
@@ -70,8 +66,7 @@ export async function currentUser(): Promise<User | null> {
   return manager ? manager.getUser() : null;
 }
 
-// accessToken returns the local session token when present, else a live OIDC
-// token (silently refreshing through the manager).
+// accessToken returns the local session token when present, else a live OIDC token (silently refreshing through the manager).
 export async function accessToken(): Promise<string | null> {
   const local = localToken();
   if (local) return local;
@@ -81,16 +76,13 @@ export async function accessToken(): Promise<string | null> {
   return user.access_token;
 }
 
-// clearSession drops the stored credentials after the server rejects them.
-// Without this a stale token 401s on every load and the console bounces between
-// /login and the identity fetch forever.
+// clearSession drops stale credentials to stop repeated 401 redirects between login and /me.
 export async function clearSession(): Promise<void> {
   setLocalToken(null);
   if (manager) await manager.removeUser();
 }
 
-// localLogin exchanges the account's email + password for a session token. The
-// env super admin signs in this way; everyone else usually comes from OIDC.
+// localLogin exchanges the account's email + password for a session token.
 export async function localLogin(email: string, password: string): Promise<void> {
   const res = await fetch("/external/v1/auth/login", {
     method: "POST",

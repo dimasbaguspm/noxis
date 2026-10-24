@@ -26,8 +26,7 @@ export function useToApproveQuery(enabled = true) {
   });
 }
 
-// useDecideRequest approves or rejects a request and owns the invalidation, so
-// the inbox stays a rendering surface.
+// useDecideRequest approves or rejects a request and owns the invalidation, so the inbox stays a rendering surface.
 export function useDecideRequest() {
   const queryClient = useQueryClient();
   return useMutation({

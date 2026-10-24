@@ -1,5 +1,4 @@
-// Pure statement classification, for UI hints only — the server is the
-// authority (it guards and records the change kind).
+// Pure statement classification, for UI hints only — the server is the authority (it guards and records the change kind).
 
 export type StatementKind = "read" | "dml" | "ddl" | "empty";
 
@@ -30,8 +29,7 @@ export function isReadOnly(sql: string): boolean {
   return classify(sql) === "read";
 }
 
-// statementCount reports how many statements a batch holds; the batch upload
-// keeps "one file = one statement" honest with it.
+// statementCount reports how many statements a batch holds; the batch upload keeps "one file = one statement" honest with it.
 export function statementCount(sql: string): number {
   return statements(sql).length;
 }

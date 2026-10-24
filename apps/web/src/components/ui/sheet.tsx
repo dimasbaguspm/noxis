@@ -5,9 +5,7 @@ import { cn } from "cn"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
-// Sheet is the console's roomy form container: the base-ui dialog primitive
-// presented as a right-side panel, so multi-field forms get full height and
-// width instead of a centered modal.
+// Sheet presents multi-field forms as a full-height right panel.
 
 function Sheet({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="sheet" {...props} />

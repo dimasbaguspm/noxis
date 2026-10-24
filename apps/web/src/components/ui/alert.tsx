@@ -2,8 +2,7 @@ import type { ComponentType, ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, Clock, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Alert is a tinted notice for a notable state: approved, scheduled, failed,
-// and so on. It replaces a bare status badge where a sentence adds meaning.
+// Alert is a tinted notice for a notable state: approved, scheduled, failed, and so on.
 type Variant = "default" | "info" | "success" | "warning" | "destructive";
 
 const ICONS: Record<Variant, ComponentType<{ className?: string }>> = {

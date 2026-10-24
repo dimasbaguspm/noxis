@@ -1,9 +1,7 @@
 import * as monaco from "monaco-editor/editor/editor.api.js";
 import editorWorker from "monaco-editor/editor/editor.worker.js?worker";
 
-// Editor features, curated: editor.api alone ships no UI features (no suggest
-// widget), while editor.main drags in all ~90 language definitions. These are
-// the contributions a SQL editor actually uses.
+// Editor features, curated: editor.api alone ships no UI features (no suggest widget), while editor.main drags in all ~90 language definitions.
 import "monaco-editor/editor/browser/coreCommands.js";
 import "monaco-editor/editor/contrib/bracketMatching/browser/bracketMatching.js";
 import "monaco-editor/editor/contrib/clipboard/browser/clipboard.js";
@@ -23,9 +21,7 @@ import "monaco-editor/editor/contrib/wordHighlighter/browser/wordHighlighter.js"
 import "monaco-editor/editor/contrib/wordOperations/browser/wordOperations.js";
 import "monaco-editor/editor/contrib/wordPartOperations/browser/wordPartOperations.js";
 
-// The languages the console edits: the SQL dialects, plus a small JSON
-// grammar for MongoDB documents (monaco ships no basic JSON tokenizer; its
-// JSON language service would drag in a worker for validation we do not need).
+// The editor uses SQL dialects and a small MongoDB JSON grammar without loading the validation worker.
 import "monaco-editor/languages/definitions/sql/register.js";
 import "monaco-editor/languages/definitions/pgsql/register.js";
 import "monaco-editor/languages/definitions/mysql/register.js";

@@ -39,8 +39,7 @@ export default function QueryPage() {
   const kind = classify(sql);
   const result = analyzed ?? readResult ?? null;
 
-  // No SQL connection to query: explain it and offer the way in, instead of
-  // rendering empty panes.
+  // No SQL connection to query: explain it and offer the way in, instead of rendering empty panes.
   if (connections.length === 0) {
     return (
       <Card className="mx-auto mt-8 max-w-lg">

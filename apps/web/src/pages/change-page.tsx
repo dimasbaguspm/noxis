@@ -18,8 +18,7 @@ const PER_PAGE = 20;
 const STATUS_OPTIONS = ["unverified", "validated", "approved", "applying", "applied", "failed", "rejected"];
 const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 
-// ChangePage is the shared DML/DDL queue: raise inline, filter by instance,
-// review the paginated single list.
+// ChangePage is the shared DML/DDL queue: raise inline, filter by instance, review the paginated single list.
 export function ChangePage({ kind }: { kind: ChangeKind }) {
   const { canAccess } = useAuth();
   const { connections: sqlConnections } = useConnections(FAMILY.SQL);
@@ -34,8 +33,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
   const { changes = [], total = 0, isPending } = useChangeListQuery(kind);
   const submit = useSubmitChangeMutation();
   const label = kind.toUpperCase();
-  // raising a change needs a write permission on some SQL instance; the form still
-  // lets the server refuse a specific connection
+  // raising a change needs a write permission on some SQL instance; the form still lets the server refuse a specific connection
   const mayRaise = sqlConnections.some((c) => canAccess(c.name, "write"));
 
   return (

@@ -15,9 +15,7 @@ const passwordSchema = z.object({
 });
 type PasswordForm = z.infer<typeof passwordSchema>;
 
-// AccountActions is the signed-in account panel: change password (local
-// accounts only) and sign out. Changing the password rotates the session, so
-// the page hands back to the login form.
+// AccountActions is the signed-in account panel: change password (local accounts only) and sign out.
 export function AccountActions() {
   const { signout, localEnabled } = useAuth();
   const [error, setError] = useState<string | null>(null);

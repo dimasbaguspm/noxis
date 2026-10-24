@@ -3,8 +3,7 @@ import Editor, { loader, type OnMount } from "@monaco-editor/react";
 import type * as MonacoNS from "monaco-editor";
 import monaco, { MONGO_LANGUAGE } from "@/lib/monaco";
 import type { Table } from "@/lib/api";
-// This module is loaded lazily (see sql-editor.tsx / json-editor.tsx) so
-// monaco — a few MB of editor and grammars — never lands in the entry bundle.
+// This module is loaded lazily (see sql-editor.tsx / json-editor.tsx) so monaco — a few MB of editor and grammars — never lands in the entry bundle.
 loader.config({ monaco });
 
 export interface MonacoEditorProps {
@@ -21,8 +20,7 @@ export interface MonacoEditorProps {
   onRun?: () => void;
 }
 
-// MongoDB query and update operators: the vocabulary a filter or value
-// document is written in.
+// MongoDB query and update operators: the vocabulary a filter or value document is written in.
 const MONGO_OPERATORS = [
   "$eq", "$ne", "$gt", "$gte", "$lt", "$lte", "$in", "$nin", "$exists", "$type", "$regex", "$all",
   "$elemMatch", "$size", "$and", "$or", "$nor", "$not", "$expr", "$mod", "$text", "$where",
@@ -52,15 +50,13 @@ export default function MonacoEditor({
   // the run callback changes with the query state; read it through a ref
   const onRunRef = useRef(onRun);
   onRunRef.current = onRun;
-  // the provider lives for the editor's lifetime and the schema arrives
-  // asynchronously, so it reads the latest tables/fields through a ref
+  // the provider lives for the editor's lifetime and the schema arrives asynchronously, so it reads the latest tables/fields through a ref
   const tablesRef = useRef(tables);
   tablesRef.current = tables;
   const fieldsRef = useRef(fields);
   fieldsRef.current = fields;
 
-  // Completion per language: SQL suggests tables and their columns after
-  // FROM/JOIN; JSON suggests MongoDB operators and the collection's fields.
+  // Completion per language: SQL suggests tables and their columns after FROM/JOIN; JSON suggests MongoDB operators and the collection's fields.
   const onMount: OnMount = (editor) => {
     completion.current?.dispose();
     // Ctrl/Cmd+Enter runs the query instead of inserting a new line

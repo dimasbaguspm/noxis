@@ -12,9 +12,7 @@ export interface JsonEditorProps {
   placeholder?: string;
 }
 
-// JsonEditor is the MongoDB input: the same monaco with the document grammar,
-// completing operators and document fields. A textarea stands in while it
-// loads.
+// JsonEditor is the MongoDB input: the same monaco with the document grammar, completing operators and document fields.
 export function JsonEditor({
   value,
   onChange,

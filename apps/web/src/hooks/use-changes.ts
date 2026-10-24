@@ -8,8 +8,7 @@ import { classify } from "@/lib/statements";
 
 export type ChangeKind = "dml" | "ddl";
 
-// ./changes refetches the queue and any detail after an action, so a page
-// never calls refetch() by hand.
+// ./changes refetches the queue and any detail after an action, so a page never calls refetch() by hand.
 function invalidateChanges() {
   void queryClient.invalidateQueries({ queryKey: ["sql", "changes"] });
 }
@@ -29,9 +28,7 @@ export function useChangeListUrlParams() {
   };
 }
 
-// useChangeListQuery lists a page of changes from the URL filters (the server
-// returns one list for dml and ddl; the kind filter is applied here, mirroring
-// the pre-query behavior so no change disappears from either tab).
+// useChangeListQuery filters the shared server list by URL state so DML and DDL tabs stay distinct.
 export function useChangeListQuery(kind?: ChangeKind) {
   const { connection, status, page } = useChangeListUrlParams();
   const debounced = useDebounce(connection.trim());

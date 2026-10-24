@@ -31,9 +31,7 @@ import { FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { P } from "@/components/ui/typography";
 
-// InstanceDetailPage is the cross-family home of one instance: its common
-// information and the lifecycle actions. The changes for an instance live on
-// the DML/DDL queues, not here.
+// InstanceDetailPage is the cross-family home of one instance: its common information and the lifecycle actions.
 export default function InstanceDetailPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();

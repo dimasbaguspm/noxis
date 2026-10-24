@@ -9,8 +9,7 @@ import { formatDateTime } from "@/lib/dates";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { H1, P } from "@/components/ui/typography";
 
-// MyProfilePage is the signed-in account: who you are, your role and groups,
-// and the shortcuts to your own settings and access.
+// MyProfilePage is the signed-in account: who you are, your role and groups, and the shortcuts to your own settings and access.
 export default function MyProfilePage() {
   const { identity, authEnabled } = useAuth();
 

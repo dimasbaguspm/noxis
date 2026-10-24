@@ -11,9 +11,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 
-// AppShellSkeleton is the frame shown while the session bootstraps: the real
-// sidebar geometry with placeholder rows, so the console never flashes a bare
-// loading line before the navigation appears.
+// AppShellSkeleton preserves sidebar geometry while the session bootstraps.
 export function AppShellSkeleton() {
   return (
     <SidebarProvider>

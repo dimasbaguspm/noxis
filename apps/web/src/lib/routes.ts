@@ -1,6 +1,4 @@
-// PAGE_ROUTES is the single place console page paths are written. The router,
-// the navigation registry and every in-page link read from it, so a path is
-// defined once and built once. Family groups mirror the engine families.
+// PAGE_ROUTES centralizes paths shared by the router, navigation, and page links.
 
 export const PAGE_ROUTES = {
   DASHBOARD: "/",

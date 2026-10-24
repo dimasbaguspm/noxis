@@ -1,5 +1,4 @@
-// LogoMark is the noXis brand mark, inline so it takes the surrounding text
-// colour — the sidebar renders it on the dark rail, the README uses the file.
+// LogoMark is the noXis brand mark, inline so it takes the surrounding text colour — the sidebar renders it on the dark rail, the README uses the file.
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="48 42 1918 1918" className={className} aria-hidden="true" focusable="false">

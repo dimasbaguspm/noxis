@@ -3,9 +3,7 @@ import { api, type Identity, type Level } from "@/lib/api";
 import { accessToken, initAuth, loadAuthConfig, signout as doSignout } from "@/lib/auth";
 import { AppShellSkeleton } from "@/components/layout/app-shell-skeleton";
 
-// AuthProvider owns the auth bootstrap (local account and/or OIDC) and the
-// console's permission view. The server is the enforcement point either way;
-// this only decides what the console shows.
+// AuthProvider owns the auth bootstrap (local account and/or OIDC) and the console's permission view.
 
 interface AuthState {
   authEnabled: boolean;
@@ -49,8 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthOn(Boolean(config.local || config.oidc));
       setLocalOn(Boolean(config.local));
       setOidcOn(Boolean(config.oidc));
-      // the callback route owns its own exchange; bootstrapping here would fire
-      // unauthenticated /external/v1/* fetches and bounce back mid-exchange
+      // the callback route owns its own exchange; bootstrapping here would fire unauthenticated /external/v1/* fetches and bounce back mid-exchange
       if (isCallback) return;
       const token = await accessToken();
       if (token) {
@@ -81,8 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [authOn, identity],
   );
 
-  // canManage is the shared guard for the account controls: nobody edits
-  // themselves and the env root is untouchable. The server enforces the same.
+  // canManage is the shared guard for the account controls: nobody edits themselves and the env root is untouchable.
   const canManage = useCallback(
     (target: AccountTarget) => Boolean(identity) && target.subject !== identity?.sub && target.role !== "super",
     [identity],

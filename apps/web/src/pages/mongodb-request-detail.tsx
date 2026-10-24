@@ -20,9 +20,7 @@ import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import { P } from "@/components/ui/typography";
 
-// MongoRequestDetailPage is the review of one request: what it would change,
-// what the dry run proved, and the trail. There is no rollback editor because
-// no rollback exists for a document change.
+// MongoRequestDetailPage shows the reviewed write, dry-run checks, and activity; Mongo writes have no rollback.
 export default function MongoRequestDetailPage() {
   const { id = "" } = useParams();
   const { isInstanceAdmin } = useAuth();
@@ -199,8 +197,7 @@ export default function MongoRequestDetailPage() {
   );
 }
 
-// parseRequest reads the request back out of the change: the console stores it
-// in the query column as JSON.
+// parseRequest reads the request back out of the change: the console stores it in the query column as JSON.
 function parseRequest(query?: string): MongoRequest | undefined {
   if (!query) return undefined;
   try {

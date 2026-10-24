@@ -6,9 +6,7 @@ export interface Crumb {
   to?: string;
 }
 
-// useBreadcrumbs derives the trail from the navigation registry: an exact
-// match gives group → page, and a nested route (a change detail) falls back
-// to its parent page plus the short id.
+// useBreadcrumbs derives group/page labels from NAV and falls back to the parent for nested routes.
 export function useBreadcrumbs(): Crumb[] {
   const { pathname } = useLocation();
   const { id } = useParams();

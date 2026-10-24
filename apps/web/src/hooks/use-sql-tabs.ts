@@ -12,8 +12,7 @@ function newTab(title: string, sql = DEFAULT_SQL): SqlTab {
   return { id: crypto.randomUUID(), title, sql };
 }
 
-// useSqlTabs keeps the SQL editor's tabs: at least one always exists, there is
-// no upper bound, and every visit starts fresh on a single "Query 1" tab.
+// useSqlTabs keeps the SQL editor's tabs: at least one always exists, there is no upper bound, and every visit starts fresh on a single "Query 1" tab.
 export function useSqlTabs() {
   const [state, setState] = useState(() => {
     const first = newTab("Query 1");

@@ -14,8 +14,7 @@ export type MongoCollection = components["schemas"]["entity.Collection"];
 export type MongoRequest = components["schemas"]["entity.MongoRequest"];
 export type MongoResult = components["schemas"]["entity.Result"];
 
-// MongoChangeInput is one submitted request: the change envelope plus the
-// request itself, flat so the wizard sends a single object.
+// MongoChangeInput is one submitted request: the change envelope plus the request itself, flat so the wizard sends a single object.
 export interface MongoChangeInput extends MongoRequest {
   connection: string;
   notes: string;
@@ -68,12 +67,10 @@ export interface ChangeInput {
   scheduledAt?: number;
 }
 
-// v1 builds an endpoint from the engine family, so no call hardcodes a family
-// URL prefix: the family is the server's generic route parameter.
+// v1 builds an endpoint from the engine family, so no call hardcodes a family URL prefix: the family is the server's generic route parameter.
 const v1 = (family: FamilyKey, path: string) => `/external/v1/engine/${family}/${path}`;
 
-// connPath is the connection-scoped path; the name is URL-encoded so a name
-// with a space or slash cannot break the route.
+// connPath is the connection-scoped path; the name is URL-encoded so a name with a space or slash cannot break the route.
 const connPath = (family: FamilyKey, name: string, suffix = "") =>
   v1(family, `connections/${encodeURIComponent(name)}${suffix}`);
 
@@ -87,9 +84,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     headers: Object.keys(headers).length > 0 ? headers : undefined,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  // an expired or revoked token drops the console to the login page; the
-  // user restarts the OIDC flow from there. Clearing first is what breaks the
-  // loop: a kept token would 401 again on the next load.
+  // an expired or revoked token drops the console to the login page; the user restarts the OIDC flow from there.
   if (res.status === 401 && authEnabled()) {
     await clearSession();
     window.location.assign("/login");
@@ -101,8 +96,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
-// connectionOps is the connection lifecycle every family shares; the family
-// decides the namespace, the routes are identical.
+// connectionOps is the connection lifecycle every family shares; the family decides the namespace, the routes are identical.
 function connectionOps(family: FamilyKey) {
   return {
     list: () => request<{ connections: Connection[] }>("GET", v1(family, "connections")),
@@ -114,8 +108,7 @@ function connectionOps(family: FamilyKey) {
 
 export const api = {
   me: () => request<Identity>("GET", "/external/v1/me"),
-  // instances are the cross-family view: one connection addressed by its
-  // stable id, whatever family serves it.
+  // instances are the cross-family view: one connection addressed by its stable id, whatever family serves it.
   instances: {
     list: (query: InstanceQuery = {}) => {
       const params = new URLSearchParams();
@@ -206,8 +199,7 @@ export const api = {
     schedule: (id: string, scheduledAt: number) =>
       request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/schedule`), { scheduledAt }),
   },
-  // config is the server's console-facing configuration (hardcoded Go-side).
-  // permissions: per-connection RBAC policy (users and groups), admin-managed.
+  // config is the server's console-facing configuration (hardcoded Go-side). permissions: per-connection RBAC policy (users and groups), admin-managed.
   permissions: {
     // matrix is the per-instance overview: every instance with its whole policy.
     matrix: () => request<{ instances: InstanceAccess[] }>("GET", "/external/v1/access"),
@@ -225,8 +217,7 @@ export const api = {
         v1(family, `connections/${encodeURIComponent(name)}/permissions?member=${encodeURIComponent(member)}`),
       ),
   },
-  // accessRequests: a user asks for a level on a connection; an admin or that
-  // instance's admin decides.
+  // accessRequests: a user asks for a level on a connection; an admin or that instance's admin decides.
   accessRequests: {
     create: (connection: string, level: string, reason: string) =>
       request<AccessRequest>("POST", "/external/v1/access-requests", { connection, level, reason }),
@@ -237,8 +228,7 @@ export const api = {
     reject: (id: string, note = "") =>
       request<AccessRequest>("POST", `/external/v1/access-requests/${id}/reject`, { note }),
   },
-  // users: the admin directory. Read-only plus the status/role controls; only
-  // the super admin may send a role.
+  // users: the admin directory. Read-only plus the status/role controls; only the super admin may send a role.
   users: {
     list: (q: string, status: string) =>
       request<{ users: User[] }>(

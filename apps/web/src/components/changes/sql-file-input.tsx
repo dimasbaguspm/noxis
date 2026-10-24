@@ -4,8 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { statementCount } from "@/lib/statements";
 
-// SqlFileInput attaches one .sql file to a field. One file is one statement,
-// so a script is refused with a clear message instead of quietly loading.
+// SqlFileInput attaches one .sql file to a field. One file is one statement, so a script is refused with a clear message instead of quietly loading.
 export function SqlFileInput({
   onLoad,
   label = "Attach .sql",
