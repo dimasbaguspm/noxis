@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"strings"
+	"time"
 )
 
 // dbSnapshot is a target's dumped data, taken so a scenario can be restored.
@@ -21,7 +23,11 @@ type snapshotter interface {
 // snapshotters maps a driver to its implementation. A family without one is reported when a scenario asks for a snapshot; add its dump/restore here.
 var snapshotters = map[string]snapshotter{
 	"postgres": postgresSnapshot{},
+	"mysql":    mysqlSnapshot{},
 	"mariadb":  mysqlSnapshot{},
+	"mongo":    mongoSnapshot{},
+	"redis":    redisSnapshot{},
+	"valkey":   redisSnapshot{},
 }
 
 func snapshotterFor(t target) (snapshotter, error) {
@@ -76,14 +82,113 @@ func (postgresSnapshot) load(t target, data []byte) error {
 		"psql", "-U", t.User, "-d", t.Database, "-q", "-v", "ON_ERROR_STOP=1")
 }
 
-// mysqlSnapshot uses mysqldump / mysql. --databases emits the CREATE DATABASE and USE lines, so the restore is self-contained.
+// mysqlSnapshot uses the server's own dump/client pair. MySQL 8 and MariaDB ship different binary names, so the service picks them.
 type mysqlSnapshot struct{}
 
+func mysqlTools(t target) (dump, cli string) {
+	if strings.Contains(t.Host, "mariadb") {
+		return "mariadb-dump", "mariadb"
+	}
+	return "mysqldump", "mysql"
+}
+
 func (mysqlSnapshot) dump(t target) ([]byte, error) {
+	dump, _ := mysqlTools(t)
 	return execTarget(t, []string{"MYSQL_PWD=" + t.Password},
-		"mariadb-dump", "-u"+t.User, "--databases", t.Database)
+		dump, "-u"+t.User, "--databases", t.Database)
 }
 
 func (mysqlSnapshot) load(t target, data []byte) error {
-	return execTargetIn(data, t, []string{"MYSQL_PWD=" + t.Password}, "mariadb", "-u"+t.User)
+	_, cli := mysqlTools(t)
+	return execTargetIn(data, t, []string{"MYSQL_PWD=" + t.Password}, cli, "-u"+t.User)
+}
+
+// mongoSnapshot streams mongodump's archive out and mongorestore's back in, so nothing is left on the container filesystem.
+type mongoSnapshot struct{}
+
+func mongoURI(t target) string {
+	return fmt.Sprintf("mongodb://%s:%s@localhost:%d/?authSource=admin", t.User, t.Password, t.Port)
+}
+
+func (mongoSnapshot) dump(t target) ([]byte, error) {
+	return execTarget(t, nil, "mongodump", "--uri="+mongoURI(t), "--archive", "--gzip")
+}
+
+func (mongoSnapshot) load(t target, data []byte) error {
+	return execTargetIn(data, t, nil, "mongorestore", "--uri="+mongoURI(t), "--archive", "--gzip", "--drop")
+}
+
+// redisSnapshot takes an RDB point-in-time dump and restores it by replacing the data file and restarting the server.
+type redisSnapshot struct{}
+
+func redisCLI(t target) string {
+	if strings.Contains(t.Host, "valkey") {
+		return "valkey-cli"
+	}
+	return "redis-cli"
+}
+
+const redisSnapshotFile = "/data/noxis-uat.rdb"
+
+func (redisSnapshot) dump(t target) ([]byte, error) {
+	cli := redisCLI(t)
+	if _, err := execTarget(t, nil, cli, "--rdb", redisSnapshotFile); err != nil {
+		return nil, err
+	}
+	return execTarget(t, nil, "cat", redisSnapshotFile)
+}
+
+func (redisSnapshot) load(t target, data []byte) error {
+	// the server loads /data/dump.rdb at startup, so the dump is written there and the server restarted without saving over it
+	if err := execTargetIn(data, t, nil, "sh", "-c", "cat > /data/dump.rdb"); err != nil {
+		return err
+	}
+	id, err := containerID(t.Host)
+	if err != nil {
+		return err
+	}
+	// SIGKILL skips the shutdown save that would overwrite the restored file
+	if _, err := exec.Command("docker", "kill", "-s", "KILL", id).CombinedOutput(); err != nil {
+		return fmt.Errorf("kill %s: %w", t.Host, err)
+	}
+	if err := waitStopped(id, 10*time.Second); err != nil {
+		return err
+	}
+	out, err := exec.Command("docker", "compose", "-f", stackFile, "start", t.Host).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("start %s: %w\n%s", t.Host, err, out)
+	}
+	cli := redisCLI(t)
+	deadline := time.Now().Add(20 * time.Second)
+	for time.Now().Before(deadline) {
+		if out, err := execTarget(t, nil, cli, "ping"); err == nil && strings.Contains(string(out), "PONG") {
+			return nil
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	return fmt.Errorf("%s did not answer after restoring the snapshot", t.Host)
+}
+
+func containerID(service string) (string, error) {
+	out, err := exec.Command("docker", "compose", "-f", stackFile, "ps", "-q", service).Output()
+	if err != nil {
+		return "", fmt.Errorf("container id for %s: %w", service, err)
+	}
+	id := strings.TrimSpace(string(out))
+	if id == "" {
+		return "", fmt.Errorf("container id for %s: not running", service)
+	}
+	return id, nil
+}
+
+func waitStopped(id string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		out, err := exec.Command("docker", "inspect", "-f", "{{.State.Running}}", id).Output()
+		if err == nil && strings.TrimSpace(string(out)) == "false" {
+			return nil
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	return fmt.Errorf("container %s did not stop", id)
 }

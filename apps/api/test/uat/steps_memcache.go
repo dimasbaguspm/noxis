@@ -35,6 +35,7 @@ func (w *world) memcacheSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the redis list "([^"]*)" contains "([^"]*)"$`, w.redisSeedList)
 	sc.Step(`^I browse redis keys matching "([^"]*)"$`, w.redisBrowse)
 	sc.Step(`^the browse finds the key "([^"]*)"$`, w.redisBrowseFinds)
+	sc.Step(`^the browse does not find the key "([^"]*)"$`, w.redisBrowseMisses)
 	sc.Step(`^the key "([^"]*)" reports a ttl$`, w.redisKeyHasTTL)
 	sc.Step(`^I inspect the redis key "([^"]*)"$`, w.redisInspect)
 	sc.Step(`^the value grid shows "([^"]*)"$`, w.redisValueShows)
@@ -114,6 +115,15 @@ func (w *world) redisBrowseFinds(ctx context.Context, key string) error {
 		}
 	}
 	return fmt.Errorf("key %q not in %d browsed key(s)", key, len(w.page.Keys))
+}
+
+func (w *world) redisBrowseMisses(ctx context.Context, key string) error {
+	for _, k := range w.page.Keys {
+		if k.Name == key {
+			return fmt.Errorf("key %q survived the restore", key)
+		}
+	}
+	return nil
 }
 
 func (w *world) redisKeyHasTTL(ctx context.Context, key string) error {
