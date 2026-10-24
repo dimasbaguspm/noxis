@@ -1,4 +1,4 @@
-package server
+package usecases_test
 
 import (
 	"io"
@@ -6,13 +6,15 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"noxis/internal/usecases"
 )
 
 // TestActionReplaysBodyToTheChosenHandler guards the dispatcher: the target use
 // case decodes the same payload the action was read from.
 func TestActionReplaysBodyToTheChosenHandler(t *testing.T) {
 	var got string
-	h := actionHandler(map[string]http.Handler{
+	h := usecases.ActionHandler(map[string]http.Handler{
 		"approve": http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			body, _ := io.ReadAll(r.Body)
 			got = string(body)
@@ -28,7 +30,7 @@ func TestActionReplaysBodyToTheChosenHandler(t *testing.T) {
 }
 
 func TestActionRefusesUnknownAction(t *testing.T) {
-	h := actionHandler(map[string]http.Handler{})
+	h := usecases.ActionHandler(map[string]http.Handler{})
 	rec := httptest.NewRecorder()
 	h(rec, httptest.NewRequest(http.MethodPost, "/action", strings.NewReader(`{"action":"delete"}`)))
 	if rec.Code != http.StatusBadRequest {

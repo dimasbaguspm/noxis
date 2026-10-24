@@ -1,12 +1,9 @@
 package server
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
 	"net/http"
 
-	"noxis/internal/entity"
+	"noxis/internal/usecases"
 )
 
 // ChangeAction documents the one route every change transition uses.
@@ -34,7 +31,7 @@ func AccessAction() {}
 // changeAction dispatches a validated action to the existing use case, which
 // keeps every status, authorization and schedule rule where it already lived.
 func changeAction(d app) http.HandlerFunc {
-	return actionHandler(map[string]http.Handler{
+	return usecases.ActionHandler(map[string]http.Handler{
 		"approve":  http.HandlerFunc(d.ChangeApprove.Serve),
 		"reject":   http.HandlerFunc(d.ChangeReject.Serve),
 		"apply":    http.HandlerFunc(d.ChangeApply.Serve),
@@ -44,38 +41,8 @@ func changeAction(d app) http.HandlerFunc {
 
 // accessAction dispatches an access-request decision the same way.
 func accessAction(d app) http.HandlerFunc {
-	return actionHandler(map[string]http.Handler{
+	return usecases.ActionHandler(map[string]http.Handler{
 		"approve": http.HandlerFunc(d.AccessApprove.Serve),
 		"reject":  http.HandlerFunc(d.AccessReject.Serve),
 	})
-}
-
-// actionHandler reads the action, then replays the body to the chosen handler:
-// a transition payload is small and the target still decodes it itself.
-func actionHandler(actions map[string]http.Handler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		raw, err := io.ReadAll(r.Body)
-		if err != nil {
-			writeActionError(w, "cannot read the action payload")
-			return
-		}
-		var body entity.TransitionRequest
-		if err := json.Unmarshal(raw, &body); err != nil {
-			writeActionError(w, "action payload must be JSON")
-			return
-		}
-		next, ok := actions[body.Action]
-		if !ok {
-			writeActionError(w, "unknown action "+body.Action)
-			return
-		}
-		r.Body = io.NopCloser(bytes.NewReader(raw))
-		next.ServeHTTP(w, r)
-	}
-}
-
-func writeActionError(w http.ResponseWriter, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusBadRequest)
-	_ = json.NewEncoder(w).Encode(entity.ErrorResponse{Error: message})
 }
