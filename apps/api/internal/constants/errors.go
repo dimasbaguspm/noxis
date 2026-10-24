@@ -8,6 +8,8 @@ import "errors"
 var (
 	// ErrNotFound reports a missing row. The API maps it to 404.
 	ErrNotFound = errors.New("not found")
+	// ErrConflict reports a state transition another request already won. The API maps it to 409.
+	ErrConflict = errors.New("change state conflict")
 	// ErrUnsupported reports an engine name with no module, or an engine that
 	// does not serve the requested operation. The API maps it to 404.
 	ErrUnsupported = errors.New("unsupported engine")

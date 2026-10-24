@@ -28,11 +28,12 @@ instead of crash-looping.
 
 ### `changes`
 The reviewed-change artifact. Never deleted. `status` ∈
-`validated|unverified|failed|approved|applied|rejected`; `kind` ∈ `dml|ddl|mongo`.
-Carries `checks` (JSON), `est_duration_ms`/`est_affected` (dry-run estimates),
-`applied_affected`/`applied_duration_ms` (actuals), `scratch_schema`,
-`affected_tables`/`affected_columns` (JSON), `scheduled_at`, `created_by`, and
-the approve/apply/reject timestamps.
+`validated|unverified|failed|approved|applying|applied|rejected`; `kind` ∈ `dml|ddl|mongo`.
+`applying` is an atomic execution claim with `applying_at`; after a process crash,
+the remote outcome is unknown, so the scheduler never retries it automatically.
+Keep it visible for manual investigation; do not reset it without confirming the
+target outcome. The row also carries checks, estimates and actuals, scratch schema,
+affected identifiers, schedule, creator, and review/apply timestamps.
 
 ### `permissions`
 `(connection, member, member_type, level)` PK `(connection, member)`. `member` is

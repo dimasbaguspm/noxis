@@ -25,6 +25,7 @@ type Apply struct{ usecases.RegistryDeps }
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
+// @Failure 409 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{engine}/changes/{id}/apply [post]
 func (uc Apply) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())

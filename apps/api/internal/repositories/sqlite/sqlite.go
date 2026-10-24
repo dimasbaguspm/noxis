@@ -190,6 +190,7 @@ var migrations = []string{
 	  request_id TEXT NOT NULL DEFAULT '',
 	  note       TEXT NOT NULL DEFAULT ''
 	)`,
+	`ALTER TABLE changes ADD COLUMN applying_at INTEGER NOT NULL DEFAULT 0`,
 }
 
 // backfillConnectionIDs gives every pre-migration row a stable id. New rows
@@ -233,6 +234,7 @@ CREATE TABLE IF NOT EXISTS changes (
   created_at  INTEGER NOT NULL,
   created_by  TEXT NOT NULL DEFAULT '',
   approved_at INTEGER NOT NULL DEFAULT 0,
+  applying_at INTEGER NOT NULL DEFAULT 0,
   applied_at  INTEGER NOT NULL DEFAULT 0,
   rejected_at INTEGER NOT NULL DEFAULT 0,
   est_duration_ms INTEGER NOT NULL DEFAULT 0,
