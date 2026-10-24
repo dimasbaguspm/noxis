@@ -3,16 +3,15 @@ import { title } from "radash";
 import { Boxes, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/ui/pagination";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
+import { Workspace } from "@/components/layout/workspace";
 import { useAuth } from "@/app/auth-provider";
 import { useDriversQuery } from "@/hooks/use-config";
 import { ALL_DRIVERS, useInstancesUrlParams, usePagedInstancesQuery } from "@/hooks/use-instances";
@@ -44,120 +43,102 @@ export default function DashboardPage() {
   const filtering = filter.trim() !== "" || driver !== ALL_DRIVERS;
 
   return (
-    <div className="flex h-full flex-col">
-      <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-        <ResizablePanel defaultSize={20} minSize={16}>
-          <Card className="mr-2 flex h-full min-h-0 flex-col">
-            <CardHeader className="gap-1">
-              <CardTitle className="text-base">Instances</CardTitle>
-              <CardDescription>Filter the fleet or register a new one.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="instance-search">Search by name</Label>
-                <InputGroup>
-                  <InputGroupAddon>
-                    <Search />
-                  </InputGroupAddon>
-                  <InputGroupInput
-                    id="instance-search"
-                    placeholder="type to filter…"
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
-                  />
-                </InputGroup>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>Driver</Label>
-                <Select value={driver} onValueChange={(v) => setDriver(String(v))}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ALL_DRIVERS}>All drivers</SelectItem>
-                    {drivers.map((d) => (
-                      <SelectItem key={d.driver} value={d.driver}>
-                        {d.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {isSuper && <ConnectionDialog trigger="New connection" wizard />}
-            </CardContent>
-          </Card>
-        </ResizablePanel>
-
-        <ResizableHandle withHandle />
-
-        <ResizablePanel defaultSize={80} minSize={40} className="min-w-0">
-          <Card className="ml-2 flex h-full min-h-0 flex-col">
-            <CardHeader className="gap-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <CardTitle className="text-base">Fleet</CardTitle>
-                <Badge variant="secondary">{total}</Badge>
-              </div>
-              <CardDescription>{loading ? "loading…" : filtering ? `${total} shown` : `${total} registered`}</CardDescription>
-            </CardHeader>
-            <CardContent className="min-h-0 flex-1 overflow-auto pt-0">
-              {loading ? (
-                <div className="flex flex-col gap-2">
-                  {SKELETON_ROWS.map((n) => (
-                    <Skeleton key={n} className="h-11 w-full" />
-                  ))}
-                </div>
-              ) : total === 0 ? (
-                <Empty
-                  icon={Boxes}
-                  title={filtering ? "no match" : "none registered yet"}
-                  description={filtering ? "try another name or driver" : "register an instance to see it here"}
+    <div className="flex h-full min-h-0">
+      <Workspace
+        left={
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="instance-search">Search by name</Label>
+              <InputGroup>
+                <InputGroupAddon>
+                  <Search />
+                </InputGroupAddon>
+                <InputGroupInput
+                  id="instance-search"
+                  placeholder="type to filter…"
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
                 />
-              ) : (
-                <>
-                  <div className="rounded-md border border-border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{title("name")}</TableHead>
-                          <TableHead>{title("driver")}</TableHead>
-                          <TableHead className="w-[110px]">{title("action")}</TableHead>
+              </InputGroup>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Driver</Label>
+              <Select value={driver} onValueChange={(v) => setDriver(String(v))}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_DRIVERS}>All drivers</SelectItem>
+                  {drivers.map((d) => (
+                    <SelectItem key={d.driver} value={d.driver}>
+                      {d.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {isSuper && <ConnectionDialog trigger="New connection" wizard />}
+          </div>
+        }
+        right={
+          <div className="min-h-0 flex-1 overflow-auto">
+            {loading ? (
+              <div className="flex flex-col gap-2">
+                {SKELETON_ROWS.map((n) => (
+                  <Skeleton key={n} className="h-11 w-full" />
+                ))}
+              </div>
+            ) : total === 0 ? (
+              <Empty
+                icon={Boxes}
+                title={filtering ? "no match" : "none registered yet"}
+                description={filtering ? "try another name or driver" : "register an instance to see it here"}
+              />
+            ) : (
+              <>
+                <div className="rounded-md border border-border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{title("name")}</TableHead>
+                        <TableHead>{title("driver")}</TableHead>
+                        <TableHead className="w-[110px]">{title("action")}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {instances.map((c) => (
+                        <TableRow key={`${c.family}:${c.name}`}>
+                          <TableCell>
+                            <span className="flex items-center gap-2 text-sm">
+                              <FamilyIcon family={c.family} className="size-3.5 text-muted-foreground" />
+                              {c.name}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{c.driver}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {c.id ? (
+                              <Button size="xs" variant="outline" render={<Link to={PAGE_ROUTES.INSTANCE_DETAIL(c.id)} />}>
+                                Detail
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {instances.map((c) => (
-                          <TableRow key={`${c.family}:${c.name}`}>
-                            <TableCell>
-                              <span className="flex items-center gap-2 text-sm">
-                                <FamilyIcon family={c.family} className="size-3.5 text-muted-foreground" />
-                                {c.name}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">{c.driver}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              {c.id ? (
-                                <Button size="xs" variant="outline" render={<Link to={PAGE_ROUTES.INSTANCE_DETAIL(c.id)} />}>
-                                  Detail
-                                </Button>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  {total > PER_PAGE && (
-                    <Pagination page={page} perPage={PER_PAGE} total={total} onChange={setPage} className="mt-4" />
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {total > PER_PAGE && (
+                  <Pagination page={page} perPage={PER_PAGE} total={total} onChange={setPage} className="mt-4" />
+                )}
+              </>
+            )}
+          </div>
+        }
+      />
     </div>
   );
 }

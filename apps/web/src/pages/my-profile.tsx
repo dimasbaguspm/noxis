@@ -7,7 +7,6 @@ import { RoleBadge } from "@/components/access/role-badge";
 import { useAuth } from "@/app/auth-provider";
 import { formatDateTime } from "@/lib/dates";
 import { PAGE_ROUTES } from "@/lib/routes";
-import { H1, P } from "@/components/ui/typography";
 
 // MyProfilePage is the signed-in account: who you are, your role and groups, and the shortcuts to your own settings and access.
 export default function MyProfilePage() {
@@ -26,11 +25,6 @@ export default function MyProfilePage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <H1>My profile</H1>
-        <P>The account you are signed in with.</P>
-      </div>
-
       <Card>
         <CardHeader className="gap-1">
           <CardTitle className="text-base">{identity.name || identity.email || identity.sub}</CardTitle>
