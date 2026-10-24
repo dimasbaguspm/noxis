@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RequestAccessDialog } from "@/components/access/request-access-dialog";
+import { CacheBrowser } from "@/components/instance/cache-browser";
 import { MongoExplorer } from "@/components/instance/mongo-explorer";
 import { SqlConsole } from "@/components/instance/sql-console";
 import { useAction } from "@/hooks/use-action";
@@ -225,6 +226,10 @@ export default function InstanceDetailPage() {
 
       {family === FAMILY.MONGODB && canAccess(instance.name, "read") && (
         <MongoExplorer key={instance.name} connection={instance.name} />
+      )}
+
+      {family === FAMILY.MEMCACHE && canAccess(instance.name, "read") && (
+        <CacheBrowser key={instance.name} connection={instance.name} />
       )}
 
       <Sheet
