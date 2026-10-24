@@ -41,7 +41,7 @@ func (s Snapshots) Match(name string, body []byte) error {
 		return err
 	}
 	if !bytes.Equal(bytes.TrimSpace(got), bytes.TrimSpace(want)) {
-		return fmt.Errorf("response does not match snapshot %s\n--- want ---\n%s\n--- got ---\n%s", name, want, got)
+		return fmt.Errorf("response does not match snapshot %s: %s\n--- want ---\n%s\n--- got ---\n%s", name, firstDifference(want, got), want, got)
 	}
 	return nil
 }
@@ -86,8 +86,32 @@ func scrub(v any) any {
 	}
 }
 
-// placeholder reports the mask for a volatile key: ids, timestamps and durations differ on every run and must not enter a golden.
+// firstDifference names the first line that differs, so a mismatch reads without scanning both bodies.
+func firstDifference(want, got []byte) string {
+	wantLines := strings.Split(string(bytes.TrimSpace(want)), "\n")
+	gotLines := strings.Split(string(bytes.TrimSpace(got)), "\n")
+	for i := 0; i < len(wantLines) && i < len(gotLines); i++ {
+		if wantLines[i] != gotLines[i] {
+			return fmt.Sprintf("line %d differs: want %q, got %q", i+1, wantLines[i], gotLines[i])
+		}
+	}
+	switch {
+	case len(wantLines) < len(gotLines):
+		return fmt.Sprintf("golden ends at line %d; response has %d more line(s)", len(wantLines), len(gotLines)-len(wantLines))
+	case len(gotLines) < len(wantLines):
+		return fmt.Sprintf("response ends at line %d; golden has %d more line(s)", len(gotLines), len(wantLines)-len(gotLines))
+	}
+	return "bodies differ in trailing whitespace"
+}
+
+// placeholder reports the mask for a volatile or sensitive key: credentials never enter a golden, and ids, timestamps and durations differ on every run.
 func placeholder(key string) (any, bool) {
+	lower := strings.ToLower(key)
+	for _, secret := range []string{"token", "password", "secret", "authorization", "cookie", "credential"} {
+		if strings.Contains(lower, secret) {
+			return "<secret>", true
+		}
+	}
 	switch {
 	case key == "id" || strings.HasSuffix(key, "Id"):
 		return "<id>", true

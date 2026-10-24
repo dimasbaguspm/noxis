@@ -26,6 +26,34 @@ func TestScrubMasksVolatileFields(t *testing.T) {
 	}
 }
 
+func TestScrubMasksSecrets(t *testing.T) {
+	body := []byte(`{"token":"raw-token","password":"hunter2","tokenHash":"abc123","clientSecret":"s3cret","headers":{"Authorization":"Bearer x","Cookie":"a=b"},"username":"root"}`)
+	got, err := scrubJSON(body)
+	if err != nil {
+		t.Fatalf("scrubJSON: %v", err)
+	}
+	s := string(got)
+	for _, leak := range []string{"raw-token", "hunter2", "abc123", "s3cret", "Bearer x", "a=b"} {
+		if strings.Contains(s, leak) {
+			t.Errorf("scrubbed body still carries %q:\n%s", leak, s)
+		}
+	}
+	if !strings.Contains(s, `"<secret>"`) || !strings.Contains(s, `"username": "root"`) {
+		t.Errorf("scrubbed body = %s", s)
+	}
+}
+
+func TestMismatchNamesTheFirstDifferingLine(t *testing.T) {
+	dir := t.TempDir()
+	if err := (Snapshots{Dir: dir, Update: true}).Match("x", []byte(`{"status":"validated","notes":"a"}`)); err != nil {
+		t.Fatal(err)
+	}
+	err := (Snapshots{Dir: dir}).Match("x", []byte(`{"status":"applied","notes":"a"}`))
+	if err == nil || !strings.Contains(err.Error(), `"status"`) {
+		t.Fatalf("mismatch error = %v, want the differing line", err)
+	}
+}
+
 func TestMatchWritesThenCompares(t *testing.T) {
 	dir := t.TempDir()
 	body := []byte(`{"id":"one","status":"validated","estDurationMs":5}`)

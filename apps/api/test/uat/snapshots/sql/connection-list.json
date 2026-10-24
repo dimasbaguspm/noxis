@@ -1,0 +1,15 @@
+{
+  "connections": [
+    {
+      "createdAt": "<ts>",
+      "createdBy": "local:root@noxis.local",
+      "database": "demo",
+      "driver": "postgres",
+      "host": "db",
+      "id": "<id>",
+      "name": "demo",
+      "port": 5432,
+      "user": "postgres"
+    }
+  ]
+}
