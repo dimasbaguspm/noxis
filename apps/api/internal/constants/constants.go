@@ -61,6 +61,9 @@ const (
 	FamilyMongo    = "mongodb"
 )
 
+// SchedulerActor attributes changes applied by the authenticated scheduler callback.
+const SchedulerActor = "system:scheduler"
+
 // MongoDB request ops.
 const (
 	MongoFind      = "find"

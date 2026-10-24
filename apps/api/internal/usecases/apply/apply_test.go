@@ -57,7 +57,7 @@ func newHarness(t *testing.T, store ...entity.Change) *harness {
 		}
 		return &c, nil
 	}).AnyTimes()
-	h.changes.EXPECT().ClaimChange(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, id string, at int64) (bool, error) {
+	h.changes.EXPECT().ClaimChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, id string, at int64, actor string) (bool, error) {
 		if h.claimDenied {
 			return false, nil
 		}
@@ -65,7 +65,7 @@ func newHarness(t *testing.T, store ...entity.Change) *harness {
 		if !ok || c.Status != constants.ChangeApproved {
 			return false, nil
 		}
-		c.Status, c.ApplyingAt = constants.ChangeApplying, at
+		c.Status, c.ApplyingAt, c.AppliedBy = constants.ChangeApplying, at, actor
 		h.stored[id] = c
 		return true, nil
 	}).AnyTimes()
@@ -108,6 +108,9 @@ func TestApplyAfterApprove(t *testing.T) {
 	}
 	if got := h.stored["x"].Status; got != constants.ChangeApplied {
 		t.Fatalf("status=%q want applied", got)
+	}
+	if got := h.stored["x"].AppliedBy; got != "root" {
+		t.Fatalf("applied by=%q want root", got)
 	}
 }
 
@@ -181,6 +184,9 @@ func TestTickAppliesDueScheduledChange(t *testing.T) {
 	}
 	if got := h.stored["due"].Status; got != constants.ChangeApplied {
 		t.Fatalf("due status=%q want applied", got)
+	}
+	if got := h.stored["due"].AppliedBy; got != constants.SchedulerActor {
+		t.Fatalf("scheduled apply actor=%q want %q", got, constants.SchedulerActor)
 	}
 	if got := h.stored["wait"].Status; got != constants.ChangeApproved {
 		t.Fatalf("immediate status=%q want approved", got)

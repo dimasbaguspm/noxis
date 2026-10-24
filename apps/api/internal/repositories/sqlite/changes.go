@@ -13,8 +13,9 @@ import (
 )
 
 const changeColumns = `id, connection, notes, query, rollback, kind, status, checks, created_at, created_by,
-	approved_at, applying_at, applied_at, rejected_at, est_duration_ms, est_affected, applied_affected,
-	applied_duration_ms, scheduled_at, affected_tables, affected_columns`
+	approved_at, approved_by, applying_at, applied_at, applied_by, rejected_at, rejected_by,
+	est_duration_ms, est_affected, applied_affected, applied_duration_ms, scheduled_at, scheduled_by,
+	affected_tables, affected_columns`
 
 // SaveChange upserts a change.
 func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
@@ -33,22 +34,24 @@ func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
 		return fmt.Errorf("encode columns: %w", err)
 	}
 	result, err := s.db.ExecContext(ctx, `
-		INSERT INTO changes (`+changeColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO changes (`+changeColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			connection=excluded.connection, notes=excluded.notes, query=excluded.query,
 			rollback=excluded.rollback, kind=excluded.kind, status=excluded.status, checks=excluded.checks,
 			created_by=excluded.created_by,
-			approved_at=excluded.approved_at, applying_at=excluded.applying_at, applied_at=excluded.applied_at,
-			rejected_at=excluded.rejected_at,
+			approved_at=excluded.approved_at, approved_by=excluded.approved_by,
+			applying_at=excluded.applying_at, applied_at=excluded.applied_at, applied_by=excluded.applied_by,
+			rejected_at=excluded.rejected_at, rejected_by=excluded.rejected_by,
 			est_duration_ms=excluded.est_duration_ms, est_affected=excluded.est_affected,
 			applied_affected=excluded.applied_affected, applied_duration_ms=excluded.applied_duration_ms,
-			scheduled_at=excluded.scheduled_at,
+			scheduled_at=excluded.scheduled_at, scheduled_by=excluded.scheduled_by,
 			affected_tables=excluded.affected_tables, affected_columns=excluded.affected_columns
 		WHERE changes.status != ? OR excluded.status IN (?, ?)`,
 		c.ID, c.Connection, c.Notes, c.Query, c.Rollback, c.Kind, c.Status, string(checks),
-		c.CreatedAt, c.CreatedBy, c.ApprovedAt, c.ApplyingAt, c.AppliedAt, c.RejectedAt,
-		c.EstDurationMs, c.EstAffected, c.AppliedAffected, c.AppliedDurationMs,
-		c.ScheduledAt, string(tables), string(columns), constants.ChangeApplying, constants.ChangeFailed, constants.ChangeApplied)
+		c.CreatedAt, c.CreatedBy, c.ApprovedAt, c.ApprovedBy, c.ApplyingAt, c.AppliedAt, c.AppliedBy,
+		c.RejectedAt, c.RejectedBy, c.EstDurationMs, c.EstAffected, c.AppliedAffected, c.AppliedDurationMs,
+		c.ScheduledAt, c.ScheduledBy, string(tables), string(columns),
+		constants.ChangeApplying, constants.ChangeFailed, constants.ChangeApplied)
 	if err != nil {
 		return fmt.Errorf("save change %s: %w", c.ID, err)
 	}
@@ -63,11 +66,11 @@ func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
 }
 
 // ClaimChange atomically moves one approved change to applying.
-func (s *Store) ClaimChange(ctx context.Context, id string, at int64) (claimed bool, err error) {
+func (s *Store) ClaimChange(ctx context.Context, id string, at int64, actor string) (claimed bool, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	result, err := s.db.ExecContext(ctx, `UPDATE changes SET status = ?, applying_at = ? WHERE id = ? AND status = ?`,
-		constants.ChangeApplying, at, id, constants.ChangeApproved)
+	result, err := s.db.ExecContext(ctx, `UPDATE changes SET status = ?, applying_at = ?, applied_by = ? WHERE id = ? AND status = ?`,
+		constants.ChangeApplying, at, actor, id, constants.ChangeApproved)
 	if err != nil {
 		return false, fmt.Errorf("claim change %s: %w", id, err)
 	}
@@ -118,9 +121,9 @@ func scanChange(row scanner) (entity.Change, error) {
 		columns string
 	)
 	if err := row.Scan(&c.ID, &c.Connection, &c.Notes, &c.Query, &c.Rollback, &c.Kind, &c.Status, &checks,
-		&c.CreatedAt, &c.CreatedBy, &c.ApprovedAt, &c.ApplyingAt, &c.AppliedAt, &c.RejectedAt,
-		&c.EstDurationMs, &c.EstAffected, &c.AppliedAffected, &c.AppliedDurationMs,
-		&c.ScheduledAt, &tables, &columns); err != nil {
+		&c.CreatedAt, &c.CreatedBy, &c.ApprovedAt, &c.ApprovedBy, &c.ApplyingAt, &c.AppliedAt, &c.AppliedBy,
+		&c.RejectedAt, &c.RejectedBy, &c.EstDurationMs, &c.EstAffected, &c.AppliedAffected, &c.AppliedDurationMs,
+		&c.ScheduledAt, &c.ScheduledBy, &tables, &columns); err != nil {
 		return c, err
 	}
 	for _, target := range []struct {

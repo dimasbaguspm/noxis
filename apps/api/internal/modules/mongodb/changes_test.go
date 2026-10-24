@@ -33,7 +33,7 @@ func TestApplyReturnsOutcomeSaveFailure(t *testing.T) {
 	storeErr := errors.New("sqlite unavailable")
 
 	connections.EXPECT().Get(gomock.Any(), connection.Name).Return(&connection, nil)
-	changes.EXPECT().ClaimChange(gomock.Any(), change.ID, gomock.Any()).Return(true, nil)
+	changes.EXPECT().ClaimChange(gomock.Any(), change.ID, gomock.Any(), "operator").Return(true, nil)
 	engine.EXPECT().Apply(gomock.Any(), connection, request).Return(entity.Result{}, engineErr)
 	changes.EXPECT().SaveChange(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, saved entity.Change) error {
 		if saved.Status != constants.ChangeFailed {
@@ -43,8 +43,11 @@ func TestApplyReturnsOutcomeSaveFailure(t *testing.T) {
 	})
 
 	flow := NewChanges(connections, changes, engine, nil)
-	_, err = flow.Apply(context.Background(), &change)
+	_, err = flow.Apply(context.Background(), &change, "operator")
 	if err == nil || !strings.Contains(err.Error(), engineErr.Error()) || !strings.Contains(err.Error(), storeErr.Error()) {
 		t.Fatalf("Apply error=%v, want engine and save errors", err)
+	}
+	if change.AppliedBy != "operator" {
+		t.Fatalf("applied by=%q want operator", change.AppliedBy)
 	}
 }

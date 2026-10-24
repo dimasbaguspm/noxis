@@ -85,20 +85,22 @@ func (c *Changes) Submit(ctx context.Context, conn entity.Connection, actor stri
 }
 
 // Approve signs off a validated batch.
-func (c *Changes) Approve(ctx context.Context, ch *entity.Change) error {
-	return c.Flow.Approve(ctx, ch)
+func (c *Changes) Approve(ctx context.Context, ch *entity.Change, actor string) error {
+	return c.Flow.Approve(ctx, ch, actor)
 }
 
 // Reject closes a batch without running it.
-func (c *Changes) Reject(ctx context.Context, ch *entity.Change) error { return c.Flow.Reject(ctx, ch) }
+func (c *Changes) Reject(ctx context.Context, ch *entity.Change, actor string) error {
+	return c.Flow.Reject(ctx, ch, actor)
+}
 
 // Schedule sets or clears an approved batch's slot.
-func (c *Changes) Schedule(ctx context.Context, ch *entity.Change, at int64) error {
-	return c.Flow.Schedule(ctx, ch, at)
+func (c *Changes) Schedule(ctx context.Context, ch *entity.Change, at int64, actor string) error {
+	return c.Flow.Schedule(ctx, ch, at, actor)
 }
 
 // Apply runs an approved batch in a transaction and records the outcome.
-func (c *Changes) Apply(ctx context.Context, ch *entity.Change) (entity.Change, error) {
+func (c *Changes) Apply(ctx context.Context, ch *entity.Change, actor string) (entity.Change, error) {
 	now := time.Now().Unix()
 	if err := changeflow.Applyable(ch, now); err != nil {
 		logging.WarnWithCtx(ctx, "change cannot be applied", "change", ch.ID, "reason", err.Error())
@@ -108,7 +110,7 @@ func (c *Changes) Apply(ctx context.Context, ch *entity.Change) (entity.Change, 
 	if err != nil {
 		return entity.Change{}, err
 	}
-	if err := c.Claim(ctx, ch, now); err != nil {
+	if err := c.Claim(ctx, ch, now, actor); err != nil {
 		return *ch, err
 	}
 	res, err := c.Engine.Apply(ctx, *conn, ch.Query)
@@ -131,10 +133,12 @@ func (c *Changes) Apply(ctx context.Context, ch *entity.Change) (entity.Change, 
 }
 
 // Tick applies every due scheduled SQL change.
-func (c *Changes) Tick(ctx context.Context, now int64) (entity.TickResult, error) {
+func (c *Changes) Tick(ctx context.Context, now int64, actor string) (entity.TickResult, error) {
 	return changeflow.Tick(ctx, c.Store, now, func(ch entity.Change) bool {
 		return ch.Kind == constants.KindDML || ch.Kind == constants.KindDDL
-	}, c.Apply)
+	}, func(ctx context.Context, ch *entity.Change) (entity.Change, error) {
+		return c.Apply(ctx, ch, actor)
+	})
 }
 
 // count records the outcome of an apply.

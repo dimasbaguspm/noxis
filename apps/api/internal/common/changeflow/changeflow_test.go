@@ -28,17 +28,17 @@ func (s *testStore) SaveChange(_ context.Context, change entity.Change) error {
 	s.saved = append(s.saved, change)
 	return nil
 }
-func (*testStore) ClaimChange(context.Context, string, int64) (bool, error) { return true, nil }
-func (*testStore) DeleteChange(context.Context, string) error               { return nil }
+func (*testStore) ClaimChange(context.Context, string, int64, string) (bool, error) { return true, nil }
+func (*testStore) DeleteChange(context.Context, string) error                       { return nil }
 
 func TestApproveAndRejectRules(t *testing.T) {
 	for _, status := range []string{constants.ChangeValidated, constants.ChangeUnverified} {
 		store := &testStore{}
 		change := entity.Change{ID: "change", Status: status}
-		if err := New(store, constants.FamilySQL).Approve(context.Background(), &change); err != nil {
+		if err := New(store, constants.FamilySQL).Approve(context.Background(), &change, "reviewer"); err != nil {
 			t.Fatalf("approve %s: %v", status, err)
 		}
-		if change.Status != constants.ChangeApproved || change.ApprovedAt == 0 || len(store.saved) != 1 {
+		if change.Status != constants.ChangeApproved || change.ApprovedAt == 0 || change.ApprovedBy != "reviewer" || len(store.saved) != 1 {
 			t.Fatalf("approved change = %+v, saves=%d", change, len(store.saved))
 		}
 	}
@@ -46,12 +46,16 @@ func TestApproveAndRejectRules(t *testing.T) {
 	store := &testStore{}
 	flow := New(store, constants.FamilySQL)
 	applying := entity.Change{Status: constants.ChangeApplying}
-	if err := flow.Reject(context.Background(), &applying); !errors.Is(err, constants.ErrConflict) {
+	if err := flow.Reject(context.Background(), &applying, "reviewer"); !errors.Is(err, constants.ErrConflict) {
 		t.Fatalf("reject applying error = %v, want conflict", err)
 	}
 	applied := entity.Change{Status: constants.ChangeApplied}
-	if err := flow.Reject(context.Background(), &applied); err == nil {
+	if err := flow.Reject(context.Background(), &applied, "reviewer"); err == nil {
 		t.Fatal("reject applied change succeeded")
+	}
+	rejected := entity.Change{Status: constants.ChangeValidated}
+	if err := flow.Reject(context.Background(), &rejected, "reviewer"); err != nil || rejected.RejectedBy != "reviewer" {
+		t.Fatalf("reject actor=%q error=%v", rejected.RejectedBy, err)
 	}
 }
 
@@ -59,8 +63,11 @@ func TestScheduleApplyableAndDueBoundaries(t *testing.T) {
 	flow := New(&testStore{}, constants.FamilySQL)
 	change := entity.Change{ID: "change", Status: constants.ChangeApproved}
 	future := time.Now().Add(time.Minute).Unix()
-	if err := flow.Schedule(context.Background(), &change, future); err != nil {
+	if err := flow.Schedule(context.Background(), &change, future, "reviewer"); err != nil {
 		t.Fatalf("schedule future: %v", err)
+	}
+	if change.ScheduledBy != "reviewer" {
+		t.Fatalf("scheduled by=%q, want reviewer", change.ScheduledBy)
 	}
 	if err := Applyable(&change, future-1); err == nil {
 		t.Fatal("future schedule was applyable")
@@ -71,7 +78,7 @@ func TestScheduleApplyableAndDueBoundaries(t *testing.T) {
 	if !Due(change, future) || Due(change, future-1) {
 		t.Fatalf("due boundary at %d is wrong", future)
 	}
-	if err := flow.Schedule(context.Background(), &change, 0); err != nil {
+	if err := flow.Schedule(context.Background(), &change, 0, "reviewer"); err != nil {
 		t.Fatalf("clear schedule: %v", err)
 	}
 	if Due(change, future) {

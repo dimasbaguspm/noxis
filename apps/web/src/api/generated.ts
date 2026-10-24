@@ -2708,9 +2708,11 @@ export interface components {
             affectedTables?: string[];
             appliedAffected?: number;
             appliedAt?: number;
+            appliedBy?: string;
             appliedDurationMs?: number;
             applyingAt?: number;
             approvedAt?: number;
+            approvedBy?: string;
             checks?: components["schemas"]["entity.ChangeCheck"][];
             connection: string;
             createdAt?: number;
@@ -2724,12 +2726,14 @@ export interface components {
             notes: string;
             query: string;
             rejectedAt?: number;
+            rejectedBy?: string;
             rollback: string;
             /**
              * @description ScheduledAt is the unix time the change should run; 0 means execute
              *     immediately (on manual apply, as before).
              */
             scheduledAt?: number;
+            scheduledBy?: string;
             scratchSchema?: string;
             /** @description validated | unverified | failed | approved | applying | applied | rejected */
             status?: string;
