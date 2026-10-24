@@ -10,8 +10,7 @@ import (
 	"noxis/internal/usecases"
 )
 
-// driverCatalog is the only source of the console's driver pickers: a driver is
-// code, not data, so no UI constant can drift from the server.
+// driverCatalog is the only source of the console's driver pickers: a driver is code, not data, so no UI constant can drift from the server.
 var driverCatalog = []entity.DriverInfo{
 	{Driver: constants.DriverPostgres, Family: constants.FamilySQL, Label: "PostgreSQL"},
 	{Driver: constants.DriverMySQL, Family: constants.FamilySQL, Label: "MySQL / MariaDB"},

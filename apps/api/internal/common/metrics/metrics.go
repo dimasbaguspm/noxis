@@ -1,9 +1,4 @@
-// Package metrics holds the instruments the API records into. The catalog in
-// the constants package is the single source of truth — every name, kind and
-// label key comes from there, so a call site and the catalog cannot drift.
-//
-// A nil *Metrics is safe to record into: a use case built by hand in a test
-// carries no instrumentation and every method is a no-op.
+// Package metrics builds API instruments from the constants catalog.
 package metrics
 
 import (
@@ -29,8 +24,7 @@ type Metrics struct {
 	UsecaseErrors  metric.Int64Counter
 	SchedulerTicks metric.Int64Counter
 
-	// built records which catalog entries got an instrument, so a test can
-	// prove none was forgotten.
+	// built records which catalog entries got an instrument, so a test can prove none was forgotten.
 	built []string
 }
 
@@ -79,8 +73,7 @@ func New(meter metric.Meter) (*Metrics, error) {
 	return m, nil
 }
 
-// UsecaseError counts a use case that ended in an error, labelled with the use
-// case and the status the caller saw.
+// UsecaseError counts a use case that ended in an error, labelled with the use case and the status the caller saw.
 func (m *Metrics) UsecaseError(ctx context.Context, usecase, status string) {
 	if m == nil {
 		return

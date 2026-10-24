@@ -1,9 +1,6 @@
 package constants
 
-// Metric catalog. Every metric name and label key is registered here so the
-// call sites and the (separate) collector task agree on one spelling. Names
-// carry no application prefix. Wiring the instruments is a separate task; this
-// file only fixes the vocabulary.
+// Metric catalog. Every metric name and label key is registered here so the call sites and the (separate) collector task agree on one spelling.
 
 // MetricKind is the instrument a metric is recorded with.
 type MetricKind string
@@ -35,8 +32,7 @@ const (
 	LabelUsecase = "usecase"
 )
 
-// Metric is one registered metric definition: the name, its instrument and the
-// label keys a sample carries.
+// Metric is one registered metric definition: the name, its instrument and the label keys a sample carries.
 type Metric struct {
 	Name   string
 	Kind   MetricKind

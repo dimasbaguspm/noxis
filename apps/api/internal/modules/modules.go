@@ -1,7 +1,4 @@
-// Package modules contains the engine-family adapters (SQL, memory-cache,
-// MongoDB) and the registry that names them. Registry is a single reference
-// interface every layer receives — passed explicitly, so a use case resolves
-// an engine from a dependency, never from the request context.
+// Package modules contains engine adapters and the explicit registry use cases receive.
 package modules
 
 import (
@@ -16,34 +13,27 @@ import (
 	"noxis/internal/modules/sql"
 )
 
-// Registry resolves an engine family by its {engine} name and by driver, and
-// carries the process auth service. It is the one handle to the built-in
-// adapters and services; nothing else declares a module map.
+// Registry resolves an engine family by its {engine} name and by driver, and carries the process auth service.
 type Registry interface {
-	// Engine resolves the module named by an engine family. A family that is
-	// not registered is unsupported (404).
+	// Engine resolves the module named by an engine family.
 	Engine(name string) (interfaces.Module, error)
 	EngineSQL(name string) (interfaces.SQLModule, error)
 	EngineMongo(name string) (interfaces.MongoModule, error)
 	EngineMemcache(name string) (interfaces.MemcacheModule, error)
-	// Serves reports the family that serves a driver, rather than a
-	// hardcoded driver-to-family switch.
+	// Serves reports the family that serves a driver, rather than a hardcoded driver-to-family switch.
 	Serves(driver string) (interfaces.Module, bool)
 	// Auth is the process auth service: local accounts plus OIDC.
 	Auth() *auth.Service
-	// Changes is every family's change queue, so a use case reaches the flow it
-	// serves the same way it reaches an engine.
+	// Changes is every family's change queue, so a use case reaches the flow it serves the same way it reaches an engine.
 	Changes() interfaces.ChangeFlows
 }
 
-// New wraps a family map, the change queues and the auth service in a registry
-// (Default builds the built-in set).
+// New wraps a family map, the change queues and the auth service in a registry (Default builds the built-in set).
 func New(mods map[string]interfaces.Module, changes interfaces.ChangeFlows, authSvc *auth.Service) Registry {
 	return registry{mods: mods, changes: changes, auth: authSvc}
 }
 
-// Default builds the built-in registry: every engine family, its change queue
-// and the auth service, so nothing else declares what the process can do.
+// Default builds the built-in registry: every engine family, its change queue and the auth service, so nothing else declares what the process can do.
 func Default(connections interfaces.ConnectionRepository, store interfaces.ChangeRepository, m *metrics.Metrics, authSvc *auth.Service) Registry {
 	sqlDB, mongoDB := sql.New(), mongodb.New()
 	return New(

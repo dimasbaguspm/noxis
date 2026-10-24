@@ -24,8 +24,7 @@ import (
 
 const shutdownTimeout = 10 * time.Second
 
-// newDeps assembles the runtime container once: the stores, the registry (with
-// the auth service) and the transport values, then builds every use case.
+// newDeps assembles the runtime container once: the stores, the registry (with the auth service) and the transport values, then builds every use case.
 func newDeps(store *sqlite.Store, cfg config.Config, authSvc *auth.Service) app {
 	return newApp(sources{
 		Connections:    store,
@@ -40,18 +39,10 @@ func newDeps(store *sqlite.Store, cfg config.Config, authSvc *auth.Service) app 
 	})
 }
 
-// newHandler wires routes straight to use case methods. Each use case is an
-// http.Handler-shaped Serve(w, r): the route is the address, the use case owns
-// the request and the response, and there is no handler layer in between.
-//
-// Routes are generic over the engine family: `{engine}` names the family and
-// every Serve resolves its module from the registry. A family that does not
-// serve a route is refused by the use case (404) instead of reaching the wrong
-// module.
+// newHandler wires routes straight to use case methods.
 func newHandler(d app, cfg config.Config) http.Handler {
 	mux := http.NewServeMux()
-	// The public API is versioned and mounted under /external; internal triggers
-	// live under /internal; the console shell and health probes stay at the root.
+	// The public API is versioned and mounted under /external; internal triggers live under /internal; the console shell and health probes stay at the root.
 	const api = constants.APIPrefix
 
 	mux.HandleFunc("GET /healthz", getHealthz)
@@ -63,33 +54,28 @@ func newHandler(d app, cfg config.Config) http.Handler {
 	mux.HandleFunc("POST "+api+"/auth/logout", d.Logout.Serve)
 	mux.HandleFunc("POST "+api+"/auth/password", d.ChangePass.Serve)
 
-	// Connections: one generic route per operation, gated by the {engine} path
-	// parameter through the module registry.
+	// Connections: one generic route per operation, gated by the {engine} path parameter through the module registry.
 	mux.HandleFunc("GET "+api+"/engine/{engine}/connections", d.ConnectionList.Serve)
 	mux.HandleFunc("POST "+api+"/engine/{engine}/connections", d.SaveConnection.Serve)
 	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}", d.Connection.Serve)
 	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}", d.DeleteConnection.Serve)
 	mux.HandleFunc("POST "+api+"/engine/{engine}/connections/{name}/test", d.TestConnection.Serve)
 
-	// Permissions: per-connection RBAC policy (users and groups), managed by
-	// admins. The matrix is the per-instance overview the directory links to.
+	// Permissions: per-connection RBAC policy (users and groups), managed by admins.
 	mux.HandleFunc("GET "+api+"/config/members", d.Members.Serve)
 	mux.HandleFunc("GET "+api+"/access", d.AccessMatrix.Serve)
 
-	// Access requests: a user asks, an admin or the instance's admin decides. The
-	// decision writes the grant and its audit trail.
+	// Access requests: a user asks, an admin or the instance's admin decides.
 	mux.HandleFunc("POST "+api+"/access-requests", d.AccessCreate.Serve)
 	mux.HandleFunc("GET "+api+"/access-requests", d.AccessList.Serve)
 	mux.HandleFunc("POST "+api+"/access-requests/{id}/approve", d.AccessApprove.Serve)
 	mux.HandleFunc("POST "+api+"/access-requests/{id}/reject", d.AccessReject.Serve)
 
-	// Users: the admin directory. There is no local user creation; an account is
-	// created by the env bootstrap or by signing in through OIDC.
+	// Users: the admin directory.
 	mux.HandleFunc("GET "+api+"/users", d.UserList.Serve)
 	mux.HandleFunc("GET "+api+"/users/{subject}", d.UserGet.Serve)
 	mux.HandleFunc("PATCH "+api+"/users/{subject}", d.UserUpdate.Serve)
-	// The instance-scoped grant routes live under the engine path, so a family
-	// mismatch is reported like any other connection error.
+	// The instance-scoped grant routes live under the engine path, so a family mismatch is reported like any other connection error.
 	mux.HandleFunc("GET "+api+"/engine/{engine}/connections/{name}/permissions", d.ListPermissions.Serve)
 	mux.HandleFunc("PUT "+api+"/engine/{engine}/connections/{name}/permissions", d.SetPermission.Serve)
 	mux.HandleFunc("DELETE "+api+"/engine/{engine}/connections/{name}/permissions", d.DeletePermission.Serve)
@@ -126,14 +112,10 @@ func newHandler(d app, cfg config.Config) http.Handler {
 	mux.Handle("GET /assets/", http.HandlerFunc(getAssets)) // embedded FS keeps the assets/ prefix
 	mux.HandleFunc("GET /", getConsole)                     // the operator console (SPA shell)
 
-	// Scheduling: an external service drives due changes through this trigger,
-	// authenticated with the shared scheduler key + secret; there is no in-process
-	// scheduler and no ticker sidecar.
+	// Scheduling uses an authenticated external callback; no in-process ticker runs.
 	mux.Handle("POST /internal/callback/scheduler", middlewares.WithSchedulerAuth(cfg.SchedulerKey, cfg.SchedulerSecret, http.HandlerFunc(d.Tick.Serve)))
 
-	// Instances address a connection by its stable id, across families. The
-	// family routes live under {api}/engine/{engine}/..., so these paths never
-	// collide with the {engine} wildcard.
+	// Instances address a connection by its stable id, across families. The family routes live under {api}/engine/{engine}/..., so these paths never collide with the {engine} wildcard.
 	mux.HandleFunc("GET "+api+"/instances", d.Instances.Serve)
 	mux.HandleFunc("GET "+api+"/instances/{id}", d.Instance.Serve)
 	mux.HandleFunc("POST "+api+"/instances/{id}/password", d.RotatePassword.Serve)
@@ -155,8 +137,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 	if err != nil {
 		return err
 	}
-	// pass a nil interface (not a typed-nil *auth.OIDC) so the service knows OIDC
-	// is off
+	// pass a nil interface (not a typed-nil *auth.OIDC) so the service knows OIDC is off
 	var verifier interfaces.Verifier
 	if oidc != nil {
 		verifier = oidc
@@ -170,10 +151,7 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 		return err
 	}
 
-	// CORS, then the request trace, then authentication, then request logging:
-	// the span covers the whole request (a refused token is traced too), and the
-	// request log runs after the principal is attached, so the user's log fields
-	// are set once, in the middleware layer.
+	// Middleware order is CORS → trace → auth → request log, so denied tokens are traced and actor fields attach after auth.
 	handler := middlewares.CORS(middlewares.Trace(middlewares.WithAuth(authSvc, middlewares.RequestLog(newHandler(d, cfg), log), log)))
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler}
 	// every request ctx descends from ours

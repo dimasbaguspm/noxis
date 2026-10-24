@@ -8,9 +8,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// The four supported SQL drivers and the dialect decisions that differ between
-// them. Real execution is covered by the UAT compatibility suite (postgres,
-// mysql, mariadb) and the SQLite tests; this pins the differences in one table.
+// The four supported SQL drivers and the dialect decisions that differ between them.
 func TestDriverCompatibility(t *testing.T) {
 	cases := []struct {
 		driver       string
@@ -52,8 +50,7 @@ func TestDriverCompatibility(t *testing.T) {
 	}
 }
 
-// A DSN is built per driver: pgx takes a URL, the mysql driver its own format,
-// and SQLite is a file path.
+// A DSN is built per driver: pgx takes a URL, the mysql driver its own format, and SQLite is a file path.
 func TestDSNPerDriver(t *testing.T) {
 	pg, err := dsn(entity.Connection{Driver: constants.DriverPostgres, Host: "db", Port: 5432, User: "u", Password: "p", Database: "demo"})
 	if err != nil || !strings.HasPrefix(pg, "postgres://u:p@db:5432/demo") {

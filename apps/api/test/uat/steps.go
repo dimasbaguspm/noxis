@@ -30,8 +30,7 @@ type changeBody struct {
 func (w *world) steps(sc *godog.ScenarioContext) {
 	sc.Before(func(ctx context.Context, s *godog.Scenario) (context.Context, error) {
 		w.reset()
-		// A @stub scenario records or replays the shared store instead of calling
-		// the API, so it runs with or without the stack.
+		// A @stub scenario records or replays the shared store instead of calling the API, so it runs with or without the stack.
 		if hasTag(s, "@stub") && (envTrue("UAT_STUB") || envTrue("UAT_RECORD")) {
 			w.client.Stub = &kit.Stub{Dir: stubDir, Record: envTrue("UAT_RECORD")}
 		}
@@ -99,8 +98,7 @@ func (w *world) registerConnection(ctx context.Context, name string) error {
 	return w.registerSQL(ctx, name, "postgres")
 }
 
-// registerConnectionDriver registers a non-postgres SQL target. The driver name
-// is also the target key (mariadb).
+// registerConnectionDriver registers a non-postgres SQL target.
 func (w *world) registerConnectionDriver(ctx context.Context, name, driver string) error {
 	return w.registerSQL(ctx, name, driver)
 }
@@ -140,9 +138,7 @@ func (w *world) listRedacted(ctx context.Context) error {
 	if code != http.StatusOK {
 		return fmt.Errorf("list connections: %d", code)
 	}
-	// the wire omits the field entirely (json:"password,omitempty"), so the
-	// strongest check is that no key named password is present at all — not a
-	// substring match, which a host name or a subject can trip.
+	// Assert the password key is absent; substring checks can match unrelated host names or subjects.
 	if strings.Contains(strings.ToLower(body), `"password"`) {
 		return fmt.Errorf("connection list must not carry a password: %s", body)
 	}
@@ -236,8 +232,7 @@ func (w *world) apply(ctx context.Context) error {
 	return w.changeAction("/apply")
 }
 
-// submitScheduledChange is submitChange with a due schedule, so the tick has
-// something to pick up without waiting.
+// submitScheduledChange is submitChange with a due schedule, so the tick has something to pick up without waiting.
 func (w *world) submitScheduledChange(ctx context.Context, query, rollback string) error {
 	w.change = changeBody{}
 	body := map[string]any{
@@ -264,8 +259,7 @@ func (w *world) tickScheduler(ctx context.Context) error {
 	return nil
 }
 
-// tick drives POST /internal/callback/scheduler and, on success, reloads the
-// change under test so the next status assertion sees the result.
+// tick drives POST /internal/callback/scheduler and, on success, reloads the change under test so the next status assertion sees the result.
 func (w *world) tick(ctx context.Context) error {
 	if err := w.send(kit.Request{
 		Method: http.MethodPost,
@@ -326,8 +320,7 @@ func (w *world) changeStillPresent(ctx context.Context) error {
 	return fmt.Errorf("change %s disappeared from the list", w.changeID)
 }
 
-// changeNotRecorded proves rejected proposals never enter the store: the
-// submit response carries no id and the list does not grow.
+// changeNotRecorded proves rejected proposals never enter the store: the submit response carries no id and the list does not grow.
 func (w *world) changeNotRecorded(ctx context.Context) error {
 	if w.changeID != "" {
 		return fmt.Errorf("failed change kept an id: %s", w.changeID)
@@ -353,8 +346,7 @@ func (w *world) changeScratchSchema(ctx context.Context) error {
 	return nil
 }
 
-// noScratchSchemas proves cleanup: no verification schema survived, pass or
-// fail.
+// noScratchSchemas proves cleanup: no verification schema survived, pass or fail.
 func (w *world) noScratchSchemas(ctx context.Context) error {
 	var body struct {
 		Tables []struct {
@@ -396,9 +388,7 @@ func (w *world) dryRun(ctx context.Context, sqlText string) error {
 	return nil
 }
 
-// dryRunRefused expects the driver to refuse a dry run: mysql-family engines
-// commit DDL implicitly, so a rolled-back transaction there would not be a dry
-// run at all.
+// dryRunRefused expects the driver to refuse a dry run: mysql-family engines commit DDL implicitly, so a rolled-back transaction there would not be a dry run at all.
 func (w *world) dryRunRefused(ctx context.Context, sqlText string) error {
 	w.result = resultBody{}
 	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/rollback", map[string]string{"sql": sqlText}, &w.result); err != nil {
@@ -491,8 +481,7 @@ func (w *world) erdPrimaryKey(ctx context.Context, connection, column string) er
 	return fmt.Errorf("no column %q is marked as a primary key in %+v", column, body.Tables)
 }
 
-// erdLinks asserts a declared foreign key becomes a relationship in the Mermaid
-// output, pointing from the parent to the child.
+// erdLinks asserts a declared foreign key becomes a relationship in the Mermaid output, pointing from the parent to the child.
 func (w *world) erdLinks(ctx context.Context, connection, child, parent string) error {
 	body, _, err := w.erd(ctx, connection)
 	if err != nil {
@@ -508,8 +497,7 @@ func (w *world) erdLinks(ctx context.Context, connection, child, parent string) 
 
 func (w *world) tableRows(ctx context.Context, table string, want int) error {
 	w.result = resultBody{}
-	// no schema parameter: the driver's own default resolves the table, which is
-	// what keeps the step driver-agnostic
+	// no schema parameter: the driver's own default resolves the table, which is what keeps the step driver-agnostic
 	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn+"/tables/"+table+"/rows", nil, &w.result); err != nil {
 		return err
 	}

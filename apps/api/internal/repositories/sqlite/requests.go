@@ -26,8 +26,7 @@ func scanRequest(row scanner) (*entity.AccessRequest, error) {
 	return r, nil
 }
 
-// CreateAccessRequest stores a pending request and records the "requested"
-// event in the same transaction.
+// CreateAccessRequest stores a pending request and records the "requested" event in the same transaction.
 func (s *Store) CreateAccessRequest(ctx context.Context, r entity.AccessRequest) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -51,8 +50,7 @@ func (s *Store) CreateAccessRequest(ctx context.Context, r entity.AccessRequest)
 	return tx.Commit()
 }
 
-// PendingRequestExists reports whether the subject already has an open request
-// for the connection.
+// PendingRequestExists reports whether the subject already has an open request for the connection.
 func (s *Store) PendingRequestExists(ctx context.Context, subject, connection string) (open bool, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -91,8 +89,7 @@ func (s *Store) ListAccessRequests(ctx context.Context, subject string) (out []e
 	return out, rows.Err()
 }
 
-// ListPendingRequests returns pending requests, optionally restricted to the
-// given connections. A nil slice means every connection.
+// ListPendingRequests returns pending requests, optionally restricted to the given connections.
 func (s *Store) ListPendingRequests(ctx context.Context, connections []string) (out []entity.AccessRequest, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -123,8 +120,7 @@ func (s *Store) ListPendingRequests(ctx context.Context, connections []string) (
 	return out, rows.Err()
 }
 
-// SetAccessRequestDecision closes a pending request and records the decision
-// event. It refuses to touch a request that was already decided.
+// SetAccessRequestDecision closes a pending request and records the decision event.
 func (s *Store) SetAccessRequestDecision(ctx context.Context, id, status, decidedBy string, decidedAt int64, note string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()

@@ -24,8 +24,7 @@ type Collection struct {
 	Capped         bool   `json:"capped"`
 }
 
-// MongoRequest is one CRUD request: the filter and the value are separate
-// documents, both written as MongoDB Extended JSON.
+// MongoRequest is one CRUD request: the filter and the value are separate documents, both written as MongoDB Extended JSON.
 type MongoRequest struct {
 	Op         string `json:"op"`
 	Database   string `json:"database"`

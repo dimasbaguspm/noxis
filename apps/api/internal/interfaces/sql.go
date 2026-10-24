@@ -14,14 +14,11 @@ type (
 	Column = entity.Column
 )
 
-// Module is what any engine family must provide for a connection to be
-// registered and tested. Adding an engine starts here.
+// Module is what any engine family must provide for a connection to be registered and tested.
 type Module interface {
-	// Family is the API namespace this module serves (constants.FamilySQL,
-	// constants.FamilyMemcache).
+	// Family is the API namespace this module serves (constants.FamilySQL, constants.FamilyMemcache).
 	Family() string
-	// Supports reports whether this module serves the driver, which keeps a
-	// connection out of the other families' namespaces.
+	// Supports reports whether this module serves the driver, which keeps a connection out of the other families' namespaces.
 	Supports(driver string) bool
 	Ping(ctx context.Context, c entity.Connection) error
 }
@@ -39,13 +36,11 @@ type SQLModule interface {
 	Rows(ctx context.Context, c entity.Connection, schema, table string, limit int) (Result, error)
 	VerifyWrite(sqlText string) error
 	Kind(sqlText string) string
-	// Referenced reports the tables and columns a batch mentions, so a change
-	// records what it touches without the caller parsing SQL.
+	// Referenced reports the tables and columns a batch mentions, so a change records what it touches without the caller parsing SQL.
 	Referenced(sqlText string) (tables []string, columns []string)
 }
 
-// ErrUnverifiable reports that a change cannot be dry-run on this driver
-// (mysql commits DDL implicitly), so validation is skipped honestly.
+// ErrUnverifiable reports that a change cannot be dry-run on this driver (mysql commits DDL implicitly), so validation is skipped honestly.
 var ErrUnverifiable = errors.New("unverifiable on this driver")
 
 // IsUnverifiable reports the driver-cannot-dry-run case.

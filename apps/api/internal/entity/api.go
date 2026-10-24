@@ -1,12 +1,8 @@
 package entity
 
-// The HTTP contract. Every request body and response envelope the REST API
-// accepts or serves is declared here, next to the model it carries: a client
-// reads its types from one place, and no use case builds a map instead.
+// The HTTP contract.
 
-// AuthConfig is the public auth configuration the console bootstraps from:
-// which methods are available and, when OIDC is on, the issuer and client id
-// (neither is a secret).
+// AuthConfig is the public auth configuration the console bootstraps from: which methods are available and, when OIDC is on, the issuer and client id (neither is a secret).
 type AuthConfig struct {
 	Local bool        `json:"local"`
 	OIDC  *OIDCConfig `json:"oidc,omitempty"`
@@ -18,8 +14,7 @@ type OIDCConfig struct {
 	ClientID string `json:"clientId"`
 }
 
-// LoginRequest is the local credentials payload. Email is the account
-// identifier: the env root signs in with NOXIS_ADMIN_EMAIL.
+// LoginRequest is the local credentials payload.
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -37,15 +32,13 @@ type PasswordChange struct {
 	NewPassword string `json:"newPassword"`
 }
 
-// AccessGrant is the caller's effective level on a connection and when it
-// lapses. A super admin's grant never expires (ExpiresAt 0).
+// AccessGrant is the caller's effective level on a connection and when it lapses.
 type AccessGrant struct {
 	Level     string `json:"level"`
 	ExpiresAt int64  `json:"expiresAt"`
 }
 
-// MeResponse is the caller plus the effective grant it holds on each readable
-// connection, so the console can gate actions without guessing.
+// MeResponse is the caller plus the effective grant it holds on each readable connection, so the console can gate actions without guessing.
 type MeResponse struct {
 	Identity
 	Connections map[string]AccessGrant `json:"connections"`
@@ -73,8 +66,7 @@ type ChangeList struct {
 	Total   int      `json:"total"`
 }
 
-// MongoChangeRequest is one submitted MongoDB request: the connection and notes
-// of a change, plus the request itself, flat so the console sends one object.
+// MongoChangeRequest is one submitted MongoDB request: the connection and notes of a change, plus the request itself, flat so the console sends one object.
 type MongoChangeRequest struct {
 	Connection string `json:"connection"`
 	Notes      string `json:"notes"`
@@ -86,8 +78,7 @@ type ScheduleRequest struct {
 	ScheduledAt int64 `json:"scheduledAt"`
 }
 
-// TickResult is one scheduler pass: the ids it applied and the ids it failed to
-// apply (the failure is already recorded on the change itself).
+// TickResult is one scheduler pass: the ids it applied and the ids it failed to apply (the failure is already recorded on the change itself).
 type TickResult struct {
 	Applied []string `json:"applied"`
 	Failed  []string `json:"failed"`
@@ -105,8 +96,7 @@ type PermissionGrant struct {
 	Level      string `json:"level"`
 }
 
-// Member is one pickable account: the subject a permission stores and a human
-// label for the console.
+// Member is one pickable account: the subject a permission stores and a human label for the console.
 type Member struct {
 	Subject string `json:"subject"`
 	Label   string `json:"label"`
@@ -119,9 +109,7 @@ type MemberList struct {
 	Users  []Member `json:"users"`
 }
 
-// InstanceAccess is one instance with its whole access policy: who holds what,
-// and until when. It is metadata only — a grant here says nothing about the
-// caller's own reach.
+// InstanceAccess is one instance with its whole access policy: who holds what, and until when.
 type InstanceAccess struct {
 	ID          string       `json:"id"`
 	Connection  string       `json:"connection"`
@@ -162,8 +150,7 @@ type CacheDeleteResult struct {
 	Deleted int64 `json:"deleted"`
 }
 
-// CacheFlushRequest is the flush payload: Confirm must repeat the connection
-// name.
+// CacheFlushRequest is the flush payload: Confirm must repeat the connection name.
 type CacheFlushRequest struct {
 	Confirm string `json:"confirm"`
 }
@@ -183,8 +170,7 @@ type TableList struct {
 	Tables []Table `json:"tables"`
 }
 
-// OpRequest is the SQL console op payload: sql for query/alter/rollback, table
-// for analyze.
+// OpRequest is the SQL console op payload: sql for query/alter/rollback, table for analyze.
 type OpRequest struct {
 	SQL   string `json:"sql,omitempty"`
 	Table string `json:"table,omitempty"`
@@ -201,9 +187,7 @@ type LevelList struct {
 	Levels []LevelInfo `json:"levels"`
 }
 
-// DriverInfo is one entry of the driver catalog the console builds its pickers
-// from. A driver is code, not data, so the catalog is served from one place and
-// no UI constant drifts from the server.
+// DriverInfo is one entry in the server-owned driver picker catalog.
 type DriverInfo struct {
 	Driver string `json:"driver"`
 	Family string `json:"family"`
@@ -222,8 +206,7 @@ type UserDetail struct {
 	Events []AccessEvent `json:"events"`
 }
 
-// UserUpdate is the account patch payload. Both fields are optional; the caller
-// changes only what it sends.
+// UserUpdate is the account patch payload. Both fields are optional; the caller changes only what it sends.
 type UserUpdate struct {
 	Status *string `json:"status"`
 	Role   *string `json:"role"`

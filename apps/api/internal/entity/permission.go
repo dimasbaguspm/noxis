@@ -1,7 +1,6 @@
 package entity
 
-// Access levels a member can hold on one connection, weakest to strongest.
-// Enforcement is "at least this level", so read < write < admin.
+// Access levels a member can hold on one connection, weakest to strongest. Enforcement is "at least this level", so read < write < admin.
 const (
 	LevelRead  = "read"
 	LevelWrite = "write"
@@ -18,8 +17,7 @@ var levelRank = map[string]int{
 	LevelAdmin: 3,
 }
 
-// LevelAllows reports whether have is at least need. An unknown level never
-// allows (default deny).
+// LevelAllows reports whether have is at least need. An unknown level never allows (default deny).
 func LevelAllows(have, need string) bool {
 	haveRank, ok := levelRank[have]
 	if !ok {
@@ -29,8 +27,7 @@ func LevelAllows(have, need string) bool {
 	return ok && haveRank >= needRank
 }
 
-// StrongestLevel returns the strongest known level in levels, or "" when none
-// is known. It collapses a caller's matching permissions into one effective level.
+// StrongestLevel returns the strongest known level in levels, or "" when none is known.
 func StrongestLevel(levels ...string) string {
 	best := ""
 	for _, level := range levels {
@@ -45,9 +42,7 @@ func StrongestLevel(levels ...string) string {
 	return best
 }
 
-// Permission binds one member to one connection at a level. A member is either
-// a user subject (local:<name> or an OIDC sub) or a group name. Noxis stores the
-// policy only — identity and membership come from the account row or the issuer.
+// Permission binds one member to one connection at a level. Noxis stores the policy only — identity and membership come from the account row or the issuer.
 type Permission struct {
 	Connection string `json:"connection,omitempty"`
 	Member     string `json:"member" validate:"required"`
@@ -59,8 +54,7 @@ type Permission struct {
 	UpdatedAt  int64  `json:"updatedAt"`
 }
 
-// Expired reports whether the grant has lapsed at now. A zero expiry means
-// "no expiry" and is only expected on rows written before the rule existed.
+// Expired reports whether the grant has lapsed at now. A zero expiry means "no expiry" and is only expected on rows written before the rule existed.
 func (p Permission) Expired(now int64) bool {
 	return p.ExpiresAt > 0 && p.ExpiresAt <= now
 }

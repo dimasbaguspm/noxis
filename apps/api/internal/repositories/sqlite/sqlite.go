@@ -1,5 +1,4 @@
-// Package sqlite persists connections and changes (SQLite via modernc,
-// cgo-free) — the app's only state.
+// Package sqlite persists connections and changes (SQLite via modernc, cgo-free) — the app's only state.
 package sqlite
 
 import (
@@ -34,18 +33,13 @@ var (
 	_ interfaces.AccessEventRepository = (*Store)(nil)
 )
 
-// Open opens the store and verifies it answers a ping. The parent directory
-// is created when missing and sqlite creates the file itself, so the app is
-// deployable with zero host-side files. An empty secretKey keeps passwords in
-// plaintext (open mode); a set key encrypts them at rest.
+// Open creates the database path, applies migrations and backfills, then verifies the store with a ping.
 func Open(ctx context.Context, path, secretKey string) (*Store, error) {
 	cipher, err := secret.New(secretKey)
 	if err != nil {
 		return nil, fmt.Errorf("open %s: %w", path, err)
 	}
-	// The bind-mount trap: docker creates a DIRECTORY at a missing bind
-	// target, and sqlite cannot open a directory ("unable to open database
-	// file (14)"). Name it instead of crash-looping.
+	// Reject missing file bind targets that Docker created as directories; SQLite cannot open them.
 	if fi, err := os.Stat(path); err == nil && fi.IsDir() {
 		return nil, fmt.Errorf("open %s: is a directory — bind-mount a folder (named volume), not a file", path)
 	}
@@ -65,13 +59,10 @@ func Open(ctx context.Context, path, secretKey string) (*Store, error) {
 		return nil, fmt.Errorf("schema: %w", err)
 	}
 	// pre-existing volumes: add columns introduced after the first release.
-	// Each step is independent and best-effort; duplicates are ignored.
 	for _, ddl := range migrations {
 		_, _ = db.Exec(ddl)
 	}
-	// instance ids were added after the first release: backfill existing rows,
-	// then enforce uniqueness (an index over the not-yet-filled column would
-	// collide on the empty default).
+	// instance ids were added after the first release: backfill existing rows, then enforce uniqueness (an index over the not-yet-filled column would collide on the empty default).
 	if err := backfillConnectionIDs(ctx, db); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("backfill connection ids: %w", err)
@@ -101,8 +92,7 @@ func Open(ctx context.Context, path, secretKey string) (*Store, error) {
 	return s, nil
 }
 
-// migrateGrantsToPermissions moves a pre-rename connection_grants table into
-// permissions once, then drops it. Fresh databases have no such table.
+// migrateGrantsToPermissions moves a pre-rename connection_grants table into permissions once, then drops it.
 func migrateGrantsToPermissions(ctx context.Context, db *sql.DB) error {
 	var name string
 	err := db.QueryRowContext(ctx,
@@ -122,9 +112,7 @@ func migrateGrantsToPermissions(ctx context.Context, db *sql.DB) error {
 	return err
 }
 
-// backfillAccessExpiry gives every permission written before the 120-day rule
-// an expiry and attributes it to "system". Rows with an expiry are left alone,
-// so it is effectively one-time.
+// backfillAccessExpiry assigns the default expiry to legacy grants and leaves existing expiries unchanged.
 func backfillAccessExpiry(ctx context.Context, db *sql.DB) error {
 	now := time.Now()
 	if _, err := db.ExecContext(ctx,
@@ -136,8 +124,7 @@ func backfillAccessExpiry(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-// migrations are applied best-effort; duplicates (fresh databases) error and
-// are ignored.
+// migrations are applied best-effort; duplicates (fresh databases) error and are ignored.
 var migrations = []string{
 	`ALTER TABLE changes ADD COLUMN kind TEXT NOT NULL DEFAULT ''`,
 	`ALTER TABLE changes ADD COLUMN rejected_at INTEGER NOT NULL DEFAULT 0`,
@@ -153,8 +140,7 @@ var migrations = []string{
 	`ALTER TABLE users ADD COLUMN last_login_at INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE users ADD COLUMN is_super INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT ''`,
-	// legacy local accounts were namespaced by username: keep it as the email
-	// so the account keeps signing in by the name it was created with
+	// legacy local accounts were namespaced by username: keep it as the email so the account keeps signing in by the name it was created with
 	`UPDATE users SET email = username WHERE email = '' AND username != ''`,
 	`CREATE UNIQUE INDEX IF NOT EXISTS users_email ON users(email) WHERE email != ''`,
 	`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'member'`,
@@ -197,8 +183,7 @@ var migrations = []string{
 	`ALTER TABLE changes ADD COLUMN scheduled_by TEXT NOT NULL DEFAULT ''`,
 }
 
-// backfillConnectionIDs gives every pre-migration row a stable id. New rows
-// get one in Save; this only touches legacy volumes.
+// backfillConnectionIDs gives every pre-migration row a stable id. New rows get one in Save; this only touches legacy volumes.
 func backfillConnectionIDs(ctx context.Context, db *sql.DB) error {
 	rows, err := db.QueryContext(ctx, `SELECT name FROM connections WHERE id = '' OR id IS NULL`)
 	if err != nil {
@@ -296,8 +281,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users(username) WHERE userna
 -- one active token per account; empty means logged out
 CREATE UNIQUE INDEX IF NOT EXISTS users_token_hash ON users(token_hash) WHERE token_hash != '';`
 
-// encryptLegacyPasswords seals rows written before a key was set, so a store
-// that gains a key converges to ciphertext. No-op without a key.
+// encryptLegacyPasswords seals rows written before a key was set, so a store that gains a key converges to ciphertext.
 func (s *Store) encryptLegacyPasswords(ctx context.Context) error {
 	if s.secret == nil {
 		return nil
@@ -339,8 +323,7 @@ func (s *Store) Close() { _ = s.db.Close() }
 // scanner is the shared row/rows interface.
 type scanner interface{ Scan(dest ...any) error }
 
-// queryRows runs a query and scans every row with scan (shared by the list
-// methods, so the iteration lives in one place).
+// queryRows runs a query and scans every row with scan (shared by the list methods, so the iteration lives in one place).
 func queryRows[T any](ctx context.Context, db *sql.DB, q string, scan func(scanner) (T, error)) ([]T, error) {
 	rows, err := db.QueryContext(ctx, q)
 	if err != nil {

@@ -18,8 +18,7 @@ import (
 	"noxis/internal/usecases/access"
 )
 
-// harness is the access-request world: one connection, alice holding admin on
-// it, and an in-memory policy built on the repository mocks.
+// harness is the access-request world: one connection, alice holding admin on it, and an in-memory policy built on the repository mocks.
 type harness struct {
 	deps     usecases.RegistryDeps
 	grants   map[string]entity.Permission

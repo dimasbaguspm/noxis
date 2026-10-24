@@ -1,5 +1,4 @@
-// Package metadata holds the read-only catalogs the console bootstraps from, so
-// the frontend follows the backend's values instead of keeping its own copy.
+// Package metadata holds the read-only catalogs the console bootstraps from, so the frontend follows the backend's values instead of keeping its own copy.
 package metadata
 
 import (

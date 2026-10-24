@@ -24,12 +24,7 @@ var constraints = map[string]bool{
 
 // Referenced extracts the tables and columns a batch mentions.
 //
-// ponytail: keyword-anchored best effort, not a SQL parser — it finds
-// FROM/JOIN/UPDATE/INTO/TABLE/REFERENCES targets plus INSERT column lists,
-// UPDATE SET targets and qualified references. REFERENCES matters to the scratch
-// verifier: a table named only by a foreign key still has to be mirrored there,
-// or the mysql-family (which has no search_path fallback) rejects the change. Enough to tell a reviewer what a change
-// touches; the dry run is what proves the change valid.
+// shortcut: references use keyword matching, not a SQL parser; replace it when dialect coverage or precise blast radius is required.
 func Referenced(sqlText string) (tables []string, columns []string) {
 	tableSet := map[string]bool{}
 	columnSet := map[string]bool{}
@@ -65,8 +60,7 @@ func Referenced(sqlText string) (tables []string, columns []string) {
 				}
 			}
 		}
-		// qualified references (t.col) — with the table targets removed so
-		// "ALTER TABLE public.items" does not register "items" as a column
+		// qualified references (t.col) — with the table targets removed so "ALTER TABLE public.items" does not register "items" as a column
 		body := tableRef.ReplaceAllString(stmt, " _target_ ")
 		for _, match := range qualified.FindAllStringSubmatch(body, -1) {
 			if name := cleanIdent(match[1]); name != "" {
@@ -78,9 +72,7 @@ func Referenced(sqlText string) (tables []string, columns []string) {
 	return sorted(tableSet), sorted(columnSet)
 }
 
-// createdTables lists the tables a batch itself creates, so the scratch
-// verifier does not mirror a table the change is about to create (which would
-// make a plain CREATE fail as "already exists").
+// createdTables finds tables the batch creates so scratch verification does not mirror them first.
 func createdTables(sqlText string) map[string]bool {
 	set := map[string]bool{}
 	for _, stmt := range splitStatements(sqlText) {
@@ -93,8 +85,7 @@ func createdTables(sqlText string) map[string]bool {
 	return set
 }
 
-// addList records the identifiers of a parenthesised list; for CREATE TABLE
-// bodies each item's first word is the column unless it starts a constraint.
+// addList records the identifiers of a parenthesised list; for CREATE TABLE bodies each item's first word is the column unless it starts a constraint.
 func addList(set map[string]bool, list string, firstOnly bool) {
 	for _, item := range strings.Split(list, ",") {
 		item = strings.TrimSpace(item)

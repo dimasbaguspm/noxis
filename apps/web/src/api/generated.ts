@@ -2728,10 +2728,7 @@ export interface components {
             rejectedAt?: number;
             rejectedBy?: string;
             rollback: string;
-            /**
-             * @description ScheduledAt is the unix time the change should run; 0 means execute
-             *     immediately (on manual apply, as before).
-             */
+            /** @description ScheduledAt is the unix time the change should run; 0 means execute immediately (on manual apply, as before). */
             scheduledAt?: number;
             scheduledBy?: string;
             scratchSchema?: string;
@@ -2778,16 +2775,10 @@ export interface components {
             database: string;
             /** @description postgres | mysql (mariadb aliases mysql) | sqlite */
             driver: string;
-            /**
-             * @description Family names the engine family that serves the driver. It is not
-             *     stored: the cross-family routes set it when serving.
-             */
+            /** @description Family names the engine family that serves the driver. It is not stored: the cross-family routes set it when serving. */
             family?: string;
             host?: string;
-            /**
-             * @description ID is the stable instance identifier used by the cross-family
-             *     /external/v1/instances routes. Permissions and changes still link by Name.
-             */
+            /** @description ID identifies an instance across families; permissions and changes still link by Name. */
             id?: string;
             name: string;
             /** @description extra DSN params (sslmode, ...) */
@@ -2954,10 +2945,7 @@ export interface components {
             message?: string;
             rows?: string[][];
             rowsReturned?: number;
-            /**
-             * @description ScratchSchema is set by change validation: the throwaway schema the
-             *     change was verified against, if any.
-             */
+            /** @description ScratchSchema is set by change validation: the throwaway schema the change was verified against, if any. */
             scratchSchema?: string;
         };
         "entity.ScheduleRequest": {

@@ -9,10 +9,7 @@ import (
 	"github.com/cucumber/godog"
 )
 
-// The memory-cache scenarios drive the /external/v1/engine/memcache namespace (Redis and
-// Valkey): browse keys with their type and TTL, inspect a value, remove keys,
-// and read INFO. Keys are seeded with the server's CLI inside the compose
-// stack because noXis deliberately has no "set a key" endpoint.
+// Memory-cache scenarios browse Redis/Valkey; server CLIs seed keys because noXis has no set-key endpoint.
 
 // redisKey is one entry of a browse.
 type redisKey struct {
@@ -51,14 +48,12 @@ func (w *world) registerRedis(ctx context.Context, name string) error {
 	return w.registerCache(ctx, name, "redis")
 }
 
-// registerValkey registers the compose valkey service: same protocol, its own
-// driver name, and it must be served by the same module.
+// registerValkey registers the compose valkey service: same protocol, its own driver name, and it must be served by the same module.
 func (w *world) registerValkey(ctx context.Context, name string) error {
 	return w.registerCache(ctx, name, "valkey")
 }
 
-// registerCache builds the memcache connection from the target the compose file
-// declares.
+// registerCache builds the memcache connection from the target the compose file declares.
 func (w *world) registerCache(ctx context.Context, name, key string) error {
 	t := targets[key]
 	conn := map[string]any{
@@ -180,8 +175,7 @@ func (w *world) redisFlush(ctx context.Context, confirm string) error {
 	return nil
 }
 
-// redisFlushRejected attempts the empty with a wrong confirmation and insists
-// it is refused: the guard is the whole point of the confirmation.
+// redisFlushRejected attempts the empty with a wrong confirmation and insists it is refused: the guard is the whole point of the confirmation.
 func (w *world) redisFlushRejected(ctx context.Context) error {
 	path := "/external/v1/engine/memcache/connections/" + w.conn + "/flush"
 	if err := w.api(http.MethodPost, path, map[string]string{"confirm": "not-the-name"}, nil); err != nil {

@@ -12,8 +12,7 @@ import (
 
 const testSecretKey = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
 
-// With a key the store must never persist plaintext: a legacy row is sealed on
-// open, and new writes are sealed on save.
+// With a key the store must never persist plaintext: a legacy row is sealed on open, and new writes are sealed on save.
 func TestPasswordsEncryptedAtRest(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "noxis.db")

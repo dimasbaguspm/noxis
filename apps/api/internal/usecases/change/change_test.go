@@ -25,8 +25,7 @@ func admin() *entity.Identity { return &entity.Identity{Subject: "root", Role: e
 
 const sampleSQL = `{"connection":"demo","notes":"add things","query":"CREATE TABLE things (id INT)","rollback":"DROP TABLE things"}`
 
-// harness is the change use case's dependency set: one SQL module whose
-// validation outcome the test controls, and a super admin's connection.
+// harness is the change use case's dependency set: one SQL module whose validation outcome the test controls, and a super admin's connection.
 type harness struct {
 	deps    usecases.RegistryDeps
 	sq      *mocks.MockSQLModule

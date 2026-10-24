@@ -8,8 +8,7 @@ import (
 	"noxis/internal/usecases"
 )
 
-// Matrix lists every instance with its grants, so an admin can see the access
-// landscape per instance without opening each connection.
+// Matrix lists every instance with its grants, so an admin can see the access landscape per instance without opening each connection.
 type Matrix struct{ usecases.RegistryDeps }
 
 // @Summary Every instance and its access policy (admin only)

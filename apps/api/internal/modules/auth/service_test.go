@@ -308,8 +308,7 @@ func TestTokenExpires(t *testing.T) {
 	}
 }
 
-// An OIDC identity is recorded as a reference row the first time it is seen, so
-// grants and the user directory can point at it.
+// An OIDC identity is recorded as a reference row the first time it is seen, so grants and the user directory can point at it.
 func TestVerifyRecordsOIDCSubject(t *testing.T) {
 	repo := newFakeUsers()
 	oidc := fakeVerifier{identity: entity.Identity{Subject: "oidc|42", Groups: []string{"dev"}}}
@@ -333,9 +332,7 @@ func TestServiceLocalOnlyRejects(t *testing.T) {
 	}
 }
 
-// An OIDC login whose verified email matches a local account signs in as that
-// account: same subject, same role. It is how the env root keeps one identity
-// whichever way it authenticates. An unverified claim never blends.
+// An OIDC login whose verified email matches a local account signs in as that account: same subject, same role. An unverified claim never blends.
 func TestVerifyBlendsVerifiedOIDCEmail(t *testing.T) {
 	repo := newFakeUsers()
 	ctx := context.Background()
@@ -363,8 +360,7 @@ func TestVerifyBlendsVerifiedOIDCEmail(t *testing.T) {
 	}
 }
 
-// An unverified or absent email_verified claim must not join a local account,
-// no matter which email it carries: it is recorded as a plain member reference.
+// An unverified or absent email_verified claim must not join a local account, no matter which email it carries: it is recorded as a plain member reference.
 func TestVerifyRejectsUnverifiedOIDCEmail(t *testing.T) {
 	repo := newFakeUsers()
 	ctx := context.Background()

@@ -9,8 +9,7 @@ import (
 	"noxis/internal/constants"
 )
 
-// TestNewBuildsTheWholeCatalog guards the one failure this package can have: a
-// catalog entry that no instrument was built for.
+// TestNewBuildsTheWholeCatalog guards the one failure this package can have: a catalog entry that no instrument was built for.
 func TestNewBuildsTheWholeCatalog(t *testing.T) {
 	m, err := New(noop.NewMeterProvider().Meter(Scope))
 	if err != nil {
@@ -30,8 +29,7 @@ func TestNewBuildsTheWholeCatalog(t *testing.T) {
 	}
 }
 
-// TestNilMetricsIsSafe pins that a use case built by hand records nothing and
-// never panics.
+// TestNilMetricsIsSafe pins that a use case built by hand records nothing and never panics.
 func TestNilMetricsIsSafe(t *testing.T) {
 	var m *Metrics
 	ctx := context.Background()

@@ -24,9 +24,7 @@ func getHealthz(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// getConsole serves the built SPA shell, or the placeholder. Unknown API paths
-// answer JSON 404 instead of the shell: a route that was renamed must fail
-// loudly, not hand the caller an HTML page with 200.
+// getConsole serves the SPA or placeholder; unknown API paths return JSON 404 instead of HTML.
 func getConsole(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.URL.Path, "/external/v1/") {
 		w.Header().Set("Content-Type", "application/json")

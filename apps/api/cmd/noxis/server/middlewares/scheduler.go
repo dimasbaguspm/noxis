@@ -12,9 +12,7 @@ import (
 	"time"
 )
 
-// The scheduler trigger is authenticated with a shared pair: the API key
-// identifies the caller (bearer), the secret signs the request. Both are
-// provisioned on noxis and on the external scheduler.
+// The scheduler trigger is authenticated with a shared pair: the API key identifies the caller (bearer), the secret signs the request.
 const (
 	SchedulerTimestampHeader = "X-Noxis-Timestamp"
 	SchedulerSignatureHeader = "X-Noxis-Signature"
@@ -23,8 +21,7 @@ const (
 	schedulerMaxBody = 1 << 20 // 1 MiB; the trigger carries no payload today
 )
 
-// SchedulerSignature is the hex HMAC-SHA256 over "<timestamp>.<body>", so a
-// replay with a different body (or a replayed timestamp) fails.
+// SchedulerSignature is the hex HMAC-SHA256 over "<timestamp>.<body>", so a replay with a different body (or a replayed timestamp) fails.
 func SchedulerSignature(secret, timestamp string, body []byte) string {
 	mac := hmac.New(sha256.New, []byte(secret))
 	_, _ = mac.Write([]byte(timestamp))
@@ -33,8 +30,7 @@ func SchedulerSignature(secret, timestamp string, body []byte) string {
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-// WithSchedulerAuth gates the scheduler trigger on the shared api key + secret.
-// An unset pair denies every call: the trigger is never open.
+// WithSchedulerAuth gates the scheduler trigger on the shared api key + secret. An unset pair denies every call: the trigger is never open.
 func WithSchedulerAuth(apiKey, secret string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if apiKey == "" || secret == "" {

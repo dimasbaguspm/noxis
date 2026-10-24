@@ -2,8 +2,7 @@ package sql
 
 import "strings"
 
-// Statement kind guards: query is read-only; alter takes every write (DML and
-// DDL). WITH is a write opener (CTEs can front INSERT/UPDATE/DELETE).
+// Statement kind guards: query is read-only; alter takes every write (DML and DDL).
 const (
 	readKinds  = "SELECT SHOW EXPLAIN DESCRIBE DESC"
 	dmlKinds   = "WITH INSERT UPDATE DELETE MERGE REPLACE"
@@ -16,9 +15,7 @@ const (
 	maxPreviewRows     = 500
 )
 
-// The database/sql driver each supported driver speaks, and the schema an
-// unqualified name resolves to. Named so the dialect code and its tests read the
-// same values.
+// The database/sql driver each supported driver speaks, and the schema an unqualified name resolves to. Named so the dialect code and its tests read the same values.
 const (
 	dbDriverPostgres = "pgx"
 	dbDriverMySQL    = "mysql"

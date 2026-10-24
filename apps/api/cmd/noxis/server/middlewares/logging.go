@@ -13,8 +13,7 @@ import (
 	"noxis/internal/common/logging"
 )
 
-// statusRecorder captures the response status written by a handler, so the
-// request log carries it.
+// statusRecorder captures the response status written by a handler, so the request log carries it.
 type statusRecorder struct {
 	http.ResponseWriter
 	status int
@@ -40,11 +39,7 @@ func (s *statusRecorder) statusCode() int {
 	return s.status
 }
 
-// Trace opens the request's span and records its outcome. It runs outside
-// WithAuth, so a request refused before the router — a missing or invalid
-// token — still has a trace it can be found by, and it closes the span with an
-// error when the handler answered 5xx, so a failed request is not recorded as a
-// success.
+// Trace opens a span before auth so rejected requests are traced and marks 5xx responses failed.
 func Trace(next http.Handler) http.Handler {
 	spanName := logging.CallerName(1)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -59,9 +54,7 @@ func Trace(next http.Handler) http.Handler {
 	})
 }
 
-// statusError reports a server-side failure, so the span is not marked successful
-// when the handler returned 5xx. A client error is a answered request, not a
-// broken one.
+// statusError reports a server-side failure, so the span is not marked successful when the handler returned 5xx.
 func statusError(code int) error {
 	if code >= http.StatusInternalServerError {
 		return fmt.Errorf("http %d", code)
@@ -69,11 +62,7 @@ func statusError(code int) error {
 	return nil
 }
 
-// RequestLog records method, path, route, status, duration and the caller of
-// every request that reached the router. It runs inside WithAuth, so the
-// authenticated principal is on the context: its attributes are attached to
-// the request span once — every downstream span in the trace carries them
-// without any deeper layer re-adding them.
+// RequestLog records each routed request and attaches the authenticated caller to its span once.
 func RequestLog(next http.Handler, log *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

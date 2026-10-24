@@ -1,7 +1,6 @@
 package entity
 
-// Change is a proposed database change (SQL + rollback + notes), moving
-// through submit → validate → approve → apply. Self-approval is allowed.
+// Change is a proposed database change (SQL + rollback + notes), moving through submit → validate → approve → apply.
 type Change struct {
 	ID          string        `json:"id"`
 	Connection  string        `json:"connection" validate:"required"`
@@ -30,8 +29,7 @@ type Change struct {
 	AppliedAffected   int64  `json:"appliedAffected,omitempty"`
 	AppliedDurationMs int64  `json:"appliedDurationMs,omitempty"`
 	ScratchSchema     string `json:"scratchSchema,omitempty"`
-	// ScheduledAt is the unix time the change should run; 0 means execute
-	// immediately (on manual apply, as before).
+	// ScheduledAt is the unix time the change should run; 0 means execute immediately (on manual apply, as before).
 	ScheduledAt int64 `json:"scheduledAt,omitempty"`
 }
 

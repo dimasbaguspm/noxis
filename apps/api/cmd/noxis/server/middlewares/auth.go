@@ -11,11 +11,7 @@ import (
 	"noxis/internal/interfaces"
 )
 
-// WithAuth requires a valid bearer token on every public API request. There is
-// no open mode: a nil verifier is a wiring bug and denies rather than trusting.
-// The console shell, assets, /healthz and the two pre-token auth endpoints stay
-// reachable so login can happen. A refusal is logged where it happens, because
-// the request never reaches the router's request log.
+// WithAuth fails closed without a bearer token; only console assets, health, config, and login bypass auth.
 func WithAuth(verifier interfaces.Verifier, next http.Handler, log *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, constants.APIPrefix+"/") || authPublic(r.URL.Path) {
@@ -40,15 +36,13 @@ func WithAuth(verifier interfaces.Verifier, next http.Handler, log *slog.Logger)
 	})
 }
 
-// reject answers 401 and records why. The reason is a fixed phrase: the
-// presented token is never logged.
+// reject answers 401 and logs a fixed reason without ever logging the token.
 func reject(w http.ResponseWriter, r *http.Request, log *slog.Logger, reason string) {
 	log.WarnContext(r.Context(), "auth rejected", "path", r.URL.Path, "reason", reason)
 	writeUnauthorized(w, reason)
 }
 
-// authPublic reports whether a path under the API prefix is reachable without a
-// token: the config probe and the login the console calls before it has one.
+// authPublic reports whether a path under the API prefix is reachable without a token: the config probe and the login the console calls before it has one.
 func authPublic(path string) bool {
 	switch path {
 	case constants.APIPrefix + "/auth/config", constants.APIPrefix + "/auth/login":

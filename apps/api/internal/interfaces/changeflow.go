@@ -6,9 +6,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// ChangeFlow is one engine family's change lifecycle: submit, review, apply.
-// The rules live with the engine that runs them, so a use case only authorizes
-// the caller, translates the request and answers.
+// ChangeFlow owns one family's change lifecycle; use cases authorize, translate, and answer.
 type ChangeFlow interface {
 	// Family is the engine family this flow serves.
 	Family() string
@@ -33,8 +31,7 @@ type MongoChangeFlow interface {
 	Submit(ctx context.Context, conn entity.Connection, actor, notes string, req MongoRequest) (entity.Change, error)
 }
 
-// ChangeFlows is every family's change queue, resolved together so a use case
-// reaches the one it serves through the registry.
+// ChangeFlows is every family's change queue, resolved together so a use case reaches the one it serves through the registry.
 type ChangeFlows struct {
 	SQL   SQLChangeFlow
 	Mongo MongoChangeFlow

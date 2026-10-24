@@ -18,8 +18,7 @@ type snapshotter interface {
 	load(t target, data []byte) error
 }
 
-// snapshotters maps a driver to its implementation. A family without one is
-// reported when a scenario asks for a snapshot; add its dump/restore here.
+// snapshotters maps a driver to its implementation. A family without one is reported when a scenario asks for a snapshot; add its dump/restore here.
 var snapshotters = map[string]snapshotter{
 	"postgres": postgresSnapshot{},
 	"mariadb":  mysqlSnapshot{},
@@ -64,8 +63,7 @@ func execTargetIn(data []byte, t target, env []string, args ...string) error {
 	return nil
 }
 
-// postgresSnapshot uses pg_dump / psql. --clean --if-exists makes the restore
-// drop what it is about to recreate.
+// postgresSnapshot uses pg_dump / psql. --clean --if-exists makes the restore drop what it is about to recreate.
 type postgresSnapshot struct{}
 
 func (postgresSnapshot) dump(t target) ([]byte, error) {
@@ -78,8 +76,7 @@ func (postgresSnapshot) load(t target, data []byte) error {
 		"psql", "-U", t.User, "-d", t.Database, "-q", "-v", "ON_ERROR_STOP=1")
 }
 
-// mysqlSnapshot uses mysqldump / mysql. --databases emits the CREATE DATABASE
-// and USE lines, so the restore is self-contained.
+// mysqlSnapshot uses mysqldump / mysql. --databases emits the CREATE DATABASE and USE lines, so the restore is self-contained.
 type mysqlSnapshot struct{}
 
 func (mysqlSnapshot) dump(t target) ([]byte, error) {

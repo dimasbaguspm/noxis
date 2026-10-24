@@ -1,6 +1,4 @@
-// Package logging wires slog + OTLP; traces and logs both leave through the
-// collector, and the ctx-aware fallback handler stamps trace_id/span_id into
-// every record when there is nowhere to export to.
+// Package logging wires slog and OTLP, adding trace ids to stdout records when no collector is configured.
 package logging
 
 import (
@@ -47,29 +45,25 @@ const (
 // Shutdown flushes telemetry; call on process exit.
 type Shutdown func(context.Context) error
 
-// OTLP is the telemetry target logging needs. It is a local struct so this
-// package never imports the config package — a sibling it must not depend on.
+// OTLP is the telemetry target logging needs. It is a local struct so this package never imports the config package — a sibling it must not depend on.
 type OTLP struct {
 	Collector string
 	Name      string
 }
 
 func New(ctx context.Context, otlp OTLP) (*slog.Logger, Shutdown, error) {
-	// A telemetry failure cannot be reported through the collector that just
-	// failed, so it goes to stderr where an operator always sees it.
+	// A telemetry failure cannot be reported through the collector that just failed, so it goes to stderr where an operator always sees it.
 	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
 		slog.New(slog.NewTextHandler(os.Stderr, nil)).
 			ErrorContext(context.Background(), "telemetry export failed", "error", err)
 	}))
-	// W3C trace context travels with requests: the middleware extracts a
-	// caller's traceparent so one trace spans browser, API and database.
+	// W3C trace context travels with requests: the middleware extracts a caller's traceparent so one trace spans browser, API and database.
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
 		propagation.Baggage{},
 	))
 
-	// No collector: nothing to export to, so records stay on stdout. An
-	// unconfigured deployment must not go silent.
+	// No collector: nothing to export to, so records stay on stdout.
 	if otlp.Collector == "" {
 		logger := stdoutLogger()
 		slog.SetDefault(logger)
@@ -86,8 +80,7 @@ func New(ctx context.Context, otlp OTLP) (*slog.Logger, Shutdown, error) {
 	tp := sdkTrace.NewTracerProvider(sdkTrace.WithBatcher(traceExp), sdkTrace.WithResource(res))
 	otel.SetTracerProvider(tp)
 
-	// Records carry their trace and span ids without help: the log SDK reads
-	// the active span off the record's context.
+	// Records carry their trace and span ids without help: the log SDK reads the active span off the record's context.
 	logExp, err := otlploghttp.New(ctx, otlploghttp.WithEndpointURL(signalURL(otlp.Collector, pathLogs)))
 	if err != nil {
 		return nil, nil, fmt.Errorf("otel log exporter: %w", err)
@@ -118,14 +111,12 @@ func New(ctx context.Context, otlp OTLP) (*slog.Logger, Shutdown, error) {
 	}, nil
 }
 
-// stdoutLogger is the fallback when no collector is configured: JSON on stdout
-// with the active span's ids stamped in.
+// stdoutLogger is the fallback when no collector is configured: JSON on stdout with the active span's ids stamped in.
 func stdoutLogger() *slog.Logger {
 	return slog.New(&ctxHandler{inner: slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})})
 }
 
-// newResource describes this process to every signal: the service, its build
-// version and the host it runs on.
+// newResource describes this process to every signal: the service, its build version and the host it runs on.
 func newResource(service string) *resource.Resource {
 	attrs := []attribute.KeyValue{semconv.ServiceName(service)}
 	if v := buildVersion(); v != "" {
@@ -137,8 +128,7 @@ func newResource(service string) *resource.Resource {
 	return resource.NewWithAttributes(semconv.SchemaURL, attrs...)
 }
 
-// buildVersion is the main module's version when the binary carries module
-// information, empty otherwise.
+// buildVersion is the main module's version when the binary carries module information, empty otherwise.
 func buildVersion() string {
 	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
 		return info.Main.Version
@@ -146,8 +136,7 @@ func buildVersion() string {
 	return ""
 }
 
-// ctxHandler injects the active span's ids into every record whose context
-// carries one. Only the stdout fallback needs it.
+// ctxHandler injects the active span's ids into every record whose context carries one. Only the stdout fallback needs it.
 type ctxHandler struct {
 	inner slog.Handler
 }
@@ -222,8 +211,7 @@ func (h *otelHandler) WithGroup(name string) slog.Handler {
 	}
 }
 
-// flatten turns slog attributes into OTel key-values, prefixing the group path
-// and recursing into nested groups.
+// flatten turns slog attributes into OTel key-values, prefixing the group path and recursing into nested groups.
 func flatten(groups []string, attrs ...slog.Attr) []attribute.KeyValue {
 	out := make([]attribute.KeyValue, 0, len(attrs))
 	for _, a := range attrs {
@@ -243,8 +231,7 @@ func flatten(groups []string, attrs ...slog.Attr) []attribute.KeyValue {
 	return out
 }
 
-// value keeps a record's attribute types instead of flattening everything to
-// a string.
+// value keeps a record's attribute types instead of flattening everything to a string.
 func value(v slog.Value) attribute.Value {
 	switch v.Kind() {
 	case slog.KindBool:
@@ -286,10 +273,7 @@ func firstNonEmpty(a, b string) string {
 
 func noShutdown(context.Context) error { return nil }
 
-// signalURL makes NOXIS_OTEL_COLLECTOR a URL an OTLP/HTTP exporter accepts. It
-// wants a scheme — https enables TLS, a bare host:port is plaintext http — and
-// a path, so a bare host gets the signal's own path. OTLP/HTTP rather than
-// gRPC: a collector behind a proxy answers gRPC's export path with a 403.
+// signalURL adds an HTTP scheme and signal path to a bare OTLP collector host.
 func signalURL(collector, path string) string {
 	raw := collector
 	if !strings.Contains(raw, "://") {

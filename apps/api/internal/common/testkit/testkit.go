@@ -1,6 +1,4 @@
-// Package testkit is the two helpers a use-case test needs to drive a Serve
-// method: a mux that fills the path values the router fills, and one request.
-// It holds no fakes: a test states its own expectations on the generated mocks.
+// Package testkit is the two helpers a use-case test needs to drive a Serve method: a mux that fills the path values the router fills, and one request.
 package testkit
 
 import (
@@ -12,16 +10,14 @@ import (
 	"noxis/internal/entity"
 )
 
-// Mux registers one Serve on a fresh mux, so {engine}, {name} and {id} are set
-// the way the real router sets them.
+// Mux registers one Serve on a fresh mux, so {engine}, {name} and {id} are set the way the real router sets them.
 func Mux(method, pattern string, h http.HandlerFunc) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc(method+" "+pattern, h)
 	return mux
 }
 
-// Do runs one request against a handler and returns the recorder. A non-nil
-// principal is attached to the request context, as the auth middleware would.
+// Do runs one request against a handler and returns the recorder.
 func Do(h http.Handler, method, path, body string, p *entity.Identity) *httptest.ResponseRecorder {
 	var r io.Reader
 	if body != "" {

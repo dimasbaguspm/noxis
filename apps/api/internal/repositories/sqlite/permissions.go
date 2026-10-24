@@ -15,8 +15,7 @@ import (
 
 const permissionColumns = `connection, member, member_type, level, expires_at, created_by, created_at, updated_at`
 
-// ListPermissions returns a connection's permissions, ordered by member. Expired
-// rows are included: the console shows them, and authorization filters them.
+// ListPermissions includes expired grants for display; authorization filters them.
 func (s *Store) ListPermissions(ctx context.Context, connection string) (out []entity.Permission, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -59,8 +58,7 @@ func (s *Store) ListAllPermissions(ctx context.Context) (out []entity.Permission
 	return out, rows.Err()
 }
 
-// SetPermission upserts one member's level for a connection and records the
-// grant in the audit trail, in the same transaction.
+// SetPermission upserts a grant and its audit event in one transaction.
 func (s *Store) SetPermission(ctx context.Context, p entity.Permission) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -105,8 +103,7 @@ func (s *Store) SetPermission(ctx context.Context, p entity.Permission) (err err
 	return tx.Commit()
 }
 
-// ListPermissionsForMembers returns every permission held by one of members,
-// across connections, ordered by connection then member.
+// ListPermissionsForMembers returns every permission held by one of members, across connections, ordered by connection then member.
 func (s *Store) ListPermissionsForMembers(ctx context.Context, members []string) (out []entity.Permission, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -155,8 +152,7 @@ func (s *Store) ListGroupNames(ctx context.Context) (out []string, err error) {
 	return out, rows.Err()
 }
 
-// DeletePermission removes one member's permission from a connection and records
-// who revoked it. A missing row is a no-op, so revoking twice is safe.
+// DeletePermission records revocation atomically; deleting an absent grant is a no-op.
 func (s *Store) DeletePermission(ctx context.Context, connection, member, actor string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()

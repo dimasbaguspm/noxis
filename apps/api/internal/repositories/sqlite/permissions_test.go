@@ -11,8 +11,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// TestPermissionsRoundTrip locks the policy store: upsert into the same row,
-// ordering, rejection of an unknown level or member type, and deletion.
+// TestPermissionsRoundTrip locks the policy store: upsert into the same row, ordering, rejection of an unknown level or member type, and deletion.
 func TestPermissionsRoundTrip(t *testing.T) {
 	ctx := context.Background()
 	store, err := Open(ctx, filepath.Join(t.TempDir(), "noxis.db"), "")
@@ -90,9 +89,7 @@ func hasAction(events []entity.AccessEvent, action string) bool {
 	return false
 }
 
-// TestMigrateGrantsToPermissions opens a pre-rename database (old
-// connection_grants table) and proves Open moves the rows into permissions as
-// groups and drops the old table.
+// TestMigrateGrantsToPermissions opens a pre-rename database (old connection_grants table) and proves Open moves the rows into permissions as groups and drops the old table.
 func TestMigrateGrantsToPermissions(t *testing.T) {
 	ctx := context.Background()
 	path := filepath.Join(t.TempDir(), "legacy.db")

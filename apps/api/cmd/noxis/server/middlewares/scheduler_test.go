@@ -66,8 +66,7 @@ func TestWithSchedulerAuth(t *testing.T) {
 	}
 }
 
-// TestSchedulerSignatureBodyBinding proves a valid timestamp cannot be reused
-// with a different body.
+// TestSchedulerSignatureBodyBinding proves a valid timestamp cannot be reused with a different body.
 func TestSchedulerSignatureBodyBinding(t *testing.T) {
 	const secret = "s"
 	ts := strconv.FormatInt(time.Now().Unix(), 10)

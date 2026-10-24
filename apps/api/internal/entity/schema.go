@@ -1,16 +1,13 @@
 package entity
 
-// Table is a browsable relation and Column one of its attributes, as the SQL
-// schema browser reports them. The key flags come from the catalog's declared
-// constraints, never from a naming convention.
+// Table and Column describe SQL relations and catalog-declared keys; names never imply constraints.
 type Table struct {
 	Schema  string   `json:"schema"`
 	Name    string   `json:"name"`
 	Columns []Column `json:"columns"`
 }
 
-// Column is one attribute. PrimaryKey and Unique are declared constraints;
-// References is set only by a declared foreign key.
+// Column is one attribute. PrimaryKey and Unique are declared constraints; References is set only by a declared foreign key.
 type Column struct {
 	Name       string     `json:"name"`
 	Type       string     `json:"type"`
@@ -27,9 +24,7 @@ type Reference struct {
 	Column string `json:"column"`
 }
 
-// SchemaGraph is one connection's schema as the ERD view needs it: the safe
-// connection summary (never a password), every table with its keys and foreign
-// keys, and the Mermaid erDiagram rendered from them.
+// SchemaGraph contains a redacted connection, declared table keys and references, and Mermaid source.
 type SchemaGraph struct {
 	Connection SchemaConnection `json:"connection"`
 	Tables     []Table          `json:"tables"`

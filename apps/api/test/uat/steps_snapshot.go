@@ -12,8 +12,7 @@ func (w *world) snapshotSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the "([^"]*)" snapshot of "([^"]*)" is restored$`, w.restoreDatabase)
 }
 
-// snapshotDatabase dumps the connection under test and keeps it in memory for
-// the rest of the scenario; nothing is written to the repository.
+// snapshotDatabase dumps the connection under test and keeps it in memory for the rest of the scenario; nothing is written to the repository.
 func (w *world) snapshotDatabase(ctx context.Context, conn, key string) error {
 	t := targets[w.targetKey]
 	s, err := snapshotterFor(t)

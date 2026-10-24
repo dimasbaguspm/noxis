@@ -1,6 +1,4 @@
 // Package constants holds universal defined values shared across packages.
-// Domain behaviour (statement kinds, preview bounds) stays with its service;
-// user-facing error messages live next to the logic that raises them.
 package constants
 
 import "time"
@@ -8,12 +6,10 @@ import "time"
 // Version is the build version reported by the CLI and health surfaces.
 const Version = "0.1.0"
 
-// APIPrefix is the versioned mount point of the public API. Internal callers
-// live under /internal, while the console shell and /healthz stay at the root.
+// APIPrefix is the versioned mount point of the public API.
 const APIPrefix = "/external/v1"
 
-// AccessGrantTTL is how long every per-connection grant lasts — read, write and
-// admin alike. The single super admin never expires.
+// AccessGrantTTL is how long every per-connection grant lasts — read, write and admin alike. The single super admin never expires.
 const AccessGrantTTL = 120 * 24 * time.Hour
 
 // Access-event actions: the append-only audit trail.
@@ -37,24 +33,17 @@ const (
 const (
 	DriverPostgres = "postgres"
 	DriverMySQL    = "mysql"
-	// DriverMariaDB is MariaDB: the same wire protocol as mysql, a different
-	// server, so it is its own driver name.
+	// DriverMariaDB is MariaDB: the same wire protocol as mysql, a different server, so it is its own driver name.
 	DriverMariaDB = "mariadb"
-	// DriverSQLite is a file-backed SQL database: the connection's Database is
-	// the file path, with no host, port or user.
+	// DriverSQLite is a file-backed SQL database: the connection's Database is the file path, with no host, port or user.
 	DriverSQLite = "sqlite"
 	DriverRedis  = "redis"
-	// DriverValkey is the Linux Foundation fork of Redis: same protocol, same
-	// commands, same family. It is a separate driver name so the console can
-	// show what it is actually talking to.
+	// DriverValkey is the Linux Foundation fork of Redis: same protocol, same commands, same family. It is a separate driver name so the console can show what it is actually talking to.
 	DriverValkey = "valkey"
 	DriverMongo  = "mongo"
 )
 
-// Engine families: the API namespace and console section that serve a
-// connection's driver. Each family owns its own connection list, even though
-// they all write to the same store. A family's module reports its own name
-// (interfaces.Module.Family), so no driver-to-family switch lives here.
+// Engine families name API namespaces; modules report membership so no driver-to-family switch is needed.
 const (
 	FamilySQL      = "sql"
 	FamilyMemcache = "memcache"

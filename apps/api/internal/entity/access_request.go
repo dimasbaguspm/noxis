@@ -9,8 +9,7 @@ const (
 	RequestExpired   = "expired"
 )
 
-// AccessRequest is a user asking for a level on one connection, and the
-// decision made on it. The row is the audit of who asked, who decided, and when.
+// AccessRequest is a user asking for a level on one connection, and the decision made on it. The row is the audit of who asked, who decided, and when.
 type AccessRequest struct {
 	ID           string `json:"id"`
 	Subject      string `json:"subject"`

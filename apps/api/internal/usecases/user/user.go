@@ -1,6 +1,4 @@
-// Package user holds the admin user directory use cases. The super admin and
-// promoted admins read it and set account status; only the super admin changes
-// a global role.
+// Package user holds the admin user directory use cases. The super admin and promoted admins read it and set account status; only the super admin changes a global role.
 package user
 
 import (
@@ -102,9 +100,7 @@ func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 	uc.Respond(w, entity.UserDetail{User: *u, Access: access, Events: events})
 }
 
-// Update sets an account's status (active/banned) and, for the super admin only,
-// its global role. Nobody changes their own account, the super admin is never
-// bannable or demotable, and an admin may not touch another admin.
+// Update sets an account's status (active/banned) and, for the super admin only, its global role.
 type Update struct{ usecases.RegistryDeps }
 
 // @Summary Ban/enable an account, or promote/demote an admin (admin only; role changes are super only)
@@ -138,8 +134,7 @@ func (uc Update) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	// validate the whole patch before mutating, so a bad field cannot leave a
-	// half-applied change
+	// validate the whole patch before mutating, so a bad field cannot leave a half-applied change
 	if err := uc.checkPatch(caller, u, body); err != nil {
 		uc.Fail(ctx, w, err)
 		return
@@ -184,8 +179,7 @@ func (uc Update) applyRole(ctx context.Context, caller entity.Identity, u *entit
 	return nil
 }
 
-// applyStatus bans or re-enables an account. An admin may only act on members,
-// so peers cannot lock each other out; the super admin may act on admins too.
+// applyStatus bans or re-enables an account. An admin may only act on members, so peers cannot lock each other out; the super admin may act on admins too.
 func (uc Update) applyStatus(ctx context.Context, caller entity.Identity, u *entity.User, status *string) error {
 	if status == nil {
 		return nil
@@ -203,8 +197,7 @@ func (uc Update) applyStatus(ctx context.Context, caller entity.Identity, u *ent
 	return nil
 }
 
-// checkPatch validates the whole patch against the caller and target, so Serve
-// can mutate without a second field failing halfway through.
+// checkPatch validates the whole patch against the caller and target, so Serve can mutate without a second field failing halfway through.
 func (uc Update) checkPatch(caller entity.Identity, u *entity.User, body entity.UserUpdate) error {
 	if body.Role != nil {
 		if !caller.IsSuper() {

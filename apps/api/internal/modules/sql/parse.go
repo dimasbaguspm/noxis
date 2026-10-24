@@ -9,9 +9,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// verifyKind rejects every statement whose first keyword is not allowed. The
-// check runs per statement — split outside quoted strings and comments — so
-// DDL cannot be smuggled behind a read (`SELECT 1; DROP TABLE x`).
+// verifyKind checks every statement independently so writes cannot be hidden behind a read.
 func verifyKind(sqlText string, allowed kindSet) error {
 	for _, stmt := range splitStatements(sqlText) {
 		if kind := firstKeyword(stmt); kind != "" && !allowed.set[kind] {
@@ -31,8 +29,7 @@ func containsDDL(sqlText string) bool {
 	return false
 }
 
-// StatementCount reports how many non-empty statements a batch holds. The
-// change workflow uses it to keep "one file = one statement" honest.
+// StatementCount reports how many non-empty statements a batch holds.
 func StatementCount(sqlText string) int {
 	n := 0
 	for _, stmt := range splitStatements(sqlText) {
@@ -43,8 +40,7 @@ func StatementCount(sqlText string) int {
 	return n
 }
 
-// stripLeadingComments drops leading -- and /* */ comments, so a comment-only
-// statement is not mistaken for real SQL.
+// stripLeadingComments drops leading -- and /* */ comments, so a comment-only statement is not mistaken for real SQL.
 func stripLeadingComments(s string) string {
 	for {
 		s = strings.TrimSpace(s)
@@ -71,9 +67,7 @@ func stripLeadingComments(s string) string {
 // ” escapes, "..." identifiers, `...` for mysql) and comments (-- and /* */),
 // so semicolons inside values do not split the batch.
 //
-// ponytail: backslash-escaped quotes in literals (mysql without
-// NO_BACKSLASH_ESCAPES) can still desync the splitter — a real lexer if that
-// ever matters.
+// shortcut: MySQL backslash-escaped quotes can desync splitting; use a real lexer if this syntax must be supported.
 func splitStatements(sqlText string) []string {
 	var stmts []string
 	var cur strings.Builder
@@ -158,9 +152,7 @@ func dollarQuoted(sqlText string, i int) (end int, ok bool) {
 	return i + len(tag) + shut + len(tag), true
 }
 
-// hintOf augments common engine errors with the fix, so a rejected change
-// teaches instead of just refusing. Postgres treats "x" as an identifier:
-// the number one cause of "column x does not exist" on a values list.
+// hintOf augments common engine errors with the fix, so a rejected change teaches instead of just refusing.
 var quotedValue = regexp.MustCompile(`(?i)(?:values\s*\(|=\s*)"([^"]+)"`)
 
 func hintOf(sqlText string, err error) error {
@@ -181,8 +173,7 @@ func firstKeyword(sqlText string) string {
 	return strings.ToUpper(strings.Trim(trimmed, "(;"))
 }
 
-// identOK allows a plain or schema-qualified table name (ANALYZE and Rows
-// interpolate identifiers; placeholders cannot be used there).
+// identOK allows a plain or schema-qualified table name (ANALYZE and Rows interpolate identifiers; placeholders cannot be used there).
 func identOK(s string) bool {
 	if s == "" {
 		return false
@@ -207,8 +198,7 @@ func qualify(c entity.Connection, schema, table string) string {
 	return quoteRef(c.Driver, schema, table)
 }
 
-// quoteRef is the driver-aware identifier quoting qualify and the scratch
-// verifier share.
+// quoteRef is the driver-aware identifier quoting qualify and the scratch verifier share.
 func quoteRef(driver, schema, table string) string {
 	if isMySQL(driver) {
 		if schema != "" {

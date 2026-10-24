@@ -26,15 +26,13 @@ const (
 	MinPasswordLength = 8
 )
 
-// dummyHash equalizes login timing when the account is unknown. Generating it
-// once at boot costs a single bcrypt pass.
+// dummyHash equalizes login timing when the account is unknown.
 var dummyHash = func() []byte {
 	h, _ := bcrypt.GenerateFromPassword([]byte("noxis-timing-equalizer"), bcrypt.DefaultCost)
 	return h
 }()
 
-// Service owns local accounts and is the process verifier: it accepts a local
-// session token, otherwise the configured OIDC verifier.
+// Service owns local accounts and is the process verifier: it accepts a local session token, otherwise the configured OIDC verifier.
 type Service struct {
 	users interfaces.UserRepository
 	oidc  interfaces.Verifier // nil when OIDC is not configured
@@ -44,17 +42,12 @@ type Service struct {
 // Satisfier.
 var _ interfaces.Verifier = (*Service)(nil)
 
-// NewService builds the auth service. The OIDC verifier is optional; pass a nil
-// interface (not a typed-nil) to disable it.
+// NewService builds the auth service.
 func NewService(users interfaces.UserRepository, oidc interfaces.Verifier) *Service {
 	return &Service{users: users, oidc: oidc, now: time.Now}
 }
 
-// Verify resolves a bearer token: a local session first (cheap, indexed), then
-// OIDC when configured. An OIDC identity whose verified email matches a local
-// account is blended into it — same subject, role and grants — so the env root
-// keeps one identity whichever way it signs in. An unmatched OIDC identity is
-// recorded as a reference row. Anything else is rejected.
+// Verify checks local sessions first, then OIDC; only verified matching emails blend into local accounts.
 func (s *Service) Verify(ctx context.Context, rawToken string) (identity entity.Identity, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -87,10 +80,7 @@ func (s *Service) Verify(ctx context.Context, rawToken string) (identity entity.
 	return id, nil
 }
 
-// EnsureRoot makes the env account the single super admin. On a cold install it
-// creates the account; on an existing store it promotes that account and clears
-// any other super, so the env is always the source of the one global role. It
-// fails closed when no email is configured.
+// EnsureRoot creates or promotes the env super admin, demotes other supers, and fails closed without a valid email or a new root password.
 func (s *Service) EnsureRoot(ctx context.Context, email, password string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -131,8 +121,7 @@ func (s *Service) EnsureRoot(ctx context.Context, email, password string) (err e
 	return s.users.SetSoleSuper(ctx, subject)
 }
 
-// Login verifies a password and issues the account's single active token. The
-// identifier is the account's email (or the username it was created with).
+// Login verifies a password and issues the account's single active token.
 func (s *Service) Login(ctx context.Context, login, password string) (token string, user entity.User, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -167,9 +156,7 @@ func (s *Service) Logout(ctx context.Context, subject string) (err error) {
 	return s.users.ClearUserToken(ctx, subject)
 }
 
-// ChangePassword verifies the old password, stores the new hash, and rotates the
-// token so a stolen session does not survive the change. Only local accounts
-// have a password.
+// ChangePassword verifies the old password, stores the new hash, and rotates the token so a stolen session does not survive the change.
 func (s *Service) ChangePassword(ctx context.Context, subject, oldPassword, newPassword string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -190,8 +177,7 @@ func (s *Service) ChangePassword(ctx context.Context, subject, oldPassword, newP
 	return s.users.ClearUserToken(ctx, subject)
 }
 
-// HashPassword returns a bcrypt hash. One-way: never store a local password any
-// other way.
+// HashPassword returns a bcrypt hash. One-way: never store a local password any other way.
 func HashPassword(password string) (string, error) {
 	h, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -206,9 +192,7 @@ func TokenHash(rawToken string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// normalizeEmail is the single spelling of an email: trimmed, lowercased. The
-// env root, the login identifier and the OIDC claim all pass through here, so a
-// case difference cannot split one identity into two.
+// normalizeEmail trims and lowercases local logins and OIDC email claims to keep one identity.
 func normalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }

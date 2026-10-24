@@ -10,11 +10,7 @@ import (
 	"noxis/internal/interfaces"
 )
 
-// RawConn returns the password-bearing connection for a module: a connection
-// of another engine family is not addressable in this namespace. It is the
-// single authorization gate every connection-scoped workflow funnels through.
-// The repositories and the registry ride in the receiver, so this stays a
-// method rather than a function taking three dependencies.
+// RawConn checks family and access before returning a password-bearing connection.
 func (d RegistryDeps) RawConn(ctx context.Context, mod interfaces.Module, name, level string) (*entity.Connection, error) {
 	c, err := d.Connections.Get(ctx, name)
 	if err != nil {
@@ -36,8 +32,7 @@ func (d RegistryDeps) RawConn(ctx context.Context, mod interfaces.Module, name, 
 	return c, nil
 }
 
-// SqlChange loads a change and insists it is a SQL one, so a MongoDB request
-// cannot be opened through the SQL flow.
+// SqlChange loads a change and insists it is a SQL one, so a MongoDB request cannot be opened through the SQL flow.
 func (d RegistryDeps) SQLChange(ctx context.Context, id string) (*entity.Change, error) {
 	ch, err := d.Changes.GetChange(ctx, id)
 	if err != nil {
@@ -52,8 +47,7 @@ func (d RegistryDeps) SQLChange(ctx context.Context, id string) (*entity.Change,
 	return ch, nil
 }
 
-// MongoChange loads a change and insists it is a MongoDB request, so the SQL
-// queue cannot be addressed through the MongoDB flow.
+// MongoChange loads a change and insists it is a MongoDB request, so the SQL queue cannot be addressed through the MongoDB flow.
 func (d RegistryDeps) MongoChange(ctx context.Context, id string) (*entity.Change, error) {
 	ch, err := d.Changes.GetChange(ctx, id)
 	if err != nil {

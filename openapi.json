@@ -2803,7 +2803,7 @@
                         "type": "string"
                     },
                     "scheduledAt": {
-                        "description": "ScheduledAt is the unix time the change should run; 0 means execute\nimmediately (on manual apply, as before).",
+                        "description": "ScheduledAt is the unix time the change should run; 0 means execute immediately (on manual apply, as before).",
                         "type": "integer"
                     },
                     "scheduledBy": {
@@ -2939,14 +2939,14 @@
                         "type": "string"
                     },
                     "family": {
-                        "description": "Family names the engine family that serves the driver. It is not\nstored: the cross-family routes set it when serving.",
+                        "description": "Family names the engine family that serves the driver. It is not stored: the cross-family routes set it when serving.",
                         "type": "string"
                     },
                     "host": {
                         "type": "string"
                     },
                     "id": {
-                        "description": "ID is the stable instance identifier used by the cross-family\n/external/v1/instances routes. Permissions and changes still link by Name.",
+                        "description": "ID identifies an instance across families; permissions and changes still link by Name.",
                         "type": "string"
                     },
                     "name": {
@@ -3460,7 +3460,7 @@
                         "type": "integer"
                     },
                     "scratchSchema": {
-                        "description": "ScratchSchema is set by change validation: the throwaway schema the\nchange was verified against, if any.",
+                        "description": "ScratchSchema is set by change validation: the throwaway schema the change was verified against, if any.",
                         "type": "string"
                     }
                 }

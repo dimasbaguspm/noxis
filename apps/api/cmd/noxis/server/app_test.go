@@ -10,9 +10,7 @@ import (
 	"noxis/internal/repositories/sqlite"
 )
 
-// TestNewDepsWiresRepositories locks the composition root: a repository added to
-// the Registry but not to sources would be a nil interface and only fail when a
-// request reached it.
+// TestNewDepsWiresRepositories locks the composition root: a repository added to the Registry but not to sources would be a nil interface and only fail when a request reached it.
 func TestNewDepsWiresRepositories(t *testing.T) {
 	store, err := sqlite.Open(context.Background(), filepath.Join(t.TempDir(), "noxis.db"), "")
 	if err != nil {

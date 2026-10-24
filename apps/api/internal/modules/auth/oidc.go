@@ -1,5 +1,4 @@
-// Package auth verifies OIDC bearer tokens against the issuer's JWKS. It is
-// the only place that knows about tokens; callers get an entity.Identity.
+// Package auth verifies OIDC bearer tokens against the issuer's JWKS. It is the only place that knows about tokens; callers get an entity.Identity.
 package auth
 
 import (
@@ -18,8 +17,7 @@ import (
 
 const defaultGroupsClaim = "groups"
 
-// OIDC is a configured issuer. A nil *OIDC means authentication is disabled
-// (no issuer set) and the caller is treated as open.
+// OIDC is a configured issuer.
 type OIDC struct {
 	verifier    *oidc.IDTokenVerifier
 	groupsClaim string
@@ -28,8 +26,7 @@ type OIDC struct {
 // Satisfier.
 var _ interfaces.Verifier = (*OIDC)(nil)
 
-// New discovers the issuer and builds a verifier. An empty issuer returns
-// (nil, nil): the caller decides whether to run open.
+// New discovers a configured issuer; an empty issuer disables OIDC.
 func New(ctx context.Context, cfg config.Config) (configured *OIDC, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -58,8 +55,7 @@ func New(ctx context.Context, cfg config.Config) (configured *OIDC, err error) {
 	}, nil
 }
 
-// Verify checks the token's signature, issuer, audience and expiry, then reads
-// the subject and groups off its claims.
+// Verify checks the token's signature, issuer, audience, and expiry before reading its claims.
 func (o *OIDC) Verify(ctx context.Context, rawToken string) (identity entity.Identity, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -74,10 +70,7 @@ func (o *OIDC) Verify(ctx context.Context, rawToken string) (identity entity.Ide
 	return principalFromClaims(tok.Subject, claims, o.groupsClaim), nil
 }
 
-// principalFromClaims builds the caller. The groups claim may be absent (no
-// groups) or a JSON array; anything else is ignored rather than trusted. An
-// issuer never grants a global role: OIDC identities are members until the
-// super admin promotes them.
+// principalFromClaims accepts string groups; only a verified matching email blends an OIDC identity into a local account.
 func principalFromClaims(subject string, claims map[string]any, groupsClaim string) entity.Identity {
 	groups := stringSlice(claims[groupsClaim])
 	return entity.Identity{
@@ -87,8 +80,7 @@ func principalFromClaims(subject string, claims map[string]any, groupsClaim stri
 		Email:  normalizeEmail(stringClaim(claims["email"])),
 		Groups: groups,
 		Role:   entity.RoleMember,
-		// an issuer never grants a global role: OIDC identities are members
-		// until the super admin promotes them
+		// an issuer never grants a global role: OIDC identities are members until the super admin promotes them
 		EmailVerified: boolClaim(claims["email_verified"]),
 	}
 }

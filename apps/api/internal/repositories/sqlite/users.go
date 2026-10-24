@@ -33,8 +33,7 @@ func (s *Store) GetUser(ctx context.Context, subject string) (u *entity.User, er
 	return scanUser(s.db.QueryRowContext(ctx, `SELECT `+userColumns+` FROM users WHERE subject = ?`, subject))
 }
 
-// GetUserByEmail returns the account blended to a verified email. Only rows with
-// an email can match, so a blank claim never joins two strangers.
+// GetUserByEmail returns the account blended to a verified email. Only rows with an email can match, so a blank claim never joins two strangers.
 func (s *Store) GetUserByEmail(ctx context.Context, email string) (u *entity.User, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -45,8 +44,7 @@ func (s *Store) GetUserByEmail(ctx context.Context, email string) (u *entity.Use
 		`SELECT `+userColumns+` FROM users WHERE email = ? AND email != ''`, email))
 }
 
-// GetUserByLogin returns a local account by the identifier its owner types to
-// sign in: the email, or the username for an account created with one.
+// GetUserByLogin returns a local account by the identifier its owner types to sign in: the email, or the username for an account created with one.
 func (s *Store) GetUserByLogin(ctx context.Context, login string) (u *entity.User, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -58,8 +56,7 @@ func (s *Store) GetUserByLogin(ctx context.Context, login string) (u *entity.Use
 		login, login))
 }
 
-// ListUsers returns every account, local names first, for the permission
-// editor's member picker.
+// ListUsers returns every account, local names first, for the permission editor's member picker.
 func (s *Store) ListUsers(ctx context.Context) (out []entity.User, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -98,8 +95,7 @@ func (s *Store) EnsureSubject(ctx context.Context, subject, email string) (err e
 	return nil
 }
 
-// SaveUser inserts or updates an account. The token columns are untouched on
-// update, so saving an account does not log it out.
+// SaveUser inserts or updates an account. The token columns are untouched on update, so saving an account does not log it out.
 func (s *Store) SaveUser(ctx context.Context, u entity.User) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -171,8 +167,7 @@ func (s *Store) UserByToken(ctx context.Context, tokenHash string, now int64) (u
 		 WHERE token_hash = ? AND token_expires_at > ? AND status = ?`, tokenHash, now, entity.StatusActive))
 }
 
-// SetUserStatus bans or re-activates an account. A ban also drops the session,
-// so the account stops working on its next request rather than on expiry.
+// SetUserStatus bans or re-activates an account. A ban also drops the session, so the account stops working on its next request rather than on expiry.
 func (s *Store) SetUserStatus(ctx context.Context, subject, status string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -219,9 +214,7 @@ func (s *Store) SetLastLogin(ctx context.Context, subject string, at int64) (err
 	return nil
 }
 
-// SetSoleSuper makes subject the only super admin. The env root is the single
-// global role; clearing the others keeps that invariant even if an older build
-// stored several.
+// SetSoleSuper makes subject the only super admin.
 func (s *Store) SetSoleSuper(ctx context.Context, subject string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()

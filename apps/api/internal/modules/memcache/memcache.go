@@ -1,7 +1,4 @@
-// Package memcache inspects a memory-cache server (Redis or Valkey): browse
-// keys with their type and TTL, inspect a value, read INFO metrics, and remove
-// keys. Every operation is a typed client call, so no user-supplied command
-// text exists to inject into.
+// Package memcache browses and removes Redis/Valkey keys through typed clients, never raw commands.
 package memcache
 
 import (
@@ -27,13 +24,11 @@ const (
 	// maxKeysPerDelete bounds one delete call.
 	maxKeysPerDelete = 500
 
-	// maxValueBytes caps a rendered value so a fat string cannot pin the
-	// console; the grid says when it was clipped.
+	// maxValueBytes caps a rendered value so a fat string cannot pin the console; the grid says when it was clipped.
 	maxValueBytes = 64 * 1024
 )
 
-// Result is the shared operation outcome, so the console renders a key's
-// value with the same grid component as a SQL row set.
+// Result is the shared operation outcome, so the console renders a key's value with the same grid component as a SQL row set.
 type Result = entity.Result
 
 // DB talks to Redis servers.
@@ -47,8 +42,7 @@ var _ interfaces.MemcacheModule = (*DB)(nil)
 // Family is the namespace this module serves.
 func (r *DB) Family() string { return constants.FamilyMemcache }
 
-// Supports reports whether this module serves the driver. Valkey is served
-// too: it implements the same protocol and command set.
+// Supports reports whether this module serves the driver.
 func (r *DB) Supports(driver string) bool {
 	return strings.EqualFold(driver, constants.DriverRedis) || strings.EqualFold(driver, constants.DriverValkey)
 }
@@ -71,9 +65,7 @@ func (r *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 // Keys browses by pattern, scanning at most limit keys and resolving each
 // key's type, TTL and size in one pipeline.
 //
-// ponytail: this is a bounded full scan, not a cursor walk, so the console can
-// sort by TTL truthfully instead of sorting one page. Raise constants.MaxScanLimit or
-// add cursor paging when a keyspace outgrows 5000 keys.
+// shortcut: browsing scans at most 5000 keys; add cursor paging when larger keyspaces must be searched.
 func (r *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limit int) (page entity.KeyPage, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -127,8 +119,7 @@ func (r *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limi
 			ttls[i] = pipe.TTL(ctx, name)
 			sizes[i] = pipe.MemoryUsage(ctx, name)
 		}
-		// MEMORY USAGE can be denied by ACL or unsupported; only the type and
-		// TTL are load-bearing, so pipe errors are not fatal here.
+		// MEMORY USAGE can be denied by ACL or unsupported; only the type and TTL are load-bearing, so pipe errors are not fatal here.
 		_, _ = pipe.Exec(ctx)
 
 		for i, name := range names {
@@ -152,8 +143,7 @@ func (r *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limi
 	return page, err
 }
 
-// Value renders one key per its type as a two-column grid, reusing the SQL
-// console's result shape.
+// Value renders one key per its type as a two-column grid, reusing the SQL console's result shape.
 func (r *DB) Value(ctx context.Context, c entity.Connection, key string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -260,8 +250,7 @@ func (r *DB) Delete(ctx context.Context, c entity.Connection, keys []string) (de
 	return deleted, err
 }
 
-// Flush empties the connected logical database only. FLUSHALL is deliberately
-// not reachable: it would wipe every database on the server.
+// Flush empties the connected logical database only.
 func (r *DB) Flush(ctx context.Context, c entity.Connection) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
@@ -276,8 +265,7 @@ func (r *DB) Flush(ctx context.Context, c entity.Connection) (err error) {
 	return err
 }
 
-// withClient opens a client for one operation and closes it; the caller's
-// context rides along so spans and cancellation keep working.
+// withClient opens a client for one operation and closes it; the caller's context rides along so spans and cancellation keep working.
 func withClient[T any](ctx context.Context, c entity.Connection, fn func(ctx context.Context, cl *goredis.Client) (T, error)) (T, error) {
 	var zero T
 	options, err := clientOptions(c)
@@ -310,8 +298,7 @@ func clientOptions(c entity.Connection) (*goredis.Options, error) {
 	return options, nil
 }
 
-// dbIndex reads the logical database index from the connection. An empty
-// database means 0; anything else must parse as a non-negative integer.
+// dbIndex reads the logical database index from the connection. An empty database means 0; anything else must parse as a non-negative integer.
 func dbIndex(c entity.Connection) int {
 	if strings.TrimSpace(c.Database) == "" {
 		return 0

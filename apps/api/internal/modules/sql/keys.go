@@ -8,10 +8,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// keysQuery reads every declared key on a table: primary keys, unique
-// constraints, and foreign keys with the column they reference. The two
-// families disagree on where the referenced column lives — postgres has
-// constraint_column_usage, mysql-family servers put it on key_column_usage.
+// keysQuery reads every declared key on a table: primary keys, unique constraints, and foreign keys with the column they reference.
 const (
 	keysQueryPostgres = `
 	SELECT tc.table_schema, tc.table_name, kcu.column_name, tc.constraint_type,
@@ -78,8 +75,7 @@ func attachKeys(ctx context.Context, db *stdsql.DB, driver string, tables []enti
 	return rows.Err()
 }
 
-// listKeysSQLite reads SQLite's own catalog: pragma_foreign_key_list carries the
-// declared references (pragma_table_info's pk flag is applied by the caller).
+// listKeysSQLite reads SQLite's own catalog: pragma_foreign_key_list carries the declared references (pragma_table_info's pk flag is applied by the caller).
 func listKeysSQLite(ctx context.Context, db *stdsql.DB, tables []entity.Table) error {
 	for i := range tables {
 		t := &tables[i]
@@ -105,8 +101,7 @@ func listKeysSQLite(ctx context.Context, db *stdsql.DB, tables []entity.Table) e
 	return nil
 }
 
-// tableIndex maps a schema-qualified table to its position, so the key pass does
-// not rescan the list per key.
+// tableIndex maps a schema-qualified table to its position, so the key pass does not rescan the list per key.
 func tableIndex(tables []entity.Table) map[string]int {
 	index := make(map[string]int, len(tables))
 	for i := range tables {
@@ -118,8 +113,7 @@ func tableIndex(tables []entity.Table) map[string]int {
 // refKey is the identity of a table in the key pass.
 func refKey(schema, table string) string { return schema + "." + table }
 
-// findColumn returns the named column, or nil when the catalog reported a key on
-// a column the column pass did not list.
+// findColumn returns the named column, or nil when the catalog reported a key on a column the column pass did not list.
 func findColumn(t *entity.Table, name string) *entity.Column {
 	for i := range t.Columns {
 		if t.Columns[i].Name == name {

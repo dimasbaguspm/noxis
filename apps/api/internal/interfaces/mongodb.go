@@ -14,9 +14,7 @@ type (
 	MongoResult     = entity.Result
 )
 
-// MongoModule is the console's only route to a MongoDB server. Reads run
-// directly; writes are validated on a scratch collection and then reviewed,
-// because a document change has no rollback to undo it.
+// MongoModule is the console's only route to a MongoDB server.
 type MongoModule interface {
 	Module
 	Databases(ctx context.Context, c entity.Connection) ([]MongoDatabase, error)
@@ -27,8 +25,7 @@ type MongoModule interface {
 	ValidateRequest(ctx context.Context, c entity.Connection, req MongoRequest) (MongoResult, error)
 	// Apply executes a write for real, after review.
 	Apply(ctx context.Context, c entity.Connection, req MongoRequest) (MongoResult, error)
-	// IsWrite reports whether an op mutates documents; a read is refused on the
-	// change path.
+	// IsWrite reports whether an op mutates documents; a read is refused on the change path.
 	IsWrite(op string) bool
 }
 
