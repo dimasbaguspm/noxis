@@ -607,85 +607,6 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/external/v1/engine/{engine}/connections/{name}/alter":
-    post:
-      summary: Apply a write directly (DML or DDL)
-      parameters:
-        - description: engine family (sql)
-          name: engine
-          in: path
-          required: true
-          schema:
-            type: string
-        - description: connection name
-          name: name
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        $ref: "#/components/requestBodies/entity.OpRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/entity.Result"
-        "400":
-          description: Bad Request
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/entity.ErrorResponse"
-        "404":
-          description: Not Found
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/entity.ErrorResponse"
-  "/external/v1/engine/{engine}/connections/{name}/analyze":
-    post:
-      summary: Refresh planner statistics for a table
-      parameters:
-        - description: engine family (sql)
-          name: engine
-          in: path
-          required: true
-          schema:
-            type: string
-        - description: connection name
-          name: name
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/entity.OpRequest"
-        description: table
-        required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/entity.Result"
-        "400":
-          description: Bad Request
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/entity.ErrorResponse"
-        "404":
-          description: Not Found
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/entity.ErrorResponse"
   "/external/v1/engine/{engine}/connections/{name}/collections":
     get:
       summary: List a database's collections with their sizes
@@ -925,6 +846,48 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
+  "/external/v1/engine/{engine}/connections/{name}/operations":
+    post:
+      summary: Run a SQL console operation
+      parameters:
+        - description: engine family (sql)
+          name: engine
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/entity.OpRequest"
+        description: op plus sql or table
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.Result"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
   "/external/v1/engine/{engine}/connections/{name}/permissions":
     get:
       summary: List a connection's permissions
@@ -1061,43 +1024,6 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
-  "/external/v1/engine/{engine}/connections/{name}/query":
-    post:
-      summary: Run a SQL console op (query)
-      parameters:
-        - description: engine family (sql)
-          name: engine
-          in: path
-          required: true
-          schema:
-            type: string
-        - description: connection name
-          name: name
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        $ref: "#/components/requestBodies/entity.OpRequest"
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/entity.Result"
-        "400":
-          description: Bad Request
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/entity.ErrorResponse"
-        "404":
-          description: Not Found
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/entity.ErrorResponse"
   "/external/v1/engine/{engine}/connections/{name}/requests":
     post:
       summary: Run a read request (find | aggregate | count)
@@ -1121,43 +1047,6 @@ paths:
               $ref: "#/components/schemas/entity.MongoRequest"
         description: op, database, collection, filter and value as Extended JSON
         required: true
-      responses:
-        "200":
-          description: OK
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/entity.Result"
-        "400":
-          description: Bad Request
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/entity.ErrorResponse"
-        "404":
-          description: Not Found
-          content:
-            "*/*":
-              schema:
-                $ref: "#/components/schemas/entity.ErrorResponse"
-  "/external/v1/engine/{engine}/connections/{name}/rollback":
-    post:
-      summary: Dry-run statements inside a transaction that always rolls back
-      parameters:
-        - description: engine family (sql)
-          name: engine
-          in: path
-          required: true
-          schema:
-            type: string
-        - description: connection name
-          name: name
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        $ref: "#/components/requestBodies/entity.OpRequest"
       responses:
         "200":
           description: OK
@@ -1560,13 +1449,6 @@ paths:
                 $ref: "#/components/schemas/entity.TickResult"
 components:
   requestBodies:
-    entity.OpRequest:
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/entity.OpRequest"
-      description: sql
-      required: true
     entity.AccessDecision:
       content:
         application/json:
@@ -2075,6 +1957,8 @@ components:
     entity.OpRequest:
       type: object
       properties:
+        op:
+          type: string
         sql:
           type: string
         table:
