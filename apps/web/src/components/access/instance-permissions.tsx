@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -55,6 +56,11 @@ export function InstancePermissions({
   const Icon = meta?.icon;
   const canGrant = isAdmin;
   const canRevoke = isAdmin || isInstanceAdmin(name);
+  const granted = new Set((permissions.data?.permissions ?? []).map((p) => p.member));
+  // supers hold no grants: their access is implicit, so list only those without an explicit row
+  const implicitSupers = (members.data?.users ?? []).filter(
+    (u) => u.role === "super" && u.subject && !granted.has(u.subject),
+  );
 
   return (
     <Card>
@@ -75,12 +81,14 @@ export function InstancePermissions({
             {(permissions.data?.permissions ?? []).map((p) => {
               const exp = grantExpiry(p.expiresAt);
               const level = levels.find((l) => l.value === p.level)?.label ?? p.level;
+              const account = members.data?.users?.find((u) => u.subject === p.member);
               return (
                 <li key={p.member} className="flex items-center gap-3 rounded-md border border-border px-3 py-2">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{memberLabel(p, members.data?.users)}</div>
                     <div className="truncate text-xs text-muted-foreground">
                       {p.memberType} · {level} · {exp.label}
+                      {account?.role ? ` · ${account.role}` : ""}
                     </div>
                   </div>
                   {canRevoke && (
@@ -98,6 +106,19 @@ export function InstancePermissions({
               );
             })}
           </ul>
+        )}
+
+        {implicitSupers.length > 0 && (
+          <div className="rounded-md border border-dashed px-3 py-2">
+            <p className="text-xs font-medium text-muted-foreground">Superadmins · implicit access</p>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {implicitSupers.map((u) => (
+                <Badge key={u.subject} variant="outline">
+                  {u.label ?? u.subject}
+                </Badge>
+              ))}
+            </div>
+          </div>
         )}
 
         {canGrant && (

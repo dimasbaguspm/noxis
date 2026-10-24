@@ -37,6 +37,7 @@ export function useSetPermission(family: FamilyKey | undefined, name: string) {
     onSuccess: (_data, input) => {
       toast.success(`${input.member} can ${input.level} ${name}`);
       void queryClient.invalidateQueries({ queryKey: ["permissions", family, name] });
+      void queryClient.invalidateQueries({ queryKey: ["access", "matrix"] });
       void queryClient.invalidateQueries({ queryKey: ["me"] });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
@@ -49,6 +50,7 @@ export function useRemovePermission(family: FamilyKey | undefined, name: string)
     mutationFn: (member: string) => api.permissions.remove(family as FamilyKey, name, member),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["permissions", family, name] });
+      void queryClient.invalidateQueries({ queryKey: ["access", "matrix"] });
       void queryClient.invalidateQueries({ queryKey: ["me"] });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : String(err)),
