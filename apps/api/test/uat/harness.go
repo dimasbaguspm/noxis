@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"noxis/test/uat/kit"
+	"noxis/test/uat/mongomock"
 	"noxis/test/uat/mysqlmock"
 	"noxis/test/uat/pgmock"
 )
@@ -94,8 +95,9 @@ type world struct {
 
 	snaps map[string]dbSnapshot // named database dumps, for this scenario
 
-	pgMock *pgmock.Server // a protocol mock target, for this scenario
-	myMock *mysqlmock.Server
+	pgMock    *pgmock.Server // a protocol mock target, for this scenario
+	myMock    *mysqlmock.Server
+	mongoMock *mongomock.Server
 }
 
 // reset clears the per-scenario state. godog reuses one world across scenarios, so this runs before each one and gives every scenario a clean client.
@@ -105,6 +107,9 @@ func (w *world) reset() {
 	}
 	if w.myMock != nil {
 		_ = w.myMock.Close()
+	}
+	if w.mongoMock != nil {
+		_ = w.mongoMock.Close()
 	}
 	jar, _ := cookiejar.New(nil)
 	*w = world{

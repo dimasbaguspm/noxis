@@ -30,6 +30,7 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	w.erdSteps(sc)
 	w.postgresMockSteps(sc)
 	w.mysqlMockSteps(sc)
+	w.mongoMockSteps(sc)
 }
 
 func (w *world) stackRunning(ctx context.Context) error {
