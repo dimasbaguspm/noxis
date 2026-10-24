@@ -3,5 +3,5 @@ import { useInstanceContext } from "./layout";
 
 export default function InstanceAccessTab() {
   const { instance } = useInstanceContext();
-  return <InstancePermissions instance={instance} readOnly />;
+  return <InstancePermissions instance={instance} />;
 }
