@@ -32,6 +32,7 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	w.mysqlMockSteps(sc)
 	w.mongoMockSteps(sc)
 	w.redisMockSteps(sc)
+	w.authSteps(sc)
 }
 
 func (w *world) stackRunning(ctx context.Context) error {
