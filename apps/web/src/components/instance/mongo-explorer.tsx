@@ -39,7 +39,8 @@ export function MongoExplorer({ connection }: { connection: string }) {
 
   const target = run.variables;
   const matches =
-    target?.connection === connection &&
+    !!target &&
+    target.connection === connection &&
     target.body.database === db &&
     target.body.collection === coll &&
     target.body.filter === filter;

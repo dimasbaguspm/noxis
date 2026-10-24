@@ -1,5 +1,6 @@
 import { Braces, Database, FileJson, Leaf, ListTree, Play, RefreshCw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,8 @@ import { JsonEditor } from "@/components/sql/json-editor";
 import { ResultTable } from "@/components/sql/result-table";
 import { JsonTree } from "@/components/mongodb/json-tree";
 import { useMongoCollectionsQuery, useMongoConnections, useMongoDatabasesQuery, useMongoRunMutation, useMongoUrlParams } from "@/hooks/use-mongodb";
+import { useAuth } from "@/app/auth-provider";
+import { FAMILY } from "@/lib/families";
 import { bytes, compact } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { P } from "@/components/ui/typography";
@@ -17,7 +20,8 @@ import { P } from "@/components/ui/typography";
 
 // MongoExplorePage walks a server and queries it: databases, their collections, and the documents of the one you pick.
 export default function MongoExplorePage() {
-  const { connections, connection, pick } = useMongoConnections();
+  const { isSuper } = useAuth();
+  const { connections, connection, pick, busy } = useMongoConnections();
   const { databases, isFetching: loadingDbs, refetch: reloadDbs } = useMongoDatabasesQuery(connection);
   const {
     database: urlDatabase,
@@ -36,7 +40,8 @@ export default function MongoExplorePage() {
 
   const readTarget = read.variables;
   const readMatchesSelection =
-    readTarget?.connection === connection &&
+    !!readTarget &&
+    readTarget.connection === connection &&
     readTarget.body.database === database &&
     readTarget.body.collection === collection &&
     readTarget.body.filter === filter;
@@ -59,6 +64,22 @@ export default function MongoExplorePage() {
   function query() {
     if (!connection || !database || !collection) return;
     read.mutate({ connection, body: { op: "find", database, collection, filter, limit: 50 } });
+  }
+
+  if (!busy && connections.length === 0) {
+    return (
+      <Card className="mx-auto mt-8 max-w-lg">
+        <CardHeader>
+          <CardTitle>No MongoDB instance found</CardTitle>
+          <CardDescription>Register a MongoDB server to explore its databases and collections.</CardDescription>
+        </CardHeader>
+        {isSuper && (
+          <CardContent>
+            <ConnectionDialog trigger="New connection" wizard family={FAMILY.MONGODB} />
+          </CardContent>
+        )}
+      </Card>
+    );
   }
 
   return (
