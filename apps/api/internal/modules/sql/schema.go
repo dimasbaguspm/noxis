@@ -65,6 +65,9 @@ func listTables(ctx context.Context, db *stdsql.DB, driver string) ([]entity.Tab
 	if err := attachEstimates(ctx, db, driver, out); err != nil {
 		return nil, err
 	}
+	if err := attachComments(ctx, db, driver, out); err != nil {
+		return nil, err
+	}
 	return out, nil
 }
 

@@ -175,6 +175,41 @@ func attachEstimates(ctx context.Context, db *stdsql.DB, driver string, tables [
 	return rows.Err()
 }
 
+// attachComments fills the table comment from the catalog; SQLite has no native table comments.
+func attachComments(ctx context.Context, db *stdsql.DB, driver string, tables []entity.Table) error {
+	if isSQLite(driver) {
+		return nil
+	}
+	query := `
+		SELECT n.nspname, c.relname, COALESCE(obj_description(c.oid, 'pg_class'), '')
+		FROM pg_class c
+		JOIN pg_namespace n ON n.oid = c.relnamespace
+		WHERE c.relkind IN ('r', 'p', 'v', 'm') AND n.nspname NOT IN ('pg_catalog', 'information_schema')`
+	if isMySQL(driver) {
+		query = `
+			SELECT table_schema, table_name, COALESCE(table_comment, '')
+			FROM information_schema.tables
+			WHERE table_schema NOT IN ('pg_catalog', 'information_schema', 'mysql', 'performance_schema', 'sys')
+			  AND table_type = 'BASE TABLE'`
+	}
+	rows, err := db.QueryContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("list table comments: %w", err)
+	}
+	defer rows.Close()
+	index := tableIndex(tables)
+	for rows.Next() {
+		var schema, table, comment string
+		if err := rows.Scan(&schema, &table, &comment); err != nil {
+			return err
+		}
+		if i, ok := index[refKey(schema, table)]; ok {
+			tables[i].Comment = comment
+		}
+	}
+	return rows.Err()
+}
+
 // attachSizesSQLite sums dbstat pages when the extension is available; a missing dbstat leaves the size unknown.
 func attachSizesSQLite(ctx context.Context, db *stdsql.DB, tables []entity.Table) error {
 	for i := range tables {

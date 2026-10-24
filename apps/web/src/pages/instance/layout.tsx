@@ -91,6 +91,7 @@ export default function InstanceLayout() {
         id: table.id,
         schema: table.schema ?? "",
         name: table.name ?? "",
+        comment: table.comment,
         columns: (table.columns ?? []).map((col) => ({
           name: col.name ?? "",
           type: col.type ?? "",

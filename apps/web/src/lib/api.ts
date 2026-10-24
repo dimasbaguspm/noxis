@@ -58,6 +58,7 @@ export interface Table {
   id?: string;
   schema: string;
   name: string;
+  comment?: string;
   columns: Column[];
   indexes?: { name: string; columns: string[]; unique?: boolean; primary?: boolean }[];
   estimatedRows?: number;
