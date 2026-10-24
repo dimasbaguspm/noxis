@@ -12,3 +12,25 @@ type Registry struct {
 	AccessEvents   interfaces.AccessEventRepository
 	AccessRequests interfaces.AccessRequestRepository
 }
+
+// Store is the one persistence implementation every repository is read from.
+type Store interface {
+	interfaces.ConnectionRepository
+	interfaces.ChangeRepository
+	interfaces.PermissionRepository
+	interfaces.UserRepository
+	interfaces.AccessEventRepository
+	interfaces.AccessRequestRepository
+}
+
+// Default builds the registry from the process store.
+func Default(store Store) Registry {
+	return Registry{
+		Connections:    store,
+		Changes:        store,
+		Permissions:    store,
+		Users:          store,
+		AccessEvents:   store,
+		AccessRequests: store,
+	}
+}
