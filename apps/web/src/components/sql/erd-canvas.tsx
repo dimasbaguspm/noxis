@@ -29,11 +29,20 @@ export interface ErdColumn {
   references?: { schema?: string; table?: string; column?: string };
 }
 
+export interface ErdIndex {
+  name: string;
+  columns: string[];
+  unique?: boolean;
+  primary?: boolean;
+}
+
 export interface ErdTable {
   id: string;
   schema: string;
   name: string;
   columns: ErdColumn[];
+  indexes?: ErdIndex[];
+  estimatedRows?: number;
 }
 
 const NODE_WIDTH = 260;

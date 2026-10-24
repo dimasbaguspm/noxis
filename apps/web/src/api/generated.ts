@@ -2635,6 +2635,12 @@ export interface components {
         "entity.ErrorResponse": {
             error?: string;
         };
+        "entity.Index": {
+            columns?: string[];
+            name?: string;
+            primary?: boolean;
+            unique?: boolean;
+        };
         "entity.InstanceAccess": {
             connection?: string;
             driver?: string;
@@ -2790,7 +2796,9 @@ export interface components {
         };
         "entity.Table": {
             columns?: components["schemas"]["entity.Column"][];
+            estimatedRows?: number;
             id?: string;
+            indexes?: components["schemas"]["entity.Index"][];
             name?: string;
             schema?: string;
         };

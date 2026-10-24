@@ -18,7 +18,13 @@ func listTables(ctx context.Context, db *stdsql.DB, driver string) ([]entity.Tab
 		if err != nil {
 			return nil, err
 		}
-		return tables, listKeysSQLite(ctx, db, tables)
+		if err := listKeysSQLite(ctx, db, tables); err != nil {
+			return nil, err
+		}
+		if err := attachIndexes(ctx, db, driver, tables); err != nil {
+			return nil, err
+		}
+		return tables, nil
 	}
 	rows, err := db.QueryContext(ctx, `
 		SELECT table_schema, table_name, column_name, data_type, is_nullable
@@ -47,7 +53,16 @@ func listTables(ctx context.Context, db *stdsql.DB, driver string) ([]entity.Tab
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return out, attachKeys(ctx, db, driver, out)
+	if err := attachKeys(ctx, db, driver, out); err != nil {
+		return nil, err
+	}
+	if err := attachIndexes(ctx, db, driver, out); err != nil {
+		return nil, err
+	}
+	if err := attachEstimates(ctx, db, driver, out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // listTablesSQLite lists main-schema tables and their columns.

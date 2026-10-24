@@ -19,6 +19,12 @@ type erdBody struct {
 	Tables []struct {
 		ID      string `json:"id"`
 		Name    string `json:"name"`
+		Indexes []struct {
+			Name    string   `json:"name"`
+			Columns []string `json:"columns"`
+			Unique  bool     `json:"unique"`
+			Primary bool     `json:"primary"`
+		} `json:"indexes"`
 		Columns []struct {
 			Name       string `json:"name"`
 			PrimaryKey bool   `json:"primaryKey"`
@@ -32,6 +38,7 @@ type erdBody struct {
 func (w *world) erdSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the ERD of "([^"]*)" marks "([^"]*)" as a primary key$`, w.erdPrimaryKey)
 	sc.Step(`^the ERD of "([^"]*)" links "([^"]*)" to "([^"]*)"$`, w.erdLinks)
+	sc.Step(`^the ERD of "([^"]*)" reports an index over "([^"]*)" on "([^"]*)"$`, w.erdIndex)
 }
 
 // erd loads one connection's schema graph.
@@ -99,4 +106,25 @@ func (w *world) erdLinks(ctx context.Context, connection, child, parent string) 
 		}
 	}
 	return fmt.Errorf("no reference from %q to %q in %+v", child, parent, body.Tables)
+}
+
+// erdIndex asserts the catalog index over a column reaches the schema graph.
+func (w *world) erdIndex(ctx context.Context, connection, column, table string) error {
+	body, _, err := w.erd(ctx, connection)
+	if err != nil {
+		return err
+	}
+	for _, t := range body.Tables {
+		if t.Name != table {
+			continue
+		}
+		for _, idx := range t.Indexes {
+			for _, c := range idx.Columns {
+				if c == column {
+					return nil
+				}
+			}
+		}
+	}
+	return fmt.Errorf("no index over %q on %q in %+v", column, table, body.Tables)
 }
