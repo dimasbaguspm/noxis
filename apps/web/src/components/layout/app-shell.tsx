@@ -1,12 +1,23 @@
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { CrumbLabelProvider } from "@/app/crumb-provider";
 import { NavSearch } from "@/components/layout/nav-search";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 
-// AppShell wraps engine pages in the shared sidebar, header, breadcrumbs, search, and route outlet.
+// AppShell supplies the crumb registry, so a page can name its own record while the header renders the trail.
 export function AppShell() {
+  return (
+    <CrumbLabelProvider>
+      <Shell />
+    </CrumbLabelProvider>
+  );
+}
+
+// Shell is the layout itself: sidebar, header with the path trail and search, and the route outlet.
+function Shell() {
+  const { pathname } = useLocation();
   const crumbs = useBreadcrumbs();
 
   return (
@@ -19,19 +30,21 @@ export function AppShell() {
             <ol className="flex min-w-0 items-center gap-1.5 text-sm">
               {crumbs.map((crumb, i) => (
                 <li
-                  key={`${crumb.label}-${i}`}
+                  key={`${crumb.to ?? "leaf"}-${i}`}
                   className={cn(
                     "flex min-w-0 items-center gap-1.5 whitespace-nowrap",
                     i < crumbs.length - 1 && "hidden sm:flex",
                   )}
                 >
                   {i > 0 && <span className="text-muted-foreground/50">/</span>}
-                  {crumb.to && i < crumbs.length - 1 ? (
-                    <Link to={crumb.to} className="text-muted-foreground hover:underline">
+                  {crumb.to && crumb.to !== pathname ? (
+                    <Link to={crumb.to} className="truncate text-muted-foreground hover:underline">
                       {crumb.label}
                     </Link>
                   ) : (
-                    <span className="truncate font-medium">{crumb.label}</span>
+                    <span className={cn("truncate", i === crumbs.length - 1 ? "font-medium" : "text-muted-foreground")}>
+                      {crumb.label}
+                    </span>
                   )}
                 </li>
               ))}
