@@ -13,6 +13,8 @@ import { useUpdateUser, useUserQuery } from "@/hooks/use-users";
 import { formatDateTime, grantExpiry } from "@/lib/dates";
 import type { UserRole } from "@/lib/api";
 import { Workspace } from "@/components/layout/workspace";
+import { PAGE_ROUTES } from "@/lib/routes";
+import { useCrumbLabel } from "@/app/crumb-provider";
 
 // UserDetailPage shows account, grants, and activity; only super changes global roles, admins may ban members.
 export default function UserDetailPage() {
@@ -20,6 +22,8 @@ export default function UserDetailPage() {
   const { isAdmin, canBan, canSetRole } = useAuth();
   const { data: user, isPending } = useUserQuery(isAdmin ? subject : "");
   const update = useUpdateUser(subject);
+  // the trail names the account instead of its subject once the record lands
+  useCrumbLabel(PAGE_ROUTES.USER_DETAIL(subject), user?.email || user?.username);
   const levels = useLevelsQuery().data?.levels ?? [];
   const levelLabel = (value?: string) => levels.find((l) => l.value === value)?.label ?? value;
 

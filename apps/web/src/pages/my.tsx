@@ -5,7 +5,7 @@ import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [
-  { to: PAGE_ROUTES.MY, label: "Profile", icon: UserRound, end: true },
+  { to: PAGE_ROUTES.MY_PROFILE, label: "Profile", icon: UserRound, end: true },
   { to: PAGE_ROUTES.MY_SETTINGS, label: "Settings", icon: Settings, end: false },
   { to: PAGE_ROUTES.MY_ACCESS, label: "Access", icon: KeyRound, end: false },
 ] as const;

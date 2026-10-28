@@ -17,7 +17,7 @@ export const NAV: NavGroup[] = [
   ...FAMILIES.map((family) => ({ label: family.label, items: family.nav })),
 ];
 
-// findNav resolves the registry entries for a pathname, for breadcrumbs.
+// findNav resolves the registry entries for a pathname, for the page search palette.
 export function findNav(pathname: string): { group?: string; item?: NavItem } {
   for (const group of NAV) {
     for (const item of group.items) {

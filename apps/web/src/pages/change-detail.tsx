@@ -18,6 +18,7 @@ import {
   type ChangeKind,
 } from "@/hooks/use-changes";
 import { PAGE_ROUTES } from "@/lib/routes";
+import { useCrumbLabel } from "@/app/crumb-provider";
 
 // ChangeDetailPage owns loading and review permissions; the two visual halves live in components/changes/change-review.
 export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
@@ -34,6 +35,11 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const reject = useRejectChangeMutation();
   const submit = useSubmitChangeMutation();
   const schedule = useScheduleChangeMutation();
+  // the trail names the change instead of its id; the envelope has no title, so notes or the touched tables speak for it
+  useCrumbLabel(
+    kind === "dml" ? PAGE_ROUTES.SQL.DML_DETAIL(id) : PAGE_ROUTES.SQL.DDL_DETAIL(id),
+    change?.notes || change?.affectedTables?.join(", "),
+  );
 
   if (fetching && !change) {
     return (

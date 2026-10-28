@@ -86,7 +86,8 @@ const router = createBrowserRouter([
         path: routePath(PAGE_ROUTES.MY),
         element: <MyLayout />,
         children: [
-          { index: true, element: <MyProfilePage /> },
+          { index: true, element: <Navigate to={PAGE_ROUTES.MY_PROFILE} replace /> },
+          { path: "profile", element: <MyProfilePage /> },
           { path: "settings", element: <MySettingsPage /> },
           { path: "access", element: <MyAccessPage /> },
         ],

@@ -9,6 +9,7 @@ export const PAGE_ROUTES = {
   INSTANCE_DETAIL: (id: string) => `${CONSOLE}/instances/${id}`,
   INSTANCE_TAB: (id: string, tab: string) => `${CONSOLE}/instances/${id}/${tab}`,
   MY: "/my",
+  MY_PROFILE: "/my/profile",
   MY_SETTINGS: "/my/settings",
   MY_ACCESS: "/my/access",
   ACCESS: "/access",

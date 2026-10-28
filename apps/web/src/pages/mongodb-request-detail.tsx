@@ -17,6 +17,7 @@ import {
 } from "@/hooks/use-mongodb";
 import type { MongoRequest } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
+import { useCrumbLabel } from "@/app/crumb-provider";
 import { cn } from "@/lib/utils";
 import { P } from "@/components/ui/typography";
 
@@ -28,6 +29,8 @@ export default function MongoRequestDetailPage() {
   const approve = useMongoApproveChangeMutation();
   const apply = useMongoApplyChangeMutation();
   const reject = useMongoRejectChangeMutation();
+  // the trail names the request instead of its id once the envelope lands
+  useCrumbLabel(PAGE_ROUTES.MONGODB.REQUEST_DETAIL(id), change?.notes || change?.affectedTables?.join(", "));
 
   if (loading && !change) {
     return (

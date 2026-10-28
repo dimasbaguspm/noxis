@@ -35,6 +35,7 @@ import { useInstanceQuery, useRotatePasswordMutation } from "@/hooks/use-instanc
 import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { useAuth } from "@/app/auth-provider";
 import { api, type Connection } from "@/lib/api";
+import { useCrumbLabel } from "@/app/crumb-provider";
 import { queryClient } from "@/lib/query-client";
 import { FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/lib/routes";
@@ -77,6 +78,8 @@ export default function InstanceLayout() {
   const [rotateOpen, setRotateOpen] = useState(false);
   const detail = useInstanceQuery(id);
   const instance = detail.data;
+  // the trail names the instance instead of its id once the detail lands
+  useCrumbLabel(PAGE_ROUTES.INSTANCE_DETAIL(id), instance?.name);
 
   const family = instance?.family as FamilyKey | undefined;
   const name = instance?.name ?? "";
