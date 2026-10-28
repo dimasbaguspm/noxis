@@ -1,6 +1,6 @@
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { ConnectionSelect } from "@/components/connection/connection-select";
-import { ResultTable } from "@/components/sql/result-table";
+import { ResultSummary, ResultTable } from "@/components/sql/result-table";
 import { SqlEditor } from "@/components/sql/sql-editor";
 import { SqlTabs } from "@/components/sql/sql-tabs";
 import { TableBrowser } from "@/components/sql/table-browser";
@@ -67,7 +67,7 @@ export default function QueryPage() {
 
   return (
     <div className="flex h-full min-h-0">
-      <Workspace>
+      <Workspace footer={result ? <ResultSummary result={result} /> : undefined}>
         <Workspace.Pane defaultSize={17} minSize={14}>
           <div className="flex min-h-0 flex-1 flex-col gap-2">
             <div className="grid gap-1.5">
@@ -121,7 +121,7 @@ export default function QueryPage() {
           </Workspace.Pane>
 
           <Workspace.Pane defaultSize={55} minSize={20}>
-            <ResultTable result={result} title={tabs.active?.title ?? "query"} />
+            <ResultTable result={result} title={tabs.active?.title ?? "query"} showSummary={false} />
           </Workspace.Pane>
         </Workspace.Split>
       </Workspace>

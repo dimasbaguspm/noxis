@@ -197,29 +197,6 @@ export default function MemcachePage() {
                 </TooltipContent>
               </Tooltip>
             )}
-
-            {mayAdmin && (
-              <div className="mt-auto flex flex-col gap-2 border-t border-border pt-3">
-                <Label>Selected</Label>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={selected.length === 0 || removeKeys.isPending}
-                  onClick={() => void onRemoveKeys()}
-                >
-                  <Trash2 /> Remove selected
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="justify-start text-destructive"
-                  disabled={!connection}
-                  onClick={() => setFlushOpen(true)}
-                >
-                  <Eraser /> Empty database
-                </Button>
-              </div>
-            )}
           </div>
         }
         right={
@@ -273,6 +250,32 @@ export default function MemcachePage() {
               </Table>
             </div>
           )
+        }
+        footer={
+          <>
+            <span>{selected.length} key(s) selected</span>
+            {mayAdmin && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={selected.length === 0 || removeKeys.isPending}
+                  onClick={() => void onRemoveKeys()}
+                >
+                  <Trash2 /> Remove selected
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive"
+                  disabled={!connection}
+                  onClick={() => setFlushOpen(true)}
+                >
+                  <Eraser /> Empty database
+                </Button>
+              </div>
+            )}
+          </>
         }
       />
 
