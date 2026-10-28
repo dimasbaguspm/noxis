@@ -1,6 +1,7 @@
 import type { components } from "@/api/generated";
 import { FAMILY, type FamilyKey } from "@/lib/families";
 import { accessToken, authEnabled, clearSession } from "@/lib/auth";
+import { PAGE_ROUTES } from "@/constants/routes";
 
 export type Level = "read" | "write" | "admin";
 export type Identity = components["schemas"]["entity.MeResponse"];
@@ -72,219 +73,287 @@ export interface ChangeInput {
   scheduledAt?: number;
 }
 
-// v1 builds an endpoint from the engine family, so no call hardcodes a family URL prefix: the family is the server's generic route parameter.
-const v1 = (family: FamilyKey, path: string) => `/external/v1/engine/${family}/${path}`;
+// ApiClient owns the transport: the base path, the auth header, and the 401 redirect live in one object.
+export class ApiClient {
+  constructor(private readonly basePath: string = "/external/v1") {}
 
-// connPath is the connection-scoped path; the name is URL-encoded so a name with a space or slash cannot break the route.
-const connPath = (family: FamilyKey, name: string, suffix = "") =>
-  v1(family, `connections/${encodeURIComponent(name)}${suffix}`);
+  // path completes the injected base path for the endpoints that are not family-scoped.
+  private readonly path = (suffix: string) => `${this.basePath}${suffix}`;
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const headers: Record<string, string> = {};
-  if (body !== undefined) headers["Content-Type"] = "application/json";
-  const token = await accessToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(path, {
-    method,
-    headers: Object.keys(headers).length > 0 ? headers : undefined,
-    body: body === undefined ? undefined : JSON.stringify(body),
+  // endpoint builds an engine path from the family, so no call hardcodes a family URL prefix.
+  private readonly endpoint = (family: FamilyKey, path: string) =>
+    `${this.basePath}/engine/${family}/${path}`;
+
+  // connectionPath is the connection-scoped path; the name is URL-encoded so a space or slash cannot break the route.
+  private readonly connectionPath = (family: FamilyKey, name: string, suffix = "") =>
+    this.endpoint(family, `connections/${encodeURIComponent(name)}${suffix}`);
+
+  private readonly request = async <T>(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<T> => {
+    const headers: Record<string, string> = {};
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+    const token = await accessToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(path, {
+      method,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    // an expired or revoked token drops the console to the login page; the user restarts the OIDC flow from there.
+    if (res.status === 401 && authEnabled()) {
+      await clearSession();
+      window.location.assign(PAGE_ROUTES.LOGIN);
+      throw new Error("redirecting to sign-in");
+    }
+    const text = await res.text();
+    const data = text ? JSON.parse(text) : null;
+    if (!res.ok)
+      throw new Error((data as { error?: string } | null)?.error ?? `HTTP ${res.status}`);
+    return data as T;
+  };
+
+  // connectionOps is the connection lifecycle every family shares; the family decides the namespace, the routes are identical.
+  private readonly connectionOps = (family: FamilyKey) => ({
+    list: () =>
+      this.request<{ connections: Connection[] }>("GET", this.endpoint(family, "connections")),
+    save: (c: Connection) =>
+      this.request<Connection>("POST", this.endpoint(family, "connections"), c),
+    remove: (name: string) => this.request<null>("DELETE", this.connectionPath(family, name)),
+    test: (name: string) =>
+      this.request<{ status: string }>("POST", this.connectionPath(family, name, "/test")),
   });
-  // an expired or revoked token drops the console to the login page; the user restarts the OIDC flow from there.
-  if (res.status === 401 && authEnabled()) {
-    await clearSession();
-    window.location.assign("/login");
-    throw new Error("redirecting to sign-in");
-  }
-  const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
-  if (!res.ok) throw new Error((data as { error?: string } | null)?.error ?? `HTTP ${res.status}`);
-  return data as T;
-}
 
-// connectionOps is the connection lifecycle every family shares; the family decides the namespace, the routes are identical.
-function connectionOps(family: FamilyKey) {
-  return {
-    list: () => request<{ connections: Connection[] }>("GET", v1(family, "connections")),
-    save: (c: Connection) => request<Connection>("POST", v1(family, "connections"), c),
-    remove: (name: string) => request<null>("DELETE", connPath(family, name)),
-    test: (name: string) => request<{ status: string }>("POST", connPath(family, name, "/test")),
+  // groups is the surface every page uses: one namespace per endpoint family.
+  readonly groups = {
+    me: () => this.request<Identity>("GET", this.path("/me")),
+    // instances are the cross-family view: one connection addressed by its stable id, whatever family serves it.
+    instances: {
+      list: (query: InstanceQuery = {}) => {
+        const params = new URLSearchParams();
+        if (query.name) params.set("name", query.name);
+        if (query.driver) params.set("driver", query.driver);
+        if (query.host) params.set("host", query.host);
+        if (query.page && query.page > 1) params.set("page", String(query.page));
+        if (query.perPage) params.set("perPage", String(query.perPage));
+        const qs = params.toString();
+        return this.request<{ instances: Connection[]; total: number }>(
+          "GET",
+          this.path(`/instances${qs ? `?${qs}` : ""}`),
+        );
+      },
+      get: (id: string) =>
+        this.request<Connection>("GET", this.path(`/instances/${encodeURIComponent(id)}`)),
+      rotatePassword: (id: string, password: string) =>
+        this.request<{ status: string }>(
+          "POST",
+          this.path(`/instances/${encodeURIComponent(id)}/password`),
+          { password },
+        ),
+    },
+    connections: {
+      ...this.connectionOps(FAMILY.SQL),
+      schema: (name: string) =>
+        this.request<{ tables: Table[] }>("GET", this.connectionPath(FAMILY.SQL, name, "/schema")),
+      erd: (name: string) =>
+        this.request<SchemaGraph>("GET", this.connectionPath(FAMILY.SQL, name, "/erd")),
+      rows: (name: string, schema: string, table: string, limit = 100) =>
+        this.request<Result>(
+          "GET",
+          this.connectionPath(FAMILY.SQL, name, `/tables/${table}/rows`) +
+            `?schema=${encodeURIComponent(schema)}&limit=${limit}`,
+        ),
+    },
+    ops: {
+      query: (name: string, sql: string) =>
+        this.request<Result>("POST", this.connectionPath(FAMILY.SQL, name, "/operations"), {
+          op: "query",
+          sql,
+        }),
+      alter: (name: string, sql: string) =>
+        this.request<Result>("POST", this.connectionPath(FAMILY.SQL, name, "/operations"), {
+          op: "alter",
+          sql,
+        }),
+      rollback: (name: string, sql: string) =>
+        this.request<Result>("POST", this.connectionPath(FAMILY.SQL, name, "/operations"), {
+          op: "rollback",
+          sql,
+        }),
+      analyze: (name: string, table: string) =>
+        this.request<Result>("POST", this.connectionPath(FAMILY.SQL, name, "/operations"), {
+          op: "analyze",
+          table,
+        }),
+    },
+    memcache: {
+      ...this.connectionOps(FAMILY.MEMCACHE),
+      keys: (name: string, pattern = "*", limit = 500) =>
+        this.request<MemcacheKeyPage>(
+          "GET",
+          this.connectionPath(FAMILY.MEMCACHE, name, "/keys") +
+            `?pattern=${encodeURIComponent(pattern)}&limit=${limit}`,
+        ),
+      value: (name: string, key: string) =>
+        this.request<Result>(
+          "GET",
+          this.connectionPath(FAMILY.MEMCACHE, name, "/value") + `?key=${encodeURIComponent(key)}`,
+        ),
+      removeKeys: (name: string, keys: string[]) =>
+        this.request<{ deleted: number }>(
+          "DELETE",
+          this.connectionPath(FAMILY.MEMCACHE, name, "/keys"),
+          { keys },
+        ),
+      flush: (name: string) =>
+        this.request<{ status: string }>(
+          "POST",
+          this.connectionPath(FAMILY.MEMCACHE, name, "/flush"),
+          {
+            confirm: name,
+          },
+        ),
+    },
+    mongodb: {
+      ...this.connectionOps(FAMILY.MONGODB),
+      databases: (name: string) =>
+        this.request<{ databases: MongoDatabase[] }>(
+          "GET",
+          this.connectionPath(FAMILY.MONGODB, name, "/databases"),
+        ),
+      collections: (name: string, database: string) =>
+        this.request<{ collections: MongoCollection[] }>(
+          "GET",
+          this.connectionPath(FAMILY.MONGODB, name, "/collections") +
+            `?database=${encodeURIComponent(database)}`,
+        ),
+      // reads only: a write op is refused here and belongs in the request queue
+      run: (name: string, req: MongoRequest) =>
+        this.request<MongoResult>(
+          "POST",
+          this.connectionPath(FAMILY.MONGODB, name, "/requests"),
+          req,
+        ),
+      changes: {
+        list: () =>
+          this.request<{ changes: Change[] }>("GET", this.endpoint(FAMILY.MONGODB, "changes")),
+        submit: (input: MongoChangeInput) =>
+          this.request<Change>("POST", this.endpoint(FAMILY.MONGODB, "changes"), input),
+        get: (id: string) =>
+          this.request<Change>("GET", this.endpoint(FAMILY.MONGODB, `changes/${id}`)),
+        approve: (id: string) =>
+          this.request<Change>("POST", this.endpoint(FAMILY.MONGODB, `changes/${id}/approve`)),
+        apply: (id: string) =>
+          this.request<Change>("POST", this.endpoint(FAMILY.MONGODB, `changes/${id}/apply`)),
+        reject: (id: string) =>
+          this.request<Change>("POST", this.endpoint(FAMILY.MONGODB, `changes/${id}/reject`)),
+      },
+    },
+    changes: {
+      list: (connection?: string, page?: number, perPage?: number, status?: string) => {
+        const params = new URLSearchParams();
+        if (connection) params.set("connection", connection);
+        if (page && page > 1) params.set("page", String(page));
+        if (perPage) params.set("perPage", String(perPage));
+        if (status) params.set("status", status);
+        const qs = params.toString();
+        return this.request<{ changes: Change[]; total: number }>(
+          "GET",
+          this.endpoint(FAMILY.SQL, "changes") + (qs ? `?${qs}` : ""),
+        );
+      },
+      get: (id: string) => this.request<Change>("GET", this.endpoint(FAMILY.SQL, `changes/${id}`)),
+      submit: (input: ChangeInput) =>
+        this.request<Change>("POST", this.endpoint(FAMILY.SQL, "changes"), input),
+      approve: (id: string) =>
+        this.request<Change>("POST", this.endpoint(FAMILY.SQL, `changes/${id}/approve`)),
+      apply: (id: string) =>
+        this.request<Change>("POST", this.endpoint(FAMILY.SQL, `changes/${id}/apply`)),
+      reject: (id: string) =>
+        this.request<Change>("POST", this.endpoint(FAMILY.SQL, `changes/${id}/reject`)),
+      schedule: (id: string, scheduledAt: number) =>
+        this.request<Change>("POST", this.endpoint(FAMILY.SQL, `changes/${id}/schedule`), {
+          scheduledAt,
+        }),
+    },
+    // config is the server's console-facing configuration (hardcoded Go-side). permissions: per-connection RBAC policy (users and groups), admin-managed.
+    permissions: {
+      // matrix is the per-instance overview: every instance with its whole policy.
+      matrix: () => this.request<{ instances: InstanceAccess[] }>("GET", this.path("/access")),
+      list: (family: FamilyKey, name: string) =>
+        this.request<{ permissions: Permission[] }>(
+          "GET",
+          this.endpoint(family, `connections/${encodeURIComponent(name)}/permissions`),
+        ),
+      set: (family: FamilyKey, name: string, member: string, memberType: string, level: string) =>
+        this.request<Permission>(
+          "PUT",
+          this.endpoint(family, `connections/${encodeURIComponent(name)}/permissions`),
+          {
+            member,
+            memberType,
+            level,
+          },
+        ),
+      remove: (family: FamilyKey, name: string, member: string) =>
+        this.request<null>(
+          "DELETE",
+          this.endpoint(
+            family,
+            `connections/${encodeURIComponent(name)}/permissions?member=${encodeURIComponent(member)}`,
+          ),
+        ),
+    },
+    // accessRequests: a user asks for a level on a connection; an admin or that instance's admin decides.
+    accessRequests: {
+      create: (connection: string, level: string, reason: string) =>
+        this.request<AccessRequest>("POST", this.path("/access-requests"), {
+          connection,
+          level,
+          reason,
+        }),
+      mine: () =>
+        this.request<{ requests: AccessRequest[] }>(
+          "GET",
+          this.path("/access-requests?scope=mine"),
+        ),
+      toApprove: () =>
+        this.request<{ requests: AccessRequest[] }>(
+          "GET",
+          this.path("/access-requests?scope=to-approve"),
+        ),
+      approve: (id: string, note = "") =>
+        this.request<AccessRequest>("POST", this.path(`/access-requests/${id}/approve`), { note }),
+      reject: (id: string, note = "") =>
+        this.request<AccessRequest>("POST", this.path(`/access-requests/${id}/reject`), { note }),
+    },
+    // users: the admin directory. Read-only plus the status/role controls; only the super admin may send a role.
+    users: {
+      list: (q: string, status: string) =>
+        this.request<{ users: User[] }>(
+          "GET",
+          this.path(`/users?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`),
+        ),
+      get: (subject: string) =>
+        this.request<UserDetail>("GET", this.path(`/users/${encodeURIComponent(subject)}`)),
+      update: (subject: string, patch: { role?: UserRole }) =>
+        this.request<User>("PATCH", this.path(`/users/${encodeURIComponent(subject)}`), patch),
+    },
+    config: {
+      drivers: () => this.request<DriverInfo[]>("GET", this.path("/config/drivers")),
+      levels: () => this.request<{ levels: AccessLevel[] }>("GET", this.path("/config/levels")),
+      members: () =>
+        this.request<{ groups: string[]; users: MemberUser[] }>(
+          "GET",
+          this.path("/config/members"),
+        ),
+    },
+    // family returns the shared connection lifecycle for any engine family.
+    family: (family: FamilyKey) => this.connectionOps(family),
   };
 }
 
-export const api = {
-  me: () => request<Identity>("GET", "/external/v1/me"),
-  // instances are the cross-family view: one connection addressed by its stable id, whatever family serves it.
-  instances: {
-    list: (query: InstanceQuery = {}) => {
-      const params = new URLSearchParams();
-      if (query.name) params.set("name", query.name);
-      if (query.driver) params.set("driver", query.driver);
-      if (query.host) params.set("host", query.host);
-      if (query.page && query.page > 1) params.set("page", String(query.page));
-      if (query.perPage) params.set("perPage", String(query.perPage));
-      const qs = params.toString();
-      return request<{ instances: Connection[]; total: number }>(
-        "GET",
-        `/external/v1/instances${qs ? `?${qs}` : ""}`,
-      );
-    },
-    get: (id: string) =>
-      request<Connection>("GET", `/external/v1/instances/${encodeURIComponent(id)}`),
-    rotatePassword: (id: string, password: string) =>
-      request<{ status: string }>(
-        "POST",
-        `/external/v1/instances/${encodeURIComponent(id)}/password`,
-        { password },
-      ),
-  },
-  connections: {
-    ...connectionOps(FAMILY.SQL),
-    schema: (name: string) =>
-      request<{ tables: Table[] }>("GET", connPath(FAMILY.SQL, name, "/schema")),
-    erd: (name: string) => request<SchemaGraph>("GET", connPath(FAMILY.SQL, name, "/erd")),
-    rows: (name: string, schema: string, table: string, limit = 100) =>
-      request<Result>(
-        "GET",
-        connPath(FAMILY.SQL, name, `/tables/${table}/rows`) +
-          `?schema=${encodeURIComponent(schema)}&limit=${limit}`,
-      ),
-  },
-  ops: {
-    query: (name: string, sql: string) =>
-      request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "query", sql }),
-    alter: (name: string, sql: string) =>
-      request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "alter", sql }),
-    rollback: (name: string, sql: string) =>
-      request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "rollback", sql }),
-    analyze: (name: string, table: string) =>
-      request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "analyze", table }),
-  },
-  memcache: {
-    ...connectionOps(FAMILY.MEMCACHE),
-    keys: (name: string, pattern = "*", limit = 500) =>
-      request<MemcacheKeyPage>(
-        "GET",
-        connPath(FAMILY.MEMCACHE, name, "/keys") +
-          `?pattern=${encodeURIComponent(pattern)}&limit=${limit}`,
-      ),
-    value: (name: string, key: string) =>
-      request<Result>(
-        "GET",
-        connPath(FAMILY.MEMCACHE, name, "/value") + `?key=${encodeURIComponent(key)}`,
-      ),
-    removeKeys: (name: string, keys: string[]) =>
-      request<{ deleted: number }>("DELETE", connPath(FAMILY.MEMCACHE, name, "/keys"), { keys }),
-    flush: (name: string) =>
-      request<{ status: string }>("POST", connPath(FAMILY.MEMCACHE, name, "/flush"), {
-        confirm: name,
-      }),
-  },
-  mongodb: {
-    ...connectionOps(FAMILY.MONGODB),
-    databases: (name: string) =>
-      request<{ databases: MongoDatabase[] }>("GET", connPath(FAMILY.MONGODB, name, "/databases")),
-    collections: (name: string, database: string) =>
-      request<{ collections: MongoCollection[] }>(
-        "GET",
-        connPath(FAMILY.MONGODB, name, "/collections") +
-          `?database=${encodeURIComponent(database)}`,
-      ),
-    // reads only: a write op is refused here and belongs in the request queue
-    run: (name: string, req: MongoRequest) =>
-      request<MongoResult>("POST", connPath(FAMILY.MONGODB, name, "/requests"), req),
-    changes: {
-      list: () => request<{ changes: Change[] }>("GET", v1(FAMILY.MONGODB, "changes")),
-      submit: (input: MongoChangeInput) =>
-        request<Change>("POST", v1(FAMILY.MONGODB, "changes"), input),
-      get: (id: string) => request<Change>("GET", v1(FAMILY.MONGODB, `changes/${id}`)),
-      approve: (id: string) => request<Change>("POST", v1(FAMILY.MONGODB, `changes/${id}/approve`)),
-      apply: (id: string) => request<Change>("POST", v1(FAMILY.MONGODB, `changes/${id}/apply`)),
-      reject: (id: string) => request<Change>("POST", v1(FAMILY.MONGODB, `changes/${id}/reject`)),
-    },
-  },
-  changes: {
-    list: (connection?: string, page?: number, perPage?: number, status?: string) => {
-      const params = new URLSearchParams();
-      if (connection) params.set("connection", connection);
-      if (page && page > 1) params.set("page", String(page));
-      if (perPage) params.set("perPage", String(perPage));
-      if (status) params.set("status", status);
-      const qs = params.toString();
-      return request<{ changes: Change[]; total: number }>(
-        "GET",
-        v1(FAMILY.SQL, "changes") + (qs ? `?${qs}` : ""),
-      );
-    },
-    get: (id: string) => request<Change>("GET", v1(FAMILY.SQL, `changes/${id}`)),
-    submit: (input: ChangeInput) => request<Change>("POST", v1(FAMILY.SQL, "changes"), input),
-    approve: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/approve`)),
-    apply: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/apply`)),
-    reject: (id: string) => request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/reject`)),
-    schedule: (id: string, scheduledAt: number) =>
-      request<Change>("POST", v1(FAMILY.SQL, `changes/${id}/schedule`), { scheduledAt }),
-  },
-  // config is the server's console-facing configuration (hardcoded Go-side). permissions: per-connection RBAC policy (users and groups), admin-managed.
-  permissions: {
-    // matrix is the per-instance overview: every instance with its whole policy.
-    matrix: () => request<{ instances: InstanceAccess[] }>("GET", "/external/v1/access"),
-    list: (family: FamilyKey, name: string) =>
-      request<{ permissions: Permission[] }>(
-        "GET",
-        v1(family, `connections/${encodeURIComponent(name)}/permissions`),
-      ),
-    set: (family: FamilyKey, name: string, member: string, memberType: string, level: string) =>
-      request<Permission>(
-        "PUT",
-        v1(family, `connections/${encodeURIComponent(name)}/permissions`),
-        {
-          member,
-          memberType,
-          level,
-        },
-      ),
-    remove: (family: FamilyKey, name: string, member: string) =>
-      request<null>(
-        "DELETE",
-        v1(
-          family,
-          `connections/${encodeURIComponent(name)}/permissions?member=${encodeURIComponent(member)}`,
-        ),
-      ),
-  },
-  // accessRequests: a user asks for a level on a connection; an admin or that instance's admin decides.
-  accessRequests: {
-    create: (connection: string, level: string, reason: string) =>
-      request<AccessRequest>("POST", "/external/v1/access-requests", { connection, level, reason }),
-    mine: () =>
-      request<{ requests: AccessRequest[] }>("GET", "/external/v1/access-requests?scope=mine"),
-    toApprove: () =>
-      request<{ requests: AccessRequest[] }>(
-        "GET",
-        "/external/v1/access-requests?scope=to-approve",
-      ),
-    approve: (id: string, note = "") =>
-      request<AccessRequest>("POST", `/external/v1/access-requests/${id}/approve`, { note }),
-    reject: (id: string, note = "") =>
-      request<AccessRequest>("POST", `/external/v1/access-requests/${id}/reject`, { note }),
-  },
-  // users: the admin directory. Read-only plus the status/role controls; only the super admin may send a role.
-  users: {
-    list: (q: string, status: string) =>
-      request<{ users: User[] }>(
-        "GET",
-        `/external/v1/users?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`,
-      ),
-    get: (subject: string) =>
-      request<UserDetail>("GET", `/external/v1/users/${encodeURIComponent(subject)}`),
-    update: (subject: string, patch: { role?: UserRole }) =>
-      request<User>("PATCH", `/external/v1/users/${encodeURIComponent(subject)}`, patch),
-  },
-  config: {
-    drivers: () => request<DriverInfo[]>("GET", "/external/v1/config/drivers"),
-    levels: () => request<{ levels: AccessLevel[] }>("GET", "/external/v1/config/levels"),
-    members: () =>
-      request<{ groups: string[]; users: MemberUser[] }>("GET", "/external/v1/config/members"),
-  },
-  // family returns the shared connection lifecycle for any engine family.
-  family: connectionOps,
-};
+// api is the console's one client; pages never construct their own.
+export const api = new ApiClient().groups;
