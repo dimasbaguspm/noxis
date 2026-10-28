@@ -1,6 +1,6 @@
 # Two path-filtered jobs, one per side of the repo.
 #   go  → lint → build (Dockerfile.api) → unit → UAT
-#   web → lint + typecheck + build
+#   web → lint + format + typecheck + build
 # The full Dockerfile is built by the UAT step itself: `make uat` runs
 # `docker compose up`, which builds the noxis service image. The API-only image
 # (Dockerfile.api) is the one nothing else builds, so it is built here.
@@ -90,7 +90,7 @@ jobs:
         run: make uat
 
   web:
-    name: "web: lint, typecheck, build"
+    name: "web: lint, format, typecheck, build"
     needs: changes
     if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
@@ -98,7 +98,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: web (lint + typecheck + build)
+      - name: web (lint + format + typecheck + build)
         run: |
-          npm install -g pnpm@10
-          cd apps/web && pnpm install --frozen-lockfile && pnpm lint && pnpm build
+          npm install -g pnpm@10.34.5
+          cd apps/web && pnpm install --frozen-lockfile && pnpm lint && pnpm format:check && pnpm build
