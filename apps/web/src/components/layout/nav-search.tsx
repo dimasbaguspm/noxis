@@ -1,79 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { Check, CornerDownLeft, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { NAV, findNav, type NavItem } from "@/lib/nav";
+import { findNav } from "@/lib/nav";
+import { useNavSearch } from "@/hooks/use-nav-search";
 import { cn } from "@/lib/utils";
 import { P } from "@/components/ui/typography";
 
-interface Entry {
-  group?: string;
-  item: NavItem;
-}
-
-const entries: Entry[] = NAV.flatMap((group) =>
-  group.items.map((item) => ({ group: group.label, item })),
-);
-
 // NavSearch is the header's navigator: a field that behaves like a button and opens a modal palette (⌘K / Ctrl+K).
 export function NavSearch() {
-  const navigate = useNavigate();
   const { pathname } = useLocation();
-  const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState("");
-  const [cursor, setCursor] = useState(0);
+  const { open, change, filter, search, cursor, setCursor, matches, go, onInputKey } =
+    useNavSearch();
   const list = useRef<HTMLDivElement>(null);
 
   const current = findNav(pathname);
-
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setOpen(true);
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  function change(next: boolean) {
-    setOpen(next);
-    if (next) {
-      setFilter("");
-      setCursor(0);
-    }
-  }
-
-  const matches = useMemo(() => {
-    const needle = filter.trim().toLowerCase();
-    if (!needle) return entries;
-    return entries.filter(({ group, item }) =>
-      `${group ?? ""} ${item.label} ${item.to}`.toLowerCase().includes(needle),
-    );
-  }, [filter]);
-
-  function go(entry: Entry | undefined) {
-    if (!entry) return;
-    navigate(entry.item.to);
-    change(false);
-  }
-
-  function onInputKey(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setCursor((c) => Math.min(c + 1, matches.length - 1));
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setCursor((c) => Math.max(c - 1, 0));
-    } else if (event.key === "Enter") {
-      event.preventDefault();
-      go(matches[cursor]);
-    }
-  }
 
   return (
     <Dialog open={open} onOpenChange={change}>
@@ -100,10 +44,7 @@ export function NavSearch() {
           <Input
             autoFocus
             value={filter}
-            onChange={(e) => {
-              setFilter(e.target.value);
-              setCursor(0);
-            }}
+            onChange={(e) => search(e.target.value)}
             onKeyDown={onInputKey}
             placeholder="Search pages — Query, DML, Redis…"
             className="h-7 border-0 bg-transparent p-0 shadow-none outline-none placeholder:text-muted-foreground"

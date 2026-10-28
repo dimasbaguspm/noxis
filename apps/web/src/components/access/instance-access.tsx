@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useInstanceAccess } from "@/hooks/use-instance-access";
 import { Check, Inbox, KeyRound, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ import {
   useSetPermission,
 } from "@/hooks/use-access";
 import { useLevelsQuery } from "@/hooks/use-config";
-import type { AccessRequest, Connection, Permission } from "@/lib/api";
+import type { Connection } from "@/lib/api";
 import { formatDateTime } from "@/lib/dates";
 import { familyByKey, type FamilyKey } from "@/lib/families";
 import { useUrlState } from "@/hooks/use-url-state";
@@ -54,12 +54,6 @@ const MEMBER_TYPES = [
   { value: "group", label: "Group" },
   { value: "user", label: "User" },
 ] as const;
-
-type SheetState =
-  | { kind: "add" }
-  | { kind: "grant"; permission: Permission }
-  | { kind: "request"; request: AccessRequest }
-  | null;
 
 // InstanceAccess is the instance review surface: grants and pending requests share one 20:80 workspace.
 export function InstanceAccess({ instance }: { instance: Connection }) {
@@ -77,58 +71,30 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
   const remove = useRemovePermission(family, name);
   const decide = useDecideRequest();
 
-  const [sheet, setSheet] = useState<SheetState>(null);
-  const [memberType, setMemberType] = useState<string>("group");
-  const [member, setMember] = useState("");
-  const [level, setLevel] = useState("read");
-  const [note, setNote] = useState("");
-
+  const {
+    sheet,
+    memberType,
+    setMemberType,
+    member,
+    setMember,
+    level,
+    setLevel,
+    note,
+    setNote,
+    openAdd,
+    openGrant,
+    openRequest,
+    closeSheet,
+    submitGrant,
+    revoke,
+    decideRequest,
+  } = useInstanceAccess({ add, remove, decide });
   const grants = permissions.data?.permissions ?? [];
   const pending = (requests.data?.requests ?? []).filter((request) => request.connection === name);
   const groups = knownGroups(members.data?.groups);
   const canGrant = isAdmin;
   const canRevoke = isAdmin || isInstanceAdmin(name);
   const canManage = canGrant || canRevoke;
-
-  function openAdd() {
-    setMemberType("group");
-    setMember("");
-    setLevel("read");
-    setSheet({ kind: "add" });
-  }
-
-  function openGrant(permission: Permission) {
-    setMemberType(permission.memberType ?? "group");
-    setMember(permission.member);
-    setLevel(permission.level ?? "read");
-    setSheet({ kind: "grant", permission });
-  }
-
-  function openRequest(request: AccessRequest) {
-    setNote("");
-    setSheet({ kind: "request", request });
-  }
-
-  function closeSheet() {
-    setSheet(null);
-    setNote("");
-  }
-
-  function submitGrant(event: React.FormEvent) {
-    event.preventDefault();
-    if (!member.trim()) return;
-    add.mutate({ member: member.trim(), memberType, level }, { onSuccess: closeSheet });
-  }
-
-  function revoke() {
-    if (sheet?.kind !== "grant") return;
-    remove.mutate(sheet.permission.member, { onSuccess: closeSheet });
-  }
-
-  function decideRequest(approve: boolean) {
-    if (sheet?.kind !== "request") return;
-    decide.mutate({ id: sheet.request.id ?? "", approve, note }, { onSuccess: closeSheet });
-  }
 
   return (
     <>

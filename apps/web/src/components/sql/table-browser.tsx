@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { debounce, group, title } from "radash";
+import { useTableBrowser } from "@/hooks/use-table-browser";
+import { title } from "radash";
 import { Activity, ChevronDown, ChevronRight, ListTree, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,42 +26,14 @@ interface Props {
 
 // TableBrowser: schemas first, then their tables.
 export function TableBrowser({ tables, onRecords, onAnalyze, onSelect }: Props) {
-  const [filter, setFilter] = useState("");
-  const [query, setQuery] = useState("");
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [selectedSchema, setSelectedSchema] = useState("");
-
-  const setFilterDebounced = useMemo(
-    () => debounce({ delay: 200 }, (v: string) => setQuery(v)),
-    [],
-  );
-
-  const schemas = useMemo(
-    () => Object.keys(group(tables, (t) => t.schema || "public")).sort(),
-    [tables],
-  );
-  const schemaFilter = schemas.includes(selectedSchema) ? selectedSchema : "";
-
-  const entries = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    const scope = schemaFilter
-      ? tables.filter((t) => (t.schema || "public") === schemaFilter)
-      : tables;
-    const matching = needle
-      ? scope.filter((t) => `${t.schema}.${t.name}`.toLowerCase().includes(needle))
-      : scope;
-    const groups = group(matching, (t) => t.schema || "public");
-    return Object.entries(groups) as [string, Table[]][];
-  }, [tables, query, schemaFilter]);
+  const { filter, search, expanded, expand, selectSchema, schemas, schemaFilter, entries } =
+    useTableBrowser(tables);
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="grid gap-1.5">
         <Label>Schema</Label>
-        <Select
-          value={schemaFilter || "all"}
-          onValueChange={(next) => setSelectedSchema(String(next) === "all" ? "" : String(next))}
-        >
+        <Select value={schemaFilter || "all"} onValueChange={(next) => selectSchema(String(next))}>
           <SelectTrigger className="w-full" aria-label="Schema">
             <SelectValue placeholder="All schemas" />
           </SelectTrigger>
@@ -84,10 +56,7 @@ export function TableBrowser({ tables, onRecords, onAnalyze, onSelect }: Props) 
             className="pl-7"
             placeholder="Search tables"
             value={filter}
-            onChange={(e) => {
-              setFilter(e.target.value);
-              void setFilterDebounced(e.target.value);
-            }}
+            onChange={(e) => search(e.target.value)}
           />
         </div>
       </div>
@@ -116,7 +85,7 @@ export function TableBrowser({ tables, onRecords, onAnalyze, onSelect }: Props) 
                       size="sm"
                       className="flex min-w-0 flex-1 items-center gap-1 justify-start px-1"
                       onClick={() => {
-                        setExpanded(open ? null : key);
+                        expand(key);
                         onSelect?.(t);
                       }}
                     >
