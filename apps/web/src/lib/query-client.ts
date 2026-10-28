@@ -24,6 +24,10 @@ const pageRoot = (route: RouteId) => [ROUTES[route].section, ROUTES[route].entit
 export const queryKeys = {
   // the identity is the account section's own record, so it lives under its section like any other read
   me: pageRoot("my.profile"),
+  // auth has no page either: the session bootstrap runs before any section renders
+  auth: {
+    session: ["auth", "session"] as const,
+  },
   // config has no page of its own: the driver catalog, the level list, and the member list feed forms in several sections
   config: {
     drivers: ["config", "drivers"] as const,
