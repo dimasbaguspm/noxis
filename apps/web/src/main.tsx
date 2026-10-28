@@ -9,7 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { PAGE_ROUTES, routePath } from "@/constants/routes";
+import { PAGE_ROUTES, patternOf, routePath } from "@/constants/routes";
 import "./app.css";
 
 // route-level splitting: monaco (query/changes) loads with the page that needs it
@@ -62,7 +62,7 @@ const router = createBrowserRouter([
       },
       { path: routePath(PAGE_ROUTES.INSTANCES), element: <DashboardPage /> },
       {
-        path: routePath(PAGE_ROUTES.INSTANCE_DETAIL(":id")),
+        path: routePath(patternOf("console.instances.detail")),
         element: <InstanceLayout />,
         children: [
           { index: true, element: <InstanceDetailTab /> },
@@ -76,15 +76,21 @@ const router = createBrowserRouter([
       { path: routePath(PAGE_ROUTES.SQL.QUERY), element: <QueryPage /> },
       { path: routePath(PAGE_ROUTES.SQL.ERD), element: <SqlErdPage /> },
       { path: routePath(PAGE_ROUTES.SQL.DML), element: <DmlPage /> },
-      { path: `${routePath(PAGE_ROUTES.SQL.DML)}/:id`, element: <ChangeDetail kind="dml" /> },
+      {
+        path: routePath(patternOf("console.sql.dml.detail")),
+        element: <ChangeDetail kind="dml" />,
+      },
       { path: routePath(PAGE_ROUTES.SQL.DDL), element: <DdlPage /> },
-      { path: `${routePath(PAGE_ROUTES.SQL.DDL)}/:id`, element: <ChangeDetail kind="ddl" /> },
+      {
+        path: routePath(patternOf("console.sql.ddl.detail")),
+        element: <ChangeDetail kind="ddl" />,
+      },
       { path: routePath(PAGE_ROUTES.MEMCACHE.KEYS), element: <MemcachePage /> },
       { path: routePath(PAGE_ROUTES.MONGODB.EXPLORE), element: <MongoExplorePage /> },
       { path: routePath(PAGE_ROUTES.MONGODB.REQUESTS), element: <MongoRequestsPage /> },
       { path: routePath(PAGE_ROUTES.MONGODB.REQUEST_NEW), element: <MongoRequestNewPage /> },
       {
-        path: `${routePath(PAGE_ROUTES.MONGODB.REQUESTS)}/:id`,
+        path: routePath(patternOf("console.mongodb.requests.detail")),
         element: <MongoRequestDetailPage />,
       },
       // the account section keeps its own paths
@@ -100,7 +106,7 @@ const router = createBrowserRouter([
       },
       { path: routePath(PAGE_ROUTES.ACCESS), element: <AccessPage /> },
       { path: routePath(PAGE_ROUTES.USERS), element: <UsersPage /> },
-      { path: `${routePath(PAGE_ROUTES.USERS)}/:subject`, element: <UserDetailPage /> },
+      { path: routePath(patternOf("admin.users.detail")), element: <UserDetailPage /> },
       // the retired shorthand paths, the origin root, and any unknown path all land on the console list
       { path: "profile", element: <Navigate to={PAGE_ROUTES.MY} replace /> },
       { path: "settings", element: <Navigate to={PAGE_ROUTES.MY_SETTINGS} replace /> },

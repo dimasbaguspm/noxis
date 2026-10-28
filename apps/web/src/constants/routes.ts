@@ -223,9 +223,15 @@ const PREFIX_LABELS: Record<string, string> = {
 
 // fill replaces the ":name" parameters of a path pattern.
 function fill(pattern: string, params: Record<string, string> = {}): string {
-  return pattern.replace(/:([a-zA-Z]+)/g, (_, key: string) =>
-    encodeURIComponent(params[key] ?? ""),
-  );
+  return pattern.replace(/:([a-zA-Z]+)/g, (_, key: string) => {
+    const value = params[key] ?? "";
+    // a ":id" value here means someone is building a router pattern through pathOf, which
+    // would escape the colon and register an unreachable route; patternOf is the way.
+    if (value.startsWith(":")) {
+      throw new Error(`pathOf got the pattern "${value}" for route "${pattern}"; use patternOf`);
+    }
+    return encodeURIComponent(value);
+  });
 }
 
 // The registry is compiled once: matching every prefix of a URL per render would
@@ -240,6 +246,12 @@ const MATCHERS = (Object.keys(ROUTES) as RouteId[]).map((id) => {
 export function matchRoute(pathname: string): RouteMeta | undefined {
   const hit = MATCHERS.find((matcher) => matcher.regex.test(pathname));
   return hit ? ROUTES[hit.id] : undefined;
+}
+
+// patternOf returns the router pattern for a route, parameters and all. The router
+// registers patterns, so a ":id" segment must never pass through fill().
+export function patternOf(id: RouteId): string {
+  return ROUTES[id].path;
 }
 
 // pathOf builds a link from a route id, filling any parameters it declares.
