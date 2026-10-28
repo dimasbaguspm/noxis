@@ -10,7 +10,7 @@ export function useDriversQuery() {
 // useLevelsQuery reads the backend's access-level catalog, so the console's pickers follow the server instead of keeping their own copy.
 export function useLevelsQuery() {
   return useQuery({
-    queryKey: ["config", "levels"],
+    queryKey: queryKeys.config.levels,
     queryFn: () => api.config.levels(),
     staleTime: Infinity,
   });

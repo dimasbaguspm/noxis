@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import { ROUTES, type RouteId } from "@/constants/routes";
 
 // The shared QueryClient centralizes keys and invalidation; window refocus does not refetch.
 export const queryClient = new QueryClient({
@@ -11,42 +12,76 @@ export const queryClient = new QueryClient({
   },
 });
 
+// pageKey starts a cache key at the section and entity of the page that owns the data,
+// so a key cannot drift from the route it belongs to.
+const pageKey = (route: RouteId, ...rest: unknown[]) =>
+  [ROUTES[route].section, ROUTES[route].entity, ...rest] as const;
+
+// pageRoot is the prefix that invalidates every entry a page owns.
+const pageRoot = (route: RouteId) => [ROUTES[route].section, ROUTES[route].entity] as const;
+
 // queryKeys centralizes every cache key so invalidations never drift from the reads.
 export const queryKeys = {
-  me: ["me"] as const,
+  // the identity is the account section's own record, so it lives under its section like any other read
+  me: pageRoot("my.profile"),
+  // config has no page of its own: the driver catalog, the level list, and the member list feed forms in several sections
   config: {
     drivers: ["config", "drivers"] as const,
+    levels: ["config", "levels"] as const,
+    members: ["config", "members"] as const,
   },
   instances: {
+    all: pageRoot("console.instances"),
     list: (query?: { name?: string; driver?: string; host?: string; page?: number }) =>
-      ["instances", "list", query] as const,
-    get: (id: string) => ["instances", "get", id] as const,
-    schema: (id: string) => ["instances", "schema", id] as const,
+      pageKey("console.instances", "list", query),
+    get: (id: string) => pageKey("console.instances.detail", "get", id),
+    schema: (id: string) => pageKey("console.instances.detail", "schema", id),
   },
   sql: {
-    schema: (connection: string | undefined) => ["sql", "schema", connection] as const,
-    erd: (connection: string | undefined) => ["sql", "erd", connection] as const,
+    schema: (connection: string | undefined) => pageKey("console.sql.query", "schema", connection),
+    erd: (connection: string | undefined) => pageKey("console.sql.erd", "erd", connection),
     rows: (connection: string | undefined, schema?: string, table?: string) =>
-      ["sql", "rows", connection, schema, table] as const,
+      pageKey("console.sql.query", "rows", connection, schema, table),
     changes: {
+      all: pageRoot("console.sql.dml"),
       list: (kind?: "dml" | "ddl", connection?: string, status?: string, page = 1) =>
-        ["sql", "changes", "list", kind, connection, status, page] as const,
-      get: (id: string) => ["sql", "changes", "get", id] as const,
+        pageKey("console.sql.dml", "list", kind, connection, status, page),
+      get: (id: string) => pageKey("console.sql.dml", "get", id),
     },
   },
   memcache: {
+    all: pageRoot("console.memcache"),
     keys: (connection: string | undefined, pattern?: string, page = 1) =>
-      ["memcache", "keys", connection, pattern, page] as const,
-    key: (connection: string | undefined, key?: string) =>
-      ["memcache", "value", connection, key] as const,
+      pageKey("console.memcache", "keys", connection, pattern, page),
+    value: (connection: string | undefined, key?: string) =>
+      pageKey("console.memcache", "value", connection, key),
   },
   mongodb: {
-    databases: (connection: string | undefined) => ["mongodb", "databases", connection] as const,
+    databases: (connection: string | undefined) =>
+      pageKey("console.mongodb.explore", "databases", connection),
     collections: (connection: string | undefined, database?: string) =>
-      ["mongodb", "collections", connection, database] as const,
+      pageKey("console.mongodb.explore", "collections", connection, database),
     requests: {
-      list: () => ["mongodb", "requests", "list"] as const,
-      get: (id: string) => ["mongodb", "requests", "get", id] as const,
+      all: pageRoot("console.mongodb.requests"),
+      list: () => pageKey("console.mongodb.requests", "list"),
+      get: (id: string) => pageKey("console.mongodb.requests.detail", "get", id),
     },
+  },
+  access: {
+    // per-instance grants belong to the instance access tab; the approval inbox belongs to the admin section
+    all: pageRoot("console.instances.access"),
+    permissions: (family: string | undefined, name: string) =>
+      pageKey("console.instances.access", "permissions", family, name),
+    matrix: pageKey("admin.access", "matrix"),
+    requests: {
+      all: pageRoot("admin.access"),
+      mine: pageKey("admin.access", "requests", "mine"),
+      toApprove: pageKey("admin.access", "requests", "to-approve"),
+    },
+  },
+  users: {
+    all: pageRoot("admin.users"),
+    list: (q: string, status: string) => pageKey("admin.users", "list", q, status),
+    get: (subject: string) => pageKey("admin.users.detail", "get", subject),
   },
 };

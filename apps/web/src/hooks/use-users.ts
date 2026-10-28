@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api, type UserRole, type UserStatus } from "@/lib/api";
 import { useUrlState } from "@/hooks/use-url-state";
+import { queryKeys } from "@/lib/query-client";
 
 const USERS_DEFAULTS = { q: "", status: "all" };
 
@@ -20,7 +21,7 @@ export function useUsersUrlParams() {
 export function useUsersQuery(enabled = true) {
   const { q, status } = useUsersUrlParams();
   return useQuery({
-    queryKey: ["users", q, status],
+    queryKey: queryKeys.users.list(q, status),
     queryFn: () => api.users.list(q, status),
     enabled,
   });
@@ -28,7 +29,7 @@ export function useUsersQuery(enabled = true) {
 
 export function useUserQuery(subject: string) {
   return useQuery({
-    queryKey: ["user", subject],
+    queryKey: queryKeys.users.get(subject),
     queryFn: () => api.users.get(subject),
     enabled: subject !== "",
   });
@@ -44,9 +45,9 @@ export function useUpdateUser(subject: string) {
       toast.success(
         patch.role ? `role changed to ${patch.role}` : `account is now ${patch.status}`,
       );
-      void queryClient.invalidateQueries({ queryKey: ["user", subject] });
-      void queryClient.invalidateQueries({ queryKey: ["users"] });
-      void queryClient.invalidateQueries({ queryKey: ["access", "matrix"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users.get(subject) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.access.matrix });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "update failed"),
   });

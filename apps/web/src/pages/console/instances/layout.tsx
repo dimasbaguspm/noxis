@@ -45,7 +45,7 @@ import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { useAuth } from "@/app/auth-provider";
 import { api, type Connection } from "@/lib/api";
 import { useCrumbLabel } from "@/app/crumb-provider";
-import { queryClient } from "@/lib/query-client";
+import { queryClient, queryKeys } from "@/lib/query-client";
 import { FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
@@ -125,7 +125,7 @@ export default function InstanceLayout() {
     if (!family) return;
     await api.family(family).remove(name);
     toast.success(`Deleted ${name}`);
-    void queryClient.invalidateQueries({ queryKey: ["instances"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.instances.all });
     navigate(PAGE_ROUTES.INSTANCES);
   });
 

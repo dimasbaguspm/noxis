@@ -36,7 +36,7 @@ export function useMemcacheKeysQuery(connection?: string, pattern = "*") {
 
 export function useMemcacheValueQuery(connection?: string, key?: string) {
   const query = useQuery({
-    queryKey: queryKeys.memcache.key(connection, key),
+    queryKey: queryKeys.memcache.value(connection, key),
     queryFn: () => api.memcache.value(connection as string, key as string),
     enabled: !!connection && !!key,
   });
@@ -48,13 +48,13 @@ export function useRemoveKeysMutation() {
   return useMutation({
     mutationFn: ({ connection, keys }: { connection: string; keys: string[] }) =>
       api.memcache.removeKeys(connection, keys),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["memcache"] }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.memcache.all }),
   });
 }
 
 export function useFlushMutation() {
   return useMutation({
     mutationFn: (connection: string) => api.memcache.flush(connection),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["memcache"] }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.memcache.all }),
   });
 }

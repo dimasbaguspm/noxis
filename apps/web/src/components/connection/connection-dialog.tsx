@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/select";
 import { useSetActiveConnection } from "@/hooks/use-connections";
 import { useDriversQuery } from "@/hooks/use-config";
-import { queryClient } from "@/lib/query-client";
+import { queryClient, queryKeys } from "@/lib/query-client";
 import { FAMILY, type FamilyKey } from "@/lib/families";
 import { api, type Connection } from "@/lib/api";
 import { parseDsn } from "@/lib/dsn";
@@ -178,7 +178,7 @@ export function ConnectionDialog({
 
   // refresh invalidates the cached instance list after a connection write.
   async function refresh() {
-    await queryClient.invalidateQueries({ queryKey: ["instances"] });
+    await queryClient.invalidateQueries({ queryKey: queryKeys.instances.all });
   }
 
   function choose(next: FamilyKey) {

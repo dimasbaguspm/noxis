@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { useQueryClient } from "@tanstack/react-query";
 import { usePagedInstancesQuery } from "@/hooks/use-instances";
 import { FAMILIES, type FamilyKey } from "@/lib/families";
+import { queryKeys } from "@/lib/query-client";
 
 // ActiveProvider remembers the per-family connection choice in memory only; it holds no data.
 
@@ -42,7 +43,7 @@ export function useConnections(family: FamilyKey) {
   const active = ctx.active[family] ?? connections[0]?.name;
   const setActive = useCallback((name: string) => ctx.setActive(family, name), [ctx, family]);
   const reload = useCallback(
-    () => void queryClient.invalidateQueries({ queryKey: ["instances"] }),
+    () => void queryClient.invalidateQueries({ queryKey: queryKeys.instances.all }),
     [queryClient],
   );
   return { connections, active, setActive, reload, busy: list.isPending };
