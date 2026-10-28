@@ -7,9 +7,22 @@ import { Empty } from "@/components/ui/empty";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/ui/pagination";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { Workspace } from "@/components/layout/workspace";
 import { useAuth } from "@/app/auth-provider";
@@ -36,7 +49,10 @@ export default function DashboardPage() {
     page,
     perPage: PER_PAGE,
   });
-  const instances = (list.data?.instances ?? []).map((c) => ({ ...c, family: c.family as FamilyKey }));
+  const instances = (list.data?.instances ?? []).map((c) => ({
+    ...c,
+    family: c.family as FamilyKey,
+  }));
   const total = list.data?.total ?? 0;
   const loading = list.isPending || list.isFetching;
 
@@ -92,7 +108,9 @@ export default function DashboardPage() {
               <Empty
                 icon={Boxes}
                 title={filtering ? "No match" : "None registered yet"}
-                description={filtering ? "Try another name or driver" : "Register an instance to see it here"}
+                description={
+                  filtering ? "Try another name or driver" : "Register an instance to see it here"
+                }
               />
             ) : (
               <>
@@ -110,7 +128,10 @@ export default function DashboardPage() {
                         <TableRow key={`${c.family}:${c.name}`}>
                           <TableCell>
                             <span className="flex items-center gap-2 text-sm">
-                              <FamilyIcon family={c.family} className="size-3.5 text-muted-foreground" />
+                              <FamilyIcon
+                                family={c.family}
+                                className="size-3.5 text-muted-foreground"
+                              />
                               {c.name}
                             </span>
                           </TableCell>
@@ -119,7 +140,11 @@ export default function DashboardPage() {
                           </TableCell>
                           <TableCell>
                             {c.id ? (
-                              <Button size="xs" variant="outline" render={<Link to={PAGE_ROUTES.INSTANCE_DETAIL(c.id)} />}>
+                              <Button
+                                size="xs"
+                                variant="outline"
+                                render={<Link to={PAGE_ROUTES.INSTANCE_DETAIL(c.id)} />}
+                              >
                                 Detail
                               </Button>
                             ) : (

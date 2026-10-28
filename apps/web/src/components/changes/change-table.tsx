@@ -3,7 +3,14 @@ import { title } from "radash";
 import { ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import type { Change } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { P } from "@/components/ui/typography";
@@ -42,7 +49,9 @@ export function ChangeTable({ changes, emptyHint }: { changes: Change[]; emptyHi
         <TableBody>
           {changes.map((change) => {
             const id = change.id ?? "";
-            const href = (change.kind === "ddl" ? PAGE_ROUTES.SQL.DDL_DETAIL : PAGE_ROUTES.SQL.DML_DETAIL)(id);
+            const href = (
+              change.kind === "ddl" ? PAGE_ROUTES.SQL.DDL_DETAIL : PAGE_ROUTES.SQL.DML_DETAIL
+            )(id);
             return (
               <TableRow key={id} className="cursor-pointer">
                 <TableCell>

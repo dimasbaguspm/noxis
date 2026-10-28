@@ -43,16 +43,24 @@ export function TableDetails({
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Metric label="Columns" value={String(table.columns.length)} />
-        <Metric label="Rows" value={table.estimatedRows !== undefined ? `~${compact(table.estimatedRows)}` : "—"} />
+        <Metric
+          label="Rows"
+          value={table.estimatedRows !== undefined ? `~${compact(table.estimatedRows)}` : "—"}
+        />
         <Metric label="Size" value={table.sizeBytes !== undefined ? bytes(table.sizeBytes) : "—"} />
         <Metric label="Indexes" value={String(table.indexes?.length ?? 0)} />
       </div>
 
       <section>
-        <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Columns</h3>
+        <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Columns
+        </h3>
         <div className="overflow-hidden rounded-md border">
           {table.columns.map((col) => (
-            <div key={col.name} className="flex items-center gap-2 border-b px-2 py-1.5 text-xs last:border-0">
+            <div
+              key={col.name}
+              className="flex items-center gap-2 border-b px-2 py-1.5 text-xs last:border-0"
+            >
               <span className="w-6 shrink-0 font-mono text-[10px] text-muted-foreground">
                 {col.primaryKey ? "PK" : col.references ? "FK" : col.unique ? "UK" : ""}
               </span>
@@ -66,7 +74,9 @@ export function TableDetails({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <section>
-          <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Indexes</h3>
+          <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Indexes
+          </h3>
           {table.indexes && table.indexes.length > 0 ? (
             <div className="grid gap-1">
               {table.indexes.map((idx) => (
@@ -88,12 +98,18 @@ export function TableDetails({
         </section>
 
         <section>
-          <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">References</h3>
+          <h3 className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            References
+          </h3>
           {outgoing.length > 0 ? (
             <div className="grid gap-1">
               {outgoing.map((col) => (
-                <div key={col.name} className="truncate rounded-md border px-2 py-1.5 font-mono text-xs">
-                  {col.name} → {col.references?.schema}.{col.references?.table}.{col.references?.column}
+                <div
+                  key={col.name}
+                  className="truncate rounded-md border px-2 py-1.5 font-mono text-xs"
+                >
+                  {col.name} → {col.references?.schema}.{col.references?.table}.
+                  {col.references?.column}
                 </div>
               ))}
             </div>
@@ -103,7 +119,10 @@ export function TableDetails({
           {incoming.length > 0 && (
             <div className="mt-2 grid gap-1">
               {incoming.map((ref) => (
-                <div key={`${ref.from}.${ref.column}`} className="truncate rounded-md border px-2 py-1.5 font-mono text-xs">
+                <div
+                  key={`${ref.from}.${ref.column}`}
+                  className="truncate rounded-md border px-2 py-1.5 font-mono text-xs"
+                >
                   {ref.from}.{ref.column} → {table.name}.{ref.to}
                 </div>
               ))}

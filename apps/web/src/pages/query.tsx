@@ -121,7 +121,11 @@ export default function QueryPage() {
           </Workspace.Pane>
 
           <Workspace.Pane defaultSize={55} minSize={20}>
-            <ResultTable result={result} title={tabs.active?.title ?? "query"} showSummary={false} />
+            <ResultTable
+              result={result}
+              title={tabs.active?.title ?? "query"}
+              showSummary={false}
+            />
           </Workspace.Pane>
         </Workspace.Split>
       </Workspace>

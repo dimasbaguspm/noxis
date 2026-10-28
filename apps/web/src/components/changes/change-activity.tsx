@@ -54,7 +54,8 @@ export function ChangeActivity({ change }: { change: Change }) {
       tone: "text-muted-foreground",
       hint: [
         change.scheduledBy && `by ${change.scheduledBy}`,
-        change.scheduledAt && (change.appliedAt ? "ran on the scheduled tick" : "runs on the next tick"),
+        change.scheduledAt &&
+          (change.appliedAt ? "ran on the scheduled tick" : "runs on the next tick"),
       ]
         .filter(Boolean)
         .join(" · "),
@@ -66,7 +67,9 @@ export function ChangeActivity({ change }: { change: Change }) {
       at: change.applyingAt,
       icon: Clock,
       tone: "text-amber-500",
-      hint: change.appliedBy ? `claimed by ${change.appliedBy}; outcome may be unknown` : "outcome may be unknown",
+      hint: change.appliedBy
+        ? `claimed by ${change.appliedBy}; outcome may be unknown`
+        : "outcome may be unknown",
     });
   }
   if (change.appliedAt) {
@@ -75,7 +78,10 @@ export function ChangeActivity({ change }: { change: Change }) {
       at: change.appliedAt,
       icon: Play,
       tone: "text-emerald-500",
-      hint: [change.appliedBy && `by ${change.appliedBy}`, `${change.appliedDurationMs ?? 0} ms · ${change.appliedAffected ?? 0} row(s) affected`]
+      hint: [
+        change.appliedBy && `by ${change.appliedBy}`,
+        `${change.appliedDurationMs ?? 0} ms · ${change.appliedAffected ?? 0} row(s) affected`,
+      ]
         .filter(Boolean)
         .join(" · "),
     });

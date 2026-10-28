@@ -8,7 +8,11 @@ import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Workspace } from "@/components/layout/workspace";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useMemcacheConnections, useMemcacheKeysQuery, useMemcacheValueQuery } from "@/hooks/use-memcache";
+import {
+  useMemcacheConnections,
+  useMemcacheKeysQuery,
+  useMemcacheValueQuery,
+} from "@/hooks/use-memcache";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { P } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
@@ -38,7 +42,12 @@ export function CacheBrowser({ connection }: { connection: string }) {
                 aria-label="Key pattern"
               />
             </div>
-            <Button size="sm" variant="outline" onClick={() => void keys.refetch()} disabled={keys.isFetching}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void keys.refetch()}
+              disabled={keys.isFetching}
+            >
               <RefreshCw className={cn(keys.isFetching && "animate-spin")} /> Refresh
             </Button>
             <Button
@@ -48,10 +57,14 @@ export function CacheBrowser({ connection }: { connection: string }) {
             >
               <ExternalLink /> Full page
             </Button>
-            <Badge variant="outline" className="w-fit">{keys.page.total ?? 0} key(s)</Badge>
+            <Badge variant="outline" className="w-fit">
+              {keys.page.total ?? 0} key(s)
+            </Badge>
             <div className="min-h-0 flex-1 overflow-auto">
               {visible.length === 0 ? (
-                <P size="sm">{keys.isFetching ? "Loading keys…" : "No key matches this pattern."}</P>
+                <P size="sm">
+                  {keys.isFetching ? "Loading keys…" : "No key matches this pattern."}
+                </P>
               ) : (
                 <div className="grid gap-0.5">
                   {visible.map((item) => (
@@ -65,7 +78,9 @@ export function CacheBrowser({ connection }: { connection: string }) {
                       )}
                     >
                       <span className="min-w-0 flex-1 truncate font-mono">{item.name}</span>
-                      <Badge variant="outline" className="shrink-0 text-[10px]">{item.type}</Badge>
+                      <Badge variant="outline" className="shrink-0 text-[10px]">
+                        {item.type}
+                      </Badge>
                     </button>
                   ))}
                 </div>
@@ -75,7 +90,11 @@ export function CacheBrowser({ connection }: { connection: string }) {
         }
         right={
           !key ? (
-            <Empty icon={KeyRound} title="No key selected" description="Pick a key on the left to inspect its value." />
+            <Empty
+              icon={KeyRound}
+              title="No key selected"
+              description="Pick a key on the left to inspect its value."
+            />
           ) : value.isFetching ? (
             <P size="sm">Loading value…</P>
           ) : value.error ? (

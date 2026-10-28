@@ -17,7 +17,9 @@ export default function MyProfilePage() {
       <div className="mx-auto mt-8 max-w-lg">
         <Empty
           title={authEnabled ? "Not signed in" : "Authentication disabled"}
-          description={authEnabled ? "Sign in to see your profile." : "There is no identity to show."}
+          description={
+            authEnabled ? "Sign in to see your profile." : "There is no identity to show."
+          }
         />
       </div>
     );
@@ -27,7 +29,9 @@ export default function MyProfilePage() {
     <div className="flex flex-col gap-4">
       <Card>
         <CardHeader className="gap-1">
-          <CardTitle className="text-base">{identity.name || identity.email || identity.sub}</CardTitle>
+          <CardTitle className="text-base">
+            {identity.name || identity.email || identity.sub}
+          </CardTitle>
           <CardDescription>{identity.email || identity.sub}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">

@@ -5,9 +5,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/app/auth-provider";
 import { useConnections } from "@/hooks/use-connections";
@@ -61,8 +74,8 @@ export default function MongoRequestsPage() {
                   <CircleHelp className="size-3.5" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  A document change cannot be rolled back, so the review page shows the dry run and the trail instead of
-                  a rollback script.
+                  A document change cannot be rolled back, so the review page shows the dry run and
+                  the trail instead of a rollback script.
                 </TooltipContent>
               </Tooltip>
               No rollback exists for document changes
@@ -77,7 +90,11 @@ export default function MongoRequestsPage() {
               ))}
             </div>
           ) : visible.length === 0 ? (
-            <Empty icon={Inbox} title="No requests" description="MongoDB write requests waiting for review appear here." />
+            <Empty
+              icon={Inbox}
+              title="No requests"
+              description="MongoDB write requests waiting for review appear here."
+            />
           ) : (
             <div className="min-h-0 flex-1 overflow-auto">
               <Table>
@@ -98,7 +115,9 @@ export default function MongoRequestsPage() {
                       <TableCell>
                         <Badge variant={statusVariant(change.status)}>{change.status}</Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{change.connection}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {change.connection}
+                      </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">
                         {(change.affectedTables ?? []).join(", ")}
                       </TableCell>
@@ -106,7 +125,11 @@ export default function MongoRequestsPage() {
                         {change.estAffected ?? 0} doc(s)
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button size="xs" variant="outline" render={<Link to={PAGE_ROUTES.MONGODB.REQUEST_DETAIL(change.id ?? "")} />}>
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          render={<Link to={PAGE_ROUTES.MONGODB.REQUEST_DETAIL(change.id ?? "")} />}
+                        >
                           Review
                         </Button>
                       </TableCell>

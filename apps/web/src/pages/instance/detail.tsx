@@ -55,11 +55,19 @@ export default function InstanceDetailTab() {
       <Card className="min-h-0 flex-1">
         <CardContent className="min-h-0 flex-1 overflow-auto">
           {family !== FAMILY.SQL || !canRead ? (
-            <Empty icon={Database} title="No schema" description="This instance does not expose SQL tables." />
+            <Empty
+              icon={Database}
+              title="No schema"
+              description="This instance does not expose SQL tables."
+            />
           ) : schemaPending ? (
             <Skeleton className="h-48 w-full" />
           ) : schemas.length === 0 ? (
-            <Empty icon={Database} title="No schemas" description="This instance has no tables yet." />
+            <Empty
+              icon={Database}
+              title="No schemas"
+              description="This instance has no tables yet."
+            />
           ) : (
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {schemas.map((s) => {

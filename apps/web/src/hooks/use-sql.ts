@@ -33,7 +33,8 @@ export function useTableRowsQuery(connection?: string, schema?: string, table?: 
 // useRunQueryMutation executes a read against the instance; the result is the mutation's data, so a fresh run replaces the last result.
 export function useRunQueryMutation() {
   return useMutation({
-    mutationFn: ({ connection, sql }: { connection: string; sql: string }) => api.ops.query(connection, sql),
+    mutationFn: ({ connection, sql }: { connection: string; sql: string }) =>
+      api.ops.query(connection, sql),
   });
 }
 

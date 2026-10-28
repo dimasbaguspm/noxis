@@ -15,12 +15,19 @@ export function Slot({ children, ...props }: React.HTMLAttributes<HTMLElement>) 
   });
 }
 
-export function SlotChild({ children, asChild = true, ...props }: React.HTMLAttributes<HTMLElement> & { asChild?: boolean }) {
+export function SlotChild({
+  children,
+  asChild = true,
+  ...props
+}: React.HTMLAttributes<HTMLElement> & { asChild?: boolean }) {
   if (!asChild) return <div {...props}>{children}</div>;
   if (!React.isValidElement<Record<string, unknown>>(children)) return null;
   return React.cloneElement(children, {
     ...props,
     ...children.props,
-    className: cn(props.className as string | undefined, (children.props as { className?: string }).className),
+    className: cn(
+      props.className as string | undefined,
+      (children.props as { className?: string }).className,
+    ),
   });
 }

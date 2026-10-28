@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { api, type Identity, type Level } from "@/lib/api";
 import { accessToken, initAuth, loadAuthConfig, signout as doSignout } from "@/lib/auth";
 import { AppShellSkeleton } from "@/components/layout/app-shell-skeleton";
@@ -80,7 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // canManage is the shared guard for the account controls: nobody edits themselves and the env root is untouchable.
   const canManage = useCallback(
-    (target: AccountTarget) => Boolean(identity) && target.subject !== identity?.sub && target.role !== "super",
+    (target: AccountTarget) =>
+      Boolean(identity) && target.subject !== identity?.sub && target.role !== "super",
     [identity],
   );
 
@@ -116,7 +125,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       canSetRole,
       signout,
     }),
-    [authOn, localOn, oidcOn, authenticated, identity, isSuper, isAdmin, ready, canAccess, canBan, canSetRole, signout],
+    [
+      authOn,
+      localOn,
+      oidcOn,
+      authenticated,
+      identity,
+      isSuper,
+      isAdmin,
+      ready,
+      canAccess,
+      canBan,
+      canSetRole,
+      signout,
+    ],
   );
 
   if (!ready && !isCallback) {

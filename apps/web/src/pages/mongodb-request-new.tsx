@@ -11,10 +11,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { JsonEditor } from "@/components/sql/json-editor";
-import { useMongoCollectionsQuery, useMongoConnections, useMongoDatabasesQuery, useMongoSubmitChangeMutation } from "@/hooks/use-mongodb";
+import {
+  useMongoCollectionsQuery,
+  useMongoConnections,
+  useMongoDatabasesQuery,
+  useMongoSubmitChangeMutation,
+} from "@/hooks/use-mongodb";
 import type { Change } from "@/lib/api";
 import { PAGE_ROUTES } from "@/lib/routes";
 import { cn } from "@/lib/utils";
@@ -59,10 +70,14 @@ export default function MongoRequestNewPage() {
   const { connections, connection, pick } = useMongoConnections();
   const { databases } = useMongoDatabasesQuery(connection);
   const [selectedDatabase, setSelectedDatabase] = useState("");
-  const database = databases.some((item) => item.name === selectedDatabase) ? selectedDatabase : (databases[0]?.name ?? "");
+  const database = databases.some((item) => item.name === selectedDatabase)
+    ? selectedDatabase
+    : (databases[0]?.name ?? "");
   const { collections } = useMongoCollectionsQuery(connection, database);
   const [selectedCollection, setSelectedCollection] = useState("");
-  const collection = collections.some((item) => item.name === selectedCollection) ? selectedCollection : (collections[0]?.name ?? "");
+  const collection = collections.some((item) => item.name === selectedCollection)
+    ? selectedCollection
+    : (collections[0]?.name ?? "");
   const [step, setStep] = useState(1);
   const [failure, setFailure] = useState<Change>();
   const {
@@ -120,7 +135,9 @@ export default function MongoRequestNewPage() {
         toast.error("Validation failed — the request was not recorded");
         return;
       }
-      toast.success(`Request ${change.status}: ${change.estAffected ?? 0} document(s) would be affected`);
+      toast.success(
+        `Request ${change.status}: ${change.estAffected ?? 0} document(s) would be affected`,
+      );
       navigate(PAGE_ROUTES.MONGODB.REQUEST_DETAIL(change.id ?? ""));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -188,7 +205,6 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
-
             </Field>
             <div className="flex justify-end">
               <Button
@@ -233,7 +249,6 @@ export default function MongoRequestNewPage() {
                   ))}
                 </SelectContent>
               </Select>
-
             </Field>
             <Field>
               <FieldLabel>Operation</FieldLabel>
@@ -277,8 +292,9 @@ export default function MongoRequestNewPage() {
               {opValue} on {database}.{collection}
             </CardTitle>
             <CardDescription>
-              {spec?.hint}. Validation copies the matching documents into a scratch collection, applies the write
-              there, and drops it: nothing is changed until this request is approved and applied.
+              {spec?.hint}. Validation copies the matching documents into a scratch collection,
+              applies the write there, and drops it: nothing is changed until this request is
+              approved and applied.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
@@ -317,7 +333,10 @@ export default function MongoRequestNewPage() {
             </Field>
 
             <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={watch("many")} onCheckedChange={() => setValue("many", !watch("many"))} />
+              <Checkbox
+                checked={watch("many")}
+                onCheckedChange={() => setValue("many", !watch("many"))}
+              />
               many (update/delete every match, insert an array)
             </label>
 
@@ -339,7 +358,10 @@ export default function MongoRequestNewPage() {
                 <H2 className="text-destructive">Validation failed, nothing was recorded</H2>
                 <ul className="mt-1.5 grid gap-1 text-xs">
                   {(failure.checks ?? []).map((check) => (
-                    <li key={check.target} className={cn(check.ok ? "text-muted-foreground" : "text-destructive")}>
+                    <li
+                      key={check.target}
+                      className={cn(check.ok ? "text-muted-foreground" : "text-destructive")}
+                    >
                       {check.ok ? "✓" : "✗"} <span className="font-medium">{check.target}</span>
                       {check.ok ? `: ${check.detail ?? ""}` : `: ${check.error ?? ""}`}
                     </li>
@@ -354,8 +376,8 @@ export default function MongoRequestNewPage() {
                   <CircleHelp className="size-3.5" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  The dry run proves the filter, the value document and how many documents match. It cannot prove
-                  unique-index conflicts, which only appear on apply.
+                  The dry run proves the filter, the value document and how many documents match. It
+                  cannot prove unique-index conflicts, which only appear on apply.
                 </TooltipContent>
               </Tooltip>
               What the dry run proves

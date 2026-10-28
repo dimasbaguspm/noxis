@@ -38,9 +38,12 @@ export function useUserQuery(subject: string) {
 export function useUpdateUser(subject: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (patch: { status?: UserStatus; role?: UserRole }) => api.users.update(subject, patch),
+    mutationFn: (patch: { status?: UserStatus; role?: UserRole }) =>
+      api.users.update(subject, patch),
     onSuccess: (_data, patch) => {
-      toast.success(patch.role ? `role changed to ${patch.role}` : `account is now ${patch.status}`);
+      toast.success(
+        patch.role ? `role changed to ${patch.role}` : `account is now ${patch.status}`,
+      );
       void queryClient.invalidateQueries({ queryKey: ["user", subject] });
       void queryClient.invalidateQueries({ queryKey: ["users"] });
       void queryClient.invalidateQueries({ queryKey: ["access", "matrix"] });

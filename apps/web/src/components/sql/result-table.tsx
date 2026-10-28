@@ -1,7 +1,14 @@
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { downloadCSV, toCSV } from "@/lib/csv";
 import type { Result } from "@/lib/api";
 import { P } from "@/components/ui/typography";
@@ -12,24 +19,10 @@ export function ResultSummary({ result }: { result: Result | null }) {
   return (
     <P className="flex min-w-0 flex-wrap items-center gap-x-3">
       <span className="break-words">{result.message}</span>
-      <span>
-        Duration: {result.durationMs ?? 0} ms
-      </span>
-      {(result.rowsReturned ?? 0) > 0 && (
-        <span>
-          Returned: {result.rowsReturned}
-        </span>
-      )}
-      {(result.affected ?? 0) > 0 && (
-        <span>
-          Affected: {result.affected}
-        </span>
-      )}
-      {(result.estimatedRows ?? 0) > 0 && (
-        <span>
-          Plan rows: ~{result.estimatedRows}
-        </span>
-      )}
+      <span>Duration: {result.durationMs ?? 0} ms</span>
+      {(result.rowsReturned ?? 0) > 0 && <span>Returned: {result.rowsReturned}</span>}
+      {(result.affected ?? 0) > 0 && <span>Affected: {result.affected}</span>}
+      {(result.estimatedRows ?? 0) > 0 && <span>Plan rows: ~{result.estimatedRows}</span>}
     </P>
   );
 }
@@ -45,7 +38,9 @@ export function ResultTable({
   showSummary?: boolean;
 }) {
   if (!result) {
-    return <Empty title="Nothing to show yet" description="Run an action to see its result here." />;
+    return (
+      <Empty title="Nothing to show yet" description="Run an action to see its result here." />
+    );
   }
 
   const columns = result.columns ?? [];

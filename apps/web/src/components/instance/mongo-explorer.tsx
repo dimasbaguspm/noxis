@@ -5,7 +5,13 @@ import { JsonTree } from "@/components/mongodb/json-tree";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Workspace } from "@/components/layout/workspace";
 import {
   useMongoCollectionsQuery,
@@ -55,7 +61,10 @@ export function MongoExplorer({ connection }: { connection: string }) {
 
   function query() {
     if (!db || !coll || run.isPending) return;
-    run.mutate({ connection, body: { op: "find", database: db, collection: coll, filter, limit: 50 } });
+    run.mutate({
+      connection,
+      body: { op: "find", database: db, collection: coll, filter, limit: 50 },
+    });
   }
 
   return (
@@ -106,19 +115,33 @@ export function MongoExplorer({ connection }: { connection: string }) {
                 <ExternalLink /> Full explorer
               </Button>
             </div>
-            {run.error instanceof Error && <p className="text-xs text-destructive">{run.error.message}</p>}
+            {run.error instanceof Error && (
+              <p className="text-xs text-destructive">{run.error.message}</p>
+            )}
           </div>
         }
         right={
           !result ? (
-            <Empty icon={FileJson} title="No documents" description="Run the filter to load the first 50 documents." />
+            <Empty
+              icon={FileJson}
+              title="No documents"
+              description="Run the filter to load the first 50 documents."
+            />
           ) : documents.length === 0 ? (
-            <Empty icon={FileJson} title="No matches" description="No document matches this filter." />
+            <Empty
+              icon={FileJson}
+              title="No matches"
+              description="No document matches this filter."
+            />
           ) : (
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
               {documents.map((doc) => (
                 <div
-                  key={typeof doc === "object" && doc !== null && "_id" in doc ? String((doc as { _id: unknown })._id) : JSON.stringify(doc)}
+                  key={
+                    typeof doc === "object" && doc !== null && "_id" in doc
+                      ? String((doc as { _id: unknown })._id)
+                      : JSON.stringify(doc)
+                  }
                   className="border-b border-border pb-2 last:border-0 last:pb-0"
                 >
                   <JsonTree value={doc} />

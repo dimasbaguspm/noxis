@@ -23,13 +23,15 @@ export default function AccessPage() {
     // the generated schema marks every field optional: an instance without a name is not addressable, so drop it rather than render a ghost row
     const all = (matrix.data?.instances ?? []).flatMap((i) =>
       i.connection
-        ? [{
-            id: i.id ?? "",
-            name: i.connection,
-            driver: i.driver ?? "",
-            family: i.family ?? "",
-            grants: i.permissions?.length ?? 0,
-          }]
+        ? [
+            {
+              id: i.id ?? "",
+              name: i.connection,
+              driver: i.driver ?? "",
+              family: i.family ?? "",
+              grants: i.permissions?.length ?? 0,
+            },
+          ]
         : [],
     );
     const needle = state.q.trim().toLowerCase();
@@ -77,7 +79,11 @@ export default function AccessPage() {
               {matrix.isPending ? (
                 <Skeleton className="h-48 w-full" />
               ) : instances.length === 0 ? (
-                <Empty icon={KeyRound} title="No instances" description="No instance matches this view." />
+                <Empty
+                  icon={KeyRound}
+                  title="No instances"
+                  description="No instance matches this view."
+                />
               ) : (
                 <div className="grid gap-0.5">
                   {instances.map((instance) => {
@@ -93,7 +99,11 @@ export default function AccessPage() {
                           instance.id === selected?.id && "bg-accent text-accent-foreground",
                         )}
                       >
-                        {Icon ? <Icon className="size-3.5 shrink-0 text-muted-foreground" /> : <KeyRound className="size-3.5 shrink-0 text-muted-foreground" />}
+                        {Icon ? (
+                          <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+                        ) : (
+                          <KeyRound className="size-3.5 shrink-0 text-muted-foreground" />
+                        )}
                         <span className="min-w-0 flex-1">
                           <span className="block truncate">{instance.name}</span>
                           <span className="block truncate text-[10px] text-muted-foreground">
@@ -116,11 +126,14 @@ export default function AccessPage() {
               <InstancePermissions instance={selected} />
             </div>
           ) : (
-            <Empty icon={KeyRound} title="No instance selected" description="Pick an instance on the left." />
+            <Empty
+              icon={KeyRound}
+              title="No instance selected"
+              description="Pick an instance on the left."
+            />
           )
         }
       />
     </div>
   );
-
 }

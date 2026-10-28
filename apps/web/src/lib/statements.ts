@@ -3,7 +3,16 @@
 export type StatementKind = "read" | "dml" | "ddl" | "empty";
 
 const READ = new Set(["SELECT", "SHOW", "EXPLAIN", "DESCRIBE", "DESC"]);
-const DDL = new Set(["ALTER", "CREATE", "DROP", "TRUNCATE", "RENAME", "GRANT", "REVOKE", "COMMENT"]);
+const DDL = new Set([
+  "ALTER",
+  "CREATE",
+  "DROP",
+  "TRUNCATE",
+  "RENAME",
+  "GRANT",
+  "REVOKE",
+  "COMMENT",
+]);
 
 function statements(sql: string): string[] {
   return sql

@@ -61,7 +61,11 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const mayWrite = canAccess(change.connection, "write");
   const canApprove = mayReview && (change.status === "validated" || change.status === "unverified");
   const canApply = mayReview && change.status === "approved";
-  const canReject = mayReview && change.status !== "applied" && change.status !== "rejected" && change.status !== "applying";
+  const canReject =
+    mayReview &&
+    change.status !== "applied" &&
+    change.status !== "rejected" &&
+    change.status !== "applying";
 
   return (
     <div className="flex h-full min-h-0">

@@ -16,15 +16,18 @@ export function useUrlState<T extends Record<string, string>>(defaults: T) {
 
   const patch = useCallback(
     (updates: Partial<T>) => {
-      setParams((prev) => {
-        const next = new URLSearchParams(prev);
-        for (const [key, value] of Object.entries(updates)) {
-          const fallback = (defaults as Record<string, string>)[key];
-          if (value !== undefined && value !== fallback) next.set(key, value as string);
-          else next.delete(key);
-        }
-        return next;
-      }, { replace: true });
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          for (const [key, value] of Object.entries(updates)) {
+            const fallback = (defaults as Record<string, string>)[key];
+            if (value !== undefined && value !== fallback) next.set(key, value as string);
+            else next.delete(key);
+          }
+          return next;
+        },
+        { replace: true },
+      );
     },
     [setParams, defaults],
   );

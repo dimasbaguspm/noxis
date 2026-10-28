@@ -14,7 +14,13 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCreateRequest } from "@/hooks/use-access-requests";
 import { useLevelsQuery } from "@/hooks/use-config";
 import { usePagedInstancesQuery } from "@/hooks/use-instances";
@@ -75,7 +81,10 @@ export function RequestAccessDialog({ connection }: { connection?: string }) {
             {!connection && (
               <Field>
                 <FieldLabel>Instance</FieldLabel>
-                <Select value={picked} onValueChange={(v) => setValue("connection", v ?? "", { shouldValidate: true })}>
+                <Select
+                  value={picked}
+                  onValueChange={(v) => setValue("connection", v ?? "", { shouldValidate: true })}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Pick an instance" />
                   </SelectTrigger>
@@ -92,7 +101,10 @@ export function RequestAccessDialog({ connection }: { connection?: string }) {
             )}
             <Field>
               <FieldLabel>Level</FieldLabel>
-              <Select value={level} onValueChange={(v) => setValue("level", v ?? "read", { shouldValidate: true })}>
+              <Select
+                value={level}
+                onValueChange={(v) => setValue("level", v ?? "read", { shouldValidate: true })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

@@ -56,7 +56,10 @@ const router = createBrowserRouter([
     ),
     children: [
       // the console section: engine pages and the instance list, all under one prefix
-      { path: routePath(PAGE_ROUTES.CONSOLE), element: <Navigate to={PAGE_ROUTES.INSTANCES} replace /> },
+      {
+        path: routePath(PAGE_ROUTES.CONSOLE),
+        element: <Navigate to={PAGE_ROUTES.INSTANCES} replace />,
+      },
       { path: routePath(PAGE_ROUTES.INSTANCES), element: <DashboardPage /> },
       {
         path: routePath(PAGE_ROUTES.INSTANCE_DETAIL(":id")),
@@ -80,7 +83,10 @@ const router = createBrowserRouter([
       { path: routePath(PAGE_ROUTES.MONGODB.EXPLORE), element: <MongoExplorePage /> },
       { path: routePath(PAGE_ROUTES.MONGODB.REQUESTS), element: <MongoRequestsPage /> },
       { path: routePath(PAGE_ROUTES.MONGODB.REQUEST_NEW), element: <MongoRequestNewPage /> },
-      { path: `${routePath(PAGE_ROUTES.MONGODB.REQUESTS)}/:id`, element: <MongoRequestDetailPage /> },
+      {
+        path: `${routePath(PAGE_ROUTES.MONGODB.REQUESTS)}/:id`,
+        element: <MongoRequestDetailPage />,
+      },
       // the account section keeps its own paths
       {
         path: routePath(PAGE_ROUTES.MY),
@@ -109,10 +115,10 @@ createRoot(document.getElementById("root")!).render(
       <AuthProvider>
         <ActiveProvider>
           <TooltipProvider>
-        <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}>
-          <RouterProvider router={router} />
-        </Suspense>
-      </TooltipProvider>
+            <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}>
+              <RouterProvider router={router} />
+            </Suspense>
+          </TooltipProvider>
           <Toaster position="bottom-right" />
         </ActiveProvider>
       </AuthProvider>

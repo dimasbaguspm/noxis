@@ -30,7 +30,10 @@ export default function MongoRequestDetailPage() {
   const apply = useMongoApplyChangeMutation();
   const reject = useMongoRejectChangeMutation();
   // the trail names the request instead of its id once the envelope lands
-  useCrumbLabel(PAGE_ROUTES.MONGODB.REQUEST_DETAIL(id), change?.notes || change?.affectedTables?.join(", "));
+  useCrumbLabel(
+    PAGE_ROUTES.MONGODB.REQUEST_DETAIL(id),
+    change?.notes || change?.affectedTables?.join(", "),
+  );
 
   if (loading && !change) {
     return (
@@ -51,7 +54,11 @@ export default function MongoRequestDetailPage() {
   const mayReview = isInstanceAdmin(change.connection);
   const canApprove = mayReview && (change.status === "validated" || change.status === "unverified");
   const canApply = mayReview && change.status === "approved";
-  const canReject = mayReview && change.status !== "applied" && change.status !== "rejected" && change.status !== "applying";
+  const canReject =
+    mayReview &&
+    change.status !== "applied" &&
+    change.status !== "rejected" &&
+    change.status !== "applying";
 
   return (
     <div className="flex h-full min-h-0">
@@ -66,33 +73,47 @@ export default function MongoRequestDetailPage() {
 
             {change.status === "applying" && (
               <Alert variant="warning" title="Apply outcome unknown">
-                {change.applyingAt ? `Claimed for execution at ${new Date(change.applyingAt * 1000).toLocaleString()}. ` : "The claim time is unavailable. "}Inspect the target database before taking further action.
+                {change.applyingAt
+                  ? `Claimed for execution at ${new Date(change.applyingAt * 1000).toLocaleString()}. `
+                  : "The claim time is unavailable. "}
+                Inspect the target database before taking further action.
               </Alert>
             )}
 
             <section className="grid gap-2">
-              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Target</h3>
+              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                Target
+              </h3>
               <div className="flex flex-wrap gap-1">
                 {(change.affectedTables ?? []).map((table) => (
                   <Badge key={table} variant="secondary">
                     {table}
                   </Badge>
                 ))}
-                {(change.affectedTables ?? []).length === 0 && <span className="text-xs text-muted-foreground">—</span>}
+                {(change.affectedTables ?? []).length === 0 && (
+                  <span className="text-xs text-muted-foreground">—</span>
+                )}
               </div>
             </section>
 
             <section className="grid gap-2">
-              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Activity</h3>
+              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                Activity
+              </h3>
               <ChangeActivity change={change} />
             </section>
 
             <section className="grid gap-2">
-              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Impact</h3>
+              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                Impact
+              </h3>
               <div className="grid grid-cols-2 gap-3">
                 <Metric label="Est. duration" value={`${change.estDurationMs ?? 0} ms`} />
                 <Metric label="Est. documents" value={`~${change.estAffected ?? 0}`} />
-                <Metric label="Duration" value={change.appliedAt ? `${change.appliedDurationMs ?? 0} ms` : "—"} />
+                <Metric
+                  label="Duration"
+                  value={change.appliedAt ? `${change.appliedDurationMs ?? 0} ms` : "—"}
+                />
                 <Metric
                   label="Documents affected"
                   value={change.appliedAt ? String(change.appliedAffected ?? 0) : "—"}
@@ -114,8 +135,8 @@ export default function MongoRequestDetailPage() {
               </div>
             )}
             <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-500">
-              No rollback: a document change cannot be undone by the request itself. The dry run is what the review
-              stands on.
+              No rollback: a document change cannot be undone by the request itself. The dry run is
+              what the review stands on.
             </div>
 
             <section className="grid gap-1">
@@ -126,9 +147,9 @@ export default function MongoRequestDetailPage() {
                     <CircleHelp className="size-3.5" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    The matching documents were copied into a scratch collection, the write ran there, and the
-                    scratch database was dropped. It proves the filter, the value and the affected count; unique
-                    index conflicts only appear on apply.
+                    The matching documents were copied into a scratch collection, the write ran
+                    there, and the scratch database was dropped. It proves the filter, the value and
+                    the affected count; unique index conflicts only appear on apply.
                   </TooltipContent>
                 </Tooltip>
               </h3>
@@ -137,7 +158,8 @@ export default function MongoRequestDetailPage() {
                   key={`${check.target}:${check.error ?? check.detail ?? ""}`}
                   className={cn("text-xs", check.ok ? "text-muted-foreground" : "text-destructive")}
                 >
-                  {check.ok ? "✓" : "✗"} <span className="font-medium text-foreground">{check.target}</span>
+                  {check.ok ? "✓" : "✗"}{" "}
+                  <span className="font-medium text-foreground">{check.target}</span>
                   {check.ok ? `: ${check.detail ?? ""}` : `: ${check.error ?? ""}`}
                 </p>
               ))}
@@ -197,8 +219,8 @@ function Unavailable({ id }: { id: string }) {
         <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
           <li className="flex gap-2">
             <span className="text-foreground">1.</span>
-            The dry run failed when it was submitted, so it was never recorded. Failed proposals are returned to
-            the submitter with the reason.
+            The dry run failed when it was submitted, so it was never recorded. Failed proposals are
+            returned to the submitter with the reason.
           </li>
           <li className="flex gap-2">
             <span className="text-foreground">2.</span>
@@ -213,7 +235,11 @@ function Unavailable({ id }: { id: string }) {
           <Button size="sm" render={<Link to={PAGE_ROUTES.MONGODB.REQUESTS} />}>
             Back to Requests
           </Button>
-          <Button size="sm" variant="outline" render={<Link to={PAGE_ROUTES.MONGODB.REQUEST_NEW} />}>
+          <Button
+            size="sm"
+            variant="outline"
+            render={<Link to={PAGE_ROUTES.MONGODB.REQUEST_NEW} />}
+          >
             New request
           </Button>
         </div>

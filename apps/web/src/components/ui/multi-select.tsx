@@ -42,7 +42,9 @@ export function MultiSelect<T extends string = string>({
             />
             <span className="grid gap-0.5">
               <span className="text-sm font-medium">{option.label}</span>
-              {option.detail && <span className="text-xs text-muted-foreground">{option.detail}</span>}
+              {option.detail && (
+                <span className="text-xs text-muted-foreground">{option.detail}</span>
+              )}
             </span>
           </label>
         );

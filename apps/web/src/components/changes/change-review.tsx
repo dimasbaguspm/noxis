@@ -33,7 +33,11 @@ import { cn } from "@/lib/utils";
 import { P } from "@/components/ui/typography";
 
 type ReviewOutcome =
-  | { id?: string; status?: string; checks?: { target?: string; ok?: boolean; detail?: string; error?: string }[] }
+  | {
+      id?: string;
+      status?: string;
+      checks?: { target?: string; ok?: boolean; detail?: string; error?: string }[];
+    }
   | undefined;
 
 // ChangeDetails is the review rail: context, warnings, activity, blast radius, impact and checks.
@@ -44,7 +48,9 @@ export function ChangeDetails({ change, instance }: { change: Change; instance?:
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
       {hasNotes ? (
         <ReviewSection first>
-          <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Notes</h3>
+          <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Notes
+          </h3>
           <p className="text-sm">{change.notes}</p>
           <SubmittedBy change={change} />
         </ReviewSection>
@@ -55,7 +61,9 @@ export function ChangeDetails({ change, instance }: { change: Change; instance?:
       <ChangeAlerts change={change} />
 
       <ReviewSection first={!hasNotes}>
-        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Instance</h3>
+        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Instance
+        </h3>
         <div className="flex flex-wrap items-center gap-2">
           {instanceHref ? (
             <Link to={instanceHref} className="font-medium underline-offset-4 hover:underline">
@@ -78,28 +86,42 @@ export function ChangeDetails({ change, instance }: { change: Change; instance?:
       </ReviewSection>
 
       <ReviewSection>
-        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Activity</h3>
+        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Activity
+        </h3>
         <ChangeActivity change={change} />
       </ReviewSection>
 
       <ReviewSection>
-        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Touches</h3>
+        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Touches
+        </h3>
         <Identifiers label="Tables" values={change.affectedTables} />
         <Identifiers label="Columns" values={change.affectedColumns} variant="outline" />
       </ReviewSection>
 
       <ReviewSection>
-        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Impact</h3>
+        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Impact
+        </h3>
         <div className="grid grid-cols-2 gap-3">
           <Metric label="Est. duration" value={`${change.estDurationMs ?? 0} ms`} />
           <Metric label="Est. rows" value={`~${change.estAffected ?? 0}`} />
-          <Metric label="Duration" value={change.appliedAt ? `${change.appliedDurationMs ?? 0} ms` : "—"} />
-          <Metric label="Rows affected" value={change.appliedAt ? String(change.appliedAffected ?? 0) : "—"} />
+          <Metric
+            label="Duration"
+            value={change.appliedAt ? `${change.appliedDurationMs ?? 0} ms` : "—"}
+          />
+          <Metric
+            label="Rows affected"
+            value={change.appliedAt ? String(change.appliedAffected ?? 0) : "—"}
+          />
         </div>
       </ReviewSection>
 
       <ReviewSection>
-        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Checks</h3>
+        <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Checks
+        </h3>
         <ChangeChecks change={change} />
       </ReviewSection>
     </div>
@@ -108,11 +130,17 @@ export function ChangeDetails({ change, instance }: { change: Change; instance?:
 
 // ReviewSection keeps the rail's rhythm: one horizontal rule before every section except the first.
 function ReviewSection({ children, first = false }: { children: ReactNode; first?: boolean }) {
-  return <section className={cn("grid gap-2", !first && "border-t border-border pt-4")}>{children}</section>;
+  return (
+    <section className={cn("grid gap-2", !first && "border-t border-border pt-4")}>
+      {children}
+    </section>
+  );
 }
 
 function SubmittedBy({ change }: { change: Change }) {
-  const submitted = change.createdAt ? new Date(change.createdAt * 1000).toLocaleString() : undefined;
+  const submitted = change.createdAt
+    ? new Date(change.createdAt * 1000).toLocaleString()
+    : undefined;
   return (
     <p className="text-xs text-muted-foreground">
       Submitted by {change.createdBy || "unknown"}
@@ -125,8 +153,8 @@ function ChangeAlerts({ change }: { change: Change }) {
   if (change.scheduledAt && change.scheduledAt > Math.floor(Date.now() / 1000)) {
     return (
       <Alert variant="warning" title="Scheduled">
-        The scheduler will apply this change at {new Date(change.scheduledAt * 1000).toLocaleString()}. Apply stays
-        refused until then.
+        The scheduler will apply this change at{" "}
+        {new Date(change.scheduledAt * 1000).toLocaleString()}. Apply stays refused until then.
       </Alert>
     );
   }
@@ -275,20 +303,35 @@ function ChangeActionBar({
       )}
       <span className="flex-1" />
       {canApprove && (
-        <Button size="sm" variant="outline" className="border-border bg-white text-black hover:bg-white/90 dark:border-border dark:bg-white dark:text-black dark:hover:bg-white/90" onClick={onApprove}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-border bg-white text-black hover:bg-white/90 dark:border-border dark:bg-white dark:text-black dark:hover:bg-white/90"
+          onClick={onApprove}
+        >
           <Check /> Approve
         </Button>
       )}
       {canApply && (
         <>
           <ScheduleMenu change={change} onSchedule={onSchedule} />
-          <Button size="sm" variant="outline" className="border-border bg-white text-black hover:bg-white/90 dark:border-border dark:bg-white dark:text-black dark:hover:bg-white/90" onClick={onApply}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-border bg-white text-black hover:bg-white/90 dark:border-border dark:bg-white dark:text-black dark:hover:bg-white/90"
+            onClick={onApply}
+          >
             <Play /> Apply
           </Button>
         </>
       )}
       {canReject && (
-        <Button size="sm" variant="destructive" className="bg-destructive text-white hover:bg-destructive/90 dark:bg-destructive dark:text-white dark:hover:bg-destructive/90" onClick={onReject}>
+        <Button
+          size="sm"
+          variant="destructive"
+          className="bg-destructive text-white hover:bg-destructive/90 dark:bg-destructive dark:text-white dark:hover:bg-destructive/90"
+          onClick={onReject}
+        >
           <Undo2 /> Reject
         </Button>
       )}
@@ -308,7 +351,13 @@ const scheduleSchema = z.object({
 type ScheduleForm = z.infer<typeof scheduleSchema>;
 
 // ScheduleMenu is the approved-change schedule control: Immediate clears the slot, Schedule it opens a future picker.
-function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at: number) => void }) {
+function ScheduleMenu({
+  change,
+  onSchedule,
+}: {
+  change: Change;
+  onSchedule: (at: number) => void;
+}) {
   const [open, setOpen] = useState(false);
   const scheduled = (change.scheduledAt ?? 0) > 0;
   const {
@@ -348,14 +397,23 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
         <SheetContent className="sm:max-w-sm">
           <SheetHeader>
             <SheetTitle>Schedule change</SheetTitle>
-            <SheetDescription>Pick when the scheduler should apply this approved change.</SheetDescription>
+            <SheetDescription>
+              Pick when the scheduler should apply this approved change.
+            </SheetDescription>
           </SheetHeader>
           <SheetBody>
             <form id="schedule-change" onSubmit={onValid}>
               <Field>
                 <FieldLabel htmlFor="schedule-at">Run at</FieldLabel>
-                <Input id="schedule-at" type="datetime-local" aria-invalid={!!errors.when} {...register("when")} />
-                <FieldDescription>A future moment; the scheduler applies the change once.</FieldDescription>
+                <Input
+                  id="schedule-at"
+                  type="datetime-local"
+                  aria-invalid={!!errors.when}
+                  {...register("when")}
+                />
+                <FieldDescription>
+                  A future moment; the scheduler applies the change once.
+                </FieldDescription>
                 <FieldError errors={[errors.when]} />
               </Field>
             </form>

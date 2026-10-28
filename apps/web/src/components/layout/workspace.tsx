@@ -1,4 +1,12 @@
-import { Children, Fragment, createContext, isValidElement, useContext, type ComponentProps, type ReactNode } from "react";
+import {
+  Children,
+  Fragment,
+  createContext,
+  isValidElement,
+  useContext,
+  type ComponentProps,
+  type ReactNode,
+} from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { cn } from "@/lib/utils";
@@ -26,7 +34,9 @@ export function useWorkspace() {
 function withHandles(children: ReactNode) {
   const items = Children.toArray(children).filter((child) => child !== null && child !== undefined);
   return items.map((child, index) => (
-    <Fragment key={isValidElement(child) && child.key != null ? String(child.key) : `pane-${index}`}>
+    <Fragment
+      key={isValidElement(child) && child.key != null ? String(child.key) : `pane-${index}`}
+    >
       {index > 0 && <ResizableHandle withHandle />}
       {child}
     </Fragment>
@@ -39,7 +49,13 @@ type WorkspacePaneProps = ComponentProps<typeof ResizablePanel> & {
 };
 
 // WorkspacePane is the card body a tile shares. Padding and scrolling are opt-out so editors and graphs can fill the tile.
-export function WorkspacePane({ children, className, padded, scroll, ...props }: WorkspacePaneProps) {
+export function WorkspacePane({
+  children,
+  className,
+  padded,
+  scroll,
+  ...props
+}: WorkspacePaneProps) {
   const inherited = useWorkspace();
   const contentPadding = padded ?? inherited.padded;
   const contentScroll = scroll ?? inherited.scroll;
@@ -82,7 +98,12 @@ export function WorkspaceSplit({
 }: WorkspaceSplitProps) {
   const inherited = useWorkspace();
   return (
-    <ResizablePanel defaultSize={defaultSize} minSize={minSize} maxSize={maxSize} className={cn("min-h-0 min-w-0", className)}>
+    <ResizablePanel
+      defaultSize={defaultSize}
+      minSize={minSize}
+      maxSize={maxSize}
+      className={cn("min-h-0 min-w-0", className)}
+    >
       <WorkspaceContext.Provider value={{ ...inherited, orientation: direction }}>
         <ResizablePanelGroup
           orientation={direction}
@@ -106,7 +127,14 @@ type WorkspaceProps = {
 
 // Workspace is the shared split surface. The legacy left/right signature stays as a thin wrapper while pages migrate to the compound API.
 // An optional footer sits below the whole split, so a page keeps its counts, paging and actions out of the scrolling content.
-function WorkspaceRoot({ left, right, children, className, footer, footerClassName }: WorkspaceProps) {
+function WorkspaceRoot({
+  left,
+  right,
+  children,
+  className,
+  footer,
+  footerClassName,
+}: WorkspaceProps) {
   const content =
     children ??
     (left !== undefined || right !== undefined
@@ -136,7 +164,13 @@ function WorkspaceRoot({ left, right, children, className, footer, footerClassNa
 }
 
 // WorkspaceFooter is the strip under the split: one row of status on the left and actions on the right.
-export function WorkspaceFooter({ children, className }: { children: ReactNode; className?: string }) {
+export function WorkspaceFooter({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <div
       className={cn(

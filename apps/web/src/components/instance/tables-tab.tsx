@@ -5,8 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Workspace } from "@/components/layout/workspace";
 import { bytes, compact } from "@/lib/format";
@@ -62,7 +75,10 @@ export function TablesTab({
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
             <div className="flex flex-col gap-1.5">
               <Label>Schema</Label>
-              <Select value={schema || "all"} onValueChange={(v) => onSchema(String(v) === "all" ? "" : String(v))}>
+              <Select
+                value={schema || "all"}
+                onValueChange={(v) => onSchema(String(v) === "all" ? "" : String(v))}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -115,7 +131,10 @@ export function TablesTab({
                       <TableRow key={`${t.schema}.${t.name}`}>
                         <TableCell className="font-mono text-xs">{t.name}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{t.schema}</TableCell>
-                        <TableCell className="max-w-64 truncate text-xs text-muted-foreground" title={t.comment || undefined}>
+                        <TableCell
+                          className="max-w-64 truncate text-xs text-muted-foreground"
+                          title={t.comment || undefined}
+                        >
                           {t.comment || "—"}
                         </TableCell>
                         <TableCell className="text-xs tabular-nums text-muted-foreground">

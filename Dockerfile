@@ -6,7 +6,7 @@
 # API only: Dockerfile.api skips the console and serves the placeholder.
 FROM node:22-alpine AS web
 WORKDIR /web
-RUN npm install -g pnpm@10
+RUN npm install -g pnpm@10.34.5
 COPY apps/web/package.json apps/web/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY apps/web/ ./

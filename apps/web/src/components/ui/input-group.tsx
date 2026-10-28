@@ -105,12 +105,19 @@ export function InputGroupText({ className, ...props }: React.ComponentProps<"sp
 }
 
 // The input inside the group is bare: the group owns the border and the ring.
-const bare = "flex-1 border-0 bg-transparent shadow-none focus-visible:border-0 focus-visible:ring-0 aria-invalid:ring-0 dark:bg-transparent";
+const bare =
+  "flex-1 border-0 bg-transparent shadow-none focus-visible:border-0 focus-visible:ring-0 aria-invalid:ring-0 dark:bg-transparent";
 
 export function InputGroupInput({ className, ...props }: React.ComponentProps<typeof Input>) {
   return <Input data-slot="input-group-control" className={cn(bare, className)} {...props} />;
 }
 
 export function InputGroupTextarea({ className, ...props }: React.ComponentProps<typeof Textarea>) {
-  return <Textarea data-slot="input-group-control" className={cn(bare, "resize-none", className)} {...props} />;
+  return (
+    <Textarea
+      data-slot="input-group-control"
+      className={cn(bare, "resize-none", className)}
+      {...props}
+    />
+  );
 }

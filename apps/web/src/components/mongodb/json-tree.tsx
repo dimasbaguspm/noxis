@@ -9,7 +9,11 @@ export function JsonTree({ value, name }: { value: unknown; name?: string }) {
     return (
       <Branch label={name ?? "array"} count={value.length} bracket="[]">
         {value.map((item, i) => (
-          <JsonTree key={`${i}:${JSON.stringify(item)?.slice(0, 24) ?? ""}`} value={item} name={String(i)} />
+          <JsonTree
+            key={`${i}:${JSON.stringify(item)?.slice(0, 24) ?? ""}`}
+            value={item}
+            name={String(i)}
+          />
         ))}
       </Branch>
     );

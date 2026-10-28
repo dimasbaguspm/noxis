@@ -30,9 +30,7 @@ export function SingleSelect<T extends string = string>({
             className={cn(
               "flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors",
               "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring",
-              active
-                ? "border-primary/50 bg-accent/50"
-                : "border-border hover:bg-accent/30",
+              active ? "border-primary/50 bg-accent/50" : "border-border hover:bg-accent/30",
             )}
           >
             <input
@@ -45,7 +43,9 @@ export function SingleSelect<T extends string = string>({
             />
             <span className="grid gap-0.5">
               <span className="text-sm font-medium">{option.label}</span>
-              {option.detail && <span className="text-xs text-muted-foreground">{option.detail}</span>}
+              {option.detail && (
+                <span className="text-xs text-muted-foreground">{option.detail}</span>
+              )}
             </span>
           </label>
         );

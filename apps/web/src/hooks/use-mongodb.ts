@@ -52,8 +52,13 @@ export function useMongoCollectionsQuery(connection?: string, database?: string)
 // useMongoRunMutation executes one read (find, aggregate, count); writes are not accepted here and belong in the request queue.
 export function useMongoRunMutation() {
   return useMutation({
-    mutationFn: ({ connection, body }: { connection: string; body: Parameters<typeof api.mongodb.run>[1] }) =>
-      api.mongodb.run(connection, body),
+    mutationFn: ({
+      connection,
+      body,
+    }: {
+      connection: string;
+      body: Parameters<typeof api.mongodb.run>[1];
+    }) => api.mongodb.run(connection, body),
   });
 }
 

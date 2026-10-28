@@ -51,7 +51,10 @@ const LINKABLE = new Set<string>([
 
 // segmentLabel words one segment, or trims an id hash to something readable.
 function segmentLabel(segment: string): string {
-  return SEGMENT_LABELS[segment] ?? (/^[0-9a-f-]{8,}$/i.test(segment) ? segment.slice(0, 8) : title(segment));
+  return (
+    SEGMENT_LABELS[segment] ??
+    (/^[0-9a-f-]{8,}$/i.test(segment) ? segment.slice(0, 8) : title(segment))
+  );
 }
 
 // useBreadcrumbs walks the URL and names every prefix, so the trail always matches the page it sits on.

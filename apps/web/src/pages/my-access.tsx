@@ -1,8 +1,21 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { RequestAccessDialog } from "@/components/access/request-access-dialog";
 import { useAuth } from "@/app/auth-provider";
 import { useMyAccessUrlParams, useMyRequestsQuery } from "@/hooks/use-access-requests";
@@ -103,14 +116,22 @@ export default function MyAccessPage() {
                     <TableCell>
                       <Badge
                         variant={
-                          r.status === "approved" ? "success" : r.status === "rejected" ? "destructive" : "outline"
+                          r.status === "approved"
+                            ? "success"
+                            : r.status === "rejected"
+                              ? "destructive"
+                              : "outline"
                         }
                       >
                         {r.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{formatDateTime(r.requestedAt)}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{r.decidedBy || "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatDateTime(r.requestedAt)}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {r.decidedBy || "—"}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

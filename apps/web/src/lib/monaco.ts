@@ -28,9 +28,36 @@ import "monaco-editor/languages/definitions/mysql/register.js";
 
 const MONGO_LANGUAGE = "mongo";
 
-monaco.languages.register({ id: MONGO_LANGUAGE, extensions: [".json"], aliases: ["MongoDB", "json"] });
+monaco.languages.register({
+  id: MONGO_LANGUAGE,
+  extensions: [".json"],
+  aliases: ["MongoDB", "json"],
+});
 monaco.languages.setMonarchTokensProvider(MONGO_LANGUAGE, {
-  operators: ["$eq", "$ne", "$gt", "$gte", "$lt", "$lte", "$in", "$nin", "$exists", "$regex", "$and", "$or", "$not", "$set", "$unset", "$inc", "$push", "$pull", "$addToSet", "$match", "$group", "$project"],
+  operators: [
+    "$eq",
+    "$ne",
+    "$gt",
+    "$gte",
+    "$lt",
+    "$lte",
+    "$in",
+    "$nin",
+    "$exists",
+    "$regex",
+    "$and",
+    "$or",
+    "$not",
+    "$set",
+    "$unset",
+    "$inc",
+    "$push",
+    "$pull",
+    "$addToSet",
+    "$match",
+    "$group",
+    "$project",
+  ],
   tokenizer: {
     root: [
       [/"\$?[a-zA-Z0-9_.]*"/, "string"],

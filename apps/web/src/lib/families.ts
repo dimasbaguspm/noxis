@@ -51,9 +51,7 @@ export const FAMILIES: Family[] = [
     icon: Boxes,
     page: PAGE_ROUTES.MEMCACHE.KEYS,
     openLabel: "Browse keys",
-    nav: [
-      { to: PAGE_ROUTES.MEMCACHE.KEYS, label: "Keys", icon: Boxes, end: true },
-    ],
+    nav: [{ to: PAGE_ROUTES.MEMCACHE.KEYS, label: "Keys", icon: Boxes, end: true }],
   },
   {
     key: FAMILY.MONGODB,

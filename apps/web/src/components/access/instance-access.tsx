@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetBody,
@@ -16,7 +22,14 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { GrantTable } from "@/components/access/grant-table";
 import { knownGroups, memberLabel } from "@/components/access/helpers";
@@ -114,10 +127,7 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
 
   function decideRequest(approve: boolean) {
     if (sheet?.kind !== "request") return;
-    decide.mutate(
-      { id: sheet.request.id ?? "", approve, note },
-      { onSuccess: closeSheet },
-    );
+    decide.mutate({ id: sheet.request.id ?? "", approve, note }, { onSuccess: closeSheet });
   }
 
   return (
@@ -180,7 +190,11 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
             ) : requests.isPending ? (
               <Skeleton className="h-48 w-full" />
             ) : pending.length === 0 ? (
-              <Empty icon={Inbox} title="No pending requests" description="Access requests waiting for a decision appear here." />
+              <Empty
+                icon={Inbox}
+                title="No pending requests"
+                description="Access requests waiting for a decision appear here."
+              />
             ) : (
               <div className="min-h-0 flex-1 overflow-auto">
                 <div className="rounded-md border border-border">
@@ -201,10 +215,15 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
                           <TableCell>
                             <Badge variant="secondary">{request.level}</Badge>
                           </TableCell>
-                          <TableCell className="max-w-72 truncate text-xs text-muted-foreground" title={request.reason || undefined}>
+                          <TableCell
+                            className="max-w-72 truncate text-xs text-muted-foreground"
+                            title={request.reason || undefined}
+                          >
                             {request.reason || "—"}
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{formatDateTime(request.requestedAt)}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {formatDateTime(request.requestedAt)}
+                          </TableCell>
                           <TableCell className="text-right">
                             <Button size="xs" variant="ghost" onClick={() => openRequest(request)}>
                               <Inbox /> Review
@@ -239,7 +258,10 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
                   : "Review the request, then approve or reject it."}
             </SheetDescription>
           </SheetHeader>
-          <form id="access-sheet-form" onSubmit={sheet?.kind === "request" ? (event) => event.preventDefault() : submitGrant}>
+          <form
+            id="access-sheet-form"
+            onSubmit={sheet?.kind === "request" ? (event) => event.preventDefault() : submitGrant}
+          >
             <SheetBody className="flex flex-col gap-4">
               {sheet?.kind === "request" ? (
                 <>
@@ -252,25 +274,39 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
                       <span className="text-muted-foreground">Requested</span>
                       <span className="text-xs">{formatDateTime(sheet.request.requestedAt)}</span>
                     </div>
-                    <div className="text-xs text-muted-foreground">{sheet.request.reason || "No reason given."}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {sheet.request.reason || "No reason given."}
+                    </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="decision-note">Decision note</Label>
-                    <Textarea id="decision-note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional" />
+                    <Textarea
+                      id="decision-note"
+                      value={note}
+                      onChange={(event) => setNote(event.target.value)}
+                      placeholder="Optional"
+                    />
                   </div>
                 </>
               ) : (
                 <>
                   {sheet?.kind === "grant" ? (
                     <div className="rounded-md border px-3 py-2 text-sm">
-                      <div className="font-medium">{memberLabel(sheet.permission, members.data?.users)}</div>
-                      <div className="text-xs text-muted-foreground">{sheet.permission.memberType}</div>
+                      <div className="font-medium">
+                        {memberLabel(sheet.permission, members.data?.users)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {sheet.permission.memberType}
+                      </div>
                     </div>
                   ) : (
                     <>
                       <div className="flex flex-col gap-1.5">
                         <Label>Member type</Label>
-                        <Select value={memberType} onValueChange={(value) => setMemberType(value ?? "group")}>
+                        <Select
+                          value={memberType}
+                          onValueChange={(value) => setMemberType(value ?? "group")}
+                        >
                           <SelectTrigger className="w-full">
                             <SelectValue />
                           </SelectTrigger>
@@ -336,21 +372,40 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
             </SheetBody>
             <SheetFooter className="items-center">
               {sheet?.kind === "grant" && canRevoke && (
-                <Button type="button" variant="ghost" className="mr-auto text-destructive" onClick={revoke} disabled={remove.isPending}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="mr-auto text-destructive"
+                  onClick={revoke}
+                  disabled={remove.isPending}
+                >
                   Revoke
                 </Button>
               )}
               {sheet?.kind === "request" ? (
                 <>
-                  <Button type="button" variant="ghost" onClick={() => decideRequest(false)} disabled={decide.isPending}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => decideRequest(false)}
+                    disabled={decide.isPending}
+                  >
                     <X /> Reject
                   </Button>
-                  <Button type="button" onClick={() => decideRequest(true)} disabled={decide.isPending}>
+                  <Button
+                    type="button"
+                    onClick={() => decideRequest(true)}
+                    disabled={decide.isPending}
+                  >
                     <Check /> Approve
                   </Button>
                 </>
               ) : (
-                <Button type="submit" form="access-sheet-form" disabled={!member.trim() || add.isPending}>
+                <Button
+                  type="submit"
+                  form="access-sheet-form"
+                  disabled={!member.trim() || add.isPending}
+                >
                   {sheet?.kind === "grant" ? "Save level" : "Grant"}
                 </Button>
               )}
