@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { KeyRound, Settings, UserRound } from "lucide-react";
 import { Workspace } from "@/components/layout/workspace";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
 const ITEMS = [

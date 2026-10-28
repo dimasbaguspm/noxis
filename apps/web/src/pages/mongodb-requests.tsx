@@ -27,7 +27,7 @@ import { useConnections } from "@/hooks/use-connections";
 import { useMongoChangesListQuery } from "@/hooks/use-mongodb";
 import { FAMILY } from "@/lib/families";
 import { Workspace } from "@/components/layout/workspace";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
 // MongoRequestsPage is the review queue: every write request waits here until someone approves and applies it. Reads never appear (they run in Explore).

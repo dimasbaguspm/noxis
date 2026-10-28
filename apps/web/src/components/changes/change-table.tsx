@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Change } from "@/lib/api";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { P } from "@/components/ui/typography";
 
 const STATUS_VARIANT: Record<

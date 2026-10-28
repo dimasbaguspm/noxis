@@ -17,7 +17,7 @@ import {
   useSubmitChangeMutation,
   type ChangeKind,
 } from "@/hooks/use-changes";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { useCrumbLabel } from "@/app/crumb-provider";
 
 // ChangeDetailPage owns loading and review permissions; the two visual halves live in components/changes/change-review.

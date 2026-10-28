@@ -9,7 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { PAGE_ROUTES, routePath } from "@/lib/routes";
+import { PAGE_ROUTES, routePath } from "@/constants/routes";
 import "./app.css";
 
 // route-level splitting: monaco (query/changes) loads with the page that needs it

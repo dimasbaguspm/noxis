@@ -4,7 +4,7 @@ import type { ErdTable } from "@/components/sql/erd-canvas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { bytes, compact } from "@/lib/format";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 
 function previewSQL(table: ErdTable) {
   const name = table.schema ? `${table.schema}.${table.name}` : table.name;

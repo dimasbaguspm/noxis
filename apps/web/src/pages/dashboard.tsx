@@ -30,7 +30,7 @@ import { useDriversQuery } from "@/hooks/use-config";
 import { ALL_DRIVERS, useInstancesUrlParams, usePagedInstancesQuery } from "@/hooks/use-instances";
 import { useDebounce } from "@/hooks/use-debounce";
 import { familyByKey, type FamilyKey } from "@/lib/families";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 
 // One row per instance, whichever family it belongs to: the table shows only what they have in common, and the detail page carries the rest.
 const PER_PAGE = 20;
