@@ -256,7 +256,7 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="decision-note">Decision note</Label>
-                    <Textarea id="decision-note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="optional" />
+                    <Textarea id="decision-note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Optional" />
                   </div>
                 </>
               ) : (
@@ -288,7 +288,7 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
                         {memberType === "user" ? (
                           <Select value={member} onValueChange={(value) => setMember(value ?? "")}>
                             <SelectTrigger className="w-full">
-                              <SelectValue placeholder="pick a user" />
+                              <SelectValue placeholder="Pick a user" />
                             </SelectTrigger>
                             <SelectContent>
                               {(members.data?.users ?? []).map((user) => (
@@ -301,7 +301,7 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
                         ) : (
                           <>
                             <Input
-                              placeholder="group name"
+                              placeholder="Group name"
                               list="known-groups"
                               value={member}
                               onChange={(event) => setMember(event.target.value)}

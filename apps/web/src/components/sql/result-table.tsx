@@ -1,5 +1,4 @@
 import { Download } from "lucide-react";
-import { title as startCase } from "radash";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,21 +13,21 @@ export function ResultSummary({ result }: { result: Result | null }) {
     <P className="flex min-w-0 flex-wrap items-center gap-x-3">
       <span className="break-words">{result.message}</span>
       <span>
-        {startCase("duration")}: {result.durationMs ?? 0} ms
+        Duration: {result.durationMs ?? 0} ms
       </span>
       {(result.rowsReturned ?? 0) > 0 && (
         <span>
-          {startCase("returned")}: {result.rowsReturned}
+          Returned: {result.rowsReturned}
         </span>
       )}
       {(result.affected ?? 0) > 0 && (
         <span>
-          {startCase("affected")}: {result.affected}
+          Affected: {result.affected}
         </span>
       )}
       {(result.estimatedRows ?? 0) > 0 && (
         <span>
-          {startCase("plan rows")}: ~{result.estimatedRows}
+          Plan rows: ~{result.estimatedRows}
         </span>
       )}
     </P>
@@ -91,7 +90,7 @@ export function ResultTable({
               {rows.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="text-muted-foreground">
-                    {startCase("no rows")}
+                    No rows
                   </TableCell>
                 </TableRow>
               )}

@@ -50,7 +50,7 @@ export default function MyProfilePage() {
               <dt className="text-muted-foreground">Groups</dt>
               <dd className="mt-1 flex flex-wrap gap-1.5">
                 {(identity.groups ?? []).length === 0 ? (
-                  <span className="text-muted-foreground">none</span>
+                  <span className="text-muted-foreground">None</span>
                 ) : (
                   (identity.groups ?? []).map((group) => (
                     <Badge key={group} variant="outline">

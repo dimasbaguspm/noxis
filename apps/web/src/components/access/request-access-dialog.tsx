@@ -20,8 +20,8 @@ import { useLevelsQuery } from "@/hooks/use-config";
 import { usePagedInstancesQuery } from "@/hooks/use-instances";
 
 const schema = z.object({
-  connection: z.string().min(1, "pick an instance"),
-  level: z.string().min(1, "pick a level"),
+  connection: z.string().min(1, "Pick an instance"),
+  level: z.string().min(1, "Pick a level"),
   reason: z.string().optional(),
 });
 type FormValues = z.infer<typeof schema>;
@@ -77,7 +77,7 @@ export function RequestAccessDialog({ connection }: { connection?: string }) {
                 <FieldLabel>Instance</FieldLabel>
                 <Select value={picked} onValueChange={(v) => setValue("connection", v ?? "", { shouldValidate: true })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="pick an instance" />
+                    <SelectValue placeholder="Pick an instance" />
                   </SelectTrigger>
                   <SelectContent>
                     {instances.map((instance) => (

@@ -151,10 +151,10 @@ export default function MemcachePage() {
                 }}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="no memory cache registered" />
+                  <SelectValue placeholder="No memory cache registered" />
                 </SelectTrigger>
                 <SelectContent>
-                  {connections.length === 0 && <SelectItem value="none">none registered yet</SelectItem>}
+                  {connections.length === 0 && <SelectItem value="none">None registered yet</SelectItem>}
                   {connections.map((c) => (
                     <SelectItem key={c.name} value={c.name}>
                       {c.name}
@@ -191,7 +191,7 @@ export default function MemcachePage() {
 
             {page.truncated && (
               <Tooltip>
-                <TooltipTrigger render={<span className="text-xs text-amber-500" />}>scan truncated</TooltipTrigger>
+                <TooltipTrigger render={<span className="text-xs text-amber-500" />}>Scan truncated</TooltipTrigger>
                 <TooltipContent>
                   The keyspace holds more keys than one scan reads (500 by default). Narrow the pattern.
                 </TooltipContent>
@@ -283,11 +283,11 @@ export default function MemcachePage() {
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="truncate font-mono text-base">{inspected}</DialogTitle>
-            <DialogDescription>rendered per the key's type</DialogDescription>
+            <DialogDescription>Rendered per the key's type</DialogDescription>
           </DialogHeader>
           <div className="max-h-[60svh] overflow-auto">
             {valueLoading ? (
-              <P size="sm">loading…</P>
+              <P size="sm">Loading…</P>
             ) : (
               <ResultTable result={result} title={inspected ?? "value"} />
             )}
@@ -312,7 +312,7 @@ export default function MemcachePage() {
               <FieldLabel htmlFor="flush-confirm">Confirm by typing the connection name</FieldLabel>
               <Input
                 id="flush-confirm"
-                placeholder={connection ?? "the connection name"}
+                placeholder={connection ?? "The connection name"}
                 aria-invalid={!!flushErrors.confirm}
                 {...register("confirm")}
               />

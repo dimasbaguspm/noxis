@@ -43,7 +43,7 @@ export function TableBrowser({ tables, onRecords, onAnalyze, onSelect }: Props) 
       <div className="grid gap-1.5">
         <Label>Schema</Label>
         <Select value={schemaFilter || "all"} onValueChange={(next) => setSelectedSchema(String(next) === "all" ? "" : String(next))}>
-        <SelectTrigger className="w-full" aria-label="schema">
+        <SelectTrigger className="w-full" aria-label="Schema">
           <SelectValue placeholder="All schemas" />
         </SelectTrigger>
         <SelectContent>
@@ -63,7 +63,7 @@ export function TableBrowser({ tables, onRecords, onAnalyze, onSelect }: Props) 
         <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           className="pl-7"
-          placeholder="search tables"
+          placeholder="Search tables"
           value={filter}
           onChange={(e) => {
             setFilter(e.target.value);

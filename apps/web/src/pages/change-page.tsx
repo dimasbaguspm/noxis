@@ -49,7 +49,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
                 </InputGroupAddon>
                 <InputGroupInput
                   id="change-filter"
-                  placeholder="type to filter…"
+                  placeholder="Type to filter…"
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
                 />
@@ -90,7 +90,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
               <Empty
                 className="flex-1"
                 title={`no ${kind} changes`}
-                description={filter.trim() ? "no change matches this instance filter" : "raise one and it will land here"}
+                description={filter.trim() ? "No change matches this instance filter" : "Raise one and it will land here"}
               />
             ) : (
               <ChangeTable changes={changes} emptyHint={`no ${kind} changes on this page`} />

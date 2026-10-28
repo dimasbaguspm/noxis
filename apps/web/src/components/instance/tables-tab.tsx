@@ -84,7 +84,7 @@ export function TablesTab({
                   id="table-search"
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
-                  placeholder="search tables"
+                  placeholder="Search tables"
                   className="pl-7"
                 />
               </div>

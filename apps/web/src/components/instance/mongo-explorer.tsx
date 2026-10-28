@@ -64,8 +64,8 @@ export function MongoExplorer({ connection }: { connection: string }) {
         left={
           <div className="flex min-h-0 flex-1 flex-col gap-3">
             <Select value={db ?? ""} onValueChange={(v) => setDatabase(String(v))}>
-              <SelectTrigger className="w-full" aria-label="database">
-                <SelectValue placeholder={databases.isFetching ? "loading…" : "database"} />
+              <SelectTrigger className="w-full" aria-label="Database">
+                <SelectValue placeholder={databases.isFetching ? "Loading…" : "Database"} />
               </SelectTrigger>
               <SelectContent>
                 {databases.databases.map((d) => (
@@ -76,8 +76,8 @@ export function MongoExplorer({ connection }: { connection: string }) {
               </SelectContent>
             </Select>
             <Select value={coll ?? ""} onValueChange={(v) => setCollection(String(v))}>
-              <SelectTrigger className="w-full" aria-label="collection">
-                <SelectValue placeholder={collections.isFetching ? "loading…" : "collection"} />
+              <SelectTrigger className="w-full" aria-label="Collection">
+                <SelectValue placeholder={collections.isFetching ? "Loading…" : "Collection"} />
               </SelectTrigger>
               <SelectContent>
                 {collections.collections.map((c) => (
@@ -92,7 +92,7 @@ export function MongoExplorer({ connection }: { connection: string }) {
               onChange={(e) => setFilter(e.target.value)}
               className="h-8 font-mono text-xs"
               placeholder="{}"
-              aria-label="filter"
+              aria-label="Filter"
             />
             <div className="flex flex-wrap gap-2">
               <Button size="sm" onClick={query} disabled={!db || !coll || run.isPending}>

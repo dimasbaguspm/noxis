@@ -90,11 +90,11 @@ export default function MongoRequestDetailPage() {
             <section className="grid gap-2">
               <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Impact</h3>
               <div className="grid grid-cols-2 gap-3">
-                <Metric label="est. duration" value={`${change.estDurationMs ?? 0} ms`} />
-                <Metric label="est. documents" value={`~${change.estAffected ?? 0}`} />
-                <Metric label="duration" value={change.appliedAt ? `${change.appliedDurationMs ?? 0} ms` : "—"} />
+                <Metric label="Est. duration" value={`${change.estDurationMs ?? 0} ms`} />
+                <Metric label="Est. documents" value={`~${change.estAffected ?? 0}`} />
+                <Metric label="Duration" value={change.appliedAt ? `${change.appliedDurationMs ?? 0} ms` : "—"} />
                 <Metric
-                  label="documents affected"
+                  label="Documents affected"
                   value={change.appliedAt ? String(change.appliedAffected ?? 0) : "—"}
                 />
               </div>

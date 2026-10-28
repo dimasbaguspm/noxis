@@ -20,8 +20,8 @@ import { classify } from "@/lib/statements";
 type Choice = { connection: string; notes: string; query: string; rollback: string };
 const createSchema = z.object({
   notes: z.string().optional(),
-  query: z.string().min(1, "original query is required"),
-  rollback: z.string().min(1, "rollback query is required"),
+  query: z.string().min(1, "Original query is required"),
+  rollback: z.string().min(1, "Rollback query is required"),
 });
 
 type FormValues = z.infer<typeof createSchema>;
@@ -64,7 +64,7 @@ export function CreateChangeSheet({
 
   const onValid = handleSubmit(async (values) => {
     if (!connection) {
-      toast.error("pick the instance this change targets");
+      toast.error("Pick the instance this change targets");
       return;
     }
     setBusy(true);
@@ -78,11 +78,11 @@ export function CreateChangeSheet({
     if (!change) return;
     if (change.status === "failed" || !change.id) {
       setServerError(change.checks?.find((c) => !c.ok)?.error ?? "validation failed");
-      toast.error("validation failed — nothing was submitted");
+      toast.error("Validation failed — nothing was submitted");
       return;
     }
     setServerError(undefined);
-    toast.success(`submitted for review · ${change.id.slice(0, 8)}`);
+    toast.success(`Submitted for review · ${change.id.slice(0, 8)}`);
     setOpen(false);
   });
 
@@ -104,7 +104,7 @@ export function CreateChangeSheet({
 
           <Field>
             <FieldLabel htmlFor="sheet-notes">Notes</FieldLabel>
-            <Input id="sheet-notes" placeholder="optional note" {...register("notes")} />
+            <Input id="sheet-notes" placeholder="Optional note" {...register("notes")} />
           </Field>
 
           <Field>

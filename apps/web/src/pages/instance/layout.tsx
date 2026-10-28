@@ -115,7 +115,7 @@ export default function InstanceLayout() {
   const remove = useAction(async () => {
     if (!family) return;
     await api.family(family).remove(name);
-    toast.success(`deleted ${name}`);
+    toast.success(`Deleted ${name}`);
     void queryClient.invalidateQueries({ queryKey: ["instances"] });
     navigate(PAGE_ROUTES.INSTANCES);
   });
@@ -128,13 +128,13 @@ export default function InstanceLayout() {
     formState: { errors },
   } = useForm<{ password: string }>({
     defaultValues: { password: "" },
-    resolver: zodResolver(z.object({ password: z.string().min(1, "new password is required") })),
+    resolver: zodResolver(z.object({ password: z.string().min(1, "New password is required") })),
   });
   const onRotate = handleSubmit(async ({ password }) => {
     await rotate.mutateAsync({ id, password });
     resetPassword();
     setRotateOpen(false);
-    toast.success("password rotated");
+    toast.success("Password rotated");
   });
 
   const schemas = useMemo(() => [...new Set(tables.map((t) => t.schema))].sort(), [tables]);
@@ -154,7 +154,7 @@ export default function InstanceLayout() {
         <Empty
           icon={Database}
           title="Instance not found"
-          description={detail.error instanceof Error ? detail.error.message : "the instance request failed"}
+          description={detail.error instanceof Error ? detail.error.message : "The instance request failed"}
           action={
             <Button size="sm" render={<Link to={PAGE_ROUTES.INSTANCES} />}>
               Back to Instances
@@ -292,7 +292,7 @@ export default function InstanceLayout() {
                 <Input
                   id="rotate-password-input"
                   type="password"
-                  placeholder="the new stored password"
+                  placeholder="The new stored password"
                   aria-invalid={!!errors.password}
                   {...register("password")}
                 />

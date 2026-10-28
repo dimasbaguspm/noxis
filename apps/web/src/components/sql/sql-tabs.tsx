@@ -53,7 +53,7 @@ export function SqlTabs({
           </span>
         ))}
       </div>
-      <Button size="icon" variant="ghost" aria-label="new query tab" onClick={onAdd}>
+      <Button size="icon" variant="ghost" aria-label="New query tab" onClick={onAdd}>
         <Plus />
       </Button>
     </div>

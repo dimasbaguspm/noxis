@@ -10,8 +10,8 @@ import { useAuth } from "@/app/auth-provider";
 import { changePassword } from "@/lib/auth";
 
 const passwordSchema = z.object({
-  oldPassword: z.string().min(1, "current password is required"),
-  newPassword: z.string().min(8, "new password must be at least 8 characters"),
+  oldPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(8, "New password must be at least 8 characters"),
 });
 type PasswordForm = z.infer<typeof passwordSchema>;
 

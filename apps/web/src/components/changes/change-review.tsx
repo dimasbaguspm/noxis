@@ -299,7 +299,7 @@ function ChangeActionBar({
 const scheduleSchema = z.object({
   when: z
     .string()
-    .min(1, "pick a moment")
+    .min(1, "Pick a moment")
     .refine((value) => {
       const slot = Date.parse(value);
       return !Number.isNaN(slot) && slot > Date.now();
@@ -355,7 +355,7 @@ function ScheduleMenu({ change, onSchedule }: { change: Change; onSchedule: (at:
               <Field>
                 <FieldLabel htmlFor="schedule-at">Run at</FieldLabel>
                 <Input id="schedule-at" type="datetime-local" aria-invalid={!!errors.when} {...register("when")} />
-                <FieldDescription>a future moment; the scheduler applies the change once.</FieldDescription>
+                <FieldDescription>A future moment; the scheduler applies the change once.</FieldDescription>
                 <FieldError errors={[errors.when]} />
               </Field>
             </form>

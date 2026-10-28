@@ -65,7 +65,7 @@ export default function MongoRequestsPage() {
                   a rollback script.
                 </TooltipContent>
               </Tooltip>
-              no rollback exists for document changes
+              No rollback exists for document changes
             </div>
           </div>
         }

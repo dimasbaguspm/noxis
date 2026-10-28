@@ -16,14 +16,14 @@ export function ConnectionSelect({
   const { connections } = useConnections(FAMILY.SQL);
 
   if (connections.length === 0) {
-    return <span className="text-xs text-muted-foreground">no connections yet — add one from the dashboard</span>;
+    return <span className="text-xs text-muted-foreground">No connections yet — add one from the dashboard</span>;
   }
 
   return (
     <Select value={value} onValueChange={(next) => onChange(String(next))}>
-      <SelectTrigger className={className} aria-label="db instance">
+      <SelectTrigger className={className} aria-label="DB instance">
         <Database className="size-3.5 text-muted-foreground" />
-        <SelectValue placeholder="pick an instance" />
+        <SelectValue placeholder="Pick an instance" />
       </SelectTrigger>
       <SelectContent>
         {connections.map((c) => (

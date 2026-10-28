@@ -50,7 +50,7 @@ export function InstanceErd({ connection, instanceId }: { connection: string; in
               <Empty
                 icon={Network}
                 title="The diagram could not load"
-                description={erd.error instanceof Error ? erd.error.message : "the schema request failed"}
+                description={erd.error instanceof Error ? erd.error.message : "The schema request failed"}
               />
             ) : tables.length === 0 ? (
               <Empty icon={Network} title="No tables" description="This instance has no tables to draw." />

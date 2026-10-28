@@ -27,9 +27,9 @@ import { classify } from "@/lib/statements";
 import { P } from "@/components/ui/typography";
 
 const submitSchema = z.object({
-  notes: z.string().trim().min(1, "notes are required"),
-  query: z.string().min(1, "original query is required"),
-  rollback: z.string().min(1, "rollback query is required"),
+  notes: z.string().trim().min(1, "Notes are required"),
+  query: z.string().min(1, "Original query is required"),
+  rollback: z.string().min(1, "Rollback query is required"),
 });
 
 type FormValues = z.infer<typeof submitSchema>;
@@ -84,7 +84,7 @@ export function ChangeSubmitDialog({
 
   const onValid = handleSubmit(async (values) => {
     if (!connection) {
-      toast.error("pick the instance this change targets");
+      toast.error("Pick the instance this change targets");
       return;
     }
     setBusy(true);
@@ -94,10 +94,10 @@ export function ChangeSubmitDialog({
     if (change.status === "failed" || !change.id) {
       // rejected proposals are not recorded: stay open and show why
       setFailure(change.checks ?? []);
-      toast.error("validation failed — nothing was submitted");
+      toast.error("Validation failed — nothing was submitted");
       return;
     }
-    toast.success(`submitted for review · ${change.id.slice(0, 8)}`);
+    toast.success(`Submitted for review · ${change.id.slice(0, 8)}`);
     setFailure([]);
     reset();
     setOpen(false);
@@ -131,7 +131,7 @@ export function ChangeSubmitDialog({
             <FieldLabel htmlFor="change-notes">
               Notes <Required />
             </FieldLabel>
-            <Input id="change-notes" placeholder="what and why" aria-invalid={!!errors.notes} {...register("notes")} />
+            <Input id="change-notes" placeholder="What and why" aria-invalid={!!errors.notes} {...register("notes")} />
             <FieldError errors={[errors.notes]} />
           </Field>
 
