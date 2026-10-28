@@ -13,35 +13,35 @@ import { PAGE_ROUTES, routePath } from "@/constants/routes";
 import "./app.css";
 
 // route-level splitting: monaco (query/changes) loads with the page that needs it
-const DashboardPage = lazy(() => import("@/pages/dashboard"));
-const InstanceLayout = lazy(() => import("@/pages/instance/layout"));
-const InstanceDetailTab = lazy(() => import("@/pages/instance/detail"));
-const InstanceTablesTab = lazy(() => import("@/pages/instance/tables"));
-const InstanceErdTab = lazy(() => import("@/pages/instance/erd"));
-const InstanceDocumentsTab = lazy(() => import("@/pages/instance/documents"));
-const InstanceKeysTab = lazy(() => import("@/pages/instance/keys"));
-const InstanceAccessTab = lazy(() => import("@/pages/instance/access"));
-const QueryPage = lazy(() => import("@/pages/query"));
-const SqlErdPage = lazy(() => import("@/pages/sql-erd"));
-const DmlPage = lazy(() => import("@/pages/dml"));
-const DdlPage = lazy(() => import("@/pages/ddl"));
-const MemcachePage = lazy(() => import("@/pages/memcache"));
-const MongoExplorePage = lazy(() => import("@/pages/mongodb"));
-const MongoRequestsPage = lazy(() => import("@/pages/mongodb-requests"));
-const MongoRequestNewPage = lazy(() => import("@/pages/mongodb-request-new"));
-const MongoRequestDetailPage = lazy(() => import("@/pages/mongodb-request-detail"));
+const DashboardPage = lazy(() => import("@/pages/console/instances"));
+const InstanceLayout = lazy(() => import("@/pages/console/instances/layout"));
+const InstanceDetailTab = lazy(() => import("@/pages/console/instances/detail"));
+const InstanceTablesTab = lazy(() => import("@/pages/console/instances/tables"));
+const InstanceErdTab = lazy(() => import("@/pages/console/instances/erd"));
+const InstanceDocumentsTab = lazy(() => import("@/pages/console/instances/documents"));
+const InstanceKeysTab = lazy(() => import("@/pages/console/instances/keys"));
+const InstanceAccessTab = lazy(() => import("@/pages/console/instances/access"));
+const QueryPage = lazy(() => import("@/pages/console/sql/query"));
+const SqlErdPage = lazy(() => import("@/pages/console/sql/erd"));
+const DmlPage = lazy(() => import("@/pages/console/sql/dml"));
+const DdlPage = lazy(() => import("@/pages/console/sql/ddl"));
+const MemcachePage = lazy(() => import("@/pages/console/memcache"));
+const MongoExplorePage = lazy(() => import("@/pages/console/mongodb/explore"));
+const MongoRequestsPage = lazy(() => import("@/pages/console/mongodb/requests"));
+const MongoRequestNewPage = lazy(() => import("@/pages/console/mongodb/requests/new"));
+const MongoRequestDetailPage = lazy(() => import("@/pages/console/mongodb/requests/detail"));
 const ChangeDetail = lazy(() =>
-  import("@/pages/change-detail").then((m) => ({ default: m.ChangeDetailPage })),
+  import("@/pages/console/sql/changes/detail").then((m) => ({ default: m.ChangeDetailPage })),
 );
-const AuthCallbackPage = lazy(() => import("@/pages/auth-callback"));
-const LoginPage = lazy(() => import("@/pages/login"));
-const MyLayout = lazy(() => import("@/pages/my"));
-const MyProfilePage = lazy(() => import("@/pages/my-profile"));
-const MySettingsPage = lazy(() => import("@/pages/my-settings"));
-const MyAccessPage = lazy(() => import("@/pages/my-access"));
-const AccessPage = lazy(() => import("@/pages/access"));
-const UsersPage = lazy(() => import("@/pages/users"));
-const UserDetailPage = lazy(() => import("@/pages/user-detail"));
+const AuthCallbackPage = lazy(() => import("@/pages/auth/callback"));
+const LoginPage = lazy(() => import("@/pages/auth/login"));
+const MyLayout = lazy(() => import("@/pages/my/layout"));
+const MyProfilePage = lazy(() => import("@/pages/my/profile"));
+const MySettingsPage = lazy(() => import("@/pages/my/settings"));
+const MyAccessPage = lazy(() => import("@/pages/my/access"));
+const AccessPage = lazy(() => import("@/pages/admin/access"));
+const UsersPage = lazy(() => import("@/pages/admin/users"));
+const UserDetailPage = lazy(() => import("@/pages/admin/users/detail"));
 
 // Every page path comes from PAGE_ROUTES; the engine pages sit under the console section, account and admin at the root.
 const router = createBrowserRouter([

@@ -1,4 +1,4 @@
-import { ChangePage } from "@/pages/change-page";
+import { ChangePage } from "@/pages/console/sql/changes";
 
 export default function DmlPage() {
   return <ChangePage kind="dml" />;
