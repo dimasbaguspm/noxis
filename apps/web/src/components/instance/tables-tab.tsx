@@ -23,7 +23,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Workspace } from "@/components/layout/workspace";
 import { bytes, compact } from "@/lib/format";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 
 export interface InstanceTable {
   id?: string;

@@ -19,7 +19,7 @@ import {
   useMongoDatabasesQuery,
   useMongoRunMutation,
 } from "@/hooks/use-mongodb";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 
 // MongoExplorer is a compact find console on the instance page: filters on the left, the first 50 documents on the right.
 export function MongoExplorer({ connection }: { connection: string }) {

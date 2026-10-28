@@ -11,7 +11,7 @@ import { useAuth } from "@/app/auth-provider";
 import { localLogin, signin } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { H1 } from "@/components/ui/typography";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 
 const credentialsSchema = z.object({
   email: z.email("Enter a valid email address"),

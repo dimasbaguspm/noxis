@@ -16,7 +16,7 @@ import {
   useMongoRejectChangeMutation,
 } from "@/hooks/use-mongodb";
 import type { MongoRequest } from "@/lib/api";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { useCrumbLabel } from "@/app/crumb-provider";
 import { cn } from "@/lib/utils";
 import { P } from "@/components/ui/typography";

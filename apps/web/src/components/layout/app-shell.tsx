@@ -5,6 +5,7 @@ import { NavSearch } from "@/components/layout/nav-search";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 // AppShell supplies the crumb registry, so a page can name its own record while the header renders the trail.
 export function AppShell() {
@@ -19,6 +20,7 @@ export function AppShell() {
 function Shell() {
   const { pathname } = useLocation();
   const crumbs = useBreadcrumbs();
+  useDocumentTitle();
 
   return (
     <SidebarProvider>

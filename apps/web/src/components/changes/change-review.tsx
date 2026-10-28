@@ -28,7 +28,7 @@ import { ChangeActivity } from "@/components/changes/change-activity";
 import { ChangeSubmitDialog } from "@/components/changes/change-submit-dialog";
 import { SqlEditor } from "@/components/sql/sql-editor";
 import type { Change, ChangeInput, Connection, Table } from "@/lib/api";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { P } from "@/components/ui/typography";
 

@@ -25,7 +25,7 @@ import { RoleBadge } from "@/components/access/role-badge";
 import { Workspace } from "@/components/layout/workspace";
 import { useUsersQuery, useUsersUrlParams } from "@/hooks/use-users";
 import { formatDateTime } from "@/lib/dates";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 
 // UsersPage lists accounts with shareable URL-backed search and status filters.
 export default function UsersPage() {

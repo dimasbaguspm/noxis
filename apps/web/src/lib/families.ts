@@ -1,8 +1,6 @@
 import type { ComponentType } from "react";
 import { Activity, Boxes, Database, Leaf, Network, PenLine } from "lucide-react";
-import { PAGE_ROUTES } from "./routes";
-
-// FAMILY is the source for engine landing pages, API namespaces, and navigation.
+import { ROUTES, pathOf, type RouteId } from "@/constants/routes";
 
 // FAMILY is the family key vocabulary. The strings are the API Namespace segment too, so they are written once here.
 export const FAMILY = {
@@ -31,38 +29,48 @@ export interface Family {
   nav: NavItem[];
 }
 
+// navItems names each entry once: the path and the label both come from the route registry.
+function navItems(entries: { route: RouteId; icon: NavItem["icon"]; end?: boolean }[]): NavItem[] {
+  return entries.map((entry) => ({
+    to: pathOf(entry.route),
+    label: ROUTES[entry.route].label,
+    icon: entry.icon,
+    end: entry.end,
+  }));
+}
+
 export const FAMILIES: Family[] = [
   {
     key: FAMILY.SQL,
     label: "SQL",
     icon: Database,
-    page: PAGE_ROUTES.SQL.QUERY,
+    page: pathOf("console.sql.query"),
     openLabel: "Open in Query",
-    nav: [
-      { to: PAGE_ROUTES.SQL.QUERY, label: "Query", icon: Database },
-      { to: PAGE_ROUTES.SQL.ERD, label: "ERD", icon: Network },
-      { to: PAGE_ROUTES.SQL.DML, label: "DML", icon: PenLine },
-      { to: PAGE_ROUTES.SQL.DDL, label: "DDL", icon: Activity },
-    ],
+    nav: navItems([
+      { route: "console.sql.query", icon: Database },
+      { route: "console.sql.erd", icon: Network },
+      { route: "console.sql.dml", icon: PenLine },
+      { route: "console.sql.ddl", icon: Activity },
+    ]),
   },
   {
     key: FAMILY.MEMCACHE,
     label: "Memory Cache",
     icon: Boxes,
-    page: PAGE_ROUTES.MEMCACHE.KEYS,
+    page: pathOf("console.memcache"),
     openLabel: "Browse keys",
-    nav: [{ to: PAGE_ROUTES.MEMCACHE.KEYS, label: "Keys", icon: Boxes, end: true }],
+    nav: navItems([{ route: "console.memcache", icon: Boxes, end: true }]),
   },
   {
     key: FAMILY.MONGODB,
     label: "MongoDB",
     icon: Leaf,
-    page: PAGE_ROUTES.MONGODB.EXPLORE,
+    page: pathOf("console.mongodb.explore"),
     openLabel: "Explore",
-    nav: [
-      { to: PAGE_ROUTES.MONGODB.EXPLORE, label: "Explore", icon: Leaf, end: true },
-      { to: PAGE_ROUTES.MONGODB.REQUESTS, label: "Requests", icon: PenLine },
-    ],
+    nav: navItems([
+      { route: "console.mongodb.explore", icon: Leaf, end: true },
+      { route: "console.mongodb.requests", icon: PenLine },
+    ]),
   },
 ];
 

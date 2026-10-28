@@ -6,7 +6,7 @@ import { Empty } from "@/components/ui/empty";
 import { RoleBadge } from "@/components/access/role-badge";
 import { useAuth } from "@/app/auth-provider";
 import { formatDateTime } from "@/lib/dates";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 
 // MyProfilePage is the signed-in account: who you are, your role and groups, and the shortcuts to your own settings and access.
 export default function MyProfilePage() {

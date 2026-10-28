@@ -13,7 +13,7 @@ import {
   useMemcacheKeysQuery,
   useMemcacheValueQuery,
 } from "@/hooks/use-memcache";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { P } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 

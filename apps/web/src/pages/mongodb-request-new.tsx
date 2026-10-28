@@ -27,7 +27,7 @@ import {
   useMongoSubmitChangeMutation,
 } from "@/hooks/use-mongodb";
 import type { Change } from "@/lib/api";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 import { H2 } from "@/components/ui/typography";
 

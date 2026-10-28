@@ -4,7 +4,7 @@ import { ChevronRight, KeyRound, LayoutDashboard, UsersRound } from "lucide-reac
 import { LogoMark } from "@/components/brand/logo-mark";
 import { cn } from "@/lib/utils";
 import { FAMILIES, type Family } from "@/lib/families";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { NavUser } from "@/components/layout/nav-user";
 import { useAuth } from "@/app/auth-provider";
 import {

@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { P } from "@/components/ui/typography";
 import { FAMILY } from "@/lib/families";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { useInstanceContext } from "./layout";
 
 export default function InstanceDetailTab() {

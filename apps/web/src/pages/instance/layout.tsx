@@ -47,7 +47,7 @@ import { api, type Connection } from "@/lib/api";
 import { useCrumbLabel } from "@/app/crumb-provider";
 import { queryClient } from "@/lib/query-client";
 import { FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
-import { PAGE_ROUTES } from "@/lib/routes";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
 export type InstanceTab = "detail" | "tables" | "access" | "erd" | "documents" | "keys";
