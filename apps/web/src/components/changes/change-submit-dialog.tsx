@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useChangeSubmit, type ChangeSubmitInitial } from "@/hooks/use-change-submit";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -35,12 +35,7 @@ const submitSchema = z.object({
 type FormValues = z.infer<typeof submitSchema>;
 
 // ChangeSubmitDialog closes after recording; validation details belong on the change page.
-export type ChangeSubmitInitial = {
-  connection?: string;
-  notes?: string;
-  query?: string;
-  rollback?: string;
-};
+export type { ChangeSubmitInitial };
 
 export function ChangeSubmitDialog({
   kind,
@@ -80,23 +75,10 @@ export function ChangeSubmitDialog({
     defaultValues: { notes: "", query: "", rollback: "" },
     resolver: zodResolver(submitSchema),
   });
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<
-    { target?: string; ok?: boolean; detail?: string; error?: string }[]
-  >([]);
-
-  function setDialogOpen(next: boolean) {
-    if (next) {
-      reset({
-        notes: initial?.notes ?? "",
-        query: initial?.query ?? "",
-        rollback: initial?.rollback ?? "",
-      });
-      setFailure([]);
-    }
-    setOpen(next);
-  }
+  const { open, busy, failure, setDialogOpen, setBusy, setFailure } = useChangeSubmit({
+    initial,
+    reset,
+  });
 
   const onValid = handleSubmit(async (values) => {
     if (!connection) {
@@ -121,7 +103,7 @@ export function ChangeSubmitDialog({
     toast.success(`Submitted for review · ${change.id.slice(0, 8)}`);
     setFailure([]);
     reset();
-    setOpen(false);
+    setDialogOpen(false);
   });
 
   const detected = classify(watch("query"));

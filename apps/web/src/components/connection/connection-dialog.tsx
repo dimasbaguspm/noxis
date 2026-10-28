@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useConnectionWizard } from "@/hooks/use-connection-wizard";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -127,39 +127,33 @@ export function ConnectionDialog({
     // Cast the resolver because z.coerce gives form inputs and parsed output different types.
     resolver: zodResolver(connectionSchema) as unknown as Resolver<ConnectionForm>,
   });
-  const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<FamilyKey>(family);
-  const [step, setStep] = useState<1 | 2>(wizard && !initial ? 1 : 2);
-  const [verified, setVerified] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [dsn, setDsn] = useState("");
-  const [dsnError, setDsnError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
+  const {
+    open,
+    kind,
+    step,
+    verified,
+    busy,
+    dsn,
+    dsnError,
+    showPassword,
+    cache,
+    mongo,
+    setKind,
+    setOpen,
+    setStep,
+    setVerified,
+    setBusy,
+    setDsn,
+    setDsnError,
+    onOpenChange,
+    choose,
+    nextStep,
+    backStep,
+    togglePassword,
+    clearDsn,
+    pasteDsn,
+  } = useConnectionWizard({ family, wizard, initial, blank: BLANK, reset });
 
-  async function pasteDsn() {
-    try {
-      const text = await navigator.clipboard.readText();
-      if (!text) return;
-      setDsn(text);
-      setDsnError(null);
-    } catch {
-      toast.error("Could not read the clipboard");
-    }
-  }
-
-  // Closing resets the form so the next visit starts with a clean family-specific draft.
-  function onOpenChange(next: boolean) {
-    setOpen(next);
-    if (!next) {
-      setKind(family);
-      reset(BLANK[family]);
-      setVerified(false);
-      setStep(wizard && !initial ? 1 : 2);
-    }
-  }
-
-  const cache = kind === FAMILY.MEMCACHE;
-  const mongo = kind === FAMILY.MONGODB;
   const fileDriver = isFileDriver(watch("driver"));
   const client = api.family(kind);
 
@@ -179,13 +173,6 @@ export function ConnectionDialog({
   // refresh invalidates the cached instance list after a connection write.
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: queryKeys.instances.all });
-  }
-
-  function choose(next: FamilyKey) {
-    setKind(next);
-    reset(BLANK[next]);
-    setVerified(false);
-    setStep(2);
   }
 
   // applyDsn fills fields from a pasted DSN and switches to its driver family.
@@ -285,7 +272,7 @@ export function ConnectionDialog({
               />
             </SheetBody>
             <SheetFooter>
-              <Button className="ml-auto" onClick={() => setStep(2)}>
+              <Button className="ml-auto" onClick={nextStep}>
                 Next <ChevronRight className="size-4" />
               </Button>
             </SheetFooter>
@@ -315,13 +302,7 @@ export function ConnectionDialog({
                     />
                     <InputGroupAddon align="inline-end">
                       {dsn && (
-                        <InputGroupButton
-                          aria-label="Clear connection string"
-                          onClick={() => {
-                            setDsn("");
-                            setDsnError(null);
-                          }}
-                        >
+                        <InputGroupButton aria-label="Clear connection string" onClick={clearDsn}>
                           <X />
                         </InputGroupButton>
                       )}
@@ -412,7 +393,7 @@ export function ConnectionDialog({
                         <InputGroupAddon align="inline-end">
                           <InputGroupButton
                             aria-label={showPassword ? "Hide password" : "Show password"}
-                            onClick={() => setShowPassword((value) => !value)}
+                            onClick={togglePassword}
                           >
                             {showPassword ? <EyeOff /> : <Eye />}
                           </InputGroupButton>
@@ -445,7 +426,7 @@ export function ConnectionDialog({
 
             <SheetFooter className="items-center gap-2">
               {wizard && (
-                <Button variant="ghost" className="mr-auto" onClick={() => setStep(1)}>
+                <Button variant="ghost" className="mr-auto" onClick={backStep}>
                   <ChevronLeft /> Back
                 </Button>
               )}

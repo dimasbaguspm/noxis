@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useChangeSheet } from "@/hooks/use-change-sheet";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -63,15 +63,9 @@ export function CreateChangeSheet({
     defaultValues: { notes: "", query: "", rollback: "" },
     resolver: zodResolver(createSchema),
   });
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [serverError, setServerError] = useState<string>();
-
-  function setSheetOpen(next: boolean) {
-    if (next) reset({ notes: "", query: "", rollback: "" });
-    setOpen(next);
-    setServerError(undefined);
-  }
+  const { open, busy, serverError, setSheetOpen, setBusy, setServerError } = useChangeSheet({
+    reset,
+  });
 
   const detected = classify(watch("query"));
 
@@ -96,7 +90,7 @@ export function CreateChangeSheet({
     }
     setServerError(undefined);
     toast.success(`Submitted for review · ${change.id.slice(0, 8)}`);
-    setOpen(false);
+    setSheetOpen(false);
   });
 
   return (

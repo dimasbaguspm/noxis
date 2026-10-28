@@ -108,6 +108,11 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 - **Errors:** wrap with `%w`; compare with `errors.Is`. Sentinel errors live in `interfaces` / `usecases`.
 - **Spans:** `ctx, end := logging.StartSpan(ctx); defer func(){ end(err) }()` at the top of every repository/module/use case method.
 - **No new dependency** for a few lines; no abstraction or option nobody asked for.
+- **Console state lives in a hook.** A React component in `apps/web` with three or
+  more `useState` calls moves that state into a hook under `apps/web/src/hooks/`
+  and keeps only JSX and event wiring. Two is the ceiling; a third is a review
+  blocker, not a style preference. The vendored primitives in
+  `apps/web/src/components/ui/` are exempt.
 - **Test doubles are generated**: `apps/api/internal/mocks` comes from
   `internal/interfaces` via `make mocks`. Regenerate it whenever an interface in
   that package changes shape, and commit the result — a stale mock fails to

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMongoRequestForm } from "@/hooks/use-mongo-request-form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,12 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { JsonEditor } from "@/components/sql/json-editor";
-import {
-  useMongoCollectionsQuery,
-  useMongoConnections,
-  useMongoDatabasesQuery,
-  useMongoSubmitChangeMutation,
-} from "@/hooks/use-mongodb";
+import { useMongoConnections, useMongoSubmitChangeMutation } from "@/hooks/use-mongodb";
 import type { Change } from "@/lib/api";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
@@ -68,18 +63,19 @@ type RequestForm = z.infer<typeof requestSchema>;
 export default function MongoRequestNewPage() {
   const navigate = useNavigate();
   const { connections, connection, pick } = useMongoConnections();
-  const { databases } = useMongoDatabasesQuery(connection);
-  const [selectedDatabase, setSelectedDatabase] = useState("");
-  const database = databases.some((item) => item.name === selectedDatabase)
-    ? selectedDatabase
-    : (databases[0]?.name ?? "");
-  const { collections } = useMongoCollectionsQuery(connection, database);
-  const [selectedCollection, setSelectedCollection] = useState("");
-  const collection = collections.some((item) => item.name === selectedCollection)
-    ? selectedCollection
-    : (collections[0]?.name ?? "");
-  const [step, setStep] = useState(1);
-  const [failure, setFailure] = useState<Change>();
+  const {
+    databases,
+    collections,
+    database,
+    collection,
+    step,
+    setStep,
+    failure,
+    setFailure,
+    chooseConnection,
+    chooseDatabase,
+    chooseCollection,
+  } = useMongoRequestForm(connection);
   const {
     register,
     handleSubmit,
@@ -167,8 +163,7 @@ export default function MongoRequestNewPage() {
                 onValueChange={(v) => {
                   const name = String(v);
                   setValue("connection", name);
-                  setSelectedDatabase("");
-                  setSelectedCollection("");
+                  chooseConnection();
                   pick(name);
                 }}
               >
@@ -187,13 +182,7 @@ export default function MongoRequestNewPage() {
             </Field>
             <Field>
               <FieldLabel>Database</FieldLabel>
-              <Select
-                value={database}
-                onValueChange={(v) => {
-                  setSelectedDatabase(String(v));
-                  setSelectedCollection("");
-                }}
-              >
+              <Select value={database} onValueChange={(v) => chooseDatabase(String(v))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pick a database" />
                 </SelectTrigger>
@@ -237,7 +226,7 @@ export default function MongoRequestNewPage() {
           <CardContent className="flex flex-col gap-3">
             <Field>
               <FieldLabel>Collection</FieldLabel>
-              <Select value={collection} onValueChange={(v) => setSelectedCollection(String(v))}>
+              <Select value={collection} onValueChange={(v) => chooseCollection(String(v))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pick a collection" />
                 </SelectTrigger>

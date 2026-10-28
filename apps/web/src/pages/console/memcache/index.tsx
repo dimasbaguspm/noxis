@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -37,6 +37,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ResultTable } from "@/components/sql/result-table";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useMemcacheBrowser, type SortKey } from "@/hooks/use-memcache-browser";
 import { useAuth } from "@/app/auth-provider";
 import { Workspace } from "@/components/layout/workspace";
 import {
@@ -49,8 +50,6 @@ import {
 } from "@/hooks/use-memcache";
 import { cn } from "@/lib/utils";
 import { P } from "@/components/ui/typography";
-
-type SortKey = "name" | "type" | "ttl" | "size";
 
 // The wire type marks every field optional; the browser works with a normalized row so sorting and selection stay simple.
 interface Row {
@@ -69,13 +68,8 @@ export default function MemcachePage() {
   const { pattern, inspected, setPattern, setInspected } = useMemcacheUrlParams();
   const glob = useDebounce(pattern || "*", 300);
   const selectionScope = JSON.stringify([connection, glob]);
-  const [selection, setSelection] = useState<{ scope: string; keys: string[] }>({
-    scope: "",
-    keys: [],
-  });
-  const selected = selection.scope === selectionScope ? selection.keys : [];
-  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "name", desc: false });
-  const [flushOpen, setFlushOpen] = useState(false);
+  const { selected, sort, sortBy, clearSelection, toggle, flushOpen, setFlushOpen } =
+    useMemcacheBrowser(selectionScope);
   const {
     register,
     handleSubmit,
@@ -121,7 +115,7 @@ export default function MemcachePage() {
     if (!connection || selected.length === 0) return;
     const res = await removeKeys.mutateAsync({ connection, keys: selected });
     toast.success(`${res.deleted} key(s) removed`);
-    setSelection({ scope: selectionScope, keys: [] });
+    clearSelection();
     if (inspected && selected.includes(inspected)) setInspected(undefined);
   };
 
@@ -132,16 +126,9 @@ export default function MemcachePage() {
     toast.success(`${connection}: database emptied`);
     setFlushOpen(false);
     resetFlush();
-    setSelection({ scope: selectionScope, keys: [] });
+    clearSelection();
     setInspected(undefined);
   });
-
-  function toggle(key: string) {
-    const keys = selected.includes(key)
-      ? selected.filter((item) => item !== key)
-      : [...selected, key];
-    setSelection({ scope: selectionScope, keys });
-  }
 
   function head(key: SortKey, label: string) {
     const active = sort.key === key;
@@ -150,7 +137,7 @@ export default function MemcachePage() {
         variant="ghost"
         size="sm"
         className={cn("flex items-center gap-1 px-1", active && "text-foreground")}
-        onClick={() => setSort((prev) => ({ key, desc: prev.key === key ? !prev.desc : false }))}
+        onClick={() => sortBy(key)}
       >
         {label}
         {active && (sort.desc ? <ArrowDown className="size-3" /> : <ArrowUp className="size-3" />)}
@@ -196,7 +183,7 @@ export default function MemcachePage() {
                   id="key-pattern"
                   value={pattern}
                   onChange={(e) => {
-                    setSelection({ scope: selectionScope, keys: [] });
+                    clearSelection();
                     setInspected(undefined);
                     setPattern(e.target.value);
                   }}
