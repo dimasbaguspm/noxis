@@ -6,5 +6,5 @@
   "singleQuote": false,
   "trailingComma": "all",
   "arrowParens": "always",
-  "ignorePatterns": ["src/api/generated.ts"]
+  "ignorePatterns": ["src/api/generated.ts", "dist/**", ".pnpm-store/**"]
 }

@@ -1,0 +1,7 @@
+# The image only needs sources and lockfiles; the store and the build output come from the stages.
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+Dockerfile
+.dockerignore
