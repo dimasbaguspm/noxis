@@ -59,6 +59,10 @@ list that drifts from `GET /external/v1/config/drivers`.
   keep or a reason to ask.
 - No new dependency for a few lines.
 - No option/config/abstraction nobody asked for.
+- Console copy is sentence case: every visible string starts with a capital
+  letter and keeps proper nouns (`SQL`, `DML`, `DDL`, `MongoDB`,
+  `Memory Cache`, `noXis`). Sample values, key glyphs, and units keep their own
+  casing. This is user-facing text only — Go error strings stay lowercase.
 - Errors lowercase, no punctuation (revive `error-strings`).
 - `context.Context` is the first arg (`context-as-argument`).
 - Every `http.Client`/DB call has a timeout.

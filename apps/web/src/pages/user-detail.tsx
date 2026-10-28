@@ -66,7 +66,7 @@ export default function UserDetailPage() {
                 <dt className="text-muted-foreground">Groups</dt>
                 <dd className="mt-1 flex flex-wrap gap-1.5">
                   {(user.groups ?? []).length === 0 ? (
-                    <span className="text-muted-foreground">none</span>
+                    <span className="text-muted-foreground">None</span>
                   ) : (
                     (user.groups ?? []).map((group) => (
                       <Badge key={group} variant="outline">
@@ -125,7 +125,7 @@ export default function UserDetailPage() {
                   {(user.access ?? []).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-muted-foreground">
-                        no access
+                        No access
                       </TableCell>
                     </TableRow>
                   )}
@@ -167,7 +167,7 @@ export default function UserDetailPage() {
                   {(user.events ?? []).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-muted-foreground">
-                        no activity
+                        No activity
                       </TableCell>
                     </TableRow>
                   )}

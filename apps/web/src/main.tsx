@@ -109,7 +109,7 @@ createRoot(document.getElementById("root")!).render(
       <AuthProvider>
         <ActiveProvider>
           <TooltipProvider>
-        <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">loading…</div>}>
+        <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}>
           <RouterProvider router={router} />
         </Suspense>
       </TooltipProvider>

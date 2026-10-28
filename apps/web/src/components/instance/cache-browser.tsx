@@ -33,9 +33,9 @@ export function CacheBrowser({ connection }: { connection: string }) {
               <Input
                 value={pattern}
                 onChange={(e) => setPattern(e.target.value)}
-                placeholder="key pattern"
+                placeholder="Key pattern"
                 className="h-8 pl-7 font-mono text-xs"
-                aria-label="key pattern"
+                aria-label="Key pattern"
               />
             </div>
             <Button size="sm" variant="outline" onClick={() => void keys.refetch()} disabled={keys.isFetching}>

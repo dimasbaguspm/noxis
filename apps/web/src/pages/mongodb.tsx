@@ -91,10 +91,10 @@ export default function MongoExplorePage() {
           <div className="flex min-h-0 flex-1 flex-col gap-3">
             <Select value={connection ?? ""} onValueChange={(v) => pick(String(v))}>
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="no mongodb registered" />
+                <SelectValue placeholder="No MongoDB registered" />
               </SelectTrigger>
               <SelectContent>
-                {connections.length === 0 && <SelectItem value="none">none registered yet</SelectItem>}
+                {connections.length === 0 && <SelectItem value="none">None registered yet</SelectItem>}
                 {connections.map((c) => (
                   <SelectItem key={c.name} value={c.name}>
                     {c.name}
@@ -120,7 +120,7 @@ export default function MongoExplorePage() {
               <div className="grid gap-1">
                 {databases.length === 0 && (
                   <P size="sm">
-                    {connection ? "no database visible to this user" : "register a mongodb server to explore"}
+                    {connection ? "No database visible to this user" : "Register a MongoDB server to explore"}
                   </P>
                 )}
                 {databases.map((db) => (
@@ -151,7 +151,7 @@ export default function MongoExplorePage() {
                   <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     className="pl-7"
-                    placeholder="filter collections"
+                    placeholder="Filter collections"
                     value={filter.startsWith("{") ? "" : filter}
                     onChange={(e) => setFilter(e.target.value)}
                   />
@@ -185,7 +185,7 @@ export default function MongoExplorePage() {
                             {c.name}
                             {c.capped && (
                               <Badge variant="outline" className="text-[10px]">
-                                capped
+                                Capped
                               </Badge>
                             )}
                           </TableCell>

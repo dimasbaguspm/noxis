@@ -49,7 +49,7 @@ export default function UsersPage() {
                   id="user-search"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder="email or subject"
+                  placeholder="Email or subject"
                 />
               </InputGroup>
             </div>

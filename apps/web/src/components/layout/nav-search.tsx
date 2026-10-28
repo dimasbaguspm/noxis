@@ -98,11 +98,11 @@ export function NavSearch() {
               setCursor(0);
             }}
             onKeyDown={onInputKey}
-            placeholder="search pages — query, dml, redis…"
+            placeholder="Search pages — Query, DML, Redis…"
             className="h-7 border-0 bg-transparent p-0 shadow-none outline-none placeholder:text-muted-foreground"
           />
           <kbd className="flex items-center gap-1 rounded border border-border px-1.5 text-[10px] text-muted-foreground">
-            esc
+            Esc
           </kbd>
         </div>
 
@@ -145,7 +145,7 @@ export function NavSearch() {
         <div className="flex items-center gap-3 border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
           <span>↑↓ navigate</span>
           <span>↵ open</span>
-          <span>esc close</span>
+          <span>Esc close</span>
           <span className="ml-auto">{matches.length} page(s)</span>
         </div>
       </DialogContent>

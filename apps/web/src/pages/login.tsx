@@ -14,8 +14,8 @@ import { H1 } from "@/components/ui/typography";
 import { PAGE_ROUTES } from "@/lib/routes";
 
 const credentialsSchema = z.object({
-  email: z.email("enter a valid email address"),
-  password: z.string().min(1, "password is required"),
+  email: z.email("Enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
 });
 type Credentials = z.infer<typeof credentialsSchema>;
 

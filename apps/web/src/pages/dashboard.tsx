@@ -55,7 +55,7 @@ export default function DashboardPage() {
                 </InputGroupAddon>
                 <InputGroupInput
                   id="instance-search"
-                  placeholder="type to filter…"
+                  placeholder="Type to filter…"
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
                 />
@@ -91,8 +91,8 @@ export default function DashboardPage() {
             ) : total === 0 ? (
               <Empty
                 icon={Boxes}
-                title={filtering ? "no match" : "none registered yet"}
-                description={filtering ? "try another name or driver" : "register an instance to see it here"}
+                title={filtering ? "No match" : "None registered yet"}
+                description={filtering ? "Try another name or driver" : "Register an instance to see it here"}
               />
             ) : (
               <>

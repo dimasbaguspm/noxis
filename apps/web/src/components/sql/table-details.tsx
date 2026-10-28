@@ -73,11 +73,11 @@ export function TableDetails({
                 <div key={idx.name} className="rounded-md border px-2 py-1.5 text-xs">
                   <div className="flex items-center gap-1.5">
                     <span className="truncate font-mono">{idx.name}</span>
-                    {idx.primary && <Badge variant="outline">primary</Badge>}
-                    {idx.unique && !idx.primary && <Badge variant="outline">unique</Badge>}
+                    {idx.primary && <Badge variant="outline">Primary</Badge>}
+                    {idx.unique && !idx.primary && <Badge variant="outline">Unique</Badge>}
                   </div>
                   <div className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">
-                    {idx.columns.length > 0 ? idx.columns.join(", ") : "expression"}
+                    {idx.columns.length > 0 ? idx.columns.join(", ") : "Expression"}
                   </div>
                 </div>
               ))}

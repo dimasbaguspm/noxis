@@ -26,7 +26,7 @@ function Shell() {
       <SidebarInset className="h-svh overflow-hidden">
         <header className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <SidebarTrigger className="-ms-2" />
-          <nav aria-label="breadcrumb" className="min-w-0 flex-1 overflow-hidden">
+          <nav aria-label="Breadcrumb" className="min-w-0 flex-1 overflow-hidden">
             <ol className="flex min-w-0 items-center gap-1.5 text-sm">
               {crumbs.map((crumb, i) => (
                 <li

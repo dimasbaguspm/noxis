@@ -72,7 +72,7 @@ export default function InstanceDetailTab() {
                   >
                     <div className="truncate font-mono text-xs">{s}</div>
                     <div className="mt-1 text-lg font-medium tabular-nums">{count}</div>
-                    <div className="text-[10px] text-muted-foreground">table(s)</div>
+                    <div className="text-[10px] text-muted-foreground">Table(s)</div>
                   </Link>
                 );
               })}

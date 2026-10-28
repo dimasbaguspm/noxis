@@ -33,24 +33,24 @@ const isFileDriver = (driver?: string) => FILE_DRIVERS.has(driver ?? "");
 
 const connectionSchema = z
   .object({
-    name: z.string().trim().min(1, "name is required"),
+    name: z.string().trim().min(1, "Name is required"),
     host: z.string().trim().optional(),
     port: z.coerce
       .number()
       .int()
       .min(0)
-      .max(65535, "port must be between 1 and 65535")
+      .max(65535, "Port must be between 1 and 65535")
       .optional(),
     user: z.string().trim().optional(),
     password: z.string().optional(),
-    database: z.string().trim().min(1, "database is required"),
+    database: z.string().trim().min(1, "Database is required"),
     params: z.record(z.string(), z.string()).optional(),
     driver: z.string().optional(),
   })
   .superRefine((v, ctx) => {
     if (isFileDriver(v.driver)) return;
     if (!v.host) ctx.addIssue({ code: "custom", path: ["host"], message: "host is required" });
-    if (!v.port) ctx.addIssue({ code: "custom", path: ["port"], message: "port must be between 1 and 65535" });
+    if (!v.port) ctx.addIssue({ code: "custom", path: ["port"], message: "Port must be between 1 and 65535" });
     if (!v.user) ctx.addIssue({ code: "custom", path: ["user"], message: "user is required" });
   });
 type ConnectionForm = z.infer<typeof connectionSchema>;
@@ -120,7 +120,7 @@ export function ConnectionDialog({
       setDsn(text);
       setDsnError(null);
     } catch {
-      toast.error("could not read the clipboard");
+      toast.error("Could not read the clipboard");
     }
   }
 
@@ -331,7 +331,7 @@ export function ConnectionDialog({
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="pick a driver" />
+                      <SelectValue placeholder="Pick a driver" />
                     </SelectTrigger>
                     <SelectContent>
                       {drivers
@@ -376,7 +376,7 @@ export function ConnectionDialog({
                       <InputGroupInput
                         id="conn-password"
                         type={showPassword ? "text" : "password"}
-                        placeholder={initial ? "unchanged" : ""}
+                        placeholder={initial ? "Unchanged" : ""}
                         {...field("password")}
                       />
                       <InputGroupAddon align="inline-end">

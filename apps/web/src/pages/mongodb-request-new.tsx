@@ -44,11 +44,11 @@ function isJson(value: string): boolean {
 }
 
 const requestSchema = z.object({
-  connection: z.string().min(1, "choose a connection"),
+  connection: z.string().min(1, "Choose a connection"),
   op: z.enum(["insert", "update", "delete"]),
   notes: z.string().optional(),
-  filter: z.string().refine(isJson, "filter must be valid JSON"),
-  value: z.string().refine(isJson, "value must be valid JSON"),
+  filter: z.string().refine(isJson, "Filter must be valid JSON"),
+  value: z.string().refine(isJson, "Value must be valid JSON"),
   many: z.boolean(),
 });
 type RequestForm = z.infer<typeof requestSchema>;
@@ -100,7 +100,7 @@ export default function MongoRequestNewPage() {
   const onSend = handleSubmit(async (values) => {
     setFailure(undefined);
     if (!database || !collection) {
-      toast.error("choose a database and collection");
+      toast.error("Choose a database and collection");
       return;
     }
     try {
@@ -117,10 +117,10 @@ export default function MongoRequestNewPage() {
       if (change.status === "failed") {
         // a failed validation is a rejected proposal: it is not in the queue
         setFailure(change);
-        toast.error("validation failed — the request was not recorded");
+        toast.error("Validation failed — the request was not recorded");
         return;
       }
-      toast.success(`request ${change.status}: ${change.estAffected ?? 0} document(s) would be affected`);
+      toast.success(`Request ${change.status}: ${change.estAffected ?? 0} document(s) would be affected`);
       navigate(PAGE_ROUTES.MONGODB.REQUEST_DETAIL(change.id ?? ""));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -140,7 +140,7 @@ export default function MongoRequestNewPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Which connection and database?</CardTitle>
-            <CardDescription>the request is validated against this database</CardDescription>
+            <CardDescription>The request is validated against this database</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <Field>
@@ -156,7 +156,7 @@ export default function MongoRequestNewPage() {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="no mongodb registered" />
+                  <SelectValue placeholder="No MongoDB registered" />
                 </SelectTrigger>
                 <SelectContent>
                   {connections.map((c) => (
@@ -178,7 +178,7 @@ export default function MongoRequestNewPage() {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="pick a database" />
+                  <SelectValue placeholder="Pick a database" />
                 </SelectTrigger>
                 <SelectContent>
                   {databases.map((db) => (
@@ -195,7 +195,7 @@ export default function MongoRequestNewPage() {
                 onClick={async () => {
                   if (!(await trigger("connection"))) return;
                   if (!database) {
-                    toast.error("choose a database");
+                    toast.error("Choose a database");
                     return;
                   }
                   setStep(2);
@@ -223,7 +223,7 @@ export default function MongoRequestNewPage() {
               <FieldLabel>Collection</FieldLabel>
               <Select value={collection} onValueChange={(v) => setSelectedCollection(String(v))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="pick a collection" />
+                  <SelectValue placeholder="Pick a collection" />
                 </SelectTrigger>
                 <SelectContent>
                   {collections.map((c) => (
@@ -257,7 +257,7 @@ export default function MongoRequestNewPage() {
               <Button
                 onClick={async () => {
                   if (!collection) {
-                    toast.error("choose a collection");
+                    toast.error("Choose a collection");
                     return;
                   }
                   setStep(3);
@@ -336,7 +336,7 @@ export default function MongoRequestNewPage() {
 
             {failure && (
               <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3">
-                <H2 className="text-destructive">validation failed, nothing was recorded</H2>
+                <H2 className="text-destructive">Validation failed, nothing was recorded</H2>
                 <ul className="mt-1.5 grid gap-1 text-xs">
                   {(failure.checks ?? []).map((check) => (
                     <li key={check.target} className={cn(check.ok ? "text-muted-foreground" : "text-destructive")}>
@@ -358,7 +358,7 @@ export default function MongoRequestNewPage() {
                   unique-index conflicts, which only appear on apply.
                 </TooltipContent>
               </Tooltip>
-              what the dry run proves
+              What the dry run proves
             </div>
           </CardContent>
         </Card>
