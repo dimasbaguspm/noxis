@@ -131,12 +131,21 @@ export default function DashboardPage() {
                     </TableBody>
                   </Table>
                 </div>
-                {total > PER_PAGE && (
-                  <Pagination page={page} perPage={PER_PAGE} total={total} onChange={setPage} className="mt-4" />
-                )}
               </>
             )}
           </div>
+        }
+        footer={
+          total > 0 ? (
+            <>
+              <span>
+                {total} instance{total === 1 ? "" : "s"}
+              </span>
+              {total > PER_PAGE && (
+                <Pagination page={page} perPage={PER_PAGE} total={total} onChange={setPage} />
+              )}
+            </>
+          ) : undefined
         }
       />
     </div>

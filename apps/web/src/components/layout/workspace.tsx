@@ -100,10 +100,13 @@ type WorkspaceProps = {
   right?: ReactNode;
   children?: ReactNode;
   className?: string;
+  footer?: ReactNode;
+  footerClassName?: string;
 };
 
 // Workspace is the shared split surface. The legacy left/right signature stays as a thin wrapper while pages migrate to the compound API.
-function WorkspaceRoot({ left, right, children, className }: WorkspaceProps) {
+// An optional footer sits below the whole split, so a page keeps its counts, paging and actions out of the scrolling content.
+function WorkspaceRoot({ left, right, children, className, footer, footerClassName }: WorkspaceProps) {
   const content =
     children ??
     (left !== undefined || right !== undefined
@@ -119,19 +122,37 @@ function WorkspaceRoot({ left, right, children, className }: WorkspaceProps) {
 
   return (
     <WorkspaceContext.Provider value={{ orientation: "horizontal", padded: true, scroll: false }}>
-      <ResizablePanelGroup
-        orientation="horizontal"
-        className={cn("min-h-0 min-w-0 flex-1 gap-2", className)}
-      >
-        {withHandles(content)}
-      </ResizablePanelGroup>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <ResizablePanelGroup
+          orientation="horizontal"
+          className={cn("min-h-0 min-w-0 flex-1 gap-2", className)}
+        >
+          {withHandles(content)}
+        </ResizablePanelGroup>
+        {footer ? <WorkspaceFooter className={footerClassName}>{footer}</WorkspaceFooter> : null}
+      </div>
     </WorkspaceContext.Provider>
+  );
+}
+
+// WorkspaceFooter is the strip under the split: one row of status on the left and actions on the right.
+export function WorkspaceFooter({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn(
+        "mt-2 flex shrink-0 items-center justify-between gap-2 text-xs text-muted-foreground",
+        className,
+      )}
+    >
+      {children}
+    </div>
   );
 }
 
 export const Workspace = Object.assign(WorkspaceRoot, {
   Pane: WorkspacePane,
   Split: WorkspaceSplit,
+  Footer: WorkspaceFooter,
   Context: WorkspaceContext,
   useWorkspace,
 });

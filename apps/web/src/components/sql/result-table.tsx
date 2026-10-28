@@ -7,8 +7,44 @@ import { downloadCSV, toCSV } from "@/lib/csv";
 import type { Result } from "@/lib/api";
 import { P } from "@/components/ui/typography";
 
-// ResultTable renders a query grid and can export it as CSV.
-export function ResultTable({ result, title = "result" }: { result: Result | null; title?: string }) {
+// ResultSummary reports what a run returned: message, duration, and the affected or returned counts.
+export function ResultSummary({ result }: { result: Result | null }) {
+  if (!result) return null;
+  return (
+    <P className="flex min-w-0 flex-wrap items-center gap-x-3">
+      <span className="break-words">{result.message}</span>
+      <span>
+        {startCase("duration")}: {result.durationMs ?? 0} ms
+      </span>
+      {(result.rowsReturned ?? 0) > 0 && (
+        <span>
+          {startCase("returned")}: {result.rowsReturned}
+        </span>
+      )}
+      {(result.affected ?? 0) > 0 && (
+        <span>
+          {startCase("affected")}: {result.affected}
+        </span>
+      )}
+      {(result.estimatedRows ?? 0) > 0 && (
+        <span>
+          {startCase("plan rows")}: ~{result.estimatedRows}
+        </span>
+      )}
+    </P>
+  );
+}
+
+// ResultTable renders a query grid and can export it as CSV; the summary moves to the page footer when the page asks for it.
+export function ResultTable({
+  result,
+  title = "result",
+  showSummary = true,
+}: {
+  result: Result | null;
+  title?: string;
+  showSummary?: boolean;
+}) {
   if (!result) {
     return <Empty title="Nothing to show yet" description="Run an action to see its result here." />;
   }
@@ -19,13 +55,7 @@ export function ResultTable({ result, title = "result" }: { result: Result | nul
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-hidden">
       <div className="flex min-w-0 items-center gap-2">
-        <P className="flex min-w-0 flex-wrap items-center gap-x-3">
-          <span className="break-words">{result.message}</span>
-          <span>{startCase("duration")}: {result.durationMs ?? 0} ms</span>
-          {(result.rowsReturned ?? 0) > 0 && <span>{startCase("returned")}: {result.rowsReturned}</span>}
-          {(result.affected ?? 0) > 0 && <span>{startCase("affected")}: {result.affected}</span>}
-          {(result.estimatedRows ?? 0) > 0 && <span>{startCase("plan rows")}: ~{result.estimatedRows}</span>}
-        </P>
+        {showSummary && <ResultSummary result={result} />}
         <span className="flex-1" />
         {columns.length > 0 && (
           <Button
