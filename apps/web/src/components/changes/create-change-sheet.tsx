@@ -8,7 +8,16 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { SqlEditor } from "@/components/sql/sql-editor";
@@ -26,7 +35,11 @@ const createSchema = z.object({
 
 type FormValues = z.infer<typeof createSchema>;
 type Outcome =
-  | { id?: string; status?: string; checks?: { target?: string; ok?: boolean; detail?: string; error?: string }[] }
+  | {
+      id?: string;
+      status?: string;
+      checks?: { target?: string; ok?: boolean; detail?: string; error?: string }[];
+    }
   | undefined;
 
 // CreateChangeSheet is the "new change" form: one roomy Sheet asking only for the instance, notes, the original query and its rollback.
@@ -92,43 +105,55 @@ export function CreateChangeSheet({
       <SheetContent>
         <SheetHeader>
           <SheetTitle>New {kind.toUpperCase()} change</SheetTitle>
-          <SheetDescription>Query and rollback are dry-run together before anything is recorded.</SheetDescription>
+          <SheetDescription>
+            Query and rollback are dry-run together before anything is recorded.
+          </SheetDescription>
         </SheetHeader>
 
         <SheetBody>
           <form id="create-change" onSubmit={onValid} className="grid gap-4">
-          <Field>
-            <FieldLabel>Instance *</FieldLabel>
-            <ConnectionSelect value={connection} onChange={pick} className="w-full" />
-          </Field>
+            <Field>
+              <FieldLabel>Instance *</FieldLabel>
+              <ConnectionSelect value={connection} onChange={pick} className="w-full" />
+            </Field>
 
-          <Field>
-            <FieldLabel htmlFor="sheet-notes">Notes</FieldLabel>
-            <Input id="sheet-notes" placeholder="Optional note" {...register("notes")} />
-          </Field>
+            <Field>
+              <FieldLabel htmlFor="sheet-notes">Notes</FieldLabel>
+              <Input id="sheet-notes" placeholder="Optional note" {...register("notes")} />
+            </Field>
 
-          <Field>
-            <FieldLabel className="flex items-center gap-2">
-              Query *
-              {watch("query").trim() && <Badge variant="secondary">{title(detected)}</Badge>}
-              <span className="flex-1" />
-              <SqlFileInput onLoad={(sql) => setValue("query", sql)} />
-            </FieldLabel>
-            <SqlEditor value={watch("query")} onChange={(sql) => setValue("query", sql)} tables={tables} height="12rem" />
-            <input type="hidden" aria-hidden {...register("query")} />
-            <FieldError>{serverError ?? errors.query?.message}</FieldError>
-          </Field>
+            <Field>
+              <FieldLabel className="flex items-center gap-2">
+                Query *
+                {watch("query").trim() && <Badge variant="secondary">{title(detected)}</Badge>}
+                <span className="flex-1" />
+                <SqlFileInput onLoad={(sql) => setValue("query", sql)} />
+              </FieldLabel>
+              <SqlEditor
+                value={watch("query")}
+                onChange={(sql) => setValue("query", sql)}
+                tables={tables}
+                height="12rem"
+              />
+              <input type="hidden" aria-hidden {...register("query")} />
+              <FieldError>{serverError ?? errors.query?.message}</FieldError>
+            </Field>
 
-          <Field>
-            <FieldLabel className="flex items-center gap-2">
-              Rollback *
-              <span className="flex-1" />
-              <SqlFileInput onLoad={(sql) => setValue("rollback", sql)} />
-            </FieldLabel>
-            <SqlEditor value={watch("rollback")} onChange={(sql) => setValue("rollback", sql)} tables={tables} height="10rem" />
-            <input type="hidden" aria-hidden {...register("rollback")} />
-            <FieldError errors={[errors.rollback]} />
-          </Field>
+            <Field>
+              <FieldLabel className="flex items-center gap-2">
+                Rollback *
+                <span className="flex-1" />
+                <SqlFileInput onLoad={(sql) => setValue("rollback", sql)} />
+              </FieldLabel>
+              <SqlEditor
+                value={watch("rollback")}
+                onChange={(sql) => setValue("rollback", sql)}
+                tables={tables}
+                height="10rem"
+              />
+              <input type="hidden" aria-hidden {...register("rollback")} />
+              <FieldError errors={[errors.rollback]} />
+            </Field>
           </form>
         </SheetBody>
 

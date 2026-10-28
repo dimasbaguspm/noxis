@@ -8,7 +8,11 @@ import type { Connection } from "@/lib/api";
 import { familyByKey, type FamilyKey } from "@/lib/families";
 
 // InstancePermissions is the read-only grant view used by the global Access page.
-export function InstancePermissions({ instance }: { instance: Pick<Connection, "name" | "driver" | "family"> }) {
+export function InstancePermissions({
+  instance,
+}: {
+  instance: Pick<Connection, "name" | "driver" | "family">;
+}) {
   const family = instance.family as FamilyKey | undefined;
   const permissions = usePermissionsQuery(family, instance.name);
   const members = useMembersQuery(true);

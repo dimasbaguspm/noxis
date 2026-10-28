@@ -19,8 +19,21 @@ import {
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ResultTable } from "@/components/sql/result-table";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -56,7 +69,10 @@ export default function MemcachePage() {
   const { pattern, inspected, setPattern, setInspected } = useMemcacheUrlParams();
   const glob = useDebounce(pattern || "*", 300);
   const selectionScope = JSON.stringify([connection, glob]);
-  const [selection, setSelection] = useState<{ scope: string; keys: string[] }>({ scope: "", keys: [] });
+  const [selection, setSelection] = useState<{ scope: string; keys: string[] }>({
+    scope: "",
+    keys: [],
+  });
   const selected = selection.scope === selectionScope ? selection.keys : [];
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "name", desc: false });
   const [flushOpen, setFlushOpen] = useState(false);
@@ -70,7 +86,11 @@ export default function MemcachePage() {
     resolver: zodResolver(
       z.object({ confirm: z.string() }).superRefine((v, ctx) => {
         if (connection && v.confirm !== connection) {
-          ctx.addIssue({ code: "custom", path: ["confirm"], message: "the name does not match — nothing is emptied" });
+          ctx.addIssue({
+            code: "custom",
+            path: ["confirm"],
+            message: "the name does not match — nothing is emptied",
+          });
         }
       }),
     ),
@@ -117,7 +137,9 @@ export default function MemcachePage() {
   });
 
   function toggle(key: string) {
-    const keys = selected.includes(key) ? selected.filter((item) => item !== key) : [...selected, key];
+    const keys = selected.includes(key)
+      ? selected.filter((item) => item !== key)
+      : [...selected, key];
     setSelection({ scope: selectionScope, keys });
   }
 
@@ -154,7 +176,9 @@ export default function MemcachePage() {
                   <SelectValue placeholder="No memory cache registered" />
                 </SelectTrigger>
                 <SelectContent>
-                  {connections.length === 0 && <SelectItem value="none">None registered yet</SelectItem>}
+                  {connections.length === 0 && (
+                    <SelectItem value="none">None registered yet</SelectItem>
+                  )}
                   {connections.map((c) => (
                     <SelectItem key={c.name} value={c.name}>
                       {c.name}
@@ -183,7 +207,12 @@ export default function MemcachePage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => void reloadKeys()} disabled={loading || !connection}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void reloadKeys()}
+                disabled={loading || !connection}
+              >
                 <RefreshCw className={cn(loading && "animate-spin")} /> Refresh
               </Button>
               <Badge variant="outline">{page.total} key(s) in db</Badge>
@@ -191,9 +220,12 @@ export default function MemcachePage() {
 
             {page.truncated && (
               <Tooltip>
-                <TooltipTrigger render={<span className="text-xs text-amber-500" />}>Scan truncated</TooltipTrigger>
+                <TooltipTrigger render={<span className="text-xs text-amber-500" />}>
+                  Scan truncated
+                </TooltipTrigger>
                 <TooltipContent>
-                  The keyspace holds more keys than one scan reads (500 by default). Narrow the pattern.
+                  The keyspace holds more keys than one scan reads (500 by default). Narrow the
+                  pattern.
                 </TooltipContent>
               </Tooltip>
             )}
@@ -204,7 +236,11 @@ export default function MemcachePage() {
             <Empty
               icon={KeyRound}
               title={connection ? "No keys" : "No memory cache selected"}
-              description={connection ? "No key matches this pattern." : "Register a memory cache to browse its keys."}
+              description={
+                connection
+                  ? "No key matches this pattern."
+                  : "Register a memory cache to browse its keys."
+              }
             />
           ) : (
             <div className="min-h-0 flex-1 overflow-auto">
@@ -240,7 +276,9 @@ export default function MemcachePage() {
                           {key.type}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{ttl(key.ttl)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {ttl(key.ttl)}
+                      </TableCell>
                       <TableCell className="text-xs tabular-nums text-muted-foreground">
                         {key.size ? bytes(key.size) : "—"}
                       </TableCell>
@@ -279,7 +317,10 @@ export default function MemcachePage() {
         }
       />
 
-      <Dialog open={inspected !== undefined} onOpenChange={(open) => !open && setInspected(undefined)}>
+      <Dialog
+        open={inspected !== undefined}
+        onOpenChange={(open) => !open && setInspected(undefined)}
+      >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="truncate font-mono text-base">{inspected}</DialogTitle>
@@ -295,16 +336,19 @@ export default function MemcachePage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={flushOpen} onOpenChange={(open) => {
-        setFlushOpen(open);
-        if (!open) resetFlush();
-      }}>
+      <Dialog
+        open={flushOpen}
+        onOpenChange={(open) => {
+          setFlushOpen(open);
+          if (!open) resetFlush();
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Empty the database</DialogTitle>
             <DialogDescription>
-              Removes every key in the selected database index on {connection}. Other database indexes and other
-              servers are untouched, and this cannot be undone.
+              Removes every key in the selected database index on {connection}. Other database
+              indexes and other servers are untouched, and this cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <form id="flush-confirm" onSubmit={onFlush}>
@@ -320,7 +364,12 @@ export default function MemcachePage() {
             </Field>
           </form>
           <DialogFooter>
-            <Button variant="destructive" type="submit" form="flush-confirm" disabled={flush.isPending}>
+            <Button
+              variant="destructive"
+              type="submit"
+              form="flush-confirm"
+              disabled={flush.isPending}
+            >
               <Eraser /> Empty database
             </Button>
           </DialogFooter>

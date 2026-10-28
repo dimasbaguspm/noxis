@@ -3,9 +3,22 @@ import { ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { RoleBadge } from "@/components/access/role-badge";
 import { useAuth } from "@/app/auth-provider";
 import { useLevelsQuery } from "@/hooks/use-config";
@@ -30,7 +43,11 @@ export default function UserDetailPage() {
   if (!isAdmin) {
     return (
       <div className="mx-auto mt-8 max-w-lg">
-        <Empty icon={ShieldCheck} title="Admin only" description="Account details are reserved for admins." />
+        <Empty
+          icon={ShieldCheck}
+          title="Admin only"
+          description="Account details are reserved for admins."
+        />
       </div>
     );
   }
@@ -98,7 +115,9 @@ export default function UserDetailPage() {
                     size="sm"
                     variant={user.status === "banned" ? "outline" : "destructive"}
                     disabled={update.isPending}
-                    onClick={() => update.mutate({ status: user.status === "banned" ? "active" : "banned" })}
+                    onClick={() =>
+                      update.mutate({ status: user.status === "banned" ? "active" : "banned" })
+                    }
                   >
                     {user.status === "banned" ? "Reinstate" : "Ban"}
                   </Button>
@@ -110,7 +129,9 @@ export default function UserDetailPage() {
         right={
           <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-auto">
             <section className="grid gap-2">
-              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Access</h3>
+              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                Access
+              </h3>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -141,9 +162,15 @@ export default function UserDetailPage() {
                           {grant.memberType === "group" ? `group ${grant.member}` : "direct"}
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {exp.expired ? <Badge variant="destructive">{exp.label}</Badge> : exp.label}
+                          {exp.expired ? (
+                            <Badge variant="destructive">{exp.label}</Badge>
+                          ) : (
+                            exp.label
+                          )}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{grant.createdBy || "system"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {grant.createdBy || "system"}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -152,7 +179,9 @@ export default function UserDetailPage() {
             </section>
 
             <section className="grid gap-2">
-              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Activity</h3>
+              <h3 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                Activity
+              </h3>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -173,11 +202,15 @@ export default function UserDetailPage() {
                   )}
                   {(user.events ?? []).map((event) => (
                     <TableRow key={event.id}>
-                      <TableCell className="text-xs text-muted-foreground">{formatDateTime(event.at)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {formatDateTime(event.at)}
+                      </TableCell>
                       <TableCell className="text-sm">{event.action}</TableCell>
                       <TableCell className="text-sm">{event.connection || "—"}</TableCell>
                       <TableCell className="text-sm">{levelLabel(event.level) || "—"}</TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{event.actor}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {event.actor}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -4,9 +4,22 @@ import { Badge } from "@/components/ui/badge";
 import { Empty } from "@/components/ui/empty";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useAuth } from "@/app/auth-provider";
 import { RoleBadge } from "@/components/access/role-badge";
 import { Workspace } from "@/components/layout/workspace";
@@ -73,7 +86,11 @@ export default function UsersPage() {
             {isPending ? (
               <Skeleton className="h-64 w-full" />
             ) : users.length === 0 ? (
-              <Empty icon={UsersIcon} title="No accounts" description="No account matches this filter." />
+              <Empty
+                icon={UsersIcon}
+                title="No accounts"
+                description="No account matches this filter."
+              />
             ) : (
               <div className="rounded-md border">
                 <Table>
@@ -90,7 +107,10 @@ export default function UsersPage() {
                     {users.map((u) => (
                       <TableRow key={u.subject}>
                         <TableCell>
-                          <Link to={PAGE_ROUTES.USER_DETAIL(u.subject)} className="font-medium hover:underline">
+                          <Link
+                            to={PAGE_ROUTES.USER_DETAIL(u.subject)}
+                            className="font-medium hover:underline"
+                          >
                             {u.email || u.username || u.subject}
                           </Link>
                           <div className="font-mono text-xs text-muted-foreground">{u.subject}</div>
@@ -108,7 +128,9 @@ export default function UsersPage() {
                         <TableCell className="text-xs text-muted-foreground">
                           {(u.groups ?? []).join(", ") || "—"}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{formatDateTime(u.lastLoginAt)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {formatDateTime(u.lastLoginAt)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

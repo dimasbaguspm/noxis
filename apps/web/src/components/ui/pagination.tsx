@@ -33,7 +33,10 @@ export function Pagination({
   const pages = Math.max(1, Math.ceil(total / perPage));
   if (pages <= 1) return null;
   return (
-    <nav aria-label="pagination" className={cn("flex items-center justify-center gap-1", className)}>
+    <nav
+      aria-label="pagination"
+      className={cn("flex items-center justify-center gap-1", className)}
+    >
       <Button
         size="xs"
         variant="outline"
@@ -49,7 +52,12 @@ export function Pagination({
             …
           </span>
         ) : (
-          <Button key={n} size="xs" variant={n === page ? "default" : "outline"} onClick={() => onChange(n)}>
+          <Button
+            key={n}
+            size="xs"
+            variant={n === page ? "default" : "outline"}
+            onClick={() => onChange(n)}
+          >
             {n}
           </Button>
         ),

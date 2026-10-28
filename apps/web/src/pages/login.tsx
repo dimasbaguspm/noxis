@@ -45,7 +45,10 @@ export default function LoginPage({ className, ...props }: React.ComponentProps<
   });
 
   return (
-    <div className={cn("flex min-h-svh items-center justify-center bg-background p-6", className)} {...props}>
+    <div
+      className={cn("flex min-h-svh items-center justify-center bg-background p-6", className)}
+      {...props}
+    >
       <div className="flex w-full max-w-sm flex-col gap-6">
         <div className="flex flex-col items-center gap-2 text-center">
           <a href="/" className="flex flex-col items-center gap-2 font-medium">

@@ -125,7 +125,10 @@ export async function handleCallback(): Promise<void> {
 export async function signout(): Promise<void> {
   const token = localToken();
   if (token) {
-    await fetch("/external/v1/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => undefined);
+    await fetch("/external/v1/auth/logout", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => undefined);
     setLocalToken(null);
   }
   if (manager) {

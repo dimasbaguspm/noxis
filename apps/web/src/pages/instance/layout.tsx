@@ -2,7 +2,16 @@ import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link, Navigate, Outlet, useLocation, useNavigate, useParams, useSearchParams, useOutletContext } from "react-router-dom";
+import {
+  Link,
+  Navigate,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams,
+  useOutletContext,
+} from "react-router-dom";
 import { Database, KeyRound, MoreHorizontal, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -154,7 +163,9 @@ export default function InstanceLayout() {
         <Empty
           icon={Database}
           title="Instance not found"
-          description={detail.error instanceof Error ? detail.error.message : "The instance request failed"}
+          description={
+            detail.error instanceof Error ? detail.error.message : "The instance request failed"
+          }
           action={
             <Button size="sm" render={<Link to={PAGE_ROUTES.INSTANCES} />}>
               Back to Instances
@@ -182,7 +193,9 @@ export default function InstanceLayout() {
           { id: "erd" as const, label: TABS.erd },
         ]
       : []),
-    ...(family === FAMILY.MONGODB && canRead ? [{ id: "documents" as const, label: TABS.documents }] : []),
+    ...(family === FAMILY.MONGODB && canRead
+      ? [{ id: "documents" as const, label: TABS.documents }]
+      : []),
     ...(family === FAMILY.MEMCACHE && canRead ? [{ id: "keys" as const, label: TABS.keys }] : []),
     ...(canAdmin ? [{ id: "access" as const, label: TABS.access }] : []),
   ];
@@ -225,7 +238,9 @@ export default function InstanceLayout() {
         <div className="flex flex-wrap items-center gap-2">
           {!isSuper && <RequestAccessDialog connection={instance.name} />}
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button size="sm" variant="outline" aria-label="Instance actions" />}>
+            <DropdownMenuTrigger
+              render={<Button size="sm" variant="outline" aria-label="Instance actions" />}
+            >
               <MoreHorizontal />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -240,7 +255,11 @@ export default function InstanceLayout() {
               {isSuper && (
                 <>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive" onClick={() => void remove.run()} disabled={remove.loading}>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onClick={() => void remove.run()}
+                    disabled={remove.loading}
+                  >
                     <Trash2 /> Delete
                   </DropdownMenuItem>
                 </>
@@ -282,7 +301,8 @@ export default function InstanceLayout() {
           <SheetHeader>
             <SheetTitle>Rotate the password</SheetTitle>
             <SheetDescription>
-              Store a new password for {name}. The old one stops working as soon as the change is saved.
+              Store a new password for {name}. The old one stops working as soon as the change is
+              saved.
             </SheetDescription>
           </SheetHeader>
           <SheetBody>
@@ -298,7 +318,11 @@ export default function InstanceLayout() {
                 />
                 <FieldError>
                   {errors.password?.message ??
-                    (rotate.isError ? (rotate.error instanceof Error ? rotate.error.message : "rotation failed") : undefined)}
+                    (rotate.isError
+                      ? rotate.error instanceof Error
+                        ? rotate.error.message
+                        : "rotation failed"
+                      : undefined)}
                 </FieldError>
               </Field>
             </form>
@@ -313,4 +337,3 @@ export default function InstanceLayout() {
     </div>
   );
 }
-

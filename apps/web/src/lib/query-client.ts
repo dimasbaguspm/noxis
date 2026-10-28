@@ -37,7 +37,8 @@ export const queryKeys = {
   memcache: {
     keys: (connection: string | undefined, pattern?: string, page = 1) =>
       ["memcache", "keys", connection, pattern, page] as const,
-    key: (connection: string | undefined, key?: string) => ["memcache", "value", connection, key] as const,
+    key: (connection: string | undefined, key?: string) =>
+      ["memcache", "value", connection, key] as const,
   },
   mongodb: {
     databases: (connection: string | undefined) => ["mongodb", "databases", connection] as const,

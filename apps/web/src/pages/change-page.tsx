@@ -1,5 +1,11 @@
 import { Search } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
@@ -13,10 +19,23 @@ import { FAMILY } from "@/lib/families";
 import { CreateChangeSheet } from "@/components/changes/create-change-sheet";
 import { ChangeTable } from "@/components/changes/change-table";
 import { Workspace } from "@/components/layout/workspace";
-import { useChangeListQuery, useChangeListUrlParams, useSubmitChangeMutation, type ChangeKind } from "@/hooks/use-changes";
+import {
+  useChangeListQuery,
+  useChangeListUrlParams,
+  useSubmitChangeMutation,
+  type ChangeKind,
+} from "@/hooks/use-changes";
 
 const PER_PAGE = 20;
-const STATUS_OPTIONS = ["unverified", "validated", "approved", "applying", "applied", "failed", "rejected"];
+const STATUS_OPTIONS = [
+  "unverified",
+  "validated",
+  "approved",
+  "applying",
+  "applied",
+  "failed",
+  "rejected",
+];
 const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 
 // ChangePage is the shared DML/DDL queue: filters and raising on the left, the paginated list on the right.
@@ -75,7 +94,9 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
               <Search /> Search
             </Button>
             <Separator />
-            {mayRaise && <CreateChangeSheet kind={kind} onSubmit={(input) => submit.mutateAsync(input)} />}
+            {mayRaise && (
+              <CreateChangeSheet kind={kind} onSubmit={(input) => submit.mutateAsync(input)} />
+            )}
           </div>
         }
         right={
@@ -90,7 +111,11 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
               <Empty
                 className="flex-1"
                 title={`no ${kind} changes`}
-                description={filter.trim() ? "No change matches this instance filter" : "Raise one and it will land here"}
+                description={
+                  filter.trim()
+                    ? "No change matches this instance filter"
+                    : "Raise one and it will land here"
+                }
               />
             ) : (
               <ChangeTable changes={changes} emptyHint={`no ${kind} changes on this page`} />

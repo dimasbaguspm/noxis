@@ -37,7 +37,11 @@ function SiteTitle() {
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton render={<Link to={PAGE_ROUTES.INSTANCES} />} size="lg" className="data-[slot=sidebar-menu-button]:p-1.5!">
+          <SidebarMenuButton
+            render={<Link to={PAGE_ROUTES.INSTANCES} />}
+            size="lg"
+            className="data-[slot=sidebar-menu-button]:p-1.5!"
+          >
             <LogoMark className="size-5 shrink-0" />
             <span className="text-base font-semibold">noXis</span>
             <span className="ml-auto text-xs text-muted-foreground">{VERSION}</span>
@@ -53,7 +57,11 @@ function InstancesMenu({ pathname }: { pathname: string }) {
   const active = isItemActive(pathname, PAGE_ROUTES.INSTANCES);
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton render={<Link to={PAGE_ROUTES.INSTANCES} />} isActive={active} tooltip="Instances">
+      <SidebarMenuButton
+        render={<Link to={PAGE_ROUTES.INSTANCES} />}
+        isActive={active}
+        tooltip="Instances"
+      >
         <LayoutDashboard />
         <span>Instances</span>
       </SidebarMenuButton>
@@ -82,13 +90,21 @@ function FamilyMenu({ family, pathname }: { family: Family; pathname: string }) 
       <SidebarMenuButton isActive={active} tooltip={family.label} onClick={toggle}>
         <Icon />
         <span>{family.label}</span>
-        <ChevronRight className={cn("ml-auto transition-transform duration-200 group-data-[collapsible=icon]:hidden", open && "rotate-90")} />
+        <ChevronRight
+          className={cn(
+            "ml-auto transition-transform duration-200 group-data-[collapsible=icon]:hidden",
+            open && "rotate-90",
+          )}
+        />
       </SidebarMenuButton>
       {open && (
         <SidebarMenuSub>
           {family.nav.map((item) => (
             <SidebarMenuSubItem key={item.to}>
-              <SidebarMenuSubButton render={<Link to={item.to} />} isActive={isItemActive(pathname, item.to)}>
+              <SidebarMenuSubButton
+                render={<Link to={item.to} />}
+                isActive={isItemActive(pathname, item.to)}
+              >
                 <span>{item.label}</span>
               </SidebarMenuSubButton>
             </SidebarMenuSubItem>
@@ -125,13 +141,21 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             <SidebarGroupContent className="flex flex-col gap-2">
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link to={PAGE_ROUTES.USERS} />} isActive={pathname.startsWith(PAGE_ROUTES.USERS)} tooltip="Users">
+                  <SidebarMenuButton
+                    render={<Link to={PAGE_ROUTES.USERS} />}
+                    isActive={pathname.startsWith(PAGE_ROUTES.USERS)}
+                    tooltip="Users"
+                  >
                     <UsersRound />
                     <span>Users</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton render={<Link to={PAGE_ROUTES.ACCESS} />} isActive={pathname.startsWith(PAGE_ROUTES.ACCESS)} tooltip="Access">
+                  <SidebarMenuButton
+                    render={<Link to={PAGE_ROUTES.ACCESS} />}
+                    isActive={pathname.startsWith(PAGE_ROUTES.ACCESS)}
+                    tooltip="Access"
+                  >
                     <KeyRound />
                     <span>Access</span>
                   </SidebarMenuButton>

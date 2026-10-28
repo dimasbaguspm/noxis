@@ -89,4 +89,3 @@ export function useScheduleChangeMutation() {
     onSuccess: invalidateChanges,
   });
 }
-

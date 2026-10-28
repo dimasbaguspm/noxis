@@ -123,15 +123,24 @@ export const api = {
       if (query.page && query.page > 1) params.set("page", String(query.page));
       if (query.perPage) params.set("perPage", String(query.perPage));
       const qs = params.toString();
-      return request<{ instances: Connection[]; total: number }>("GET", `/external/v1/instances${qs ? `?${qs}` : ""}`);
+      return request<{ instances: Connection[]; total: number }>(
+        "GET",
+        `/external/v1/instances${qs ? `?${qs}` : ""}`,
+      );
     },
-    get: (id: string) => request<Connection>("GET", `/external/v1/instances/${encodeURIComponent(id)}`),
+    get: (id: string) =>
+      request<Connection>("GET", `/external/v1/instances/${encodeURIComponent(id)}`),
     rotatePassword: (id: string, password: string) =>
-      request<{ status: string }>("POST", `/external/v1/instances/${encodeURIComponent(id)}/password`, { password }),
+      request<{ status: string }>(
+        "POST",
+        `/external/v1/instances/${encodeURIComponent(id)}/password`,
+        { password },
+      ),
   },
   connections: {
     ...connectionOps(FAMILY.SQL),
-    schema: (name: string) => request<{ tables: Table[] }>("GET", connPath(FAMILY.SQL, name, "/schema")),
+    schema: (name: string) =>
+      request<{ tables: Table[] }>("GET", connPath(FAMILY.SQL, name, "/schema")),
     erd: (name: string) => request<SchemaGraph>("GET", connPath(FAMILY.SQL, name, "/erd")),
     rows: (name: string, schema: string, table: string, limit = 100) =>
       request<Result>(
@@ -141,9 +150,12 @@ export const api = {
       ),
   },
   ops: {
-    query: (name: string, sql: string) => request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "query", sql }),
-    alter: (name: string, sql: string) => request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "alter", sql }),
-    rollback: (name: string, sql: string) => request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "rollback", sql }),
+    query: (name: string, sql: string) =>
+      request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "query", sql }),
+    alter: (name: string, sql: string) =>
+      request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "alter", sql }),
+    rollback: (name: string, sql: string) =>
+      request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "rollback", sql }),
     analyze: (name: string, table: string) =>
       request<Result>("POST", connPath(FAMILY.SQL, name, "/operations"), { op: "analyze", table }),
   },
@@ -156,11 +168,16 @@ export const api = {
           `?pattern=${encodeURIComponent(pattern)}&limit=${limit}`,
       ),
     value: (name: string, key: string) =>
-      request<Result>("GET", connPath(FAMILY.MEMCACHE, name, "/value") + `?key=${encodeURIComponent(key)}`),
+      request<Result>(
+        "GET",
+        connPath(FAMILY.MEMCACHE, name, "/value") + `?key=${encodeURIComponent(key)}`,
+      ),
     removeKeys: (name: string, keys: string[]) =>
       request<{ deleted: number }>("DELETE", connPath(FAMILY.MEMCACHE, name, "/keys"), { keys }),
     flush: (name: string) =>
-      request<{ status: string }>("POST", connPath(FAMILY.MEMCACHE, name, "/flush"), { confirm: name }),
+      request<{ status: string }>("POST", connPath(FAMILY.MEMCACHE, name, "/flush"), {
+        confirm: name,
+      }),
   },
   mongodb: {
     ...connectionOps(FAMILY.MONGODB),
@@ -169,14 +186,16 @@ export const api = {
     collections: (name: string, database: string) =>
       request<{ collections: MongoCollection[] }>(
         "GET",
-        connPath(FAMILY.MONGODB, name, "/collections") + `?database=${encodeURIComponent(database)}`,
+        connPath(FAMILY.MONGODB, name, "/collections") +
+          `?database=${encodeURIComponent(database)}`,
       ),
     // reads only: a write op is refused here and belongs in the request queue
     run: (name: string, req: MongoRequest) =>
       request<MongoResult>("POST", connPath(FAMILY.MONGODB, name, "/requests"), req),
     changes: {
       list: () => request<{ changes: Change[] }>("GET", v1(FAMILY.MONGODB, "changes")),
-      submit: (input: MongoChangeInput) => request<Change>("POST", v1(FAMILY.MONGODB, "changes"), input),
+      submit: (input: MongoChangeInput) =>
+        request<Change>("POST", v1(FAMILY.MONGODB, "changes"), input),
       get: (id: string) => request<Change>("GET", v1(FAMILY.MONGODB, `changes/${id}`)),
       approve: (id: string) => request<Change>("POST", v1(FAMILY.MONGODB, `changes/${id}/approve`)),
       apply: (id: string) => request<Change>("POST", v1(FAMILY.MONGODB, `changes/${id}/apply`)),
@@ -209,25 +228,40 @@ export const api = {
     // matrix is the per-instance overview: every instance with its whole policy.
     matrix: () => request<{ instances: InstanceAccess[] }>("GET", "/external/v1/access"),
     list: (family: FamilyKey, name: string) =>
-      request<{ permissions: Permission[] }>("GET", v1(family, `connections/${encodeURIComponent(name)}/permissions`)),
+      request<{ permissions: Permission[] }>(
+        "GET",
+        v1(family, `connections/${encodeURIComponent(name)}/permissions`),
+      ),
     set: (family: FamilyKey, name: string, member: string, memberType: string, level: string) =>
-      request<Permission>("PUT", v1(family, `connections/${encodeURIComponent(name)}/permissions`), {
-        member,
-        memberType,
-        level,
-      }),
+      request<Permission>(
+        "PUT",
+        v1(family, `connections/${encodeURIComponent(name)}/permissions`),
+        {
+          member,
+          memberType,
+          level,
+        },
+      ),
     remove: (family: FamilyKey, name: string, member: string) =>
       request<null>(
         "DELETE",
-        v1(family, `connections/${encodeURIComponent(name)}/permissions?member=${encodeURIComponent(member)}`),
+        v1(
+          family,
+          `connections/${encodeURIComponent(name)}/permissions?member=${encodeURIComponent(member)}`,
+        ),
       ),
   },
   // accessRequests: a user asks for a level on a connection; an admin or that instance's admin decides.
   accessRequests: {
     create: (connection: string, level: string, reason: string) =>
       request<AccessRequest>("POST", "/external/v1/access-requests", { connection, level, reason }),
-    mine: () => request<{ requests: AccessRequest[] }>("GET", "/external/v1/access-requests?scope=mine"),
-    toApprove: () => request<{ requests: AccessRequest[] }>("GET", "/external/v1/access-requests?scope=to-approve"),
+    mine: () =>
+      request<{ requests: AccessRequest[] }>("GET", "/external/v1/access-requests?scope=mine"),
+    toApprove: () =>
+      request<{ requests: AccessRequest[] }>(
+        "GET",
+        "/external/v1/access-requests?scope=to-approve",
+      ),
     approve: (id: string, note = "") =>
       request<AccessRequest>("POST", `/external/v1/access-requests/${id}/approve`, { note }),
     reject: (id: string, note = "") =>
@@ -240,14 +274,16 @@ export const api = {
         "GET",
         `/external/v1/users?q=${encodeURIComponent(q)}&status=${encodeURIComponent(status)}`,
       ),
-    get: (subject: string) => request<UserDetail>("GET", `/external/v1/users/${encodeURIComponent(subject)}`),
+    get: (subject: string) =>
+      request<UserDetail>("GET", `/external/v1/users/${encodeURIComponent(subject)}`),
     update: (subject: string, patch: { role?: UserRole }) =>
       request<User>("PATCH", `/external/v1/users/${encodeURIComponent(subject)}`, patch),
   },
   config: {
     drivers: () => request<DriverInfo[]>("GET", "/external/v1/config/drivers"),
     levels: () => request<{ levels: AccessLevel[] }>("GET", "/external/v1/config/levels"),
-    members: () => request<{ groups: string[]; users: MemberUser[] }>("GET", "/external/v1/config/members"),
+    members: () =>
+      request<{ groups: string[]; users: MemberUser[] }>("GET", "/external/v1/config/members"),
   },
   // family returns the shared connection lifecycle for any engine family.
   family: connectionOps,

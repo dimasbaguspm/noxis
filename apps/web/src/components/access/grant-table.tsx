@@ -1,7 +1,14 @@
 import { Settings2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { memberLabel } from "@/components/access/helpers";
 import { grantExpiry } from "@/lib/dates";
 import type { AccessLevel, MemberUser, Permission } from "@/lib/api";
@@ -18,7 +25,8 @@ export function GrantTable({
   levels: AccessLevel[];
   onManage?: (permission: Permission) => void;
 }) {
-  const levelLabel = (value?: string) => levels.find((level) => level.value === value)?.label ?? value;
+  const levelLabel = (value?: string) =>
+    levels.find((level) => level.value === value)?.label ?? value;
 
   return (
     <div className="rounded-md border border-border">
@@ -37,7 +45,9 @@ export function GrantTable({
             const expiry = grantExpiry(permission.expiresAt);
             return (
               <TableRow key={permission.member}>
-                <TableCell className="text-sm font-medium">{memberLabel(permission, users)}</TableCell>
+                <TableCell className="text-sm font-medium">
+                  {memberLabel(permission, users)}
+                </TableCell>
                 <TableCell>
                   <Badge variant="outline">{permission.memberType}</Badge>
                 </TableCell>

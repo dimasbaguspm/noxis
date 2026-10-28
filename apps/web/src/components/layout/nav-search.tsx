@@ -14,7 +14,9 @@ interface Entry {
   item: NavItem;
 }
 
-const entries: Entry[] = NAV.flatMap((group) => group.items.map((item) => ({ group: group.label, item })));
+const entries: Entry[] = NAV.flatMap((group) =>
+  group.items.map((item) => ({ group: group.label, item })),
+);
 
 // NavSearch is the header's navigator: a field that behaves like a button and opens a modal palette (⌘K / Ctrl+K).
 export function NavSearch() {
@@ -77,10 +79,15 @@ export function NavSearch() {
     <Dialog open={open} onOpenChange={change}>
       <DialogTrigger
         render={
-          <Button variant="outline" className="w-auto justify-start gap-2 font-normal text-muted-foreground sm:w-72">
+          <Button
+            variant="outline"
+            className="w-auto justify-start gap-2 font-normal text-muted-foreground sm:w-72"
+          >
             <Search className="size-4" />
             <span className="hidden sm:inline">{current.item?.label ?? "Search pages…"}</span>
-            <kbd className="ml-auto hidden rounded border border-border px-1.5 text-[10px] tracking-tight sm:inline">⌘K</kbd>
+            <kbd className="ml-auto hidden rounded border border-border px-1.5 text-[10px] tracking-tight sm:inline">
+              ⌘K
+            </kbd>
           </Button>
         }
       />
@@ -108,7 +115,9 @@ export function NavSearch() {
 
         <div ref={list} className="max-h-80 overflow-auto p-2">
           {matches.length === 0 && (
-            <P size="sm" className="px-2 py-3">no page matches “{filter}”</P>
+            <P size="sm" className="px-2 py-3">
+              no page matches “{filter}”
+            </P>
           )}
           {matches.map((entry, i) => {
             const active = entry.item.to === current.item?.to;
@@ -127,7 +136,9 @@ export function NavSearch() {
               >
                 <entry.item.icon className="size-4 shrink-0 text-muted-foreground" />
                 <span>{entry.item.label}</span>
-                {entry.group && <span className="text-xs text-muted-foreground">· {entry.group}</span>}
+                {entry.group && (
+                  <span className="text-xs text-muted-foreground">· {entry.group}</span>
+                )}
                 {entry.item.soon && (
                   <Badge variant="outline" className="text-[10px]">
                     soon

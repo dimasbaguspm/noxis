@@ -1,5 +1,11 @@
 import { Toaster as Sonner, type ToasterProps } from "sonner";
-import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon } from "lucide-react";
+import {
+  CircleCheckIcon,
+  InfoIcon,
+  Loader2Icon,
+  OctagonXIcon,
+  TriangleAlertIcon,
+} from "lucide-react";
 
 // Dark by default (the console is dark); tokens come from app.css.
 const Toaster = ({ ...props }: ToasterProps) => (

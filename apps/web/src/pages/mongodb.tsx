@@ -7,24 +7,46 @@ import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Workspace } from "@/components/layout/workspace";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { JsonEditor } from "@/components/sql/json-editor";
 import { ResultTable } from "@/components/sql/result-table";
 import { JsonTree } from "@/components/mongodb/json-tree";
-import { useMongoCollectionsQuery, useMongoConnections, useMongoDatabasesQuery, useMongoRunMutation, useMongoUrlParams } from "@/hooks/use-mongodb";
+import {
+  useMongoCollectionsQuery,
+  useMongoConnections,
+  useMongoDatabasesQuery,
+  useMongoRunMutation,
+  useMongoUrlParams,
+} from "@/hooks/use-mongodb";
 import { useAuth } from "@/app/auth-provider";
 import { FAMILY } from "@/lib/families";
 import { bytes, compact } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { P } from "@/components/ui/typography";
 
-
 // MongoExplorePage walks a server and queries it: databases, their collections, and the documents of the one you pick.
 export default function MongoExplorePage() {
   const { isSuper } = useAuth();
   const { connections, connection, pick, busy } = useMongoConnections();
-  const { databases, isFetching: loadingDbs, refetch: reloadDbs } = useMongoDatabasesQuery(connection);
+  const {
+    databases,
+    isFetching: loadingDbs,
+    refetch: reloadDbs,
+  } = useMongoDatabasesQuery(connection);
   const {
     database: urlDatabase,
     collection,
@@ -37,7 +59,11 @@ export default function MongoExplorePage() {
   } = useMongoUrlParams();
   const database = urlDatabase ?? databases[0]?.name;
 
-  const { collections, isFetching: loadingColls, refetch: reloadColls } = useMongoCollectionsQuery(connection, database);
+  const {
+    collections,
+    isFetching: loadingColls,
+    refetch: reloadColls,
+  } = useMongoCollectionsQuery(connection, database);
   const read = useMongoRunMutation();
 
   const readTarget = read.variables;
@@ -73,7 +99,9 @@ export default function MongoExplorePage() {
       <Card className="mx-auto mt-8 max-w-lg">
         <CardHeader>
           <CardTitle>No MongoDB instance found</CardTitle>
-          <CardDescription>Register a MongoDB server to explore its databases and collections.</CardDescription>
+          <CardDescription>
+            Register a MongoDB server to explore its databases and collections.
+          </CardDescription>
         </CardHeader>
         {isSuper && (
           <CardContent>
@@ -94,7 +122,9 @@ export default function MongoExplorePage() {
                 <SelectValue placeholder="No MongoDB registered" />
               </SelectTrigger>
               <SelectContent>
-                {connections.length === 0 && <SelectItem value="none">None registered yet</SelectItem>}
+                {connections.length === 0 && (
+                  <SelectItem value="none">None registered yet</SelectItem>
+                )}
                 {connections.map((c) => (
                   <SelectItem key={c.name} value={c.name}>
                     {c.name}
@@ -120,7 +150,9 @@ export default function MongoExplorePage() {
               <div className="grid gap-1">
                 {databases.length === 0 && (
                   <P size="sm">
-                    {connection ? "No database visible to this user" : "Register a MongoDB server to explore"}
+                    {connection
+                      ? "No database visible to this user"
+                      : "Register a MongoDB server to explore"}
                   </P>
                 )}
                 {databases.map((db) => (
@@ -130,13 +162,17 @@ export default function MongoExplorePage() {
                     size="sm"
                     className={cn(
                       "h-auto w-full justify-start gap-2 px-2 py-2",
-                      db.name === database ? "bg-accent text-accent-foreground hover:bg-accent" : "hover:bg-accent/50",
+                      db.name === database
+                        ? "bg-accent text-accent-foreground hover:bg-accent"
+                        : "hover:bg-accent/50",
                     )}
                     onClick={() => setDatabase(db.name)}
                   >
                     <Database className="size-3.5 shrink-0 text-muted-foreground" />
                     <span className="truncate">{db.name}</span>
-                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">{bytes(db.sizeBytes ?? 0)}</span>
+                    <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+                      {bytes(db.sizeBytes ?? 0)}
+                    </span>
                   </Button>
                 ))}
               </div>
@@ -144,7 +180,10 @@ export default function MongoExplorePage() {
           </div>
         }
         right={
-          <ResizablePanelGroup orientation="vertical" className="flex min-h-0 flex-1 flex-col gap-2">
+          <ResizablePanelGroup
+            orientation="vertical"
+            className="flex min-h-0 flex-1 flex-col gap-2"
+          >
             <ResizablePanel defaultSize={30} minSize={18}>
               <div className="flex h-full min-h-0 flex-col gap-2">
                 <div className="relative">
@@ -189,7 +228,9 @@ export default function MongoExplorePage() {
                               </Badge>
                             )}
                           </TableCell>
-                          <TableCell className="text-sm tabular-nums">{compact(c.count ?? 0)}</TableCell>
+                          <TableCell className="text-sm tabular-nums">
+                            {compact(c.count ?? 0)}
+                          </TableCell>
                           <TableCell className="text-xs tabular-nums text-muted-foreground">
                             {bytes(c.sizeBytes ?? 0)}
                           </TableCell>
@@ -247,14 +288,21 @@ export default function MongoExplorePage() {
                       placeholder="{}"
                     />
                   </div>
-                  <Button onClick={query} disabled={(readMatchesSelection && read.isPending) || !collection} className="mt-1">
+                  <Button
+                    onClick={query}
+                    disabled={(readMatchesSelection && read.isPending) || !collection}
+                    className="mt-1"
+                  >
                     <Play /> Run
                   </Button>
                 </div>
 
                 <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border">
                   {!readResult ? (
-                    <Empty title="No documents" description="Run the filter to load the first documents." />
+                    <Empty
+                      title="No documents"
+                      description="Run the filter to load the first documents."
+                    />
                   ) : view === "raw" ? (
                     <ResultTable result={readResult} title={`${database}.${collection}`} />
                   ) : view === "json" ? (

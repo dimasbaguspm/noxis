@@ -2,7 +2,16 @@ import { useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { BadgeCheck, ChevronLeft, ChevronRight, ClipboardPaste, Eye, EyeOff, PlugZap, X } from "lucide-react";
+import {
+  BadgeCheck,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardPaste,
+  Eye,
+  EyeOff,
+  PlugZap,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,8 +27,19 @@ import {
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { SingleSelect } from "@/components/ui/single-select";
 import { Input } from "@/components/ui/input";
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useSetActiveConnection } from "@/hooks/use-connections";
 import { useDriversQuery } from "@/hooks/use-config";
 import { queryClient } from "@/lib/query-client";
@@ -35,12 +55,7 @@ const connectionSchema = z
   .object({
     name: z.string().trim().min(1, "Name is required"),
     host: z.string().trim().optional(),
-    port: z.coerce
-      .number()
-      .int()
-      .min(0)
-      .max(65535, "Port must be between 1 and 65535")
-      .optional(),
+    port: z.coerce.number().int().min(0).max(65535, "Port must be between 1 and 65535").optional(),
     user: z.string().trim().optional(),
     password: z.string().optional(),
     database: z.string().trim().min(1, "Database is required"),
@@ -50,7 +65,8 @@ const connectionSchema = z
   .superRefine((v, ctx) => {
     if (isFileDriver(v.driver)) return;
     if (!v.host) ctx.addIssue({ code: "custom", path: ["host"], message: "host is required" });
-    if (!v.port) ctx.addIssue({ code: "custom", path: ["port"], message: "Port must be between 1 and 65535" });
+    if (!v.port)
+      ctx.addIssue({ code: "custom", path: ["port"], message: "Port must be between 1 and 65535" });
     if (!v.user) ctx.addIssue({ code: "custom", path: ["user"], message: "user is required" });
   });
 type ConnectionForm = z.infer<typeof connectionSchema>;
@@ -99,7 +115,14 @@ export function ConnectionDialog({
 }) {
   const setActive = useSetActiveConnection();
   const { data: drivers = [] } = useDriversQuery();
-  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<ConnectionForm>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm<ConnectionForm>({
     defaultValues: (initial ?? BLANK[family]) as unknown as ConnectionForm,
     // Cast the resolver because z.coerce gives form inputs and parsed output different types.
     resolver: zodResolver(connectionSchema) as unknown as Resolver<ConnectionForm>,
@@ -203,7 +226,9 @@ export function ConnectionDialog({
         await client.remove(name).catch(() => undefined);
         await refresh();
         setVerified(false);
-        throw new Error(`connection refused — not saved: ${err instanceof Error ? err.message : String(err)}`);
+        throw new Error(
+          `connection refused — not saved: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
       setVerified(true);
       toast.success(`${name}: verified and saved`);
@@ -243,7 +268,8 @@ export function ConnectionDialog({
                   {
                     value: FAMILY.SQL,
                     label: "SQL database",
-                    detail: "Postgres, MySQL or MariaDB. Read and change data through the validated workflow.",
+                    detail:
+                      "Postgres, MySQL or MariaDB. Read and change data through the validated workflow.",
                   },
                   {
                     value: FAMILY.MEMCACHE,
@@ -268,141 +294,152 @@ export function ConnectionDialog({
           <>
             <SheetBody>
               <form id="connection-save" onSubmit={onValid} className="grid gap-4">
-              <Field>
-                <FieldLabel htmlFor="conn-dsn">Connection string (optional)</FieldLabel>
-                <InputGroup>
-                  <InputGroupInput
-                    id="conn-dsn"
-                    placeholder="postgresql://user:pass@host:5432/db"
-                    value={dsn}
-                    onChange={(e) => {
-                      setDsn(e.target.value);
-                      setDsnError(null);
-                    }}
-                    onBlur={applyDsn}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        applyDsn();
-                      }
-                    }}
-                  />
-                  <InputGroupAddon align="inline-end">
-                    {dsn && (
-                      <InputGroupButton
-                        aria-label="Clear connection string"
-                        onClick={() => {
-                          setDsn("");
-                          setDsnError(null);
-                        }}
-                      >
-                        <X />
-                      </InputGroupButton>
-                    )}
-                    <InputGroupButton aria-label="Paste connection string" onClick={pasteDsn}>
-                      <ClipboardPaste />
-                    </InputGroupButton>
-                  </InputGroupAddon>
-                </InputGroup>
-                <FieldDescription>Paste a URL to fill the fields below.</FieldDescription>
-                <FieldError>{dsnError}</FieldError>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="conn-name">Name</FieldLabel>
-                <Input id="conn-name" placeholder="prod-readonly" {...field("name")} />
-                <FieldError errors={[errors.name]} />
-              </Field>
-              <Field>
-                <FieldLabel>Driver</FieldLabel>
-                {mongo ? (
-                  <Input value="mongo" readOnly disabled />
-                ) : (
-                  <Select
-                    value={watch("driver")}
-                    onValueChange={(v) => {
-                      const driver = String(v);
-                      setValue("driver", driver);
-                      setValue("port", defaultPort(driver));
-                      if (isFileDriver(driver)) {
-                        setValue("host", "");
-                        setValue("user", "");
-                      }
-                      setVerified(false);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pick a driver" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {drivers
-                        .filter((d) => d.family === kind)
-                        .map((d) => (
-                          <SelectItem key={d.driver} value={d.driver}>
-                            {d.label}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </Field>
-              {!fileDriver && (
-                <>
-                  <Field>
-                    <FieldLabel htmlFor="conn-host">Host</FieldLabel>
-                    <Input
-                      id="conn-host"
-                      placeholder={cache ? "cache.internal" : mongo ? "mongo.internal" : "db.internal"}
-                      {...field("host")}
+                <Field>
+                  <FieldLabel htmlFor="conn-dsn">Connection string (optional)</FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput
+                      id="conn-dsn"
+                      placeholder="postgresql://user:pass@host:5432/db"
+                      value={dsn}
+                      onChange={(e) => {
+                        setDsn(e.target.value);
+                        setDsnError(null);
+                      }}
+                      onBlur={applyDsn}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          applyDsn();
+                        }
+                      }}
                     />
-                    <FieldError errors={[errors.host]} />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="conn-port">Port</FieldLabel>
-                    <Input id="conn-port" type="number" {...field("port")} />
-                    <FieldError errors={[errors.port]} />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="conn-user">{cache ? "User (ACL, optional)" : "User"}</FieldLabel>
-                    <Input
-                      id="conn-user"
-                      placeholder={cache ? "default" : mongo ? "root" : "postgres"}
-                      {...field("user")}
-                    />
-                    <FieldError errors={[errors.user]} />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="conn-password">Password</FieldLabel>
-                    <InputGroup>
-                      <InputGroupInput
-                        id="conn-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder={initial ? "Unchanged" : ""}
-                        {...field("password")}
-                      />
-                      <InputGroupAddon align="inline-end">
+                    <InputGroupAddon align="inline-end">
+                      {dsn && (
                         <InputGroupButton
-                          aria-label={showPassword ? "Hide password" : "Show password"}
-                          onClick={() => setShowPassword((value) => !value)}
+                          aria-label="Clear connection string"
+                          onClick={() => {
+                            setDsn("");
+                            setDsnError(null);
+                          }}
                         >
-                          {showPassword ? <EyeOff /> : <Eye />}
+                          <X />
                         </InputGroupButton>
-                      </InputGroupAddon>
-                    </InputGroup>
-                  </Field>
-                </>
-              )}
-              <Field>
-                <FieldLabel htmlFor="conn-database">
-                  {fileDriver ? "File path" : cache ? "DB index" : mongo ? "Database (auth)" : "Database"}
-                </FieldLabel>
-                <Input
-                  id="conn-database"
-                  placeholder={fileDriver ? "/data/app.db" : cache ? "0" : mongo ? "admin" : "app"}
-                  {...field("database")}
-                />
-                <FieldError errors={[errors.database]} />
-              </Field>
-
+                      )}
+                      <InputGroupButton aria-label="Paste connection string" onClick={pasteDsn}>
+                        <ClipboardPaste />
+                      </InputGroupButton>
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <FieldDescription>Paste a URL to fill the fields below.</FieldDescription>
+                  <FieldError>{dsnError}</FieldError>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="conn-name">Name</FieldLabel>
+                  <Input id="conn-name" placeholder="prod-readonly" {...field("name")} />
+                  <FieldError errors={[errors.name]} />
+                </Field>
+                <Field>
+                  <FieldLabel>Driver</FieldLabel>
+                  {mongo ? (
+                    <Input value="mongo" readOnly disabled />
+                  ) : (
+                    <Select
+                      value={watch("driver")}
+                      onValueChange={(v) => {
+                        const driver = String(v);
+                        setValue("driver", driver);
+                        setValue("port", defaultPort(driver));
+                        if (isFileDriver(driver)) {
+                          setValue("host", "");
+                          setValue("user", "");
+                        }
+                        setVerified(false);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pick a driver" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {drivers
+                          .filter((d) => d.family === kind)
+                          .map((d) => (
+                            <SelectItem key={d.driver} value={d.driver}>
+                              {d.label}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </Field>
+                {!fileDriver && (
+                  <>
+                    <Field>
+                      <FieldLabel htmlFor="conn-host">Host</FieldLabel>
+                      <Input
+                        id="conn-host"
+                        placeholder={
+                          cache ? "cache.internal" : mongo ? "mongo.internal" : "db.internal"
+                        }
+                        {...field("host")}
+                      />
+                      <FieldError errors={[errors.host]} />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="conn-port">Port</FieldLabel>
+                      <Input id="conn-port" type="number" {...field("port")} />
+                      <FieldError errors={[errors.port]} />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="conn-user">
+                        {cache ? "User (ACL, optional)" : "User"}
+                      </FieldLabel>
+                      <Input
+                        id="conn-user"
+                        placeholder={cache ? "default" : mongo ? "root" : "postgres"}
+                        {...field("user")}
+                      />
+                      <FieldError errors={[errors.user]} />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="conn-password">Password</FieldLabel>
+                      <InputGroup>
+                        <InputGroupInput
+                          id="conn-password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder={initial ? "Unchanged" : ""}
+                          {...field("password")}
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupButton
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            onClick={() => setShowPassword((value) => !value)}
+                          >
+                            {showPassword ? <EyeOff /> : <Eye />}
+                          </InputGroupButton>
+                        </InputGroupAddon>
+                      </InputGroup>
+                    </Field>
+                  </>
+                )}
+                <Field>
+                  <FieldLabel htmlFor="conn-database">
+                    {fileDriver
+                      ? "File path"
+                      : cache
+                        ? "DB index"
+                        : mongo
+                          ? "Database (auth)"
+                          : "Database"}
+                  </FieldLabel>
+                  <Input
+                    id="conn-database"
+                    placeholder={
+                      fileDriver ? "/data/app.db" : cache ? "0" : mongo ? "admin" : "app"
+                    }
+                    {...field("database")}
+                  />
+                  <FieldError errors={[errors.database]} />
+                </Field>
               </form>
             </SheetBody>
 

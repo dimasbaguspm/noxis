@@ -42,7 +42,12 @@ function Shell() {
                       {crumb.label}
                     </Link>
                   ) : (
-                    <span className={cn("truncate", i === crumbs.length - 1 ? "font-medium" : "text-muted-foreground")}>
+                    <span
+                      className={cn(
+                        "truncate",
+                        i === crumbs.length - 1 ? "font-medium" : "text-muted-foreground",
+                      )}
+                    >
                       {crumb.label}
                     </span>
                   )}

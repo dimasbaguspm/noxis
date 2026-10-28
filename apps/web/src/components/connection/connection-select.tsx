@@ -1,5 +1,11 @@
 import { Database } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useConnections } from "@/hooks/use-connections";
 import { FAMILY } from "@/lib/families";
 
@@ -16,7 +22,11 @@ export function ConnectionSelect({
   const { connections } = useConnections(FAMILY.SQL);
 
   if (connections.length === 0) {
-    return <span className="text-xs text-muted-foreground">No connections yet — add one from the dashboard</span>;
+    return (
+      <span className="text-xs text-muted-foreground">
+        No connections yet — add one from the dashboard
+      </span>
+    );
   }
 
   return (

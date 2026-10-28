@@ -25,7 +25,9 @@ export default function AuthCallbackPage() {
       {failed ? (
         <>
           <p>Sign-in could not be completed.</p>
-          <a className="underline" href="/login">Return to sign in</a>
+          <a className="underline" href="/login">
+            Return to sign in
+          </a>
         </>
       ) : (
         "finishing sign-in…"
