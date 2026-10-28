@@ -1,31 +1,37 @@
-// PAGE_ROUTES centralizes paths shared by the router, navigation, and page links.
+// CONSOLE is the base path of every database engine page, so the URL says which product section the user is in.
+// Each future section (object storage, containers, config) gets a base of its own next to it.
+export const CONSOLE = "/console";
 
+// PAGE_ROUTES centralizes paths shared by the router, navigation, and page links.
 export const PAGE_ROUTES = {
-  DASHBOARD: "/",
+  CONSOLE,
+  INSTANCES: `${CONSOLE}/instances`,
+  INSTANCE_DETAIL: (id: string) => `${CONSOLE}/instances/${id}`,
+  INSTANCE_TAB: (id: string, tab: string) => `${CONSOLE}/instances/${id}/${tab}`,
   MY: "/my",
   MY_SETTINGS: "/my/settings",
   MY_ACCESS: "/my/access",
-  INSTANCE_DETAIL: (id: string) => `/instances/${id}`,
-  INSTANCE_TAB: (id: string, tab: string) => `/instances/${id}/${tab}`,
   ACCESS: "/access",
   USERS: "/users",
   USER_DETAIL: (subject: string) => `/users/${encodeURIComponent(subject)}`,
+  LOGIN: "/login",
+  AUTH_CALLBACK: "/auth/callback",
   SQL: {
-    QUERY: "/sql/query",
-    ERD: "/sql/erd",
-    DML: "/sql/dml",
-    DML_DETAIL: (id: string) => `/sql/dml/${id}`,
-    DDL: "/sql/ddl",
-    DDL_DETAIL: (id: string) => `/sql/ddl/${id}`,
+    QUERY: `${CONSOLE}/sql/query`,
+    ERD: `${CONSOLE}/sql/erd`,
+    DML: `${CONSOLE}/sql/dml`,
+    DML_DETAIL: (id: string) => `${CONSOLE}/sql/dml/${id}`,
+    DDL: `${CONSOLE}/sql/ddl`,
+    DDL_DETAIL: (id: string) => `${CONSOLE}/sql/ddl/${id}`,
   },
   MEMCACHE: {
-    KEYS: "/memcache",
+    KEYS: `${CONSOLE}/memcache`,
   },
   MONGODB: {
-    EXPLORE: "/mongodb/explore",
-    REQUESTS: "/mongodb/requests",
-    REQUEST_NEW: "/mongodb/requests/new",
-    REQUEST_DETAIL: (id: string) => `/mongodb/requests/${id}`,
+    EXPLORE: `${CONSOLE}/mongodb/explore`,
+    REQUESTS: `${CONSOLE}/mongodb/requests`,
+    REQUEST_NEW: `${CONSOLE}/mongodb/requests/new`,
+    REQUEST_DETAIL: (id: string) => `${CONSOLE}/mongodb/requests/${id}`,
   },
 } as const;
 

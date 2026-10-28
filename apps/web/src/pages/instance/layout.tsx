@@ -114,7 +114,7 @@ export default function InstanceLayout() {
     await api.family(family).remove(name);
     toast.success(`deleted ${name}`);
     void queryClient.invalidateQueries({ queryKey: ["instances"] });
-    navigate(PAGE_ROUTES.DASHBOARD);
+    navigate(PAGE_ROUTES.INSTANCES);
   });
 
   const rotate = useRotatePasswordMutation();
@@ -153,7 +153,7 @@ export default function InstanceLayout() {
           title="Instance not found"
           description={detail.error instanceof Error ? detail.error.message : "the instance request failed"}
           action={
-            <Button size="sm" render={<Link to={PAGE_ROUTES.DASHBOARD} />}>
+            <Button size="sm" render={<Link to={PAGE_ROUTES.INSTANCES} />}>
               Back to Instances
             </Button>
           }

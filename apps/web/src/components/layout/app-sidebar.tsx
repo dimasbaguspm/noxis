@@ -28,7 +28,6 @@ import {
 const VERSION = "v0.1.0";
 
 function isItemActive(pathname: string, url: string): boolean {
-  if (url === "/") return pathname === "/";
   return pathname === url || pathname.startsWith(`${url}/`);
 }
 
@@ -38,7 +37,7 @@ function SiteTitle() {
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton render={<Link to="/" />} size="lg" className="data-[slot=sidebar-menu-button]:p-1.5!">
+          <SidebarMenuButton render={<Link to={PAGE_ROUTES.INSTANCES} />} size="lg" className="data-[slot=sidebar-menu-button]:p-1.5!">
             <LogoMark className="size-5 shrink-0" />
             <span className="text-base font-semibold">noXis</span>
             <span className="ml-auto text-xs text-muted-foreground">{VERSION}</span>
@@ -51,10 +50,10 @@ function SiteTitle() {
 
 // InstancesMenu is a plain link to the instance list; the fleet is big enough that an expanding submenu only adds a level nobody asks for.
 function InstancesMenu({ pathname }: { pathname: string }) {
-  const active = pathname === "/" || pathname.startsWith("/instances/");
+  const active = isItemActive(pathname, PAGE_ROUTES.INSTANCES);
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton render={<Link to="/" />} isActive={active} tooltip="Instances">
+      <SidebarMenuButton render={<Link to={PAGE_ROUTES.INSTANCES} />} isActive={active} tooltip="Instances">
         <LayoutDashboard />
         <span>Instances</span>
       </SidebarMenuButton>

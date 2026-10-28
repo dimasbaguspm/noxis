@@ -11,6 +11,7 @@ import { useAuth } from "@/app/auth-provider";
 import { localLogin, signin } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { H1 } from "@/components/ui/typography";
+import { PAGE_ROUTES } from "@/lib/routes";
 
 const credentialsSchema = z.object({
   email: z.email("enter a valid email address"),
@@ -31,13 +32,13 @@ export default function LoginPage({ className, ...props }: React.ComponentProps<
     defaultValues: { email: "", password: "" },
   });
 
-  if (authenticated) return <Navigate to="/" replace />;
+  if (authenticated) return <Navigate to={PAGE_ROUTES.INSTANCES} replace />;
 
   const onValid = handleSubmit(async (values) => {
     setError(null);
     try {
       await localLogin(values.email, values.password);
-      window.location.assign("/"); // reload so the provider bootstraps the identity
+      window.location.assign(PAGE_ROUTES.INSTANCES); // reload so the provider bootstraps the identity
     } catch (err) {
       setError(err instanceof Error ? err.message : "sign in failed");
     }
