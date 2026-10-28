@@ -98,7 +98,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: web (lint + format + typecheck + build)
-        run: |
-          npm install -g pnpm@10.34.5
-          cd apps/web && pnpm install --frozen-lockfile && pnpm lint && pnpm format:check && pnpm build
+      - name: setup buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The image pins Node and pnpm and runs lint, format, typecheck, and build,
+      # so a green web job means the same runtime a release would use.
+      - name: web image (lint, format, typecheck, build)
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/web
+          file: apps/web/Dockerfile
+          push: false
+          tags: noxis-web:ci
+          cache-from: type=gha,scope=noxis-web
+          cache-to: type=gha,mode=max,scope=noxis-web

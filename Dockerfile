@@ -10,6 +10,8 @@ RUN npm install -g pnpm@10.34.5
 COPY apps/web/package.json apps/web/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY apps/web/ ./
+# keep the bundle inside the stage so the copy below has a stable path
+ENV WEB_OUT_DIR=dist
 RUN pnpm build
 
 FROM golang:1.26-alpine AS build
@@ -18,7 +20,7 @@ COPY apps/api/go.mod apps/api/go.sum ./
 RUN go mod download
 COPY apps/api/ ./
 # vite writes to <repo>/bin/dist, which is /bin/dist inside this stage
-COPY --from=web /bin/dist /src/dist
+COPY --from=web /web/dist /src/dist
 RUN rm -rf cmd/noxis/server/static/assets cmd/noxis/server/static/index.html \
     && cp -r /src/dist/* cmd/noxis/server/static/ \
     && CGO_ENABLED=0 go build -o /out/noxis ./cmd/noxis
