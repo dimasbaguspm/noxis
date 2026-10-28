@@ -10,7 +10,7 @@ export type ChangeKind = "dml" | "ddl";
 
 // ./changes refetches the queue and any detail after an action, so a page never calls refetch() by hand.
 function invalidateChanges() {
-  void queryClient.invalidateQueries({ queryKey: ["sql", "changes"] });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.sql.changes.all });
 }
 
 const CHANGE_DEFAULTS = { q: "", status: "all", page: "1" };

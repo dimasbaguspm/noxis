@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useUrlState } from "@/hooks/use-url-state";
+import { queryKeys } from "@/lib/query-client";
 
 const MY_ACCESS_DEFAULTS = { status: "all" };
 
@@ -13,14 +14,14 @@ export function useMyAccessUrlParams() {
 
 export function useMyRequestsQuery() {
   return useQuery({
-    queryKey: ["access-requests", "mine"],
+    queryKey: queryKeys.access.requests.mine,
     queryFn: () => api.accessRequests.mine(),
   });
 }
 
 export function useToApproveQuery(enabled = true) {
   return useQuery({
-    queryKey: ["access-requests", "to-approve"],
+    queryKey: queryKeys.access.requests.toApprove,
     queryFn: () => api.accessRequests.toApprove(),
     enabled,
   });
@@ -34,9 +35,9 @@ export function useDecideRequest() {
       approve ? api.accessRequests.approve(id, note) : api.accessRequests.reject(id, note),
     onSuccess: (_data, vars) => {
       toast.success(vars.approve ? "request approved" : "request rejected");
-      void queryClient.invalidateQueries({ queryKey: ["access-requests"] });
-      void queryClient.invalidateQueries({ queryKey: ["permissions"] });
-      void queryClient.invalidateQueries({ queryKey: ["me"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.access.requests.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.access.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.me });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "decision failed"),
   });
@@ -49,7 +50,7 @@ export function useCreateRequest() {
       api.accessRequests.create(input.connection, input.level, input.reason ?? ""),
     onSuccess: (_data, vars) => {
       toast.success(`requested ${vars.level} on ${vars.connection}`);
-      void queryClient.invalidateQueries({ queryKey: ["access-requests"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.access.requests.all });
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "request failed"),
   });
