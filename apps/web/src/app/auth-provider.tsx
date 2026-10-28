@@ -1,14 +1,16 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { api, type Identity, type Level } from "@/lib/api";
-import { accessToken, initAuth, loadAuthConfig, signout as doSignout } from "@/lib/auth";
+import {
+  accessToken,
+  initAuth,
+  loadAuthConfig,
+  signout as doSignout,
+  type AuthConfig,
+} from "@/lib/auth";
+import { queryKeys } from "@/lib/query-client";
+import { canAccess, canBan, canSetRole, type AccountTarget } from "@/lib/policy";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { AppShellSkeleton } from "@/components/layout/app-shell-skeleton";
 
 // AuthProvider owns the auth bootstrap (local account and/or OIDC) and the console's permission view.
@@ -29,116 +31,61 @@ interface AuthState {
   signout: () => Promise<void>;
 }
 
-// AccountTarget is the part of an account the console's guards read.
-interface AccountTarget {
-  subject: string;
-  role?: string;
+// Session is the one fact the provider holds: the auth config the server advertises and who the caller is.
+interface Session {
+  config: AuthConfig;
+  identity: Identity | null;
 }
-
-const LEVEL_RANK: Record<string, number> = { read: 1, write: 2, admin: 3 };
 
 const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [authOn, setAuthOn] = useState(false);
-  const [localOn, setLocalOn] = useState(false);
-  const [oidcOn, setOidcOn] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
-  const [identity, setIdentity] = useState<Identity | null>(null);
-  const [ready, setReady] = useState(false);
+  // the callback route owns its own exchange, so it must not bootstrap a session mid-flight
+  const isCallback = window.location.pathname === PAGE_ROUTES.AUTH_CALLBACK;
 
-  const isCallback = window.location.pathname === "/auth/callback";
-  useEffect(() => {
-    (async () => {
+  const session = useQuery({
+    queryKey: queryKeys.auth.session,
+    queryFn: async (): Promise<Session> => {
       const config = await loadAuthConfig();
       initAuth(config);
-      setAuthOn(Boolean(config.local || config.oidc));
-      setLocalOn(Boolean(config.local));
-      setOidcOn(Boolean(config.oidc));
-      // the callback route owns its own exchange; bootstrapping here would fire unauthenticated /external/v1/* fetches and bounce back mid-exchange
-      if (isCallback) return;
+      if (isCallback) return { config, identity: null };
       const token = await accessToken();
-      if (token) {
-        try {
-          setIdentity(await api.me());
-          setAuthenticated(true);
-        } catch {
-          /* request() sends a 401 to the login page */
-        }
+      if (!token) return { config, identity: null };
+      try {
+        return { config, identity: await api.me() };
+      } catch {
+        // request() already sends a rejected session to the login page
+        return { config, identity: null };
       }
-      setReady(true);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const role = identity?.role;
-  const isSuper = !authOn || role === "super";
-  const isAdmin = !authOn || role === "super" || role === "admin";
-
-  const canAccess = useCallback(
-    (connection: string | undefined, need: Level) => {
-      if (!authOn) return true;
-      if (!identity) return false;
-      if (identity.role === "super") return true;
-      const have = (connection ? identity.connections?.[connection]?.level : "") ?? "";
-      return (LEVEL_RANK[have] ?? 0) >= LEVEL_RANK[need];
     },
-    [authOn, identity],
-  );
+    staleTime: Infinity,
+    retry: false,
+  });
 
-  // canManage is the shared guard for the account controls: nobody edits themselves and the env root is untouchable.
-  const canManage = useCallback(
-    (target: AccountTarget) =>
-      Boolean(identity) && target.subject !== identity?.sub && target.role !== "super",
-    [identity],
-  );
+  const config = session.data?.config;
+  const identity = session.data?.identity ?? null;
+  const authEnabled = Boolean(config?.local || config?.oidc);
+  const ready = session.isSuccess || session.isError;
+  const isSuper = !authEnabled || identity?.role === "super";
+  const isAdmin = !authEnabled || identity?.role === "super" || identity?.role === "admin";
 
-  // canBan: an admin acts on members only; the super admin may also act on admins.
-  const canBan = useCallback(
-    (target: AccountTarget) => canManage(target) && (isSuper || target.role === "member"),
-    [canManage, isSuper],
-  );
-
-  // canSetRole: only the super admin promotes or demotes.
-  const canSetRole = useCallback(
-    (target: AccountTarget) => isSuper && canManage(target),
-    [canManage, isSuper],
-  );
-
-  const signout = useCallback(async () => {
-    await doSignout();
-  }, []);
-
-  const value = useMemo(
+  const value = useMemo<AuthState>(
     () => ({
-      authEnabled: authOn,
-      localEnabled: localOn,
-      oidcEnabled: oidcOn,
-      authenticated,
+      authEnabled,
+      localEnabled: Boolean(config?.local),
+      oidcEnabled: Boolean(config?.oidc),
+      authenticated: identity !== null,
       isSuper,
       isAdmin,
       identity,
       ready,
-      canAccess,
-      isInstanceAdmin: (connection: string) => canAccess(connection, "admin"),
-      canBan,
-      canSetRole,
-      signout,
+      canAccess: (connection, need) => canAccess(identity, authEnabled, connection, need),
+      isInstanceAdmin: (connection) => canAccess(identity, authEnabled, connection, "admin"),
+      canBan: (target) => canBan(identity, isSuper, target),
+      canSetRole: (target) => canSetRole(identity, isSuper, target),
+      signout: () => doSignout(),
     }),
-    [
-      authOn,
-      localOn,
-      oidcOn,
-      authenticated,
-      identity,
-      isSuper,
-      isAdmin,
-      ready,
-      canAccess,
-      canBan,
-      canSetRole,
-      signout,
-    ],
+    [authEnabled, config, identity, isSuper, isAdmin, ready],
   );
 
   if (!ready && !isCallback) {
