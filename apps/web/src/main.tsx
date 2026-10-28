@@ -43,11 +43,11 @@ const AccessPage = lazy(() => import("@/pages/access"));
 const UsersPage = lazy(() => import("@/pages/users"));
 const UserDetailPage = lazy(() => import("@/pages/user-detail"));
 
-// Pages use family-prefixed routes except the dashboard; PAGE_ROUTES supplies their paths.
+// Every page path comes from PAGE_ROUTES; the engine pages sit under the console section, account and admin at the root.
 const router = createBrowserRouter([
   // OIDC callback and login stay outside the shell and auth guard.
-    { path: "auth/callback", element: <AuthCallbackPage /> },
-  { path: "login", element: <LoginPage /> },
+  { path: routePath(PAGE_ROUTES.AUTH_CALLBACK), element: <AuthCallbackPage /> },
+  { path: routePath(PAGE_ROUTES.LOGIN), element: <LoginPage /> },
   {
     element: (
       <RequireAuth>
@@ -55,21 +55,9 @@ const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <DashboardPage /> },
-      {
-        path: routePath(PAGE_ROUTES.MY),
-        element: <MyLayout />,
-        children: [
-          { index: true, element: <MyProfilePage /> },
-          { path: "settings", element: <MySettingsPage /> },
-          { path: "access", element: <MyAccessPage /> },
-        ],
-      },
-      { path: "profile", element: <Navigate to={PAGE_ROUTES.MY} replace /> },
-      { path: "settings", element: <Navigate to={PAGE_ROUTES.MY_SETTINGS} replace /> },
-      { path: routePath(PAGE_ROUTES.ACCESS), element: <AccessPage /> },
-      { path: routePath(PAGE_ROUTES.USERS), element: <UsersPage /> },
-      { path: `${routePath(PAGE_ROUTES.USERS)}/:subject`, element: <UserDetailPage /> },
+      // the console section: engine pages and the instance list, all under one prefix
+      { path: routePath(PAGE_ROUTES.CONSOLE), element: <Navigate to={PAGE_ROUTES.INSTANCES} replace /> },
+      { path: routePath(PAGE_ROUTES.INSTANCES), element: <DashboardPage /> },
       {
         path: routePath(PAGE_ROUTES.INSTANCE_DETAIL(":id")),
         element: <InstanceLayout />,
@@ -93,7 +81,23 @@ const router = createBrowserRouter([
       { path: routePath(PAGE_ROUTES.MONGODB.REQUESTS), element: <MongoRequestsPage /> },
       { path: routePath(PAGE_ROUTES.MONGODB.REQUEST_NEW), element: <MongoRequestNewPage /> },
       { path: `${routePath(PAGE_ROUTES.MONGODB.REQUESTS)}/:id`, element: <MongoRequestDetailPage /> },
-      { path: "*", element: <Navigate to={PAGE_ROUTES.DASHBOARD} replace /> },
+      // the account section keeps its own paths
+      {
+        path: routePath(PAGE_ROUTES.MY),
+        element: <MyLayout />,
+        children: [
+          { index: true, element: <MyProfilePage /> },
+          { path: "settings", element: <MySettingsPage /> },
+          { path: "access", element: <MyAccessPage /> },
+        ],
+      },
+      { path: routePath(PAGE_ROUTES.ACCESS), element: <AccessPage /> },
+      { path: routePath(PAGE_ROUTES.USERS), element: <UsersPage /> },
+      { path: `${routePath(PAGE_ROUTES.USERS)}/:subject`, element: <UserDetailPage /> },
+      // the retired shorthand paths, the origin root, and any unknown path all land on the console list
+      { path: "profile", element: <Navigate to={PAGE_ROUTES.MY} replace /> },
+      { path: "settings", element: <Navigate to={PAGE_ROUTES.MY_SETTINGS} replace /> },
+      { path: "*", element: <Navigate to={PAGE_ROUTES.INSTANCES} replace /> },
     ],
   },
 ]);

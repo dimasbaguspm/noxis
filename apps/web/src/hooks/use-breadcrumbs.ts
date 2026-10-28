@@ -1,5 +1,6 @@
 import { useLocation, useParams } from "react-router-dom";
 import { findNav } from "@/lib/nav";
+import { PAGE_ROUTES } from "@/lib/routes";
 
 export interface Crumb {
   label: string;
@@ -11,11 +12,11 @@ export function useBreadcrumbs(): Crumb[] {
   const { pathname } = useLocation();
   const { id } = useParams();
 
-  if (pathname === "/") return [{ label: "Instances" }];
+  if (pathname === PAGE_ROUTES.INSTANCES) return [{ label: "Instances" }];
 
-  // instances are one stable page under the dashboard's instance list
-  if (pathname.startsWith("/instances/")) {
-    return [{ label: "Instances", to: "/" }, { label: "Instance detail" }];
+  // the instance tabs live under the console's instance list
+  if (pathname.startsWith(`${PAGE_ROUTES.INSTANCES}/`)) {
+    return [{ label: "Instances", to: PAGE_ROUTES.INSTANCES }, { label: "Instance detail" }];
   }
 
   const segments = pathname.split("/").filter(Boolean);
@@ -23,7 +24,7 @@ export function useBreadcrumbs(): Crumb[] {
   const target = direct.item ? pathname : `/${segments.slice(0, 2).join("/")}`;
   const { group, item } = direct.item ? direct : findNav(target);
 
-  const crumbs: Crumb[] = [{ label: "Instances", to: "/" }];
+  const crumbs: Crumb[] = [{ label: "Instances", to: PAGE_ROUTES.INSTANCES }];
   if (group) crumbs.push({ label: group });
   if (item) crumbs.push({ label: item.label, to: direct.item ? undefined : target });
   else crumbs.push({ label: segments.at(-1) ?? "" });

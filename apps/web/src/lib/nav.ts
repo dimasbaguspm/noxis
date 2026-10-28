@@ -1,5 +1,6 @@
 import { LayoutDashboard } from "lucide-react";
 import { FAMILIES, type NavItem } from "./families";
+import { PAGE_ROUTES } from "./routes";
 
 export type { NavItem };
 
@@ -11,7 +12,7 @@ export interface NavGroup {
 // NAV is the shared source for sidebar, page search, and breadcrumbs.
 export const NAV: NavGroup[] = [
   {
-    items: [{ to: "/", label: "Instances", icon: LayoutDashboard, end: true }],
+    items: [{ to: PAGE_ROUTES.INSTANCES, label: "Instances", icon: LayoutDashboard, end: true }],
   },
   ...FAMILIES.map((family) => ({ label: family.label, items: family.nav })),
 ];
