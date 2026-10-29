@@ -35,6 +35,8 @@ type SQLModule interface {
 	Rows(ctx context.Context, c entity.Connection, schema, table string, limit int) (Result, error)
 	VerifyWrite(sqlText string) error
 	Kind(sqlText string) string
+	// ServerInfo reports what the connected server says about itself: engine, detected version, and what that profile can prove.
+	ServerInfo(ctx context.Context, c entity.Connection) (entity.ServerInfo, error)
 	// Referenced reports the tables and columns a batch mentions, so a change records what it touches without the caller parsing SQL.
 	Referenced(sqlText string) (tables []string, columns []string)
 }

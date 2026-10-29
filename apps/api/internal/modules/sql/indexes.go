@@ -26,16 +26,48 @@ FROM information_schema.statistics
 WHERE table_schema NOT IN ('pg_catalog', 'information_schema', 'mysql', 'performance_schema', 'sys')
 ORDER BY table_schema, table_name, index_name, seq_in_index`
 
+// The catalog queries the rest of the browser reads. An engine without one reports nothing: its dialect entry leaves the query empty.
+const (
+	estimatesQueryPostgres = `
+		SELECT n.nspname, c.relname, c.reltuples, pg_total_relation_size(c.oid)
+		FROM pg_class c
+		JOIN pg_namespace n ON n.oid = c.relnamespace
+		WHERE c.relkind IN ('r', 'p') AND n.nspname NOT IN ('pg_catalog', 'information_schema')`
+
+	estimatesQueryMySQL = `
+			SELECT table_schema, table_name, table_rows,
+			       COALESCE(data_length, 0) + COALESCE(index_length, 0)
+			FROM information_schema.tables
+			WHERE table_schema NOT IN ('pg_catalog', 'information_schema', 'mysql', 'performance_schema', 'sys')
+			  AND table_type = 'BASE TABLE'`
+
+	commentsQueryPostgres = `
+		SELECT n.nspname, c.relname, COALESCE(obj_description(c.oid, 'pg_class'), '')
+		FROM pg_class c
+		JOIN pg_namespace n ON n.oid = c.relnamespace
+		WHERE c.relkind IN ('r', 'p', 'v', 'm') AND n.nspname NOT IN ('pg_catalog', 'information_schema')`
+
+	commentsQueryMySQL = `
+			SELECT table_schema, table_name, COALESCE(table_comment, '')
+			FROM information_schema.tables
+			WHERE table_schema NOT IN ('pg_catalog', 'information_schema', 'mysql', 'performance_schema', 'sys')
+			  AND table_type = 'BASE TABLE'`
+)
+
 // attachIndexes fills each table's indexes; SQLite reads its pragmas per table.
+// attachIndexes fills each table's indexes from the catalog; an engine without information_schema reads its pragmas per table instead.
 func attachIndexes(ctx context.Context, db *stdsql.DB, driver string, tables []entity.Table) error {
-	if isSQLite(driver) {
+	d, err := dialectOf(driver)
+	if err != nil {
+		return err
+	}
+	if d.catalogPerTable {
 		return attachIndexesSQLite(ctx, db, tables)
 	}
-	query := indexesQueryPostgres
-	if isMySQL(driver) {
-		query = indexesQueryMySQL
+	if d.indexesQuery == "" {
+		return nil
 	}
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.QueryContext(ctx, d.indexesQuery)
 	if err != nil {
 		return fmt.Errorf("list indexes: %w", err)
 	}
@@ -43,28 +75,20 @@ func attachIndexes(ctx context.Context, db *stdsql.DB, driver string, tables []e
 	index := tableIndex(tables)
 	last, lastName := -1, ""
 	for rows.Next() {
-		var schema, table, name string
-		var unique, primary bool
-		var column stdsql.NullString
-		if isMySQL(driver) {
-			var nonUnique int
-			if err := rows.Scan(&schema, &table, &name, &nonUnique, &column); err != nil {
-				return err
-			}
-			unique, primary = nonUnique == 0, name == "PRIMARY"
-		} else if err := rows.Scan(&schema, &table, &name, &unique, &primary, &column); err != nil {
+		row, err := d.scanIndex(rows)
+		if err != nil {
 			return err
 		}
-		i, ok := index[refKey(schema, table)]
+		i, ok := index[refKey(row.schema, row.table)]
 		if !ok {
 			continue
 		}
-		if last != i || lastName != name {
-			tables[i].Indexes = append(tables[i].Indexes, entity.Index{Name: name, Unique: unique, Primary: primary})
-			last, lastName = i, name
+		if last != i || lastName != row.name {
+			tables[i].Indexes = append(tables[i].Indexes, entity.Index{Name: row.name, Unique: row.unique, Primary: row.primary})
+			last, lastName = i, row.name
 		}
-		if column.Valid {
-			tables[i].Indexes[len(tables[i].Indexes)-1].Columns = append(tables[i].Indexes[len(tables[i].Indexes)-1].Columns, column.String)
+		if row.column.Valid {
+			tables[i].Indexes[len(tables[i].Indexes)-1].Columns = append(tables[i].Indexes[len(tables[i].Indexes)-1].Columns, row.column.String)
 		}
 	}
 	return rows.Err()
@@ -123,76 +147,54 @@ func attachIndexesSQLite(ctx context.Context, db *stdsql.DB, tables []entity.Tab
 	return nil
 }
 
-// attachEstimates fills planner row estimates where the catalog reports them; SQLite has no statistics catalog.
+// attachEstimates fills planner row estimates where the catalog reports them; an engine without a statistics catalog reads its pages instead.
 func attachEstimates(ctx context.Context, db *stdsql.DB, driver string, tables []entity.Table) error {
-	if isSQLite(driver) {
+	d, err := dialectOf(driver)
+	if err != nil {
+		return err
+	}
+	if d.catalogPerTable {
 		return attachSizesSQLite(ctx, db, tables)
 	}
-	query := `
-		SELECT n.nspname, c.relname, c.reltuples, pg_total_relation_size(c.oid)
-		FROM pg_class c
-		JOIN pg_namespace n ON n.oid = c.relnamespace
-		WHERE c.relkind IN ('r', 'p') AND n.nspname NOT IN ('pg_catalog', 'information_schema')`
-	if isMySQL(driver) {
-		query = `
-			SELECT table_schema, table_name, table_rows,
-			       COALESCE(data_length, 0) + COALESCE(index_length, 0)
-			FROM information_schema.tables
-			WHERE table_schema NOT IN ('pg_catalog', 'information_schema', 'mysql', 'performance_schema', 'sys')
-			  AND table_type = 'BASE TABLE'`
+	if d.estimatesQuery == "" {
+		return nil
 	}
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.QueryContext(ctx, d.estimatesQuery)
 	if err != nil {
 		return fmt.Errorf("list row estimates: %w", err)
 	}
 	defer rows.Close()
 	index := tableIndex(tables)
 	for rows.Next() {
-		var schema, table string
-		var estimate stdsql.NullFloat64
-		var size stdsql.NullInt64
-		if isMySQL(driver) {
-			var n stdsql.NullInt64
-			if err := rows.Scan(&schema, &table, &n, &size); err != nil {
-				return err
-			}
-			if n.Valid {
-				estimate = stdsql.NullFloat64{Float64: float64(n.Int64), Valid: true}
-			}
-		} else if err := rows.Scan(&schema, &table, &estimate, &size); err != nil {
+		row, err := d.scanEstimate(rows)
+		if err != nil {
 			return err
 		}
-		if i, ok := index[refKey(schema, table)]; ok {
-			if estimate.Valid && estimate.Float64 >= 0 {
-				n := int64(estimate.Float64)
-				tables[i].EstimatedRows = &n
-			}
-			if size.Valid {
-				tables[i].SizeBytes = &size.Int64
-			}
+		i, ok := index[refKey(row.schema, row.table)]
+		if !ok {
+			continue
+		}
+		if row.estimate.Valid && row.estimate.Float64 >= 0 {
+			n := int64(row.estimate.Float64)
+			tables[i].EstimatedRows = &n
+		}
+		if row.size.Valid {
+			tables[i].SizeBytes = &row.size.Int64
 		}
 	}
 	return rows.Err()
 }
 
-// attachComments fills the table comment from the catalog; SQLite has no native table comments.
+// attachComments fills the table comment from the catalog; an engine without table comments reports none.
 func attachComments(ctx context.Context, db *stdsql.DB, driver string, tables []entity.Table) error {
-	if isSQLite(driver) {
+	d, err := dialectOf(driver)
+	if err != nil {
+		return err
+	}
+	if d.commentsQuery == "" {
 		return nil
 	}
-	query := `
-		SELECT n.nspname, c.relname, COALESCE(obj_description(c.oid, 'pg_class'), '')
-		FROM pg_class c
-		JOIN pg_namespace n ON n.oid = c.relnamespace
-		WHERE c.relkind IN ('r', 'p', 'v', 'm') AND n.nspname NOT IN ('pg_catalog', 'information_schema')`
-	if isMySQL(driver) {
-		query = `
-			SELECT table_schema, table_name, COALESCE(table_comment, '')
-			FROM information_schema.tables
-			WHERE table_schema NOT IN ('pg_catalog', 'information_schema', 'mysql', 'performance_schema', 'sys')
-			  AND table_type = 'BASE TABLE'`
-	}
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.QueryContext(ctx, d.commentsQuery)
 	if err != nil {
 		return fmt.Errorf("list table comments: %w", err)
 	}

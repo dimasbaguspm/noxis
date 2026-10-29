@@ -78,18 +78,6 @@ func TestQualifiedIdent(t *testing.T) {
 	}
 }
 
-func TestTransactionSafe(t *testing.T) {
-	if !transactionSafe(constants.DriverPostgres, "DROP TABLE public.victim") {
-		t.Fatal("qualified postgres statement must use a live transaction")
-	}
-	if !transactionSafe(constants.DriverMySQL, "UPDATE items SET name = 'x'") {
-		t.Fatal("mysql DML can use a live transaction")
-	}
-	if transactionSafe(constants.DriverMySQL, "DROP TABLE demo.victim") {
-		t.Fatal("qualified mysql DDL cannot use a live transaction")
-	}
-}
-
 func TestSQLiteRejectsUnrestoredRollback(t *testing.T) {
 	conn := newSQLiteFile(t)
 	u := New()

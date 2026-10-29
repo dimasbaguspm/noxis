@@ -44,6 +44,8 @@ services:
         condition: service_healthy
       mysql:
         condition: service_healthy
+      cockroach:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9000/healthz"]
       interval: 5s
@@ -153,6 +155,19 @@ services:
     depends_on:
       noxis:
         condition: service_healthy
+
+  # CockroachDB speaks the postgres wire: one service proves a new engine is a profile entry, not a module.
+  cockroach:
+    image: cockroachdb/cockroach:v24.1.5
+    command: start-single-node --insecure
+    expose:
+      - "26257"
+    healthcheck:
+      test: ["CMD", "cockroach", "sql", "--insecure", "--execute=SELECT 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
 volumes:
   noxis-data:

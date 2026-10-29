@@ -13,7 +13,11 @@ const sysSchemaFilter = `table_schema NOT IN ('pg_catalog', 'information_schema'
 
 // listTables reports every browsable table with its columns and declared keys, so the schema browser and the ERD view read one pass per driver.
 func listTables(ctx context.Context, db *stdsql.DB, driver string) ([]entity.Table, error) {
-	if isSQLite(driver) {
+	d, err := dialectOf(driver)
+	if err != nil {
+		return nil, err
+	}
+	if d.catalogPerTable {
 		tables, err := listTablesSQLite(ctx, db)
 		if err != nil {
 			return nil, err

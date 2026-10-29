@@ -33,6 +33,7 @@ func (w *world) sqlSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the schema does not list table "([^"]*)"$`, w.schemaOmits)
 	sc.Step(`^table "([^"]*)" has (\d+) row\(s\)$`, w.tableRows)
 	sc.Step("no scratch schemas remain", w.noScratchSchemas)
+	sc.Step("the server reports its version and capabilities", w.serverReportsVersion)
 }
 
 func (w *world) read(ctx context.Context, sqlText string) error {

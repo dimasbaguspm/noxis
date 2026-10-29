@@ -9,14 +9,12 @@ import (
 
 // estimateRows asks the planner how many rows a read will touch (EXPLAIN only — the query is not executed).
 func estimateRows(ctx context.Context, db *stdsql.DB, driver, stmt string) int64 {
-	if isSQLite(driver) {
-		// SQLite's EXPLAIN QUERY PLAN reports access paths, not row counts.
+	d, err := dialectOf(driver)
+	if err != nil || d.explain == "" {
+		// an engine that reports access paths instead of row counts has no estimate to give
 		return 0
 	}
-	q := "EXPLAIN (FORMAT JSON) " + stmt
-	if isMySQL(driver) {
-		q = "EXPLAIN FORMAT=JSON " + stmt
-	}
+	q := d.explain + stmt
 	var raw string
 	if err := db.QueryRowContext(ctx, q).Scan(&raw); err != nil {
 		return 0

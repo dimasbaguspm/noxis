@@ -174,6 +174,21 @@ func (mr *MockSQLModuleMockRecorder) Rows(ctx, c, schema, table, limit any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Rows", reflect.TypeOf((*MockSQLModule)(nil).Rows), ctx, c, schema, table, limit)
 }
 
+// ServerInfo mocks base method.
+func (m *MockSQLModule) ServerInfo(ctx context.Context, c entity.Connection) (entity.ServerInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ServerInfo", ctx, c)
+	ret0, _ := ret[0].(entity.ServerInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ServerInfo indicates an expected call of ServerInfo.
+func (mr *MockSQLModuleMockRecorder) ServerInfo(ctx, c any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServerInfo", reflect.TypeOf((*MockSQLModule)(nil).ServerInfo), ctx, c)
+}
+
 // Supports mocks base method.
 func (m *MockSQLModule) Supports(driver string) bool {
 	m.ctrl.T.Helper()

@@ -65,6 +65,7 @@ func routes(d app, cfg config.Config) []route {
 		// SQL-only: schema, row preview and the console ops.
 		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/schema", Handler: http.HandlerFunc(d.Schema.Serve)},
 		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/erd", Handler: http.HandlerFunc(d.ERD.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/info", Handler: http.HandlerFunc(d.Info.Serve)},
 		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/tables/{table}/rows", Handler: http.HandlerFunc(d.Rows.Serve)},
 		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/connections/{name}/operations", Handler: http.HandlerFunc(d.Op.Serve)},
 
