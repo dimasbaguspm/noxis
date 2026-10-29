@@ -1,12 +1,14 @@
-Feature: SQL direct operations and the change artifact routes
-  A write can be run directly (alter), and a reviewed change can be opened and
+Feature: SQL console operations and the change artifact routes
+  A write only happens through a reviewed change, and a change can be opened and
   scheduled by id, so every SQL route has a representative flow.
 
   Background:
     Given the stack is running
     And connection "demo" is registered
 
-  Scenario: a direct write creates a table and the browser sees it
+  Scenario: a direct write is refused and the reviewed path creates the table
+    When a direct write "CREATE TABLE IF NOT EXISTS uat_direct (id INT)" is refused
+    Then the schema does not list table "uat_direct"
     When I run the write "CREATE TABLE IF NOT EXISTS uat_direct (id INT)"
     Then the schema lists table "uat_direct"
     And table "uat_direct" has 0 row(s)

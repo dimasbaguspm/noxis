@@ -42,21 +42,6 @@ func (m *MockSQLModule) EXPECT() *MockSQLModuleMockRecorder {
 	return m.recorder
 }
 
-// Alter mocks base method.
-func (m *MockSQLModule) Alter(ctx context.Context, c entity.Connection, sqlText string) (interfaces.Result, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Alter", ctx, c, sqlText)
-	ret0, _ := ret[0].(interfaces.Result)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Alter indicates an expected call of Alter.
-func (mr *MockSQLModuleMockRecorder) Alter(ctx, c, sqlText any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Alter", reflect.TypeOf((*MockSQLModule)(nil).Alter), ctx, c, sqlText)
-}
-
 // Analyze mocks base method.
 func (m *MockSQLModule) Analyze(ctx context.Context, c entity.Connection, table string) (interfaces.Result, error) {
 	m.ctrl.T.Helper()

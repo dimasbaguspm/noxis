@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -13,11 +14,16 @@ import (
 	"noxis/internal/usecases"
 )
 
+// opNames are the console operations that still run directly. Alter is retired: every write goes through a reviewed change, so the console has one write path, not two.
 var opNames = map[string]bool{
 	constants.OpQuery:    true,
-	constants.OpAlter:    true,
 	constants.OpRollback: true,
 	constants.OpAnalyze:  true,
+}
+
+// retiredOps names the operations that no longer execute, with the instruction to answer instead. An instruction beats an unknown-operation error: the caller learns where the write went.
+var retiredOps = map[string]string{
+	constants.OpAlter: "the alter operation is retired; submit a change to /external/v1/engine/{engine}/changes, approve it, then apply it",
 }
 
 // Op runs a direct SQL console operation.
@@ -46,6 +52,10 @@ func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	operation := body.Op
+	if retired, ok := retiredOps[operation]; ok {
+		uc.Fail(ctx, w, errors.New(retired))
+		return
+	}
 	if !opNames[operation] {
 		uc.Fail(ctx, w, fmt.Errorf("unknown operation %q", operation))
 		return
@@ -60,8 +70,6 @@ func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 	switch operation {
 	case constants.OpQuery:
 		result, err = module.Query(ctx, *connection, body.SQL)
-	case constants.OpAlter:
-		result, err = module.Alter(ctx, *connection, body.SQL)
 	case constants.OpRollback:
 		result, err = module.DryRun(ctx, *connection, body.SQL)
 	case constants.OpAnalyze:

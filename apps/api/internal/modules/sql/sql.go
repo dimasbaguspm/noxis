@@ -96,14 +96,9 @@ func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 	return err
 }
 
-// Query runs read-only statements; DML and DDL are rejected (writes belong on Alter or the change workflow).
+// Query runs read-only statements; DML and DDL are rejected (writes go through the change workflow).
 func (db *DB) Query(ctx context.Context, c entity.Connection, sqlText string) (Result, error) {
 	return db.verifyRun(ctx, c, sqlText, reads)
-}
-
-// Alter applies writes: DML and DDL; reads are rejected.
-func (db *DB) Alter(ctx context.Context, c entity.Connection, sqlText string) (Result, error) {
-	return db.verifyRun(ctx, c, sqlText, writes)
 }
 
 func (db *DB) verifyRun(ctx context.Context, c entity.Connection, sqlText string, allowed kindSet) (res Result, err error) {
