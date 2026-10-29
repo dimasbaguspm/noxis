@@ -61,8 +61,11 @@ func attachIndexes(ctx context.Context, db *stdsql.DB, driver string, tables []e
 	if err != nil {
 		return err
 	}
-	if d.indexesQuery == "" {
+	if d.catalogPerTable {
 		return attachIndexesSQLite(ctx, db, tables)
+	}
+	if d.indexesQuery == "" {
+		return nil
 	}
 	rows, err := db.QueryContext(ctx, d.indexesQuery)
 	if err != nil {
@@ -150,8 +153,11 @@ func attachEstimates(ctx context.Context, db *stdsql.DB, driver string, tables [
 	if err != nil {
 		return err
 	}
-	if d.estimatesQuery == "" {
+	if d.catalogPerTable {
 		return attachSizesSQLite(ctx, db, tables)
+	}
+	if d.estimatesQuery == "" {
+		return nil
 	}
 	rows, err := db.QueryContext(ctx, d.estimatesQuery)
 	if err != nil {

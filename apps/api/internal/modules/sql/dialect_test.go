@@ -13,6 +13,7 @@ func TestEveryDriverHasACompleteProfile(t *testing.T) {
 		constants.DriverMySQL,
 		constants.DriverMariaDB,
 		constants.DriverSQLite,
+		constants.DriverCockroach,
 	}
 	for _, name := range drivers {
 		d, ok := dialectByName[name]
@@ -29,8 +30,9 @@ func TestEveryDriverHasACompleteProfile(t *testing.T) {
 			// a per-table catalog reads pragmas, so it carries no information_schema query
 			continue
 		}
-		if d.keysQuery == "" || d.indexesQuery == "" || d.estimatesQuery == "" {
-			t.Errorf("%s: catalog queries missing", name)
+		// estimates and comments are capabilities, not requirements: an engine that reports neither is still browsable, and capabilities() says so out loud.
+		if d.keysQuery == "" || d.indexesQuery == "" {
+			t.Errorf("%s: the catalog queries the browser depends on are missing", name)
 		}
 		if d.scanIndex == nil || d.scanEstimate == nil {
 			t.Errorf("%s: catalog row decoders missing", name)
@@ -52,6 +54,7 @@ func TestTransactionalRule(t *testing.T) {
 		want   bool
 	}{
 		{constants.DriverSQLite, "CREATE TABLE t (id INT)", true},
+		{constants.DriverCockroach, "CREATE TABLE t (id INT)", true},
 		{constants.DriverPostgres, "UPDATE t SET id = 1", false},
 		{constants.DriverPostgres, "UPDATE public.t SET id = 1", true},
 		{constants.DriverMySQL, "UPDATE t SET id = 1", true},
