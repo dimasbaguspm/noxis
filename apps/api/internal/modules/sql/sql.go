@@ -20,7 +20,7 @@ const (
 )
 
 // DB runs verified SQL against registered connections.
-type DB struct{}
+type DB struct{ info infoCache }
 
 func New() *DB { return &DB{} }
 

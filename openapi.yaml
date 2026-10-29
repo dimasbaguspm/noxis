@@ -760,6 +760,41 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
+  "/external/v1/engine/{engine}/connections/{name}/info":
+    get:
+      summary: What the connected server reports about itself
+      parameters:
+        - description: engine family (sql)
+          name: engine
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ServerInfo"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
   "/external/v1/engine/{engine}/connections/{name}/keys":
     get:
       summary: Browse keys by pattern (bounded scan, with type, TTL and size)
@@ -2095,6 +2130,22 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/entity.Table"
+    entity.ServerInfo:
+      type: object
+      properties:
+        capabilities:
+          description: Capabilities names what this profile lets the console prove, in the
+            operator's words.
+          type: array
+          items:
+            type: string
+        engine:
+          description: Engine is the driver family the connection speaks (postgres, mysql,
+            sqlite).
+          type: string
+        version:
+          description: Version is the version string the server reported.
+          type: string
     entity.StatusResponse:
       type: object
       properties:

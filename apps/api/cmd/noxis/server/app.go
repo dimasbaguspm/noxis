@@ -54,6 +54,7 @@ type app struct {
 
 	Schema schema.Tables
 	ERD    schema.ERD
+	Info   schema.Info
 	Rows   schema.Rows
 	Op     schema.Op
 
@@ -139,6 +140,7 @@ func newApp(s sources) app {
 		ERD:    schema.ERD{RegistryDeps: deps},
 		Rows:   schema.Rows{RegistryDeps: deps},
 		Op:     schema.Op{RegistryDeps: deps},
+		Info:   schema.Info{RegistryDeps: deps},
 
 		Members:          permission.Members{RegistryDeps: deps},
 		AccessMatrix:     permission.Matrix{RegistryDeps: deps},
