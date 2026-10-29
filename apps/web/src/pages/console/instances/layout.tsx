@@ -15,6 +15,7 @@ import {
 import { Database, KeyRound, MoreHorizontal, Trash2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { useConnectionInfo } from "@/hooks/use-connection-info";
 import { Button } from "@/components/ui/button";
 import { CardDescription } from "@/components/ui/card";
 import {
@@ -220,6 +221,7 @@ export default function InstanceLayout() {
     updateSchema,
   };
 
+  const info = useConnectionInfo(instance.name);
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -231,6 +233,11 @@ export default function InstanceLayout() {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-base font-medium">{instance.name}</h1>
               <Badge variant="secondary">{instance.driver}</Badge>
+              {info.data && (
+                <Badge variant="outline">
+                  {info.data.engine} {info.data.version}
+                </Badge>
+              )}
             </div>
             <CardDescription>{meta.label}</CardDescription>
           </div>

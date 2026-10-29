@@ -159,6 +159,9 @@ export class ApiClient {
         this.request<{ tables: Table[] }>("GET", this.connectionPath(FAMILY.SQL, name, "/schema")),
       erd: (name: string) =>
         this.request<SchemaGraph>("GET", this.connectionPath(FAMILY.SQL, name, "/erd")),
+      // info is what the server says about itself: the version it runs and what that version lets the console prove.
+      info: (name: string) =>
+        this.request<ServerInfo>("GET", this.connectionPath(FAMILY.SQL, name, "/info")),
       rows: (name: string, schema: string, table: string, limit = 100) =>
         this.request<Result>(
           "GET",
@@ -352,3 +355,10 @@ export class ApiClient {
 
 // api is the console's one client; pages never construct their own.
 export const api = new ApiClient().groups;
+
+// ServerInfo is what a connected server reports about itself: the engine, the version it detected, and what that profile lets the console prove.
+export interface ServerInfo {
+  engine: string;
+  version: string;
+  capabilities: string[];
+}

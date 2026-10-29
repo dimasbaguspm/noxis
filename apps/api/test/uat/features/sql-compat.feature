@@ -67,3 +67,14 @@ Feature: one SQL engine that behaves the same on every supported database
       | driver  |
       | mysql   |
       | mariadb |
+
+  Scenario Outline: the server reports its own version on <driver>
+    Given connection "compat_<driver>" is registered for driver "<driver>"
+    Then the server reports its version and capabilities
+
+    Examples:
+      | driver   |
+      | postgres |
+      | mysql    |
+      | mariadb  |
+      | sqlite   |
