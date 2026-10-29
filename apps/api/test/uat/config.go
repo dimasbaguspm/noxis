@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // target maps a test driver to its compose service and resolved credentials.
@@ -106,5 +107,7 @@ func loadTargets() error {
 			Password: env(host["mongo"], "MONGO_INITDB_ROOT_PASSWORD"), Database: env(host["mongo"], "MONGO_INITDB_DATABASE"),
 		},
 	}
+	// sqlite is file-backed: it has no compose service and no host, so its database is a path on the noxis data volume. The path carries the run, so a volume kept by UAT_KEEP cannot leak state into the next run.
+	targets["sqlite"] = target{Driver: "sqlite", Database: fmt.Sprintf("/data/uat-compat-%d.db", time.Now().UnixNano())}
 	return nil
 }
