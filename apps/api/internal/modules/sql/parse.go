@@ -198,18 +198,4 @@ func qualify(c entity.Connection, schema, table string) string {
 	return quoteRef(c.Driver, schema, table)
 }
 
-// quoteRef is the driver-aware identifier quoting qualify and the scratch verifier share.
-func quoteRef(driver, schema, table string) string {
-	if isMySQL(driver) {
-		if schema != "" {
-			return "`" + schema + "`.`" + table + "`"
-		}
-		return "`" + table + "`"
-	}
-	if schema != "" {
-		return `"` + schema + `"."` + table + `"`
-	}
-	return `"` + table + `"`
-}
-
 func itoa(n int) string { return strconv.Itoa(n) }
