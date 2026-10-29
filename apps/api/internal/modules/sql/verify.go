@@ -596,13 +596,6 @@ func copyColumns(ctx context.Context, conn *stdsql.Conn, driver, schema, table s
 	return columns, identity, nil
 }
 
-func quoteColumn(driver, name string) string {
-	if isMySQL(driver) {
-		return "`" + strings.ReplaceAll(name, "`", "``") + "`"
-	}
-	return `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
-}
-
 func createScratch(ctx context.Context, conn *stdsql.Conn, driver, schema string) error {
 	stmt := `CREATE SCHEMA "` + schema + `"`
 	if isMySQL(driver) {

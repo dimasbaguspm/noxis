@@ -33,7 +33,7 @@ var _ interfaces.SQLModule = (*DB)(nil)
 // withDB opens a short-lived pool (control-plane rates) for one operation.
 func withDB[T any](c entity.Connection, fn func(db *stdsql.DB) (T, error)) (T, error) {
 	var zero T
-	driver, err := sqlDriver(c.Driver)
+	d, err := dialectOf(c.Driver)
 	if err != nil {
 		return zero, err
 	}
@@ -41,18 +41,13 @@ func withDB[T any](c entity.Connection, fn func(db *stdsql.DB) (T, error)) (T, e
 	if err != nil {
 		return zero, err
 	}
-	db, err := stdsql.Open(driver, conn)
+	db, err := stdsql.Open(d.driver, conn)
 	if err != nil {
 		return zero, fmt.Errorf("open %s: %w", c.Name, err)
 	}
 	defer db.Close()
-	if isSQLite(c.Driver) {
-		// SQLite serializes writers; a single connection avoids "database is locked".
-		db.SetMaxOpenConns(1)
-	} else {
-		db.SetMaxOpenConns(4)
-		db.SetMaxIdleConns(2)
-	}
+	db.SetMaxOpenConns(d.maxOpenConns)
+	db.SetMaxIdleConns(d.maxIdleConns)
 	db.SetConnMaxLifetime(5 * time.Minute)
 	return fn(db)
 }
@@ -146,7 +141,12 @@ func (db *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Res
 func (db *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	if isMySQL(c.Driver) && containsDDL(sqlText) {
+	d, derr := dialectOf(c.Driver)
+	if derr != nil {
+		return Result{}, derr
+	}
+	// an engine that commits DDL implicitly would apply the batch instead of rolling it back
+	if d.txn == txnWithoutDDL && containsDDL(sqlText) {
 		return Result{}, fmt.Errorf("dry run of DDL is not safe on %s (implicit commit) — try it on a postgres connection", c.Driver)
 	}
 	started := time.Now()
@@ -261,10 +261,11 @@ func (db *DB) Analyze(ctx context.Context, c entity.Connection, table string) (r
 	if !identOK(table) {
 		return Result{}, fmt.Errorf("invalid table name %q", table)
 	}
-	stmt := "ANALYZE " + table
-	if isMySQL(c.Driver) {
-		stmt = "ANALYZE TABLE " + table
+	d, err := dialectOf(c.Driver)
+	if err != nil {
+		return Result{}, err
 	}
+	stmt := d.analyzeStmt(table)
 	return db.run(ctx, c, stmt)
 }
 
