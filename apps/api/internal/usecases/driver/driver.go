@@ -15,6 +15,7 @@ var driverCatalog = []entity.DriverInfo{
 	{Driver: constants.DriverPostgres, Family: constants.FamilySQL, Label: "PostgreSQL"},
 	{Driver: constants.DriverMySQL, Family: constants.FamilySQL, Label: "MySQL / MariaDB"},
 	{Driver: constants.DriverSQLite, Family: constants.FamilySQL, Label: "SQLite"},
+	{Driver: constants.DriverCockroach, Family: constants.FamilySQL, Label: "CockroachDB"},
 	{Driver: constants.DriverRedis, Family: constants.FamilyMemcache, Label: "Redis"},
 	{Driver: constants.DriverValkey, Family: constants.FamilyMemcache, Label: "Valkey"},
 	{Driver: constants.DriverMongo, Family: constants.FamilyMongo, Label: "MongoDB"},

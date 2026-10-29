@@ -104,11 +104,12 @@ type dialect struct {
 
 // dialectByName is the catalog. One entry per accepted driver name, so a driver cannot be half-added: dialect_test enumerates the constants and fails when an entry or a field is missing.
 var dialectByName = map[string]dialect{
-	constants.DriverPostgres: postgresDialect,
-	"postgresql":             postgresDialect, // the long form of the same engine
-	constants.DriverMySQL:    mysqlDialect,
-	constants.DriverMariaDB:  mysqlDialect, // same protocol, same catalog, a different server
-	constants.DriverSQLite:   sqliteDialect,
+	constants.DriverPostgres:  postgresDialect,
+	"postgresql":              postgresDialect, // the long form of the same engine
+	constants.DriverMySQL:     mysqlDialect,
+	constants.DriverMariaDB:   mysqlDialect, // same protocol, same catalog, a different server
+	constants.DriverSQLite:    sqliteDialect,
+	constants.DriverCockroach: cockroachDialect,
 }
 
 var postgresDialect = dialect{
@@ -191,6 +192,17 @@ var sqliteDialect = dialect{
 	mirrorTable:     "",
 	generatedColumn: "GENERATED",
 }
+
+// cockroachDialect is postgres wire with two differences that matter: DDL is transactional, so a change is proved in the live transaction, and it has no CREATE TABLE (LIKE ... INCLUDING ALL), so the scratch path must never run. Both are expressed as fields, which is the whole point of the profile.
+var cockroachDialect = func() dialect {
+	d := postgresDialect
+	d.name = constants.DriverCockroach
+	d.txn = txnAlways
+	// cockroach has no pg_total_relation_size, so it reports no size and no planner estimate; the rest of the postgres catalog works unchanged.
+	d.estimatesQuery = ""
+	d.explain = ""
+	return d
+}()
 
 // dialectOf resolves a driver name to its profile.
 func dialectOf(driver string) (dialect, error) {

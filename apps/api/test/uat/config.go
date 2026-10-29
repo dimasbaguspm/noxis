@@ -52,6 +52,7 @@ func loadTargets() error {
 	host, port := map[string]string{}, map[string]int{}
 	for driver, image := range map[string]string{
 		"postgres": "postgres", "mysql": "mysql", "mariadb": "mariadb", "mongo": "mongo",
+		"cockroach": "cockroachdb/cockroach",
 		"redis": "redis", "valkey": "valkey",
 	} {
 		h, err := hostOf(image)
@@ -109,5 +110,7 @@ func loadTargets() error {
 	}
 	// sqlite is file-backed: it has no compose service and no host, so its database is a path on the noxis data volume. The path carries the run, so a volume kept by UAT_KEEP cannot leak state into the next run.
 	targets["sqlite"] = target{Driver: "sqlite", Database: fmt.Sprintf("/data/uat-compat-%d.db", time.Now().UnixNano())}
+	// cockroach is postgres wire on a single node: root with no password, and defaultdb is the database it always has.
+	targets["cockroach"] = target{Driver: "cockroach", Host: host["cockroach"], Port: port["cockroach"], User: "root", Database: "defaultdb"}
 	return nil
 }
