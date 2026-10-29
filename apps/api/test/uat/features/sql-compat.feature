@@ -1,7 +1,7 @@
 Feature: one SQL engine that behaves the same on every supported database
   As an operator I want the console's SQL operations to work the same on
-  postgres, mysql and mariadb, so a connection's driver only changes how noxis
-  talks to it, not what an operator can do.
+  postgres, mysql, mariadb and sqlite, so a connection's driver only changes how
+  noxis talks to it, not what an operator can do.
 
   Background:
     Given the stack is running
@@ -24,6 +24,7 @@ Feature: one SQL engine that behaves the same on every supported database
       | postgres |
       | mysql    |
       | mariadb  |
+      | sqlite   |
 
   Scenario Outline: analyze and a row preview work on <driver>
     Given connection "compat_<driver>" is registered for driver "<driver>"
@@ -39,6 +40,7 @@ Feature: one SQL engine that behaves the same on every supported database
       | postgres |
       | mysql    |
       | mariadb  |
+      | sqlite   |
 
   Scenario Outline: a DML dry run rolls back on <driver>
     Given connection "compat_<driver>" is registered for driver "<driver>"
@@ -55,6 +57,7 @@ Feature: one SQL engine that behaves the same on every supported database
       | postgres |
       | mysql    |
       | mariadb  |
+      | sqlite   |
 
   Scenario Outline: a DDL dry run is refused where the engine commits DDL implicitly
     Given connection "compat_<driver>" is registered for driver "<driver>"
