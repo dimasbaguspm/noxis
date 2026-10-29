@@ -101,7 +101,7 @@ func TestSQLiteOperations(t *testing.T) {
 	if _, err := u.Query(ctx, conn, "INSERT INTO people (name) VALUES ('x')"); err == nil {
 		t.Fatal("the read path must refuse DML")
 	}
-	if _, err := u.Alter(ctx, conn, "SELECT * FROM people"); err == nil {
+	if _, err := u.Apply(ctx, conn, "SELECT * FROM people"); err == nil {
 		t.Fatal("the write path must refuse a read")
 	}
 

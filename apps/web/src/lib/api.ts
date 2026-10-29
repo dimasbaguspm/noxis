@@ -172,11 +172,6 @@ export class ApiClient {
           op: "query",
           sql,
         }),
-      alter: (name: string, sql: string) =>
-        this.request<Result>("POST", this.connectionPath(FAMILY.SQL, name, "/operations"), {
-          op: "alter",
-          sql,
-        }),
       rollback: (name: string, sql: string) =>
         this.request<Result>("POST", this.connectionPath(FAMILY.SQL, name, "/operations"), {
           op: "rollback",

@@ -27,7 +27,6 @@ type Module interface {
 type SQLModule interface {
 	Module
 	Query(ctx context.Context, c entity.Connection, sqlText string) (Result, error)
-	Alter(ctx context.Context, c entity.Connection, sqlText string) (Result, error)
 	DryRun(ctx context.Context, c entity.Connection, sqlText string) (Result, error)
 	Apply(ctx context.Context, c entity.Connection, sqlText string) (Result, error)
 	ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (Result, error)

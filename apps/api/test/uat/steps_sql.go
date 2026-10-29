@@ -19,6 +19,7 @@ type resultBody struct {
 
 func (w *world) sqlSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I read "([^"]*)"$`, w.read)
+	sc.Step(`^a direct write "([^"]*)" is refused$`, w.directWriteRefused)
 	sc.Step(`^I run the write "([^"]*)"$`, w.write)
 	sc.Step(`^I send an unknown console operation$`, w.unknownOp)
 	sc.Step(`^the request is refused as a bad request$`, w.badRequest)
@@ -59,16 +60,70 @@ func (w *world) unknownOp(ctx context.Context) error {
 	return nil
 }
 
-// write runs a direct DML/DDL statement through the alter route.
+// write runs a fixture write through the reviewed path: a direct write is retired, so a scenario that needs state submits a change, approves it and applies it — the same door the console uses.
 func (w *world) write(ctx context.Context, sqlText string) error {
+	rollback, err := undoOf(sqlText)
+	if err != nil {
+		return err
+	}
+	if err := w.submitChange(ctx, sqlText, rollback); err != nil {
+		return err
+	}
+	if err := w.approve(ctx); err != nil {
+		return err
+	}
+	return w.apply(ctx)
+}
+
+// directWriteRefused proves the operations route no longer executes a write, and that it says where the write belongs.
+func (w *world) directWriteRefused(ctx context.Context, sqlText string) error {
 	w.result = resultBody{}
 	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/operations", map[string]string{"op": "alter", "sql": sqlText}, &w.result); err != nil {
 		return err
 	}
-	if w.code != http.StatusOK {
-		return fmt.Errorf("write: %d %s", w.code, w.body)
+	if w.code != http.StatusBadRequest {
+		return fmt.Errorf("direct write: %d %s, want 400", w.code, w.body)
+	}
+	if !strings.Contains(strings.ToLower(w.body), "change") {
+		return fmt.Errorf("refusal must name the change workflow: %s", w.body)
 	}
 	return nil
+}
+
+// undoOf derives the rollback a fixture write needs, so it is reviewed like any other change: a created table is dropped and inserted rows are removed. An unrecognised statement fails loudly instead of inventing a rollback.
+func undoOf(sqlText string) (string, error) {
+	fields := strings.Fields(sqlText)
+	if len(fields) < 2 {
+		return "", fmt.Errorf("fixture write %q is too short to derive a rollback", sqlText)
+	}
+	switch strings.ToUpper(fields[0]) {
+	case "CREATE":
+		if name := nameAfter(fields, "TABLE"); name != "" {
+			return "DROP TABLE IF EXISTS " + name, nil
+		}
+	case "INSERT":
+		if name := nameAfter(fields, "INTO"); name != "" {
+			return "DELETE FROM " + name, nil
+		}
+	}
+	return "", fmt.Errorf("fixture write %q: no rollback rule for %s", sqlText, fields[0])
+}
+
+// nameAfter returns the first token after keyword that is not IF, NOT or EXISTS, with trailing punctuation trimmed.
+func nameAfter(fields []string, keyword string) string {
+	for i, f := range fields {
+		if !strings.EqualFold(f, keyword) {
+			continue
+		}
+		for _, next := range fields[i+1:] {
+			switch strings.ToUpper(next) {
+			case "IF", "NOT", "EXISTS":
+				continue
+			}
+			return strings.Trim(next, "`(),;")
+		}
+	}
+	return ""
 }
 
 func (w *world) rowCount(ctx context.Context, want int) error {
