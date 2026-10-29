@@ -35,11 +35,14 @@ const (
 
 // attachKeys fills the key flags of tables already listed by listTables.
 func attachKeys(ctx context.Context, db *stdsql.DB, driver string, tables []entity.Table) error {
-	keysQuery := keysQueryPostgres
-	if isMySQL(driver) {
-		keysQuery = keysQueryMySQL
+	d, err := dialectOf(driver)
+	if err != nil {
+		return err
 	}
-	rows, err := db.QueryContext(ctx, keysQuery)
+	if d.keysQuery == "" {
+		return nil
+	}
+	rows, err := db.QueryContext(ctx, d.keysQuery)
 	if err != nil {
 		return fmt.Errorf("list keys: %w", err)
 	}

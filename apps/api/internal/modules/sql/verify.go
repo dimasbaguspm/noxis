@@ -32,12 +32,16 @@ var qualifiedIdent = regexp.MustCompile("(?i)(?:[a-z_][a-z0-9_$]*|\"[^\"]+\"|`[^
 func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
+	d, derr := dialectOf(c.Driver)
+	if derr != nil {
+		return Result{}, derr
+	}
 	text := query + "\n" + rollback
 	// SQLite DDL is transactional; postgres can always roll back the live statements, and mysql DML can too. Only an unqualified MySQL/MariaDB DDL uses scratch.
-	if isSQLite(c.Driver) || transactionSafe(c.Driver, text) {
+	if d.transactional(text) {
 		return validateChangeTx(ctx, c, query, rollback)
 	}
-	if isMySQL(c.Driver) && containsDDL(text) && hasQualifiedIdent(text) {
+	if d.qualifiedDDLRefused(text) {
 		return Result{}, fmt.Errorf("%w: qualified names in MySQL DDL cannot be dry-run safely; use unqualified names", interfaces.ErrUnverifiable)
 	}
 	started := time.Now()
@@ -116,20 +120,6 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 		Message:       detail,
 		ScratchSchema: schema,
 	}, nil
-}
-
-// transactionSafe reports whether the batch can be proved by rolling back the live transaction instead of a scratch schema.
-func transactionSafe(driver, text string) bool {
-	if isSQLite(driver) {
-		return true
-	}
-	if isPostgres(driver) {
-		return hasQualifiedIdent(text)
-	}
-	if isMySQL(driver) {
-		return !containsDDL(text)
-	}
-	return false
 }
 
 // hasQualifiedIdent finds schema.table and table.column references; either can escape a scratch search_path.
@@ -214,29 +204,16 @@ func captureStates(ctx context.Context, q queryer, driver string, refs []verifyR
 
 // tablePresent asks the catalog, not the data, so a missing table is a normal state rather than a query error.
 func tablePresent(ctx context.Context, q queryer, driver, schema, table string) (bool, error) {
-	switch {
-	case isPostgres(driver):
-		var found stdsql.NullString
-		if err := q.QueryRowContext(ctx, `SELECT to_regclass($1)::text`, schema+"."+table).Scan(&found); err != nil {
-			return false, fmt.Errorf("look up %s.%s: %w", schema, table, err)
-		}
-		return found.Valid, nil
-	case isMySQL(driver):
-		var n int
-		if err := q.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ?`,
-			schema, table).Scan(&n); err != nil {
-			return false, fmt.Errorf("look up %s.%s: %w", schema, table, err)
-		}
-		return n > 0, nil
-	default:
-		var n int
-		if err := q.QueryRowContext(ctx,
-			`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?`, table).Scan(&n); err != nil {
-			return false, fmt.Errorf("look up %s: %w", table, err)
-		}
-		return n > 0, nil
+	d, err := dialectOf(driver)
+	if err != nil {
+		return false, err
 	}
+	// identifiers are validated by identOK; the statement inlines them because the engines do not share placeholder syntax.
+	var n int
+	if err := q.QueryRowContext(ctx, d.tablePresentStatement(schema, table)).Scan(&n); err != nil {
+		return false, fmt.Errorf("look up %s.%s: %w", schema, table, err)
+	}
+	return n > 0, nil
 }
 
 // snapshotTable records the full row count and a deterministic hash of a bounded row sample.
@@ -435,13 +412,12 @@ func splitRef(c entity.Connection, ref string) (schema, table string) {
 	if i := strings.LastIndex(ref, "."); i > 0 {
 		return ref[:i], ref[i+1:]
 	}
-	if isMySQL(c.Driver) {
+	d, err := dialectOf(c.Driver)
+	if err != nil || d.schema == "" {
+		// a bare name in a database-per-schema engine resolves to the connection's own database
 		return c.Database, ref
 	}
-	if isSQLite(c.Driver) {
-		return schemaSQLite, ref
-	}
-	return schemaPostgres, ref
+	return d.schema, ref
 }
 
 // tableExists reports whether a base table exists in the live schema.
@@ -459,12 +435,11 @@ func tableExists(ctx context.Context, conn *stdsql.Conn, schema, table string) (
 
 // mirrorTable creates a structure-only copy (columns, defaults, indexes, constraints) of a live table in the scratch schema.
 func mirrorTable(ctx context.Context, conn *stdsql.Conn, driver, scratch, schema, table string) error {
-	target, source := quoteRef(driver, scratch, table), quoteRef(driver, schema, table)
-	stmt := "CREATE TABLE " + target + " (LIKE " + source + " INCLUDING ALL)"
-	if isMySQL(driver) {
-		stmt = "CREATE TABLE " + target + " LIKE " + source
+	d, err := dialectOf(driver)
+	if err != nil {
+		return err
 	}
-	_, err := conn.ExecContext(ctx, stmt)
+	_, err = conn.ExecContext(ctx, fmt.Sprintf(d.mirrorTable, d.quoteRef(scratch, table), d.quoteRef(schema, table)))
 	return err
 }
 
@@ -596,40 +571,33 @@ func copyColumns(ctx context.Context, conn *stdsql.Conn, driver, schema, table s
 	return columns, identity, nil
 }
 
-func quoteColumn(driver, name string) string {
-	if isMySQL(driver) {
-		return "`" + strings.ReplaceAll(name, "`", "``") + "`"
-	}
-	return `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
-}
-
 func createScratch(ctx context.Context, conn *stdsql.Conn, driver, schema string) error {
-	stmt := `CREATE SCHEMA "` + schema + `"`
-	if isMySQL(driver) {
-		stmt = "CREATE DATABASE `" + schema + "`"
+	d, err := dialectOf(driver)
+	if err != nil {
+		return err
 	}
-	if _, err := conn.ExecContext(ctx, stmt); err != nil {
+	if _, err := conn.ExecContext(ctx, fmt.Sprintf(d.scratchCreate, schema)); err != nil {
 		return fmt.Errorf("create scratch schema: %w", err)
 	}
 	return nil
 }
 
 func dropScratch(ctx context.Context, conn *stdsql.Conn, driver, schema string) error {
-	stmt := `DROP SCHEMA IF EXISTS "` + schema + `" CASCADE`
-	if isMySQL(driver) {
-		stmt = "DROP DATABASE IF EXISTS `" + schema + "`"
+	d, err := dialectOf(driver)
+	if err != nil {
+		return err
 	}
-	_, err := conn.ExecContext(ctx, stmt)
+	_, err = conn.ExecContext(ctx, fmt.Sprintf(d.scratchDrop, schema))
 	return err
 }
 
 // useScratch points the pinned connection at the scratch schema so unqualified names in the change resolve there.
 func useScratch(ctx context.Context, conn *stdsql.Conn, driver, schema string) error {
-	stmt := `SET search_path TO "` + schema + `", public`
-	if isMySQL(driver) {
-		stmt = "USE `" + schema + "`"
+	d, err := dialectOf(driver)
+	if err != nil {
+		return err
 	}
-	if _, err := conn.ExecContext(ctx, stmt); err != nil {
+	if _, err := conn.ExecContext(ctx, fmt.Sprintf(d.scratchUse, schema)); err != nil {
 		return fmt.Errorf("select scratch schema: %w", err)
 	}
 	return nil
