@@ -316,3 +316,16 @@ func TestListSearchesNotesAndStatements(t *testing.T) {
 		}
 	}
 }
+
+// TestSubmitRefusesAMismatchedKind keeps a page from re-filing a change: the declared kind must match the statement's.
+func TestSubmitRefusesAMismatchedKind(t *testing.T) {
+	h := newHarness(t)
+	h.changes.EXPECT().SaveChange(gomock.Any(), gomock.Any()).Times(0)
+
+	const body = `{"connection":"demo","notes":"x","query":"CREATE TABLE things (id INT)","rollback":"DROP TABLE things","kind":"dml"}`
+	rec := h.do(testkit.Mux("POST", "/external/v1/engine/{driver}/changes", Submit{RegistryDeps: h.deps}.Serve),
+		http.MethodPost, "/external/v1/engine/postgres/changes", body, admin())
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "ddl") {
+		t.Fatalf("a mismatched kind must be refused: %d %s", rec.Code, rec.Body.String())
+	}
+}

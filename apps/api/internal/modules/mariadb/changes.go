@@ -41,7 +41,11 @@ func (changes *Changes) Submit(ctx context.Context, conn entity.Connection, acto
 		return entity.Change{}, err
 	}
 	ch.ID, ch.CreatedAt, ch.CreatedBy = idgen.UUID(), time.Now().Unix(), actor
-	ch.Kind, ch.Status = changes.Engine.Kind(ch.Query), constants.ChangeValidated
+	derived := changes.Engine.Kind(ch.Query)
+	if err := ch.RequireKind(derived); err != nil {
+		return entity.Change{}, err
+	}
+	ch.Kind, ch.Status = derived, constants.ChangeValidated
 	ch.AffectedTables, ch.AffectedColumns = changes.Engine.Referenced(ch.Query)
 	ch.Checks = []entity.ChangeCheck{{Target: "query kind"}}
 	if err := changes.Engine.VerifyWrite(ch.Query); err != nil {

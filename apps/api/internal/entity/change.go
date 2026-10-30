@@ -1,5 +1,7 @@
 package entity
 
+import "fmt"
+
 // Change is a proposed database change (SQL + rollback + notes), moving through submit → validate → approve → apply.
 type Change struct {
 	ID          string        `json:"id"`
@@ -45,3 +47,12 @@ type ChangeCheck struct {
 
 // Validate checks the required fields.
 func (c Change) Validate() error { return validate.Struct(c) }
+
+// RequireKind refuses a change whose declared kind disagrees with the kind its statement was classified as. An empty
+// declaration leaves the decision to the engine, which is what a client that predates the field does.
+func (c Change) RequireKind(derived string) error {
+	if c.Kind == "" || c.Kind == derived {
+		return nil
+	}
+	return fmt.Errorf("this is a %s change but the statement is %s", c.Kind, derived)
+}
