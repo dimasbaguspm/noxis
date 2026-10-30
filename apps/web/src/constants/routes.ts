@@ -152,6 +152,27 @@ export const ROUTES = {
     entity: "access",
     section: "driver",
   },
+  "console.instances.dml": {
+    path: "/instances/:id/changes/dml",
+    title: "DML changes",
+    label: "DML",
+    entity: "changes",
+    section: "driver",
+  },
+  "console.instances.ddl": {
+    path: "/instances/:id/changes/ddl",
+    title: "DDL changes",
+    label: "DDL",
+    entity: "changes",
+    section: "driver",
+  },
+  "console.instances.requests": {
+    path: "/instances/:id/requests",
+    title: "Requests",
+    label: "Requests",
+    entity: "requests",
+    section: "driver",
+  },
   "my.profile": {
     path: "/my/profile",
     title: "Profile",
@@ -323,6 +344,10 @@ const INSTANCE_TABS = {
   documents: "console.instances.documents",
   keys: "console.instances.keys",
   access: "console.instances.access",
+  // the review tabs keep the queue's own leaf so the tab id and the path suffix agree
+  "changes/dml": "console.instances.dml",
+  "changes/ddl": "console.instances.ddl",
+  requests: "console.instances.requests",
 } as const satisfies Record<string, RouteId>;
 
 // PAGE_ROUTES is the ergonomic view of the registry: the same paths, named by UI area.

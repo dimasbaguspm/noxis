@@ -37,17 +37,19 @@ const PER_PAGE = 20;
 const STATUS_OPTIONS = ["validated", "approved", "applied", "rejected", "failed"];
 const SKELETON_ROWS = [1, 2, 3, 4, 5];
 
-// MongoRequestsPage is the review queue: every write request waits here until someone approves and applies it. Reads never
+// RequestsQueue is the review queue: every write request waits here until someone approves and applies it. Reads never
 // appear (they run in Explore). The filters and the action row match the change queues, so a reviewer learns one layout.
-export default function MongoRequestsPage() {
-  const { driver = "" } = useParams();
+// An instance passes a scope, so its own page reviews one connection and does not offer the picker or the form.
+export function RequestsQueue({ scope }: { scope?: { driver: string; connection: string } }) {
+  const { driver: routeDriver = "" } = useParams();
+  const driver = scope?.driver ?? routeDriver;
   const { canAccess } = useAuth();
   const { connections: mongoConnections } = useDriverConnections();
   const { connections, name, status, page, setConnections, setName, setStatus, setPage } =
     useChangeListUrlParams();
-  const { changes, total = 0, isPending, isFetching, refetch } = useMongoChangesListQuery();
-  const mayWrite = mongoConnections.some((c) => canAccess(c.name, "write"));
-  const narrowed = connections.length > 0 || name.trim() !== "";
+  const { changes, total = 0, isPending, isFetching, refetch } = useMongoChangesListQuery(scope);
+  const mayWrite = !scope && mongoConnections.some((c) => canAccess(c.name, "write"));
+  const narrowed = (scope?.connection ?? "") !== "" || connections.length > 0 || name.trim() !== "";
 
   return (
     <div className="flex h-full min-h-0">
@@ -67,11 +69,18 @@ export default function MongoRequestsPage() {
               </>
             }
           >
-            <InstanceFilter
-              options={mongoConnections.map((c) => c.name)}
-              values={connections}
-              onChange={setConnections}
-            />
+            {scope ? (
+              <div className="flex flex-col gap-1.5">
+                <Label>Instance</Label>
+                <Input value={scope.connection} readOnly disabled />
+              </div>
+            ) : (
+              <InstanceFilter
+                options={mongoConnections.map((c) => c.name)}
+                values={connections}
+                onChange={setConnections}
+              />
+            )}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="request-name">Name</Label>
               <Input
@@ -207,4 +216,9 @@ function statusVariant(status?: string): "default" | "secondary" | "destructive"
       return "destructive";
   }
   return "outline";
+}
+
+// MongoRequestsPage is the driver-scoped route: the queue without a scope, so the picker and the form come back.
+export default function MongoRequestsPage() {
+  return <RequestsQueue />;
 }

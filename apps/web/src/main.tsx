@@ -21,6 +21,12 @@ const InstanceErdTab = lazy(() => import("@/pages/console/instances/erd"));
 const InstanceDocumentsTab = lazy(() => import("@/pages/console/instances/documents"));
 const InstanceKeysTab = lazy(() => import("@/pages/console/instances/keys"));
 const InstanceAccessTab = lazy(() => import("@/pages/console/instances/access"));
+const InstanceChangeQueue = lazy(() =>
+  import("@/pages/console/instances/queues").then((m) => ({ default: m.InstanceChangeQueue })),
+);
+const InstanceRequestsQueue = lazy(() =>
+  import("@/pages/console/instances/queues").then((m) => ({ default: m.InstanceRequestsQueue })),
+);
 const QueryPage = lazy(() => import("@/pages/console/query"));
 const SqlErdPage = lazy(() => import("@/pages/console/erd"));
 const DmlPage = lazy(() => import("@/pages/console/changes/dml"));
@@ -68,6 +74,9 @@ const router = createBrowserRouter([
           { path: "documents", element: <InstanceDocumentsTab /> },
           { path: "keys", element: <InstanceKeysTab /> },
           { path: "access", element: <InstanceAccessTab /> },
+          { path: "changes/dml", element: <InstanceChangeQueue kind="dml" /> },
+          { path: "changes/ddl", element: <InstanceChangeQueue kind="ddl" /> },
+          { path: "requests", element: <InstanceRequestsQueue /> },
         ],
       },
       // the driver section: one page per capability the driver's module serves

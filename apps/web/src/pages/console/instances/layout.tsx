@@ -53,7 +53,16 @@ import { useDriversQuery } from "@/hooks/use-config";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
-export type InstanceTab = "detail" | "tables" | "access" | "erd" | "documents" | "keys";
+export type InstanceTab =
+  | "detail"
+  | "tables"
+  | "access"
+  | "erd"
+  | "documents"
+  | "keys"
+  | "changes/dml"
+  | "changes/ddl"
+  | "requests";
 
 export interface InstanceContextValue {
   instance: Connection;
@@ -78,6 +87,9 @@ const TABS: Record<InstanceTab, string> = {
   erd: "ERD",
   documents: "Documents",
   keys: "Keys",
+  "changes/dml": "DML",
+  "changes/ddl": "DDL",
+  requests: "Requests",
 };
 
 // InstanceLayout is the cross-driver home of one instance: shared header, routed tabs and the lifecycle actions.
@@ -209,9 +221,12 @@ export default function InstanceLayout() {
       ? [
           { id: "tables" as const, label: TABS.tables },
           { id: "erd" as const, label: TABS.erd },
+          { id: "changes/dml" as const, label: TABS["changes/dml"] },
+          { id: "changes/ddl" as const, label: TABS["changes/ddl"] },
         ]
       : []),
     ...(documents && canRead ? [{ id: "documents" as const, label: TABS.documents }] : []),
+    ...(documents && canRead ? [{ id: "requests" as const, label: TABS.requests }] : []),
     ...(keys && canRead ? [{ id: "keys" as const, label: TABS.keys }] : []),
     ...(canAdmin ? [{ id: "access" as const, label: TABS.access }] : []),
   ];
