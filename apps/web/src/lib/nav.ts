@@ -1,6 +1,6 @@
 import { LayoutDashboard } from "lucide-react";
 import { ROUTES, pathOf } from "@/constants/routes";
-import { sections, type NavItem } from "@/lib/console-nav";
+import { driverLabel, pagesOf, type NavItem } from "@/lib/console-nav";
 import type { DriverInfo } from "@/lib/api";
 
 export type { NavItem };
@@ -10,8 +10,8 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-// navGroups is the shared source for the sidebar and the page search palette: the instances link plus one group per
-// capability, linked under the driver in the URL; the paths and labels are the route registry's.
+// navGroups is the shared source for the sidebar and the page search palette: the instances link plus the pages the
+// driver in the URL supports, named after that driver; the paths and labels are the route registry's.
 export function navGroups(catalog: DriverInfo[] | undefined, driver: string): NavGroup[] {
   return [
     {
@@ -24,7 +24,7 @@ export function navGroups(catalog: DriverInfo[] | undefined, driver: string): Na
         },
       ],
     },
-    ...sections(catalog, driver).map((section) => ({ label: section.label, items: section.nav })),
+    { label: driverLabel(catalog, driver), items: pagesOf(catalog, driver) },
   ];
 }
 

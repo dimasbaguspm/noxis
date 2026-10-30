@@ -1,12 +1,11 @@
-import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight, KeyRound, LayoutDashboard, UsersRound } from "lucide-react";
+import { KeyRound, LayoutDashboard, UsersRound } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo-mark";
-import { cn } from "@/lib/utils";
-import { sections, type Section } from "@/lib/console-nav";
+import { pagesOf, type NavItem } from "@/lib/console-nav";
 import { useDriversQuery } from "@/hooks/use-config";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { NavUser } from "@/components/layout/nav-user";
+import { DriverPicker } from "@/components/layout/driver-picker";
 import { useAuth } from "@/app/auth-provider";
 import { useDriver } from "@/hooks/use-driver";
 import {
@@ -20,11 +19,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarRail,
-  useSidebar,
 } from "@/components/ui/sidebar";
 
 const VERSION = "v0.1.0";
@@ -71,60 +66,31 @@ function InstancesMenu({ pathname }: { pathname: string }) {
   );
 }
 
-// SectionMenu expands the sidebar first when a collapsed rail hides its children.
-function SectionMenu({ section, pathname }: { section: Section; pathname: string }) {
-  const active = section.nav.some((item) => isItemActive(pathname, item.to));
-  const [open, setOpen] = useState(active);
-  const { state, isMobile, setOpen: setSidebarOpen } = useSidebar();
-  const Icon = section.icon;
-
-  function toggle() {
-    if (state === "collapsed" && !isMobile) {
-      setSidebarOpen(true);
-      setOpen(true);
-      return;
-    }
-    setOpen((value) => !value);
-  }
-
+// PageMenu is one engine page of the selected driver: a flat link, because the driver already scopes it.
+function PageMenu({ item, pathname }: { item: NavItem; pathname: string }) {
+  const Icon = item.icon;
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton isActive={active} tooltip={section.label} onClick={toggle}>
+      <SidebarMenuButton
+        render={<Link to={item.to} />}
+        isActive={isItemActive(pathname, item.to)}
+        tooltip={item.label}
+      >
         <Icon />
-        <span>{section.label}</span>
-        <ChevronRight
-          className={cn(
-            "ml-auto transition-transform duration-200 group-data-[collapsible=icon]:hidden",
-            open && "rotate-90",
-          )}
-        />
+        <span>{item.label}</span>
       </SidebarMenuButton>
-      {open && (
-        <SidebarMenuSub>
-          {section.nav.map((item) => (
-            <SidebarMenuSubItem key={item.to}>
-              <SidebarMenuSubButton
-                render={<Link to={item.to} />}
-                isActive={isItemActive(pathname, item.to)}
-              >
-                <span>{item.label}</span>
-              </SidebarMenuSubButton>
-            </SidebarMenuSubItem>
-          ))}
-        </SidebarMenuSub>
-      )}
     </SidebarMenuItem>
   );
 }
 
-// AppSidebar renders the static title and grouped instance/engine navigation. The engine groups come from the driver
-// catalog, so a driver the console has never seen still appears under the capability its module declares.
+// AppSidebar renders the static title, the instance list, the driver picker and the pages that driver supports.
+// The pages come from the driver catalog, so a driver the console has never seen still gets the pages its module serves.
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
   const { isAdmin } = useAuth();
-  const { data: drivers } = useDriversQuery();
-  // the engine pages link under the driver in the URL, so the groups need it before the picker lands
+  const { data: drivers = [] } = useDriversQuery();
   const { driver } = useDriver();
+  const pages = pagesOf(drivers, driver);
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -135,8 +101,9 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupContent className="flex flex-col gap-2">
             <SidebarMenu>
               <InstancesMenu pathname={pathname} />
-              {sections(drivers, driver).map((section) => (
-                <SectionMenu key={section.key} section={section} pathname={pathname} />
+              {drivers.length > 0 && <DriverPicker driver={driver} drivers={drivers} />}
+              {pages.map((item) => (
+                <PageMenu key={item.to} item={item} pathname={pathname} />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
