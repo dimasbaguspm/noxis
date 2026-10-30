@@ -31,6 +31,16 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Driver brand colours: one token per engine, so a monogram tile can carry its brand in either theme. */
+  --driver-postgres: oklch(0.45 0.07 246);
+  --driver-mysql: oklch(0.48 0.09 219);
+  --driver-mariadb: oklch(0.55 0.09 42);
+  --driver-sqlite: oklch(0.38 0.05 231);
+  --driver-cockroach: oklch(0.45 0.22 285);
+  --driver-redis: oklch(0.55 0.19 27);
+  --driver-valkey: oklch(0.48 0.18 268);
+  --driver-mongo: oklch(0.52 0.14 143);
+  --driver-unknown: oklch(0.45 0.02 258);
 }
 
 .dark {
@@ -60,6 +70,16 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.5 0 0);
+  /* Lightened so a monogram stays legible on the dark surface. */
+  --driver-postgres: oklch(0.78 0.06 246);
+  --driver-mysql: oklch(0.8 0.08 219);
+  --driver-mariadb: oklch(0.8 0.07 42);
+  --driver-sqlite: oklch(0.76 0.05 231);
+  --driver-cockroach: oklch(0.78 0.14 285);
+  --driver-redis: oklch(0.78 0.14 27);
+  --driver-valkey: oklch(0.78 0.13 268);
+  --driver-mongo: oklch(0.8 0.13 143);
+  --driver-unknown: oklch(0.74 0.02 258);
 }
 
 @theme inline {

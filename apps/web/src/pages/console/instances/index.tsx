@@ -29,8 +29,7 @@ import { useAuth } from "@/app/auth-provider";
 import { useDriversQuery } from "@/hooks/use-config";
 import { ALL_DRIVERS, useInstancesUrlParams, usePagedInstancesQuery } from "@/hooks/use-instances";
 import { useDebounce } from "@/hooks/use-debounce";
-import { capabilitiesOf, capabilityIcon } from "@/lib/console-nav";
-import type { DriverInfo } from "@/lib/api";
+import { DriverMark } from "@/components/brand/driver-mark";
 import { PAGE_ROUTES } from "@/constants/routes";
 
 // One row per instance, whichever driver serves it: the table shows only what they have in common, and the detail page carries the rest.
@@ -132,11 +131,7 @@ export default function DashboardPage() {
                         <TableRow key={`${c.driver}:${c.name}`}>
                           <TableCell>
                             <span className="flex items-center gap-2 text-sm">
-                              <DriverIcon
-                                driver={c.driver}
-                                catalog={drivers}
-                                className="size-3.5 text-muted-foreground"
-                              />
+                              <DriverMark driver={c.driver} className="size-4 text-[9px]" />
                               {c.name}
                             </span>
                           </TableCell>
@@ -180,19 +175,4 @@ export default function DashboardPage() {
       />
     </div>
   );
-}
-
-// DriverIcon renders the glyph of the capability a driver declares, without naming a component per driver; a driver the
-// catalog gives no capability falls back to the generic box.
-function DriverIcon({
-  driver,
-  catalog,
-  className,
-}: {
-  driver?: string;
-  catalog: DriverInfo[];
-  className?: string;
-}) {
-  const Icon = capabilityIcon(capabilitiesOf(catalog, driver));
-  return <Icon className={className} />;
 }
