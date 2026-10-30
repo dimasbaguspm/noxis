@@ -3,6 +3,8 @@ import { useParams } from "react-router-dom";
 import { api, type MongoChangeInput, type MongoRequest } from "@/lib/api";
 import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { useUrlState } from "@/hooks/use-url-state";
+import { useDebounce } from "@/hooks/use-debounce";
+import { useChangeListUrlParams } from "@/hooks/use-changes";
 import { queryClient, queryKeys } from "@/lib/query-client";
 
 // The request queue lives under the driver in the URL, the same way the change queue does.
@@ -74,12 +76,27 @@ function invalidateRequests() {
 
 export function useMongoChangesListQuery() {
   const { driver = "" } = useParams();
+  const { connections, name, status, page } = useChangeListUrlParams();
+  const search = useDebounce(name.trim());
+  const statusFilter = status === "all" ? undefined : status;
+  const targets = connections.length > 0 ? connections : [undefined];
   const query = useQuery({
-    queryKey: queryKeys.requests.list(driver),
-    queryFn: () => api.mongodb(driver).changes.list(),
+    queryKey: queryKeys.requests.list(driver, connections.join(","), search, statusFilter, page),
+    // the filters run on the server before it paginates, exactly like the SQL queues
+    queryFn: async () => {
+      const pages = await Promise.all(
+        targets.map((connection) =>
+          api.mongodb(driver).changes.list(connection, page, statusFilter, search || undefined),
+        ),
+      );
+      return {
+        changes: pages.flatMap((result) => result.changes),
+        total: pages.reduce((sum, result) => sum + result.total, 0),
+      };
+    },
     enabled: !!driver,
   });
-  return { ...query, changes: query.data?.changes ?? [] };
+  return { ...query, changes: query.data?.changes ?? [], total: query.data?.total };
 }
 
 export function useMongoChangeGetQuery(id?: string) {

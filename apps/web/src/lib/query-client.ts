@@ -87,7 +87,13 @@ export const queryKeys = {
   },
   requests: {
     all: pageRoot("driver.requests"),
-    list: (driver: string | undefined) => pageKey("driver.requests", "list", driver),
+    list: (
+      driver: string | undefined,
+      connections?: string,
+      name?: string,
+      status?: string,
+      page = 1,
+    ) => pageKey("driver.requests", "list", driver, connections, name, status, page),
     get: (driver: string | undefined, id: string) =>
       pageKey("driver.requests.detail", "get", driver, id),
   },
