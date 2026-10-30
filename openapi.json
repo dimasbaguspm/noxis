@@ -389,13 +389,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/changes": {
+        "/external/v1/engine/{driver}/changes": {
             "get": {
                 "summary": "List proposed changes for an engine (newest first)",
                 "parameters": [
                     {
-                        "description": "engine family (sql, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -462,8 +462,8 @@
                 "summary": "Submit a change (validates before recording)",
                 "parameters": [
                     {
-                        "description": "engine family (sql, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -516,13 +516,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/changes/{id}": {
+        "/external/v1/engine/{driver}/changes/{id}": {
             "get": {
                 "summary": "Get one change",
                 "parameters": [
                     {
-                        "description": "engine family (sql, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -563,13 +563,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/changes/{id}/apply": {
+        "/external/v1/engine/{driver}/changes/{id}/apply": {
             "post": {
                 "summary": "Apply an approved change",
                 "parameters": [
                     {
-                        "description": "engine family (sql, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -630,13 +630,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/changes/{id}/approve": {
+        "/external/v1/engine/{driver}/changes/{id}/approve": {
             "post": {
                 "summary": "Approve a validated change (self-approval allowed)",
                 "parameters": [
                     {
-                        "description": "engine family (sql, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -687,13 +687,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/changes/{id}/reject": {
+        "/external/v1/engine/{driver}/changes/{id}/reject": {
             "post": {
                 "summary": "Reject a change (kept as an artifact, never deleted)",
                 "parameters": [
                     {
-                        "description": "engine family (sql, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -754,13 +754,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/changes/{id}/schedule": {
+        "/external/v1/engine/{driver}/changes/{id}/schedule": {
             "post": {
                 "summary": "Schedule or unschedule an approved change",
                 "parameters": [
                     {
-                        "description": "engine family (sql, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -832,13 +832,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections": {
+        "/external/v1/engine/{driver}/connections": {
             "get": {
                 "summary": "List connections (passwords redacted)",
                 "parameters": [
                     {
-                        "description": "engine family (sql, memcache, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -863,8 +863,8 @@
                 "summary": "Create or update a connection",
                 "parameters": [
                     {
-                        "description": "engine family (sql, memcache, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -907,13 +907,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}": {
+        "/external/v1/engine/{driver}/connections/{name}": {
             "get": {
                 "summary": "Get one connection (password redacted)",
                 "parameters": [
                     {
-                        "description": "engine family (sql, memcache, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -957,8 +957,8 @@
                 "summary": "Delete a connection (and its changes)",
                 "parameters": [
                     {
-                        "description": "engine family (sql, memcache, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -992,13 +992,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}/collections": {
+        "/external/v1/engine/{driver}/connections/{name}/collections": {
             "get": {
                 "summary": "List a database's collections with their sizes",
                 "parameters": [
                     {
-                        "description": "engine family (mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1058,13 +1058,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}/databases": {
+        "/external/v1/engine/{driver}/connections/{name}/databases": {
             "get": {
                 "summary": "List databases with their sizes",
                 "parameters": [
                     {
-                        "description": "engine family (mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1115,13 +1115,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}/erd": {
+        "/external/v1/engine/{driver}/connections/{name}/erd": {
             "get": {
                 "summary": "One connection's schema graph",
                 "parameters": [
                     {
-                        "description": "engine family (sql)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1172,13 +1172,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}/flush": {
+        "/external/v1/engine/{driver}/connections/{name}/flush": {
             "post": {
                 "summary": "Empty the connected database (FLUSHDB, never FLUSHALL)",
                 "parameters": [
                     {
-                        "description": "engine family (memcache)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1240,13 +1240,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}/info": {
+        "/external/v1/engine/{driver}/connections/{name}/info": {
             "get": {
                 "summary": "What the connected server reports about itself",
                 "parameters": [
                     {
-                        "description": "engine family (sql)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1297,13 +1297,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}/keys": {
+        "/external/v1/engine/{driver}/connections/{name}/keys": {
             "get": {
                 "summary": "Browse keys by pattern (bounded scan, with type, TTL and size)",
                 "parameters": [
                     {
-                        "description": "engine family (memcache)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1373,8 +1373,8 @@
                 "summary": "Remove keys (the selected ones only)",
                 "parameters": [
                     {
-                        "description": "engine family (memcache)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1436,13 +1436,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}/operations": {
+        "/external/v1/engine/{driver}/connections/{name}/operations": {
             "post": {
                 "summary": "Run a SQL console operation",
                 "parameters": [
                     {
-                        "description": "engine family (sql)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1504,13 +1504,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}/permissions": {
+        "/external/v1/engine/{driver}/connections/{name}/permissions": {
             "get": {
                 "summary": "List a connection's permissions",
                 "parameters": [
                     {
-                        "description": "engine family (sql, memcache, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1574,8 +1574,8 @@
                 "summary": "Grant a user or group a level on a connection (admin only)",
                 "parameters": [
                     {
-                        "description": "engine family (sql, memcache, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1660,8 +1660,8 @@
                 "summary": "Revoke a member's permission on a connection",
                 "parameters": [
                     {
-                        "description": "engine family (sql, memcache, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1724,13 +1724,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}/requests": {
+        "/external/v1/engine/{driver}/connections/{name}/requests": {
             "post": {
                 "summary": "Run a read request (find | aggregate | count)",
                 "parameters": [
                     {
-                        "description": "engine family (mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1792,13 +1792,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}/schema": {
+        "/external/v1/engine/{driver}/connections/{name}/schema": {
             "get": {
                 "summary": "Introspect a connection's tables and columns",
                 "parameters": [
                     {
-                        "description": "engine family (sql)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1849,13 +1849,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}/tables/{table}/rows": {
+        "/external/v1/engine/{driver}/connections/{name}/tables/{table}/rows": {
             "get": {
                 "summary": "Preview a table's rows",
                 "parameters": [
                     {
-                        "description": "engine family (sql)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1931,13 +1931,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}/test": {
+        "/external/v1/engine/{driver}/connections/{name}/test": {
             "post": {
                 "summary": "Test that a connection answers",
                 "parameters": [
                     {
-                        "description": "engine family (sql, memcache, mongodb)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -1978,13 +1978,13 @@
                 }
             }
         },
-        "/external/v1/engine/{engine}/connections/{name}/value": {
+        "/external/v1/engine/{driver}/connections/{name}/value": {
             "get": {
                 "summary": "Inspect one key's value (rendered per its type)",
                 "parameters": [
                     {
-                        "description": "engine family (memcache)",
-                        "name": "engine",
+                        "description": "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)",
+                        "name": "driver",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -2046,7 +2046,7 @@
         },
         "/external/v1/instances": {
             "get": {
-                "summary": "List instances across engine families (passwords redacted)",
+                "summary": "List instances across drivers (passwords redacted)",
                 "parameters": [
                     {
                         "description": "substring match on name",
@@ -2105,7 +2105,7 @@
         },
         "/external/v1/instances/{id}": {
             "get": {
-                "summary": "Get one instance across engine families (password redacted)",
+                "summary": "Get one instance across drivers (password redacted)",
                 "parameters": [
                     {
                         "description": "instance id",
@@ -2804,15 +2804,11 @@
                         "description": "postgres | mysql (mariadb aliases mysql) | sqlite",
                         "type": "string"
                     },
-                    "family": {
-                        "description": "Family names the engine family that serves the driver. It is not stored: the cross-family routes set it when serving.",
-                        "type": "string"
-                    },
                     "host": {
                         "type": "string"
                     },
                     "id": {
-                        "description": "ID identifies an instance across families; permissions and changes still link by Name.",
+                        "description": "ID identifies an instance across drivers; permissions and changes still link by Name.",
                         "type": "string"
                     },
                     "name": {
@@ -2887,10 +2883,13 @@
             "entity.DriverInfo": {
                 "type": "object",
                 "properties": {
-                    "driver": {
-                        "type": "string"
+                    "capabilities": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
-                    "family": {
+                    "driver": {
                         "type": "string"
                     },
                     "label": {
@@ -2933,9 +2932,6 @@
                         "type": "string"
                     },
                     "driver": {
-                        "type": "string"
-                    },
-                    "family": {
                         "type": "string"
                     },
                     "id": {
@@ -3371,9 +3367,6 @@
                     "driver": {
                         "type": "string"
                     },
-                    "family": {
-                        "type": "string"
-                    },
                     "name": {
                         "type": "string"
                     }
@@ -3404,7 +3397,7 @@
                         }
                     },
                     "engine": {
-                        "description": "Engine is the driver family the connection speaks (postgres, mysql, sqlite).",
+                        "description": "Engine is the driver the connection speaks (postgres, mysql, sqlite).",
                         "type": "string"
                     },
                     "version": {

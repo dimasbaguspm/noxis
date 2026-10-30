@@ -13,16 +13,16 @@ import (
 type Submit struct{ usecases.RegistryDeps }
 
 // @Summary Submit a change (validates before recording)
-// @Param engine path string true "engine family (sql, mongodb)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param body body entity.Change true "connection, notes, query, rollback (sql) or the request (mongodb)"
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/changes [post]
+// @Router /external/v1/engine/{driver}/changes [post]
 func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	module, err := uc.Modules.Engine(r.PathValue("engine"))
+	module, err := uc.Modules.Engine(r.PathValue("driver"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

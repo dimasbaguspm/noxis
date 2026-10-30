@@ -14,7 +14,7 @@ import (
 type Rows struct{ usecases.RegistryDeps }
 
 // @Summary Preview a table's rows
-// @Param engine path string true "engine family (sql)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param name path string true "connection name"
 // @Param table path string true "table name (unqualified)"
 // @Param schema query string false "schema (defaults to the driver's)"
@@ -22,7 +22,7 @@ type Rows struct{ usecases.RegistryDeps }
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/tables/{table}/rows [get]
+// @Router /external/v1/engine/{driver}/connections/{name}/tables/{table}/rows [get]
 func (uc Rows) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)

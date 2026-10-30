@@ -126,7 +126,7 @@ func (flow Flow) Save(ctx context.Context, ch *entity.Change) error {
 	return flow.Store.SaveChange(ctx, *ch)
 }
 
-// Tick applies every due change of this family through apply.
+// Tick applies every due change of this driver through apply.
 func Tick(ctx context.Context, store interfaces.ChangeRepository, now int64, mine func(entity.Change) bool, apply func(context.Context, *entity.Change) (entity.Change, error)) (entity.TickResult, error) {
 	all, err := store.ListChanges(ctx)
 	if err != nil {

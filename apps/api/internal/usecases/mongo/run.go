@@ -14,13 +14,13 @@ import (
 type Run struct{ usecases.RegistryDeps }
 
 // @Summary Run a read request (find | aggregate | count)
-// @Param engine path string true "engine family (mongodb)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param name path string true "connection name"
 // @Param body body entity.MongoRequest true "op, database, collection, filter and value as Extended JSON"
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/requests [post]
+// @Router /external/v1/engine/{driver}/connections/{name}/requests [post]
 func (uc Run) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)

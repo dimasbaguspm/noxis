@@ -22,20 +22,20 @@ var opNames = map[string]bool{
 
 // retiredOps names the operations that no longer execute, with the instruction to answer instead. An instruction beats an unknown-operation error: the caller learns where the write went.
 var retiredOps = map[string]string{
-	constants.OpAlter: "the alter operation is retired; submit a change to /external/v1/engine/{engine}/changes, approve it, then apply it",
+	constants.OpAlter: "the alter operation is retired; submit a change to /external/v1/engine/{driver}/changes, approve it, then apply it",
 }
 
 // Op runs a direct SQL console operation.
 type Op struct{ usecases.RegistryDeps }
 
 // @Summary Run a SQL console operation
-// @Param engine path string true "engine family (sql)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param name path string true "connection name"
 // @Param body body entity.OpRequest true "op plus sql or table"
 // @Success 200 {object} entity.Result
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/operations [post]
+// @Router /external/v1/engine/{driver}/connections/{name}/operations [post]
 func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
@@ -75,7 +75,7 @@ func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 	default:
 		err = fmt.Errorf("unknown op %q", operation)
 	}
-	uc.Metrics.OpDuration(ctx, r.PathValue("engine"), operation, time.Since(start).Seconds())
+	uc.Metrics.OpDuration(ctx, r.PathValue("driver"), operation, time.Since(start).Seconds())
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

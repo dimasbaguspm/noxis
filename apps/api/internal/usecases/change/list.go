@@ -14,18 +14,18 @@ import (
 type List struct{ usecases.RegistryDeps }
 
 // @Summary List proposed changes for an engine (newest first)
-// @Param engine path string true "engine family (sql, mongodb)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param connection query string false "substring match on connection name"
 // @Param status query string false "exact status match (unverified, validated, approved, applying, applied, failed, rejected)"
 // @Param page query int false "page number, starting at 1"
 // @Param perPage query int false "items per page (default 20, max 100)"
 // @Success 200 {object} entity.ChangeList
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/changes [get]
+// @Router /external/v1/engine/{driver}/changes [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	module, err := uc.Modules.Engine(r.PathValue("engine"))
+	module, err := uc.Modules.Engine(r.PathValue("driver"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

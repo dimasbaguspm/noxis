@@ -113,7 +113,7 @@ func newApp(s sources) app {
 		slog.Error("metric instruments", "error", err)
 	}
 
-	// The registry owns the engine families and their change queues, so it is built here where the instruments it reports through exist.
+	// The registry owns the drivers and their change queues, so it is built here where the instruments it reports through exist.
 	if s.Modules == nil {
 		s.Modules = modules.Default(s.Repositories, m)
 	}

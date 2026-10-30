@@ -46,7 +46,7 @@ func TestGetRedactsPassword(t *testing.T) {
 		Name: "demo", Driver: constants.DriverPostgres, Password: "supersecret",
 	}, nil)
 	// a super admin reads without a grant lookup
-	mux := testkit.Mux("GET", "/external/v1/engine/{engine}/connections/{name}", Get{RegistryDeps: d}.Serve)
+	mux := testkit.Mux("GET", "/external/v1/engine/{driver}/connections/{name}", Get{RegistryDeps: d}.Serve)
 	rec := testkit.Do(mux, http.MethodGet, "/external/v1/engine/postgres/connections/demo", "", nil)
 	if rec.Code != http.StatusOK || strings.Contains(rec.Body.String(), "supersecret") {
 		t.Fatalf("redaction: %d %s", rec.Code, rec.Body.String())
@@ -57,7 +57,7 @@ func TestListHidesUnreadable(t *testing.T) {
 	d, conns, perms := deps(t)
 	c := demo()
 	conns.EXPECT().List(gomock.Any()).Return([]entity.Connection{c}, nil).Times(2)
-	mux := testkit.Mux("GET", "/external/v1/engine/{engine}/connections", List{RegistryDeps: d}.Serve)
+	mux := testkit.Mux("GET", "/external/v1/engine/{driver}/connections", List{RegistryDeps: d}.Serve)
 
 	reader := &entity.Identity{Subject: "alice", Groups: []string{"readers"}}
 	perms.EXPECT().ListPermissions(gomock.Any(), "demo").Return([]entity.Permission{{
@@ -83,7 +83,7 @@ func TestListHidesUnreadable(t *testing.T) {
 
 func TestSaveRequiresAdmin(t *testing.T) {
 	d, _, _ := deps(t)
-	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/connections", Save{RegistryDeps: d}.Serve)
+	mux := testkit.Mux("POST", "/external/v1/engine/{driver}/connections", Save{RegistryDeps: d}.Serve)
 	body := `{"name":"x","driver":"` + constants.DriverPostgres + `","host":"h","port":1,"user":"u","database":"d"}`
 	rec := testkit.Do(mux, http.MethodPost, "/external/v1/engine/postgres/connections", body, nil)
 	if rec.Code != http.StatusForbidden {

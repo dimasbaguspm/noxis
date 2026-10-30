@@ -8,10 +8,10 @@ import (
 	"noxis/internal/usecases"
 )
 
-// Get returns one instance across engine families (password redacted).
+// Get returns one instance across drivers (password redacted).
 type Get struct{ usecases.RegistryDeps }
 
-// @Summary Get one instance across engine families (password redacted)
+// @Summary Get one instance across drivers (password redacted)
 // @Param id path string true "instance id"
 // @Success 200 {object} entity.Connection
 // @Failure 404 {object} entity.ErrorResponse

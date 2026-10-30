@@ -12,13 +12,13 @@ import (
 type List struct{ usecases.RegistryDeps }
 
 // @Summary List a connection's permissions
-// @Param engine path string true "engine family (sql, memcache, mongodb)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param name path string true "connection name"
 // @Success 200 {object} entity.PermissionList
 // @Failure 401 {object} entity.ErrorResponse
 // @Failure 403 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/permissions [get]
+// @Router /external/v1/engine/{driver}/connections/{name}/permissions [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
@@ -27,7 +27,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	module, err := uc.Modules.Engine(r.PathValue("engine"))
+	module, err := uc.Modules.Engine(r.PathValue("driver"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

@@ -13,12 +13,12 @@ import (
 type Info struct{ usecases.RegistryDeps }
 
 // @Summary What the connected server reports about itself
-// @Param engine path string true "engine family (sql)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param name path string true "connection name"
 // @Success 200 {object} entity.ServerInfo
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/info [get]
+// @Router /external/v1/engine/{driver}/connections/{name}/info [get]
 func (uc Info) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)

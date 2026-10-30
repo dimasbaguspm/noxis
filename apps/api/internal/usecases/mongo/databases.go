@@ -13,12 +13,12 @@ import (
 type Databases struct{ usecases.RegistryDeps }
 
 // @Summary List databases with their sizes
-// @Param engine path string true "engine family (mongodb)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param name path string true "connection name"
 // @Success 200 {object} entity.DatabaseList
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/databases [get]
+// @Router /external/v1/engine/{driver}/connections/{name}/databases [get]
 func (uc Databases) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)

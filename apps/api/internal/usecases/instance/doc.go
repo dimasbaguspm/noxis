@@ -1,2 +1,2 @@
-// Package instance serves cross-family instance operations.
+// Package instance serves cross-driver instance operations.
 package instance

@@ -12,13 +12,13 @@ import (
 type List struct{ usecases.RegistryDeps }
 
 // @Summary List connections (passwords redacted)
-// @Param engine path string true "engine family (sql, memcache, mongodb)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Success 200 {object} entity.ConnectionList
-// @Router /external/v1/engine/{engine}/connections [get]
+// @Router /external/v1/engine/{driver}/connections [get]
 func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	module, err := uc.Modules.Engine(r.PathValue("engine"))
+	module, err := uc.Modules.Engine(r.PathValue("driver"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

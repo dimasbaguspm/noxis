@@ -11,7 +11,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// Mux registers one Serve on a fresh mux, so {engine}, {name} and {id} are set the way the real router sets them.
+// Mux registers one Serve on a fresh mux, so {driver}, {name} and {id} are set the way the real router sets them.
 func Mux(method, pattern string, h http.HandlerFunc) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc(method+" "+pattern, h)

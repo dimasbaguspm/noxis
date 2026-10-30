@@ -13,12 +13,12 @@ import (
 type ERD struct{ usecases.RegistryDeps }
 
 // @Summary One connection's schema graph
-// @Param engine path string true "engine family (sql)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param name path string true "connection name"
 // @Success 200 {object} entity.SchemaGraph
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/erd [get]
+// @Router /external/v1/engine/{driver}/connections/{name}/erd [get]
 func (uc ERD) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)

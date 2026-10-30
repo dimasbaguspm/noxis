@@ -8,19 +8,19 @@ import (
 	"noxis/internal/usecases"
 )
 
-// Get loads one change for the engine's family.
+// Get loads one change for the driver's queue.
 type Get struct{ usecases.RegistryDeps }
 
 // @Summary Get one change
-// @Param engine path string true "engine family (sql, mongodb)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param id path string true "change id"
 // @Success 200 {object} entity.Change
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/changes/{id} [get]
+// @Router /external/v1/engine/{driver}/changes/{id} [get]
 func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	module, err := uc.Modules.Engine(r.PathValue("engine"))
+	module, err := uc.Modules.Engine(r.PathValue("driver"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

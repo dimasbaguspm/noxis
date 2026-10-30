@@ -18,7 +18,7 @@ import (
 	"noxis/internal/usecases"
 )
 
-// deps wires the instance use cases to mocks with both engine families present.
+// deps wires the instance use cases to mocks with a SQL driver and the document driver registered.
 func deps(t *testing.T) (usecases.RegistryDeps, *mocks.MockConnectionRepository) {
 	t.Helper()
 	conns := mocks.NewMockConnectionRepository(gomock.NewController(t))

@@ -116,6 +116,10 @@ learn the current architecture, then `AGENTS.md` + `docs/agent/`.
 - [[instances]: tidy the instance detail page](051-tidy-the-instance-detail-page.md) — plan issue #51, completed 2026-10-09
 - [[instances]: paginate the instances list](068-paginate-the-instances-list.md) — plan issue #68, completed 2026-10-09
 
+### Engine (1)
+
+- [[engine]: make the driver the engine and delete the family](535-make-the-driver-the-engine-and-delete-the-family.md) — plan issue #535, completed 2026-10-30
+
 ### Other (1)
 
 - [[ai:y] chore: drop unused tabs and textarea components](093-chore-drop-unused-tabs-and-textarea-components.md) — plan pr #93, completed 2026-10-10

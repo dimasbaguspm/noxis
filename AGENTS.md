@@ -75,12 +75,12 @@ Inside `apps/api/`:
 | `apps/api/cmd/noxis/server/static/` | embedded console (built SPA; placeholder committed) |
 | `apps/api/cmd/noxis/server/middlewares/` | CORS → auth → request-log/span |
 | `apps/api/internal/usecases/` | root framework (RegistryDeps + helpers) + one subpackage per domain |
-| `apps/api/internal/modules/` | engine adapters: `sql`, `memcache`, `mongodb`, `auth` + `Registry` |
+| `apps/api/internal/modules/` | engine adapters: one package per driver (`postgres`, `mysql`, `mariadb`, `sqlite`, `cockroach`, `redis`, `valkey`, `mongodb`) + `Registry` |
 | `apps/api/internal/repositories/` | persistence: `sqlite` (the only state) |
-| `apps/api/internal/interfaces/` | seams (`ConnectionRepository`, `Module`, `SQLModule`, …) |
+| `apps/api/internal/interfaces/` | seams (`ConnectionRepository`, `Module` + one capability interface per verb set, …) |
 | `apps/api/internal/entity/` | shared data model (store + wire + REST) |
 | `apps/api/internal/common/` | config, logging/span, idgen, pagination, secret, shared changeflow rules |
-| `apps/api/internal/constants/` | universal values (drivers, families, statuses, limits) |
+| `apps/api/internal/constants/` | universal values (drivers, capabilities, statuses, limits) |
 | `apps/api/test/uat/` | Gherkin acceptance suite (`make uat`) |
 
 Dependency direction is one-way: `handlers → usecases → modules → repositories → entity`.
@@ -91,7 +91,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 
 1. `middlewares.CORS → Trace → WithAuth → RequestLog` wrap the `http.ServeMux`: the span covers the whole request (a refused token is traced), and the request log runs after the principal is attached.
 2. `routes(app, cfg)` lists every endpoint as `{Method, Endpoint, Handler, Public, Middlewares}`; `newHandler` registers the table and attaches auth per route.
-3. `Serve` reads the path/query/body and resolves typed engine capabilities with `common.WithModuleFamily` + `common.LoadModule(ctx, &target)`; generic family checks use `uc.Modules.Engine(...)`.
+3. `Serve` reads the path/query/body and resolves one capability for the driver the route names with `uc.RouteModule(ctx, r, &target)`; the loader asserts the interface against that driver's module. A driver that cannot do the thing is refused by name, never stubbed.
 4. It calls its `Run(ctx, ...)` domain core and writes the response with `respond`/`fail`.
 5. The use case reads repositories/modules from its own struct fields (set explicitly in `newApp`), enforces access via `RawConn`/`Authorize`, persists via a repository.
 6. `fail` maps `constants.ErrNotFound`/`constants.ErrUnsupported`→404, `constants.ErrForbidden`→403, `constants.ErrInvalidCredentials`/`constants.ErrUnauthorized`→401, else 400.
@@ -102,7 +102,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 - **Context:** authenticated principal and immutable module loader only. Repositories and other app dependencies stay explicit; use `common.LoadModule(ctx, &target)` for registered typed modules.
 - **Repositories:** pass one `repositories.Registry` through app sources and expose it as `RegistryDeps.Repositories`; modules receive only the repositories they use.
 - **No env reads outside `apps/api/internal/common/config`.** Add a `EnvX` const + field + `fieldOf` case.
-- **No hardcoded drivers/families/statuses.** Add to `apps/api/internal/constants`.
+- **No hardcoded drivers/capabilities/statuses.** Add to `apps/api/internal/constants`.
 - **Secrets:** passwords are redacted on every response (`Connection.Redacted()`); encrypted at rest via `apps/api/internal/common/secret` when `NOXIS_SECRET_KEY` set.
 - **Authz:** the single gate is `usecases.RawConn` (per-connection) + `RequireSuper` (global management). The env root is the only super; everyone else needs a non-expired per-connection grant.
 - **Errors:** wrap with `%w`; compare with `errors.Is`. Sentinel errors live in `interfaces` / `usecases`.

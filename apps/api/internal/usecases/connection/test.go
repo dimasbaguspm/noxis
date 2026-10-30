@@ -12,15 +12,15 @@ import (
 type Test struct{ usecases.RegistryDeps }
 
 // @Summary Test that a connection answers
-// @Param engine path string true "engine family (sql, memcache, mongodb)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param name path string true "connection name"
 // @Success 200 {object} entity.StatusResponse
 // @Failure 400 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/test [post]
+// @Router /external/v1/engine/{driver}/connections/{name}/test [post]
 func (uc Test) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	module, err := uc.Modules.Engine(r.PathValue("engine"))
+	module, err := uc.Modules.Engine(r.PathValue("driver"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
