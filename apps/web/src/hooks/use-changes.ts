@@ -1,11 +1,9 @@
-import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, type ChangeInput } from "@/lib/api";
 import { queryClient, queryKeys } from "@/lib/query-client";
-import { classify } from "@/lib/statements";
 
 export type ChangeKind = "dml" | "ddl";
 
@@ -40,15 +38,12 @@ export function useChangeListQuery(kind?: ChangeKind) {
   const statusFilter = status === "all" ? undefined : status;
   const query = useQuery({
     queryKey: queryKeys.changes.list(driver, kind, connectionFilter, statusFilter, page),
-    queryFn: () => api.changes(driver).list(connectionFilter, page, undefined, statusFilter),
+    // the server filters by kind before it paginates, so the total is the queue's own count
+    queryFn: () => api.changes(driver).list(connectionFilter, page, undefined, statusFilter, kind),
     enabled: !!driver,
   });
-  const changes = useMemo(() => {
-    if (!kind) return query.data?.changes;
-    return query.data?.changes.filter((c) => (c.kind || classify(c.query ?? "")) === kind);
-  }, [kind, query.data]);
 
-  return { ...query, changes, total: query.data?.total };
+  return { ...query, changes: query.data?.changes, total: query.data?.total };
 }
 
 // useChangeGetQuery reads one change through the driver in the URL, which also refuses a change from another driver.

@@ -257,6 +257,11 @@ paths:
           in: query
           schema:
             type: string
+        - description: dml or ddl (sql change engines only)
+          name: kind
+          in: query
+          schema:
+            type: string
         - description: page number, starting at 1
           name: page
           in: query
