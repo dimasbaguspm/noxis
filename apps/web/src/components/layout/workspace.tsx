@@ -9,6 +9,7 @@ import {
 } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 
 type WorkspaceOrientation = "horizontal" | "vertical";
@@ -97,6 +98,8 @@ export function WorkspaceSplit({
   groupClassName,
 }: WorkspaceSplitProps) {
   const inherited = useWorkspace();
+  // a phone has no room for two columns, so every split stacks; the handles still drag
+  const orientation = useIsMobile() ? "vertical" : direction;
   return (
     <ResizablePanel
       defaultSize={defaultSize}
@@ -104,9 +107,9 @@ export function WorkspaceSplit({
       maxSize={maxSize}
       className={cn("min-h-0 min-w-0", className)}
     >
-      <WorkspaceContext.Provider value={{ ...inherited, orientation: direction }}>
+      <WorkspaceContext.Provider value={{ ...inherited, orientation }}>
         <ResizablePanelGroup
-          orientation={direction}
+          orientation={orientation}
           className={cn("h-full min-h-0 min-w-0 gap-2", groupClassName)}
         >
           {withHandles(children)}
@@ -135,24 +138,27 @@ function WorkspaceRoot({
   footer,
   footerClassName,
 }: WorkspaceProps) {
+  const isMobile = useIsMobile();
+  const orientation = isMobile ? "vertical" : "horizontal";
+  // the sidebar pane is a column header on a phone, not a 17% sliver
   const content =
     children ??
     (left !== undefined || right !== undefined
       ? [
-          <WorkspacePane key="left" defaultSize={17} minSize={14}>
+          <WorkspacePane key="left" defaultSize={isMobile ? 40 : 17} minSize={isMobile ? 20 : 14}>
             {left}
           </WorkspacePane>,
-          <WorkspacePane key="right" defaultSize={83} minSize={40}>
+          <WorkspacePane key="right" defaultSize={isMobile ? 60 : 83} minSize={isMobile ? 20 : 40}>
             {right}
           </WorkspacePane>,
         ]
       : undefined);
 
   return (
-    <WorkspaceContext.Provider value={{ orientation: "horizontal", padded: true, scroll: false }}>
+    <WorkspaceContext.Provider value={{ orientation, padded: true, scroll: false }}>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <ResizablePanelGroup
-          orientation="horizontal"
+          orientation={orientation}
           className={cn("min-h-0 min-w-0 flex-1 gap-2", className)}
         >
           {withHandles(content)}
