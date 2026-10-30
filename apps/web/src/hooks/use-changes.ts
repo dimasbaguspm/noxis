@@ -34,13 +34,22 @@ export function useChangeListUrlParams() {
 }
 
 // useChangeListQuery asks the server once per chosen instance and merges the pages, so the total is the sum of the queues
-// the reader actually asked for. With nothing chosen it asks once, unfiltered by instance.
-export function useChangeListQuery(kind?: ChangeKind) {
-  const { driver = "" } = useParams();
+// the reader actually asked for. A scoped queue (an instance's own page) has one instance and one driver, so the URL
+// picker is not consulted at all.
+export function useChangeListQuery(
+  kind?: ChangeKind,
+  scope?: { driver?: string; connection?: string },
+) {
+  const { driver: routeDriver = "" } = useParams();
+  const driver = scope?.driver ?? routeDriver;
   const { connections, name, status, page } = useChangeListUrlParams();
   const search = useDebounce(name.trim());
   const statusFilter = status === "all" ? undefined : status;
-  const targets = connections.length > 0 ? connections : [undefined];
+  const targets = scope?.connection
+    ? [scope.connection]
+    : connections.length > 0
+      ? connections
+      : [undefined];
   const query = useQuery({
     queryKey: queryKeys.changes.list(
       driver,

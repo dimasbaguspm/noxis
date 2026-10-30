@@ -74,14 +74,20 @@ function invalidateRequests() {
   void queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
 }
 
-export function useMongoChangesListQuery() {
-  const { driver = "" } = useParams();
+export function useMongoChangesListQuery(scope?: { driver?: string; connection?: string }) {
+  const { driver: routeDriver = "" } = useParams();
+  const driver = scope?.driver ?? routeDriver;
   const { connections, name, status, page } = useChangeListUrlParams();
   const search = useDebounce(name.trim());
   const statusFilter = status === "all" ? undefined : status;
-  const targets = connections.length > 0 ? connections : [undefined];
+  // an instance's own page reviews one connection, so the picker is not consulted
+  const targets = scope?.connection
+    ? [scope.connection]
+    : connections.length > 0
+      ? connections
+      : [undefined];
   const query = useQuery({
-    queryKey: queryKeys.requests.list(driver, connections.join(","), search, statusFilter, page),
+    queryKey: queryKeys.requests.list(driver, targets.join(","), search, statusFilter, page),
     // the filters run on the server before it paginates, exactly like the SQL queues
     queryFn: async () => {
       const pages = await Promise.all(

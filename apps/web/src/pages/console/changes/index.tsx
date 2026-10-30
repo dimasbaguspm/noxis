@@ -39,17 +39,30 @@ const STATUS_OPTIONS = [
 ];
 const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 
-// ChangePage is the shared DML/DDL queue: filters on the left with the actions at their foot, the paginated list on the right.
-export function ChangePage({ kind }: { kind: ChangeKind }) {
+// ChangePage is the shared DML/DDL queue: filters on the left with the actions at their foot, the paginated list on the
+// right. An instance passes a scope, so its own page reviews one connection and does not offer the picker or the form.
+export function ChangePage({
+  kind,
+  scope,
+}: {
+  kind: ChangeKind;
+  scope?: { driver: string; connection: string };
+}) {
   const { canAccess } = useAuth();
   const { connections: sqlConnections } = useDriverConnections();
   const { connections, name, status, page, setConnections, setName, setStatus, setPage } =
     useChangeListUrlParams();
-  const { changes = [], total = 0, isPending, isFetching, refetch } = useChangeListQuery(kind);
+  const {
+    changes = [],
+    total = 0,
+    isPending,
+    isFetching,
+    refetch,
+  } = useChangeListQuery(kind, scope);
   const submit = useSubmitChangeMutation();
   // raising a change needs a write permission on some SQL instance; the form still lets the server refuse a specific connection
-  const mayRaise = sqlConnections.some((c) => canAccess(c.name, "write"));
-  const narrowed = connections.length > 0 || name.trim() !== "";
+  const mayRaise = !scope && sqlConnections.some((c) => canAccess(c.name, "write"));
+  const narrowed = (scope?.connection ?? "") !== "" || connections.length > 0 || name.trim() !== "";
 
   return (
     <div className="flex h-full min-h-0">
@@ -67,11 +80,18 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
               </>
             }
           >
-            <InstanceFilter
-              options={sqlConnections.map((c) => c.name)}
-              values={connections}
-              onChange={setConnections}
-            />
+            {scope ? (
+              <div className="flex flex-col gap-1.5">
+                <Label>Instance</Label>
+                <Input value={scope.connection} readOnly disabled />
+              </div>
+            ) : (
+              <InstanceFilter
+                options={sqlConnections.map((c) => c.name)}
+                values={connections}
+                onChange={setConnections}
+              />
+            )}
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="change-name">Name</Label>
               <Input
