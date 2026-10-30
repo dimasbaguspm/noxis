@@ -1,5 +1,5 @@
-// Package memcache browses and removes Redis/Valkey keys through typed clients, never raw commands.
-package memcache
+// Package valkey browses and removes Valkey keys through typed clients, never raw commands. It serves the valkey driver only; redis is its own package.
+package valkey
 
 import (
 	"context"
@@ -18,6 +18,8 @@ import (
 )
 
 const (
+	driver = constants.DriverValkey
+
 	pingTimeout = 10 * time.Second
 	opTimeout   = 30 * time.Second
 
@@ -31,20 +33,20 @@ const (
 // Result is the shared operation outcome, so the console renders a key's value with the same grid component as a SQL row set.
 type Result = entity.Result
 
-// DB talks to one memory-cache driver's servers.
-type DB struct{ driver string }
+// DB talks to Valkey servers.
+type DB struct{}
 
-// New builds the module for one driver name; valkey and redis are separate states.
-func New(driver string) *DB { return &DB{driver: driver} }
+// New builds the valkey module.
+func New() *DB { return &DB{} }
 
-// Satisfier: a memory-cache module browses keys, and nothing else.
+// Satisfier: a valkey module browses keys, and nothing else.
 var _ interfaces.KeyBrowser = (*DB)(nil)
 
 // Driver is the driver this module serves.
-func (db *DB) Driver() string { return db.driver }
+func (db *DB) Driver() string { return driver }
 
 // Supports reports whether this module serves the driver.
-func (db *DB) Supports(driver string) bool { return strings.EqualFold(driver, db.driver) }
+func (db *DB) Supports(name string) bool { return strings.EqualFold(name, driver) }
 
 // Ping verifies the server answers and the credentials work.
 func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
@@ -279,7 +281,7 @@ func withClient[T any](ctx context.Context, c entity.Connection, fn func(ctx con
 func clientOptions(c entity.Connection) (*goredis.Options, error) {
 	index := dbIndex(c)
 	if index < 0 {
-		return nil, fmt.Errorf("connection %q: database %q is not a redis database index", c.Name, c.Database)
+		return nil, fmt.Errorf("connection %q: database %q is not a %s database index", c.Name, c.Database, driver)
 	}
 	options := &goredis.Options{
 		Addr:                  fmt.Sprintf("%s:%d", c.Host, c.Port),
