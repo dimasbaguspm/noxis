@@ -33,7 +33,6 @@ import {
   useMongoUrlParams,
 } from "@/hooks/use-mongodb";
 import { useAuth } from "@/app/auth-provider";
-import { CAPABILITY } from "@/lib/console-nav";
 import { bytes, compact } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { P } from "@/components/ui/typography";
@@ -110,7 +109,7 @@ export default function MongoExplorePage() {
         </CardHeader>
         {isSuper && (
           <CardContent>
-            <ConnectionDialog trigger="New connection" wizard capability={CAPABILITY.DOCUMENTS} />
+            <ConnectionDialog trigger="New connection" wizard driver={driver} />
           </CardContent>
         )}
       </Card>
