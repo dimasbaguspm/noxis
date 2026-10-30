@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"noxis/internal/common"
@@ -23,115 +24,66 @@ import (
 	"noxis/internal/repositories"
 )
 
+// Registration is one driver's engine and the queue that applies its changes; a driver with no queue leaves Changes nil.
+type Registration struct {
+	Engine  interfaces.Module
+	Changes interfaces.ChangeFlow
+}
+
 // Registry loads a typed module from the request context and resolves a driver to the module that serves it.
 type Registry interface {
 	common.ModuleLoader
 	// Engine resolves the module registered for a driver name.
 	Engine(driver string) (interfaces.Module, error)
+	// Changes resolves the change queue registered for a driver name.
+	Changes(driver string) (interfaces.ChangeFlow, error)
+	// Drivers lists the registered driver names in a stable order.
+	Drivers() []string
 }
 
-// New wraps a driver-keyed module map and the change queues in a registry (Default builds the built-in set).
-func New(mods map[string]interfaces.Module, changes interfaces.ChangeFlows) Registry {
-	return registry{mods: mods, changes: changes}
+// New wraps a driver-keyed registration map in a registry (Default builds the built-in set).
+func New(mods map[string]Registration) Registry {
+	return registry{mods: mods}
 }
 
 // Default builds the built-in registry: one module per driver name, with its change queue, so nothing else declares what the process can do.
 func Default(repos repositories.Registry, m *metrics.Metrics) Registry {
-	mods := map[string]interfaces.Module{}
-	changes := interfaces.ChangeFlows{}
+	mods := map[string]Registration{}
 
 	// One SQL module per driver: each serves its own driver and refuses the rest, so the registration below names no driver twice.
 	pg := postgres.New()
-	mods[pg.Driver()] = pg
-	changes[pg.Driver()] = postgres.NewChanges(repos.Connections, repos.Changes, pg, m)
+	mods[pg.Driver()] = Registration{Engine: pg, Changes: postgres.NewChanges(repos.Connections, repos.Changes, pg, m)}
 
 	my := mysql.New()
-	mods[my.Driver()] = my
-	changes[my.Driver()] = mysql.NewChanges(repos.Connections, repos.Changes, my, m)
+	mods[my.Driver()] = Registration{Engine: my, Changes: mysql.NewChanges(repos.Connections, repos.Changes, my, m)}
 
 	maria := mariadb.New()
-	mods[maria.Driver()] = maria
-	changes[maria.Driver()] = mariadb.NewChanges(repos.Connections, repos.Changes, maria, m)
+	mods[maria.Driver()] = Registration{Engine: maria, Changes: mariadb.NewChanges(repos.Connections, repos.Changes, maria, m)}
 
 	lite := sqlite.New()
-	mods[lite.Driver()] = lite
-	changes[lite.Driver()] = sqlite.NewChanges(repos.Connections, repos.Changes, lite, m)
+	mods[lite.Driver()] = Registration{Engine: lite, Changes: sqlite.NewChanges(repos.Connections, repos.Changes, lite, m)}
 
 	cockroachDB := cockroach.New()
-	mods[cockroachDB.Driver()] = cockroachDB
-	changes[cockroachDB.Driver()] = cockroach.NewChanges(repos.Connections, repos.Changes, cockroachDB, m)
+	mods[cockroachDB.Driver()] = Registration{Engine: cockroachDB, Changes: cockroach.NewChanges(repos.Connections, repos.Changes, cockroachDB, m)}
 
 	// The cache drivers are separate modules, not one module holding a driver field: valkey is a state, not an alias.
 	cache := redis.New()
-	mods[cache.Driver()] = cache
+	mods[cache.Driver()] = Registration{Engine: cache}
 
 	valkeyCache := valkey.New()
-	mods[valkeyCache.Driver()] = valkeyCache
+	mods[valkeyCache.Driver()] = Registration{Engine: valkeyCache}
 
 	documents := mongodb.New()
-	mods[constants.DriverMongo] = documents
-	changes[constants.DriverMongo] = mongodb.NewChanges(repos.Connections, repos.Changes, documents, m)
-	return New(mods, changes)
+	mods[constants.DriverMongo] = Registration{Engine: documents, Changes: mongodb.NewChanges(repos.Connections, repos.Changes, documents, m)}
+	return New(mods)
 }
 
 type registry struct {
-	mods    map[string]interfaces.Module
-	changes interfaces.ChangeFlows
+	mods map[string]Registration
 }
 
-// LoadModule fills a requested capability from the registry.
+// LoadModule fills a requested capability from the registry: the engine or its change queue, whichever serves it, so a new capability needs no edit here.
 func (r registry) LoadModule(ctx context.Context, target any) error {
-	switch dst := target.(type) {
-	case *interfaces.ChangeFlows:
-		if dst == nil {
-			return errors.New("nil module target")
-		}
-		*dst = r.changes
-		return nil
-	case *interfaces.ChangeFlow:
-		if dst == nil {
-			return errors.New("nil module target")
-		}
-		return r.loadFlow(ctx, func(flow interfaces.ChangeFlow) { *dst = flow })
-	case *interfaces.SQLChangeFlow:
-		if dst == nil {
-			return errors.New("nil module target")
-		}
-		return r.loadFlow(ctx, func(flow interfaces.ChangeFlow) {
-			if selected, ok := flow.(interfaces.SQLChangeFlow); ok {
-				*dst = selected
-			}
-		})
-	case *interfaces.MongoChangeFlow:
-		if dst == nil {
-			return errors.New("nil module target")
-		}
-		return r.loadFlow(ctx, func(flow interfaces.ChangeFlow) {
-			if selected, ok := flow.(interfaces.MongoChangeFlow); ok {
-				*dst = selected
-			}
-		})
-	default:
-		return r.loadEngine(ctx, target)
-	}
-}
-
-// loadFlow resolves the change queue of the driver the route selected.
-func (r registry) loadFlow(ctx context.Context, assign func(interfaces.ChangeFlow)) error {
-	driver, ok := common.ModuleDriver(ctx)
-	if !ok {
-		return fmt.Errorf("%w: driver missing from context", constants.ErrUnsupported)
-	}
-	flow, ok := r.changes[driver]
-	if !ok {
-		return fmt.Errorf("%w: driver %q has no change queue", constants.ErrUnsupported, driver)
-	}
-	assign(flow)
-	return nil
-}
-
-// loadEngine fills an interface target with the module registered for the driver the request selected, so a new capability needs no edit here.
-func (r registry) loadEngine(ctx context.Context, target any) error {
 	value := reflect.ValueOf(target)
 	if value.Kind() != reflect.Pointer || value.IsNil() {
 		return errors.New("nil module target")
@@ -144,15 +96,19 @@ func (r registry) loadEngine(ctx context.Context, target any) error {
 	if !ok {
 		return fmt.Errorf("%w: driver missing from context", constants.ErrUnsupported)
 	}
-	module, err := r.Engine(driver)
-	if err != nil {
-		return err
+	reg, ok := r.mods[driver]
+	if !ok {
+		return fmt.Errorf("%w: no engine serves driver %q", constants.ErrUnsupported, driver)
 	}
-	if !reflect.TypeOf(module).Implements(capability) {
-		return fmt.Errorf("%w: driver %q does not serve %s", constants.ErrUnsupported, driver, capabilityName(capability))
+	// A change queue is not an engine, so the capability is checked against both halves of the registration.
+	for _, candidate := range []any{reg.Engine, reg.Changes} {
+		if candidate == nil || !reflect.TypeOf(candidate).Implements(capability) {
+			continue
+		}
+		value.Elem().Set(reflect.ValueOf(candidate))
+		return nil
 	}
-	value.Elem().Set(reflect.ValueOf(module))
-	return nil
+	return fmt.Errorf("%w: driver %q does not serve %s", constants.ErrUnsupported, driver, capabilityName(capability))
 }
 
 // capabilityName is the interface name without its package, so the refusal reads "does not serve SchemaReader".
@@ -164,10 +120,30 @@ func capabilityName(t reflect.Type) string {
 	return name
 }
 
+// Engine resolves the module registered for a driver name.
 func (r registry) Engine(driver string) (interfaces.Module, error) {
-	mod, ok := r.mods[driver]
-	if !ok {
+	reg, ok := r.mods[driver]
+	if !ok || reg.Engine == nil {
 		return nil, fmt.Errorf("%w: no engine serves driver %q", constants.ErrUnsupported, driver)
 	}
-	return mod, nil
+	return reg.Engine, nil
+}
+
+// Changes resolves the change queue registered for a driver name; a driver without one has none rather than an empty one.
+func (r registry) Changes(driver string) (interfaces.ChangeFlow, error) {
+	reg, ok := r.mods[driver]
+	if !ok || reg.Changes == nil {
+		return nil, fmt.Errorf("%w: driver %q has no change queue", constants.ErrUnsupported, driver)
+	}
+	return reg.Changes, nil
+}
+
+// Drivers lists the registered driver names, sorted so a caller that walks them is deterministic.
+func (r registry) Drivers() []string {
+	drivers := make([]string, 0, len(r.mods))
+	for driver := range r.mods {
+		drivers = append(drivers, driver)
+	}
+	sort.Strings(drivers)
+	return drivers
 }

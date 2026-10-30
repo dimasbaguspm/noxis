@@ -51,10 +51,9 @@ func newHarness(t *testing.T) *harness {
 	h.conns.EXPECT().Get(gomock.Any(), "demo").Return(&entity.Connection{
 		Name: "demo", Driver: constants.DriverPostgres,
 	}, nil).AnyTimes()
-	registry := modules.New(
-		map[string]interfaces.Module{constants.DriverPostgres: h.sq},
-		interfaces.ChangeFlows{constants.DriverPostgres: postgres.NewChanges(h.conns, h.changes, h.sq, nil)},
-	)
+	registry := modules.New(map[string]modules.Registration{
+		constants.DriverPostgres: {Engine: h.sq, Changes: postgres.NewChanges(h.conns, h.changes, h.sq, nil)},
+	})
 	h.deps = usecases.RegistryDeps{
 		Repositories: repositories.Registry{Connections: h.conns, Changes: h.changes},
 		Modules:      registry,
