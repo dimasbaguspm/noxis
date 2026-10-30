@@ -7,7 +7,6 @@ import { ConnectionSelect } from "@/components/connection/connection-select";
 import { ErdCanvas, type ErdTable } from "@/components/sql/erd-canvas";
 import { toErdTables } from "@/components/sql/erd-data";
 import { TableBrowser } from "@/components/sql/table-browser";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { FilterField } from "@/components/filters/filter-field";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,23 +40,35 @@ export default function SqlErdPage() {
     setSelectedId(undefined);
   }, [connection]);
 
+  // No SQL connection to draw: keep the workspace and explain it in the pane, instead of collapsing to a card.
   if (!busy && connections.length === 0) {
     return (
-      <Card className="mx-auto mt-8 max-w-lg">
-        <CardHeader>
-          <CardTitle>No SQL connection found</CardTitle>
-          <CardDescription>
-            Register a SQL database to draw its entity relationships.
-          </CardDescription>
-        </CardHeader>
-        {isSuper && (
-          <CardContent>
-            <Button render={<Link to={`${PAGE_ROUTES.INSTANCE_CREATE}?driver=${driver ?? ""}`} />}>
-              New connection
-            </Button>
-          </CardContent>
-        )}
-      </Card>
+      <div className="flex h-full min-h-0">
+        <Workspace>
+          <Workspace.Pane defaultSize={17} minSize={14}>
+            <FilterField label="Instance">
+              <ConnectionSelect connections={[]} value="" onChange={() => {}} className="w-full" />
+            </FilterField>
+          </Workspace.Pane>
+          <Workspace.Pane defaultSize={83} minSize={40}>
+            <Empty
+              className="flex-1"
+              icon={Network}
+              title="No SQL connection found"
+              description="Register a SQL database to draw its entity relationships."
+              action={
+                isSuper ? (
+                  <Button
+                    render={<Link to={`${PAGE_ROUTES.INSTANCE_CREATE}?driver=${driver ?? ""}`} />}
+                  >
+                    New connection
+                  </Button>
+                ) : undefined
+              }
+            />
+          </Workspace.Pane>
+        </Workspace>
+      </div>
     );
   }
 
