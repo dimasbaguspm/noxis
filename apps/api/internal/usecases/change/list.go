@@ -44,8 +44,13 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
+	drivers, err := driverOf(ctx, uc.RegistryDeps)
+	if err != nil {
+		uc.Fail(ctx, w, err)
+		return
+	}
 	query := r.URL.Query()
-	visible := readable(all, module, allowed)
+	visible := readable(all, module, allowed, drivers, module.Driver())
 	visible = filterByConnection(visible, query.Get("connection"))
 	visible = filterByStatus(visible, query.Get("status"))
 	page, perPage := pagination.Params(query.Get("page"), query.Get("perPage"), constants.DefaultPageSize)

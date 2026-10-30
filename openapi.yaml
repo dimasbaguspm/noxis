@@ -1657,6 +1657,10 @@ components:
           type: integer
         createdBy:
           type: string
+        driver:
+          description: Driver is derived at read time from the connection that serves the
+            change; it is never stored.
+          type: string
         estAffected:
           type: integer
         estDurationMs:

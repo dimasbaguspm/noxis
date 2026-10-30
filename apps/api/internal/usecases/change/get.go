@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"noxis/internal/common/logging"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -31,5 +32,16 @@ func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
+	drivers, err := driverOf(ctx, uc.RegistryDeps)
+	if err != nil {
+		uc.Fail(ctx, w, err)
+		return
+	}
+	// a change belongs to the driver that serves its connection, so another driver's path cannot read it
+	if drivers[change.Connection] != module.Driver() {
+		uc.Fail(ctx, w, constants.ErrNotFound)
+		return
+	}
+	change.Driver = module.Driver()
 	uc.Respond(w, change)
 }

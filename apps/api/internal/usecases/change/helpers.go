@@ -21,25 +21,42 @@ func supports(module interfaces.Module) bool {
 	return false
 }
 
-func readable(all []entity.Change, module interfaces.Module, allowed map[string]bool) []entity.Change {
+// readable keeps the changes the caller may see and the driver in the path actually serves: the connection decides the
+// driver, so a mysql change never shows up under the postgres queue.
+func readable(all []entity.Change, module interfaces.Module, allowed map[string]bool, drivers map[string]string, driver string) []entity.Change {
 	out := make([]entity.Change, 0, len(all))
 	for i := range all {
 		change := all[i]
-		if !allowed[change.Connection] {
+		if !allowed[change.Connection] || drivers[change.Connection] != driver {
 			continue
 		}
 		switch module.(type) {
 		case interfaces.SQLChangeEngine:
-			if change.Kind == constants.KindDML || change.Kind == constants.KindDDL {
-				out = append(out, change)
+			if change.Kind != constants.KindDML && change.Kind != constants.KindDDL {
+				continue
 			}
 		case interfaces.MongoChangeEngine:
-			if change.Kind == constants.KindMongo {
-				out = append(out, change)
+			if change.Kind != constants.KindMongo {
+				continue
 			}
 		}
+		change.Driver = driver
+		out = append(out, change)
 	}
 	return out
+}
+
+// driverOf maps every registered connection to its driver, so a change can be scoped by the driver the route names.
+func driverOf(ctx context.Context, deps usecases.RegistryDeps) (map[string]string, error) {
+	all, err := deps.Repositories.Connections.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]string, len(all))
+	for i := range all {
+		out[all[i].Name] = all[i].Driver
+	}
+	return out, nil
 }
 
 func filterByConnection(all []entity.Change, needle string) []entity.Change {
