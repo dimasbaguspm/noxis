@@ -262,6 +262,11 @@ paths:
           in: query
           schema:
             type: string
+        - description: substring match on notes or statement
+          name: q
+          in: query
+          schema:
+            type: string
         - description: page number, starting at 1
           name: page
           in: query

@@ -1,4 +1,9 @@
-import { Search } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Empty } from "@/components/ui/empty";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Pagination } from "@/components/ui/pagination";
 import {
   Select,
   SelectContent,
@@ -6,17 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Empty } from "@/components/ui/empty";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { Label } from "@/components/ui/label";
-import { Pagination } from "@/components/ui/pagination";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/app/auth-provider";
 import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { CreateChangeSheet } from "@/components/changes/create-change-sheet";
 import { ChangeTable } from "@/components/changes/change-table";
+import { InstanceFilter } from "@/components/filters/instance-filter";
+import { QueuePanel } from "@/components/layout/queue-panel";
 import { Workspace } from "@/components/layout/workspace";
 import {
   useChangeListQuery,
@@ -24,6 +25,7 @@ import {
   useSubmitChangeMutation,
   type ChangeKind,
 } from "@/hooks/use-changes";
+import { cn } from "@/lib/utils";
 
 const PER_PAGE = 20;
 const STATUS_OPTIONS = [
@@ -37,41 +39,47 @@ const STATUS_OPTIONS = [
 ];
 const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 
-// ChangePage is the shared DML/DDL queue: filters and raising on the left, the paginated list on the right.
+// ChangePage is the shared DML/DDL queue: filters on the left with the actions at their foot, the paginated list on the right.
 export function ChangePage({ kind }: { kind: ChangeKind }) {
   const { canAccess } = useAuth();
   const { connections: sqlConnections } = useDriverConnections();
-  const {
-    connection: filter,
-    status,
-    page,
-    setConnection: setFilter,
-    setStatus,
-    setPage,
-  } = useChangeListUrlParams();
+  const { connections, name, status, page, setConnections, setName, setStatus, setPage } =
+    useChangeListUrlParams();
   const { changes = [], total = 0, isPending, isFetching, refetch } = useChangeListQuery(kind);
   const submit = useSubmitChangeMutation();
   // raising a change needs a write permission on some SQL instance; the form still lets the server refuse a specific connection
   const mayRaise = sqlConnections.some((c) => canAccess(c.name, "write"));
+  const narrowed = connections.length > 0 || name.trim() !== "";
 
   return (
     <div className="flex h-full min-h-0">
       <Workspace
         left={
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
+          <QueuePanel
+            actions={
+              <>
+                {mayRaise && (
+                  <CreateChangeSheet kind={kind} onSubmit={(input) => submit.mutateAsync(input)} />
+                )}
+                <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>
+                  <RefreshCw className={cn(isFetching && "animate-spin")} /> Refresh
+                </Button>
+              </>
+            }
+          >
+            <InstanceFilter
+              options={sqlConnections.map((c) => c.name)}
+              values={connections}
+              onChange={setConnections}
+            />
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="change-filter">Filter by instance</Label>
-              <InputGroup>
-                <InputGroupAddon>
-                  <Search />
-                </InputGroupAddon>
-                <InputGroupInput
-                  id="change-filter"
-                  placeholder="Type to filter…"
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                />
-              </InputGroup>
+              <Label htmlFor="change-name">Name</Label>
+              <Input
+                id="change-name"
+                placeholder="notes or statement"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Status</Label>
@@ -98,11 +106,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
             <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>
               <Search /> Search
             </Button>
-            <Separator />
-            {mayRaise && (
-              <CreateChangeSheet kind={kind} onSubmit={(input) => submit.mutateAsync(input)} />
-            )}
-          </div>
+          </QueuePanel>
         }
         right={
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto">
@@ -117,9 +121,7 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
                 className="flex-1"
                 title={`no ${kind} changes`}
                 description={
-                  filter.trim()
-                    ? "No change matches this instance filter"
-                    : "Raise one and it will land here"
+                  narrowed ? "No change matches these filters" : "Raise one and it will land here"
                 }
               />
             ) : (
