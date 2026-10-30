@@ -1,4 +1,5 @@
-package server
+// Package app is the composition root: every use case built once, from the seams the process owns.
+package app
 
 import (
 	"context"
@@ -32,8 +33,8 @@ import (
 	"noxis/internal/usecases/user"
 )
 
-// sources are the seams the composition root builds the use cases from. They are interfaces, so a test can hand in fakes without a store or an HTTP stack.
-type sources struct {
+// Deps are the seams Default builds the use cases from. They are interfaces, so a test can hand in fakes without a store or an HTTP stack.
+type Deps struct {
 	Repositories repositories.Registry
 	Modules      modules.Registry
 	Auth         entity.AuthConfig
@@ -41,10 +42,9 @@ type sources struct {
 	AccessTTL    time.Duration
 }
 
-// app is the composition root: every use case built once, explicitly.
-type app struct {
+// App is every use case, built once and explicitly.
+type App struct {
 	Modules modules.Registry
-	Auth    entity.AuthConfig
 
 	ConnectionList   connection.List
 	Connection       connection.Get
@@ -105,8 +105,8 @@ type app struct {
 	Tick        apply.Tick
 }
 
-// newApp builds every use case from s.
-func newApp(s sources) app {
+// Default builds every use case from d.
+func Default(d Deps) App {
 	// Instruments come from the global meter provider the logger setup registered; without a collector every instrument is a no-op.
 	m, err := metrics.New(otel.Meter(metrics.Scope))
 	if err != nil {
@@ -114,21 +114,20 @@ func newApp(s sources) app {
 	}
 
 	// The registry owns the drivers and their change queues, so it is built here where the instruments it reports through exist.
-	if s.Modules == nil {
-		s.Modules = modules.Default(s.Repositories, m)
+	if d.Modules == nil {
+		d.Modules = modules.Default(d.Repositories, m)
 	}
 
 	deps := usecases.RegistryDeps{
-		Repositories: s.Repositories,
-		Modules:      s.Modules,
-		Auth:         s.AuthService,
-		AccessTTL:    s.AccessTTL,
+		Repositories: d.Repositories,
+		Modules:      d.Modules,
+		Auth:         d.AuthService,
+		AccessTTL:    d.AccessTTL,
 		Metrics:      m,
 	}
-	registerConnectionGauge(m, s.Repositories.Connections)
-	return app{
-		Modules: s.Modules,
-		Auth:    s.Auth,
+	registerConnectionGauge(m, d.Repositories.Connections)
+	return App{
+		Modules: d.Modules,
 
 		ConnectionList:   connection.List{RegistryDeps: deps},
 		Connection:       connection.Get{RegistryDeps: deps},
@@ -152,7 +151,7 @@ func newApp(s sources) app {
 		Instance:       instance.Get{RegistryDeps: deps},
 		RotatePassword: instance.RotatePassword{RegistryDeps: deps},
 
-		AuthConfig: auth.Config{RegistryDeps: deps, Auth: s.Auth},
+		AuthConfig: auth.Config{RegistryDeps: deps, Auth: d.Auth},
 		Login:      auth.Login{RegistryDeps: deps},
 		Logout:     auth.Logout{RegistryDeps: deps},
 		ChangePass: auth.Password{RegistryDeps: deps},

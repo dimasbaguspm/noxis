@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"noxis/cmd/noxis/server/middlewares"
+	"noxis/internal/app"
 	"noxis/internal/auth"
 	"noxis/internal/common"
 	"noxis/internal/common/config"
@@ -30,10 +31,9 @@ const shutdownTimeout = 10 * time.Second
 var _ repositories.Store = (*sqlite.Store)(nil)
 
 // newDeps assembles the runtime container once: the stores, the registry (with the auth service) and the transport values, then builds every use case.
-func newDeps(store *sqlite.Store, cfg config.Config, authSvc *auth.Service) app {
-	return newApp(sources{
+func newDeps(store *sqlite.Store, cfg config.Config, authSvc *auth.Service) app.App {
+	return app.Default(app.Deps{
 		Repositories: repositories.Default(store),
-		Modules:      nil, // built in newApp, where the instruments exist
 		Auth:         cfg.AuthInfo(),
 		AuthService:  authSvc,
 	})

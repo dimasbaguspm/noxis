@@ -6,7 +6,7 @@ Detail for `AGENTS.md`. Read that first for the map.
 
 ```
 transport   apps/api/cmd/noxis/server         (route table → use case Serve)
-application apps/api/cmd/noxis/server/app.go   (composition root: newApp)
+application apps/api/internal/app              (composition root: Default)
             apps/api/internal/usecases        (root framework; one subpackage per domain)
 domain      apps/api/internal/entity             (data model, imports nothing internal)
             apps/api/internal/interfaces          (seams)
@@ -18,20 +18,20 @@ cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagina
 
 Rule: dependencies point inward and only downward. The order (low → high) is
 `constants · entity · interfaces → common/* → repositories/* → modules/<driver>
-→ modules (registry) → usecases (root) → usecases/* (domains) → middlewares → cmd/noxis/server
+→ modules (registry) → usecases (root) → usecases/* (domains) → app → middlewares → cmd/noxis/server
 (routes)`. A package may import only packages below its layer, and two packages
-in the same layer may not import each other. `cmd/noxis` is the composition root
-and is exempt. `test/arch/arch_test.go` reads the graph from `go list` and fails
+in the same layer may not import each other. `internal/app` is the composition root: it sits above
+the domains and below the transport, and `cmd/noxis` is the process entry, exempt. `test/arch/arch_test.go` reads the graph from `go list` and fails
 on any bent edge, so the rule is enforced, not just documented. Repositories and
 modules keep their `var _ interfaces.X` satisfier asserts next to the struct.
 
 ## Dependency injection
 
-One file does all wiring, at boot, once: `apps/api/cmd/noxis/server/app.go`.
+One file does all wiring, at boot, once: `apps/api/internal/app/app.go`.
 
-- `sources` holds the seams: `repositories.Registry`, `modules.Registry`, and `config.AuthInfo`.
-- `app` lists every use case as a named field.
-- `newApp(sources)` builds each use case **explicitly** — the fields it needs are
+- `Deps` holds the seams: `repositories.Registry`, `modules.Registry`, and `config.AuthInfo`.
+- `App` lists every use case as a named field.
+- `Default(Deps)` builds each use case **explicitly** — the fields it needs are
   named at the call site, and repositories stay under `Deps.Repositories`.
   The request context carries the authenticated principal
   and immutable module loader only; repositories, configuration, and the rest of
@@ -43,7 +43,7 @@ One file does all wiring, at boot, once: `apps/api/cmd/noxis/server/app.go`.
 
 Add a new use case: create `apps/api/internal/usecases/<domain>/foo.go` with a
 `Foo struct` embedding `usecases.RegistryDeps` and a `Serve(w, r)` → add a field
-to `app` and one line to `newApp` → add a `route` row with its method, path and
+to `App` and one line to `Default` → add a `route` row with its method, path and
 access rule. No constructor boilerplate, no reflection.
 
 ## Engine registry
