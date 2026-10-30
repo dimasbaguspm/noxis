@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { CrumbLabelProvider } from "@/app/crumb-provider";
 import { NavSearch } from "@/components/layout/nav-search";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -23,11 +24,12 @@ function Shell() {
   useDocumentTitle();
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-svh overflow-hidden">
       <AppSidebar />
-      <SidebarInset className="h-svh overflow-hidden rounded-xl border border-border shadow-sm">
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border px-4">
+      <SidebarInset className="overflow-hidden md:border md:border-border">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
           <SidebarTrigger className="-ms-2" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
           <nav aria-label="Breadcrumb" className="min-w-0 flex-1 overflow-hidden">
             <ol className="flex min-w-0 items-center gap-1.5 text-sm">
               {crumbs.map((crumb, i) => (
@@ -59,7 +61,7 @@ function Shell() {
           </nav>
           <NavSearch />
         </header>
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 pt-0">
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4">
           <Outlet />
         </main>
       </SidebarInset>
