@@ -10,7 +10,7 @@ import { TableBrowser } from "@/components/sql/table-browser";
 import { TableDetails } from "@/components/sql/table-details";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
-import { Label } from "@/components/ui/label";
+import { FilterField } from "@/components/filters/filter-field";
 import {
   Sheet,
   SheetBody,
@@ -69,16 +69,15 @@ export default function SqlErdPage() {
       <div className="flex h-full min-h-0">
         <Workspace>
           <Workspace.Pane defaultSize={17} minSize={14}>
-            <div className="flex min-h-0 flex-1 flex-col gap-3">
-              <div className="grid gap-1.5">
-                <Label>Instance</Label>
+            <div className="flex min-h-0 flex-1 flex-col gap-4">
+              <FilterField label="Instance">
                 <ConnectionSelect
                   connections={connections}
                   value={connection}
                   onChange={pick}
                   className="w-full"
                 />
-              </div>
+              </FilterField>
               <div className="min-h-0 flex-1">
                 <TableBrowser
                   tables={schemaTables}

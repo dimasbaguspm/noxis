@@ -2,16 +2,7 @@ import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  ArrowDown,
-  ArrowUp,
-  Copy,
-  Eraser,
-  KeyRound,
-  RefreshCw,
-  Search,
-  Trash2,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Eraser, KeyRound, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FilterField, SearchField } from "@/components/filters/filter-field";
 import {
   Select,
   SelectContent,
@@ -206,8 +197,7 @@ export default function MemcachePage() {
               </>
             }
           >
-            <div className="flex flex-col gap-1.5">
-              <Label>Instance</Label>
+            <FilterField label="Instance">
               <Select
                 value={connection ?? ""}
                 onValueChange={(v) => {
@@ -229,25 +219,19 @@ export default function MemcachePage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FilterField>
 
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="key-pattern">Key pattern</Label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="key-pattern"
-                  value={pattern}
-                  onChange={(e) => {
-                    clearSelection();
-                    setInspected(undefined);
-                    setPattern(e.target.value);
-                  }}
-                  placeholder="session:*"
-                  className="w-full pl-7"
-                />
-              </div>
-            </div>
+            <SearchField
+              id="key-pattern"
+              label="Key pattern"
+              placeholder="session:*"
+              value={pattern}
+              onChange={(value) => {
+                clearSelection();
+                setInspected(undefined);
+                setPattern(value);
+              }}
+            />
 
             {page.truncated && (
               <p className="text-xs text-amber-500">

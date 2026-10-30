@@ -1,11 +1,10 @@
 import { Link } from "react-router-dom";
 import { title } from "radash";
-import { Boxes, Search } from "lucide-react";
+import { Boxes } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
-import { Label } from "@/components/ui/label";
+import { FilterField, SearchField } from "@/components/filters/filter-field";
 import { Pagination } from "@/components/ui/pagination";
 import {
   Select,
@@ -59,22 +58,14 @@ export default function DashboardPage() {
       <Workspace
         left={
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="instance-search">Search by name</Label>
-              <InputGroup>
-                <InputGroupAddon>
-                  <Search />
-                </InputGroupAddon>
-                <InputGroupInput
-                  id="instance-search"
-                  placeholder="Type to filter…"
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                />
-              </InputGroup>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Driver</Label>
+            <SearchField
+              id="instance-search"
+              label="Search by name"
+              placeholder="Type to filter…"
+              value={filter}
+              onChange={setFilter}
+            />
+            <FilterField label="Driver">
               <Select value={driver} onValueChange={(v) => setDriver(String(v))}>
                 <SelectTrigger className="w-full">
                   <SelectValue>
@@ -94,7 +85,7 @@ export default function DashboardPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FilterField>
             {isSuper && (
               <Button render={<Link to={PAGE_ROUTES.INSTANCE_CREATE} />}>New connection</Button>
             )}

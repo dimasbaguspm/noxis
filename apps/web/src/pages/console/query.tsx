@@ -5,7 +5,7 @@ import { SqlTabs } from "@/components/sql/sql-tabs";
 import { TableBrowser } from "@/components/sql/table-browser";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { FilterField } from "@/components/filters/filter-field";
 import { Workspace } from "@/components/layout/workspace";
 import { Link, useSearchParams } from "react-router-dom";
 import { PAGE_ROUTES } from "@/constants/routes";
@@ -70,16 +70,15 @@ export default function QueryPage() {
     <div className="flex h-full min-h-0">
       <Workspace footer={result ? <ResultSummary result={result} /> : undefined}>
         <Workspace.Pane defaultSize={17} minSize={14}>
-          <div className="flex min-h-0 flex-1 flex-col gap-2">
-            <div className="grid gap-1.5">
-              <Label>Instance</Label>
+          <div className="flex min-h-0 flex-1 flex-col gap-4">
+            <FilterField label="Instance">
               <ConnectionSelect
                 connections={connections}
                 value={connection}
                 onChange={pick}
                 className="w-full"
               />
-            </div>
+            </FilterField>
             <div className="min-h-0 flex-1">
               <TableBrowser
                 tables={tables}

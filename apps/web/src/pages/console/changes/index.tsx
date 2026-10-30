@@ -2,7 +2,7 @@ import { RefreshCw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FilterField } from "@/components/filters/filter-field";
 import { Pagination } from "@/components/ui/pagination";
 import {
   Select,
@@ -81,10 +81,9 @@ export function ChangePage({
             }
           >
             {scope ? (
-              <div className="flex flex-col gap-1.5">
-                <Label>Instance</Label>
+              <FilterField label="Instance">
                 <Input value={scope.connection} readOnly disabled />
-              </div>
+              </FilterField>
             ) : (
               <InstanceFilter
                 options={sqlConnections.map((c) => c.name)}
@@ -92,17 +91,15 @@ export function ChangePage({
                 onChange={setConnections}
               />
             )}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="change-name">Name</Label>
+            <FilterField label="Name" htmlFor="change-name">
               <Input
                 id="change-name"
                 placeholder="notes or statement"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Status</Label>
+            </FilterField>
+            <FilterField label="Status">
               <Select value={status} onValueChange={(v) => setStatus(String(v))}>
                 <SelectTrigger className="w-full">
                   <SelectValue>
@@ -122,7 +119,7 @@ export function ChangePage({
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FilterField>
             <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>
               <Search /> Search
             </Button>
