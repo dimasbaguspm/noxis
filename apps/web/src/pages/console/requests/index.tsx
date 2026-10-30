@@ -56,7 +56,13 @@ export default function MongoRequestsPage() {
               <Label>Status</Label>
               <Select value={status} onValueChange={(value) => setStatus(String(value))}>
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>
+                    {(value) =>
+                      value === "all"
+                        ? "All statuses"
+                        : `${String(value).charAt(0).toUpperCase()}${String(value).slice(1)}`
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>

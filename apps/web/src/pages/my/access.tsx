@@ -40,7 +40,9 @@ export default function MyAccessPage() {
         <div className="flex items-center gap-2">
           <Select value={status} onValueChange={(v) => setStatus(v ?? "all")}>
             <SelectTrigger className="h-8 w-36">
-              <SelectValue />
+              <SelectValue>
+                {(value) => (value === "all" ? "All" : value === "active" ? "Active" : "Expired")}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>

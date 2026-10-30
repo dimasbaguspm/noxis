@@ -102,7 +102,9 @@ export default function UserDetailPage() {
                     onValueChange={(v) => v && update.mutate({ role: v as UserRole })}
                   >
                     <SelectTrigger className="h-8 w-full">
-                      <SelectValue />
+                      <SelectValue>
+                        {(value) => (value === "admin" ? "Admin" : "Member")}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="member">Member</SelectItem>

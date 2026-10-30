@@ -35,7 +35,9 @@ export function TableBrowser({ tables, onRecords, onAnalyze, onSelect }: Props) 
         <Label>Schema</Label>
         <Select value={schemaFilter || "all"} onValueChange={(next) => selectSchema(String(next))}>
           <SelectTrigger className="w-full" aria-label="Schema">
-            <SelectValue placeholder="All schemas" />
+            <SelectValue>
+              {(value) => (value === "all" ? "All schemas" : String(value))}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All schemas</SelectItem>

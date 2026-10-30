@@ -78,7 +78,13 @@ export function ChangePage({ kind }: { kind: ChangeKind }) {
               <Label>Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(String(v))}>
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>
+                    {(value) =>
+                      value === "all"
+                        ? "All statuses"
+                        : `${String(value).charAt(0).toUpperCase()}${String(value).slice(1)}`
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All statuses</SelectItem>

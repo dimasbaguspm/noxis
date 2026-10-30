@@ -341,7 +341,11 @@ export function ConnectionDialog({
                       }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Pick a driver" />
+                        <SelectValue>
+                          {(value) =>
+                            drivers.find((d) => d.driver === value)?.label ?? String(value)
+                          }
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {drivers

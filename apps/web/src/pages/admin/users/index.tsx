@@ -70,7 +70,11 @@ export default function UsersPage() {
               <Label>Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v ?? "all")}>
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>
+                    {(value) =>
+                      value === "all" ? "All accounts" : value === "active" ? "Active" : "Banned"
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All accounts</SelectItem>
