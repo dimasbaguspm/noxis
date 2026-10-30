@@ -25,7 +25,7 @@ type Keys struct{ usecases.RegistryDeps }
 func (uc Keys) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	var mc interfaces.MemcacheModule
+	var mc interfaces.KeyBrowser
 	if err := uc.RouteModule(ctx, r, &mc); err != nil {
 		uc.Fail(ctx, w, err)
 		return

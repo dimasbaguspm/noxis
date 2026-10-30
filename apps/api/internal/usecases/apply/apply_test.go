@@ -30,7 +30,7 @@ func approved(id string) entity.Change {
 // harness holds the change store and the SQL module, both mocked.
 type harness struct {
 	deps        usecases.RegistryDeps
-	sq          *mocks.MockSQLModule
+	sq          *mocks.MockSQLChangeEngine
 	changes     *mocks.MockChangeRepository
 	stored      map[string]entity.Change
 	saveErr     error
@@ -41,7 +41,7 @@ func newHarness(t *testing.T, store ...entity.Change) *harness {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	h := &harness{
-		sq:      mocks.NewMockSQLModule(ctrl),
+		sq:      mocks.NewMockSQLChangeEngine(ctrl),
 		changes: mocks.NewMockChangeRepository(ctrl),
 		stored:  map[string]entity.Change{},
 	}

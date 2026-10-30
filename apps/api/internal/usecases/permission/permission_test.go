@@ -33,7 +33,7 @@ func newHarness(t *testing.T) *harness {
 	conns := mocks.NewMockConnectionRepository(ctrl)
 	perms := mocks.NewMockPermissionRepository(ctrl)
 	users := mocks.NewMockUserRepository(ctrl)
-	sq := mocks.NewMockSQLModule(ctrl)
+	sq := mocks.NewMockSQLChangeEngine(ctrl)
 
 	conns.EXPECT().Get(gomock.Any(), "demo").Return(&entity.Connection{
 		Name: "demo", Driver: constants.DriverPostgres,

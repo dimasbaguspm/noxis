@@ -22,7 +22,7 @@ type ERD struct{ usecases.RegistryDeps }
 func (uc ERD) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	var sq interfaces.SQLModule
+	var sq interfaces.SchemaReader
 	if err := uc.RouteModule(ctx, r, &sq); err != nil {
 		uc.Fail(ctx, w, err)
 		return

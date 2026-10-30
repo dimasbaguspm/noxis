@@ -15,7 +15,7 @@ import (
 
 func supports(module interfaces.Module) bool {
 	switch module.(type) {
-	case interfaces.SQLModule, interfaces.MongoModule:
+	case interfaces.SQLChangeEngine, interfaces.MongoChangeEngine:
 		return true
 	}
 	return false
@@ -29,11 +29,11 @@ func readable(all []entity.Change, module interfaces.Module, allowed map[string]
 			continue
 		}
 		switch module.(type) {
-		case interfaces.SQLModule:
+		case interfaces.SQLChangeEngine:
 			if change.Kind == constants.KindDML || change.Kind == constants.KindDDL {
 				out = append(out, change)
 			}
-		case interfaces.MongoModule:
+		case interfaces.MongoChangeEngine:
 			if change.Kind == constants.KindMongo {
 				out = append(out, change)
 			}
@@ -76,9 +76,9 @@ func unsupportedChangeFlow(module interfaces.Module) error {
 
 func changeFor(ctx context.Context, deps usecases.RegistryDeps, module interfaces.Module, id string) (*entity.Change, error) {
 	switch module.(type) {
-	case interfaces.SQLModule:
+	case interfaces.SQLChangeEngine:
 		return deps.SQLChange(ctx, id)
-	case interfaces.MongoModule:
+	case interfaces.MongoChangeEngine:
 		return deps.MongoChange(ctx, id)
 	}
 	return nil, unsupportedChangeFlow(module)

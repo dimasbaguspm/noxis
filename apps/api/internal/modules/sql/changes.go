@@ -19,12 +19,12 @@ import (
 type Changes struct {
 	changeflow.Flow
 	Conns   interfaces.ConnectionRepository
-	Engine  interfaces.SQLModule
+	Engine  interfaces.SQLChangeEngine
 	Metrics *metrics.Metrics
 }
 
 // NewChanges wires the SQL change queue.
-func NewChanges(conns interfaces.ConnectionRepository, store interfaces.ChangeRepository, engine interfaces.SQLModule, m *metrics.Metrics, driver string) *Changes {
+func NewChanges(conns interfaces.ConnectionRepository, store interfaces.ChangeRepository, engine interfaces.SQLChangeEngine, m *metrics.Metrics, driver string) *Changes {
 	return &Changes{
 		Flow:    changeflow.New(store, driver),
 		Conns:   conns,

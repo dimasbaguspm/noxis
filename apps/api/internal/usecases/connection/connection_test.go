@@ -23,7 +23,7 @@ func deps(t *testing.T) (usecases.RegistryDeps, *mocks.MockConnectionRepository,
 	t.Helper()
 	conns := mocks.NewMockConnectionRepository(gomock.NewController(t))
 	perms := mocks.NewMockPermissionRepository(gomock.NewController(t))
-	sq := mocks.NewMockSQLModule(gomock.NewController(t))
+	sq := mocks.NewMockSQLChangeEngine(gomock.NewController(t))
 	sq.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
 	sq.EXPECT().Supports(gomock.Any()).Return(true).AnyTimes()
 	return usecases.RegistryDeps{

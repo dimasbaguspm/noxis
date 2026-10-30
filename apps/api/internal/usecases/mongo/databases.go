@@ -22,7 +22,7 @@ type Databases struct{ usecases.RegistryDeps }
 func (uc Databases) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	var module interfaces.MongoModule
+	var module interfaces.DocumentBrowser
 	if err := uc.RouteModule(ctx, r, &module); err != nil {
 		uc.Fail(ctx, w, err)
 		return

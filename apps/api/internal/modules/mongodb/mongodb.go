@@ -40,8 +40,11 @@ type DB struct{}
 
 func New() *DB { return &DB{} }
 
-// Satisfier.
-var _ interfaces.MongoModule = (*DB)(nil)
+// Satisfiers: the document engine browses documents and proves a write request.
+var (
+	_ interfaces.DocumentBrowser   = (*DB)(nil)
+	_ interfaces.MongoChangeEngine = (*DB)(nil)
+)
 
 // Driver is the driver this module serves.
 func (db *DB) Driver() string { return constants.DriverMongo }

@@ -39,7 +39,7 @@ type Op struct{ usecases.RegistryDeps }
 func (uc Op) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	var module interfaces.SQLModule
+	var module interfaces.ConsoleQuerier
 	if err := uc.RouteModule(ctx, r, &module); err != nil {
 		uc.Fail(ctx, w, err)
 		return

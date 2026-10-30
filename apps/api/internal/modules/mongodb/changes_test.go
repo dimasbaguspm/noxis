@@ -18,7 +18,7 @@ func TestApplyReturnsOutcomeSaveFailure(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	connections := mocks.NewMockConnectionRepository(ctrl)
 	changes := mocks.NewMockChangeRepository(ctrl)
-	engine := mocks.NewMockMongoModule(ctrl)
+	engine := mocks.NewMockMongoChangeEngine(ctrl)
 	connection := entity.Connection{Name: "demo"}
 	request := entity.MongoRequest{Op: constants.MongoInsert, Database: "demo", Collection: "docs", Value: `{"name":"nox"}`}
 	encoded, err := json.Marshal(request)
