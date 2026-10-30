@@ -20,13 +20,6 @@ export interface NavItem {
   end?: boolean;
 }
 
-export interface Section {
-  key: Capability;
-  label: string;
-  icon: ComponentType<{ className?: string }>;
-  nav: NavItem[];
-}
-
 // PAGES is the console's page catalog: one entry per page a capability earns, named by the route that renders it.
 const PAGES: Record<Capability, { page: DriverPage; icon: NavItem["icon"] }[]> = {
   [CAPABILITY.SQL]: [
@@ -83,16 +76,11 @@ export function pagesOf(catalog: DriverInfo[] | undefined, driver: string): NavI
   return capabilitiesOf(catalog, driver).flatMap((capability) => navItems(capability, driver));
 }
 
-// sections groups the same pages by capability, which the sidebar shows while the driver picker is being introduced.
-export function sections(catalog: DriverInfo[] | undefined, driver: string): Section[] {
-  return (Object.keys(PAGES) as Capability[])
-    .filter((capability) =>
-      (catalog ?? []).some((entry) => entry.capabilities.includes(capability)),
-    )
-    .map((capability) => ({
-      key: capability,
-      label: SECTION_META[capability].label,
-      icon: SECTION_META[capability].icon,
-      nav: navItems(capability, driver),
-    }));
+// firstPageOf is the page a driver picker opens: the first page of the first capability the driver declares.
+export function firstPageOf(
+  catalog: DriverInfo[] | undefined,
+  driver: string,
+): DriverPage | undefined {
+  const capability = capabilitiesOf(catalog, driver)[0];
+  return capability ? PAGES[capability][0]?.page : undefined;
 }
