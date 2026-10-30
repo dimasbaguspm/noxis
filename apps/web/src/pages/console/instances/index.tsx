@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { title } from "radash";
-import { Boxes } from "lucide-react";
+import { Boxes, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
@@ -22,11 +23,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { QueuePanel } from "@/components/layout/queue-panel";
 import { Workspace } from "@/components/layout/workspace";
 import { useAuth } from "@/app/auth-provider";
 import { useDriversQuery } from "@/hooks/use-config";
 import { ALL_DRIVERS, useInstancesUrlParams, usePagedInstancesQuery } from "@/hooks/use-instances";
-import { useDebounce } from "@/hooks/use-debounce";
 import { DriverMark } from "@/components/brand/driver-mark";
 import { PAGE_ROUTES } from "@/constants/routes";
 
@@ -39,10 +40,12 @@ export default function DashboardPage() {
   const { isSuper } = useAuth();
   const { data: drivers = [] } = useDriversQuery();
   const { q: filter, driver, page, setQ: setFilter, setDriver, setPage } = useInstancesUrlParams();
-  const query = useDebounce(filter);
+  // the name is applied on purpose: typing no longer fires a request per keystroke
+  const [draft, setDraft] = useState(filter);
+  const apply = () => setFilter(draft.trim());
 
   const list = usePagedInstancesQuery({
-    name: query.trim() || undefined,
+    name: filter.trim() || undefined,
     driver: driver === ALL_DRIVERS ? undefined : driver,
     page,
     perPage: PER_PAGE,
@@ -57,39 +60,53 @@ export default function DashboardPage() {
     <div className="flex h-full min-h-0">
       <Workspace
         left={
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
-            <SearchField
-              id="instance-search"
-              label="Search by name"
-              placeholder="Type to filter…"
-              value={filter}
-              onChange={setFilter}
-            />
-            <FilterField label="Driver">
-              <Select value={driver} onValueChange={(v) => setDriver(String(v))}>
-                <SelectTrigger className="w-full">
-                  <SelectValue>
-                    {(value) =>
-                      value === ALL_DRIVERS
-                        ? "All drivers"
-                        : (drivers.find((d) => d.driver === value)?.label ?? String(value))
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL_DRIVERS}>All drivers</SelectItem>
-                  {drivers.map((d) => (
-                    <SelectItem key={d.driver} value={d.driver}>
-                      {d.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FilterField>
-            {isSuper && (
-              <Button render={<Link to={PAGE_ROUTES.INSTANCE_CREATE} />}>New connection</Button>
-            )}
-          </div>
+          <QueuePanel
+            actions={
+              isSuper ? (
+                <Button render={<Link to={PAGE_ROUTES.INSTANCE_CREATE} />}>New connection</Button>
+              ) : undefined
+            }
+          >
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                apply();
+              }}
+            >
+              <SearchField
+                id="instance-search"
+                label="Search by name"
+                placeholder="Search instances"
+                value={draft}
+                onChange={setDraft}
+              />
+              <FilterField label="Driver">
+                <Select value={driver} onValueChange={(v) => setDriver(String(v))}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue>
+                      {(value) =>
+                        value === ALL_DRIVERS
+                          ? "All drivers"
+                          : (drivers.find((d) => d.driver === value)?.label ?? String(value))
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_DRIVERS}>All drivers</SelectItem>
+                    {drivers.map((d) => (
+                      <SelectItem key={d.driver} value={d.driver}>
+                        {d.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FilterField>
+              <Button type="submit" variant="outline">
+                <Search /> Search
+              </Button>
+            </form>
+          </QueuePanel>
         }
         right={
           <div className="min-h-0 flex-1 overflow-auto">
