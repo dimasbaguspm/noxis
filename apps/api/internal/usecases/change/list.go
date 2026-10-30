@@ -17,6 +17,7 @@ type List struct{ usecases.RegistryDeps }
 // @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param connection query string false "substring match on connection name"
 // @Param status query string false "exact status match (unverified, validated, approved, applying, applied, failed, rejected)"
+// @Param kind query string false "dml or ddl (sql change engines only)"
 // @Param page query int false "page number, starting at 1"
 // @Param perPage query int false "items per page (default 20, max 100)"
 // @Success 200 {object} entity.ChangeList
@@ -53,6 +54,12 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	visible := readable(all, module, allowed, drivers, module.Driver())
 	visible = filterByConnection(visible, query.Get("connection"))
 	visible = filterByStatus(visible, query.Get("status"))
+	kind, err := changeKind(query.Get("kind"), module)
+	if err != nil {
+		uc.Fail(ctx, w, err)
+		return
+	}
+	visible = filterByKind(visible, kind)
 	page, perPage := pagination.Params(query.Get("page"), query.Get("perPage"), constants.DefaultPageSize)
 	uc.Respond(w, entity.ChangeList{Changes: pagination.Slice(visible, page, perPage), Total: len(visible)})
 }

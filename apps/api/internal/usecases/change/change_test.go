@@ -243,3 +243,45 @@ func TestGetRefusesAnotherDriversChange(t *testing.T) {
 		t.Fatalf("another driver's change must be not found: %d %s", rec.Code, rec.Body.String())
 	}
 }
+
+// TestListFiltersByKind keeps the two queues apart: the filter runs before pagination, so the total is the queue's own count.
+func TestListFiltersByKind(t *testing.T) {
+	h := newHarness(t)
+	h.conns.EXPECT().List(gomock.Any()).Return([]entity.Connection{
+		{Name: "demo", Driver: constants.DriverPostgres},
+	}, nil).AnyTimes()
+	h.changes.EXPECT().ListChanges(gomock.Any()).Return([]entity.Change{
+		{ID: "d1", Connection: "demo", Kind: constants.KindDML, Status: constants.ChangeValidated},
+		{ID: "x1", Connection: "demo", Kind: constants.KindDDL, Status: constants.ChangeValidated},
+	}, nil).AnyTimes()
+
+	for _, want := range []string{constants.KindDML, constants.KindDDL} {
+		rec := h.do(testkit.Mux("GET", "/external/v1/engine/{driver}/changes", List{RegistryDeps: h.deps}.Serve),
+			http.MethodGet, "/external/v1/engine/postgres/changes?kind="+want, "", admin())
+		if rec.Code != http.StatusOK {
+			t.Fatalf("kind=%s status=%d body=%s", want, rec.Code, rec.Body.String())
+		}
+		var got entity.ChangeList
+		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if got.Total != 1 || len(got.Changes) != 1 || got.Changes[0].Kind != want {
+			t.Fatalf("kind=%s must hold only its own change: %+v", want, got)
+		}
+	}
+}
+
+// TestListRefusesAnUnknownKind keeps a typo from silently returning the whole queue.
+func TestListRefusesAnUnknownKind(t *testing.T) {
+	h := newHarness(t)
+	h.conns.EXPECT().List(gomock.Any()).Return([]entity.Connection{
+		{Name: "demo", Driver: constants.DriverPostgres},
+	}, nil).AnyTimes()
+	h.changes.EXPECT().ListChanges(gomock.Any()).Return([]entity.Change{}, nil).AnyTimes()
+
+	rec := h.do(testkit.Mux("GET", "/external/v1/engine/{driver}/changes", List{RegistryDeps: h.deps}.Serve),
+		http.MethodGet, "/external/v1/engine/postgres/changes?kind=mongo", "", admin())
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("unknown kind must be a bad request: %d %s", rec.Code, rec.Body.String())
+	}
+}

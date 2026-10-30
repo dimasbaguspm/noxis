@@ -87,6 +87,35 @@ func filterByStatus(all []entity.Change, status string) []entity.Change {
 	return out
 }
 
+// changeKind validates the queue's kind filter: an empty value keeps the queue whole, and only a SQL change engine serves
+// the two SQL kinds.
+func changeKind(raw string, module interfaces.Module) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", nil
+	}
+	if raw != constants.KindDML && raw != constants.KindDDL {
+		return "", fmt.Errorf("kind must be %s or %s", constants.KindDML, constants.KindDDL)
+	}
+	if _, ok := module.(interfaces.SQLChangeEngine); !ok {
+		return "", fmt.Errorf("%w: engine %q has no %s or %s kind", constants.ErrUnsupported, module.Driver(), constants.KindDML, constants.KindDDL)
+	}
+	return raw, nil
+}
+
+func filterByKind(all []entity.Change, kind string) []entity.Change {
+	if kind == "" {
+		return all
+	}
+	out := make([]entity.Change, 0, len(all))
+	for i := range all {
+		if all[i].Kind == kind {
+			out = append(out, all[i])
+		}
+	}
+	return out
+}
+
 func unsupportedChangeFlow(module interfaces.Module) error {
 	return fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, module.Driver())
 }

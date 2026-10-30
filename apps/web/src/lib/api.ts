@@ -245,12 +245,20 @@ export class ApiClient {
       },
     }),
     changes: (driver: string) => ({
-      list: (connection?: string, page?: number, perPage?: number, status?: string) => {
+      // kind is the server's filter: it runs before pagination, so the queue's total is its own count.
+      list: (
+        connection?: string,
+        page?: number,
+        perPage?: number,
+        status?: string,
+        kind?: string,
+      ) => {
         const params = new URLSearchParams();
         if (connection) params.set("connection", connection);
         if (page && page > 1) params.set("page", String(page));
         if (perPage) params.set("perPage", String(perPage));
         if (status) params.set("status", status);
+        if (kind) params.set("kind", kind);
         const qs = params.toString();
         return this.request<{ changes: Change[]; total: number }>(
           "GET",
