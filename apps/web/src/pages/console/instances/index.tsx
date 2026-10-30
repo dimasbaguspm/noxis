@@ -79,7 +79,13 @@ export default function DashboardPage() {
               <Label>Driver</Label>
               <Select value={driver} onValueChange={(v) => setDriver(String(v))}>
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>
+                    {(value) =>
+                      value === ALL_DRIVERS
+                        ? "All drivers"
+                        : (drivers.find((d) => d.driver === value)?.label ?? String(value))
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL_DRIVERS}>All drivers</SelectItem>

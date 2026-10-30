@@ -275,7 +275,11 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
                           onValueChange={(value) => setMemberType(value ?? "group")}
                         >
                           <SelectTrigger className="w-full">
-                            <SelectValue />
+                            <SelectValue>
+                              {(value) =>
+                                MEMBER_TYPES.find((t) => t.value === value)?.label ?? String(value)
+                              }
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             {MEMBER_TYPES.map((type) => (
@@ -291,7 +295,12 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
                         {memberType === "user" ? (
                           <Select value={member} onValueChange={(value) => setMember(value ?? "")}>
                             <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Pick a user" />
+                              <SelectValue>
+                                {(value) =>
+                                  (members.data?.users ?? []).find((u) => u.subject === value)
+                                    ?.label ?? String(value)
+                                }
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               {(members.data?.users ?? []).map((user) => (
@@ -323,7 +332,9 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
                     <Label>Level</Label>
                     <Select value={level} onValueChange={(value) => setLevel(value ?? "read")}>
                       <SelectTrigger className="w-full">
-                        <SelectValue />
+                        <SelectValue>
+                          {(value) => levels.find((l) => l.value === value)?.label ?? String(value)}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {levels.map((item) => (

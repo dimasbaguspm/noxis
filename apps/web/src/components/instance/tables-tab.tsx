@@ -80,7 +80,9 @@ export function TablesTab({
                 onValueChange={(v) => onSchema(String(v) === "all" ? "" : String(v))}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue />
+                  <SelectValue>
+                    {(value) => (value === "all" ? "All schemas" : String(value))}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All schemas</SelectItem>
