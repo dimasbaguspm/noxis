@@ -563,6 +563,37 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
+  "/external/v1/engine/{driver}/connections/probe":
+    post:
+      summary: Probe a connection draft without saving it
+      parameters:
+        - description: driver name (postgres, mysql, mariadb, sqlite, cockroach, redis,
+            valkey, mongo)
+          name: driver
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/entity.Connection"
+        description: connection draft
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.StatusResponse"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
   "/external/v1/engine/{driver}/connections/{name}":
     get:
       summary: Get one connection (password redacted)

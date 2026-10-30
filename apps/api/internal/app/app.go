@@ -51,6 +51,7 @@ type App struct {
 	SaveConnection   connection.Save
 	DeleteConnection connection.Delete
 	TestConnection   connection.Test
+	ProbeConnection  connection.Probe
 
 	Schema schema.Tables
 	ERD    schema.ERD
@@ -134,6 +135,7 @@ func Default(d Deps) App {
 		SaveConnection:   connection.Save{RegistryDeps: deps},
 		DeleteConnection: connection.Delete{RegistryDeps: deps},
 		TestConnection:   connection.Test{RegistryDeps: deps},
+		ProbeConnection:  connection.Probe{RegistryDeps: deps},
 
 		Schema: schema.Tables{RegistryDeps: deps},
 		ERD:    schema.ERD{RegistryDeps: deps},
