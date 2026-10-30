@@ -79,7 +79,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const counts = useInstanceCountsQuery().data?.counts ?? {};
 
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" variant="inset" {...props}>
       <SiteTitle />
       <SidebarContent>
         <SidebarGroup>
