@@ -37,12 +37,12 @@ func routes(d app, cfg config.Config) []route {
 		{Method: http.MethodPost, Endpoint: api + "/auth/logout", Handler: http.HandlerFunc(d.Logout.Serve)},
 		{Method: http.MethodPost, Endpoint: api + "/auth/password", Handler: http.HandlerFunc(d.ChangePass.Serve)},
 
-		// Connections: one generic route per operation, gated by the {engine} path parameter through the module registry.
-		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections", Handler: http.HandlerFunc(d.ConnectionList.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/connections", Handler: http.HandlerFunc(d.SaveConnection.Serve)},
-		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}", Handler: http.HandlerFunc(d.Connection.Serve)},
-		{Method: http.MethodDelete, Endpoint: api + "/engine/{engine}/connections/{name}", Handler: http.HandlerFunc(d.DeleteConnection.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/connections/{name}/test", Handler: http.HandlerFunc(d.TestConnection.Serve)},
+		// Connections: one generic route per operation, gated by the {driver} path parameter through the module registry.
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections", Handler: http.HandlerFunc(d.ConnectionList.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/connections", Handler: http.HandlerFunc(d.SaveConnection.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}", Handler: http.HandlerFunc(d.Connection.Serve)},
+		{Method: http.MethodDelete, Endpoint: api + "/engine/{driver}/connections/{name}", Handler: http.HandlerFunc(d.DeleteConnection.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/connections/{name}/test", Handler: http.HandlerFunc(d.TestConnection.Serve)},
 
 		// Permissions: per-connection RBAC policy (users and groups), managed by admins.
 		{Method: http.MethodGet, Endpoint: api + "/config/members", Handler: http.HandlerFunc(d.Members.Serve)},
@@ -58,39 +58,39 @@ func routes(d app, cfg config.Config) []route {
 		{Method: http.MethodGet, Endpoint: api + "/users", Handler: http.HandlerFunc(d.UserList.Serve)},
 		{Method: http.MethodGet, Endpoint: api + "/users/{subject}", Handler: http.HandlerFunc(d.UserGet.Serve)},
 		{Method: http.MethodPatch, Endpoint: api + "/users/{subject}", Handler: http.HandlerFunc(d.UserUpdate.Serve)},
-		// The instance-scoped grant routes live under the engine path, so a family mismatch is reported like any other connection error.
-		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/permissions", Handler: http.HandlerFunc(d.ListPermissions.Serve)},
-		{Method: http.MethodPut, Endpoint: api + "/engine/{engine}/connections/{name}/permissions", Handler: http.HandlerFunc(d.SetPermission.Serve)},
-		{Method: http.MethodDelete, Endpoint: api + "/engine/{engine}/connections/{name}/permissions", Handler: http.HandlerFunc(d.DeletePermission.Serve)},
+		// The instance-scoped grant routes live under the engine path, so a driver mismatch is reported like any other connection error.
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/permissions", Handler: http.HandlerFunc(d.ListPermissions.Serve)},
+		{Method: http.MethodPut, Endpoint: api + "/engine/{driver}/connections/{name}/permissions", Handler: http.HandlerFunc(d.SetPermission.Serve)},
+		{Method: http.MethodDelete, Endpoint: api + "/engine/{driver}/connections/{name}/permissions", Handler: http.HandlerFunc(d.DeletePermission.Serve)},
 
 		// SQL-only: schema, row preview and the console ops.
-		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/schema", Handler: http.HandlerFunc(d.Schema.Serve)},
-		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/erd", Handler: http.HandlerFunc(d.ERD.Serve)},
-		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/info", Handler: http.HandlerFunc(d.Info.Serve)},
-		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/tables/{table}/rows", Handler: http.HandlerFunc(d.Rows.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/connections/{name}/operations", Handler: http.HandlerFunc(d.Op.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/schema", Handler: http.HandlerFunc(d.Schema.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/erd", Handler: http.HandlerFunc(d.ERD.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/info", Handler: http.HandlerFunc(d.Info.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/tables/{table}/rows", Handler: http.HandlerFunc(d.Rows.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/connections/{name}/operations", Handler: http.HandlerFunc(d.Op.Serve)},
 
 		// Changes: SQL and MongoDB keep separate queues behind one route.
-		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/changes", Handler: http.HandlerFunc(d.ChangeList.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/changes", Handler: http.HandlerFunc(d.ChangeSubmit.Serve)},
-		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/changes/{id}", Handler: http.HandlerFunc(d.ChangeGet.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/changes/{id}/approve", Handler: http.HandlerFunc(d.ChangeApprove.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/changes/{id}/apply", Handler: http.HandlerFunc(d.ChangeApply.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/changes/{id}/reject", Handler: http.HandlerFunc(d.ChangeReject.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/changes/{id}/schedule", Handler: http.HandlerFunc(d.ChangeSchedule.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/changes", Handler: http.HandlerFunc(d.ChangeList.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/changes", Handler: http.HandlerFunc(d.ChangeSubmit.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/changes/{id}", Handler: http.HandlerFunc(d.ChangeGet.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/changes/{id}/approve", Handler: http.HandlerFunc(d.ChangeApprove.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/changes/{id}/apply", Handler: http.HandlerFunc(d.ChangeApply.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/changes/{id}/reject", Handler: http.HandlerFunc(d.ChangeReject.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/changes/{id}/schedule", Handler: http.HandlerFunc(d.ChangeSchedule.Serve)},
 
 		// Memory-cache-only: keys, values, removal and emptying the database.
-		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/keys", Handler: http.HandlerFunc(d.CacheKeys.Serve)},
-		{Method: http.MethodDelete, Endpoint: api + "/engine/{engine}/connections/{name}/keys", Handler: http.HandlerFunc(d.CacheDel.Serve)},
-		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/value", Handler: http.HandlerFunc(d.CacheVal.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/connections/{name}/flush", Handler: http.HandlerFunc(d.CacheFlsh.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/keys", Handler: http.HandlerFunc(d.CacheKeys.Serve)},
+		{Method: http.MethodDelete, Endpoint: api + "/engine/{driver}/connections/{name}/keys", Handler: http.HandlerFunc(d.CacheDel.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/value", Handler: http.HandlerFunc(d.CacheVal.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/connections/{name}/flush", Handler: http.HandlerFunc(d.CacheFlsh.Serve)},
 
 		// MongoDB-only: databases, collections and read requests.
-		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/databases", Handler: http.HandlerFunc(d.MongoDbs.Serve)},
-		{Method: http.MethodGet, Endpoint: api + "/engine/{engine}/connections/{name}/collections", Handler: http.HandlerFunc(d.MongoColls.Serve)},
-		{Method: http.MethodPost, Endpoint: api + "/engine/{engine}/connections/{name}/requests", Handler: http.HandlerFunc(d.MongoRun.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/databases", Handler: http.HandlerFunc(d.MongoDbs.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/collections", Handler: http.HandlerFunc(d.MongoColls.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/connections/{name}/requests", Handler: http.HandlerFunc(d.MongoRun.Serve)},
 
-		// Instances address a connection by its stable id, across families. The family routes live under {api}/engine/{engine}/..., so these paths never collide with the {engine} wildcard.
+		// Instances address a connection by its stable id, across drivers. The engine routes live under {api}/engine/{driver}/..., so these paths never collide with the {driver} wildcard.
 		{Method: http.MethodGet, Endpoint: api + "/instances", Handler: http.HandlerFunc(d.Instances.Serve)},
 		{Method: http.MethodGet, Endpoint: api + "/instances/{id}", Handler: http.HandlerFunc(d.Instance.Serve)},
 		{Method: http.MethodPost, Endpoint: api + "/instances/{id}/password", Handler: http.HandlerFunc(d.RotatePassword.Serve)},
@@ -115,10 +115,10 @@ func routes(d app, cfg config.Config) []route {
 
 // newHandler wires the route table to a mux, applying auth to every API route
 // that is not explicitly public and the request log to every route.
-// withDriver attaches the {engine} path value to the request context, so a use case resolves its module without reading the route itself.
+// withDriver attaches the {driver} path value to the request context, so a use case resolves its module without reading the route itself.
 func withDriver(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if driver := r.PathValue("engine"); driver != "" {
+		if driver := r.PathValue("driver"); driver != "" {
 			r = r.WithContext(common.WithModuleDriver(r.Context(), driver))
 		}
 		h.ServeHTTP(w, r)

@@ -13,12 +13,12 @@ import (
 type Tables struct{ usecases.RegistryDeps }
 
 // @Summary Introspect a connection's tables and columns
-// @Param engine path string true "engine family (sql)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param name path string true "connection name"
 // @Success 200 {object} entity.TableList
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/schema [get]
+// @Router /external/v1/engine/{driver}/connections/{name}/schema [get]
 func (uc Tables) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)

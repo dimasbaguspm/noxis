@@ -7,7 +7,7 @@ import (
 
 // Connection is a registered database instance. noxis connects to databases that already exist; it does not create them. The password never leaves the API.
 type Connection struct {
-	// ID identifies an instance across families; permissions and changes still link by Name.
+	// ID identifies an instance across drivers; permissions and changes still link by Name.
 	ID        string            `json:"id,omitempty"`
 	Name      string            `json:"name" validate:"required"`
 	Driver    string            `json:"driver" validate:"required"` // postgres | mysql (mariadb aliases mysql) | sqlite
@@ -47,7 +47,7 @@ func isFileDriver(driver string) bool {
 
 func isKeyValueDriver(driver string) bool {
 	switch strings.ToLower(driver) {
-	case "redis", "valkey": // memcache-family drivers need no user
+	case "redis", "valkey": // cache drivers need no user
 		return true
 	}
 	return false

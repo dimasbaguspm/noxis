@@ -11,10 +11,10 @@ import (
 	"noxis/internal/usecases"
 )
 
-// List lists instances across engine families (passwords redacted).
+// List lists instances across drivers (passwords redacted).
 type List struct{ usecases.RegistryDeps }
 
-// @Summary List instances across engine families (passwords redacted)
+// @Summary List instances across drivers (passwords redacted)
 // @Param name query string false "substring match on name"
 // @Param driver query string false "exact driver match"
 // @Param host query string false "substring match on host"

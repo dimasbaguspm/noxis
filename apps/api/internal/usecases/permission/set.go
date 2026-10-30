@@ -13,7 +13,7 @@ import (
 type Set struct{ usecases.RegistryDeps }
 
 // @Summary Grant a user or group a level on a connection (admin only)
-// @Param engine path string true "engine family (sql, memcache, mongodb)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param name path string true "connection name"
 // @Param body body entity.PermissionGrant true "member, member type and level"
 // @Success 200 {object} entity.Permission
@@ -21,7 +21,7 @@ type Set struct{ usecases.RegistryDeps }
 // @Failure 401 {object} entity.ErrorResponse
 // @Failure 403 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/permissions [put]
+// @Router /external/v1/engine/{driver}/connections/{name}/permissions [put]
 func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
@@ -29,7 +29,7 @@ func (uc Set) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	module, err := uc.Modules.Engine(r.PathValue("engine"))
+	module, err := uc.Modules.Engine(r.PathValue("driver"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

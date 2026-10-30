@@ -107,7 +107,7 @@ func TestApplyAfterApprove(t *testing.T) {
 	h := newHarness(t, approved("x"))
 	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{Affected: 1, Message: "applied: 1 statement(s)"}, nil)
 
-	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
+	mux := testkit.Mux("POST", "/external/v1/engine/{driver}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
 	rec := h.do(mux, http.MethodPost, "/external/v1/engine/postgres/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code != http.StatusOK {
 		t.Fatalf("apply status=%d body=%s", rec.Code, rec.Body.String())
@@ -122,7 +122,7 @@ func TestApplyAfterApprove(t *testing.T) {
 
 func TestApplyRejectedDoesNotRunEngine(t *testing.T) {
 	h := newHarness(t, entity.Change{ID: "x", Connection: "demo", Kind: constants.KindDDL, Status: constants.ChangeRejected})
-	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
+	mux := testkit.Mux("POST", "/external/v1/engine/{driver}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
 	rec := h.do(mux, http.MethodPost, "/external/v1/engine/postgres/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code == http.StatusOK {
 		t.Fatalf("rejected change applied: %s", rec.Body.String())
@@ -152,7 +152,7 @@ func TestApplyFailureIsRecorded(t *testing.T) {
 	h := newHarness(t, approved("x"))
 	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, errors.New("statement 1: duplicate key"))
 
-	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
+	mux := testkit.Mux("POST", "/external/v1/engine/{driver}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
 	rec := h.do(mux, http.MethodPost, "/external/v1/engine/postgres/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code == http.StatusOK {
 		t.Fatalf("apply must surface the failure: %s", rec.Body.String())
@@ -172,7 +172,7 @@ func TestApplyFailureReportsOutcomeSaveFailure(t *testing.T) {
 	h.saveErr = errors.New("sqlite unavailable")
 	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, errors.New("duplicate key"))
 
-	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
+	mux := testkit.Mux("POST", "/external/v1/engine/{driver}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
 	rec := h.do(mux, http.MethodPost, "/external/v1/engine/postgres/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code == http.StatusOK || !strings.Contains(rec.Body.String(), "sqlite unavailable") || !strings.Contains(rec.Body.String(), "duplicate key") {
 		t.Fatalf("apply must surface both errors: status=%d body=%s", rec.Code, rec.Body.String())
@@ -185,7 +185,7 @@ func TestApplyFailureReportsOutcomeSaveFailure(t *testing.T) {
 func TestApplyConflictDoesNotRunEngine(t *testing.T) {
 	h := newHarness(t, approved("x"))
 	h.claimDenied = true
-	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
+	mux := testkit.Mux("POST", "/external/v1/engine/{driver}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
 	rec := h.do(mux, http.MethodPost, "/external/v1/engine/postgres/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("status=%d body=%s, want 409", rec.Code, rec.Body.String())

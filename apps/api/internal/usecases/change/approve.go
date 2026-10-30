@@ -12,17 +12,17 @@ import (
 type Approve struct{ usecases.RegistryDeps }
 
 // @Summary Approve a validated change (self-approval allowed)
-// @Param engine path string true "engine family (sql, mongodb)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param id path string true "change id"
 // @Success 200 {object} entity.Change
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/changes/{id}/approve [post]
+// @Router /external/v1/engine/{driver}/changes/{id}/approve [post]
 func (uc Approve) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
 	decide(ctx, uc.RegistryDeps, w, r, func(change *entity.Change) error {
-		flow, err := flowFor(ctx, r.PathValue("engine"))
+		flow, err := flowFor(ctx, r.PathValue("driver"))
 		if err != nil {
 			return err
 		}

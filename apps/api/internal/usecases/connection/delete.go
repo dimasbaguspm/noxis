@@ -12,15 +12,15 @@ import (
 type Delete struct{ usecases.RegistryDeps }
 
 // @Summary Delete a connection (and its changes)
-// @Param engine path string true "engine family (sql, memcache, mongodb)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param name path string true "connection name"
 // @Success 204 "deleted"
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name} [delete]
+// @Router /external/v1/engine/{driver}/connections/{name} [delete]
 func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	module, err := uc.Modules.Engine(r.PathValue("engine"))
+	module, err := uc.Modules.Engine(r.PathValue("driver"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

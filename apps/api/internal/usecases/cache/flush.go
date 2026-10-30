@@ -14,13 +14,13 @@ import (
 type Flush struct{ usecases.RegistryDeps }
 
 // @Summary Empty the connected database (FLUSHDB, never FLUSHALL)
-// @Param engine path string true "engine family (memcache)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param name path string true "connection name"
 // @Param body body entity.CacheFlushRequest true "confirm must repeat the connection name"
 // @Success 200 {object} entity.StatusResponse
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/flush [post]
+// @Router /external/v1/engine/{driver}/connections/{name}/flush [post]
 func (uc Flush) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)

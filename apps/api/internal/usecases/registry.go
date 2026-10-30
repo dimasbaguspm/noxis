@@ -27,7 +27,7 @@ type RegistryDeps struct {
 
 // RouteModule loads a typed capability for the driver the route names, so a handler never reads the engine path parameter itself.
 func (d RegistryDeps) RouteModule(ctx context.Context, r *http.Request, target any) error {
-	if driver := r.PathValue("engine"); driver != "" {
+	if driver := r.PathValue("driver"); driver != "" {
 		ctx = common.WithModuleDriver(ctx, driver)
 	}
 	return common.LoadModule(ctx, target)

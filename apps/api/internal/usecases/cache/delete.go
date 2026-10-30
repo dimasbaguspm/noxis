@@ -13,13 +13,13 @@ import (
 type Delete struct{ usecases.RegistryDeps }
 
 // @Summary Remove keys (the selected ones only)
-// @Param engine path string true "engine family (memcache)"
+// @Param driver path string true "driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo)"
 // @Param name path string true "connection name"
 // @Param body body entity.CacheDeleteRequest true "keys to remove"
 // @Success 200 {object} entity.CacheDeleteResult
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
-// @Router /external/v1/engine/{engine}/connections/{name}/keys [delete]
+// @Router /external/v1/engine/{driver}/connections/{name}/keys [delete]
 func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)

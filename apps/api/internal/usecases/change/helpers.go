@@ -94,7 +94,7 @@ func flowFor(ctx context.Context, driver string) (interfaces.ChangeFlow, error) 
 }
 
 func decide(ctx context.Context, deps usecases.RegistryDeps, w http.ResponseWriter, r *http.Request, apply func(*entity.Change) error) {
-	module, err := deps.Modules.Engine(r.PathValue("engine"))
+	module, err := deps.Modules.Engine(r.PathValue("driver"))
 	if err != nil {
 		deps.Fail(ctx, w, err)
 		return

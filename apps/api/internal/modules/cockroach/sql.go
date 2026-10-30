@@ -145,7 +145,7 @@ func (db *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Res
 	})
 }
 
-// DryRun always rolls back; it refuses MySQL-family DDL because implicit commits would make the dry run destructive.
+// DryRun always rolls back; it refuses DDL whose server commits implicitly, which would make the dry run destructive.
 func (db *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()

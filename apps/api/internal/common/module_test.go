@@ -20,8 +20,8 @@ func TestLoadModuleDelegatesAndWrapsErrors(t *testing.T) {
 	want := errors.New("not registered")
 	ctx := WithModuleDriver(context.Background(), "sql")
 	ctx = WithModuleLoader(ctx, moduleLoaderFunc(func(ctx context.Context, target any) error {
-		if family, ok := ModuleDriver(ctx); !ok || family != "sql" {
-			t.Fatalf("module family = %q, %t; want sql", family, ok)
+		if driver, ok := ModuleDriver(ctx); !ok || driver != "sql" {
+			t.Fatalf("module driver = %q, %t; want sql", driver, ok)
 		}
 		if _, ok := target.(*string); !ok {
 			t.Fatalf("target type = %T, want *string", target)

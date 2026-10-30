@@ -85,7 +85,7 @@ func newHarness(t *testing.T) *harness {
 
 func TestListRequiresInstanceAdmin(t *testing.T) {
 	h := newHarness(t)
-	mux := testkit.Mux("GET", "/external/v1/engine/{engine}/connections/{name}/permissions", List{RegistryDeps: h.deps}.Serve)
+	mux := testkit.Mux("GET", "/external/v1/engine/{driver}/connections/{name}/permissions", List{RegistryDeps: h.deps}.Serve)
 	rec := testkit.Do(mux, http.MethodGet, "/external/v1/engine/postgres/connections/demo/permissions", "", nil)
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("no principal: %d %s", rec.Code, rec.Body.String())
@@ -101,13 +101,13 @@ func TestCRUD(t *testing.T) {
 	h := newHarness(t)
 	admin := &entity.Identity{Subject: "root", Role: entity.RoleSuper}
 
-	put := testkit.Mux("PUT", "/external/v1/engine/{engine}/connections/{name}/permissions", Set{RegistryDeps: h.deps}.Serve)
+	put := testkit.Mux("PUT", "/external/v1/engine/{driver}/connections/{name}/permissions", Set{RegistryDeps: h.deps}.Serve)
 	rec := testkit.Do(put, http.MethodPut, "/external/v1/engine/postgres/connections/demo/permissions", `{"member":"dev","memberType":"group","level":"write"}`, admin)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("set status=%d body=%s", rec.Code, rec.Body.String())
 	}
 
-	get := testkit.Mux("GET", "/external/v1/engine/{engine}/connections/{name}/permissions", List{RegistryDeps: h.deps}.Serve)
+	get := testkit.Mux("GET", "/external/v1/engine/{driver}/connections/{name}/permissions", List{RegistryDeps: h.deps}.Serve)
 	rec = testkit.Do(get, http.MethodGet, "/external/v1/engine/postgres/connections/demo/permissions", "", admin)
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"member":"dev"`) {
 		t.Fatalf("list status=%d body=%s", rec.Code, rec.Body.String())
@@ -118,7 +118,7 @@ func TestCRUD(t *testing.T) {
 		t.Fatalf("bad level status=%d want 400", rec.Code)
 	}
 
-	del := testkit.Mux("DELETE", "/external/v1/engine/{engine}/connections/{name}/permissions", Delete{RegistryDeps: h.deps}.Serve)
+	del := testkit.Mux("DELETE", "/external/v1/engine/{driver}/connections/{name}/permissions", Delete{RegistryDeps: h.deps}.Serve)
 	rec = testkit.Do(del, http.MethodDelete, "/external/v1/engine/postgres/connections/demo/permissions?member=dev", "", admin)
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("delete status=%d body=%s", rec.Code, rec.Body.String())
@@ -149,20 +149,20 @@ func TestInstanceAdminCanReadAndRevokeButNotGrant(t *testing.T) {
 	}
 	bob := &entity.Identity{Subject: "local:bob"}
 
-	rec := testkit.Do(testkit.Mux("GET", "/x/{engine}/c/{name}", List{RegistryDeps: h.deps}.Serve),
+	rec := testkit.Do(testkit.Mux("GET", "/x/{driver}/c/{name}", List{RegistryDeps: h.deps}.Serve),
 		http.MethodGet, "/x/postgres/c/demo", "", bob)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("instance admin list: %d %s", rec.Code, rec.Body.String())
 	}
 
-	rec = testkit.Do(testkit.Mux("PUT", "/x/{engine}/c/{name}", Set{RegistryDeps: h.deps}.Serve),
+	rec = testkit.Do(testkit.Mux("PUT", "/x/{driver}/c/{name}", Set{RegistryDeps: h.deps}.Serve),
 		http.MethodPut, "/x/postgres/c/demo", `{"member":"x","memberType":"group","level":"read"}`, bob)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("instance admin must not grant: %d %s", rec.Code, rec.Body.String())
 	}
 
 	// the instance's own admin may take access away
-	rec = testkit.Do(testkit.Mux("DELETE", "/x/{engine}/c/{name}", Delete{RegistryDeps: h.deps}.Serve),
+	rec = testkit.Do(testkit.Mux("DELETE", "/x/{driver}/c/{name}", Delete{RegistryDeps: h.deps}.Serve),
 		http.MethodDelete, "/x/postgres/c/demo?member=dev", "", bob)
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("instance admin revoke: %d %s", rec.Code, rec.Body.String())
@@ -170,7 +170,7 @@ func TestInstanceAdminCanReadAndRevokeButNotGrant(t *testing.T) {
 
 	// a member with no admin grant on the connection may not
 	carol := &entity.Identity{Subject: "local:carol"}
-	rec = testkit.Do(testkit.Mux("DELETE", "/x/{engine}/c/{name}", Delete{RegistryDeps: h.deps}.Serve),
+	rec = testkit.Do(testkit.Mux("DELETE", "/x/{driver}/c/{name}", Delete{RegistryDeps: h.deps}.Serve),
 		http.MethodDelete, "/x/postgres/c/demo?member=dev", "", carol)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("non-admin must not revoke: %d %s", rec.Code, rec.Body.String())
@@ -183,17 +183,17 @@ func TestGlobalAdminManagesEveryConnection(t *testing.T) {
 	admin := &entity.Identity{Subject: "local:admin", Role: entity.RoleAdmin}
 	member := &entity.Identity{Subject: "local:bob", Role: entity.RoleMember}
 
-	rec := testkit.Do(testkit.Mux("PUT", "/x/{engine}/c/{name}", Set{RegistryDeps: h.deps}.Serve),
+	rec := testkit.Do(testkit.Mux("PUT", "/x/{driver}/c/{name}", Set{RegistryDeps: h.deps}.Serve),
 		http.MethodPut, "/x/postgres/c/demo", `{"member":"dev","memberType":"group","level":"write"}`, admin)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("global admin grant: %d %s", rec.Code, rec.Body.String())
 	}
-	rec = testkit.Do(testkit.Mux("PUT", "/x/{engine}/c/{name}", Set{RegistryDeps: h.deps}.Serve),
+	rec = testkit.Do(testkit.Mux("PUT", "/x/{driver}/c/{name}", Set{RegistryDeps: h.deps}.Serve),
 		http.MethodPut, "/x/postgres/c/demo", `{"member":"dev","memberType":"group","level":"write"}`, member)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("member grant must be forbidden: %d %s", rec.Code, rec.Body.String())
 	}
-	rec = testkit.Do(testkit.Mux("GET", "/x/{engine}/c/{name}", List{RegistryDeps: h.deps}.Serve),
+	rec = testkit.Do(testkit.Mux("GET", "/x/{driver}/c/{name}", List{RegistryDeps: h.deps}.Serve),
 		http.MethodGet, "/x/postgres/c/demo", "", admin)
 	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"dev"`) {
 		t.Fatalf("global admin list: %d %s", rec.Code, rec.Body.String())

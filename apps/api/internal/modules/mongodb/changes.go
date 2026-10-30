@@ -167,13 +167,13 @@ func (changes *Changes) Tick(ctx context.Context, now int64, actor string) (out 
 }
 
 // count records the outcome of an apply.
-func (changes *Changes) count(ctx context.Context, family string, err error) {
+func (changes *Changes) count(ctx context.Context, driver string, err error) {
 	if changes.Metrics == nil {
 		return
 	}
 	if err != nil {
-		changes.Metrics.ChangeFailed(ctx, family, "apply")
+		changes.Metrics.ChangeFailed(ctx, driver, "apply")
 		return
 	}
-	changes.Metrics.ChangeApplied(ctx, family)
+	changes.Metrics.ChangeApplied(ctx, driver)
 }

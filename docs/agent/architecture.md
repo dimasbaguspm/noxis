@@ -10,15 +10,15 @@ application apps/api/cmd/noxis/server/app.go   (composition root: newApp)
             apps/api/internal/usecases        (root framework; one subpackage per domain)
 domain      apps/api/internal/entity             (data model, imports nothing internal)
             apps/api/internal/interfaces          (seams)
-infra       apps/api/internal/modules/*          (engine adapters)
+infra       apps/api/internal/modules/*          (engine adapters, one package per driver)
             apps/api/internal/repositories/*     (persistence)
 cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagination, secret, shared changeflow rules)
             apps/api/internal/constants          (universal values)
 ```
 
 Rule: dependencies point inward and only downward. The order (low → high) is
-`constants · entity · interfaces → common/* → repositories/* → modules/*
-(families) → modules (registry) → usecases (root) → usecases/* (domains) → middlewares → cmd/noxis/server
+`constants · entity · interfaces → common/* → repositories/* → modules/<driver>
+→ modules (registry) → usecases (root) → usecases/* (domains) → middlewares → cmd/noxis/server
 (routes)`. A package may import only packages below its layer, and two packages
 in the same layer may not import each other. `cmd/noxis` is the composition root
 and is exempt. `test/arch/arch_test.go` reads the graph from `go list` and fails
@@ -38,8 +38,8 @@ One file does all wiring, at boot, once: `apps/api/cmd/noxis/server/app.go`.
   the app dependencies remain explicit.
 - `server.Run` attaches the loader to the server base context once. A use case loads
   a typed capability with `common.LoadModule(ctx, &target)`; route-specific engine
-  use cases first attach `{engine}` with `common.WithModuleDriver`. Generic engine
-  checks continue to use `Modules.Engine(name)`.
+  use cases first attach the `{driver}` path value with `common.WithModuleDriver`.
+  Generic lookups use `Modules.Engine(driver)`.
 
 Add a new use case: create `apps/api/internal/usecases/<domain>/foo.go` with a
 `Foo struct` embedding `usecases.RegistryDeps` and a `Serve(w, r)` → add a field
@@ -51,18 +51,26 @@ access rule. No constructor boilerplate, no reflection.
 `apps/api/internal/modules/modules.go`:
 
 - `Registry` resolves a driver name to its module (`Engine`); typed lookups go through `common.ModuleLoader`, not one method per capability.
-- `Default(repositories, metrics)` builds `{sql, memcache, mongodb}` and their change flows. **This map
-  is the only place families are declared.**
-- `Registry` implements the common typed `ModuleLoader` for registered engine and
+- `Default(repositories, metrics)` builds one module per driver — `postgres`, `mysql`,
+  `mariadb`, `sqlite`, `cockroach`, `redis`, `valkey`, `mongo` — plus each driver's
+  change flow. **This map is the only place the process declares what it can do**,
+  and a map hit can never depend on iteration order.
+- Each driver is its own package under `apps/api/internal/modules/<driver>`, holding
+  its own connection string, quote style, catalog queries, proof strategy and
+  verification rules. Driver packages share nothing but `interfaces` and
+  `constants`: no shared kit, and no driver package imports another. Duplication is
+  a decision; `test/driver/conformance_test.go` is the guard.
+- The registry implements the common typed `ModuleLoader` for registered engine and
   change-flow capabilities. `common.LoadModule(ctx, &target)` resolves them from
-  request context; engine lookups use the family attached by the route, and absent
-  or unsupported targets return an error.
-- The registry is an explicit dependency: a use case that resolves a family
+  request context; engine lookups use the driver the route attached, and absent or
+  unsupported targets return `constants.ErrUnsupported`.
+- The registry is an explicit dependency: a use case that resolves a driver
   embeds `usecases.RegistryDeps`, so `uc.Modules` is set at the composition root.
 
-Serve methods take `{engine}` as a path param and resolve the module; a family that
-does not serve the route gets `constants.ErrUnsupported` → 404, never the wrong
-module. This is why one handler serves all families instead of a copy per family.
+Serve methods take `{driver}` as a path param and resolve the module; a driver that
+does not serve the route gets `constants.ErrUnsupported` → 404, and a connection that
+belongs to another driver is refused by name. This is why one handler serves every
+driver instead of a copy per driver.
 
 ## Interfaces (the seams)
 
@@ -71,11 +79,15 @@ module. This is why one handler serves all families instead of a copy per family
 | `ConnectionRepository` | `interfaces/connection.go` | `sqlite.Store` |
 | `ChangeRepository` | `interfaces/change.go` | `sqlite.Store` |
 | `PermissionRepository` | `interfaces/permission.go` | `sqlite.Store` |
-| `Module` + capabilities (`ConsoleQuerier`, `SchemaReader`, `ServerReporter`, `ChangeProver`, `ChangeApplier`) | `interfaces/sql.go` | `sql.DB` (`Tables` carries declared keys, so the schema browser and the ERD read one pass) |
-| `MemcacheModule` | `interfaces/memcache.go` | `memcache.DB` |
-| `MongoModule` | `interfaces/mongodb.go` | `mongodb.DB` |
+| `Module` + capabilities (`ConsoleQuerier`, `SchemaReader`, `ServerReporter`, `ChangeProver`, `ChangeApplier`) | `interfaces/sql.go` | each `modules/<sql driver>.DB` (`Tables` carries declared keys, so the schema browser and the ERD read one pass) |
+| `KeyBrowser` | `interfaces/memcache.go` | `redis.DB`, `valkey.DB` |
+| `DocumentBrowser`, `MongoChangeEngine` | `interfaces/mongodb.go` | `mongodb.DB` |
 | `Verifier` | `interfaces/auth.go` | `auth.OIDC` (tests use a fake) |
-| `SQLChangeFlow` / `MongoChangeFlow` | `interfaces/change.go` | `sql.Changes`, `mongodb.Changes` |
+| `SQLChangeFlow` / `MongoChangeFlow` | `interfaces/changeflow.go` | every `modules/<driver>.Changes` |
+
+A driver implements only the capabilities it can prove, and a compile-time
+`var _ interfaces.X` assert per capability keeps the claim honest — the loader
+returns unsupported rather than a stub.
 
 `ErrNotFound` and `ErrUnsupported` live in `constants` and drive HTTP 404.
 
@@ -83,18 +95,18 @@ module. This is why one handler serves all families instead of a copy per family
 
 A use case authorizes the caller, decodes the request, maps the answer to a
 status, and nothing else. Domain rules live in a module: the change lifecycle
-belongs to the family that runs it, so `modules/sql.Changes` and
-`modules/mongodb.Changes` each own submit → validate → approve/reject/schedule →
-apply. Their shared state rules come from `internal/common/changeflow`, a base
-that both embed — it is a library, not a registered module. It sits below both
-family modules in the enforced dependency graph; engine execution and decision
-logging stay with the family modules.
+belongs to the driver that runs it, so each `modules/<driver>.Changes` owns
+submit → validate → approve/reject/schedule → apply. Their shared state rules come
+from `internal/common/changeflow`, a base that all of them embed — it is a library,
+not a registered module. It sits below every driver package in the enforced
+dependency graph; engine execution and decision logging stay with the driver
+modules.
 
-Both queues are registered in `modules.Default()` next to the engines. Use cases
+Every queue is registered in `modules.Default()` next to its engine. Use cases
 load `interfaces.SQLChangeFlow` or `interfaces.MongoChangeFlow` through
-`common.LoadModule`; SQL, Mongo, and cache engine capabilities use the same loader
-with the route family attached. A module may read repositories; it never imports
-the registry or a sibling family package.
+`common.LoadModule`; the SQL, document and cache capabilities use the same loader
+with the route's driver attached. A module may read repositories; it never imports
+the registry or a sibling driver package.
 
 ## Use-case pattern
 
@@ -104,7 +116,7 @@ the registry or a sibling family package.
   `cache`, `mongo`, `driver`) hold the use cases; siblings never import each other.
 - One exported struct per operation, one `Serve(w, r)`. It embeds
   `usecases.RegistryDeps`, so the shared steps are methods on the receiver:
-  `uc.RawConn` (load connection + check family + authorize), `uc.Authorize` /
+  `uc.RawConn` (load connection + check driver + authorize), `uc.Authorize` /
   `uc.RequireSuper` / `uc.RequireAdmin` / `uc.EffectiveGrant` (policy),
   `uc.Respond` / `uc.Fail` / `uc.Decode` (transport). `applyChange`/`applySQL`/`applyMongo` live in `apply`.
 - Domain rejects are returned, not panicked. `constants.ErrForbidden` → 403.
@@ -119,7 +131,7 @@ A `Serve` resolves the engine, decodes, does the work and writes:
 func (uc Foo) Serve(w http.ResponseWriter, r *http.Request) {
     ctx, end := logging.StartSpan(r.Context())
     defer end(nil)
-    mod, err := uc.Modules.Engine(r.PathValue("engine"))
+    mod, err := uc.Modules.Engine(r.PathValue("driver"))
     if err != nil { uc.Fail(ctx, w, err); return }
     out, err := doWork(ctx, mod, /* path/query/body */)
     if err != nil { uc.Fail(ctx, w, err); return }
@@ -127,9 +139,9 @@ func (uc Foo) Serve(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-Routes are declared in `apps/api/cmd/noxis/server/server.go` (`newHandler`) and
-point straight at a use case `Serve`; there is no handler package or use-case
-middleware wrapper. Add a route plus a swag annotation on `Serve`, then
+Routes are declared in `apps/api/cmd/noxis/server/routes.go` (`routes` +
+`newHandler`) and point straight at a use case `Serve`; there is no handler package
+or use-case middleware wrapper. Add a route plus a swag annotation on `Serve`, then
 `make swagger`.
 
 Every request body and response envelope is a struct in
@@ -175,7 +187,7 @@ engine-module seams, generated from `internal/interfaces` with `make mocks`.
 `apps/api/internal/common/testkit` holds the two helpers a use-case test needs to
 send one request; it holds no fakes. A test
 declares only the calls it expects, and persistence is covered against real
-SQLite (`sqlite/users_test.go`, `modules/sql/sqlite_test.go`).
+SQLite (`sqlite/users_test.go`, `modules/sqlite/sqlite_test.go`).
 
 ## Tracing & span naming
 
@@ -197,22 +209,26 @@ for a failure — each writes the span event and the log record together, so a
 trace and a log file tell the same story.
 
 `apps/api/internal/common/logging/span.go` derives span names from the Go function:
-`Repository.Sqlite.Store.List`, `Usecases.Op.Serve`, `Modules.Sql.DB.query`.
+`Repository.Sqlite.Store.List`, `Usecases.Op.Serve`, `Modules.Postgres.DB.query`.
 Logs re-emit trace/span ids from ctx so log/trace/metric share identity
 (`logging` package).
 
 ## How to add things
 
-**New driver:** implement `interfaces.Module` (+ the capability
-interfaces) in `apps/api/internal/modules/<family>/`, register in `modules.Default()`,
-add a family const + driver consts, add a route family in `newHandler`, add
-`Engine<Family>` to `Registry`. Add a compose service to exercise it in UAT.
+**New driver:** create `apps/api/internal/modules/<driver>/`, implement
+`interfaces.Module` plus only the capability interfaces the server can honour,
+register it in `modules.Default()` under its own driver name, add the driver const
+and its capability consts, add its row to the driver catalog
+(`usecases/driver/driver.go`), and add a compose service plus an acceptance
+scenario. The driver name is the API namespace, so no route edit is needed.
 
-**New SQL-looking operation:** add the op const, add a method to `SQLModule`,
-implement it in `modules/sql`, add a use case (or extend `usecases.Op` if it fits
-the op map), add a handler + route + swag. Keep the family split: SQL-only ops
-must never leak into the memcache/mongo namespaces. A batch that runs statements
-goes through `runBatch` (`modules/sql/sql.go`): one transaction, commit unless the
-caller is a dry run, so apply and dry-run never diverge.
+**New SQL-looking operation:** add the op const, add the method to the capability
+interface in `interfaces/sql.go`, implement it in every SQL driver package that can
+honour it, add a use case (or extend `usecases.Op` if it fits the op map), add a
+route + swag. A driver that cannot honour it does not implement the interface, and
+the loader refuses the capability by name instead of a stub returning "not
+available". A batch that runs statements goes through `runBatch`
+(`modules/<driver>/sql.go`): one transaction, commit unless the caller is a dry
+run, so apply and dry-run never diverge.
 
 **New persisted field:** update the canonical SQLite schema and repository `Save`/scan, bump the schema version, and update schema tests. Existing stores are not migrated; startup rejects older versions and requires an intentional reset.
