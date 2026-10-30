@@ -14,8 +14,8 @@ import {
 // AppShellSkeleton preserves sidebar geometry while the session bootstraps.
 export function AppShellSkeleton() {
   return (
-    <SidebarProvider>
-      <Sidebar collapsible="icon">
+    <SidebarProvider className="h-svh overflow-hidden">
+      <Sidebar collapsible="icon" variant="inset">
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -36,8 +36,8 @@ export function AppShellSkeleton() {
           </SidebarGroup>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset className="h-svh overflow-hidden">
-        <header className="flex items-center gap-2 border-b border-border px-4 py-2">
+      <SidebarInset className="overflow-hidden md:border md:border-border">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border px-4">
           <div className="h-8 w-8 animate-pulse rounded-md bg-muted" />
           <div className="h-4 w-40 animate-pulse rounded-md bg-muted" />
         </header>
