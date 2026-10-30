@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { useEffect, useMemo, useState } from "react";
@@ -7,38 +7,35 @@ import { ConnectionSelect } from "@/components/connection/connection-select";
 import { ErdCanvas, type ErdTable } from "@/components/sql/erd-canvas";
 import { toErdTables } from "@/components/sql/erd-data";
 import { TableBrowser } from "@/components/sql/table-browser";
-import { TableDetails } from "@/components/sql/table-details";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
 import { FilterField } from "@/components/filters/filter-field";
-import {
-  Sheet,
-  SheetBody,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/app/auth-provider";
-import { useErdQuery } from "@/hooks/use-sql";
+import { useAnalyzeMutation, useErdQuery } from "@/hooks/use-sql";
 import type { Table } from "@/lib/api";
 import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { Workspace } from "@/components/layout/workspace";
 
 // SqlErdPage is the full-screen schema graph: pick an instance and a table on the left, read and zoom the graph on the right.
 export default function SqlErdPage() {
-  const { isSuper } = useAuth();
+  const { isSuper, canAccess } = useAuth();
+  const navigate = useNavigate();
   // the driver comes from the URL and the instance from ?instance=, so the page cannot reach another driver's schema
   const { connections, connection, driver, busy, pick } = useDriverConnections();
   const [selectedId, setSelectedId] = useState<string>();
 
   const picked = connections.find((c) => c.name === connection);
   const erd = useErdQuery(driver, connection);
+  const analyze = useAnalyzeMutation();
 
   const tables = useMemo<ErdTable[]>(() => toErdTables(erd.data), [erd.data]);
   const schemaTables = (erd.data?.tables ?? []) as unknown as Table[];
-  const selected = tables.find((t) => t.id === selectedId);
+  // the row menu refreshes the planner's statistics; it is a write, so it is only offered with write access
+  const onAnalyze = (table: Table) =>
+    driver && connection
+      ? analyze.mutate({ driver, connection, table: `${table.schema}.${table.name}` })
+      : undefined;
 
   useEffect(() => {
     setSelectedId(undefined);
@@ -81,7 +78,15 @@ export default function SqlErdPage() {
               <div className="min-h-0 flex-1">
                 <TableBrowser
                   tables={schemaTables}
+                  onRecords={(t) =>
+                    navigate(
+                      `${PAGE_ROUTES.DRIVER(driver, "query")}?sql=${encodeURIComponent(
+                        `SELECT * FROM ${t.schema}.${t.name} LIMIT 100;`,
+                      )}`,
+                    )
+                  }
                   onSelect={(t) => setSelectedId(t.id ?? `${t.schema ?? ""}.${t.name ?? ""}`)}
+                  onAnalyze={canAccess(connection, "write") ? onAnalyze : undefined}
                 />
               </div>
             </div>
@@ -116,28 +121,6 @@ export default function SqlErdPage() {
           </Workspace.Pane>
         </Workspace>
       </div>
-
-      <Sheet open={!!selected} onOpenChange={(open) => !open && setSelectedId(undefined)}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>{selected?.name}</SheetTitle>
-            <SheetDescription>
-              {selected?.schema} · {selected?.columns.length ?? 0} column(s)
-            </SheetDescription>
-          </SheetHeader>
-          <SheetBody>
-            {selected && (
-              <TableDetails
-                table={selected}
-                tables={tables}
-                driver={driver}
-                connection={connection}
-                instanceId={picked?.id}
-              />
-            )}
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
     </>
   );
 }

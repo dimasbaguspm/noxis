@@ -3,16 +3,7 @@ import { Network } from "lucide-react";
 import { ErdCanvas } from "@/components/sql/erd-canvas";
 import { toErdTables } from "@/components/sql/erd-data";
 import { TableBrowser } from "@/components/sql/table-browser";
-import { TableDetails } from "@/components/sql/table-details";
 import { Empty } from "@/components/ui/empty";
-import {
-  Sheet,
-  SheetBody,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Workspace } from "@/components/layout/workspace";
 import { useErdQuery } from "@/hooks/use-sql";
@@ -45,7 +36,6 @@ export function InstanceErd({
     [tables],
   );
   const [selectedId, setSelectedId] = useState<string>();
-  const selected = tables.find((table) => table.id === selectedId);
 
   return (
     <>
@@ -88,28 +78,6 @@ export function InstanceErd({
           </Workspace.Pane>
         </Workspace>
       </div>
-
-      <Sheet open={!!selected} onOpenChange={(open) => !open && setSelectedId(undefined)}>
-        <SheetContent className="sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>{selected?.name}</SheetTitle>
-            <SheetDescription>
-              {selected?.schema} · {selected?.columns.length ?? 0} column(s)
-            </SheetDescription>
-          </SheetHeader>
-          <SheetBody>
-            {selected && (
-              <TableDetails
-                table={selected}
-                tables={tables}
-                driver={driver}
-                connection={connection}
-                instanceId={instanceId}
-              />
-            )}
-          </SheetBody>
-        </SheetContent>
-      </Sheet>
     </>
   );
 }

@@ -19,6 +19,7 @@ import "@xyflow/react/dist/style.css";
 import { LayoutGrid, Maximize2, Minimize2, RotateCcw, Scan } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { bytes, compact } from "@/lib/format";
 
 export interface ErdColumn {
   name: string;
@@ -119,9 +120,16 @@ function TableNode({ data }: NodeProps<TableNodeType>) {
         position={Position.Top}
         className="!size-1.5 !border-0 !bg-muted-foreground"
       />
-      <div className="border-b bg-muted/40 px-3 py-2">
-        <div className="truncate text-sm font-medium">{table.name}</div>
-        <div className="truncate text-[10px] text-muted-foreground">{table.schema}</div>
+      <div className="flex items-start gap-2 border-b bg-muted/40 px-3 py-2">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium">{table.name}</div>
+          <div className="truncate text-[10px] text-muted-foreground">{table.schema}</div>
+        </div>
+        {/* the metrics the diagram used to hide behind a sheet: estimates from the planner, so the tilde stays */}
+        <div className="shrink-0 text-right text-[10px] leading-tight text-muted-foreground tabular-nums">
+          <div>{table.estimatedRows !== undefined ? `~${compact(table.estimatedRows)}` : "—"}</div>
+          <div>{table.sizeBytes !== undefined ? bytes(table.sizeBytes) : "—"}</div>
+        </div>
       </div>
       <div className="py-1">
         {columns.map((col) => (
