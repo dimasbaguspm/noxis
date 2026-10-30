@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDriver } from "@/hooks/use-driver";
+import { useDriversQuery } from "@/hooks/use-config";
 import { navGroups, type NavItem } from "@/lib/nav";
 
 interface Entry {
@@ -12,8 +12,8 @@ interface Entry {
 // The entries come from the driver catalog, so the palette lists exactly the sections the sidebar shows.
 export function useNavSearch() {
   const navigate = useNavigate();
-  const { driver, drivers } = useDriver();
-  const groups = useMemo(() => navGroups(drivers, driver), [drivers, driver]);
+  const { data: drivers } = useDriversQuery();
+  const groups = useMemo(() => navGroups(drivers), [drivers]);
   const entries = useMemo<Entry[]>(
     () => groups.flatMap((group) => group.items.map((item) => ({ group: group.label, item }))),
     [groups],

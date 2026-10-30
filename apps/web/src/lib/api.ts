@@ -146,6 +146,9 @@ export class ApiClient {
       },
       get: (id: string) =>
         this.request<Connection>("GET", this.path(`/instances/${encodeURIComponent(id)}`)),
+      // counts is one call for every driver, so the sidebar does not ask once per engine
+      counts: () =>
+        this.request<{ counts: Record<string, number> }>("GET", this.path("/instances/counts")),
       rotatePassword: (id: string, password: string) =>
         this.request<{ status: string }>(
           "POST",

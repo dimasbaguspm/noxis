@@ -1,13 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
 import { KeyRound, LayoutDashboard, UsersRound } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo-mark";
-import { pagesOf, type NavItem } from "@/lib/console-nav";
+import { DriverMark } from "@/components/brand/driver-mark";
+import { pagesOf } from "@/lib/console-nav";
 import { useDriversQuery } from "@/hooks/use-config";
+import { countLabel, useInstanceCountsQuery } from "@/hooks/use-instance-counts";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { NavUser } from "@/components/layout/nav-user";
-import { DriverPicker } from "@/components/layout/driver-picker";
 import { useAuth } from "@/app/auth-provider";
-import { useDriver } from "@/hooks/use-driver";
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +19,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
 
@@ -66,31 +69,14 @@ function InstancesMenu({ pathname }: { pathname: string }) {
   );
 }
 
-// PageMenu is one engine page of the selected driver: a flat link, because the driver already scopes it.
-function PageMenu({ item, pathname }: { item: NavItem; pathname: string }) {
-  const Icon = item.icon;
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        render={<Link to={item.to} />}
-        isActive={isItemActive(pathname, item.to)}
-        tooltip={item.label}
-      >
-        <Icon />
-        <span>{item.label}</span>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
-}
-
-// AppSidebar renders the static title, the instance list, the driver picker and the pages that driver supports.
-// The pages come from the driver catalog, so a driver the console has never seen still gets the pages its module serves.
+// AppSidebar renders the instance list, every driver the catalog declares with its pages always open, and the admin
+// section. A driver is a label with its count and its pages beneath it, because a menu that hides the fleet is a menu
+// nobody can read.
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
   const { isAdmin } = useAuth();
   const { data: drivers = [] } = useDriversQuery();
-  const { driver } = useDriver();
-  const pages = pagesOf(drivers, driver);
+  const counts = useInstanceCountsQuery().data?.counts ?? {};
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -101,9 +87,38 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupContent className="flex flex-col gap-2">
             <SidebarMenu>
               <InstancesMenu pathname={pathname} />
-              {drivers.length > 0 && <DriverPicker driver={driver} drivers={drivers} />}
-              {pages.map((item) => (
-                <PageMenu key={item.to} item={item} pathname={pathname} />
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        {/* the rail has no room for a label row, so the driver list is only drawn when the sidebar is open */}
+        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel>Drivers</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {drivers.map((entry) => (
+                <SidebarMenuItem key={entry.driver}>
+                  <div className="flex items-center gap-2 px-2 py-1.5 text-sm">
+                    <DriverMark driver={entry.driver} />
+                    <span className="truncate">{entry.label}</span>
+                    {countLabel(counts[entry.driver]) && (
+                      <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+                        {countLabel(counts[entry.driver])}
+                      </span>
+                    )}
+                  </div>
+                  <SidebarMenuSub>
+                    {pagesOf(drivers, entry.driver).map((item) => (
+                      <SidebarMenuSubItem key={item.to}>
+                        <SidebarMenuSubButton
+                          render={<Link to={item.to} />}
+                          isActive={isItemActive(pathname, item.to)}
+                        >
+                          <span>{item.label}</span>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                  </SidebarMenuSub>
+                </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
