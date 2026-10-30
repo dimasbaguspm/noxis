@@ -2,7 +2,6 @@ import { useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { Check, CornerDownLeft, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { findNav } from "@/lib/nav";
@@ -79,11 +78,6 @@ export function NavSearch() {
                 <span>{entry.item.label}</span>
                 {entry.group && (
                   <span className="text-xs text-muted-foreground">· {entry.group}</span>
-                )}
-                {entry.item.soon && (
-                  <Badge variant="outline" className="text-[10px]">
-                    soon
-                  </Badge>
                 )}
                 <span className="ml-auto flex items-center gap-1.5 text-muted-foreground">
                   {active && <Check className="size-3.5" />}

@@ -22,17 +22,15 @@ import { useCrumbLabel } from "@/app/crumb-provider";
 
 // ChangeDetailPage owns loading and review permissions; the two visual halves live in components/changes/change-review.
 export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
-  const { id = "" } = useParams();
+  const { id = "", driver: routeDriver = "" } = useParams();
   const { canAccess, isInstanceAdmin } = useAuth();
   const { data: instancesData } = usePagedInstancesQuery();
   const detail = useChangeGetQuery(id);
   const change = detail.data;
   const gone = detail.isError;
   const fetching = detail.isPending;
-  // the change carries its connection by name, so the driver comes from the instance list: every engine path is the driver
-  const driver = (instancesData?.instances ?? []).find(
-    (item) => item.name === change?.connection,
-  )?.driver;
+  // the change names its driver; the route's driver stands in until it lands, so the schema read has a target
+  const driver = change?.driver ?? routeDriver;
   const { data: tables } = useConnectionSchemaQuery(driver, change?.connection);
   const approve = useApproveChangeMutation();
   const apply = useApplyChangeMutation();
@@ -41,7 +39,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const schedule = useScheduleChangeMutation();
   // the trail names the change instead of its id; the envelope has no title, so notes or the touched tables speak for it
   useCrumbLabel(
-    kind === "dml" ? PAGE_ROUTES.CHANGES.DML_DETAIL(id) : PAGE_ROUTES.CHANGES.DDL_DETAIL(id),
+    PAGE_ROUTES.CHANGE_DETAIL(driver, kind, id),
     change?.notes || change?.affectedTables?.join(", "),
   );
 
@@ -58,7 +56,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
     );
   }
 
-  if (gone || !change) return <Unavailable kind={kind} id={id} />;
+  if (gone || !change) return <Unavailable kind={kind} id={id} driver={routeDriver} />;
 
   const instance = (instancesData?.instances ?? []).find((item) => item.name === change.connection);
   const mayReview = isInstanceAdmin(change.connection);
@@ -100,8 +98,8 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
 }
 
 // Unavailable is the state for an id that is not in the queue: the shared empty state, centered, with the way out.
-function Unavailable({ kind, id }: { kind: ChangeKind; id: string }) {
-  const queue = kind === "ddl" ? PAGE_ROUTES.CHANGES.DDL : PAGE_ROUTES.CHANGES.DML;
+function Unavailable({ kind, id, driver }: { kind: ChangeKind; id: string; driver: string }) {
+  const queue = PAGE_ROUTES.DRIVER(driver, kind);
   return (
     <Empty
       icon={FileWarning}
@@ -112,7 +110,11 @@ function Unavailable({ kind, id }: { kind: ChangeKind; id: string }) {
           <Button size="sm" render={<Link to={queue} />}>
             Back to {kind.toUpperCase()} queue
           </Button>
-          <Button size="sm" variant="outline" render={<Link to={PAGE_ROUTES.QUERY} />}>
+          <Button
+            size="sm"
+            variant="outline"
+            render={<Link to={PAGE_ROUTES.DRIVER(driver, "query")} />}
+          >
             Go to Query
           </Button>
         </div>

@@ -53,7 +53,9 @@ export function CacheBrowser({ driver, connection }: { driver: string; connectio
             <Button
               size="sm"
               variant="outline"
-              render={<Link to={PAGE_ROUTES.KEYS} onClick={() => pick(connection)} />}
+              render={
+                <Link to={PAGE_ROUTES.DRIVER(driver, "keys")} onClick={() => pick(connection)} />
+              }
             >
               <ExternalLink /> Full page
             </Button>

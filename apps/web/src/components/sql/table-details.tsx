@@ -15,11 +15,13 @@ function previewSQL(table: ErdTable) {
 export function TableDetails({
   table,
   tables,
+  driver,
   connection,
   instanceId,
 }: {
   table: ErdTable;
   tables: ErdTable[];
+  driver: string;
   connection?: string;
   instanceId?: string;
 }) {
@@ -136,7 +138,7 @@ export function TableDetails({
         size="sm"
         render={
           <Link
-            to={`${PAGE_ROUTES.QUERY}?${target}${target ? "&" : ""}sql=${encodeURIComponent(previewSQL(table))}`}
+            to={`${PAGE_ROUTES.DRIVER(driver, "query")}?${target}${target ? "&" : ""}sql=${encodeURIComponent(previewSQL(table))}`}
           />
         }
       >

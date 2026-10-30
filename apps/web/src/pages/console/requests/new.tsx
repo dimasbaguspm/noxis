@@ -2,7 +2,7 @@ import { useMongoRequestForm } from "@/hooks/use-mongo-request-form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, CircleHelp, Send, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +61,7 @@ type RequestForm = z.infer<typeof requestSchema>;
 
 // MongoRequestNewPage is the request wizard: pick the database, pick the collection, write the filter and the value, submit for review.
 export default function MongoRequestNewPage() {
+  const { driver = "" } = useParams();
   const navigate = useNavigate();
   const { connections, connection, pick } = useMongoConnections();
   const {
@@ -134,7 +135,7 @@ export default function MongoRequestNewPage() {
       toast.success(
         `Request ${change.status}: ${change.estAffected ?? 0} document(s) would be affected`,
       );
-      navigate(PAGE_ROUTES.REQUEST_DETAIL(change.id ?? ""));
+      navigate(PAGE_ROUTES.REQUEST_DETAIL(driver, change.id ?? ""));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
@@ -143,7 +144,11 @@ export default function MongoRequestNewPage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" render={<Link to={PAGE_ROUTES.REQUESTS} />}>
+        <Button
+          variant="ghost"
+          size="sm"
+          render={<Link to={PAGE_ROUTES.DRIVER(driver, "requests")} />}
+        >
           <ChevronLeft /> Requests
         </Button>
         <Badge variant="outline">step {step} of 3</Badge>

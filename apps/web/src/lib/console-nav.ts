@@ -1,10 +1,10 @@
 import type { ComponentType } from "react";
 import { Activity, Boxes, Database, Leaf, Network, PenLine } from "lucide-react";
-import { ROUTES, pathOf, type RouteId } from "@/constants/routes";
+import { DRIVER_PAGES, PAGE_ROUTES, ROUTES, type DriverPage } from "@/constants/routes";
 import type { DriverInfo } from "@/lib/api";
 
-// A capability is what a driver's module can actually do. The server declares it per driver, so the console groups
-// its navigation by capability and a driver it has never seen still appears under the group it serves.
+// A capability is what a driver's module can actually do. The server declares it per driver, so the console derives its
+// pages from the capability and a driver it has never seen still gets the pages its module serves.
 export type Capability = "sql" | "keys" | "documents";
 
 export const CAPABILITY = {
@@ -18,69 +18,50 @@ export interface NavItem {
   label: string;
   icon: ComponentType<{ className?: string }>;
   end?: boolean;
-  soon?: boolean;
 }
 
 export interface Section {
   key: Capability;
   label: string;
   icon: ComponentType<{ className?: string }>;
-  // page is the section's landing route.
-  page: string;
-  openLabel: string;
   nav: NavItem[];
 }
 
-// navItems names each entry once: the path and the label both come from the route registry.
-function navItems(entries: { route: RouteId; icon: NavItem["icon"]; end?: boolean }[]): NavItem[] {
-  return entries.map((entry) => ({
-    to: pathOf(entry.route),
-    label: ROUTES[entry.route].label,
-    icon: entry.icon,
-    end: entry.end,
+// PAGES is the console's page catalog: one entry per page a capability earns, named by the route that renders it.
+const PAGES: Record<Capability, { page: DriverPage; icon: NavItem["icon"] }[]> = {
+  [CAPABILITY.SQL]: [
+    { page: "query", icon: Database },
+    { page: "erd", icon: Network },
+    { page: "dml", icon: PenLine },
+    { page: "ddl", icon: Activity },
+  ],
+  [CAPABILITY.KEYS]: [{ page: "keys", icon: Boxes }],
+  [CAPABILITY.DOCUMENTS]: [
+    { page: "documents", icon: Leaf },
+    { page: "requests", icon: PenLine },
+  ],
+};
+
+const SECTION_META: Record<Capability, { label: string; icon: NavItem["icon"] }> = {
+  [CAPABILITY.SQL]: { label: "SQL", icon: Database },
+  [CAPABILITY.KEYS]: { label: "Keys", icon: Boxes },
+  [CAPABILITY.DOCUMENTS]: { label: "Documents", icon: Leaf },
+};
+
+// navItems links each page of a capability under the driver in the URL, so no entry hardcodes a path.
+function navItems(capability: Capability, driver: string): NavItem[] {
+  return PAGES[capability].map(({ page, icon }) => ({
+    to: PAGE_ROUTES.DRIVER(driver, page),
+    label: ROUTES[DRIVER_PAGES[page]].label,
+    icon,
   }));
 }
 
-const SECTIONS: Section[] = [
-  {
-    key: CAPABILITY.SQL,
-    label: "SQL",
-    icon: Database,
-    page: pathOf("console.query"),
-    openLabel: "Open in Query",
-    nav: navItems([
-      { route: "console.query", icon: Database },
-      { route: "console.erd", icon: Network },
-      { route: "console.changes.dml", icon: PenLine },
-      { route: "console.changes.ddl", icon: Activity },
-    ]),
-  },
-  {
-    key: CAPABILITY.KEYS,
-    label: "Keys",
-    icon: Boxes,
-    page: pathOf("console.keys"),
-    openLabel: "Browse keys",
-    nav: navItems([{ route: "console.keys", icon: Boxes, end: true }]),
-  },
-  {
-    key: CAPABILITY.DOCUMENTS,
-    label: "Documents",
-    icon: Leaf,
-    page: pathOf("console.explore"),
-    openLabel: "Explore",
-    nav: navItems([
-      { route: "console.explore", icon: Leaf, end: true },
-      { route: "console.requests", icon: PenLine },
-    ]),
-  },
-];
-
-// capabilitiesOf is the capabilities a driver declares, kept to the ones the console has a section for.
+// capabilitiesOf is the capabilities a driver declares, kept to the ones the console has a page catalog for.
 export function capabilitiesOf(catalog: DriverInfo[] | undefined, driver?: string): Capability[] {
   const declared = catalog?.find((entry) => entry.driver === driver)?.capabilities ?? [];
   return declared.filter((capability): capability is Capability =>
-    SECTIONS.some((section) => section.key === capability),
+    Object.hasOwn(PAGES, capability),
   );
 }
 
@@ -94,12 +75,24 @@ export function driverLabel(catalog: DriverInfo[] | undefined, driver?: string):
 // component per driver; a driver with no known capability falls back to the generic box.
 export function capabilityIcon(capabilities: Capability[]): ComponentType<{ className?: string }> {
   const first = capabilities[0];
-  return SECTIONS.find((section) => section.key === first)?.icon ?? Boxes;
+  return (first && SECTION_META[first].icon) || Boxes;
 }
 
-// sections is the navigation the catalog actually supports: a section appears only when some driver declares it.
-export function sections(catalog: DriverInfo[] | undefined): Section[] {
-  return SECTIONS.filter((section) =>
-    (catalog ?? []).some((entry) => entry.capabilities.includes(section.key)),
-  );
+// pagesOf is the flat navigation of one driver: every page its capabilities earn, in catalog order.
+export function pagesOf(catalog: DriverInfo[] | undefined, driver: string): NavItem[] {
+  return capabilitiesOf(catalog, driver).flatMap((capability) => navItems(capability, driver));
+}
+
+// sections groups the same pages by capability, which the sidebar shows while the driver picker is being introduced.
+export function sections(catalog: DriverInfo[] | undefined, driver: string): Section[] {
+  return (Object.keys(PAGES) as Capability[])
+    .filter((capability) =>
+      (catalog ?? []).some((entry) => entry.capabilities.includes(capability)),
+    )
+    .map((capability) => ({
+      key: capability,
+      label: SECTION_META[capability].label,
+      icon: SECTION_META[capability].icon,
+      nav: navItems(capability, driver),
+    }));
 }

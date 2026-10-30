@@ -3,5 +3,5 @@ import { useInstanceContext } from "./layout";
 
 export default function InstanceDocumentsTab() {
   const { instance } = useInstanceContext();
-  return <MongoExplorer connection={instance.name} />;
+  return <MongoExplorer driver={instance.driver ?? ""} connection={instance.name} />;
 }

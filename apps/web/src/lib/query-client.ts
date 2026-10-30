@@ -42,34 +42,34 @@ export const queryKeys = {
     schema: (id: string) => pageKey("console.instances.detail", "schema", id),
   },
   sql: {
-    schema: (connection: string | undefined) => pageKey("console.query", "schema", connection),
-    erd: (connection: string | undefined) => pageKey("console.erd", "erd", connection),
+    schema: (connection: string | undefined) => pageKey("driver.query", "schema", connection),
+    erd: (connection: string | undefined) => pageKey("driver.erd", "erd", connection),
     rows: (connection: string | undefined, schema?: string, table?: string) =>
-      pageKey("console.query", "rows", connection, schema, table),
+      pageKey("driver.query", "rows", connection, schema, table),
   },
   changes: {
-    all: pageRoot("console.changes.dml"),
+    all: pageRoot("driver.changes.dml"),
     list: (kind?: "dml" | "ddl", connection?: string, status?: string, page = 1) =>
-      pageKey("console.changes.dml", "list", kind, connection, status, page),
-    get: (id: string) => pageKey("console.changes.dml", "get", id),
+      pageKey("driver.changes.dml", "list", kind, connection, status, page),
+    get: (id: string) => pageKey("driver.changes.dml", "get", id),
   },
   keys: {
-    all: pageRoot("console.keys"),
+    all: pageRoot("driver.keys"),
     keys: (connection: string | undefined, pattern?: string, page = 1) =>
-      pageKey("console.keys", "keys", connection, pattern, page),
+      pageKey("driver.keys", "keys", connection, pattern, page),
     value: (connection: string | undefined, key?: string) =>
-      pageKey("console.keys", "value", connection, key),
+      pageKey("driver.keys", "value", connection, key),
   },
   explore: {
     databases: (connection: string | undefined) =>
-      pageKey("console.explore", "databases", connection),
+      pageKey("driver.documents", "databases", connection),
     collections: (connection: string | undefined, database?: string) =>
-      pageKey("console.explore", "collections", connection, database),
+      pageKey("driver.documents", "collections", connection, database),
   },
   requests: {
-    all: pageRoot("console.requests"),
-    list: () => pageKey("console.requests", "list"),
-    get: (id: string) => pageKey("console.requests.detail", "get", id),
+    all: pageRoot("driver.requests"),
+    list: () => pageKey("driver.requests", "list"),
+    get: (id: string) => pageKey("driver.requests.detail", "get", id),
   },
   access: {
     // per-instance grants belong to the instance access tab; the approval inbox belongs to the admin section

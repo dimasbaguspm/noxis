@@ -10,6 +10,7 @@ export default function InstanceTablesTab() {
       schema={selectedSchema}
       onSchema={updateSchema}
       connection={instance.name}
+      driver={instance.driver ?? ""}
     />
   );
 }

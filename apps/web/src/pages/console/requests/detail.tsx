@@ -23,7 +23,7 @@ import { P } from "@/components/ui/typography";
 
 // MongoRequestDetailPage shows the reviewed write, dry-run checks, and activity; Mongo writes have no rollback.
 export default function MongoRequestDetailPage() {
-  const { id = "" } = useParams();
+  const { id = "", driver = "" } = useParams();
   const { isInstanceAdmin } = useAuth();
   const { data: change, isPending: loading } = useMongoChangeGetQuery(id);
   const approve = useMongoApproveChangeMutation();
@@ -31,7 +31,7 @@ export default function MongoRequestDetailPage() {
   const reject = useMongoRejectChangeMutation();
   // the trail names the request instead of its id once the envelope lands
   useCrumbLabel(
-    PAGE_ROUTES.REQUEST_DETAIL(id),
+    PAGE_ROUTES.REQUEST_DETAIL(driver, id),
     change?.notes || change?.affectedTables?.join(", "),
   );
 
@@ -47,7 +47,7 @@ export default function MongoRequestDetailPage() {
       </Card>
     );
   }
-  if (!change) return <Unavailable id={id} />;
+  if (!change) return <Unavailable id={id} driver={driver} />;
 
   const request = parseRequest(change.query);
   const act = (fn: (id: string) => void) => () => fn(id);
@@ -166,7 +166,11 @@ export default function MongoRequestDetailPage() {
             </section>
 
             <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-3">
-              <Button variant="ghost" size="sm" render={<Link to={PAGE_ROUTES.REQUESTS} />}>
+              <Button
+                variant="ghost"
+                size="sm"
+                render={<Link to={PAGE_ROUTES.DRIVER(driver, "requests")} />}
+              >
                 <ArrowLeft /> Requests
               </Button>
               <span className="flex-1" />
@@ -203,7 +207,7 @@ function parseRequest(query?: string): MongoRequest | undefined {
   }
 }
 
-function Unavailable({ id }: { id: string }) {
+function Unavailable({ id, driver }: { id: string; driver: string }) {
   return (
     <Card className="mx-auto max-w-2xl">
       <CardHeader>
@@ -232,10 +236,14 @@ function Unavailable({ id }: { id: string }) {
           </li>
         </ul>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" render={<Link to={PAGE_ROUTES.REQUESTS} />}>
+          <Button size="sm" render={<Link to={PAGE_ROUTES.DRIVER(driver, "requests")} />}>
             Back to Requests
           </Button>
-          <Button size="sm" variant="outline" render={<Link to={PAGE_ROUTES.REQUEST_NEW} />}>
+          <Button
+            size="sm"
+            variant="outline"
+            render={<Link to={PAGE_ROUTES.REQUEST_NEW(driver)} />}
+          >
             New request
           </Button>
         </div>

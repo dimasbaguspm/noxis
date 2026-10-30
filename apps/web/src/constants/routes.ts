@@ -1,6 +1,6 @@
 // Route metadata is the single source for the router, the sidebar, the breadcrumb, the document title, and the cache keys.
 
-export type RouteSection = "console" | "my" | "admin" | "auth";
+export type RouteSection = "driver" | "my" | "admin" | "auth";
 
 export interface RouteMeta {
   // path is the pattern the router matches; ":name" segments are parameters.
@@ -14,137 +14,136 @@ export interface RouteMeta {
   section: RouteSection;
 }
 
-// CONSOLE is the base path of every database engine page, so the URL says which
-// product section the user is in. Each future section (object storage,
-// containers, config) gets a base of its own next to it.
-export const CONSOLE = "/console";
+// DRIVERS is the base of every engine page: the driver is a path segment, because the engine a page acts on is the one
+// fact a console URL must carry. Instances stay at the root, since one instance is addressed by id, not by driver.
+export const DRIVERS = "/drivers";
 
 export const ROUTES = {
-  "console.instances": {
-    path: `${CONSOLE}/instances`,
-    title: "Instances",
-    label: "Instances",
-    entity: "instances",
-    section: "console",
-  },
-  "console.instances.detail": {
-    path: `${CONSOLE}/instances/:id`,
-    title: "Instance",
-    label: "Instance",
-    entity: "instances",
-    section: "console",
-  },
-  "console.instances.tables": {
-    path: `${CONSOLE}/instances/:id/tables`,
-    title: "Tables",
-    label: "Tables",
-    entity: "instances",
-    section: "console",
-  },
-  "console.instances.erd": {
-    path: `${CONSOLE}/instances/:id/erd`,
-    title: "ERD",
-    label: "ERD",
-    entity: "instances",
-    section: "console",
-  },
-  "console.instances.documents": {
-    path: `${CONSOLE}/instances/:id/documents`,
-    title: "Documents",
-    label: "Documents",
-    entity: "instances",
-    section: "console",
-  },
-  "console.instances.keys": {
-    path: `${CONSOLE}/instances/:id/keys`,
-    title: "Keys",
-    label: "Keys",
-    entity: "instances",
-    section: "console",
-  },
-  "console.instances.access": {
-    path: `${CONSOLE}/instances/:id/access`,
-    title: "Access",
-    label: "Access",
-    entity: "access",
-    section: "console",
-  },
-  "console.query": {
-    path: `${CONSOLE}/query`,
+  "driver.query": {
+    path: `${DRIVERS}/:driver/query`,
     title: "Query",
     label: "Query",
     entity: "query",
-    section: "console",
+    section: "driver",
   },
-  "console.erd": {
-    path: `${CONSOLE}/erd`,
+  "driver.erd": {
+    path: `${DRIVERS}/:driver/erd`,
     title: "ERD",
     label: "ERD",
     entity: "erd",
-    section: "console",
+    section: "driver",
   },
-  "console.changes.dml": {
-    path: `${CONSOLE}/changes/dml`,
+  "driver.changes.dml": {
+    path: `${DRIVERS}/:driver/changes/dml`,
     title: "DML changes",
     label: "DML",
     entity: "changes",
-    section: "console",
+    section: "driver",
   },
-  "console.changes.dml.detail": {
-    path: `${CONSOLE}/changes/dml/:id`,
+  "driver.changes.dml.detail": {
+    path: `${DRIVERS}/:driver/changes/dml/:id`,
     title: "DML change",
     label: "DML change",
     entity: "changes",
-    section: "console",
+    section: "driver",
   },
-  "console.changes.ddl": {
-    path: `${CONSOLE}/changes/ddl`,
+  "driver.changes.ddl": {
+    path: `${DRIVERS}/:driver/changes/ddl`,
     title: "DDL changes",
     label: "DDL",
     entity: "changes",
-    section: "console",
+    section: "driver",
   },
-  "console.changes.ddl.detail": {
-    path: `${CONSOLE}/changes/ddl/:id`,
+  "driver.changes.ddl.detail": {
+    path: `${DRIVERS}/:driver/changes/ddl/:id`,
     title: "DDL change",
     label: "DDL change",
     entity: "changes",
-    section: "console",
+    section: "driver",
   },
-  "console.keys": {
-    path: `${CONSOLE}/keys`,
+  "driver.keys": {
+    path: `${DRIVERS}/:driver/keys`,
     title: "Keys",
     label: "Keys",
     entity: "keys",
-    section: "console",
+    section: "driver",
   },
-  "console.explore": {
-    path: `${CONSOLE}/explore`,
-    title: "Explore",
-    label: "Explore",
+  "driver.documents": {
+    path: `${DRIVERS}/:driver/documents`,
+    title: "Documents",
+    label: "Documents",
     entity: "explore",
-    section: "console",
+    section: "driver",
   },
-  "console.requests": {
-    path: `${CONSOLE}/requests`,
+  "driver.requests": {
+    path: `${DRIVERS}/:driver/requests`,
     title: "Requests",
     label: "Requests",
     entity: "requests",
-    section: "console",
+    section: "driver",
   },
-  "console.requests.new": {
-    path: `${CONSOLE}/requests/new`,
+  "driver.requests.new": {
+    path: `${DRIVERS}/:driver/requests/new`,
     title: "New request",
     label: "New request",
     entity: "requests",
-    section: "console",
+    section: "driver",
   },
-  "console.requests.detail": {
-    path: `${CONSOLE}/requests/:id`,
+  "driver.requests.detail": {
+    path: `${DRIVERS}/:driver/requests/:id`,
     title: "Request",
     label: "Request",
     entity: "requests",
-    section: "console",
+    section: "driver",
+  },
+  "console.instances": {
+    path: "/instances",
+    title: "Instances",
+    label: "Instances",
+    entity: "instances",
+    section: "driver",
+  },
+  "console.instances.detail": {
+    path: "/instances/:id",
+    title: "Instance",
+    label: "Instance",
+    entity: "instances",
+    section: "driver",
+  },
+  "console.instances.tables": {
+    path: "/instances/:id/tables",
+    title: "Tables",
+    label: "Tables",
+    entity: "instances",
+    section: "driver",
+  },
+  "console.instances.erd": {
+    path: "/instances/:id/erd",
+    title: "ERD",
+    label: "ERD",
+    entity: "instances",
+    section: "driver",
+  },
+  "console.instances.documents": {
+    path: "/instances/:id/documents",
+    title: "Documents",
+    label: "Documents",
+    entity: "instances",
+    section: "driver",
+  },
+  "console.instances.keys": {
+    path: "/instances/:id/keys",
+    title: "Keys",
+    label: "Keys",
+    entity: "instances",
+    section: "driver",
+  },
+  "console.instances.access": {
+    path: "/instances/:id/access",
+    title: "Access",
+    label: "Access",
+    entity: "access",
+    section: "driver",
   },
   "my.profile": {
     path: "/my/profile",
@@ -208,11 +207,9 @@ export type RouteId = keyof typeof ROUTES;
 
 // PREFIX_LABELS words the URL segments that group routes but are not pages themselves.
 const PREFIX_LABELS: Record<string, string> = {
-  console: "Console",
+  drivers: "Drivers",
   instances: "Instances",
   changes: "Changes",
-  keys: "Keys",
-  explore: "Explore",
   requests: "Requests",
   my: "My",
   users: "Users",
@@ -238,14 +235,38 @@ function fill(pattern: string, params: Record<string, string> = {}): string {
 // otherwise rebuild the patterns on each navigation.
 const MATCHERS = (Object.keys(ROUTES) as RouteId[]).map((id) => {
   const { path } = ROUTES[id];
-  const source = `^${path.replace(/:[a-zA-Z]+/g, "[^/]+")}$`;
-  return { id, path, regex: new RegExp(source) };
+  const names: string[] = [];
+  const source = path.replace(/:([a-zA-Z]+)/g, (_, name: string) => {
+    names.push(name);
+    return "([^/]+)";
+  });
+  return { id, names, regex: new RegExp(`^${source}$`) };
 });
+
+export interface RouteMatch {
+  id: RouteId;
+  meta: RouteMeta;
+  // params are the decoded path parameters, so a page reads its driver and id from the URL alone.
+  params: Record<string, string>;
+}
+
+// matchPath resolves a concrete path to its route and the parameters the URL filled.
+export function matchPath(pathname: string): RouteMatch | undefined {
+  for (const matcher of MATCHERS) {
+    const hit = matcher.regex.exec(pathname);
+    if (!hit) continue;
+    const params: Record<string, string> = {};
+    matcher.names.forEach((name, index) => {
+      params[name] = decodeURIComponent(hit[index + 1] ?? "");
+    });
+    return { id: matcher.id, meta: ROUTES[matcher.id], params };
+  }
+  return undefined;
+}
 
 // matchRoute resolves a concrete path to the route metadata that renders it.
 export function matchRoute(pathname: string): RouteMeta | undefined {
-  const hit = MATCHERS.find((matcher) => matcher.regex.test(pathname));
-  return hit ? ROUTES[hit.id] : undefined;
+  return matchPath(pathname)?.meta;
 }
 
 // patternOf returns the router pattern for a route, parameters and all. The router
@@ -275,6 +296,19 @@ export function isPage(pathname: string): boolean {
   return MATCHERS.some((matcher) => matcher.regex.test(pathname));
 }
 
+// DRIVER_PAGES names the page a driver can offer; the capability decides which of them the sidebar shows.
+export const DRIVER_PAGES = {
+  query: "driver.query",
+  erd: "driver.erd",
+  dml: "driver.changes.dml",
+  ddl: "driver.changes.ddl",
+  keys: "driver.keys",
+  documents: "driver.documents",
+  requests: "driver.requests",
+} as const satisfies Record<string, RouteId>;
+
+export type DriverPage = keyof typeof DRIVER_PAGES;
+
 const INSTANCE_TABS = {
   detail: "console.instances.detail",
   tables: "console.instances.tables",
@@ -286,11 +320,19 @@ const INSTANCE_TABS = {
 
 // PAGE_ROUTES is the ergonomic view of the registry: the same paths, named by UI area.
 export const PAGE_ROUTES = {
-  CONSOLE,
   INSTANCES: pathOf("console.instances"),
   INSTANCE_DETAIL: (id: string) => pathOf("console.instances.detail", { id }),
   INSTANCE_TAB: (id: string, tab: keyof typeof INSTANCE_TABS) =>
     pathOf(INSTANCE_TABS[tab] ?? "console.instances.detail", { id }),
+  // DRIVER is the one builder for an engine page, so no call site composes a driver path by hand.
+  DRIVER: (driver: string, page: DriverPage) => pathOf(DRIVER_PAGES[page], { driver }),
+  CHANGE_DETAIL: (driver: string, kind: "dml" | "ddl", id: string) =>
+    pathOf(kind === "dml" ? "driver.changes.dml.detail" : "driver.changes.ddl.detail", {
+      driver,
+      id,
+    }),
+  REQUEST_NEW: (driver: string) => pathOf("driver.requests.new", { driver }),
+  REQUEST_DETAIL: (driver: string, id: string) => pathOf("driver.requests.detail", { driver, id }),
   MY: "/my",
   MY_PROFILE: pathOf("my.profile"),
   MY_SETTINGS: pathOf("my.settings"),
@@ -300,19 +342,6 @@ export const PAGE_ROUTES = {
   USER_DETAIL: (subject: string) => pathOf("admin.users.detail", { subject }),
   LOGIN: pathOf("auth.login"),
   AUTH_CALLBACK: pathOf("auth.callback"),
-  QUERY: pathOf("console.query"),
-  ERD: pathOf("console.erd"),
-  CHANGES: {
-    DML: pathOf("console.changes.dml"),
-    DML_DETAIL: (id: string) => pathOf("console.changes.dml.detail", { id }),
-    DDL: pathOf("console.changes.ddl"),
-    DDL_DETAIL: (id: string) => pathOf("console.changes.ddl.detail", { id }),
-  },
-  KEYS: pathOf("console.keys"),
-  EXPLORE: pathOf("console.explore"),
-  REQUESTS: pathOf("console.requests"),
-  REQUEST_NEW: pathOf("console.requests.new"),
-  REQUEST_DETAIL: (id: string) => pathOf("console.requests.detail", { id }),
 } as const;
 
 // routePath turns a link path into a router child path (no leading slash).
