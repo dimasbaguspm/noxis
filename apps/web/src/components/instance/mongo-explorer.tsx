@@ -13,7 +13,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Workspace } from "@/components/layout/workspace";
-import { useMongoConnections } from "@/hooks/use-mongodb";
 import { PAGE_ROUTES } from "@/constants/routes";
 
 // MongoExplorer is a compact find console on the instance page: filters on the left, the first 50 documents on the right.
@@ -31,8 +30,7 @@ export function MongoExplorer({ driver, connection }: { driver: string; connecti
     result,
     documents,
     query,
-  } = useMongoExplorer(connection);
-  const { pick } = useMongoConnections();
+  } = useMongoExplorer(driver, connection);
 
   return (
     <div className="flex h-full min-h-0">
@@ -79,8 +77,7 @@ export function MongoExplorer({ driver, connection }: { driver: string; connecti
                 variant="outline"
                 render={
                   <Link
-                    to={PAGE_ROUTES.DRIVER(driver, "documents")}
-                    onClick={() => pick(connection)}
+                    to={`${PAGE_ROUTES.DRIVER(driver, "documents")}?instance=${encodeURIComponent(connection)}`}
                   />
                 }
               >

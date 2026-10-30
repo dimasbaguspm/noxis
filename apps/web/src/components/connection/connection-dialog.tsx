@@ -40,7 +40,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useSetActiveConnection } from "@/hooks/use-connections";
 import { useDriversQuery } from "@/hooks/use-config";
 import { queryClient, queryKeys } from "@/lib/query-client";
 import { CAPABILITY, capabilitiesOf, type Capability } from "@/lib/console-nav";
@@ -113,7 +112,6 @@ export function ConnectionDialog({
   capability?: Capability;
   wizard?: boolean;
 }) {
-  const setActive = useSetActiveConnection();
   const { data: drivers = [] } = useDriversQuery();
   const {
     register,
@@ -223,7 +221,6 @@ export function ConnectionDialog({
       setVerified(true);
       toast.success(`${name}: verified and saved`);
       await refresh();
-      if (!cache) setActive(kind, name);
       setOpen(false);
       reset(BLANK[kind]);
       setStep(wizard ? 1 : 2);

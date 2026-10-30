@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/app/auth-provider";
-import { ActiveProvider } from "@/hooks/use-connections";
 import { queryClient } from "@/lib/query-client";
 import { AppShell } from "@/components/layout/app-shell";
 import { RequireAuth } from "@/components/auth/require-auth";
@@ -113,14 +112,12 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ActiveProvider>
-          <TooltipProvider>
-            <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}>
-              <RouterProvider router={router} />
-            </Suspense>
-          </TooltipProvider>
-          <Toaster position="bottom-right" />
-        </ActiveProvider>
+        <TooltipProvider>
+          <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}>
+            <RouterProvider router={router} />
+          </Suspense>
+        </TooltipProvider>
+        <Toaster position="bottom-right" />
       </AuthProvider>
     </QueryClientProvider>
   </StrictMode>,

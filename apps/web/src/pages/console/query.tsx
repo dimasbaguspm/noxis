@@ -10,20 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Workspace } from "@/components/layout/workspace";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/app/auth-provider";
-import { useConnectionSelection } from "@/hooks/use-connection";
+import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { useAnalyzeMutation, useConnectionSchemaQuery, useRunQueryMutation } from "@/hooks/use-sql";
 import { useSqlTabs } from "@/hooks/use-sql-tabs";
 import { classify } from "@/lib/statements";
-import { CAPABILITY } from "@/lib/console-nav";
 import { Play } from "lucide-react";
 
 export default function QueryPage() {
   const { canAccess, isSuper } = useAuth();
   const [params] = useSearchParams();
-  const { connection, driver, connections, busy, pick } = useConnectionSelection(
-    params.get("connection") ?? undefined,
-    params.get("instance") ?? undefined,
-  );
+  const { connection, driver, connections, busy, pick } = useDriverConnections();
 
   const tabs = useSqlTabs(params.get("sql") ?? undefined);
   const tables = useConnectionSchemaQuery(driver, connection).data ?? [];
@@ -76,7 +72,7 @@ export default function QueryPage() {
             <div className="grid gap-1.5">
               <Label>Instance</Label>
               <ConnectionSelect
-                capability={CAPABILITY.SQL}
+                connections={connections}
                 value={connection}
                 onChange={pick}
                 className="w-full"

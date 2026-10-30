@@ -7,7 +7,7 @@ import { queryKeys } from "@/lib/query-client";
 // useConnectionSchemaQuery returns the tables of one SQL connection; the completion and table browser read the same cached list.
 export function useConnectionSchemaQuery(driver?: string, connection?: string) {
   return useQuery({
-    queryKey: queryKeys.sql.schema(connection),
+    queryKey: queryKeys.sql.schema(driver, connection),
     queryFn: () => api.connections(driver as string).schema(connection as string),
     enabled: !!driver && !!connection,
     select: (res) => res.tables,
@@ -17,7 +17,7 @@ export function useConnectionSchemaQuery(driver?: string, connection?: string) {
 // useErdQuery loads one connection's schema graph; the ERD page is the only caller, so it runs whenever a connection is picked.
 export function useErdQuery(driver?: string, connection?: string) {
   return useQuery({
-    queryKey: queryKeys.sql.erd(connection),
+    queryKey: queryKeys.sql.erd(driver, connection),
     queryFn: () => api.connections(driver as string).erd(connection as string),
     enabled: !!driver && !!connection,
   });
@@ -31,7 +31,7 @@ export function useTableRowsQuery(
   table?: string,
 ) {
   return useQuery({
-    queryKey: queryKeys.sql.rows(connection, schema, table),
+    queryKey: queryKeys.sql.rows(driver, connection, schema, table),
     queryFn: () =>
       api
         .connections(driver as string)

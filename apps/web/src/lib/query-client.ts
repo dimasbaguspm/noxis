@@ -41,11 +41,18 @@ export const queryKeys = {
     get: (id: string) => pageKey("console.instances.detail", "get", id),
     schema: (id: string) => pageKey("console.instances.detail", "schema", id),
   },
+  // every engine read carries the driver, so two drivers' schemas, keys and databases can never share a cache entry
   sql: {
-    schema: (connection: string | undefined) => pageKey("driver.query", "schema", connection),
-    erd: (connection: string | undefined) => pageKey("driver.erd", "erd", connection),
-    rows: (connection: string | undefined, schema?: string, table?: string) =>
-      pageKey("driver.query", "rows", connection, schema, table),
+    schema: (driver: string | undefined, connection: string | undefined) =>
+      pageKey("driver.query", "schema", driver, connection),
+    erd: (driver: string | undefined, connection: string | undefined) =>
+      pageKey("driver.erd", "erd", driver, connection),
+    rows: (
+      driver: string | undefined,
+      connection: string | undefined,
+      schema?: string,
+      table?: string,
+    ) => pageKey("driver.query", "rows", driver, connection, schema, table),
   },
   changes: {
     all: pageRoot("driver.changes.dml"),
@@ -55,16 +62,20 @@ export const queryKeys = {
   },
   keys: {
     all: pageRoot("driver.keys"),
-    keys: (connection: string | undefined, pattern?: string, page = 1) =>
-      pageKey("driver.keys", "keys", connection, pattern, page),
-    value: (connection: string | undefined, key?: string) =>
-      pageKey("driver.keys", "value", connection, key),
+    keys: (
+      driver: string | undefined,
+      connection: string | undefined,
+      pattern?: string,
+      page = 1,
+    ) => pageKey("driver.keys", "keys", driver, connection, pattern, page),
+    value: (driver: string | undefined, connection: string | undefined, key?: string) =>
+      pageKey("driver.keys", "value", driver, connection, key),
   },
   explore: {
-    databases: (connection: string | undefined) =>
-      pageKey("driver.documents", "databases", connection),
-    collections: (connection: string | undefined, database?: string) =>
-      pageKey("driver.documents", "collections", connection, database),
+    databases: (driver: string | undefined, connection: string | undefined) =>
+      pageKey("driver.documents", "databases", driver, connection),
+    collections: (driver: string | undefined, connection: string | undefined, database?: string) =>
+      pageKey("driver.documents", "collections", driver, connection, database),
   },
   requests: {
     all: pageRoot("driver.requests"),

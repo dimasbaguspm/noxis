@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { Network } from "lucide-react";
 import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { ConnectionSelect } from "@/components/connection/connection-select";
@@ -22,21 +21,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/app/auth-provider";
 import { useErdQuery } from "@/hooks/use-sql";
 import type { Table } from "@/lib/api";
-import { useConnections } from "@/hooks/use-connections";
+import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { Workspace } from "@/components/layout/workspace";
-import { CAPABILITY } from "@/lib/console-nav";
 
 // SqlErdPage is the full-screen schema graph: pick an instance and a table on the left, read and zoom the graph on the right.
 export default function SqlErdPage() {
   const { isSuper } = useAuth();
-  const { connections, active, driver, busy, setActive } = useConnections(CAPABILITY.SQL);
-  const [params, setParams] = useSearchParams();
+  // the driver comes from the URL and the instance from ?instance=, so the page cannot reach another driver's schema
+  const { connections, connection, driver, busy, pick } = useDriverConnections();
   const [selectedId, setSelectedId] = useState<string>();
 
-  const wanted = params.get("instance") ?? params.get("connection");
-  const picked = connections.find((c) => c.id === wanted || c.name === wanted);
-  const connection = picked?.name ?? active ?? connections[0]?.name;
-  const erd = useErdQuery(picked?.driver ?? driver, connection);
+  const picked = connections.find((c) => c.name === connection);
+  const erd = useErdQuery(driver, connection);
 
   const tables = useMemo<ErdTable[]>(() => toErdTables(erd.data), [erd.data]);
   const schemaTables = (erd.data?.tables ?? []) as unknown as Table[];
@@ -45,24 +41,6 @@ export default function SqlErdPage() {
   useEffect(() => {
     setSelectedId(undefined);
   }, [connection]);
-
-  useEffect(() => {
-    const id = connections.find((c) => c.name === connection)?.id;
-    if (!id || params.get("instance") === id) return;
-    const next = new URLSearchParams(params);
-    next.delete("connection");
-    next.set("instance", id);
-    setParams(next, { replace: true });
-  }, [connection, connections, params, setParams]);
-
-  function pick(name: string) {
-    setActive(name);
-    const next = new URLSearchParams(params);
-    next.delete("connection");
-    const id = connections.find((c) => c.name === name)?.id;
-    if (id) next.set("instance", id);
-    setParams(next, { replace: true });
-  }
 
   if (!busy && connections.length === 0) {
     return (
@@ -91,7 +69,7 @@ export default function SqlErdPage() {
               <div className="grid gap-1.5">
                 <Label>Instance</Label>
                 <ConnectionSelect
-                  capability={CAPABILITY.SQL}
+                  connections={connections}
                   value={connection}
                   onChange={pick}
                   className="w-full"
@@ -149,7 +127,7 @@ export default function SqlErdPage() {
               <TableDetails
                 table={selected}
                 tables={tables}
-                driver={picked?.driver ?? driver ?? ""}
+                driver={driver}
                 connection={connection}
                 instanceId={picked?.id}
               />
