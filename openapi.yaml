@@ -1351,6 +1351,16 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.InstanceList"
+  /external/v1/instances/counts:
+    get:
+      summary: Count readable instances per driver
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.InstanceCounts"
   "/external/v1/instances/{id}":
     get:
       summary: Get one instance across drivers (password redacted)
@@ -1904,6 +1914,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/entity.InstanceAccess"
+    entity.InstanceCounts:
+      type: object
+      properties:
+        counts:
+          type: object
+          additionalProperties:
+            type: integer
     entity.InstanceList:
       type: object
       properties:

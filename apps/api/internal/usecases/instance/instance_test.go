@@ -104,3 +104,29 @@ func TestRotatePassword(t *testing.T) {
 		t.Fatalf("empty password status=%d want 400", rec.Code)
 	}
 }
+
+// TestCountsPerDriver counts each readable driver once and skips a driver the registry does not know.
+func TestCountsPerDriver(t *testing.T) {
+	d, conns := deps(t)
+	conns.EXPECT().List(gomock.Any()).Return([]entity.Connection{
+		{Name: "a", Driver: constants.DriverPostgres},
+		{Name: "b", Driver: constants.DriverPostgres},
+		{Name: "c", Driver: constants.DriverRedis},
+		{Name: "x", Driver: "nope"},
+	}, nil)
+	mux := testkit.Mux("GET", "/external/v1/instances/counts", Counts{RegistryDeps: d}.Serve)
+	rec := testkit.Do(mux, http.MethodGet, "/external/v1/instances/counts", "", nil)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	var got entity.InstanceCounts
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if got.Counts[constants.DriverPostgres] != 2 || got.Counts[constants.DriverRedis] != 1 {
+		t.Fatalf("counts = %+v", got.Counts)
+	}
+	if _, ok := got.Counts["nope"]; ok {
+		t.Fatalf("an unknown driver must not be counted: %+v", got.Counts)
+	}
+}

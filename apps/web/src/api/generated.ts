@@ -2194,6 +2194,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/external/v1/instances/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Count readable instances per driver */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.InstanceCounts"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/external/v1/instances/{id}": {
         parameters: {
             query?: never;
@@ -2761,6 +2797,11 @@ export interface components {
         };
         "entity.InstanceAccessList": {
             instances?: components["schemas"]["entity.InstanceAccess"][];
+        };
+        "entity.InstanceCounts": {
+            counts?: {
+                [key: string]: number;
+            };
         };
         "entity.InstanceList": {
             instances?: components["schemas"]["entity.Connection"][];

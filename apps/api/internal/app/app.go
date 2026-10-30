@@ -66,6 +66,7 @@ type App struct {
 	DeletePermission permission.Delete
 
 	Instances      instance.List
+	InstanceCounts instance.Counts
 	Instance       instance.Get
 	RotatePassword instance.RotatePassword
 
@@ -150,6 +151,7 @@ func Default(d Deps) App {
 		DeletePermission: permission.Delete{RegistryDeps: deps},
 
 		Instances:      instance.List{RegistryDeps: deps},
+		InstanceCounts: instance.Counts{RegistryDeps: deps},
 		Instance:       instance.Get{RegistryDeps: deps},
 		RotatePassword: instance.RotatePassword{RegistryDeps: deps},
 
