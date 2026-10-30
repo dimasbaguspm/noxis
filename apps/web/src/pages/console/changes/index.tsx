@@ -1,4 +1,4 @@
-import { RefreshCw, Search } from "lucide-react";
+import { Inbox, RefreshCw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
@@ -136,9 +136,12 @@ export function ChangePage({
             ) : changes.length === 0 ? (
               <Empty
                 className="flex-1"
-                title={`no ${kind} changes`}
+                icon={Inbox}
+                title={`No ${kind.toUpperCase()} changes yet`}
                 description={
-                  narrowed ? "No change matches these filters" : "Raise one and it will land here"
+                  narrowed
+                    ? `No ${kind.toUpperCase()} change matches these filters`
+                    : "Raise one and it lands in this queue."
                 }
               />
             ) : (
