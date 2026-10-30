@@ -63,9 +63,10 @@ export function ResultTable({
       </div>
 
       {columns.length > 0 && (
-        <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border">
-          <Table>
-            <TableHeader className="sticky top-0 bg-card">
+        // the grid owns its scrolling, so the header has a scroll port to stick to
+        <div className="min-h-0 flex-1 overflow-hidden rounded-md border border-border">
+          <Table containerClassName="h-full overflow-auto">
+            <TableHeader className="sticky top-0 z-10 bg-card">
               <TableRow>
                 {columns.map((c) => (
                   <TableHead key={c}>{c}</TableHead>
