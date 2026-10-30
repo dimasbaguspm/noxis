@@ -54,7 +54,14 @@ func (w *world) registerSQL(ctx context.Context, name, key string) error {
 		return err
 	}
 	if w.code != http.StatusOK {
-		return fmt.Errorf("register %s connection: %d", key, w.code)
+		// A kept stack or a parallel worker may already hold the name: if the connection is there, the scenario can use it.
+		code, _, err := w.raw(enginePathOf(t.Driver, "/connections/"+name))
+		if err != nil {
+			return err
+		}
+		if code != http.StatusOK {
+			return fmt.Errorf("register %s connection: %d", key, w.code)
+		}
 	}
 	w.conn, w.host, w.targetKey = name, t.Host, key
 	return nil

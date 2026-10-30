@@ -187,6 +187,41 @@ func login() error {
 	return nil
 }
 
+// pruneConnections clears what a previous run left in a kept stack, so every run starts from the state a fresh volume gives it.
+// The instance list is paginated, so an unpruned stack eventually hides its own new connections behind page one.
+func pruneConnections() error {
+	client := kit.Client{BaseURL: baseURL, Token: token}
+	resp, err := client.Send(kit.Request{Method: http.MethodGet, Path: "/external/v1/instances"})
+	if err != nil {
+		return err
+	}
+	if resp.Status != http.StatusOK {
+		return fmt.Errorf("list instances: %d %s", resp.Status, resp.String())
+	}
+	var out struct {
+		Instances []struct {
+			Name   string `json:"name"`
+			Driver string `json:"driver"`
+		} `json:"instances"`
+	}
+	if err := resp.Decode(&out); err != nil {
+		return fmt.Errorf("decode instances: %w", err)
+	}
+	for _, in := range out.Instances {
+		deleted, err := client.Send(kit.Request{
+			Method: http.MethodDelete,
+			Path:   enginePathOf(in.Driver, "/connections/"+in.Name),
+		})
+		if err != nil {
+			return err
+		}
+		if deleted.Status != http.StatusOK && deleted.Status != http.StatusNoContent {
+			return fmt.Errorf("delete connection %s: %d %s", in.Name, deleted.Status, deleted.String())
+		}
+	}
+	return nil
+}
+
 // stackDown tears the stack down, volumes included, unless UAT_KEEP=1 leaves it up so the next run reuses it.
 func stackDown() {
 	if envTrue("UAT_KEEP") {
