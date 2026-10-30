@@ -1,4 +1,3 @@
-import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { ResultSummary, ResultTable } from "@/components/sql/result-table";
 import { SqlEditor } from "@/components/sql/sql-editor";
@@ -8,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Workspace } from "@/components/layout/workspace";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { useAuth } from "@/app/auth-provider";
 import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { useAnalyzeMutation, useConnectionSchemaQuery, useRunQueryMutation } from "@/hooks/use-sql";
@@ -57,7 +57,9 @@ export default function QueryPage() {
         </CardHeader>
         {!busy && isSuper && (
           <CardContent>
-            <ConnectionDialog trigger="New connection" wizard />
+            <Button render={<Link to={`${PAGE_ROUTES.INSTANCE_CREATE}?driver=${driver ?? ""}`} />}>
+              New connection
+            </Button>
           </CardContent>
         )}
       </Card>
