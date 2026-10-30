@@ -1,11 +1,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, type MongoChangeInput, type MongoRequest } from "@/lib/api";
-import { useConnections } from "@/hooks/use-connections";
+import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { useUrlState } from "@/hooks/use-url-state";
-import { CAPABILITY } from "@/lib/console-nav";
 import { queryClient, queryKeys } from "@/lib/query-client";
 
-// Every call here is addressed by the MongoDB driver, which is one name in the server's catalog.
+// MONGO_DRIVER is the driver whose request queue the console reads; the engine reads take the driver from the route.
 const MONGO_DRIVER = "mongo";
 
 // useMongoConnections reads the document connections from the cached instances query, so the dashboard and these pages never disagree.
@@ -27,26 +26,27 @@ export function useMongoUrlParams() {
   };
 }
 
+// useMongoConnections is the documents page's instance list: the driver comes from the URL and the instance from ?instance=.
 export function useMongoConnections() {
-  const { connections, active, setActive, busy, reload } = useConnections(CAPABILITY.DOCUMENTS);
-  return { connections, connection: active, pick: setActive, busy, reload };
+  return useDriverConnections();
 }
 
-export function useMongoDatabasesQuery(connection?: string) {
+export function useMongoDatabasesQuery(driver?: string, connection?: string) {
   const query = useQuery({
-    queryKey: queryKeys.explore.databases(connection),
-    queryFn: () => api.mongodb(MONGO_DRIVER).databases(connection as string),
-    enabled: !!connection,
+    queryKey: queryKeys.explore.databases(driver, connection),
+    queryFn: () => api.mongodb(driver as string).databases(connection as string),
+    enabled: !!driver && !!connection,
     select: (res) => res.databases,
   });
   return { ...query, databases: query.data ?? [] };
 }
 
-export function useMongoCollectionsQuery(connection?: string, database?: string) {
+export function useMongoCollectionsQuery(driver?: string, connection?: string, database?: string) {
   const query = useQuery({
-    queryKey: queryKeys.explore.collections(connection, database),
-    queryFn: () => api.mongodb(MONGO_DRIVER).collections(connection as string, database as string),
-    enabled: !!connection && !!database,
+    queryKey: queryKeys.explore.collections(driver, connection, database),
+    queryFn: () =>
+      api.mongodb(driver as string).collections(connection as string, database as string),
+    enabled: !!driver && !!connection && !!database,
     select: (res) => res.collections,
   });
   return { ...query, collections: query.data ?? [] };
@@ -55,8 +55,15 @@ export function useMongoCollectionsQuery(connection?: string, database?: string)
 // useMongoRunMutation executes one read (find, aggregate, count); writes are not accepted here and belong in the request queue.
 export function useMongoRunMutation() {
   return useMutation({
-    mutationFn: ({ connection, body }: { connection: string; body: MongoRequest }) =>
-      api.mongodb(MONGO_DRIVER).run(connection, body),
+    mutationFn: ({
+      driver,
+      connection,
+      body,
+    }: {
+      driver: string;
+      connection: string;
+      body: MongoRequest;
+    }) => api.mongodb(driver).run(connection, body),
   });
 }
 

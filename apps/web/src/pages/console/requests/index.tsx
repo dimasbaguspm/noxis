@@ -23,9 +23,8 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/app/auth-provider";
-import { useConnections } from "@/hooks/use-connections";
+import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { useMongoChangesListQuery } from "@/hooks/use-mongodb";
-import { CAPABILITY } from "@/lib/console-nav";
 import { Workspace } from "@/components/layout/workspace";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
@@ -34,7 +33,7 @@ import { cn } from "@/lib/utils";
 export default function MongoRequestsPage() {
   const { driver = "" } = useParams();
   const { canAccess } = useAuth();
-  const { connections: mongoConnections } = useConnections(CAPABILITY.DOCUMENTS);
+  const { connections: mongoConnections } = useDriverConnections();
   const { changes, isFetching: loading, refetch: reload } = useMongoChangesListQuery();
   const [status, setStatus] = useState("all");
   const mayWrite = mongoConnections.some((c) => canAccess(c.name, "write"));

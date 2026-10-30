@@ -1,11 +1,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { useConnections } from "@/hooks/use-connections";
+import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { useUrlState } from "@/hooks/use-url-state";
-import { CAPABILITY } from "@/lib/console-nav";
 import { queryClient, queryKeys } from "@/lib/query-client";
 
-// useMemcacheConnections reads the memory-cache list from the cached instances query, so the dashboard and these pages never disagree. The active connection's driver comes along: redis and valkey are different engine paths.
+// MEMCACHE_DEFAULTS keeps the keys filter stable across renders.
 const MEMCACHE_DEFAULTS = { pattern: "*", key: "" };
 
 // useMemcacheUrlParams is the keys filter and the inspected key, kept in the URL.
@@ -19,15 +18,16 @@ export function useMemcacheUrlParams() {
   };
 }
 
+// useMemcacheConnections is the keys page's instance list: the driver comes from the URL, so redis and valkey stay
+// separate engine paths, and the instance comes from ?instance=.
 export function useMemcacheConnections() {
-  const { connections, active, driver, setActive, busy, reload } = useConnections(CAPABILITY.KEYS);
-  return { connections, connection: active, driver, pick: setActive, busy, reload };
+  return useDriverConnections();
 }
 
 // useMemcacheKeysQuery browses keys by pattern (a bounded full scan server side); the page is cached per pattern so the debounced search replays fast.
 export function useMemcacheKeysQuery(driver?: string, connection?: string, pattern = "*") {
   const query = useQuery({
-    queryKey: queryKeys.keys.keys(connection, pattern),
+    queryKey: queryKeys.keys.keys(driver, connection, pattern),
     queryFn: () => api.memcache(driver as string).keys(connection as string, pattern),
     enabled: !!driver && !!connection,
   });
@@ -36,7 +36,7 @@ export function useMemcacheKeysQuery(driver?: string, connection?: string, patte
 
 export function useMemcacheValueQuery(driver?: string, connection?: string, key?: string) {
   const query = useQuery({
-    queryKey: queryKeys.keys.value(connection, key),
+    queryKey: queryKeys.keys.value(driver, connection, key),
     queryFn: () => api.memcache(driver as string).value(connection as string, key as string),
     enabled: !!driver && !!connection && !!key,
   });

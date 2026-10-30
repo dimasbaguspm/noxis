@@ -41,12 +41,12 @@ import { P } from "@/components/ui/typography";
 // MongoExplorePage walks a server and queries it: databases, their collections, and the documents of the one you pick.
 export default function MongoExplorePage() {
   const { isSuper } = useAuth();
-  const { connections, connection, pick, busy } = useMongoConnections();
+  const { driver, connections, connection, pick, busy } = useMongoConnections();
   const {
     databases,
     isFetching: loadingDbs,
     refetch: reloadDbs,
-  } = useMongoDatabasesQuery(connection);
+  } = useMongoDatabasesQuery(driver, connection);
   const {
     database: urlDatabase,
     collection,
@@ -63,12 +63,13 @@ export default function MongoExplorePage() {
     collections,
     isFetching: loadingColls,
     refetch: reloadColls,
-  } = useMongoCollectionsQuery(connection, database);
+  } = useMongoCollectionsQuery(driver, connection, database);
   const read = useMongoRunMutation();
 
   const readTarget = read.variables;
   const readMatchesSelection =
     !!readTarget &&
+    readTarget.driver === driver &&
     readTarget.connection === connection &&
     readTarget.body.database === database &&
     readTarget.body.collection === collection &&
@@ -91,7 +92,11 @@ export default function MongoExplorePage() {
 
   function query() {
     if (!connection || !database || !collection) return;
-    read.mutate({ connection, body: { op: "find", database, collection, filter, limit: 50 } });
+    read.mutate({
+      driver,
+      connection,
+      body: { op: "find", database, collection, filter, limit: 50 },
+    });
   }
 
   if (!busy && connections.length === 0) {

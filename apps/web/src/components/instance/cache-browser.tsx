@@ -8,11 +8,7 @@ import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Workspace } from "@/components/layout/workspace";
 import { useDebounce } from "@/hooks/use-debounce";
-import {
-  useMemcacheConnections,
-  useMemcacheKeysQuery,
-  useMemcacheValueQuery,
-} from "@/hooks/use-memcache";
+import { useMemcacheKeysQuery, useMemcacheValueQuery } from "@/hooks/use-memcache";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { P } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
@@ -24,7 +20,6 @@ export function CacheBrowser({ driver, connection }: { driver: string; connectio
   const glob = useDebounce(pattern.trim() || "*", 300);
   const keys = useMemcacheKeysQuery(driver, connection, glob);
   const value = useMemcacheValueQuery(driver, connection, key);
-  const { pick } = useMemcacheConnections();
   const visible = (keys.page.keys ?? []).slice(0, 100);
 
   return (
@@ -54,7 +49,9 @@ export function CacheBrowser({ driver, connection }: { driver: string; connectio
               size="sm"
               variant="outline"
               render={
-                <Link to={PAGE_ROUTES.DRIVER(driver, "keys")} onClick={() => pick(connection)} />
+                <Link
+                  to={`${PAGE_ROUTES.DRIVER(driver, "keys")}?instance=${encodeURIComponent(connection)}`}
+                />
               }
             >
               <ExternalLink /> Full page

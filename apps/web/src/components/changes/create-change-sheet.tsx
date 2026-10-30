@@ -22,8 +22,7 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { SqlEditor } from "@/components/sql/sql-editor";
 import { SqlFileInput } from "@/components/changes/sql-file-input";
-import { useConnectionSelection } from "@/hooks/use-connection";
-import { CAPABILITY } from "@/lib/console-nav";
+import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { classify } from "@/lib/statements";
 
@@ -58,7 +57,7 @@ export function CreateChangeSheet({
   kind: "dml" | "ddl";
   onSubmit: (input: Choice) => Promise<Outcome>;
 }) {
-  const { connection, driver, pick } = useConnectionSelection();
+  const { connection, driver, connections, pick } = useDriverConnections();
   const { data: tables } = useConnectionSchemaQuery(driver, connection);
   const {
     register,
@@ -118,7 +117,7 @@ export function CreateChangeSheet({
             <Field>
               <FieldLabel>Instance *</FieldLabel>
               <ConnectionSelect
-                capability={CAPABILITY.SQL}
+                connections={connections}
                 value={connection}
                 onChange={pick}
                 className="w-full"

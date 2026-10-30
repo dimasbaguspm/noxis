@@ -21,8 +21,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { SqlEditor } from "@/components/sql/sql-editor";
-import { useConnectionSelection } from "@/hooks/use-connection";
-import { CAPABILITY } from "@/lib/console-nav";
+import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { classify } from "@/lib/statements";
 import { P } from "@/components/ui/typography";
@@ -64,7 +63,9 @@ export function ChangeSubmitDialog({
   trigger?: React.ReactElement;
 }) {
   // the instance is part of the change, so it is chosen here, not on the page
-  const { connection, driver, pick } = useConnectionSelection(initial?.connection);
+  const { connection: picked, driver, connections, pick } = useDriverConnections();
+  // raising the inverse of a reviewed change starts on that change's instance
+  const connection = initial?.connection ?? picked;
   const { data: tables } = useConnectionSchemaQuery(driver, connection); // completion follows the chosen instance
   const {
     register,
@@ -134,7 +135,7 @@ export function ChangeSubmitDialog({
                   Instance <Required />
                 </FieldLabel>
                 <ConnectionSelect
-                  capability={CAPABILITY.SQL}
+                  connections={connections}
                   value={connection}
                   onChange={pick}
                   className="w-full"

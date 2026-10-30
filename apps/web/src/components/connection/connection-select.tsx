@@ -6,23 +6,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useConnections } from "@/hooks/use-connections";
-import type { Capability } from "@/lib/console-nav";
+import type { Connection } from "@/lib/api";
 
-// ConnectionSelect is the page-local instance picker: pages own their choice (the provider only remembers it as the default for the next page).
+// ConnectionSelect is the page-local instance picker: the page owns the choice and the list it offers, so a picker can
+// never show an instance the page is not allowed to act on.
 export function ConnectionSelect({
-  capability,
+  connections,
   value,
   onChange,
   className = "w-64",
 }: {
-  capability: Capability;
+  connections: Connection[];
   value?: string;
   onChange: (name: string) => void;
   className?: string;
 }) {
-  const { connections } = useConnections(capability);
-
   if (connections.length === 0) {
     return (
       <span className="text-xs text-muted-foreground">

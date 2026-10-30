@@ -64,7 +64,7 @@ export default function MemcachePage() {
   const { isInstanceAdmin } = useAuth();
   const { connections, connection, driver, pick } = useMemcacheConnections();
   // removing keys and emptying the database are admin actions on the instance
-  const mayAdmin = isInstanceAdmin(connection);
+  const mayAdmin = isInstanceAdmin(connection ?? "");
   const { pattern, inspected, setPattern, setInspected } = useMemcacheUrlParams();
   const glob = useDebounce(pattern || "*", 300);
   const selectionScope = JSON.stringify([connection, glob]);

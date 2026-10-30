@@ -76,7 +76,7 @@ export default function MongoRequestNewPage() {
     chooseConnection,
     chooseDatabase,
     chooseCollection,
-  } = useMongoRequestForm(connection);
+  } = useMongoRequestForm(connection ?? "");
   const {
     register,
     handleSubmit,
