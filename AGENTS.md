@@ -71,7 +71,7 @@ Inside `apps/api/`:
 | Path | Role |
 | --- | --- |
 | `apps/api/cmd/noxis/` | process entry: CLI, server wiring (routes), middlewares |
-| `apps/api/cmd/noxis/server/app.go` | composition root: every use case built explicitly |
+| `apps/api/internal/app/app.go` | composition root: every use case built explicitly |
 | `apps/api/cmd/noxis/server/static/` | embedded console (built SPA; placeholder committed) |
 | `apps/api/cmd/noxis/server/middlewares/` | CORS → auth → request-log/span |
 | `apps/api/internal/usecases/` | root framework (RegistryDeps + helpers) + one subpackage per domain |
@@ -93,7 +93,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 2. `routes(app, cfg)` lists every endpoint as `{Method, Endpoint, Handler, Public, Middlewares}`; `newHandler` registers the table and attaches auth per route.
 3. `Serve` reads the path/query/body and resolves one capability for the driver the route names with `uc.RouteModule(ctx, r, &target)`; the loader asserts the interface against that driver's module. A driver that cannot do the thing is refused by name, never stubbed.
 4. It calls its `Run(ctx, ...)` domain core and writes the response with `respond`/`fail`.
-5. The use case reads repositories/modules from its own struct fields (set explicitly in `newApp`), enforces access via `RawConn`/`Authorize`, persists via a repository.
+5. The use case reads repositories/modules from its own struct fields (set explicitly in `app.Default`), enforces access via `RawConn`/`Authorize`, persists via a repository.
 6. `fail` maps `constants.ErrNotFound`/`constants.ErrUnsupported`→404, `constants.ErrForbidden`→403, `constants.ErrInvalidCredentials`/`constants.ErrUnauthorized`→401, else 400.
 
 ## Conventions

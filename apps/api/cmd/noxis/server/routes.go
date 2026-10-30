@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"noxis/cmd/noxis/server/middlewares"
+	"noxis/internal/app"
 	"noxis/internal/common"
 	"noxis/internal/common/config"
 	"noxis/internal/constants"
@@ -25,7 +26,7 @@ type route struct {
 // routes lists the whole HTTP surface in one place, so a reviewer can see the
 // method, path and access rule of every endpoint without reading a wall of
 // registrations.
-func routes(d app, cfg config.Config) []route {
+func routes(d app.App, cfg config.Config) []route {
 	const api = constants.APIPrefix
 	return []route{
 		{Method: http.MethodGet, Endpoint: "/healthz", Handler: http.HandlerFunc(getHealthz)},
@@ -125,7 +126,7 @@ func withDriver(h http.Handler) http.Handler {
 	})
 }
 
-func newHandler(d app, cfg config.Config, verifier interfaces.Verifier, log *slog.Logger) http.Handler {
+func newHandler(d app.App, cfg config.Config, verifier interfaces.Verifier, log *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	for _, rt := range routes(d, cfg) {
 		handler := middlewares.RequestLog(withDriver(rt.Handler), log)
