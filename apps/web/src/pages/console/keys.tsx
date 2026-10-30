@@ -2,7 +2,16 @@ import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowDown, ArrowUp, Eraser, KeyRound, RefreshCw, Search, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Copy,
+  Eraser,
+  KeyRound,
+  RefreshCw,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,12 +43,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ResultTable } from "@/components/sql/result-table";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useMemcacheBrowser, type SortKey } from "@/hooks/use-memcache-browser";
 import { useAuth } from "@/app/auth-provider";
 import { Workspace } from "@/components/layout/workspace";
+import { QueuePanel } from "@/components/layout/queue-panel";
 import {
   useFlushMutation,
   useMemcacheConnections,
@@ -149,11 +158,54 @@ export default function MemcachePage() {
     );
   }
 
+  // the inspected row carries the metadata the value endpoint does not repeat
+  const inspectedRow = keys.find((k) => k.name === inspected);
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <Workspace
-        left={
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto">
+        footer={
+          <>
+            <span>{selected.length} key(s) selected</span>
+            <span>
+              {page.total} scanned{page.truncated ? " · scan truncated" : ""}
+            </span>
+          </>
+        }
+      >
+        <Workspace.Pane defaultSize={17} minSize={14}>
+          <QueuePanel
+            actions={
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => void reloadKeys()}
+                  disabled={loading || !connection}
+                >
+                  <RefreshCw className={cn(loading && "animate-spin")} /> Refresh
+                </Button>
+                {mayAdmin && (
+                  <Button
+                    variant="outline"
+                    disabled={selected.length === 0 || removeKeys.isPending}
+                    onClick={() => void onRemoveKeys()}
+                  >
+                    <Trash2 /> Remove selected ({selected.length})
+                  </Button>
+                )}
+                {mayAdmin && (
+                  <Button
+                    variant="ghost"
+                    className="text-destructive"
+                    disabled={!connection}
+                    onClick={() => setFlushOpen(true)}
+                  >
+                    <Eraser /> Empty database
+                  </Button>
+                )}
+              </>
+            }
+          >
             <div className="flex flex-col gap-1.5">
               <Label>Instance</Label>
               <Select
@@ -197,135 +249,114 @@ export default function MemcachePage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void reloadKeys()}
-                disabled={loading || !connection}
-              >
-                <RefreshCw className={cn(loading && "animate-spin")} /> Refresh
-              </Button>
-              <Badge variant="outline">{page.total} key(s) in db</Badge>
-            </div>
-
             {page.truncated && (
-              <Tooltip>
-                <TooltipTrigger render={<span className="text-xs text-amber-500" />}>
-                  Scan truncated
-                </TooltipTrigger>
-                <TooltipContent>
-                  The keyspace holds more keys than one scan reads (500 by default). Narrow the
-                  pattern.
-                </TooltipContent>
-              </Tooltip>
+              <p className="text-xs text-amber-500">
+                The keyspace holds more keys than one scan reads (500 by default). Narrow the
+                pattern.
+              </p>
             )}
-          </div>
-        }
-        right={
-          keys.length === 0 ? (
-            <Empty
-              icon={KeyRound}
-              title={connection ? "No keys" : "No memory cache selected"}
-              description={
-                connection
-                  ? "No key matches this pattern."
-                  : "Register a memory cache to browse its keys."
-              }
-            />
-          ) : (
-            <div className="min-h-0 flex-1 overflow-auto">
-              <Table>
-                <TableHeader className="sticky top-0 bg-card">
-                  <TableRow>
-                    <TableHead className="w-8" />
-                    <TableHead>{head("name", "Key")}</TableHead>
-                    <TableHead>{head("type", "Type")}</TableHead>
-                    <TableHead>{head("ttl", "TTL")}</TableHead>
-                    <TableHead>{head("size", "Size")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {keys.map((key) => (
-                    <TableRow
-                      key={key.name}
-                      className={cn("cursor-pointer", inspected === key.name && "bg-accent/60")}
-                      onClick={() => setInspected(key.name)}
-                    >
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          aria-label={`select ${key.name}`}
-                          checked={selected.includes(key.name)}
-                          onCheckedChange={() => toggle(key.name)}
-                        />
-                      </TableCell>
-                      <TableCell className="max-w-96 truncate font-mono text-xs" title={key.name}>
-                        {key.name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-[10px]">
-                          {key.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {ttl(key.ttl)}
-                      </TableCell>
-                      <TableCell className="text-xs tabular-nums text-muted-foreground">
-                        {key.size ? bytes(key.size) : "—"}
-                      </TableCell>
+          </QueuePanel>
+        </Workspace.Pane>
+
+        <Workspace.Split defaultSize={83} minSize={40} direction="horizontal">
+          <Workspace.Pane defaultSize={68} minSize={35} padded={false} scroll>
+            {keys.length === 0 ? (
+              <Empty
+                icon={KeyRound}
+                title={connection ? "No keys" : "No memory cache selected"}
+                description={
+                  connection
+                    ? "No key matches this pattern."
+                    : "Register a memory cache to browse its keys."
+                }
+              />
+            ) : (
+              <div className="min-h-0 flex-1 overflow-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-card">
+                    <TableRow>
+                      <TableHead className="w-8" />
+                      <TableHead>{head("name", "Key")}</TableHead>
+                      <TableHead>{head("type", "Type")}</TableHead>
+                      <TableHead>{head("ttl", "TTL")}</TableHead>
+                      <TableHead>{head("size", "Size")}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )
-        }
-        footer={
-          <>
-            <span>{selected.length} key(s) selected</span>
-            {mayAdmin && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={selected.length === 0 || removeKeys.isPending}
-                  onClick={() => void onRemoveKeys()}
-                >
-                  <Trash2 /> Remove selected
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive"
-                  disabled={!connection}
-                  onClick={() => setFlushOpen(true)}
-                >
-                  <Eraser /> Empty database
-                </Button>
+                  </TableHeader>
+                  <TableBody>
+                    {keys.map((key) => (
+                      <TableRow
+                        key={key.name}
+                        className={cn("cursor-pointer", inspected === key.name && "bg-accent/60")}
+                        onClick={() => setInspected(key.name)}
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            aria-label={`select ${key.name}`}
+                            checked={selected.includes(key.name)}
+                            onCheckedChange={() => toggle(key.name)}
+                          />
+                        </TableCell>
+                        <TableCell className="max-w-96 truncate font-mono text-xs" title={key.name}>
+                          {key.name}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px]">
+                            {key.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {ttl(key.ttl)}
+                        </TableCell>
+                        <TableCell className="text-xs tabular-nums text-muted-foreground">
+                          {key.size ? bytes(key.size) : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
-          </>
-        }
-      />
+          </Workspace.Pane>
 
-      <Dialog
-        open={inspected !== undefined}
-        onOpenChange={(open) => !open && setInspected(undefined)}
-      >
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="truncate font-mono text-base">{inspected}</DialogTitle>
-            <DialogDescription>Rendered per the key's type</DialogDescription>
-          </DialogHeader>
-          <div className="max-h-[60svh] overflow-auto">
-            {valueLoading ? (
-              <P size="sm">Loading…</P>
+          <Workspace.Pane defaultSize={32} minSize={20} scroll>
+            {inspected === undefined ? (
+              <P size="sm" className="text-muted-foreground">
+                Pick a key to read it here, beside the list.
+              </P>
             ) : (
-              <ResultTable result={result} title={inspected ?? "value"} />
+              <div className="flex min-h-0 flex-1 flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="truncate font-mono text-xs" title={inspected}>
+                    {inspected}
+                  </span>
+                  <span className="flex-1" />
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => void navigator.clipboard.writeText(inspected)}
+                  >
+                    <Copy /> Copy
+                  </Button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <Badge variant="outline" className="text-[10px]">
+                    {inspectedRow?.type ?? "—"}
+                  </Badge>
+                  <span>{inspectedRow ? ttl(inspectedRow.ttl) : "—"}</span>
+                  <span>{inspectedRow?.size ? bytes(inspectedRow.size) : "—"}</span>
+                </div>
+                <div className="min-h-0 flex-1 overflow-auto">
+                  {valueLoading ? (
+                    <P size="sm">Loading…</P>
+                  ) : (
+                    <ResultTable result={result} title={inspected} />
+                  )}
+                </div>
+              </div>
             )}
-          </div>
-        </DialogContent>
-      </Dialog>
+          </Workspace.Pane>
+        </Workspace.Split>
+      </Workspace>
 
       <Dialog
         open={flushOpen}
