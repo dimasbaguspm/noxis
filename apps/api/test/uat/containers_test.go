@@ -57,6 +57,7 @@ func startEngine(t *testing.T, image, port string, env map[string]string, ready 
 // TestUATSQLModulePostgres proves the SQL module against a real Postgres started
 // for the acceptance suite.
 func TestUATSQLModulePostgres(t *testing.T) {
+	t.Parallel()
 	host, port := startEngine(t, "postgres:16-alpine", "5432", map[string]string{
 		"POSTGRES_PASSWORD": "uat", "POSTGRES_DB": "postgres",
 	}, wait.ForSQL("5432/tcp", "pgx", func(host string, port network.Port) string {
@@ -78,6 +79,7 @@ func TestUATSQLModulePostgres(t *testing.T) {
 
 // TestUATSQLModuleMySQL proves the MySQL driver against a real server.
 func TestUATSQLModuleMySQL(t *testing.T) {
+	t.Parallel()
 	host, port := startEngine(t, "mysql:8", "3306", map[string]string{"MYSQL_ROOT_PASSWORD": "uat", "MYSQL_ROOT_HOST": "%", "MYSQL_DATABASE": "uat"},
 		wait.ForSQL("3306/tcp", "mysql", func(host string, port network.Port) string {
 			return fmt.Sprintf("root:uat@tcp(%s:%d)/uat", host, port.Num())
@@ -97,6 +99,7 @@ func TestUATSQLModuleMySQL(t *testing.T) {
 
 // TestUATMongoModule proves the Mongo module against a real server.
 func TestUATMongoModule(t *testing.T) {
+	t.Parallel()
 	host, port := startEngine(t, "mongo:7", "27017", nil, nil)
 	conn := entity.Connection{
 		Name: "mongo", Driver: constants.DriverMongo, Host: host, Port: port, Database: "admin",
@@ -108,6 +111,7 @@ func TestUATMongoModule(t *testing.T) {
 
 // TestUATCacheModule proves the cache module against a real Redis.
 func TestUATCacheModule(t *testing.T) {
+	t.Parallel()
 	host, port := startEngine(t, "redis:7-alpine", "6379", nil, nil)
 	conn := entity.Connection{
 		Name: "cache", Driver: constants.DriverRedis, Host: host, Port: port,
