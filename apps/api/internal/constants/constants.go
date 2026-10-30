@@ -40,9 +40,20 @@ const (
 	// DriverCockroach is a postgres-wire SQL database with transactional DDL: a change is proved in the live transaction, never in a throwaway schema.
 	DriverCockroach = "cockroach"
 	DriverRedis     = "redis"
-	// DriverValkey is the Linux Foundation fork of Redis: same protocol, same commands, same family. It is a separate driver name so the console can show what it is actually talking to.
+	// DriverValkey is the Linux Foundation fork of Redis: same protocol, same commands. It is a separate driver name so the console can show what it is actually talking to.
 	DriverValkey = "valkey"
 	DriverMongo  = "mongo"
+	// DriverPostgres and its siblings are their own engine: the API namespace, the registry and the change queue are keyed on the driver name.
+)
+
+// Driver capabilities are what a driver's module can actually do, so the console groups its navigation by capability and a driver it has never seen still appears under the group it serves.
+const (
+	// CapabilitySQL is querying, reading the schema and proving a SQL change.
+	CapabilitySQL = "sql"
+	// CapabilityKeys is browsing and removing memory-cache keys.
+	CapabilityKeys = "keys"
+	// CapabilityDocuments is browsing documents and submitting a document request.
+	CapabilityDocuments = "documents"
 )
 
 // SchedulerActor attributes changes applied by the authenticated scheduler callback.

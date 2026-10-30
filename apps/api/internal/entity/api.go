@@ -187,10 +187,11 @@ type LevelList struct {
 	Levels []LevelInfo `json:"levels"`
 }
 
-// DriverInfo is one entry in the server-owned driver picker catalog.
+// DriverInfo is one entry in the server-owned driver picker catalog. Capabilities are the console surfaces the driver's module implements, so the console groups its navigation by what a driver can do instead of by a hand-kept list.
 type DriverInfo struct {
-	Driver string `json:"driver"`
-	Label  string `json:"label"`
+	Driver       string   `json:"driver"`
+	Label        string   `json:"label"`
+	Capabilities []string `json:"capabilities"`
 }
 
 // UserList is the account directory response.
