@@ -46,7 +46,7 @@ func (w *world) erdSteps(sc *godog.ScenarioContext) {
 // erd loads one connection's schema graph.
 func (w *world) erd(ctx context.Context, connection string) (erdBody, string, error) {
 	var body erdBody
-	code, raw, err := w.raw("/external/v1/engine/sql/connections/" + connection + "/erd")
+	code, raw, err := w.raw(w.enginePath("/connections/" + connection + "/erd"))
 	if err != nil {
 		return body, "", err
 	}

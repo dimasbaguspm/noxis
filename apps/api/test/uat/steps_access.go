@@ -45,7 +45,7 @@ func (w *world) accessSteps(sc *godog.ScenarioContext) {
 
 func (w *world) grantLevel(ctx context.Context, member, level string) error {
 	body := accessBody{Member: member, MemberType: "user", Level: level}
-	if err := w.api(http.MethodPut, "/external/v1/engine/sql/connections/"+w.conn+"/permissions", body, nil); err != nil {
+	if err := w.api(http.MethodPut, w.enginePath("/connections/"+w.conn+"/permissions"), body, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -58,7 +58,7 @@ func (w *world) permissionListShows(ctx context.Context, member, level string) e
 	var out struct {
 		Permissions []accessBody `json:"permissions"`
 	}
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn+"/permissions", nil, &out); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/connections/"+w.conn+"/permissions"), nil, &out); err != nil {
 		return err
 	}
 	for _, p := range out.Permissions {
@@ -70,7 +70,7 @@ func (w *world) permissionListShows(ctx context.Context, member, level string) e
 }
 
 func (w *world) revokeLevel(ctx context.Context, member string) error {
-	path := "/external/v1/engine/sql/connections/" + w.conn + "/permissions?member=" + member
+	path := w.enginePath("/connections/" + w.conn + "/permissions?member=" + member)
 	if err := w.api(http.MethodDelete, path, nil, nil); err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (w *world) permissionListEmpty(ctx context.Context) error {
 	var out struct {
 		Permissions []accessBody `json:"permissions"`
 	}
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn+"/permissions", nil, &out); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/connections/"+w.conn+"/permissions"), nil, &out); err != nil {
 		return err
 	}
 	if len(out.Permissions) != 0 {

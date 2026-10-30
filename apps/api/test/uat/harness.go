@@ -218,6 +218,14 @@ func waitHTTP(url string, timeout time.Duration) error {
 	return fmt.Errorf("%s not ready within %v", url, timeout)
 }
 
+// enginePath is the engine route for the connection under test: the registry, the access gate and the change queues are keyed on the driver, not on a family.
+func (w *world) enginePath(suffix string) string {
+	return enginePathOf(targets[w.targetKey].Driver, suffix)
+}
+
+// enginePathOf is the engine route for a driver that has no connection yet, which is the registration step.
+func enginePathOf(driver, suffix string) string { return "/external/v1/engine/" + driver + suffix }
+
 // api hits the noxis REST surface with an optional JSON body and decodes the reply into out.
 func (w *world) api(method, path string, body any, out any) error {
 	var raw []byte

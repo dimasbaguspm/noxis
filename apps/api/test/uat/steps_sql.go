@@ -38,7 +38,7 @@ func (w *world) sqlSteps(sc *godog.ScenarioContext) {
 
 func (w *world) read(ctx context.Context, sqlText string) error {
 	w.result = resultBody{}
-	return w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/operations", map[string]string{"op": "query", "sql": sqlText}, &w.result)
+	return w.api(http.MethodPost, w.enginePath("/connections/"+w.conn+"/operations"), map[string]string{"op": "query", "sql": sqlText}, &w.result)
 }
 
 // unknownOp proves the operations route refuses an unknown op instead of guessing.
@@ -52,7 +52,7 @@ func (w *world) badRequest(context.Context) error {
 
 func (w *world) unknownOp(ctx context.Context) error {
 	w.result = resultBody{}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/operations", map[string]string{"op": "bogus"}, &w.result); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/connections/"+w.conn+"/operations"), map[string]string{"op": "bogus"}, &w.result); err != nil {
 		return err
 	}
 	if w.code != http.StatusBadRequest {
@@ -79,7 +79,7 @@ func (w *world) write(ctx context.Context, sqlText string) error {
 // directWriteRefused proves the operations route no longer executes a write, and that it says where the write belongs.
 func (w *world) directWriteRefused(ctx context.Context, sqlText string) error {
 	w.result = resultBody{}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/operations", map[string]string{"op": "alter", "sql": sqlText}, &w.result); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/connections/"+w.conn+"/operations"), map[string]string{"op": "alter", "sql": sqlText}, &w.result); err != nil {
 		return err
 	}
 	if w.code != http.StatusBadRequest {
@@ -165,7 +165,7 @@ func (w *world) rejected(ctx context.Context) error {
 
 func (w *world) dryRun(ctx context.Context, sqlText string) error {
 	w.result = resultBody{}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/operations", map[string]string{"op": "rollback", "sql": sqlText}, &w.result); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/connections/"+w.conn+"/operations"), map[string]string{"op": "rollback", "sql": sqlText}, &w.result); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -177,7 +177,7 @@ func (w *world) dryRun(ctx context.Context, sqlText string) error {
 // dryRunRefused expects the driver to refuse a dry run: mysql-family engines commit DDL implicitly, so a rolled-back transaction there would not be a dry run at all.
 func (w *world) dryRunRefused(ctx context.Context, sqlText string) error {
 	w.result = resultBody{}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/operations", map[string]string{"op": "rollback", "sql": sqlText}, &w.result); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/connections/"+w.conn+"/operations"), map[string]string{"op": "rollback", "sql": sqlText}, &w.result); err != nil {
 		return err
 	}
 	if w.code == http.StatusOK {
@@ -187,7 +187,7 @@ func (w *world) dryRunRefused(ctx context.Context, sqlText string) error {
 }
 
 func (w *world) analyze(ctx context.Context, table string) error {
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/operations", map[string]string{"op": "analyze", "table": table}, &w.result); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/connections/"+w.conn+"/operations"), map[string]string{"op": "analyze", "table": table}, &w.result); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -202,7 +202,7 @@ func (w *world) schemaLists(ctx context.Context, table string) error {
 			Name string `json:"name"`
 		} `json:"tables"`
 	}
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn+"/schema", nil, &body); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/connections/"+w.conn+"/schema"), nil, &body); err != nil {
 		return err
 	}
 	for _, t := range body.Tables {
@@ -220,7 +220,7 @@ func (w *world) schemaOmits(ctx context.Context, table string) error {
 			Name string `json:"name"`
 		} `json:"tables"`
 	}
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn+"/schema", nil, &body); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/connections/"+w.conn+"/schema"), nil, &body); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -241,7 +241,7 @@ func (w *world) noScratchSchemas(ctx context.Context) error {
 			Schema string `json:"schema"`
 		} `json:"tables"`
 	}
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn+"/schema", nil, &body); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/connections/"+w.conn+"/schema"), nil, &body); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -258,7 +258,7 @@ func (w *world) noScratchSchemas(ctx context.Context) error {
 func (w *world) tableRows(ctx context.Context, table string, want int) error {
 	w.result = resultBody{}
 	// no schema parameter: the driver's own default resolves the table, which is what keeps the step driver-agnostic
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn+"/tables/"+table+"/rows", nil, &w.result); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/connections/"+w.conn+"/tables/"+table+"/rows"), nil, &w.result); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {

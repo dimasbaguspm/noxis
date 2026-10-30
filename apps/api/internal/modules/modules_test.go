@@ -10,11 +10,11 @@ import (
 	"noxis/internal/interfaces"
 	"noxis/internal/modules/memcache"
 	"noxis/internal/modules/mongodb"
-	"noxis/internal/modules/sql"
+	"noxis/internal/modules/postgres"
 )
 
 func TestLoadModuleByType(t *testing.T) {
-	sqlFlow := sql.NewChanges(nil, nil, nil, nil, constants.DriverPostgres)
+	sqlFlow := postgres.NewChanges(nil, nil, nil, nil)
 	mongoFlow := mongodb.NewChanges(nil, nil, nil, nil)
 	r := registry{changes: interfaces.ChangeFlows{constants.DriverPostgres: sqlFlow, constants.DriverMongo: mongoFlow}}
 
@@ -46,7 +46,7 @@ func TestLoadModuleByType(t *testing.T) {
 }
 
 func TestLoadEngineModuleUsesContextDriver(t *testing.T) {
-	sq, mongo, cache := sql.New(constants.DriverPostgres), mongodb.New(), memcache.New(constants.DriverRedis)
+	sq, mongo, cache := postgres.New(), mongodb.New(), memcache.New(constants.DriverRedis)
 	r := registry{mods: map[string]interfaces.Module{
 		constants.DriverPostgres: sq,
 		constants.DriverMongo:    mongo,

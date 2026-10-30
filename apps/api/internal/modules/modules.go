@@ -12,9 +12,13 @@ import (
 	"noxis/internal/common/metrics"
 	"noxis/internal/constants"
 	"noxis/internal/interfaces"
+	"noxis/internal/modules/cockroach"
+	"noxis/internal/modules/mariadb"
 	"noxis/internal/modules/memcache"
 	"noxis/internal/modules/mongodb"
-	"noxis/internal/modules/sql"
+	"noxis/internal/modules/mysql"
+	"noxis/internal/modules/postgres"
+	"noxis/internal/modules/sqlite"
 	"noxis/internal/repositories"
 )
 
@@ -34,11 +38,28 @@ func New(mods map[string]interfaces.Module, changes interfaces.ChangeFlows) Regi
 func Default(repos repositories.Registry, m *metrics.Metrics) Registry {
 	mods := map[string]interfaces.Module{}
 	changes := interfaces.ChangeFlows{}
-	for _, driver := range sqlDrivers {
-		engine := sql.New(driver)
-		mods[driver] = engine
-		changes[driver] = sql.NewChanges(repos.Connections, repos.Changes, engine, m, driver)
-	}
+
+	// One SQL module per driver: each serves its own driver and refuses the rest, so the registration below names no driver twice.
+	pg := postgres.New()
+	mods[pg.Driver()] = pg
+	changes[pg.Driver()] = postgres.NewChanges(repos.Connections, repos.Changes, pg, m)
+
+	my := mysql.New()
+	mods[my.Driver()] = my
+	changes[my.Driver()] = mysql.NewChanges(repos.Connections, repos.Changes, my, m)
+
+	maria := mariadb.New()
+	mods[maria.Driver()] = maria
+	changes[maria.Driver()] = mariadb.NewChanges(repos.Connections, repos.Changes, maria, m)
+
+	lite := sqlite.New()
+	mods[lite.Driver()] = lite
+	changes[lite.Driver()] = sqlite.NewChanges(repos.Connections, repos.Changes, lite, m)
+
+	cockroachDB := cockroach.New()
+	mods[cockroachDB.Driver()] = cockroachDB
+	changes[cockroachDB.Driver()] = cockroach.NewChanges(repos.Connections, repos.Changes, cockroachDB, m)
+
 	for _, driver := range memcacheDrivers {
 		mods[driver] = memcache.New(driver)
 	}
@@ -46,15 +67,6 @@ func Default(repos repositories.Registry, m *metrics.Metrics) Registry {
 	mods[constants.DriverMongo] = documents
 	changes[constants.DriverMongo] = mongodb.NewChanges(repos.Connections, repos.Changes, documents, m)
 	return New(mods, changes)
-}
-
-// sqlDrivers are the drivers the SQL engine serves, one module each.
-var sqlDrivers = []string{
-	constants.DriverPostgres,
-	constants.DriverMySQL,
-	constants.DriverMariaDB,
-	constants.DriverSQLite,
-	constants.DriverCockroach,
 }
 
 // memcacheDrivers are the drivers the memory-cache engine serves, one module each: valkey is its own state, not an alias.

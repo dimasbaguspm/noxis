@@ -56,7 +56,7 @@ func (w *world) mongoRequestChange(ctx context.Context, op, collection, filter, 
 		"connection": w.conn, "notes": "uat " + op, "op": op, "database": targets["mongo"].Database,
 		"collection": collection, "filter": filter, "value": value, "many": false,
 	}
-	if err := w.api(http.MethodPost, "/external/v1/engine/mongodb/changes", body, &w.change); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/changes"), body, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -94,7 +94,7 @@ func (w *world) mongoQueueLen() int {
 	var out struct {
 		Changes []changeBody `json:"changes"`
 	}
-	if err := w.api(http.MethodGet, "/external/v1/engine/mongodb/changes", nil, &out); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/changes"), nil, &out); err != nil {
 		return -1
 	}
 	return len(out.Changes)
@@ -108,7 +108,7 @@ func (w *world) mongoRequestNotRecorded(ctx context.Context) error {
 	var out struct {
 		Changes []changeBody `json:"changes"`
 	}
-	if err := w.api(http.MethodGet, "/external/v1/engine/mongodb/changes", nil, &out); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/changes"), nil, &out); err != nil {
 		return err
 	}
 	if len(out.Changes) != w.mongoQueueSize {
@@ -118,7 +118,7 @@ func (w *world) mongoRequestNotRecorded(ctx context.Context) error {
 }
 
 func (w *world) mongoRequestApprove(ctx context.Context) error {
-	if err := w.api(http.MethodPost, "/external/v1/engine/mongodb/changes/"+w.change.ID+"/approve", map[string]string{}, &w.change); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/changes/"+w.change.ID+"/approve"), map[string]string{}, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -128,7 +128,7 @@ func (w *world) mongoRequestApprove(ctx context.Context) error {
 }
 
 func (w *world) mongoRequestApply(ctx context.Context) error {
-	if err := w.api(http.MethodPost, "/external/v1/engine/mongodb/changes/"+w.change.ID+"/apply", map[string]string{}, &w.change); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/changes/"+w.change.ID+"/apply"), map[string]string{}, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -149,7 +149,7 @@ func (w *world) mongoReadRefused(ctx context.Context) error {
 	body := map[string]any{
 		"connection": w.conn, "notes": "read", "op": "find", "database": targets["mongo"].Database, "collection": "items",
 	}
-	if err := w.api(http.MethodPost, "/external/v1/engine/mongodb/changes", body, &w.change); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/changes"), body, &w.change); err != nil {
 		return err
 	}
 	if w.change.Status != "failed" {
@@ -164,7 +164,7 @@ func (w *world) registerMongo(ctx context.Context, name string) error {
 		"name": name, "driver": t.Driver, "host": t.Host, "port": t.Port,
 		"user": t.User, "password": t.Password, "database": "admin",
 	}
-	if err := w.api(http.MethodPost, "/external/v1/engine/mongodb/connections", conn, nil); err != nil {
+	if err := w.api(http.MethodPost, enginePathOf(t.Driver, "/connections"), conn, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -175,7 +175,7 @@ func (w *world) registerMongo(ctx context.Context, name string) error {
 }
 
 func (w *world) mongoAnswers(ctx context.Context) error {
-	if err := w.api(http.MethodPost, "/external/v1/engine/mongodb/connections/"+w.conn+"/test", map[string]string{}, nil); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/connections/"+w.conn+"/test"), map[string]string{}, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -204,7 +204,7 @@ func (w *world) mongoDatabaseExists(ctx context.Context, database string) error 
 	var out struct {
 		Databases []mongoDatabase `json:"databases"`
 	}
-	path := "/external/v1/engine/mongodb/connections/" + w.conn + "/databases"
+	path := w.enginePath("/connections/" + w.conn + "/databases")
 	if err := w.api(http.MethodGet, path, nil, &out); err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func (w *world) mongoCollectionExists(ctx context.Context, database, collection 
 	var out struct {
 		Collections []mongoCollection `json:"collections"`
 	}
-	path := fmt.Sprintf("/external/v1/engine/mongodb/connections/%s/collections?database=%s", w.conn, database)
+	path := fmt.Sprintf(w.enginePath("/connections/%s/collections?database=%s"), w.conn, database)
 	if err := w.api(http.MethodGet, path, nil, &out); err != nil {
 		return err
 	}
@@ -246,7 +246,7 @@ func (w *world) mongoRequest(ctx context.Context, op, collection, filter, value 
 		"op": op, "database": targets["mongo"].Database, "collection": collection,
 		"filter": filter, "value": value, "limit": 50,
 	}
-	path := "/external/v1/engine/mongodb/connections/" + w.conn + "/requests"
+	path := w.enginePath("/connections/" + w.conn + "/requests")
 	if err := w.api(http.MethodPost, path, body, &w.result); err != nil {
 		return err
 	}

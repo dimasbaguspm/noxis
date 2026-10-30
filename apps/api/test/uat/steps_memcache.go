@@ -61,7 +61,7 @@ func (w *world) registerCache(ctx context.Context, name, key string) error {
 	conn := map[string]any{
 		"name": name, "driver": t.Driver, "host": t.Host, "port": t.Port, "database": t.Database,
 	}
-	if err := w.api(http.MethodPost, "/external/v1/engine/memcache/connections", conn, nil); err != nil {
+	if err := w.api(http.MethodPost, enginePathOf(t.Driver, "/connections"), conn, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -72,7 +72,7 @@ func (w *world) registerCache(ctx context.Context, name, key string) error {
 }
 
 func (w *world) redisAnswers(ctx context.Context) error {
-	if err := w.api(http.MethodPost, "/external/v1/engine/memcache/connections/"+w.conn+"/test", map[string]string{}, nil); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/connections/"+w.conn+"/test"), map[string]string{}, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -98,7 +98,7 @@ func (w *world) service() string { return w.host }
 
 func (w *world) redisBrowse(ctx context.Context, pattern string) error {
 	w.page = redisPage{}
-	path := fmt.Sprintf("/external/v1/engine/memcache/connections/%s/keys?pattern=%s", w.conn, pattern)
+	path := fmt.Sprintf(w.enginePath("/connections/%s/keys?pattern=%s"), w.conn, pattern)
 	if err := w.api(http.MethodGet, path, nil, &w.page); err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func (w *world) redisBrowse(ctx context.Context, pattern string) error {
 // redisBrowseToleratingFailure browses without insisting on success, so a rejected request can be asserted next.
 func (w *world) redisBrowseToleratingFailure(ctx context.Context, pattern string) error {
 	w.page = redisPage{}
-	path := fmt.Sprintf("/external/v1/engine/memcache/connections/%s/keys?pattern=%s", w.conn, pattern)
+	path := fmt.Sprintf(w.enginePath("/connections/%s/keys?pattern=%s"), w.conn, pattern)
 	return w.api(http.MethodGet, path, nil, &w.page)
 }
 
@@ -146,7 +146,7 @@ func (w *world) redisKeyHasTTL(ctx context.Context, key string) error {
 
 func (w *world) redisInspect(ctx context.Context, key string) error {
 	w.result = resultBody{}
-	path := fmt.Sprintf("/external/v1/engine/memcache/connections/%s/value?key=%s", w.conn, key)
+	path := fmt.Sprintf(w.enginePath("/connections/%s/value?key=%s"), w.conn, key)
 	if err := w.api(http.MethodGet, path, nil, &w.result); err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (w *world) redisValueShows(ctx context.Context, want string) error {
 
 func (w *world) redisDelete(ctx context.Context, keys string) error {
 	body := map[string]any{"keys": strings.Split(keys, ",")}
-	path := "/external/v1/engine/memcache/connections/" + w.conn + "/keys"
+	path := w.enginePath("/connections/" + w.conn + "/keys")
 	var out struct {
 		Deleted int64 `json:"deleted"`
 	}
@@ -183,7 +183,7 @@ func (w *world) redisDelete(ctx context.Context, keys string) error {
 }
 
 func (w *world) redisFlush(ctx context.Context, confirm string) error {
-	path := "/external/v1/engine/memcache/connections/" + w.conn + "/flush"
+	path := w.enginePath("/connections/" + w.conn + "/flush")
 	if err := w.api(http.MethodPost, path, map[string]string{"confirm": confirm}, nil); err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (w *world) redisFlush(ctx context.Context, confirm string) error {
 
 // redisFlushRejected attempts the empty with a wrong confirmation and insists it is refused: the guard is the whole point of the confirmation.
 func (w *world) redisFlushRejected(ctx context.Context) error {
-	path := "/external/v1/engine/memcache/connections/" + w.conn + "/flush"
+	path := w.enginePath("/connections/" + w.conn + "/flush")
 	if err := w.api(http.MethodPost, path, map[string]string{"confirm": "not-the-name"}, nil); err != nil {
 		return err
 	}

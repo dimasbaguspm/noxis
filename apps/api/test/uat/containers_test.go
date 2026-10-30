@@ -15,7 +15,8 @@ import (
 	"noxis/internal/entity"
 	"noxis/internal/modules/memcache"
 	"noxis/internal/modules/mongodb"
-	"noxis/internal/modules/sql"
+	"noxis/internal/modules/mysql"
+	"noxis/internal/modules/postgres"
 )
 
 // startEngine runs one image and returns the host and port a module dials.
@@ -66,7 +67,7 @@ func TestUATSQLModulePostgres(t *testing.T) {
 		User: "postgres", Password: "uat", Database: "postgres",
 		Params: map[string]string{"sslmode": "disable"},
 	}
-	result, err := sql.New(constants.DriverPostgres).Query(context.Background(), conn, "SELECT 1 AS n")
+	result, err := postgres.New().Query(context.Background(), conn, "SELECT 1 AS n")
 	if err != nil {
 		t.Fatalf("query: %v", err)
 	}
@@ -85,7 +86,7 @@ func TestUATSQLModuleMySQL(t *testing.T) {
 		Name: "my", Driver: constants.DriverMySQL, Host: host, Port: port,
 		User: "root", Password: "uat", Database: "uat",
 	}
-	result, err := sql.New(constants.DriverMySQL).Query(context.Background(), conn, "SELECT 1 AS n")
+	result, err := mysql.New().Query(context.Background(), conn, "SELECT 1 AS n")
 	if err != nil {
 		t.Fatalf("query: %v", err)
 	}

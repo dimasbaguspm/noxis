@@ -63,7 +63,7 @@ func (w *world) submitChange(ctx context.Context, query, rollback string) error 
 	body := map[string]string{
 		"connection": w.conn, "notes": "uat change", "query": query, "rollback": rollback,
 	}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/changes", body, &w.change); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/changes"), body, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -95,7 +95,7 @@ func (w *world) submitScheduledChange(ctx context.Context, query, rollback strin
 		"connection": w.conn, "notes": "uat change", "query": query, "rollback": rollback,
 		"scheduledAt": time.Now().Unix(),
 	}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/changes", body, &w.change); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/changes"), body, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -130,13 +130,13 @@ func (w *world) tick(ctx context.Context) error {
 		return nil
 	}
 	w.change = changeBody{}
-	return w.api(http.MethodGet, "/external/v1/engine/sql/changes/"+w.changeID, nil, &w.change)
+	return w.api(http.MethodGet, w.enginePath("/changes/"+w.changeID), nil, &w.change)
 }
 
 // changeAction POSTs to a change sub-resource and records the new state.
 func (w *world) changeAction(action string) error {
 	w.change = changeBody{}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/changes/"+w.changeID+action, map[string]string{}, &w.change); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/changes/"+w.changeID+action), map[string]string{}, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -147,7 +147,7 @@ func (w *world) changeAction(action string) error {
 
 func (w *world) applyRejected(ctx context.Context) error {
 	w.change = changeBody{}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/changes/"+w.changeID+"/apply", map[string]string{}, &w.change); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/changes/"+w.changeID+"/apply"), map[string]string{}, &w.change); err != nil {
 		return err
 	}
 	if w.code == http.StatusOK {
@@ -165,7 +165,7 @@ func (w *world) changeStillPresent(ctx context.Context) error {
 	var body struct {
 		Changes []changeBody `json:"changes"`
 	}
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/changes", nil, &body); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/changes"), nil, &body); err != nil {
 		return err
 	}
 	for i := range body.Changes {
@@ -184,7 +184,7 @@ func (w *world) changeNotRecorded(ctx context.Context) error {
 	var body struct {
 		Changes []changeBody `json:"changes"`
 	}
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/changes", nil, &body); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/changes"), nil, &body); err != nil {
 		return err
 	}
 	for i := range body.Changes {
@@ -198,7 +198,7 @@ func (w *world) changeNotRecorded(ctx context.Context) error {
 // openChange reads the artifact back by id, proving the detail route.
 func (w *world) openChange(ctx context.Context) error {
 	w.change = changeBody{}
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/changes/"+w.changeID, nil, &w.change); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/changes/"+w.changeID), nil, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK || w.change.ID != w.changeID {
@@ -209,7 +209,7 @@ func (w *world) openChange(ctx context.Context) error {
 
 func (w *world) scheduleChange(ctx context.Context) error {
 	body := map[string]int64{"scheduledAt": time.Now().Add(time.Minute).Unix()}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/changes/"+w.changeID+"/schedule", body, &w.change); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/changes/"+w.changeID+"/schedule"), body, &w.change); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
