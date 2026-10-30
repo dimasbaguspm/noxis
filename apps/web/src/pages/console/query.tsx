@@ -14,6 +14,7 @@ import { useConnectionSelection } from "@/hooks/use-connection";
 import { useAnalyzeMutation, useConnectionSchemaQuery, useRunQueryMutation } from "@/hooks/use-sql";
 import { useSqlTabs } from "@/hooks/use-sql-tabs";
 import { classify } from "@/lib/statements";
+import { CAPABILITY } from "@/lib/console-nav";
 import { Play } from "lucide-react";
 
 export default function QueryPage() {
@@ -74,7 +75,12 @@ export default function QueryPage() {
           <div className="flex min-h-0 flex-1 flex-col gap-2">
             <div className="grid gap-1.5">
               <Label>Instance</Label>
-              <ConnectionSelect value={connection} onChange={pick} className="w-full" />
+              <ConnectionSelect
+                capability={CAPABILITY.SQL}
+                value={connection}
+                onChange={pick}
+                className="w-full"
+              />
             </div>
             <div className="min-h-0 flex-1">
               <TableBrowser

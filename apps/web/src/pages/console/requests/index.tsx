@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useAuth } from "@/app/auth-provider";
 import { useConnections } from "@/hooks/use-connections";
 import { useMongoChangesListQuery } from "@/hooks/use-mongodb";
-import { FAMILY } from "@/lib/families";
+import { CAPABILITY } from "@/lib/console-nav";
 import { Workspace } from "@/components/layout/workspace";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils";
 // MongoRequestsPage is the review queue: every write request waits here until someone approves and applies it. Reads never appear (they run in Explore).
 export default function MongoRequestsPage() {
   const { canAccess } = useAuth();
-  const { connections: mongoConnections } = useConnections(FAMILY.MONGODB);
+  const { connections: mongoConnections } = useConnections(CAPABILITY.DOCUMENTS);
   const { changes, isFetching: loading, refetch: reload } = useMongoChangesListQuery();
   const [status, setStatus] = useState("all");
   const mayWrite = mongoConnections.some((c) => canAccess(c.name, "write"));
@@ -48,7 +48,7 @@ export default function MongoRequestsPage() {
               <RefreshCw className={cn(loading && "animate-spin")} /> Refresh
             </Button>
             {mayWrite && (
-              <Button size="sm" render={<Link to={PAGE_ROUTES.MONGODB.REQUEST_NEW} />}>
+              <Button size="sm" render={<Link to={PAGE_ROUTES.REQUEST_NEW} />}>
                 <Plus /> New request
               </Button>
             )}
@@ -128,7 +128,7 @@ export default function MongoRequestsPage() {
                         <Button
                           size="xs"
                           variant="outline"
-                          render={<Link to={PAGE_ROUTES.MONGODB.REQUEST_DETAIL(change.id ?? "")} />}
+                          render={<Link to={PAGE_ROUTES.REQUEST_DETAIL(change.id ?? "")} />}
                         >
                           Review
                         </Button>

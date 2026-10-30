@@ -4,18 +4,19 @@ import { Empty } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { P } from "@/components/ui/typography";
-import { FAMILY } from "@/lib/families";
+import { CAPABILITY } from "@/lib/console-nav";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { useInstanceContext } from "./layout";
 
 export default function InstanceDetailTab() {
-  const { instance, family, canRead, tables, schemaPending, schemas } = useInstanceContext();
+  const { instance, capabilities, canRead, tables, schemaPending, schemas } = useInstanceContext();
+  const sql = capabilities.includes(CAPABILITY.SQL);
   const fileDriver = instance.driver === "sqlite";
   const databaseLabel = fileDriver
     ? "File path"
-    : family === FAMILY.SQL
+    : sql
       ? "Database"
-      : family === FAMILY.MONGODB
+      : capabilities.includes(CAPABILITY.DOCUMENTS)
         ? "Database (auth)"
         : "DB index";
 
@@ -54,7 +55,7 @@ export default function InstanceDetailTab() {
 
       <Card className="min-h-0 flex-1">
         <CardContent className="min-h-0 flex-1 overflow-auto">
-          {family !== FAMILY.SQL || !canRead ? (
+          {!sql || !canRead ? (
             <Empty
               icon={Database}
               title="No schema"

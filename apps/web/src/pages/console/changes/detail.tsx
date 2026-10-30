@@ -41,7 +41,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const schedule = useScheduleChangeMutation();
   // the trail names the change instead of its id; the envelope has no title, so notes or the touched tables speak for it
   useCrumbLabel(
-    kind === "dml" ? PAGE_ROUTES.SQL.DML_DETAIL(id) : PAGE_ROUTES.SQL.DDL_DETAIL(id),
+    kind === "dml" ? PAGE_ROUTES.CHANGES.DML_DETAIL(id) : PAGE_ROUTES.CHANGES.DDL_DETAIL(id),
     change?.notes || change?.affectedTables?.join(", "),
   );
 
@@ -101,7 +101,7 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
 
 // Unavailable is the state for an id that is not in the queue: the shared empty state, centered, with the way out.
 function Unavailable({ kind, id }: { kind: ChangeKind; id: string }) {
-  const queue = kind === "ddl" ? PAGE_ROUTES.SQL.DDL : PAGE_ROUTES.SQL.DML;
+  const queue = kind === "ddl" ? PAGE_ROUTES.CHANGES.DDL : PAGE_ROUTES.CHANGES.DML;
   return (
     <Empty
       icon={FileWarning}
@@ -112,7 +112,7 @@ function Unavailable({ kind, id }: { kind: ChangeKind; id: string }) {
           <Button size="sm" render={<Link to={queue} />}>
             Back to {kind.toUpperCase()} queue
           </Button>
-          <Button size="sm" variant="outline" render={<Link to={PAGE_ROUTES.SQL.QUERY} />}>
+          <Button size="sm" variant="outline" render={<Link to={PAGE_ROUTES.QUERY} />}>
             Go to Query
           </Button>
         </div>

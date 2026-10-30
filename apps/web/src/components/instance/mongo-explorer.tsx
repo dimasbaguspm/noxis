@@ -77,7 +77,7 @@ export function MongoExplorer({ connection }: { connection: string }) {
               <Button
                 size="sm"
                 variant="outline"
-                render={<Link to={PAGE_ROUTES.MONGODB.EXPLORE} onClick={() => pick(connection)} />}
+                render={<Link to={PAGE_ROUTES.EXPLORE} onClick={() => pick(connection)} />}
               >
                 <ExternalLink /> Full explorer
               </Button>

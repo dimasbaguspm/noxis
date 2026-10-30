@@ -136,7 +136,7 @@ export function TableDetails({
         size="sm"
         render={
           <Link
-            to={`${PAGE_ROUTES.SQL.QUERY}?${target}${target ? "&" : ""}sql=${encodeURIComponent(previewSQL(table))}`}
+            to={`${PAGE_ROUTES.QUERY}?${target}${target ? "&" : ""}sql=${encodeURIComponent(previewSQL(table))}`}
           />
         }
       >

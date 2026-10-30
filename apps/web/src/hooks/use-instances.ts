@@ -19,7 +19,7 @@ export function useInstancesUrlParams() {
   };
 }
 
-// usePagedInstancesQuery is the cross-family instance list (dashboard + the global registry reads), paged with the same params the API exposes.
+// usePagedInstancesQuery is the cross-driver instance list (dashboard + the global registry reads), paged with the same params the API exposes.
 export function usePagedInstancesQuery(query: InstanceQuery = {}) {
   return useQuery({
     queryKey: queryKeys.instances.list(query),

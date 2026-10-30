@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { queryKeys } from "@/lib/query-client";
 
-// Grants live under the engine path of the connection's driver, so every hook takes that driver rather than the console's family grouping.
+// Grants live under the engine path of the connection's driver, so every hook takes that driver rather than the console's capability grouping.
 
 export function usePermissionsQuery(driver: string | undefined, name: string) {
   return useQuery({

@@ -29,10 +29,11 @@ import { useAuth } from "@/app/auth-provider";
 import { useDriversQuery } from "@/hooks/use-config";
 import { ALL_DRIVERS, useInstancesUrlParams, usePagedInstancesQuery } from "@/hooks/use-instances";
 import { useDebounce } from "@/hooks/use-debounce";
-import { familyByKey, familyOfDriver, type FamilyKey } from "@/lib/families";
+import { capabilitiesOf, capabilityIcon } from "@/lib/console-nav";
+import type { DriverInfo } from "@/lib/api";
 import { PAGE_ROUTES } from "@/constants/routes";
 
-// One row per instance, whichever family it belongs to: the table shows only what they have in common, and the detail page carries the rest.
+// One row per instance, whichever driver serves it: the table shows only what they have in common, and the detail page carries the rest.
 const PER_PAGE = 20;
 const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 
@@ -49,10 +50,7 @@ export default function DashboardPage() {
     page,
     perPage: PER_PAGE,
   });
-  const instances = (list.data?.instances ?? []).map((c) => ({
-    ...c,
-    family: familyOfDriver(c.driver),
-  }));
+  const instances = list.data?.instances ?? [];
   const total = list.data?.total ?? 0;
   const loading = list.isPending || list.isFetching;
 
@@ -128,8 +126,9 @@ export default function DashboardPage() {
                         <TableRow key={`${c.driver}:${c.name}`}>
                           <TableCell>
                             <span className="flex items-center gap-2 text-sm">
-                              <FamilyIcon
-                                family={c.family}
+                              <DriverIcon
+                                driver={c.driver}
+                                catalog={drivers}
                                 className="size-3.5 text-muted-foreground"
                               />
                               {c.name}
@@ -177,8 +176,17 @@ export default function DashboardPage() {
   );
 }
 
-// FamilyIcon renders a family's glyph without naming a component per family; a driver with no group falls back to the generic box.
-function FamilyIcon({ family, className }: { family?: FamilyKey; className?: string }) {
-  const Icon = family ? familyByKey[family].icon : Boxes;
+// DriverIcon renders the glyph of the capability a driver declares, without naming a component per driver; a driver the
+// catalog gives no capability falls back to the generic box.
+function DriverIcon({
+  driver,
+  catalog,
+  className,
+}: {
+  driver?: string;
+  catalog: DriverInfo[];
+  className?: string;
+}) {
+  const Icon = capabilityIcon(capabilitiesOf(catalog, driver));
   return <Icon className={className} />;
 }

@@ -21,17 +21,17 @@ const InstanceErdTab = lazy(() => import("@/pages/console/instances/erd"));
 const InstanceDocumentsTab = lazy(() => import("@/pages/console/instances/documents"));
 const InstanceKeysTab = lazy(() => import("@/pages/console/instances/keys"));
 const InstanceAccessTab = lazy(() => import("@/pages/console/instances/access"));
-const QueryPage = lazy(() => import("@/pages/console/sql/query"));
-const SqlErdPage = lazy(() => import("@/pages/console/sql/erd"));
-const DmlPage = lazy(() => import("@/pages/console/sql/dml"));
-const DdlPage = lazy(() => import("@/pages/console/sql/ddl"));
-const MemcachePage = lazy(() => import("@/pages/console/memcache"));
-const MongoExplorePage = lazy(() => import("@/pages/console/mongodb/explore"));
-const MongoRequestsPage = lazy(() => import("@/pages/console/mongodb/requests"));
-const MongoRequestNewPage = lazy(() => import("@/pages/console/mongodb/requests/new"));
-const MongoRequestDetailPage = lazy(() => import("@/pages/console/mongodb/requests/detail"));
+const QueryPage = lazy(() => import("@/pages/console/query"));
+const SqlErdPage = lazy(() => import("@/pages/console/erd"));
+const DmlPage = lazy(() => import("@/pages/console/changes/dml"));
+const DdlPage = lazy(() => import("@/pages/console/changes/ddl"));
+const KeysPage = lazy(() => import("@/pages/console/keys"));
+const ExplorePage = lazy(() => import("@/pages/console/explore"));
+const RequestsPage = lazy(() => import("@/pages/console/requests"));
+const RequestNewPage = lazy(() => import("@/pages/console/requests/new"));
+const RequestDetailPage = lazy(() => import("@/pages/console/requests/detail"));
 const ChangeDetail = lazy(() =>
-  import("@/pages/console/sql/changes/detail").then((m) => ({ default: m.ChangeDetailPage })),
+  import("@/pages/console/changes/detail").then((m) => ({ default: m.ChangeDetailPage })),
 );
 const AuthCallbackPage = lazy(() => import("@/pages/auth/callback"));
 const LoginPage = lazy(() => import("@/pages/auth/login"));
@@ -73,25 +73,25 @@ const router = createBrowserRouter([
           { path: "access", element: <InstanceAccessTab /> },
         ],
       },
-      { path: routePath(PAGE_ROUTES.SQL.QUERY), element: <QueryPage /> },
-      { path: routePath(PAGE_ROUTES.SQL.ERD), element: <SqlErdPage /> },
-      { path: routePath(PAGE_ROUTES.SQL.DML), element: <DmlPage /> },
+      { path: routePath(PAGE_ROUTES.QUERY), element: <QueryPage /> },
+      { path: routePath(PAGE_ROUTES.ERD), element: <SqlErdPage /> },
+      { path: routePath(PAGE_ROUTES.CHANGES.DML), element: <DmlPage /> },
       {
-        path: routePath(patternOf("console.sql.dml.detail")),
+        path: routePath(patternOf("console.changes.dml.detail")),
         element: <ChangeDetail kind="dml" />,
       },
-      { path: routePath(PAGE_ROUTES.SQL.DDL), element: <DdlPage /> },
+      { path: routePath(PAGE_ROUTES.CHANGES.DDL), element: <DdlPage /> },
       {
-        path: routePath(patternOf("console.sql.ddl.detail")),
+        path: routePath(patternOf("console.changes.ddl.detail")),
         element: <ChangeDetail kind="ddl" />,
       },
-      { path: routePath(PAGE_ROUTES.MEMCACHE.KEYS), element: <MemcachePage /> },
-      { path: routePath(PAGE_ROUTES.MONGODB.EXPLORE), element: <MongoExplorePage /> },
-      { path: routePath(PAGE_ROUTES.MONGODB.REQUESTS), element: <MongoRequestsPage /> },
-      { path: routePath(PAGE_ROUTES.MONGODB.REQUEST_NEW), element: <MongoRequestNewPage /> },
+      { path: routePath(PAGE_ROUTES.KEYS), element: <KeysPage /> },
+      { path: routePath(PAGE_ROUTES.EXPLORE), element: <ExplorePage /> },
+      { path: routePath(PAGE_ROUTES.REQUESTS), element: <RequestsPage /> },
+      { path: routePath(PAGE_ROUTES.REQUEST_NEW), element: <RequestNewPage /> },
       {
-        path: routePath(patternOf("console.mongodb.requests.detail")),
-        element: <MongoRequestDetailPage />,
+        path: routePath(patternOf("console.requests.detail")),
+        element: <RequestDetailPage />,
       },
       // the account section keeps its own paths
       {

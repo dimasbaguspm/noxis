@@ -31,7 +31,7 @@ export default function MongoRequestDetailPage() {
   const reject = useMongoRejectChangeMutation();
   // the trail names the request instead of its id once the envelope lands
   useCrumbLabel(
-    PAGE_ROUTES.MONGODB.REQUEST_DETAIL(id),
+    PAGE_ROUTES.REQUEST_DETAIL(id),
     change?.notes || change?.affectedTables?.join(", "),
   );
 
@@ -166,7 +166,7 @@ export default function MongoRequestDetailPage() {
             </section>
 
             <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-border pt-3">
-              <Button variant="ghost" size="sm" render={<Link to={PAGE_ROUTES.MONGODB.REQUESTS} />}>
+              <Button variant="ghost" size="sm" render={<Link to={PAGE_ROUTES.REQUESTS} />}>
                 <ArrowLeft /> Requests
               </Button>
               <span className="flex-1" />
@@ -232,14 +232,10 @@ function Unavailable({ id }: { id: string }) {
           </li>
         </ul>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" render={<Link to={PAGE_ROUTES.MONGODB.REQUESTS} />}>
+          <Button size="sm" render={<Link to={PAGE_ROUTES.REQUESTS} />}>
             Back to Requests
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            render={<Link to={PAGE_ROUTES.MONGODB.REQUEST_NEW} />}
-          >
+          <Button size="sm" variant="outline" render={<Link to={PAGE_ROUTES.REQUEST_NEW} />}>
             New request
           </Button>
         </div>

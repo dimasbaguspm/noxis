@@ -13,11 +13,11 @@ import { P } from "@/components/ui/typography";
 // NavSearch is the header's navigator: a field that behaves like a button and opens a modal palette (⌘K / Ctrl+K).
 export function NavSearch() {
   const { pathname } = useLocation();
-  const { open, change, filter, search, cursor, setCursor, matches, go, onInputKey } =
+  const { open, change, filter, search, cursor, setCursor, matches, groups, go, onInputKey } =
     useNavSearch();
   const list = useRef<HTMLDivElement>(null);
 
-  const current = findNav(pathname);
+  const current = findNav(groups, pathname);
 
   return (
     <Dialog open={open} onOpenChange={change}>

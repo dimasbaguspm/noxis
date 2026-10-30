@@ -2,11 +2,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, type MongoChangeInput, type MongoRequest } from "@/lib/api";
 import { useConnections } from "@/hooks/use-connections";
 import { useUrlState } from "@/hooks/use-url-state";
-import { DRIVER, FAMILY } from "@/lib/families";
+import { CAPABILITY } from "@/lib/console-nav";
 import { queryClient, queryKeys } from "@/lib/query-client";
 
-// Every call here is addressed by the MongoDB driver, which is one name in the server's catalog; DRIVER.MONGO is that name.
-// useMongoConnections reads the MongoDB list from the cached instances query, so the dashboard and these pages never disagree.
+// Every call here is addressed by the MongoDB driver, which is one name in the server's catalog.
+const MONGO_DRIVER = "mongo";
+
+// useMongoConnections reads the document connections from the cached instances query, so the dashboard and these pages never disagree.
 export type MongoView = "json" | "raw" | "tree";
 const MONGO_DEFAULTS = { database: "", collection: "", filter: "{}", view: "json" };
 
@@ -26,14 +28,14 @@ export function useMongoUrlParams() {
 }
 
 export function useMongoConnections() {
-  const { connections, active, setActive, busy, reload } = useConnections(FAMILY.MONGODB);
+  const { connections, active, setActive, busy, reload } = useConnections(CAPABILITY.DOCUMENTS);
   return { connections, connection: active, pick: setActive, busy, reload };
 }
 
 export function useMongoDatabasesQuery(connection?: string) {
   const query = useQuery({
-    queryKey: queryKeys.mongodb.databases(connection),
-    queryFn: () => api.mongodb(DRIVER.MONGO).databases(connection as string),
+    queryKey: queryKeys.explore.databases(connection),
+    queryFn: () => api.mongodb(MONGO_DRIVER).databases(connection as string),
     enabled: !!connection,
     select: (res) => res.databases,
   });
@@ -42,8 +44,8 @@ export function useMongoDatabasesQuery(connection?: string) {
 
 export function useMongoCollectionsQuery(connection?: string, database?: string) {
   const query = useQuery({
-    queryKey: queryKeys.mongodb.collections(connection, database),
-    queryFn: () => api.mongodb(DRIVER.MONGO).collections(connection as string, database as string),
+    queryKey: queryKeys.explore.collections(connection, database),
+    queryFn: () => api.mongodb(MONGO_DRIVER).collections(connection as string, database as string),
     enabled: !!connection && !!database,
     select: (res) => res.collections,
   });
@@ -54,55 +56,55 @@ export function useMongoCollectionsQuery(connection?: string, database?: string)
 export function useMongoRunMutation() {
   return useMutation({
     mutationFn: ({ connection, body }: { connection: string; body: MongoRequest }) =>
-      api.mongodb(DRIVER.MONGO).run(connection, body),
+      api.mongodb(MONGO_DRIVER).run(connection, body),
   });
 }
 
 // Request queue: list, detail and the review actions. Every action invalidates the queue so the list and detail refetch by themselves.
 function invalidateRequests() {
-  void queryClient.invalidateQueries({ queryKey: queryKeys.mongodb.requests.list() });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.requests.list() });
 }
 
 export function useMongoChangesListQuery() {
   const query = useQuery({
-    queryKey: queryKeys.mongodb.requests.list(),
-    queryFn: () => api.mongodb(DRIVER.MONGO).changes.list(),
+    queryKey: queryKeys.requests.list(),
+    queryFn: () => api.mongodb(MONGO_DRIVER).changes.list(),
   });
   return { ...query, changes: query.data?.changes ?? [] };
 }
 
 export function useMongoChangeGetQuery(id?: string) {
   return useQuery({
-    queryKey: queryKeys.mongodb.requests.get(id ?? ""),
-    queryFn: () => api.mongodb(DRIVER.MONGO).changes.get(id as string),
+    queryKey: queryKeys.requests.get(id ?? ""),
+    queryFn: () => api.mongodb(MONGO_DRIVER).changes.get(id as string),
     enabled: !!id,
   });
 }
 
 export function useMongoSubmitChangeMutation() {
   return useMutation({
-    mutationFn: (input: MongoChangeInput) => api.mongodb(DRIVER.MONGO).changes.submit(input),
+    mutationFn: (input: MongoChangeInput) => api.mongodb(MONGO_DRIVER).changes.submit(input),
     onSuccess: invalidateRequests,
   });
 }
 
 export function useMongoApproveChangeMutation() {
   return useMutation({
-    mutationFn: (id: string) => api.mongodb(DRIVER.MONGO).changes.approve(id),
+    mutationFn: (id: string) => api.mongodb(MONGO_DRIVER).changes.approve(id),
     onSuccess: invalidateRequests,
   });
 }
 
 export function useMongoApplyChangeMutation() {
   return useMutation({
-    mutationFn: (id: string) => api.mongodb(DRIVER.MONGO).changes.apply(id),
+    mutationFn: (id: string) => api.mongodb(MONGO_DRIVER).changes.apply(id),
     onSuccess: invalidateRequests,
   });
 }
 
 export function useMongoRejectChangeMutation() {
   return useMutation({
-    mutationFn: (id: string) => api.mongodb(DRIVER.MONGO).changes.reject(id),
+    mutationFn: (id: string) => api.mongodb(MONGO_DRIVER).changes.reject(id),
     onSuccess: invalidateRequests,
   });
 }

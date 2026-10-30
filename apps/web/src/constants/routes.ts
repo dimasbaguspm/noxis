@@ -69,78 +69,78 @@ export const ROUTES = {
     entity: "access",
     section: "console",
   },
-  "console.sql.query": {
-    path: `${CONSOLE}/sql/query`,
+  "console.query": {
+    path: `${CONSOLE}/query`,
     title: "Query",
     label: "Query",
-    entity: "sql",
+    entity: "query",
     section: "console",
   },
-  "console.sql.erd": {
-    path: `${CONSOLE}/sql/erd`,
+  "console.erd": {
+    path: `${CONSOLE}/erd`,
     title: "ERD",
     label: "ERD",
-    entity: "sql",
+    entity: "erd",
     section: "console",
   },
-  "console.sql.dml": {
-    path: `${CONSOLE}/sql/dml`,
+  "console.changes.dml": {
+    path: `${CONSOLE}/changes/dml`,
     title: "DML changes",
     label: "DML",
     entity: "changes",
     section: "console",
   },
-  "console.sql.dml.detail": {
-    path: `${CONSOLE}/sql/dml/:id`,
+  "console.changes.dml.detail": {
+    path: `${CONSOLE}/changes/dml/:id`,
     title: "DML change",
     label: "DML change",
     entity: "changes",
     section: "console",
   },
-  "console.sql.ddl": {
-    path: `${CONSOLE}/sql/ddl`,
+  "console.changes.ddl": {
+    path: `${CONSOLE}/changes/ddl`,
     title: "DDL changes",
     label: "DDL",
     entity: "changes",
     section: "console",
   },
-  "console.sql.ddl.detail": {
-    path: `${CONSOLE}/sql/ddl/:id`,
+  "console.changes.ddl.detail": {
+    path: `${CONSOLE}/changes/ddl/:id`,
     title: "DDL change",
     label: "DDL change",
     entity: "changes",
     section: "console",
   },
-  "console.memcache": {
-    path: `${CONSOLE}/memcache`,
-    title: "Memory Cache",
+  "console.keys": {
+    path: `${CONSOLE}/keys`,
+    title: "Keys",
     label: "Keys",
-    entity: "memcache",
+    entity: "keys",
     section: "console",
   },
-  "console.mongodb.explore": {
-    path: `${CONSOLE}/mongodb/explore`,
+  "console.explore": {
+    path: `${CONSOLE}/explore`,
     title: "Explore",
     label: "Explore",
-    entity: "mongodb",
+    entity: "explore",
     section: "console",
   },
-  "console.mongodb.requests": {
-    path: `${CONSOLE}/mongodb/requests`,
+  "console.requests": {
+    path: `${CONSOLE}/requests`,
     title: "Requests",
     label: "Requests",
     entity: "requests",
     section: "console",
   },
-  "console.mongodb.requests.new": {
-    path: `${CONSOLE}/mongodb/requests/new`,
+  "console.requests.new": {
+    path: `${CONSOLE}/requests/new`,
     title: "New request",
     label: "New request",
     entity: "requests",
     section: "console",
   },
-  "console.mongodb.requests.detail": {
-    path: `${CONSOLE}/mongodb/requests/:id`,
+  "console.requests.detail": {
+    path: `${CONSOLE}/requests/:id`,
     title: "Request",
     label: "Request",
     entity: "requests",
@@ -210,14 +210,14 @@ export type RouteId = keyof typeof ROUTES;
 const PREFIX_LABELS: Record<string, string> = {
   console: "Console",
   instances: "Instances",
-  sql: "SQL",
-  memcache: "Memory Cache",
-  mongodb: "MongoDB",
+  changes: "Changes",
+  keys: "Keys",
+  explore: "Explore",
+  requests: "Requests",
   my: "My",
   users: "Users",
   access: "Access",
   auth: "Auth",
-  requests: "Requests",
   login: "Sign in",
 };
 
@@ -300,23 +300,19 @@ export const PAGE_ROUTES = {
   USER_DETAIL: (subject: string) => pathOf("admin.users.detail", { subject }),
   LOGIN: pathOf("auth.login"),
   AUTH_CALLBACK: pathOf("auth.callback"),
-  SQL: {
-    QUERY: pathOf("console.sql.query"),
-    ERD: pathOf("console.sql.erd"),
-    DML: pathOf("console.sql.dml"),
-    DML_DETAIL: (id: string) => pathOf("console.sql.dml.detail", { id }),
-    DDL: pathOf("console.sql.ddl"),
-    DDL_DETAIL: (id: string) => pathOf("console.sql.ddl.detail", { id }),
+  QUERY: pathOf("console.query"),
+  ERD: pathOf("console.erd"),
+  CHANGES: {
+    DML: pathOf("console.changes.dml"),
+    DML_DETAIL: (id: string) => pathOf("console.changes.dml.detail", { id }),
+    DDL: pathOf("console.changes.ddl"),
+    DDL_DETAIL: (id: string) => pathOf("console.changes.ddl.detail", { id }),
   },
-  MEMCACHE: {
-    KEYS: pathOf("console.memcache"),
-  },
-  MONGODB: {
-    EXPLORE: pathOf("console.mongodb.explore"),
-    REQUESTS: pathOf("console.mongodb.requests"),
-    REQUEST_NEW: pathOf("console.mongodb.requests.new"),
-    REQUEST_DETAIL: (id: string) => pathOf("console.mongodb.requests.detail", { id }),
-  },
+  KEYS: pathOf("console.keys"),
+  EXPLORE: pathOf("console.explore"),
+  REQUESTS: pathOf("console.requests"),
+  REQUEST_NEW: pathOf("console.requests.new"),
+  REQUEST_DETAIL: (id: string) => pathOf("console.requests.detail", { id }),
 } as const;
 
 // routePath turns a link path into a router child path (no leading slash).

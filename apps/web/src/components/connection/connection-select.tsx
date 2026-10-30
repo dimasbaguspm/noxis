@@ -7,19 +7,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useConnections } from "@/hooks/use-connections";
-import { FAMILY } from "@/lib/families";
+import type { Capability } from "@/lib/console-nav";
 
 // ConnectionSelect is the page-local instance picker: pages own their choice (the provider only remembers it as the default for the next page).
 export function ConnectionSelect({
+  capability,
   value,
   onChange,
   className = "w-64",
 }: {
+  capability: Capability;
   value?: string;
   onChange: (name: string) => void;
   className?: string;
 }) {
-  const { connections } = useConnections(FAMILY.SQL);
+  const { connections } = useConnections(capability);
 
   if (connections.length === 0) {
     return (

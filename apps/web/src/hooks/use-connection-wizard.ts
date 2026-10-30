@@ -1,27 +1,27 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { FAMILY, type FamilyKey } from "@/lib/families";
+import { CAPABILITY, type Capability } from "@/lib/console-nav";
 import type { Connection } from "@/lib/api";
 
 export interface ConnectionWizardOptions {
-  family: FamilyKey;
+  capability: Capability;
   wizard: boolean;
   initial?: Connection;
   /** The dialog owns the empty drafts because the form's defaultValues are built from the same map. */
-  blank: Record<FamilyKey, Connection>;
+  blank: Record<Capability, Connection>;
   reset: (values: Connection) => void;
 }
 
-// useConnectionWizard drives the connection sheet: which step and family are showing, whether the last probe verified, and the DSN/password helpers.
+// useConnectionWizard drives the connection sheet: which step and capability are showing, whether the last probe verified, and the DSN/password helpers.
 export function useConnectionWizard({
-  family,
+  capability,
   wizard,
   initial,
   blank,
   reset,
 }: ConnectionWizardOptions) {
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<FamilyKey>(family);
+  const [kind, setKind] = useState<Capability>(capability);
   const [step, setStep] = useState<1 | 2>(wizard && !initial ? 1 : 2);
   const [verified, setVerified] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -29,12 +29,12 @@ export function useConnectionWizard({
   const [dsnError, setDsnError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Closing resets the form so the next visit starts with a clean family-specific draft.
+  // Closing resets the form so the next visit starts with a clean capability-specific draft.
   function onOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
     if (!nextOpen) {
-      setKind(family);
-      reset(blank[family]);
+      setKind(capability);
+      reset(blank[capability]);
       setVerified(false);
       setStep(wizard && !initial ? 1 : 2);
     }
@@ -56,7 +56,7 @@ export function useConnectionWizard({
     setDsnError(null);
   }
 
-  function choose(next: FamilyKey) {
+  function choose(next: Capability) {
     setKind(next);
     reset(blank[next]);
     setVerified(false);
@@ -84,8 +84,8 @@ export function useConnectionWizard({
     dsnError,
     showPassword,
     togglePassword,
-    cache: kind === FAMILY.MEMCACHE,
-    mongo: kind === FAMILY.MONGODB,
+    cache: kind === CAPABILITY.KEYS,
+    mongo: kind === CAPABILITY.DOCUMENTS,
     onOpenChange,
     choose,
     nextStep,

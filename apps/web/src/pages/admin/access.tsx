@@ -6,8 +6,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { InstancePermissions } from "@/components/access/instance-permissions";
 import { useAuth } from "@/app/auth-provider";
 import { useAccessMatrixQuery } from "@/hooks/use-access";
+import { useDriversQuery } from "@/hooks/use-config";
 import { useUrlState } from "@/hooks/use-url-state";
-import { familyByKey, familyOfDriver } from "@/lib/families";
+import { capabilitiesOf, capabilityIcon } from "@/lib/console-nav";
 import { cn } from "@/lib/utils";
 import { Workspace } from "@/components/layout/workspace";
 
@@ -18,6 +19,7 @@ export default function AccessPage() {
   const { isAdmin } = useAuth();
   const [state, patch] = useUrlState(ACCESS_DEFAULTS);
   const matrix = useAccessMatrixQuery(isAdmin);
+  const { data: drivers } = useDriversQuery();
 
   const instances = useMemo(() => {
     // the generated schema marks every field optional: an instance without a name is not addressable, so drop it rather than render a ghost row
@@ -28,7 +30,6 @@ export default function AccessPage() {
               id: i.id ?? "",
               name: i.connection,
               driver: i.driver ?? "",
-              family: familyOfDriver(i.driver),
               grants: i.permissions?.length ?? 0,
             },
           ]
@@ -87,8 +88,7 @@ export default function AccessPage() {
               ) : (
                 <div className="grid gap-0.5">
                   {instances.map((instance) => {
-                    const meta = instance.family ? familyByKey[instance.family] : undefined;
-                    const Icon = meta?.icon;
+                    const Icon = capabilityIcon(capabilitiesOf(drivers, instance.driver));
                     return (
                       <button
                         key={instance.id || instance.name}
@@ -99,11 +99,7 @@ export default function AccessPage() {
                           instance.id === selected?.id && "bg-accent text-accent-foreground",
                         )}
                       >
-                        {Icon ? (
-                          <Icon className="size-3.5 shrink-0 text-muted-foreground" />
-                        ) : (
-                          <KeyRound className="size-3.5 shrink-0 text-muted-foreground" />
-                        )}
+                        <Icon className="size-3.5 shrink-0 text-muted-foreground" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate">{instance.name}</span>
                           <span className="block truncate text-[10px] text-muted-foreground">

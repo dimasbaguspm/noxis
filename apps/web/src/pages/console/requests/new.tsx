@@ -134,7 +134,7 @@ export default function MongoRequestNewPage() {
       toast.success(
         `Request ${change.status}: ${change.estAffected ?? 0} document(s) would be affected`,
       );
-      navigate(PAGE_ROUTES.MONGODB.REQUEST_DETAIL(change.id ?? ""));
+      navigate(PAGE_ROUTES.REQUEST_DETAIL(change.id ?? ""));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
@@ -143,7 +143,7 @@ export default function MongoRequestNewPage() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" render={<Link to={PAGE_ROUTES.MONGODB.REQUESTS} />}>
+        <Button variant="ghost" size="sm" render={<Link to={PAGE_ROUTES.REQUESTS} />}>
           <ChevronLeft /> Requests
         </Button>
         <Badge variant="outline">step {step} of 3</Badge>
