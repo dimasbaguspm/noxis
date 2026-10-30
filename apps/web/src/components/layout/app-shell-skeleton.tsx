@@ -2,7 +2,6 @@ import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -25,7 +24,6 @@ export function AppShellSkeleton() {
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Console</SidebarGroupLabel>
             <SidebarMenu>
               {Array.from({ length: 5 }, (_, index) => (
                 <SidebarMenuItem key={index}>
