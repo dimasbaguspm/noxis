@@ -94,6 +94,7 @@ func routes(d app.App, cfg config.Config) []route {
 
 		// Instances address a connection by its stable id, across drivers. The engine routes live under {api}/engine/{driver}/..., so these paths never collide with the {driver} wildcard.
 		{Method: http.MethodGet, Endpoint: api + "/instances", Handler: http.HandlerFunc(d.Instances.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/instances/counts", Handler: http.HandlerFunc(d.InstanceCounts.Serve)},
 		{Method: http.MethodGet, Endpoint: api + "/instances/{id}", Handler: http.HandlerFunc(d.Instance.Serve)},
 		{Method: http.MethodPost, Endpoint: api + "/instances/{id}/password", Handler: http.HandlerFunc(d.RotatePassword.Serve)},
 

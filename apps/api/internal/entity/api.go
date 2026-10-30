@@ -55,6 +55,11 @@ type InstanceList struct {
 	Total     int          `json:"total"`
 }
 
+// InstanceCounts is how many readable instances each driver serves, keyed by driver name.
+type InstanceCounts struct {
+	Counts map[string]int `json:"counts"`
+}
+
 // InstancePassword is the rotate-password payload.
 type InstancePassword struct {
 	Password string `json:"password"`
