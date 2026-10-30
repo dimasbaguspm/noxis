@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { SingleSelect } from "@/components/ui/single-select";
 import { DriverMark } from "@/components/brand/driver-mark";
 import { useAuth } from "@/app/auth-provider";
 import { useDriversQuery } from "@/hooks/use-config";
@@ -83,6 +82,7 @@ export default function CreateInstancePage() {
     handleSubmit,
     watch,
     reset,
+    trigger,
     formState: { errors },
   } = useForm<ConnectionForm>({
     defaultValues: draftFor(driver || "postgres") as unknown as ConnectionForm,
@@ -114,6 +114,16 @@ export default function CreateInstancePage() {
     reset({ ...v } as unknown as ConnectionForm);
     choose(v.driver);
     setDsn("");
+  }
+
+  // advance only leaves the connection step once the fields it renders are valid; a file driver has no port to check.
+  async function advance() {
+    const fields = isFileDriver(driver)
+      ? (["name", "host", "database"] as const)
+      : (["name", "host", "port", "database"] as const);
+    if (!(await trigger([...fields]))) return;
+    if (credentials) setStep(3);
+    else void submit();
   }
 
   const submit = handleSubmit(async (form) => {
@@ -150,7 +160,7 @@ export default function CreateInstancePage() {
   });
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+    <div className="flex w-full flex-col gap-4">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" render={<Link to={PAGE_ROUTES.INSTANCES} />}>
           <ChevronLeft /> Instances
@@ -173,16 +183,34 @@ export default function CreateInstancePage() {
               onEdit={() => setStep(1)}
             />
             {step === 1 && (
-              <SingleSelect
-                name="driver"
-                value={driver}
-                onChange={(value) => pickDriver(String(value))}
-                options={drivers.map((entry) => ({
-                  value: entry.driver,
-                  label: entry.label,
-                  detail: entry.driver,
-                }))}
-              />
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {drivers.map((entry) => {
+                  const selected = entry.driver === driver;
+                  return (
+                    <button
+                      key={entry.driver}
+                      type="button"
+                      aria-pressed={selected}
+                      // re-picking the driver already chosen would reset the fields it filled
+                      onClick={() => {
+                        if (!selected) pickDriver(entry.driver);
+                      }}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg border border-border p-3 text-left transition-colors hover:bg-accent/50",
+                        selected && "border-foreground bg-accent/60",
+                      )}
+                    >
+                      <DriverMark driver={entry.driver} className="size-9 text-sm" />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">{entry.label}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {entry.driver}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </div>
 
@@ -199,8 +227,7 @@ export default function CreateInstancePage() {
                 className="grid gap-4"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (credentials) setStep(3);
-                  else void submit();
+                  void advance();
                 }}
               >
                 <Field>
