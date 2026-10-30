@@ -10,9 +10,9 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-// navGroups is the shared source for the sidebar and the page search palette: the instances link plus the pages the
-// driver in the URL supports, named after that driver; the paths and labels are the route registry's.
-export function navGroups(catalog: DriverInfo[] | undefined, driver: string): NavGroup[] {
+// navGroups is the shared source for the sidebar and the page search palette: the instances link plus one group per
+// driver, so the palette reaches every engine rather than only the one in the URL.
+export function navGroups(catalog: DriverInfo[] | undefined): NavGroup[] {
   return [
     {
       items: [
@@ -24,7 +24,10 @@ export function navGroups(catalog: DriverInfo[] | undefined, driver: string): Na
         },
       ],
     },
-    { label: driverLabel(catalog, driver), items: pagesOf(catalog, driver) },
+    ...(catalog ?? []).map((entry) => ({
+      label: driverLabel(catalog, entry.driver),
+      items: pagesOf(catalog, entry.driver),
+    })),
   ];
 }
 

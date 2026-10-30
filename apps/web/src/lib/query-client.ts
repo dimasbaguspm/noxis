@@ -40,6 +40,7 @@ export const queryKeys = {
       pageKey("console.instances", "list", query),
     get: (id: string) => pageKey("console.instances.detail", "get", id),
     schema: (id: string) => pageKey("console.instances.detail", "schema", id),
+    counts: pageKey("console.instances", "counts"),
   },
   // every engine read carries the driver, so two drivers' schemas, keys and databases can never share a cache entry
   sql: {

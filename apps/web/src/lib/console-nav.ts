@@ -35,12 +35,6 @@ const PAGES: Record<Capability, { page: DriverPage; icon: NavItem["icon"] }[]> =
   ],
 };
 
-const SECTION_META: Record<Capability, { label: string; icon: NavItem["icon"] }> = {
-  [CAPABILITY.SQL]: { label: "SQL", icon: Database },
-  [CAPABILITY.KEYS]: { label: "Keys", icon: Boxes },
-  [CAPABILITY.DOCUMENTS]: { label: "Documents", icon: Leaf },
-};
-
 // navItems links each page of a capability under the driver in the URL, so no entry hardcodes a path.
 function navItems(capability: Capability, driver: string): NavItem[] {
   return PAGES[capability].map(({ page, icon }) => ({
@@ -64,23 +58,7 @@ export function driverLabel(catalog: DriverInfo[] | undefined, driver?: string):
   return catalog?.find((entry) => entry.driver === driver)?.label ?? driver ?? "";
 }
 
-// capabilityIcon is the glyph of a driver's first capability, so a list shows what it serves without naming a
-// component per driver; a driver with no known capability falls back to the generic box.
-export function capabilityIcon(capabilities: Capability[]): ComponentType<{ className?: string }> {
-  const first = capabilities[0];
-  return (first && SECTION_META[first].icon) || Boxes;
-}
-
 // pagesOf is the flat navigation of one driver: every page its capabilities earn, in catalog order.
 export function pagesOf(catalog: DriverInfo[] | undefined, driver: string): NavItem[] {
   return capabilitiesOf(catalog, driver).flatMap((capability) => navItems(capability, driver));
-}
-
-// firstPageOf is the page a driver picker opens: the first page of the first capability the driver declares.
-export function firstPageOf(
-  catalog: DriverInfo[] | undefined,
-  driver: string,
-): DriverPage | undefined {
-  const capability = capabilitiesOf(catalog, driver)[0];
-  return capability ? PAGES[capability][0]?.page : undefined;
 }
