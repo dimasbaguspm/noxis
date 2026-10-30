@@ -33,6 +33,7 @@ type Choice = {
   notes: string;
   query: string;
   rollback: string;
+  kind: string;
 };
 const createSchema = z.object({
   notes: z.string().optional(),
@@ -81,6 +82,18 @@ export function CreateChangeSheet({
       toast.error("Pick the instance this change targets");
       return;
     }
+    // the page declares the kind: a read is not a change, and a statement of the other kind belongs on the other queue
+    const written = classify(values.query);
+    if (written === "read" || written === "empty") {
+      toast.error("A change has to write something; reads run in Query");
+      return;
+    }
+    if (written !== kind) {
+      toast.error(
+        `This page raises ${kind.toUpperCase()} changes, and that statement is ${written.toUpperCase()}`,
+      );
+      return;
+    }
     setBusy(true);
     const change = await onSubmit({
       driver,
@@ -88,6 +101,7 @@ export function CreateChangeSheet({
       notes: (values.notes ?? "").trim() || `manual ${kind} change`,
       query: values.query,
       rollback: values.rollback,
+      kind,
     });
     setBusy(false);
     if (!change) return;

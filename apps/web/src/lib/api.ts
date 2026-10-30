@@ -70,6 +70,8 @@ export interface ChangeInput {
   notes: string;
   query: string;
   rollback: string;
+  // kind is what the page claims; the server derives its own and refuses a disagreement
+  kind?: string;
   scheduledAt?: number;
 }
 
