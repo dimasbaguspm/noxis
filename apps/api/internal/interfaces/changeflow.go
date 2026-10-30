@@ -30,6 +30,3 @@ type MongoChangeFlow interface {
 	ChangeFlow
 	Submit(ctx context.Context, conn entity.Connection, actor, notes string, req MongoRequest) (entity.Change, error)
 }
-
-// ChangeFlows is every driver's change queue, keyed by driver name, so a driver without a queue has none rather than an empty one.
-type ChangeFlows map[string]ChangeFlow

@@ -1,14 +1,13 @@
 package apply
 
 import (
+	"errors"
 	"net/http"
-	"sort"
 	"time"
 
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
 )
 
@@ -21,21 +20,16 @@ type Tick struct{ usecases.RegistryDeps }
 func (uc Tick) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	var flows interfaces.ChangeFlows
-	if err := uc.RouteModule(ctx, r, &flows); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
 	result := entity.TickResult{Applied: []string{}, Failed: []string{}}
-	drivers := make([]string, 0, len(flows))
-	for driver := range flows {
-		drivers = append(drivers, driver)
-	}
-	sort.Strings(drivers)
-	for _, driver := range drivers {
-		flow := flows[driver]
-		if flow == nil {
-			continue
+	// Every registered driver is asked for its own queue, so a new driver is scheduled without editing this loop.
+	for _, driver := range uc.Modules.Drivers() {
+		flow, err := uc.Modules.Changes(driver)
+		if errors.Is(err, constants.ErrUnsupported) {
+			continue // a driver with no change queue has nothing due
+		}
+		if err != nil {
+			uc.Fail(ctx, w, err)
+			return
 		}
 		out, err := flow.Tick(ctx, time.Now().Unix(), constants.SchedulerActor)
 		if err != nil {

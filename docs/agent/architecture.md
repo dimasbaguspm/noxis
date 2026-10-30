@@ -50,11 +50,13 @@ access rule. No constructor boilerplate, no reflection.
 
 `apps/api/internal/modules/modules.go`:
 
-- `Registry` resolves a driver name to its module (`Engine`); typed lookups go through `common.ModuleLoader`, not one method per capability.
-- `Default(repositories, metrics)` builds one module per driver — `postgres`, `mysql`,
-  `mariadb`, `sqlite`, `cockroach`, `redis`, `valkey`, `mongo` — plus each driver's
-  change flow. **This map is the only place the process declares what it can do**,
-  and a map hit can never depend on iteration order.
+- `Registry` resolves a driver name to its `Registration`: `Engine(driver)` for the module,
+  `Changes(driver)` for the queue that applies its changes, `Drivers()` for the sorted names.
+  Typed lookups go through `common.ModuleLoader`, not one method per capability.
+- `Default(repositories, metrics)` builds one `Registration` per driver — `postgres`, `mysql`,
+  `mariadb`, `sqlite`, `cockroach`, `redis`, `valkey`, `mongo` — holding the module and, where
+  the driver has one, its change queue. **This map is the only place the process declares what
+  it can do**, and a map hit can never depend on iteration order.
 - Each driver is its own package under `apps/api/internal/modules/<driver>`, holding
   its own connection string, quote style, catalog queries, proof strategy and
   verification rules. Driver packages share nothing but `interfaces` and

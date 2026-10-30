@@ -16,7 +16,10 @@ import (
 func TestLoadModuleByType(t *testing.T) {
 	sqlFlow := postgres.NewChanges(nil, nil, nil, nil)
 	mongoFlow := mongodb.NewChanges(nil, nil, nil, nil)
-	r := registry{changes: interfaces.ChangeFlows{constants.DriverPostgres: sqlFlow, constants.DriverMongo: mongoFlow}}
+	r := registry{mods: map[string]Registration{
+		constants.DriverPostgres: {Changes: sqlFlow},
+		constants.DriverMongo:    {Changes: mongoFlow},
+	}}
 
 	var gotSQL interfaces.SQLChangeFlow
 	ctx := common.WithModuleDriver(context.Background(), constants.DriverPostgres)
@@ -35,22 +38,14 @@ func TestLoadModuleByType(t *testing.T) {
 	if gotMongo != mongoFlow {
 		t.Fatalf("Mongo flow = %T, want registered flow", gotMongo)
 	}
-
-	var gotFlows interfaces.ChangeFlows
-	if err := r.LoadModule(context.Background(), &gotFlows); err != nil {
-		t.Fatal(err)
-	}
-	if gotFlows[constants.DriverPostgres] != sqlFlow || gotFlows[constants.DriverMongo] != mongoFlow {
-		t.Fatalf("change flows = %#v, want registered flows", gotFlows)
-	}
 }
 
 func TestLoadEngineModuleUsesContextDriver(t *testing.T) {
 	sq, mongo, cache := postgres.New(), mongodb.New(), redis.New()
-	r := registry{mods: map[string]interfaces.Module{
-		constants.DriverPostgres: sq,
-		constants.DriverMongo:    mongo,
-		constants.DriverRedis:    cache,
+	r := registry{mods: map[string]Registration{
+		constants.DriverPostgres: {Engine: sq},
+		constants.DriverMongo:    {Engine: mongo},
+		constants.DriverRedis:    {Engine: cache},
 	}}
 
 	ctx := common.WithModuleDriver(context.Background(), constants.DriverPostgres)
@@ -91,5 +86,21 @@ func TestLoadModuleRejectsMissingOrUnsupportedTargets(t *testing.T) {
 	}
 	if err := r.LoadModule(context.Background(), (*interfaces.SQLChangeFlow)(nil)); err == nil {
 		t.Fatal("nil target accepted")
+	}
+}
+
+func TestDriversAndQueues(t *testing.T) {
+	r := New(map[string]Registration{
+		constants.DriverPostgres: {Changes: postgres.NewChanges(nil, nil, nil, nil)},
+		constants.DriverRedis:    {},
+	})
+	if got := r.Drivers(); len(got) != 2 || got[0] != constants.DriverPostgres || got[1] != constants.DriverRedis {
+		t.Fatalf("drivers = %v, want the registered names sorted", got)
+	}
+	if _, err := r.Changes(constants.DriverRedis); !errors.Is(err, constants.ErrUnsupported) {
+		t.Fatalf("cache queue error = %v, want unsupported", err)
+	}
+	if _, err := r.Changes(constants.DriverMySQL); !errors.Is(err, constants.ErrUnsupported) {
+		t.Fatalf("unregistered queue error = %v, want unsupported", err)
 	}
 }
