@@ -90,16 +90,12 @@ export default function MemcachePage() {
     ),
   });
 
-  const { page, isFetching: loading, refetch: reloadKeys } = useMemcacheKeysQuery(
-    driver,
-    connection,
-    glob,
-  );
-  const { result, isFetching: valueLoading } = useMemcacheValueQuery(
-    driver,
-    connection,
-    inspected,
-  );
+  const {
+    page,
+    isFetching: loading,
+    refetch: reloadKeys,
+  } = useMemcacheKeysQuery(driver, connection, glob);
+  const { result, isFetching: valueLoading } = useMemcacheValueQuery(driver, connection, inspected);
 
   const keys = useMemo<Row[]>(() => {
     const rows: Row[] = (page.keys ?? [])

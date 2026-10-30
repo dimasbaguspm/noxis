@@ -28,7 +28,13 @@ import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { classify } from "@/lib/statements";
 
 // Choice is one submitted change plus the driver of the instance it targets: the engine path is the driver, not the console's grouping.
-type Choice = { driver: string; connection: string; notes: string; query: string; rollback: string };
+type Choice = {
+  driver: string;
+  connection: string;
+  notes: string;
+  query: string;
+  rollback: string;
+};
 const createSchema = z.object({
   notes: z.string().optional(),
   query: z.string().min(1, "Original query is required"),

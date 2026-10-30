@@ -20,8 +20,7 @@ export function useMemcacheUrlParams() {
 }
 
 export function useMemcacheConnections() {
-  const { connections, active, driver, setActive, busy, reload } =
-    useConnections(CAPABILITY.KEYS);
+  const { connections, active, driver, setActive, busy, reload } = useConnections(CAPABILITY.KEYS);
   return { connections, connection: active, driver, pick: setActive, busy, reload };
 }
 
