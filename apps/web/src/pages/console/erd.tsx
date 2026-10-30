@@ -1,6 +1,8 @@
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { useEffect, useMemo, useState } from "react";
 import { Network } from "lucide-react";
-import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { ErdCanvas, type ErdTable } from "@/components/sql/erd-canvas";
 import { toErdTables } from "@/components/sql/erd-data";
@@ -53,7 +55,9 @@ export default function SqlErdPage() {
         </CardHeader>
         {isSuper && (
           <CardContent>
-            <ConnectionDialog trigger="New connection" wizard />
+            <Button render={<Link to={`${PAGE_ROUTES.INSTANCE_CREATE}?driver=${driver ?? ""}`} />}>
+              New connection
+            </Button>
           </CardContent>
         )}
       </Card>

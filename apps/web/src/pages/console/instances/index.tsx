@@ -23,7 +23,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { Workspace } from "@/components/layout/workspace";
 import { useAuth } from "@/app/auth-provider";
 import { useDriversQuery } from "@/hooks/use-config";
@@ -96,7 +95,9 @@ export default function DashboardPage() {
                 </SelectContent>
               </Select>
             </div>
-            {isSuper && <ConnectionDialog trigger="New connection" wizard />}
+            {isSuper && (
+              <Button render={<Link to={PAGE_ROUTES.INSTANCE_CREATE} />}>New connection</Button>
+            )}
           </div>
         }
         right={

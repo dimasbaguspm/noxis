@@ -14,6 +14,7 @@ import "./app.css";
 // route-level splitting: monaco (query/changes) loads with the page that needs it
 const DashboardPage = lazy(() => import("@/pages/console/instances"));
 const InstanceLayout = lazy(() => import("@/pages/console/instances/layout"));
+const CreateInstancePage = lazy(() => import("@/pages/console/instances/create"));
 const InstanceDetailTab = lazy(() => import("@/pages/console/instances/detail"));
 const InstanceTablesTab = lazy(() => import("@/pages/console/instances/tables"));
 const InstanceErdTab = lazy(() => import("@/pages/console/instances/erd"));
@@ -56,6 +57,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { path: routePath(PAGE_ROUTES.INSTANCES), element: <DashboardPage /> },
+      { path: routePath(PAGE_ROUTES.INSTANCE_CREATE), element: <CreateInstancePage /> },
       {
         path: routePath(patternOf("console.instances.detail")),
         element: <InstanceLayout />,

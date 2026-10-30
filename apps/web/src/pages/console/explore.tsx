@@ -1,6 +1,7 @@
+import { Link } from "react-router-dom";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { Braces, Database, FileJson, Leaf, ListTree, Play, RefreshCw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { ConnectionDialog } from "@/components/connection/connection-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty } from "@/components/ui/empty";
@@ -109,7 +110,9 @@ export default function MongoExplorePage() {
         </CardHeader>
         {isSuper && (
           <CardContent>
-            <ConnectionDialog trigger="New connection" wizard driver={driver} />
+            <Button render={<Link to={`${PAGE_ROUTES.INSTANCE_CREATE}?driver=${driver}`} />}>
+              New connection
+            </Button>
           </CardContent>
         )}
       </Card>

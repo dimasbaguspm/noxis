@@ -124,6 +124,9 @@ export class ApiClient {
     remove: (name: string) => this.request<null>("DELETE", this.connectionPath(driver, name)),
     test: (name: string) =>
       this.request<{ status: string }>("POST", this.connectionPath(driver, name, "/test")),
+    // probe pings a draft before it exists, so the create page can verify and only then save
+    probe: (c: Connection) =>
+      this.request<{ status: string }>("POST", this.endpoint(driver, "connections/probe"), c),
   });
 
   // groups is the surface every page uses: one namespace per engine surface, each addressed by the driver that serves the connection.

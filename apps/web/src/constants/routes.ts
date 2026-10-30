@@ -103,6 +103,13 @@ export const ROUTES = {
     entity: "instances",
     section: "driver",
   },
+  "console.instances.create": {
+    path: "/instances/create",
+    title: "New instance",
+    label: "New instance",
+    entity: "instances",
+    section: "driver",
+  },
   "console.instances.detail": {
     path: "/instances/:id",
     title: "Instance",
@@ -321,6 +328,7 @@ const INSTANCE_TABS = {
 // PAGE_ROUTES is the ergonomic view of the registry: the same paths, named by UI area.
 export const PAGE_ROUTES = {
   INSTANCES: pathOf("console.instances"),
+  INSTANCE_CREATE: pathOf("console.instances.create"),
   INSTANCE_DETAIL: (id: string) => pathOf("console.instances.detail", { id }),
   INSTANCE_TAB: (id: string, tab: keyof typeof INSTANCE_TABS) =>
     pathOf(INSTANCE_TABS[tab] ?? "console.instances.detail", { id }),
