@@ -4,7 +4,7 @@ import { SqlEditor } from "@/components/sql/sql-editor";
 import { SqlTabs } from "@/components/sql/sql-tabs";
 import { TableBrowser } from "@/components/sql/table-browser";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Empty } from "@/components/ui/empty";
 import { FilterField } from "@/components/filters/filter-field";
 import { Workspace } from "@/components/layout/workspace";
 import { Link, useSearchParams } from "react-router-dom";
@@ -14,7 +14,7 @@ import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { useAnalyzeMutation, useConnectionSchemaQuery, useRunQueryMutation } from "@/hooks/use-sql";
 import { useSqlTabs } from "@/hooks/use-sql-tabs";
 import { classify } from "@/lib/statements";
-import { Play } from "lucide-react";
+import { Play, Database } from "lucide-react";
 
 export default function QueryPage() {
   const { canAccess, isSuper } = useAuth();
@@ -43,26 +43,39 @@ export default function QueryPage() {
   const kind = classify(sql);
   const result = analyzed ?? readResult ?? null;
 
-  // No SQL connection to query: explain it and offer the way in, instead of rendering empty panes.
+  // No SQL connection to query: keep the workspace and explain it in the pane, instead of collapsing to a card.
   if (connections.length === 0) {
     return (
-      <Card className="mx-auto mt-8 max-w-lg">
-        <CardHeader>
-          <CardTitle>{busy ? "Loading connections…" : "No connection found"}</CardTitle>
-          <CardDescription>
-            {busy
-              ? "Fetching your registered SQL databases."
-              : "Register a SQL database to start browsing and querying."}
-          </CardDescription>
-        </CardHeader>
-        {!busy && isSuper && (
-          <CardContent>
-            <Button render={<Link to={`${PAGE_ROUTES.INSTANCE_CREATE}?driver=${driver ?? ""}`} />}>
-              New connection
-            </Button>
-          </CardContent>
-        )}
-      </Card>
+      <div className="flex h-full min-h-0">
+        <Workspace>
+          <Workspace.Pane defaultSize={17} minSize={14}>
+            <FilterField label="Instance">
+              <ConnectionSelect connections={[]} value="" onChange={() => {}} className="w-full" />
+            </FilterField>
+          </Workspace.Pane>
+          <Workspace.Pane defaultSize={83} minSize={40}>
+            <Empty
+              className="flex-1"
+              icon={Database}
+              title={busy ? "Loading connections…" : "No connection found"}
+              description={
+                busy
+                  ? "Fetching your registered SQL databases."
+                  : "Register a SQL database to start browsing and querying."
+              }
+              action={
+                !busy && isSuper ? (
+                  <Button
+                    render={<Link to={`${PAGE_ROUTES.INSTANCE_CREATE}?driver=${driver ?? ""}`} />}
+                  >
+                    New connection
+                  </Button>
+                ) : undefined
+              }
+            />
+          </Workspace.Pane>
+        </Workspace>
+      </div>
     );
   }
 
