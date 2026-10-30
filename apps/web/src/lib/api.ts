@@ -232,7 +232,19 @@ export class ApiClient {
       run: (name: string, req: MongoRequest) =>
         this.request<MongoResult>("POST", this.connectionPath(driver, name, "/requests"), req),
       changes: {
-        list: () => this.request<{ changes: Change[] }>("GET", this.endpoint(driver, "changes")),
+        // the request queue is the same list endpoint as the SQL queues: same filters, no kind
+        list: (connection?: string, page?: number, status?: string, q?: string) => {
+          const params = new URLSearchParams();
+          if (connection) params.set("connection", connection);
+          if (page && page > 1) params.set("page", String(page));
+          if (status) params.set("status", status);
+          if (q) params.set("q", q);
+          const qs = params.toString();
+          return this.request<{ changes: Change[]; total: number }>(
+            "GET",
+            this.endpoint(driver, "changes") + (qs ? `?${qs}` : ""),
+          );
+        },
         submit: (input: MongoChangeInput) =>
           this.request<Change>("POST", this.endpoint(driver, "changes"), input),
         get: (id: string) => this.request<Change>("GET", this.endpoint(driver, `changes/${id}`)),
