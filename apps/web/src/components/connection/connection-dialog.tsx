@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/select";
 import { useDriversQuery } from "@/hooks/use-config";
 import { queryClient, queryKeys } from "@/lib/query-client";
-import { CAPABILITY, capabilitiesOf, type Capability } from "@/lib/console-nav";
+import { CAPABILITY, capabilitiesOf } from "@/lib/console-nav";
 import { api, type Connection } from "@/lib/api";
 import { parseDsn } from "@/lib/dsn";
 
@@ -70,46 +70,41 @@ const connectionSchema = z
   });
 type ConnectionForm = z.infer<typeof connectionSchema>;
 
-const SQL_EMPTY: Connection = {
-  name: "",
-  driver: "postgres",
-  host: "",
-  port: 5432,
-  user: "",
-  password: "",
-  database: "",
-};
-
-const MEMCACHE_EMPTY: Connection = { ...SQL_EMPTY, driver: "redis", port: 6379, database: "0" };
-const MONGO_EMPTY: Connection = { ...SQL_EMPTY, driver: "mongo", port: 27017, database: "admin" };
-
-const BLANK: Record<Capability, Connection> = {
-  [CAPABILITY.SQL]: SQL_EMPTY,
-  [CAPABILITY.KEYS]: MEMCACHE_EMPTY,
-  [CAPABILITY.DOCUMENTS]: MONGO_EMPTY,
-};
-
 // port follows the driver; the list itself comes from the server catalog.
 const DRIVER_PORT: Record<string, number> = {
   postgres: 5432,
   mysql: 3306,
+  mariadb: 3306,
   redis: 6379,
   valkey: 6379,
   mongo: 27017,
 };
 
-const defaultPort = (driver: string) => (isFileDriver(driver) ? 0 : (DRIVER_PORT[driver] ?? 5432));
+const CACHE_DRIVERS = new Set(["redis", "valkey"]);
+
+// draftFor is the empty draft of one driver: its port, and the database it usually listens on.
+function draftFor(driver: string): Connection {
+  return {
+    name: "",
+    driver,
+    host: "",
+    port: isFileDriver(driver) ? 0 : (DRIVER_PORT[driver] ?? 5432),
+    user: "",
+    password: "",
+    database: CACHE_DRIVERS.has(driver) ? "0" : driver === "mongo" ? "admin" : "",
+  };
+}
 
 // ConnectionDialog keeps an instance only after its connection probe succeeds.
 export function ConnectionDialog({
   trigger = "New connection",
   initial,
-  capability = CAPABILITY.SQL,
+  driver: defaultDriver = "postgres",
   wizard = false,
 }: {
   trigger?: string;
   initial?: Connection;
-  capability?: Capability;
+  driver?: string;
   wizard?: boolean;
 }) {
   const { data: drivers = [] } = useDriversQuery();
@@ -121,22 +116,18 @@ export function ConnectionDialog({
     reset,
     formState: { errors },
   } = useForm<ConnectionForm>({
-    defaultValues: (initial ?? BLANK[capability]) as unknown as ConnectionForm,
+    defaultValues: (initial ?? draftFor(defaultDriver)) as unknown as ConnectionForm,
     // Cast the resolver because z.coerce gives form inputs and parsed output different types.
     resolver: zodResolver(connectionSchema) as unknown as Resolver<ConnectionForm>,
   });
   const {
     open,
-    kind,
     step,
     verified,
     busy,
     dsn,
     dsnError,
     showPassword,
-    cache,
-    mongo,
-    setKind,
     setOpen,
     setStep,
     setVerified,
@@ -144,17 +135,27 @@ export function ConnectionDialog({
     setDsn,
     setDsnError,
     onOpenChange,
-    choose,
     nextStep,
     backStep,
     togglePassword,
     clearDsn,
     pasteDsn,
-  } = useConnectionWizard({ capability, wizard, initial, blank: BLANK, reset });
+  } = useConnectionWizard({ wizard, initial, blank: draftFor(defaultDriver), reset });
 
   const fileDriver = isFileDriver(watch("driver"));
-  // the engine path is the driver the form holds, so switching driver after picking a capability changes where the save goes
-  const driver = watch("driver") || BLANK[kind].driver;
+  // the engine path is the driver the form holds; its capability decides which fields and placeholders it shows
+  const driver = watch("driver") || defaultDriver;
+  const kind = capabilitiesOf(drivers, driver)[0];
+  const cache = kind === CAPABILITY.KEYS;
+  const mongo = kind === CAPABILITY.DOCUMENTS;
+
+  // choosing a driver starts from its own draft, so the port and the database are already right
+  function chooseDriver(next: string) {
+    setValue("driver", next);
+    reset(draftFor(next));
+    setVerified(false);
+    setStep(2);
+  }
   const client = api.connections(driver);
 
   // any edit makes a previous "verified" stale until the probe runs again
@@ -175,7 +176,7 @@ export function ConnectionDialog({
     await queryClient.invalidateQueries({ queryKey: queryKeys.instances.all });
   }
 
-  // applyDsn fills fields from a pasted DSN and switches the picker to the capability its driver declares.
+  // applyDsn fills the fields from a pasted DSN and moves the form to the driver it names.
   function applyDsn() {
     if (!dsn.trim()) return;
     const parsed = parseDsn(dsn);
@@ -190,8 +191,7 @@ export function ConnectionDialog({
       return;
     }
     setDsnError(null);
-    const next = capabilitiesOf(drivers, v.driver)[0];
-    if (next && next !== kind) setKind(next);
+    setDsnError(null);
     setValue("driver", v.driver);
     setValue("host", v.host);
     setValue("port", v.port);
@@ -222,7 +222,7 @@ export function ConnectionDialog({
       toast.success(`${name}: verified and saved`);
       await refresh();
       setOpen(false);
-      reset(BLANK[kind]);
+      reset(draftFor(watch("driver") || defaultDriver));
       setStep(wizard ? 1 : 2);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
@@ -236,10 +236,10 @@ export function ConnectionDialog({
       <SheetTrigger render={<Button />}>{trigger}</SheetTrigger>
       <SheetContent className="sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>{step === 1 ? "What are you connecting to?" : "Connection"}</SheetTitle>
+          <SheetTitle>{step === 1 ? "Which driver?" : "Connection"}</SheetTitle>
           <SheetDescription>
             {step === 1
-              ? "Pick the kind of instance. The next step asks for its details."
+              ? "Pick the engine. The next step asks for its details."
               : "Point noXis at an instance that already exists. It is verified before it is saved."}
           </SheetDescription>
         </SheetHeader>
@@ -248,27 +248,14 @@ export function ConnectionDialog({
           <>
             <SheetBody>
               <SingleSelect
-                name="kind"
-                value={kind}
-                onChange={(value) => choose(value)}
-                options={[
-                  {
-                    value: CAPABILITY.SQL,
-                    label: "SQL database",
-                    detail:
-                      "Postgres, MySQL or MariaDB. Read and change data through the validated workflow.",
-                  },
-                  {
-                    value: CAPABILITY.KEYS,
-                    label: "Memory cache",
-                    detail: "Redis or Valkey. Browse keys, inspect values, remove keys.",
-                  },
-                  {
-                    value: CAPABILITY.DOCUMENTS,
-                    label: "Document database",
-                    detail: "MongoDB. Explore databases and collections, run CRUD requests.",
-                  },
-                ]}
+                name="driver"
+                value={driver}
+                onChange={(value) => chooseDriver(String(value))}
+                options={drivers.map((d) => ({
+                  value: d.driver,
+                  label: d.label,
+                  detail: d.driver,
+                }))}
               />
             </SheetBody>
             <SheetFooter>
@@ -329,7 +316,7 @@ export function ConnectionDialog({
                       onValueChange={(v) => {
                         const driver = String(v);
                         setValue("driver", driver);
-                        setValue("port", defaultPort(driver));
+                        setValue("port", isFileDriver(driver) ? 0 : (DRIVER_PORT[driver] ?? 5432));
                         if (isFileDriver(driver)) {
                           setValue("host", "");
                           setValue("user", "");
@@ -345,13 +332,11 @@ export function ConnectionDialog({
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {drivers
-                          .filter((d) => d.capabilities.includes(kind))
-                          .map((d) => (
-                            <SelectItem key={d.driver} value={d.driver}>
-                              {d.label}
-                            </SelectItem>
-                          ))}
+                        {drivers.map((d) => (
+                          <SelectItem key={d.driver} value={d.driver}>
+                            {d.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   )}

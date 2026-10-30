@@ -1,27 +1,19 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { CAPABILITY, type Capability } from "@/lib/console-nav";
 import type { Connection } from "@/lib/api";
 
 export interface ConnectionWizardOptions {
-  capability: Capability;
   wizard: boolean;
   initial?: Connection;
-  /** The dialog owns the empty drafts because the form's defaultValues are built from the same map. */
-  blank: Record<Capability, Connection>;
+  /** The dialog owns the draft, because the port and the database differ per driver. */
+  blank: Connection;
   reset: (values: Connection) => void;
 }
 
-// useConnectionWizard drives the connection sheet: which step and capability are showing, whether the last probe verified, and the DSN/password helpers.
-export function useConnectionWizard({
-  capability,
-  wizard,
-  initial,
-  blank,
-  reset,
-}: ConnectionWizardOptions) {
+// useConnectionWizard drives the connection sheet: which step is showing, whether the last probe verified, and the
+// DSN and password helpers. The draft belongs to the dialog, since only it knows which driver was picked.
+export function useConnectionWizard({ wizard, initial, blank, reset }: ConnectionWizardOptions) {
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<Capability>(capability);
   const [step, setStep] = useState<1 | 2>(wizard && !initial ? 1 : 2);
   const [verified, setVerified] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -29,12 +21,11 @@ export function useConnectionWizard({
   const [dsnError, setDsnError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Closing resets the form so the next visit starts with a clean capability-specific draft.
+  // Closing resets the form so the next visit starts from a clean draft.
   function onOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
     if (!nextOpen) {
-      setKind(capability);
-      reset(blank[capability]);
+      reset(blank);
       setVerified(false);
       setStep(wizard && !initial ? 1 : 2);
     }
@@ -56,13 +47,6 @@ export function useConnectionWizard({
     setDsnError(null);
   }
 
-  function choose(next: Capability) {
-    setKind(next);
-    reset(blank[next]);
-    setVerified(false);
-    setStep(2);
-  }
-
   const nextStep = () => setStep(2);
   const backStep = () => setStep(1);
   const togglePassword = () => setShowPassword((value) => !value);
@@ -70,8 +54,6 @@ export function useConnectionWizard({
   return {
     open,
     setOpen,
-    kind,
-    setKind,
     step,
     setStep,
     verified,
@@ -80,17 +62,14 @@ export function useConnectionWizard({
     setBusy,
     dsn,
     setDsn,
-    setDsnError,
     dsnError,
+    setDsnError,
     showPassword,
-    togglePassword,
-    cache: kind === CAPABILITY.KEYS,
-    mongo: kind === CAPABILITY.DOCUMENTS,
     onOpenChange,
-    choose,
     nextStep,
     backStep,
-    pasteDsn,
+    togglePassword,
     clearDsn,
+    pasteDsn,
   };
 }
