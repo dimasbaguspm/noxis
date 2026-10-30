@@ -11,8 +11,8 @@ export interface NavGroup {
 }
 
 // navGroups is the shared source for the sidebar and the page search palette: the instances link plus one group per
-// capability the driver catalog declares; the paths and labels are the route registry's.
-export function navGroups(catalog: DriverInfo[] | undefined): NavGroup[] {
+// capability, linked under the driver in the URL; the paths and labels are the route registry's.
+export function navGroups(catalog: DriverInfo[] | undefined, driver: string): NavGroup[] {
   return [
     {
       items: [
@@ -24,7 +24,7 @@ export function navGroups(catalog: DriverInfo[] | undefined): NavGroup[] {
         },
       ],
     },
-    ...sections(catalog).map((section) => ({ label: section.label, items: section.nav })),
+    ...sections(catalog, driver).map((section) => ({ label: section.label, items: section.nav })),
   ];
 }
 

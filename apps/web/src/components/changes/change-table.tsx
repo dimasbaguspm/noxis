@@ -49,11 +49,12 @@ export function ChangeTable({ changes, emptyHint }: { changes: Change[]; emptyHi
         <TableBody>
           {changes.map((change) => {
             const id = change.id ?? "";
-            const href = (
-              change.kind === "ddl"
-                ? PAGE_ROUTES.CHANGES.DDL_DETAIL
-                : PAGE_ROUTES.CHANGES.DML_DETAIL
-            )(id);
+            // the change names the driver that serves it, so the detail link never guesses
+            const href = PAGE_ROUTES.CHANGE_DETAIL(
+              change.driver ?? "",
+              change.kind === "ddl" ? "ddl" : "dml",
+              id,
+            );
             return (
               <TableRow key={id} className="cursor-pointer">
                 <TableCell>

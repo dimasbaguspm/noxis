@@ -8,6 +8,7 @@ import { useDriversQuery } from "@/hooks/use-config";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { NavUser } from "@/components/layout/nav-user";
 import { useAuth } from "@/app/auth-provider";
+import { useDriver } from "@/hooks/use-driver";
 import {
   Sidebar,
   SidebarContent,
@@ -122,6 +123,8 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
   const { isAdmin } = useAuth();
   const { data: drivers } = useDriversQuery();
+  // the engine pages link under the driver in the URL, so the groups need it before the picker lands
+  const { driver } = useDriver();
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -132,7 +135,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupContent className="flex flex-col gap-2">
             <SidebarMenu>
               <InstancesMenu pathname={pathname} />
-              {sections(drivers).map((section) => (
+              {sections(drivers, driver).map((section) => (
                 <SectionMenu key={section.key} section={section} pathname={pathname} />
               ))}
             </SidebarMenu>

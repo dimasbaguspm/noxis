@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { CircleHelp, Inbox, Plus, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 
 // MongoRequestsPage is the review queue: every write request waits here until someone approves and applies it. Reads never appear (they run in Explore).
 export default function MongoRequestsPage() {
+  const { driver = "" } = useParams();
   const { canAccess } = useAuth();
   const { connections: mongoConnections } = useConnections(CAPABILITY.DOCUMENTS);
   const { changes, isFetching: loading, refetch: reload } = useMongoChangesListQuery();
@@ -48,7 +49,7 @@ export default function MongoRequestsPage() {
               <RefreshCw className={cn(loading && "animate-spin")} /> Refresh
             </Button>
             {mayWrite && (
-              <Button size="sm" render={<Link to={PAGE_ROUTES.REQUEST_NEW} />}>
+              <Button size="sm" render={<Link to={PAGE_ROUTES.REQUEST_NEW(driver)} />}>
                 <Plus /> New request
               </Button>
             )}
@@ -134,7 +135,7 @@ export default function MongoRequestsPage() {
                         <Button
                           size="xs"
                           variant="outline"
-                          render={<Link to={PAGE_ROUTES.REQUEST_DETAIL(change.id ?? "")} />}
+                          render={<Link to={PAGE_ROUTES.REQUEST_DETAIL(driver, change.id ?? "")} />}
                         >
                           Review
                         </Button>

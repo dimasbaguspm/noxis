@@ -149,6 +149,7 @@ export default function SqlErdPage() {
               <TableDetails
                 table={selected}
                 tables={tables}
+                driver={picked?.driver ?? driver ?? ""}
                 connection={connection}
                 instanceId={picked?.id}
               />

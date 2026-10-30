@@ -17,7 +17,7 @@ import { useMongoConnections } from "@/hooks/use-mongodb";
 import { PAGE_ROUTES } from "@/constants/routes";
 
 // MongoExplorer is a compact find console on the instance page: filters on the left, the first 50 documents on the right.
-export function MongoExplorer({ connection }: { connection: string }) {
+export function MongoExplorer({ driver, connection }: { driver: string; connection: string }) {
   const {
     databases,
     db,
@@ -77,7 +77,12 @@ export function MongoExplorer({ connection }: { connection: string }) {
               <Button
                 size="sm"
                 variant="outline"
-                render={<Link to={PAGE_ROUTES.EXPLORE} onClick={() => pick(connection)} />}
+                render={
+                  <Link
+                    to={PAGE_ROUTES.DRIVER(driver, "documents")}
+                    onClick={() => pick(connection)}
+                  />
+                }
               >
                 <ExternalLink /> Full explorer
               </Button>

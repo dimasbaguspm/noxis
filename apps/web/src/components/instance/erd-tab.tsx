@@ -102,6 +102,7 @@ export function InstanceErd({
               <TableDetails
                 table={selected}
                 tables={tables}
+                driver={driver}
                 connection={connection}
                 instanceId={instanceId}
               />

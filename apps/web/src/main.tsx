@@ -43,7 +43,8 @@ const AccessPage = lazy(() => import("@/pages/admin/access"));
 const UsersPage = lazy(() => import("@/pages/admin/users"));
 const UserDetailPage = lazy(() => import("@/pages/admin/users/detail"));
 
-// Every page path comes from PAGE_ROUTES; the engine pages sit under the console section, account and admin at the root.
+// Every page path comes from the registry. Engine pages sit under /drivers/:driver, so the URL names the engine a page
+// acts on; instances are addressed by id, and the account and admin sections keep their own paths.
 const router = createBrowserRouter([
   // OIDC callback and login stay outside the shell and auth guard.
   { path: routePath(PAGE_ROUTES.AUTH_CALLBACK), element: <AuthCallbackPage /> },
@@ -55,11 +56,6 @@ const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      // the console section: engine pages and the instance list, all under one prefix
-      {
-        path: routePath(PAGE_ROUTES.CONSOLE),
-        element: <Navigate to={PAGE_ROUTES.INSTANCES} replace />,
-      },
       { path: routePath(PAGE_ROUTES.INSTANCES), element: <DashboardPage /> },
       {
         path: routePath(patternOf("console.instances.detail")),
@@ -73,26 +69,24 @@ const router = createBrowserRouter([
           { path: "access", element: <InstanceAccessTab /> },
         ],
       },
-      { path: routePath(PAGE_ROUTES.QUERY), element: <QueryPage /> },
-      { path: routePath(PAGE_ROUTES.ERD), element: <SqlErdPage /> },
-      { path: routePath(PAGE_ROUTES.CHANGES.DML), element: <DmlPage /> },
+      // the driver section: one page per capability the driver's module serves
+      { path: routePath(patternOf("driver.query")), element: <QueryPage /> },
+      { path: routePath(patternOf("driver.erd")), element: <SqlErdPage /> },
+      { path: routePath(patternOf("driver.changes.dml")), element: <DmlPage /> },
       {
-        path: routePath(patternOf("console.changes.dml.detail")),
+        path: routePath(patternOf("driver.changes.dml.detail")),
         element: <ChangeDetail kind="dml" />,
       },
-      { path: routePath(PAGE_ROUTES.CHANGES.DDL), element: <DdlPage /> },
+      { path: routePath(patternOf("driver.changes.ddl")), element: <DdlPage /> },
       {
-        path: routePath(patternOf("console.changes.ddl.detail")),
+        path: routePath(patternOf("driver.changes.ddl.detail")),
         element: <ChangeDetail kind="ddl" />,
       },
-      { path: routePath(PAGE_ROUTES.KEYS), element: <KeysPage /> },
-      { path: routePath(PAGE_ROUTES.EXPLORE), element: <ExplorePage /> },
-      { path: routePath(PAGE_ROUTES.REQUESTS), element: <RequestsPage /> },
-      { path: routePath(PAGE_ROUTES.REQUEST_NEW), element: <RequestNewPage /> },
-      {
-        path: routePath(patternOf("console.requests.detail")),
-        element: <RequestDetailPage />,
-      },
+      { path: routePath(patternOf("driver.keys")), element: <KeysPage /> },
+      { path: routePath(patternOf("driver.documents")), element: <ExplorePage /> },
+      { path: routePath(patternOf("driver.requests")), element: <RequestsPage /> },
+      { path: routePath(patternOf("driver.requests.new")), element: <RequestNewPage /> },
+      { path: routePath(patternOf("driver.requests.detail")), element: <RequestDetailPage /> },
       // the account section keeps its own paths
       {
         path: routePath(PAGE_ROUTES.MY),
@@ -107,7 +101,7 @@ const router = createBrowserRouter([
       { path: routePath(PAGE_ROUTES.ACCESS), element: <AccessPage /> },
       { path: routePath(PAGE_ROUTES.USERS), element: <UsersPage /> },
       { path: routePath(patternOf("admin.users.detail")), element: <UserDetailPage /> },
-      // the retired shorthand paths, the origin root, and any unknown path all land on the console list
+      // the retired shorthand paths and any unknown path, including the old /console section, land on the instance list
       { path: "profile", element: <Navigate to={PAGE_ROUTES.MY} replace /> },
       { path: "settings", element: <Navigate to={PAGE_ROUTES.MY_SETTINGS} replace /> },
       { path: "*", element: <Navigate to={PAGE_ROUTES.INSTANCES} replace /> },

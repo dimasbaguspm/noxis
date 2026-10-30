@@ -48,12 +48,14 @@ export function TablesTab({
   schema,
   onSchema,
   connection,
+  driver,
 }: {
   tables: InstanceTable[];
   loading: boolean;
   schema: string;
   onSchema: (schema: string) => void;
   connection: string;
+  driver: string;
 }) {
   const [filter, setFilter] = useState("");
   const schemas = useMemo(() => [...new Set(tables.map((t) => t.schema))].sort(), [tables]);
@@ -151,7 +153,7 @@ export function TablesTab({
                             size="xs"
                             render={
                               <Link
-                                to={`${PAGE_ROUTES.QUERY}?connection=${encodeURIComponent(connection)}&sql=${encodeURIComponent(previewSQL(t))}`}
+                                to={`${PAGE_ROUTES.DRIVER(driver, "query")}?connection=${encodeURIComponent(connection)}&sql=${encodeURIComponent(previewSQL(t))}`}
                               />
                             }
                           >
