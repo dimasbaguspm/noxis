@@ -43,13 +43,15 @@ const SKELETON_ROWS = [1, 2, 3, 4, 5];
 export function RequestsQueue({ scope }: { scope?: { driver: string; connection: string } }) {
   const { driver: routeDriver = "" } = useParams();
   const driver = scope?.driver ?? routeDriver;
-  const { canAccess } = useAuth();
+  const { canAccess, isSuper } = useAuth();
   const { connections: mongoConnections } = useDriverConnections();
   const { connections, name, status, page, setConnections, setName, setStatus, setPage } =
     useChangeListUrlParams();
   const { changes, total = 0, isPending, isFetching, refetch } = useMongoChangesListQuery(scope);
   const mayWrite = !scope && mongoConnections.some((c) => canAccess(c.name, "write"));
   const narrowed = (scope?.connection ?? "") !== "" || connections.length > 0 || name.trim() !== "";
+  // a queue with nothing registered is not a quiet queue: it is a console with nothing to review yet
+  const noStore = !scope && mongoConnections.length === 0;
 
   return (
     <div className="flex h-full min-h-0">
@@ -138,11 +140,20 @@ export function RequestsQueue({ scope }: { scope?: { driver: string; connection:
               <Empty
                 className="flex-1"
                 icon={Inbox}
-                title="No requests"
+                title={noStore ? "No document store registered" : "No requests"}
                 description={
-                  narrowed
-                    ? "No request matches these filters"
-                    : "MongoDB write requests waiting for review appear here."
+                  noStore
+                    ? "Register a MongoDB connection to review its write requests here."
+                    : narrowed
+                      ? "No request matches these filters"
+                      : "MongoDB write requests waiting for review appear here."
+                }
+                action={
+                  noStore && isSuper ? (
+                    <Button render={<Link to={PAGE_ROUTES.INSTANCE_CREATE} />}>
+                      New connection
+                    </Button>
+                  ) : undefined
                 }
               />
             ) : (
