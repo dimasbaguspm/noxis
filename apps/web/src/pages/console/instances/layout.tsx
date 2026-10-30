@@ -110,6 +110,9 @@ export default function InstanceLayout() {
     sqlSchema ? driver : undefined,
     sqlSchema ? name : undefined,
   );
+  // the info badge reads the server behind the connection; the query is declared here, above the early returns
+  // below, because a hook after them would change the hook count between the loading render and the loaded one.
+  const info = useConnectionInfo(driver, name);
 
   const tables = useMemo<InstanceTable[]>(
     () =>
@@ -237,7 +240,6 @@ export default function InstanceLayout() {
     updateSchema,
   };
 
-  const info = useConnectionInfo(instance.driver, instance.name);
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
