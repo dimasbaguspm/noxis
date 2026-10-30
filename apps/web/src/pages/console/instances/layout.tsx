@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { DriverMark } from "@/components/brand/driver-mark";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -47,13 +48,7 @@ import { useAuth } from "@/app/auth-provider";
 import { api, type Connection } from "@/lib/api";
 import { useCrumbLabel } from "@/app/crumb-provider";
 import { queryClient, queryKeys } from "@/lib/query-client";
-import {
-  CAPABILITY,
-  capabilitiesOf,
-  capabilityIcon,
-  driverLabel,
-  type Capability,
-} from "@/lib/console-nav";
+import { CAPABILITY, capabilitiesOf, driverLabel, type Capability } from "@/lib/console-nav";
 import { useDriversQuery } from "@/hooks/use-config";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
@@ -227,7 +222,6 @@ export default function InstanceLayout() {
     return <Navigate to={base} replace />;
   }
 
-  const Icon = capabilityIcon(capabilities);
   const context: InstanceContextValue = {
     instance,
     capabilities,
@@ -244,9 +238,7 @@ export default function InstanceLayout() {
     <div className="flex h-full min-h-0 flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-accent text-muted-foreground">
-            <Icon className="size-4" />
-          </span>
+          <DriverMark driver={instance.driver} className="size-9 rounded-md text-xs" />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-base font-medium">{instance.name}</h1>
