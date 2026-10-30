@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"noxis/internal/common/changeflow"
 	"noxis/internal/common/idgen"
 	"noxis/internal/common/logging"
 	"noxis/internal/common/metrics"
@@ -18,7 +17,7 @@ import (
 
 // Changes is the MongoDB change queue: a document write has no generic rollback, so it is validated against a scratch collection and reviewed, then applied for real.
 type Changes struct {
-	changeflow.Flow
+	Store   interfaces.ChangeRepository
 	Conns   interfaces.ConnectionRepository
 	Engine  interfaces.MongoChangeEngine
 	Metrics *metrics.Metrics
@@ -26,16 +25,11 @@ type Changes struct {
 
 // NewChanges wires the MongoDB change queue.
 func NewChanges(conns interfaces.ConnectionRepository, store interfaces.ChangeRepository, engine interfaces.MongoChangeEngine, m *metrics.Metrics) *Changes {
-	return &Changes{
-		Flow:    changeflow.New(store, constants.DriverMongo),
-		Conns:   conns,
-		Engine:  engine,
-		Metrics: m,
-	}
+	return &Changes{Store: store, Conns: conns, Engine: engine, Metrics: m}
 }
 
-// Driver is the driver whose queue this flow serves.
-func (changes *Changes) Driver() string { return changes.Flow.Driver() }
+// Driver is the driver whose queue this is.
+func (changes *Changes) Driver() string { return constants.DriverMongo }
 
 // Satisfier.
 var _ interfaces.MongoChangeFlow = (*Changes)(nil)
@@ -78,7 +72,7 @@ func (changes *Changes) Submit(ctx context.Context, conn entity.Connection, acto
 	} else {
 		logging.InfoWithCtx(ctx, "change validated", "change", ch.ID, "connection", ch.Connection, "kind", ch.Kind, "actor", actor)
 	}
-	return changes.Record(ctx, ch)
+	return changes.record(ctx, ch)
 }
 
 // Approve signs off a validated request.
@@ -86,7 +80,10 @@ func (changes *Changes) Approve(ctx context.Context, ch *entity.Change, actor st
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	previous := ch.Status
-	if err = changes.Flow.Approve(ctx, ch, actor); err != nil {
+	if err = ch.Approve(actor, time.Now().Unix()); err != nil {
+		return err
+	}
+	if err := changes.save(ctx, ch); err != nil {
 		return err
 	}
 	logging.InfoWithCtx(ctx, "change approved", "change", ch.ID, "connection", ch.Connection, "actor", actor, "from", previous, "to", ch.Status)
@@ -98,7 +95,10 @@ func (changes *Changes) Reject(ctx context.Context, ch *entity.Change, actor str
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	previous := ch.Status
-	if err = changes.Flow.Reject(ctx, ch, actor); err != nil {
+	if err = conflict(ch.Reject(actor, time.Now().Unix())); err != nil {
+		return err
+	}
+	if err := changes.save(ctx, ch); err != nil {
 		return err
 	}
 	logging.InfoWithCtx(ctx, "change rejected", "change", ch.ID, "connection", ch.Connection, "actor", actor, "from", previous, "to", ch.Status)
@@ -109,7 +109,10 @@ func (changes *Changes) Reject(ctx context.Context, ch *entity.Change, actor str
 func (changes *Changes) Schedule(ctx context.Context, ch *entity.Change, at int64, actor string) (err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	if err = changes.Flow.Schedule(ctx, ch, at, actor); err != nil {
+	if err = conflict(ch.Schedule(at, actor, time.Now().Unix())); err != nil {
+		return err
+	}
+	if err := changes.save(ctx, ch); err != nil {
 		return err
 	}
 	logging.InfoWithCtx(ctx, "change schedule updated", "change", ch.ID, "connection", ch.Connection, "actor", actor, "scheduledAt", at)
@@ -121,7 +124,7 @@ func (changes *Changes) Apply(ctx context.Context, ch *entity.Change, actor stri
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	now := time.Now().Unix()
-	if err := changeflow.Applyable(ch, now); err != nil {
+	if err := conflict(ch.Applyable(now)); err != nil {
 		logging.WarnWithCtx(ctx, "change cannot be applied", "change", ch.ID, "reason", err.Error())
 		return *ch, err
 	}
@@ -133,23 +136,23 @@ func (changes *Changes) Apply(ctx context.Context, ch *entity.Change, actor stri
 	if err := json.Unmarshal([]byte(ch.Query), &req); err != nil {
 		return entity.Change{}, fmt.Errorf("stored request is unreadable: %w", err)
 	}
-	if err := changes.Claim(ctx, ch, now, actor); err != nil {
+	if err := changes.claim(ctx, ch, now, actor); err != nil {
 		return *ch, err
 	}
 	res, err := changes.Engine.Apply(ctx, *conn, req)
-	changes.count(ctx, changes.Driver(), err)
+	changes.count(ctx, err)
 	if err != nil {
 		logging.ErrorWithCtx(ctx, "change failed to apply", err, "change", ch.ID, "connection", ch.Connection, "actor", actor)
-		changeflow.Failed(ch, err)
-		if saveErr := changes.Save(ctx, ch); saveErr != nil {
+		ch.MarkFailed(err)
+		if saveErr := changes.save(ctx, ch); saveErr != nil {
 			return *ch, errors.Join(err, fmt.Errorf("save failed apply outcome for change %s: %w", ch.ID, saveErr))
 		}
 		return *ch, err
 	}
-	changeflow.Applied(ch, res, now)
+	ch.MarkApplied(res, now)
 	logging.InfoWithCtx(ctx, "change applied",
 		"change", ch.ID, "connection", ch.Connection, "affected", res.Affected, "durationMs", res.DurationMs, "actor", actor)
-	if err := changes.Save(ctx, ch); err != nil {
+	if err := changes.save(ctx, ch); err != nil {
 		return entity.Change{}, err
 	}
 	return *ch, nil
@@ -159,21 +162,74 @@ func (changes *Changes) Apply(ctx context.Context, ch *entity.Change, actor stri
 func (changes *Changes) Tick(ctx context.Context, now int64, actor string) (out entity.TickResult, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	return changeflow.Tick(ctx, changes.Store, now, func(ch entity.Change) bool {
-		return ch.Kind == constants.KindMongo
-	}, func(ctx context.Context, ch *entity.Change) (entity.Change, error) {
-		return changes.Apply(ctx, ch, actor)
-	})
+	all, err := changes.Store.ListChanges(ctx)
+	if err != nil {
+		return entity.TickResult{}, err
+	}
+	res := entity.TickResult{}
+	for i := range all {
+		ch := all[i]
+		if ch.Kind != constants.KindMongo || !ch.Due(now) {
+			continue
+		}
+		if _, err := changes.Apply(ctx, &ch, actor); err != nil {
+			if errors.Is(err, constants.ErrConflict) {
+				continue
+			}
+			res.Failed = append(res.Failed, ch.ID)
+			continue
+		}
+		res.Applied = append(res.Applied, ch.ID)
+	}
+	return res, nil
+}
+
+// claim atomically reserves an approved request before the engine write.
+func (changes *Changes) claim(ctx context.Context, ch *entity.Change, at int64, actor string) error {
+	claimed, err := changes.Store.ClaimChange(ctx, ch.ID, at, actor)
+	if err != nil {
+		return err
+	}
+	if !claimed {
+		return constants.ErrConflict
+	}
+	ch.MarkApplying(at, actor)
+	return nil
+}
+
+// record stores a validated request. A failed submission is returned unrecorded: a request that cannot run is never queued, but the caller still sees why.
+func (changes *Changes) record(ctx context.Context, ch entity.Change) (entity.Change, error) {
+	if ch.Status == constants.ChangeFailed {
+		ch.ID = ""
+		return ch, nil
+	}
+	if err := changes.Store.SaveChange(ctx, ch); err != nil {
+		return entity.Change{}, err
+	}
+	return ch, nil
+}
+
+// save persists a decided request.
+func (changes *Changes) save(ctx context.Context, ch *entity.Change) error {
+	return changes.Store.SaveChange(ctx, *ch)
 }
 
 // count records the outcome of an apply.
-func (changes *Changes) count(ctx context.Context, driver string, err error) {
+func (changes *Changes) count(ctx context.Context, err error) {
 	if changes.Metrics == nil {
 		return
 	}
 	if err != nil {
-		changes.Metrics.ChangeFailed(ctx, driver, "apply")
+		changes.Metrics.ChangeFailed(ctx, changes.Driver(), "apply")
 		return
 	}
-	changes.Metrics.ChangeApplied(ctx, driver)
+	changes.Metrics.ChangeApplied(ctx, changes.Driver())
+}
+
+// conflict maps the change's claim sentinel to the API's conflict, so a losing racer reads as a 409.
+func conflict(err error) error {
+	if errors.Is(err, entity.ErrChangeConflict) {
+		return constants.ErrConflict
+	}
+	return err
 }

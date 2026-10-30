@@ -3,6 +3,7 @@ package postgres
 import (
 	"bytes"
 	"context"
+	"errors"
 	"log/slog"
 	"strings"
 	"testing"
@@ -65,5 +66,38 @@ func TestTickLeavesAnotherDriversChangeAlone(t *testing.T) {
 	}
 	if len(res.Applied) != 0 || len(res.Failed) != 0 {
 		t.Fatalf("another driver's change was claimed: %+v", res)
+	}
+}
+
+// TestTickRunsDueChangesOnce locks the rest of the loop: a change runs when its slot arrives, a future one waits, a lost claim is skipped rather than failed, and an engine refusal is reported.
+func TestTickRunsDueChangesOnce(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	store := mocks.NewMockChangeRepository(ctrl)
+	conns := mocks.NewMockConnectionRepository(ctrl)
+	engine := mocks.NewMockSQLChangeEngine(ctrl)
+
+	store.EXPECT().ListChanges(gomock.Any()).Return([]entity.Change{
+		{ID: "due", Connection: "demo", Query: "CREATE TABLE due (id INT)", Kind: constants.KindDDL, Status: constants.ChangeApproved, ScheduledAt: 100},
+		{ID: "future", Connection: "demo", Kind: constants.KindDDL, Status: constants.ChangeApproved, ScheduledAt: 101},
+		{ID: "claimed", Connection: "demo", Kind: constants.KindDDL, Status: constants.ChangeApproved, ScheduledAt: 100},
+		{ID: "failing", Connection: "demo", Query: "CREATE TABLE nope (id INT)", Kind: constants.KindDDL, Status: constants.ChangeApproved, ScheduledAt: 100},
+	}, nil)
+	conns.EXPECT().Get(gomock.Any(), "demo").Return(&entity.Connection{Name: "demo", Driver: constants.DriverPostgres}, nil).AnyTimes()
+	store.EXPECT().ClaimChange(gomock.Any(), "due", gomock.Any(), constants.SchedulerActor).Return(true, nil)
+	store.EXPECT().ClaimChange(gomock.Any(), "claimed", gomock.Any(), constants.SchedulerActor).Return(false, nil)
+	store.EXPECT().ClaimChange(gomock.Any(), "failing", gomock.Any(), constants.SchedulerActor).Return(true, nil)
+	store.EXPECT().SaveChange(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	engine.EXPECT().Apply(gomock.Any(), gomock.Any(), "CREATE TABLE due (id INT)").Return(entity.Result{Affected: 1}, nil)
+	engine.EXPECT().Apply(gomock.Any(), gomock.Any(), "CREATE TABLE nope (id INT)").Return(entity.Result{}, errors.New("engine said no"))
+
+	result, err := NewChanges(conns, store, engine, nil).Tick(context.Background(), 100, constants.SchedulerActor)
+	if err != nil {
+		t.Fatalf("tick: %v", err)
+	}
+	if len(result.Applied) != 1 || result.Applied[0] != "due" {
+		t.Fatalf("applied = %v, want only the due change", result.Applied)
+	}
+	if len(result.Failed) != 1 || result.Failed[0] != "failing" {
+		t.Fatalf("failed = %v, want only the change the engine refused", result.Failed)
 	}
 }

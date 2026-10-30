@@ -79,12 +79,12 @@ Inside `apps/api/`:
 | `apps/api/internal/repositories/` | persistence: `sqlite` (the only state) |
 | `apps/api/internal/interfaces/` | seams (`ConnectionRepository`, `Module` + one capability interface per verb set, …) |
 | `apps/api/internal/entity/` | shared data model (store + wire + REST) |
-| `apps/api/internal/common/` | config, logging/span, idgen, pagination, secret, shared changeflow rules |
+| `apps/api/internal/common/` | config, logging/span, idgen, pagination, secret |
 | `apps/api/internal/constants/` | universal values (drivers, capabilities, statuses, limits) |
 | `apps/api/test/uat/` | Gherkin acceptance suite (`make uat`) |
 
 Dependency direction is one-way: `handlers → usecases → modules → repositories → entity`.
-`entity` imports nothing internal. Modules/repositories assert their seams with
+`entity` imports only `constants`: the change state machine lives on the change it governs. Modules/repositories assert their seams with
 `var _ interfaces.X = (*Impl)(nil)` next to the struct.
 
 ## Request flow

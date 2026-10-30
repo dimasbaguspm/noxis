@@ -8,11 +8,11 @@ Detail for `AGENTS.md`. Read that first for the map.
 transport   apps/api/cmd/noxis/server         (route table → use case Serve)
 application apps/api/internal/app              (composition root: Default)
             apps/api/internal/usecases        (root framework; one subpackage per domain)
-domain      apps/api/internal/entity             (data model, imports nothing internal)
+domain      apps/api/internal/entity             (data model + change state machine; imports only constants)
             apps/api/internal/interfaces          (seams)
 infra       apps/api/internal/modules/*          (engine adapters, one package per driver)
             apps/api/internal/repositories/*     (persistence)
-cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagination, secret, shared changeflow rules)
+cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagination, secret)
             apps/api/internal/constants          (universal values)
 ```
 
@@ -98,10 +98,11 @@ returns unsupported rather than a stub.
 A use case authorizes the caller, decodes the request, maps the answer to a
 status, and nothing else. Domain rules live in a module: the change lifecycle
 belongs to the driver that runs it, so each `modules/<driver>.Changes` owns
-submit → validate → approve/reject/schedule → apply. Their shared state rules come
-from `internal/common/changeflow`, a base that all of them embed — it is a library,
-not a registered module. It sits below every driver package in the enforced
-dependency graph; engine execution and decision logging stay with the driver
+submit → validate → approve/reject/schedule → apply, its claim and its tick loop.
+The legal transitions of a change are methods on `entity.Change` (`Approve`,
+`Reject`, `Schedule`, `Applyable`, `Due`, `MarkApplying`, `MarkApplied`,
+`MarkFailed`), so the rules sit on the type that holds the state and no package is
+shared between drivers. Engine execution and decision logging stay with the driver
 modules.
 
 Every queue is registered in `modules.Default()` next to its engine. Use cases
