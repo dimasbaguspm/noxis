@@ -16,7 +16,7 @@ type serverInfoBody struct {
 // serverReportsVersion proves the version comes from the server rather than from a field an operator typed: every driver answers with one, plus the capabilities that follow from its profile.
 func (w *world) serverReportsVersion(context.Context) error {
 	var info serverInfoBody
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn+"/info", nil, &info); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/connections/"+w.conn+"/info"), nil, &info); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {

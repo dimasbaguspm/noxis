@@ -50,7 +50,7 @@ func (w *world) registerSQL(ctx context.Context, name, key string) error {
 		"name": name, "driver": t.Driver, "host": t.Host, "port": t.Port,
 		"user": t.User, "password": t.Password, "database": t.Database,
 	}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections", conn, nil); err != nil {
+	if err := w.api(http.MethodPost, enginePathOf(t.Driver, "/connections"), conn, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -61,7 +61,7 @@ func (w *world) registerSQL(ctx context.Context, name, key string) error {
 }
 
 func (w *world) testConnection(ctx context.Context) error {
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections/"+w.conn+"/test", map[string]string{}, nil); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/connections/"+w.conn+"/test"), map[string]string{}, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {
@@ -71,7 +71,7 @@ func (w *world) testConnection(ctx context.Context) error {
 }
 
 func (w *world) listRedacted(ctx context.Context) error {
-	code, body, err := w.raw("/external/v1/engine/sql/connections")
+	code, body, err := w.raw(w.enginePath("/connections"))
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func (w *world) rotateInstancePassword(ctx context.Context) error {
 }
 
 func (w *world) connectionHidesPassword(ctx context.Context) error {
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn, nil, nil); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/connections/"+w.conn), nil, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK || strings.Contains(strings.ToLower(w.body), `"password"`) {
@@ -148,7 +148,7 @@ func (w *world) identityChangeRefused(ctx context.Context) error {
 		"name": w.conn, "driver": "postgres", "host": "elsewhere", "port": 5432,
 		"user": "postgres", "database": "demo",
 	}
-	if err := w.api(http.MethodPost, "/external/v1/engine/sql/connections", body, nil); err != nil {
+	if err := w.api(http.MethodPost, w.enginePath("/connections"), body, nil); err != nil {
 		return err
 	}
 	if w.code == http.StatusOK {
@@ -158,7 +158,7 @@ func (w *world) identityChangeRefused(ctx context.Context) error {
 }
 
 func (w *world) deleteCurrentConnection(ctx context.Context) error {
-	if err := w.api(http.MethodDelete, "/external/v1/engine/sql/connections/"+w.conn, nil, nil); err != nil {
+	if err := w.api(http.MethodDelete, w.enginePath("/connections/"+w.conn), nil, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK && w.code != http.StatusNoContent {
@@ -168,7 +168,7 @@ func (w *world) deleteCurrentConnection(ctx context.Context) error {
 }
 
 func (w *world) connectionGone(ctx context.Context) error {
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn, nil, nil); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/connections/"+w.conn), nil, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusNotFound {
@@ -179,7 +179,7 @@ func (w *world) connectionGone(ctx context.Context) error {
 
 // connectionSnapshot compares the current connection's detail response with a golden.
 func (w *world) connectionSnapshot(ctx context.Context, name string) error {
-	if err := w.api(http.MethodGet, "/external/v1/engine/sql/connections/"+w.conn, nil, nil); err != nil {
+	if err := w.api(http.MethodGet, w.enginePath("/connections/"+w.conn), nil, nil); err != nil {
 		return err
 	}
 	if w.code != http.StatusOK {

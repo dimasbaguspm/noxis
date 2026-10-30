@@ -18,7 +18,7 @@ import (
 	"noxis/internal/interfaces"
 	"noxis/internal/mocks"
 	"noxis/internal/modules"
-	"noxis/internal/modules/sql"
+	"noxis/internal/modules/postgres"
 	"noxis/internal/repositories"
 	"noxis/internal/usecases"
 )
@@ -53,7 +53,7 @@ func newHarness(t *testing.T) *harness {
 	}, nil).AnyTimes()
 	registry := modules.New(
 		map[string]interfaces.Module{constants.DriverPostgres: h.sq},
-		interfaces.ChangeFlows{constants.DriverPostgres: sql.NewChanges(h.conns, h.changes, h.sq, nil, constants.DriverPostgres)},
+		interfaces.ChangeFlows{constants.DriverPostgres: postgres.NewChanges(h.conns, h.changes, h.sq, nil)},
 	)
 	h.deps = usecases.RegistryDeps{
 		Repositories: repositories.Registry{Connections: h.conns, Changes: h.changes},
