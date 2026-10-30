@@ -44,6 +44,7 @@ func routes(d app.App, cfg config.Config) []route {
 		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}", Handler: http.HandlerFunc(d.Connection.Serve)},
 		{Method: http.MethodDelete, Endpoint: api + "/engine/{driver}/connections/{name}", Handler: http.HandlerFunc(d.DeleteConnection.Serve)},
 		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/connections/{name}/test", Handler: http.HandlerFunc(d.TestConnection.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/connections/probe", Handler: http.HandlerFunc(d.ProbeConnection.Serve)},
 
 		// Permissions: per-connection RBAC policy (users and groups), managed by admins.
 		{Method: http.MethodGet, Endpoint: api + "/config/members", Handler: http.HandlerFunc(d.Members.Serve)},

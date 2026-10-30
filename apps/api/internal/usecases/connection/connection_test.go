@@ -1,7 +1,9 @@
 package connection
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"testing"
@@ -87,5 +89,55 @@ func TestSaveRequiresAdmin(t *testing.T) {
 	rec := testkit.Do(mux, http.MethodPost, "/external/v1/engine/postgres/connections", body, nil)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("non-admin save: %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+// TestProbeSavesNothing proves the draft is pinged without the repository ever being read or written: the mock has no
+// expectation for it, so any call would fail the test.
+// super is the only caller allowed to probe: the route opens a socket to a host the caller names.
+func super() *entity.Identity { return &entity.Identity{Subject: "root", Role: entity.RoleSuper} }
+
+func TestProbeSavesNothing(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	conns := mocks.NewMockConnectionRepository(ctrl)
+	sq := mocks.NewMockSQLChangeEngine(ctrl)
+	sq.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
+	sq.EXPECT().Supports(gomock.Any()).Return(true).AnyTimes()
+	sq.EXPECT().Ping(gomock.Any(), gomock.Any()).Return(nil)
+	d := usecases.RegistryDeps{
+		Repositories: repositories.Registry{Connections: conns},
+		Modules:      modules.New(map[string]modules.Registration{constants.DriverPostgres: {Engine: sq}}),
+	}
+	body, err := json.Marshal(demo())
+	if err != nil {
+		t.Fatalf("encode draft: %v", err)
+	}
+	mux := testkit.Mux("POST", "/external/v1/engine/{driver}/connections/probe", Probe{RegistryDeps: d}.Serve)
+	rec := testkit.DoContext(context.Background(), mux, http.MethodPost, "/external/v1/engine/postgres/connections/probe", string(body), super())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("probe status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+// TestProbeReportsTheProbeError keeps the module's message, because the form shows it to the caller.
+func TestProbeReportsTheProbeError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	conns := mocks.NewMockConnectionRepository(ctrl)
+	sq := mocks.NewMockSQLChangeEngine(ctrl)
+	sq.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
+	sq.EXPECT().Supports(gomock.Any()).Return(true).AnyTimes()
+	sq.EXPECT().Ping(gomock.Any(), gomock.Any()).Return(errors.New("connection refused"))
+	d := usecases.RegistryDeps{
+		Repositories: repositories.Registry{Connections: conns},
+		Modules:      modules.New(map[string]modules.Registration{constants.DriverPostgres: {Engine: sq}}),
+	}
+	body, err := json.Marshal(demo())
+	if err != nil {
+		t.Fatalf("encode draft: %v", err)
+	}
+	mux := testkit.Mux("POST", "/external/v1/engine/{driver}/connections/probe", Probe{RegistryDeps: d}.Serve)
+	rec := testkit.DoContext(context.Background(), mux, http.MethodPost, "/external/v1/engine/postgres/connections/probe", string(body), super())
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "connection refused") {
+		t.Fatalf("failed probe: %d %s", rec.Code, rec.Body.String())
 	}
 }

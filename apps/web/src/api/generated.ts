@@ -1045,6 +1045,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/external/v1/engine/{driver}/connections/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Probe a connection draft without saving it */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
+                };
+                cookie?: never;
+            };
+            /** @description connection draft */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["entity.Connection"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.StatusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/external/v1/engine/{driver}/connections/{name}": {
         parameters: {
             query?: never;
