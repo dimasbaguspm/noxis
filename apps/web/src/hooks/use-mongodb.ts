@@ -1,11 +1,11 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useParams } from "react-router-dom";
 import { api, type MongoChangeInput, type MongoRequest } from "@/lib/api";
 import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { useUrlState } from "@/hooks/use-url-state";
 import { queryClient, queryKeys } from "@/lib/query-client";
 
-// MONGO_DRIVER is the driver whose request queue the console reads; the engine reads take the driver from the route.
-const MONGO_DRIVER = "mongo";
+// The request queue lives under the driver in the URL, the same way the change queue does.
 
 // useMongoConnections reads the document connections from the cached instances query, so the dashboard and these pages never disagree.
 export type MongoView = "json" | "raw" | "tree";
@@ -69,49 +69,56 @@ export function useMongoRunMutation() {
 
 // Request queue: list, detail and the review actions. Every action invalidates the queue so the list and detail refetch by themselves.
 function invalidateRequests() {
-  void queryClient.invalidateQueries({ queryKey: queryKeys.requests.list() });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
 }
 
 export function useMongoChangesListQuery() {
+  const { driver = "" } = useParams();
   const query = useQuery({
-    queryKey: queryKeys.requests.list(),
-    queryFn: () => api.mongodb(MONGO_DRIVER).changes.list(),
+    queryKey: queryKeys.requests.list(driver),
+    queryFn: () => api.mongodb(driver).changes.list(),
+    enabled: !!driver,
   });
   return { ...query, changes: query.data?.changes ?? [] };
 }
 
 export function useMongoChangeGetQuery(id?: string) {
+  const { driver = "" } = useParams();
   return useQuery({
-    queryKey: queryKeys.requests.get(id ?? ""),
-    queryFn: () => api.mongodb(MONGO_DRIVER).changes.get(id as string),
-    enabled: !!id,
+    queryKey: queryKeys.requests.get(driver, id ?? ""),
+    queryFn: () => api.mongodb(driver).changes.get(id as string),
+    enabled: !!id && !!driver,
   });
 }
 
 export function useMongoSubmitChangeMutation() {
+  const { driver = "" } = useParams();
   return useMutation({
-    mutationFn: (input: MongoChangeInput) => api.mongodb(MONGO_DRIVER).changes.submit(input),
+    mutationFn: (input: MongoChangeInput) => api.mongodb(driver).changes.submit(input),
     onSuccess: invalidateRequests,
   });
 }
 
 export function useMongoApproveChangeMutation() {
+  const { driver = "" } = useParams();
   return useMutation({
-    mutationFn: (id: string) => api.mongodb(MONGO_DRIVER).changes.approve(id),
+    mutationFn: (id: string) => api.mongodb(driver).changes.approve(id),
     onSuccess: invalidateRequests,
   });
 }
 
 export function useMongoApplyChangeMutation() {
+  const { driver = "" } = useParams();
   return useMutation({
-    mutationFn: (id: string) => api.mongodb(MONGO_DRIVER).changes.apply(id),
+    mutationFn: (id: string) => api.mongodb(driver).changes.apply(id),
     onSuccess: invalidateRequests,
   });
 }
 
 export function useMongoRejectChangeMutation() {
+  const { driver = "" } = useParams();
   return useMutation({
-    mutationFn: (id: string) => api.mongodb(MONGO_DRIVER).changes.reject(id),
+    mutationFn: (id: string) => api.mongodb(driver).changes.reject(id),
     onSuccess: invalidateRequests,
   });
 }
