@@ -24,12 +24,12 @@ import { useErdQuery } from "@/hooks/use-sql";
 import type { Table } from "@/lib/api";
 import { useConnections } from "@/hooks/use-connections";
 import { Workspace } from "@/components/layout/workspace";
-import { FAMILY } from "@/lib/families";
+import { CAPABILITY } from "@/lib/console-nav";
 
 // SqlErdPage is the full-screen schema graph: pick an instance and a table on the left, read and zoom the graph on the right.
 export default function SqlErdPage() {
   const { isSuper } = useAuth();
-  const { connections, active, driver, busy, setActive } = useConnections(FAMILY.SQL);
+  const { connections, active, driver, busy, setActive } = useConnections(CAPABILITY.SQL);
   const [params, setParams] = useSearchParams();
   const [selectedId, setSelectedId] = useState<string>();
 
@@ -90,7 +90,12 @@ export default function SqlErdPage() {
             <div className="flex min-h-0 flex-1 flex-col gap-3">
               <div className="grid gap-1.5">
                 <Label>Instance</Label>
-                <ConnectionSelect value={connection} onChange={pick} className="w-full" />
+                <ConnectionSelect
+                  capability={CAPABILITY.SQL}
+                  value={connection}
+                  onChange={pick}
+                  className="w-full"
+                />
               </div>
               <div className="min-h-0 flex-1">
                 <TableBrowser

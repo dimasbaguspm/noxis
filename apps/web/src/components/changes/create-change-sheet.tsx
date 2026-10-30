@@ -23,10 +23,11 @@ import { ConnectionSelect } from "@/components/connection/connection-select";
 import { SqlEditor } from "@/components/sql/sql-editor";
 import { SqlFileInput } from "@/components/changes/sql-file-input";
 import { useConnectionSelection } from "@/hooks/use-connection";
+import { CAPABILITY } from "@/lib/console-nav";
 import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { classify } from "@/lib/statements";
 
-// Choice is one submitted change plus the driver of the instance it targets: the engine path is the driver, not the console's family.
+// Choice is one submitted change plus the driver of the instance it targets: the engine path is the driver, not the console's grouping.
 type Choice = { driver: string; connection: string; notes: string; query: string; rollback: string };
 const createSchema = z.object({
   notes: z.string().optional(),
@@ -110,7 +111,12 @@ export function CreateChangeSheet({
           <form id="create-change" onSubmit={onValid} className="grid gap-4">
             <Field>
               <FieldLabel>Instance *</FieldLabel>
-              <ConnectionSelect value={connection} onChange={pick} className="w-full" />
+              <ConnectionSelect
+                capability={CAPABILITY.SQL}
+                value={connection}
+                onChange={pick}
+                className="w-full"
+              />
             </Field>
 
             <Field>

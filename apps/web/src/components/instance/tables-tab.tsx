@@ -149,7 +149,7 @@ export function TablesTab({
                             size="xs"
                             render={
                               <Link
-                                to={`${PAGE_ROUTES.SQL.QUERY}?connection=${encodeURIComponent(connection)}&sql=${encodeURIComponent(previewSQL(t))}`}
+                                to={`${PAGE_ROUTES.QUERY}?connection=${encodeURIComponent(connection)}&sql=${encodeURIComponent(previewSQL(t))}`}
                               />
                             }
                           >

@@ -3,11 +3,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { KeyRound } from "lucide-react";
 import { GrantTable } from "@/components/access/grant-table";
 import { useMembersQuery, usePermissionsQuery } from "@/hooks/use-access";
-import { useLevelsQuery } from "@/hooks/use-config";
+import { useDriversQuery, useLevelsQuery } from "@/hooks/use-config";
 import type { Connection } from "@/lib/api";
-import { familyByKey, familyOfDriver } from "@/lib/families";
+import { driverLabel } from "@/lib/console-nav";
 
-// InstancePermissions is the read-only grant view used by the global Access page. The grants live under the connection's driver path; the family is only the wording of the empty state.
+// InstancePermissions is the read-only grant view used by the global Access page. The grants live under the connection's driver path; the driver label is only the wording of the empty state.
 export function InstancePermissions({
   instance,
 }: {
@@ -17,7 +17,8 @@ export function InstancePermissions({
   const members = useMembersQuery(true);
   const levels = useLevelsQuery().data?.levels ?? [];
   const grants = permissions.data?.permissions ?? [];
-  const family = familyOfDriver(instance.driver);
+  const { data: drivers } = useDriversQuery();
+  const label = driverLabel(drivers, instance.driver);
 
   if (permissions.isPending) return <Skeleton className="h-48 w-full" />;
   if (grants.length === 0) {
@@ -25,7 +26,7 @@ export function InstancePermissions({
       <Empty
         icon={KeyRound}
         title="No explicit grants"
-        description={`${family ? familyByKey[family].label : "This instance"} has no direct user or group grant.`}
+        description={`${label || "This instance"} has no direct user or group grant.`}
       />
     );
   }

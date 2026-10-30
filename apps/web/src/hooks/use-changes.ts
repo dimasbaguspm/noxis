@@ -3,19 +3,19 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, type ChangeInput } from "@/lib/api";
-import { DRIVER } from "@/lib/families";
 import { queryClient, queryKeys } from "@/lib/query-client";
 import { classify } from "@/lib/statements";
 
 export type ChangeKind = "dml" | "ddl";
 
-// A change lives under the engine path of the driver that serves its connection. Reading the queue spans every
-// SQL connection, and the route only uses that driver to pick the SQL engine, so one SQL driver stands for the
-// family there; submitting and applying act on one connection and take that connection's real driver instead.
+// A change lives under the engine path of the driver that serves its connection. Reading the queue spans every SQL
+// connection, and the route only uses that driver to pick the SQL engine, so one SQL driver stands in for the
+// capability there; submitting and applying act on one connection and take that connection's real driver instead.
+const SQL_QUEUE_DRIVER = "postgres";
 
 // ./changes refetches the queue and any detail after an action, so a page never calls refetch() by hand.
 function invalidateChanges() {
-  void queryClient.invalidateQueries({ queryKey: queryKeys.sql.changes.all });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.changes.all });
 }
 
 const CHANGE_DEFAULTS = { q: "", status: "all", page: "1" };
@@ -40,9 +40,9 @@ export function useChangeListQuery(kind?: ChangeKind) {
   const connectionFilter = debounced || undefined;
   const statusFilter = status === "all" ? undefined : status;
   const query = useQuery({
-    queryKey: queryKeys.sql.changes.list(kind, connectionFilter, statusFilter, page),
+    queryKey: queryKeys.changes.list(kind, connectionFilter, statusFilter, page),
     queryFn: () =>
-      api.changes(DRIVER.SQL_QUEUE).list(connectionFilter, page, undefined, statusFilter),
+      api.changes(SQL_QUEUE_DRIVER).list(connectionFilter, page, undefined, statusFilter),
   });
   const changes = useMemo(() => {
     if (!kind) return query.data?.changes;
@@ -55,8 +55,8 @@ export function useChangeListQuery(kind?: ChangeKind) {
 // useChangeGetQuery reads one change; the driver only selects the SQL engine here, since a change is fetched by id.
 export function useChangeGetQuery(id?: string) {
   return useQuery({
-    queryKey: queryKeys.sql.changes.get(id ?? ""),
-    queryFn: () => api.changes(DRIVER.SQL_QUEUE).get(id as string),
+    queryKey: queryKeys.changes.get(id ?? ""),
+    queryFn: () => api.changes(SQL_QUEUE_DRIVER).get(id as string),
     enabled: !!id,
   });
 }

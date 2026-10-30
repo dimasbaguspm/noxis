@@ -548,7 +548,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/changes": {
+    "/external/v1/engine/{driver}/changes": {
         parameters: {
             query?: never;
             header?: never;
@@ -570,8 +570,8 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    /** @description engine family (sql, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                 };
                 cookie?: never;
             };
@@ -604,8 +604,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                 };
                 cookie?: never;
             };
@@ -651,7 +651,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/changes/{id}": {
+    "/external/v1/engine/{driver}/changes/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -664,8 +664,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description change id */
                     id: string;
                 };
@@ -701,7 +701,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/changes/{id}/apply": {
+    "/external/v1/engine/{driver}/changes/{id}/apply": {
         parameters: {
             query?: never;
             header?: never;
@@ -716,8 +716,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description change id */
                     id: string;
                 };
@@ -769,7 +769,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/changes/{id}/approve": {
+    "/external/v1/engine/{driver}/changes/{id}/approve": {
         parameters: {
             query?: never;
             header?: never;
@@ -784,8 +784,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description change id */
                     id: string;
                 };
@@ -828,7 +828,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/changes/{id}/reject": {
+    "/external/v1/engine/{driver}/changes/{id}/reject": {
         parameters: {
             query?: never;
             header?: never;
@@ -843,8 +843,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description change id */
                     id: string;
                 };
@@ -896,7 +896,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/changes/{id}/schedule": {
+    "/external/v1/engine/{driver}/changes/{id}/schedule": {
         parameters: {
             query?: never;
             header?: never;
@@ -911,8 +911,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description change id */
                     id: string;
                 };
@@ -969,7 +969,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections": {
+    "/external/v1/engine/{driver}/connections": {
         parameters: {
             query?: never;
             header?: never;
@@ -982,8 +982,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql, memcache, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                 };
                 cookie?: never;
             };
@@ -1007,8 +1007,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql, memcache, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                 };
                 cookie?: never;
             };
@@ -1045,7 +1045,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}": {
+    "/external/v1/engine/{driver}/connections/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1058,8 +1058,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql, memcache, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1095,8 +1095,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql, memcache, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1127,7 +1127,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/collections": {
+    "/external/v1/engine/{driver}/connections/{name}/collections": {
         parameters: {
             query?: never;
             header?: never;
@@ -1143,8 +1143,8 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    /** @description engine family (mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1189,7 +1189,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/databases": {
+    "/external/v1/engine/{driver}/connections/{name}/databases": {
         parameters: {
             query?: never;
             header?: never;
@@ -1202,8 +1202,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1248,7 +1248,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/erd": {
+    "/external/v1/engine/{driver}/connections/{name}/erd": {
         parameters: {
             query?: never;
             header?: never;
@@ -1261,8 +1261,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1307,7 +1307,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/flush": {
+    "/external/v1/engine/{driver}/connections/{name}/flush": {
         parameters: {
             query?: never;
             header?: never;
@@ -1322,8 +1322,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (memcache) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1371,7 +1371,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/keys": {
+    "/external/v1/engine/{driver}/connections/{name}/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the connected server reports about itself */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ServerInfo"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/external/v1/engine/{driver}/connections/{name}/keys": {
         parameters: {
             query?: never;
             header?: never;
@@ -1389,8 +1448,8 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    /** @description engine family (memcache) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1435,8 +1494,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (memcache) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1483,7 +1542,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/operations": {
+    "/external/v1/engine/{driver}/connections/{name}/operations": {
         parameters: {
             query?: never;
             header?: never;
@@ -1498,8 +1557,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1547,7 +1606,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/permissions": {
+    "/external/v1/engine/{driver}/connections/{name}/permissions": {
         parameters: {
             query?: never;
             header?: never;
@@ -1560,8 +1619,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql, memcache, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1613,8 +1672,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql, memcache, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1684,8 +1743,8 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    /** @description engine family (sql, memcache, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1734,7 +1793,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/requests": {
+    "/external/v1/engine/{driver}/connections/{name}/requests": {
         parameters: {
             query?: never;
             header?: never;
@@ -1749,8 +1808,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1798,7 +1857,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/schema": {
+    "/external/v1/engine/{driver}/connections/{name}/schema": {
         parameters: {
             query?: never;
             header?: never;
@@ -1811,8 +1870,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1857,7 +1916,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/tables/{table}/rows": {
+    "/external/v1/engine/{driver}/connections/{name}/tables/{table}/rows": {
         parameters: {
             query?: never;
             header?: never;
@@ -1875,8 +1934,8 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    /** @description engine family (sql) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                     /** @description table name (unqualified) */
@@ -1923,7 +1982,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/test": {
+    "/external/v1/engine/{driver}/connections/{name}/test": {
         parameters: {
             query?: never;
             header?: never;
@@ -1938,8 +1997,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description engine family (sql, memcache, mongodb) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -1973,7 +2032,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/external/v1/engine/{engine}/connections/{name}/value": {
+    "/external/v1/engine/{driver}/connections/{name}/value": {
         parameters: {
             query?: never;
             header?: never;
@@ -1989,8 +2048,8 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    /** @description engine family (memcache) */
-                    engine: string;
+                    /** @description driver name (postgres, mysql, mariadb, sqlite, cockroach, redis, valkey, mongo) */
+                    driver: string;
                     /** @description connection name */
                     name: string;
                 };
@@ -2042,7 +2101,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List instances across engine families (passwords redacted) */
+        /** List instances across drivers (passwords redacted) */
         get: {
             parameters: {
                 query?: {
@@ -2089,7 +2148,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get one instance across engine families (password redacted) */
+        /** Get one instance across drivers (password redacted) */
         get: {
             parameters: {
                 query?: never;
@@ -2598,10 +2657,8 @@ export interface components {
             database: string;
             /** @description postgres | mysql (mariadb aliases mysql) | sqlite */
             driver: string;
-            /** @description Family names the engine family that serves the driver. It is not stored: the cross-family routes set it when serving. */
-            family?: string;
             host?: string;
-            /** @description ID identifies an instance across families; permissions and changes still link by Name. */
+            /** @description ID identifies an instance across drivers; permissions and changes still link by Name. */
             id?: string;
             name: string;
             /** @description extra DSN params (sslmode, ...) */
@@ -2628,8 +2685,8 @@ export interface components {
             databases?: components["schemas"]["entity.Database"][];
         };
         "entity.DriverInfo": {
+            capabilities?: string[];
             driver?: string;
-            family?: string;
             label?: string;
         };
         "entity.ErrorResponse": {
@@ -2644,7 +2701,6 @@ export interface components {
         "entity.InstanceAccess": {
             connection?: string;
             driver?: string;
-            family?: string;
             id?: string;
             permissions?: components["schemas"]["entity.Permission"][];
         };
@@ -2784,12 +2840,19 @@ export interface components {
         "entity.SchemaConnection": {
             database?: string;
             driver?: string;
-            family?: string;
             name?: string;
         };
         "entity.SchemaGraph": {
             connection?: components["schemas"]["entity.SchemaConnection"];
             tables?: components["schemas"]["entity.Table"][];
+        };
+        "entity.ServerInfo": {
+            /** @description Capabilities names what this profile lets the console prove, in the operator's words. */
+            capabilities?: string[];
+            /** @description Engine is the driver the connection speaks (postgres, mysql, sqlite). */
+            engine?: string;
+            /** @description Version is the version string the server reported. */
+            version?: string;
         };
         "entity.StatusResponse": {
             status?: string;

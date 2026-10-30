@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { ConnectionSelect } from "@/components/connection/connection-select";
 import { SqlEditor } from "@/components/sql/sql-editor";
 import { useConnectionSelection } from "@/hooks/use-connection";
+import { CAPABILITY } from "@/lib/console-nav";
 import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { classify } from "@/lib/statements";
 import { P } from "@/components/ui/typography";
@@ -132,7 +133,12 @@ export function ChangeSubmitDialog({
                 <FieldLabel>
                   Instance <Required />
                 </FieldLabel>
-                <ConnectionSelect value={connection} onChange={pick} className="w-full" />
+                <ConnectionSelect
+                  capability={CAPABILITY.SQL}
+                  value={connection}
+                  onChange={pick}
+                  className="w-full"
+                />
               </Field>
               <Field>
                 <FieldLabel htmlFor="change-notes">

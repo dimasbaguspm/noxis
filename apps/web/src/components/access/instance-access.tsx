@@ -42,10 +42,10 @@ import {
   useRemovePermission,
   useSetPermission,
 } from "@/hooks/use-access";
-import { useLevelsQuery } from "@/hooks/use-config";
+import { useDriversQuery, useLevelsQuery } from "@/hooks/use-config";
 import type { Connection } from "@/lib/api";
 import { formatDateTime } from "@/lib/dates";
-import { familyByKey, familyOfDriver } from "@/lib/families";
+import { driverLabel } from "@/lib/console-nav";
 import { useUrlState } from "@/hooks/use-url-state";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +58,8 @@ const MEMBER_TYPES = [
 // InstanceAccess is the instance review surface: grants and pending requests share one 20:80 workspace.
 export function InstanceAccess({ instance }: { instance: Connection }) {
   const { isAdmin, isInstanceAdmin } = useAuth();
-  const family = familyOfDriver(instance.driver);
+  const { data: drivers } = useDriversQuery();
+  const driverName = instance.driver ? driverLabel(drivers, instance.driver) : "instance";
   const name = instance.name;
   const [params, patch] = useUrlState(ACCESS_VIEW_DEFAULTS);
   const view = params.view === "requests" ? "requests" : "granted";
@@ -218,7 +219,7 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
             </SheetTitle>
             <SheetDescription>
               {sheet?.kind === "add"
-                ? `Grant a user or group on this ${family ? familyByKey[family].label : "instance"}.`
+                ? `Grant a user or group on this ${driverName}.`
                 : sheet?.kind === "grant"
                   ? "Change the level or revoke this grant."
                   : "Review the request, then approve or reject it."}

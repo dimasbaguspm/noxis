@@ -33,10 +33,12 @@ export type AccessEvent = components["schemas"]["entity.AccessEvent"];
 export type AccessLevel = components["schemas"]["entity.LevelInfo"];
 export type AccessRequest = components["schemas"]["entity.AccessRequest"];
 
-// DriverInfo is one entry of the server's hardcoded driver catalog: a driver name and the label a picker shows.
+// DriverInfo is one entry of the server's driver catalog: the driver name, the label a picker shows, and the console
+// surfaces its module implements, so the console groups its navigation by what a driver can do.
 export interface DriverInfo {
   driver: string;
   label: string;
+  capabilities: string[];
 }
 
 // InstanceQuery filters the cross-driver instance list; empty fields are ignored.
@@ -342,8 +344,6 @@ export class ApiClient {
           this.path("/config/members"),
         ),
     },
-    // family returns the shared connection lifecycle for any driver.
-    family: (driver: string) => this.connectionOps(driver),
   };
 }
 

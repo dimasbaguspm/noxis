@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/app/auth-provider";
 import { useConnections } from "@/hooks/use-connections";
-import { FAMILY } from "@/lib/families";
+import { CAPABILITY } from "@/lib/console-nav";
 import { CreateChangeSheet } from "@/components/changes/create-change-sheet";
 import { ChangeTable } from "@/components/changes/change-table";
 import { Workspace } from "@/components/layout/workspace";
@@ -41,7 +41,7 @@ const SKELETON_ROWS = [1, 2, 3, 4, 5, 6];
 // ChangePage is the shared DML/DDL queue: filters and raising on the left, the paginated list on the right.
 export function ChangePage({ kind }: { kind: ChangeKind }) {
   const { canAccess } = useAuth();
-  const { connections: sqlConnections } = useConnections(FAMILY.SQL);
+  const { connections: sqlConnections } = useConnections(CAPABILITY.SQL);
   const {
     connection: filter,
     status,

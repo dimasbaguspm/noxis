@@ -42,34 +42,34 @@ export const queryKeys = {
     schema: (id: string) => pageKey("console.instances.detail", "schema", id),
   },
   sql: {
-    schema: (connection: string | undefined) => pageKey("console.sql.query", "schema", connection),
-    erd: (connection: string | undefined) => pageKey("console.sql.erd", "erd", connection),
+    schema: (connection: string | undefined) => pageKey("console.query", "schema", connection),
+    erd: (connection: string | undefined) => pageKey("console.erd", "erd", connection),
     rows: (connection: string | undefined, schema?: string, table?: string) =>
-      pageKey("console.sql.query", "rows", connection, schema, table),
-    changes: {
-      all: pageRoot("console.sql.dml"),
-      list: (kind?: "dml" | "ddl", connection?: string, status?: string, page = 1) =>
-        pageKey("console.sql.dml", "list", kind, connection, status, page),
-      get: (id: string) => pageKey("console.sql.dml", "get", id),
-    },
+      pageKey("console.query", "rows", connection, schema, table),
   },
-  memcache: {
-    all: pageRoot("console.memcache"),
+  changes: {
+    all: pageRoot("console.changes.dml"),
+    list: (kind?: "dml" | "ddl", connection?: string, status?: string, page = 1) =>
+      pageKey("console.changes.dml", "list", kind, connection, status, page),
+    get: (id: string) => pageKey("console.changes.dml", "get", id),
+  },
+  keys: {
+    all: pageRoot("console.keys"),
     keys: (connection: string | undefined, pattern?: string, page = 1) =>
-      pageKey("console.memcache", "keys", connection, pattern, page),
+      pageKey("console.keys", "keys", connection, pattern, page),
     value: (connection: string | undefined, key?: string) =>
-      pageKey("console.memcache", "value", connection, key),
+      pageKey("console.keys", "value", connection, key),
   },
-  mongodb: {
+  explore: {
     databases: (connection: string | undefined) =>
-      pageKey("console.mongodb.explore", "databases", connection),
+      pageKey("console.explore", "databases", connection),
     collections: (connection: string | undefined, database?: string) =>
-      pageKey("console.mongodb.explore", "collections", connection, database),
-    requests: {
-      all: pageRoot("console.mongodb.requests"),
-      list: () => pageKey("console.mongodb.requests", "list"),
-      get: (id: string) => pageKey("console.mongodb.requests.detail", "get", id),
-    },
+      pageKey("console.explore", "collections", connection, database),
+  },
+  requests: {
+    all: pageRoot("console.requests"),
+    list: () => pageKey("console.requests", "list"),
+    get: (id: string) => pageKey("console.requests.detail", "get", id),
   },
   access: {
     // per-instance grants belong to the instance access tab; the approval inbox belongs to the admin section

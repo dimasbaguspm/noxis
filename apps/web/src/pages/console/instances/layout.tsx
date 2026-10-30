@@ -47,7 +47,14 @@ import { useAuth } from "@/app/auth-provider";
 import { api, type Connection } from "@/lib/api";
 import { useCrumbLabel } from "@/app/crumb-provider";
 import { queryClient, queryKeys } from "@/lib/query-client";
-import { FAMILY, familyByKey, familyOfDriver, type FamilyKey } from "@/lib/families";
+import {
+  CAPABILITY,
+  capabilitiesOf,
+  capabilityIcon,
+  driverLabel,
+  type Capability,
+} from "@/lib/console-nav";
+import { useDriversQuery } from "@/hooks/use-config";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
@@ -55,7 +62,7 @@ export type InstanceTab = "detail" | "tables" | "access" | "erd" | "documents" |
 
 export interface InstanceContextValue {
   instance: Connection;
-  family: FamilyKey;
+  capabilities: Capability[];
   canRead: boolean;
   canAdmin: boolean;
   tables: InstanceTable[];
@@ -78,7 +85,7 @@ const TABS: Record<InstanceTab, string> = {
   keys: "Keys",
 };
 
-// InstanceLayout is the cross-family home of one instance: shared header, routed tabs and the lifecycle actions.
+// InstanceLayout is the cross-driver home of one instance: shared header, routed tabs and the lifecycle actions.
 export default function InstanceLayout() {
   const { id = "" } = useParams();
   const location = useLocation();
@@ -91,13 +98,14 @@ export default function InstanceLayout() {
   // the trail names the instance instead of its id once the detail lands
   useCrumbLabel(PAGE_ROUTES.INSTANCE_DETAIL(id), instance?.name);
 
-  // the API addresses the engine by driver; the family is only the console's grouping of it
+  // the API addresses the engine by driver; what the console shows for it comes from the driver catalog
   const driver = instance?.driver;
-  const family = familyOfDriver(driver);
+  const { data: catalog, isPending: catalogPending } = useDriversQuery();
+  const capabilities = capabilitiesOf(catalog, driver);
   const name = instance?.name ?? "";
   const canRead = canAccess(name, "read");
   const canAdmin = isSuper || isInstanceAdmin(name);
-  const sqlSchema = family === FAMILY.SQL && canRead;
+  const sqlSchema = capabilities.includes(CAPABILITY.SQL) && canRead;
   const schema = useConnectionSchemaQuery(
     sqlSchema ? driver : undefined,
     sqlSchema ? name : undefined,
@@ -124,13 +132,13 @@ export default function InstanceLayout() {
 
   const test = useAction(async () => {
     if (!driver) return;
-    await api.family(driver).test(name);
+    await api.connections(driver).test(name);
     toast.success(`${name}: reachable`);
   });
 
   const remove = useAction(async () => {
     if (!driver) return;
-    await api.family(driver).remove(name);
+    await api.connections(driver).remove(name);
     toast.success(`Deleted ${name}`);
     void queryClient.invalidateQueries({ queryKey: queryKeys.instances.all });
     navigate(PAGE_ROUTES.INSTANCES);
@@ -183,7 +191,9 @@ export default function InstanceLayout() {
     );
   }
 
-  if (!instance || !family) {
+  // the catalog decides which tabs an instance gets, so wait for it: a deep link must not be redirected away by a
+  // momentarily empty capability list.
+  if (!instance || catalogPending) {
     return (
       <div className="flex flex-col gap-4">
         <Skeleton className="h-24 w-full" />
@@ -192,18 +202,19 @@ export default function InstanceLayout() {
     );
   }
 
+  const sql = capabilities.includes(CAPABILITY.SQL);
+  const documents = capabilities.includes(CAPABILITY.DOCUMENTS);
+  const keys = capabilities.includes(CAPABILITY.KEYS);
   const visibleTabs: { id: InstanceTab; label: string }[] = [
     { id: "detail", label: TABS.detail },
-    ...(family === FAMILY.SQL && canRead
+    ...(sql && canRead
       ? [
           { id: "tables" as const, label: TABS.tables },
           { id: "erd" as const, label: TABS.erd },
         ]
       : []),
-    ...(family === FAMILY.MONGODB && canRead
-      ? [{ id: "documents" as const, label: TABS.documents }]
-      : []),
-    ...(family === FAMILY.MEMCACHE && canRead ? [{ id: "keys" as const, label: TABS.keys }] : []),
+    ...(documents && canRead ? [{ id: "documents" as const, label: TABS.documents }] : []),
+    ...(keys && canRead ? [{ id: "keys" as const, label: TABS.keys }] : []),
     ...(canAdmin ? [{ id: "access" as const, label: TABS.access }] : []),
   ];
   const base = PAGE_ROUTES.INSTANCE_DETAIL(instance.id ?? id);
@@ -213,11 +224,10 @@ export default function InstanceLayout() {
     return <Navigate to={base} replace />;
   }
 
-  const meta = familyByKey[family];
-  const Icon = meta.icon;
+  const Icon = capabilityIcon(capabilities);
   const context: InstanceContextValue = {
     instance,
-    family,
+    capabilities,
     canRead,
     canAdmin,
     tables,
@@ -245,7 +255,7 @@ export default function InstanceLayout() {
                 </Badge>
               )}
             </div>
-            <CardDescription>{meta.label}</CardDescription>
+            <CardDescription>{driverLabel(catalog, instance.driver)}</CardDescription>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">

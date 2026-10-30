@@ -43,7 +43,7 @@ import {
 import { useSetActiveConnection } from "@/hooks/use-connections";
 import { useDriversQuery } from "@/hooks/use-config";
 import { queryClient, queryKeys } from "@/lib/query-client";
-import { FAMILY, familyOfDriver, type FamilyKey } from "@/lib/families";
+import { CAPABILITY, capabilitiesOf, type Capability } from "@/lib/console-nav";
 import { api, type Connection } from "@/lib/api";
 import { parseDsn } from "@/lib/dsn";
 
@@ -84,10 +84,10 @@ const SQL_EMPTY: Connection = {
 const MEMCACHE_EMPTY: Connection = { ...SQL_EMPTY, driver: "redis", port: 6379, database: "0" };
 const MONGO_EMPTY: Connection = { ...SQL_EMPTY, driver: "mongo", port: 27017, database: "admin" };
 
-const BLANK: Record<FamilyKey, Connection> = {
-  [FAMILY.SQL]: SQL_EMPTY,
-  [FAMILY.MEMCACHE]: MEMCACHE_EMPTY,
-  [FAMILY.MONGODB]: MONGO_EMPTY,
+const BLANK: Record<Capability, Connection> = {
+  [CAPABILITY.SQL]: SQL_EMPTY,
+  [CAPABILITY.KEYS]: MEMCACHE_EMPTY,
+  [CAPABILITY.DOCUMENTS]: MONGO_EMPTY,
 };
 
 // port follows the driver; the list itself comes from the server catalog.
@@ -105,12 +105,12 @@ const defaultPort = (driver: string) => (isFileDriver(driver) ? 0 : (DRIVER_PORT
 export function ConnectionDialog({
   trigger = "New connection",
   initial,
-  family = FAMILY.SQL,
+  capability = CAPABILITY.SQL,
   wizard = false,
 }: {
   trigger?: string;
   initial?: Connection;
-  family?: FamilyKey;
+  capability?: Capability;
   wizard?: boolean;
 }) {
   const setActive = useSetActiveConnection();
@@ -123,7 +123,7 @@ export function ConnectionDialog({
     reset,
     formState: { errors },
   } = useForm<ConnectionForm>({
-    defaultValues: (initial ?? BLANK[family]) as unknown as ConnectionForm,
+    defaultValues: (initial ?? BLANK[capability]) as unknown as ConnectionForm,
     // Cast the resolver because z.coerce gives form inputs and parsed output different types.
     resolver: zodResolver(connectionSchema) as unknown as Resolver<ConnectionForm>,
   });
@@ -152,12 +152,12 @@ export function ConnectionDialog({
     togglePassword,
     clearDsn,
     pasteDsn,
-  } = useConnectionWizard({ family, wizard, initial, blank: BLANK, reset });
+  } = useConnectionWizard({ capability, wizard, initial, blank: BLANK, reset });
 
   const fileDriver = isFileDriver(watch("driver"));
-  // the engine path is the driver the form holds, so switching driver after picking a family changes where the save goes
+  // the engine path is the driver the form holds, so switching driver after picking a capability changes where the save goes
   const driver = watch("driver") || BLANK[kind].driver;
-  const client = api.family(driver);
+  const client = api.connections(driver);
 
   // any edit makes a previous "verified" stale until the probe runs again
   const field = (key: "name" | "host" | "port" | "user" | "password" | "database") => {
@@ -177,7 +177,7 @@ export function ConnectionDialog({
     await queryClient.invalidateQueries({ queryKey: queryKeys.instances.all });
   }
 
-  // applyDsn fills fields from a pasted DSN and switches the picker to the family its driver is grouped under.
+  // applyDsn fills fields from a pasted DSN and switches the picker to the capability its driver declares.
   function applyDsn() {
     if (!dsn.trim()) return;
     const parsed = parseDsn(dsn);
@@ -192,7 +192,7 @@ export function ConnectionDialog({
       return;
     }
     setDsnError(null);
-    const next = familyOfDriver(v.driver);
+    const next = capabilitiesOf(drivers, v.driver)[0];
     if (next && next !== kind) setKind(next);
     setValue("driver", v.driver);
     setValue("host", v.host);
@@ -256,18 +256,18 @@ export function ConnectionDialog({
                 onChange={(value) => choose(value)}
                 options={[
                   {
-                    value: FAMILY.SQL,
+                    value: CAPABILITY.SQL,
                     label: "SQL database",
                     detail:
                       "Postgres, MySQL or MariaDB. Read and change data through the validated workflow.",
                   },
                   {
-                    value: FAMILY.MEMCACHE,
+                    value: CAPABILITY.KEYS,
                     label: "Memory cache",
                     detail: "Redis or Valkey. Browse keys, inspect values, remove keys.",
                   },
                   {
-                    value: FAMILY.MONGODB,
+                    value: CAPABILITY.DOCUMENTS,
                     label: "Document database",
                     detail: "MongoDB. Explore databases and collections, run CRUD requests.",
                   },
@@ -345,7 +345,7 @@ export function ConnectionDialog({
                       </SelectTrigger>
                       <SelectContent>
                         {drivers
-                          .filter((d) => familyOfDriver(d.driver) === kind)
+                          .filter((d) => d.capabilities.includes(kind))
                           .map((d) => (
                             <SelectItem key={d.driver} value={d.driver}>
                               {d.label}

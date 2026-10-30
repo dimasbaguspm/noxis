@@ -1,19 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { NAV, type NavItem } from "@/lib/nav";
+import { useDriversQuery } from "@/hooks/use-config";
+import { navGroups, type NavItem } from "@/lib/nav";
 
 interface Entry {
   group?: string;
   item: NavItem;
 }
 
-const entries: Entry[] = NAV.flatMap((group) =>
-  group.items.map((item) => ({ group: group.label, item })),
-);
-
 // useNavSearch is the palette's state: open, the filter, the highlighted row, the ⌘K listener and the pick that navigates.
+// The entries come from the driver catalog, so the palette lists exactly the sections the sidebar shows.
 export function useNavSearch() {
   const navigate = useNavigate();
+  const { data: drivers } = useDriversQuery();
+  const groups = useMemo(() => navGroups(drivers), [drivers]);
+  const entries = useMemo<Entry[]>(
+    () => groups.flatMap((group) => group.items.map((item) => ({ group: group.label, item }))),
+    [groups],
+  );
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -44,7 +48,7 @@ export function useNavSearch() {
     return entries.filter(({ group, item }) =>
       `${group ?? ""} ${item.label} ${item.to}`.toLowerCase().includes(needle),
     );
-  }, [filter]);
+  }, [entries, filter]);
 
   function go(entry: Entry | undefined) {
     if (!entry) return;
@@ -71,5 +75,5 @@ export function useNavSearch() {
     setCursor(0);
   }
 
-  return { open, change, filter, search, cursor, setCursor, matches, go, onInputKey };
+  return { open, change, filter, search, cursor, setCursor, matches, groups, go, onInputKey };
 }

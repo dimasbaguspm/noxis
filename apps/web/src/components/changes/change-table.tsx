@@ -50,7 +50,9 @@ export function ChangeTable({ changes, emptyHint }: { changes: Change[]; emptyHi
           {changes.map((change) => {
             const id = change.id ?? "";
             const href = (
-              change.kind === "ddl" ? PAGE_ROUTES.SQL.DDL_DETAIL : PAGE_ROUTES.SQL.DML_DETAIL
+              change.kind === "ddl"
+                ? PAGE_ROUTES.CHANGES.DDL_DETAIL
+                : PAGE_ROUTES.CHANGES.DML_DETAIL
             )(id);
             return (
               <TableRow key={id} className="cursor-pointer">

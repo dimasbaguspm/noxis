@@ -3,7 +3,8 @@ import { Link, useLocation } from "react-router-dom";
 import { ChevronRight, KeyRound, LayoutDashboard, UsersRound } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { cn } from "@/lib/utils";
-import { FAMILIES, type Family } from "@/lib/families";
+import { sections, type Section } from "@/lib/console-nav";
+import { useDriversQuery } from "@/hooks/use-config";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { NavUser } from "@/components/layout/nav-user";
 import { useAuth } from "@/app/auth-provider";
@@ -69,12 +70,12 @@ function InstancesMenu({ pathname }: { pathname: string }) {
   );
 }
 
-// FamilyMenu expands the sidebar first when a collapsed rail hides its children.
-function FamilyMenu({ family, pathname }: { family: Family; pathname: string }) {
-  const active = family.nav.some((item) => isItemActive(pathname, item.to));
+// SectionMenu expands the sidebar first when a collapsed rail hides its children.
+function SectionMenu({ section, pathname }: { section: Section; pathname: string }) {
+  const active = section.nav.some((item) => isItemActive(pathname, item.to));
   const [open, setOpen] = useState(active);
   const { state, isMobile, setOpen: setSidebarOpen } = useSidebar();
-  const Icon = family.icon;
+  const Icon = section.icon;
 
   function toggle() {
     if (state === "collapsed" && !isMobile) {
@@ -87,9 +88,9 @@ function FamilyMenu({ family, pathname }: { family: Family; pathname: string }) 
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton isActive={active} tooltip={family.label} onClick={toggle}>
+      <SidebarMenuButton isActive={active} tooltip={section.label} onClick={toggle}>
         <Icon />
-        <span>{family.label}</span>
+        <span>{section.label}</span>
         <ChevronRight
           className={cn(
             "ml-auto transition-transform duration-200 group-data-[collapsible=icon]:hidden",
@@ -99,7 +100,7 @@ function FamilyMenu({ family, pathname }: { family: Family; pathname: string }) 
       </SidebarMenuButton>
       {open && (
         <SidebarMenuSub>
-          {family.nav.map((item) => (
+          {section.nav.map((item) => (
             <SidebarMenuSubItem key={item.to}>
               <SidebarMenuSubButton
                 render={<Link to={item.to} />}
@@ -115,10 +116,12 @@ function FamilyMenu({ family, pathname }: { family: Family; pathname: string }) 
   );
 }
 
-// AppSidebar renders the static title and grouped instance/engine navigation.
+// AppSidebar renders the static title and grouped instance/engine navigation. The engine groups come from the driver
+// catalog, so a driver the console has never seen still appears under the capability its module declares.
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { pathname } = useLocation();
   const { isAdmin } = useAuth();
+  const { data: drivers } = useDriversQuery();
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -129,8 +132,8 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
           <SidebarGroupContent className="flex flex-col gap-2">
             <SidebarMenu>
               <InstancesMenu pathname={pathname} />
-              {FAMILIES.map((family) => (
-                <FamilyMenu key={family.key} family={family} pathname={pathname} />
+              {sections(drivers).map((section) => (
+                <SectionMenu key={section.key} section={section} pathname={pathname} />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
