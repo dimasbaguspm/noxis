@@ -8,9 +8,9 @@ import (
 	"noxis/internal/common"
 	"noxis/internal/constants"
 	"noxis/internal/interfaces"
-	"noxis/internal/modules/memcache"
 	"noxis/internal/modules/mongodb"
 	"noxis/internal/modules/postgres"
+	"noxis/internal/modules/redis"
 )
 
 func TestLoadModuleByType(t *testing.T) {
@@ -46,7 +46,7 @@ func TestLoadModuleByType(t *testing.T) {
 }
 
 func TestLoadEngineModuleUsesContextDriver(t *testing.T) {
-	sq, mongo, cache := postgres.New(), mongodb.New(), memcache.New(constants.DriverRedis)
+	sq, mongo, cache := postgres.New(), mongodb.New(), redis.New()
 	r := registry{mods: map[string]interfaces.Module{
 		constants.DriverPostgres: sq,
 		constants.DriverMongo:    mongo,

@@ -14,11 +14,12 @@ import (
 	"noxis/internal/interfaces"
 	"noxis/internal/modules/cockroach"
 	"noxis/internal/modules/mariadb"
-	"noxis/internal/modules/memcache"
 	"noxis/internal/modules/mongodb"
 	"noxis/internal/modules/mysql"
 	"noxis/internal/modules/postgres"
+	"noxis/internal/modules/redis"
 	"noxis/internal/modules/sqlite"
+	"noxis/internal/modules/valkey"
 	"noxis/internal/repositories"
 )
 
@@ -60,17 +61,18 @@ func Default(repos repositories.Registry, m *metrics.Metrics) Registry {
 	mods[cockroachDB.Driver()] = cockroachDB
 	changes[cockroachDB.Driver()] = cockroach.NewChanges(repos.Connections, repos.Changes, cockroachDB, m)
 
-	for _, driver := range memcacheDrivers {
-		mods[driver] = memcache.New(driver)
-	}
+	// The cache drivers are separate modules, not one module holding a driver field: valkey is a state, not an alias.
+	cache := redis.New()
+	mods[cache.Driver()] = cache
+
+	valkeyCache := valkey.New()
+	mods[valkeyCache.Driver()] = valkeyCache
+
 	documents := mongodb.New()
 	mods[constants.DriverMongo] = documents
 	changes[constants.DriverMongo] = mongodb.NewChanges(repos.Connections, repos.Changes, documents, m)
 	return New(mods, changes)
 }
-
-// memcacheDrivers are the drivers the memory-cache engine serves, one module each: valkey is its own state, not an alias.
-var memcacheDrivers = []string{constants.DriverRedis, constants.DriverValkey}
 
 type registry struct {
 	mods    map[string]interfaces.Module

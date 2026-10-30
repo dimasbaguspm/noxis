@@ -13,10 +13,10 @@ import (
 
 	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/modules/memcache"
 	"noxis/internal/modules/mongodb"
 	"noxis/internal/modules/mysql"
 	"noxis/internal/modules/postgres"
+	"noxis/internal/modules/redis"
 )
 
 // startEngine runs one image and returns the host and port a module dials.
@@ -112,7 +112,7 @@ func TestUATCacheModule(t *testing.T) {
 	conn := entity.Connection{
 		Name: "cache", Driver: constants.DriverRedis, Host: host, Port: port,
 	}
-	if err := memcache.New(constants.DriverRedis).Ping(context.Background(), conn); err != nil {
+	if err := redis.New().Ping(context.Background(), conn); err != nil {
 		t.Fatalf("ping: %v", err)
 	}
 }
