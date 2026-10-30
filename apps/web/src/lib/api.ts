@@ -201,19 +201,13 @@ export class ApiClient {
           this.connectionPath(driver, name, "/value") + `?key=${encodeURIComponent(key)}`,
         ),
       removeKeys: (name: string, keys: string[]) =>
-        this.request<{ deleted: number }>(
-          "DELETE",
-          this.connectionPath(driver, name, "/keys"),
-          { keys },
-        ),
+        this.request<{ deleted: number }>("DELETE", this.connectionPath(driver, name, "/keys"), {
+          keys,
+        }),
       flush: (name: string) =>
-        this.request<{ status: string }>(
-          "POST",
-          this.connectionPath(driver, name, "/flush"),
-          {
-            confirm: name,
-          },
-        ),
+        this.request<{ status: string }>("POST", this.connectionPath(driver, name, "/flush"), {
+          confirm: name,
+        }),
     }),
     mongodb: (driver: string) => ({
       ...this.connectionOps(driver),
@@ -232,8 +226,7 @@ export class ApiClient {
       run: (name: string, req: MongoRequest) =>
         this.request<MongoResult>("POST", this.connectionPath(driver, name, "/requests"), req),
       changes: {
-        list: () =>
-          this.request<{ changes: Change[] }>("GET", this.endpoint(driver, "changes")),
+        list: () => this.request<{ changes: Change[] }>("GET", this.endpoint(driver, "changes")),
         submit: (input: MongoChangeInput) =>
           this.request<Change>("POST", this.endpoint(driver, "changes"), input),
         get: (id: string) => this.request<Change>("GET", this.endpoint(driver, `changes/${id}`)),

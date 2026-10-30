@@ -35,13 +35,7 @@ export function useSetPermission(driver: string | undefined, name: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: { member: string; memberType: string; level: string }) =>
-      api.permissions.set(
-        driver as string,
-        name,
-        input.member,
-        input.memberType,
-        input.level,
-      ),
+      api.permissions.set(driver as string, name, input.member, input.memberType, input.level),
     onSuccess: (_data, input) => {
       toast.success(`${input.member} can ${input.level} ${name}`);
       void queryClient.invalidateQueries({ queryKey: queryKeys.access.permissions(driver, name) });

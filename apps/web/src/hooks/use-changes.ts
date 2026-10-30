@@ -72,8 +72,7 @@ export function useSubmitChangeMutation() {
 
 export function useApproveChangeMutation() {
   return useMutation({
-    mutationFn: ({ id, driver }: { id: string; driver: string }) =>
-      api.changes(driver).approve(id),
+    mutationFn: ({ id, driver }: { id: string; driver: string }) => api.changes(driver).approve(id),
     onSuccess: invalidateChanges,
   });
 }
