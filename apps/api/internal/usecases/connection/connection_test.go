@@ -24,11 +24,11 @@ func deps(t *testing.T) (usecases.RegistryDeps, *mocks.MockConnectionRepository,
 	conns := mocks.NewMockConnectionRepository(gomock.NewController(t))
 	perms := mocks.NewMockPermissionRepository(gomock.NewController(t))
 	sq := mocks.NewMockSQLModule(gomock.NewController(t))
-	sq.EXPECT().Family().Return(constants.FamilySQL).AnyTimes()
+	sq.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
 	sq.EXPECT().Supports(gomock.Any()).Return(true).AnyTimes()
 	return usecases.RegistryDeps{
 		Repositories: repositories.Registry{Connections: conns, Permissions: perms},
-		Modules:      modules.New(map[string]interfaces.Module{constants.FamilySQL: sq}, interfaces.ChangeFlows{}),
+		Modules:      modules.New(map[string]interfaces.Module{constants.DriverPostgres: sq}, interfaces.ChangeFlows{}),
 	}, conns, perms
 }
 
@@ -47,7 +47,7 @@ func TestGetRedactsPassword(t *testing.T) {
 	}, nil)
 	// a super admin reads without a grant lookup
 	mux := testkit.Mux("GET", "/external/v1/engine/{engine}/connections/{name}", Get{RegistryDeps: d}.Serve)
-	rec := testkit.Do(mux, http.MethodGet, "/external/v1/engine/sql/connections/demo", "", nil)
+	rec := testkit.Do(mux, http.MethodGet, "/external/v1/engine/postgres/connections/demo", "", nil)
 	if rec.Code != http.StatusOK || strings.Contains(rec.Body.String(), "supersecret") {
 		t.Fatalf("redaction: %d %s", rec.Code, rec.Body.String())
 	}
@@ -63,7 +63,7 @@ func TestListHidesUnreadable(t *testing.T) {
 	perms.EXPECT().ListPermissions(gomock.Any(), "demo").Return([]entity.Permission{{
 		Connection: "demo", Member: "readers", MemberType: entity.MemberGroup, Level: entity.LevelRead,
 	}}, nil)
-	rec := testkit.Do(mux, http.MethodGet, "/external/v1/engine/sql/connections", "", reader)
+	rec := testkit.Do(mux, http.MethodGet, "/external/v1/engine/postgres/connections", "", reader)
 	var out entity.ConnectionList
 	_ = json.Unmarshal(rec.Body.Bytes(), &out)
 	if len(out.Connections) != 1 {
@@ -74,7 +74,7 @@ func TestListHidesUnreadable(t *testing.T) {
 	perms.EXPECT().ListPermissions(gomock.Any(), "demo").Return([]entity.Permission{{
 		Connection: "demo", Member: "readers", MemberType: entity.MemberGroup, Level: entity.LevelRead,
 	}}, nil)
-	rec = testkit.Do(mux, http.MethodGet, "/external/v1/engine/sql/connections", "", stranger)
+	rec = testkit.Do(mux, http.MethodGet, "/external/v1/engine/postgres/connections", "", stranger)
 	_ = json.Unmarshal(rec.Body.Bytes(), &out)
 	if len(out.Connections) != 0 {
 		t.Fatalf("stranger sees %d, want 0", len(out.Connections))
@@ -85,7 +85,7 @@ func TestSaveRequiresAdmin(t *testing.T) {
 	d, _, _ := deps(t)
 	mux := testkit.Mux("POST", "/external/v1/engine/{engine}/connections", Save{RegistryDeps: d}.Serve)
 	body := `{"name":"x","driver":"` + constants.DriverPostgres + `","host":"h","port":1,"user":"u","database":"d"}`
-	rec := testkit.Do(mux, http.MethodPost, "/external/v1/engine/sql/connections", body, nil)
+	rec := testkit.Do(mux, http.MethodPost, "/external/v1/engine/postgres/connections", body, nil)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("non-admin save: %d %s", rec.Code, rec.Body.String())
 	}

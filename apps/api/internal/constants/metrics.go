@@ -24,7 +24,6 @@ const (
 
 // Metric label keys.
 const (
-	LabelFamily  = "family"
 	LabelDriver  = "driver"
 	LabelEngine  = "engine"
 	LabelOp      = "operation"
@@ -42,10 +41,10 @@ type Metric struct {
 
 // Metrics catalogues every metric noxis records.
 var Metrics = []Metric{
-	{Name: MetricConnectionsTotal, Kind: MetricGauge, Help: "Registered connections.", Labels: []string{LabelFamily, LabelDriver}},
-	{Name: MetricChangesSubmitted, Kind: MetricCounter, Help: "Changes proposed.", Labels: []string{LabelFamily, LabelEngine}},
-	{Name: MetricChangesApplied, Kind: MetricCounter, Help: "Changes applied.", Labels: []string{LabelFamily}},
-	{Name: MetricChangesFailed, Kind: MetricCounter, Help: "Changes that failed validation or apply.", Labels: []string{LabelFamily, LabelStatus}},
+	{Name: MetricConnectionsTotal, Kind: MetricGauge, Help: "Registered connections.", Labels: []string{LabelDriver}},
+	{Name: MetricChangesSubmitted, Kind: MetricCounter, Help: "Changes proposed.", Labels: []string{LabelDriver}},
+	{Name: MetricChangesApplied, Kind: MetricCounter, Help: "Changes applied.", Labels: []string{LabelDriver}},
+	{Name: MetricChangesFailed, Kind: MetricCounter, Help: "Changes that failed validation or apply.", Labels: []string{LabelDriver, LabelStatus}},
 	{Name: MetricQueryDuration, Kind: MetricHistogram, Help: "Console op duration in seconds.", Labels: []string{LabelEngine, LabelOp}},
 	{Name: MetricUsecaseErrors, Kind: MetricCounter, Help: "Use-case errors by outcome.", Labels: []string{LabelUsecase, LabelStatus}},
 	{Name: MetricSchedulerTicks, Kind: MetricCounter, Help: "External scheduler passes.", Labels: []string{LabelStatus}},

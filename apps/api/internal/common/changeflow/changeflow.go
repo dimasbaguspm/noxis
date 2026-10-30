@@ -15,17 +15,17 @@ import (
 // Flow is the state side of a change queue: the rules of the artifact and the store that records it.
 type Flow struct {
 	Store interfaces.ChangeRepository
-	// family is the engine family this flow serves (constants.FamilySQL).
-	family string
+	// driver is the driver whose queue this flow serves.
+	driver string
 }
 
-// New wires the shared flow for one family.
-func New(store interfaces.ChangeRepository, family string) Flow {
-	return Flow{Store: store, family: family}
+// New wires the shared flow for one driver.
+func New(store interfaces.ChangeRepository, driver string) Flow {
+	return Flow{Store: store, driver: driver}
 }
 
-// Family is the engine family this flow serves.
-func (flow Flow) Family() string { return flow.family }
+// Driver is the driver whose queue this flow serves.
+func (flow Flow) Driver() string { return flow.driver }
 
 // Approve signs off a validated change. Unverified is allowed on purpose: some drivers cannot dry-run DDL, and the reviewer approves with eyes open.
 func (flow Flow) Approve(ctx context.Context, ch *entity.Change, actor string) error {

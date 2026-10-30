@@ -2,9 +2,9 @@ package apply
 
 import (
 	"net/http"
+	"sort"
 	"time"
 
-	"noxis/internal/common"
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
@@ -22,12 +22,18 @@ func (uc Tick) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
 	var flows interfaces.ChangeFlows
-	if err := common.LoadModule(ctx, &flows); err != nil {
+	if err := uc.RouteModule(ctx, r, &flows); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
 	result := entity.TickResult{Applied: []string{}, Failed: []string{}}
-	for _, flow := range []interfaces.ChangeFlow{flows.SQL, flows.Mongo} {
+	drivers := make([]string, 0, len(flows))
+	for driver := range flows {
+		drivers = append(drivers, driver)
+	}
+	sort.Strings(drivers)
+	for _, driver := range drivers {
+		flow := flows[driver]
 		if flow == nil {
 			continue
 		}

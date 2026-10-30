@@ -17,7 +17,7 @@ type (
 // Module is what any engine family must provide for a connection to be registered and tested.
 type Module interface {
 	// Family is the API namespace this module serves (constants.FamilySQL, constants.FamilyMemcache).
-	Family() string
+	Driver() string
 	// Supports reports whether this module serves the driver, which keeps a connection out of the other families' namespaces.
 	Supports(driver string) bool
 	Ping(ctx context.Context, c entity.Connection) error

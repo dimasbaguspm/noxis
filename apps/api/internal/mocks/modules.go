@@ -72,6 +72,20 @@ func (mr *MockSQLModuleMockRecorder) Apply(ctx, c, sqlText any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Apply", reflect.TypeOf((*MockSQLModule)(nil).Apply), ctx, c, sqlText)
 }
 
+// Driver mocks base method.
+func (m *MockSQLModule) Driver() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Driver")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Driver indicates an expected call of Driver.
+func (mr *MockSQLModuleMockRecorder) Driver() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Driver", reflect.TypeOf((*MockSQLModule)(nil).Driver))
+}
+
 // DryRun mocks base method.
 func (m *MockSQLModule) DryRun(ctx context.Context, c entity.Connection, sqlText string) (interfaces.Result, error) {
 	m.ctrl.T.Helper()
@@ -85,20 +99,6 @@ func (m *MockSQLModule) DryRun(ctx context.Context, c entity.Connection, sqlText
 func (mr *MockSQLModuleMockRecorder) DryRun(ctx, c, sqlText any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DryRun", reflect.TypeOf((*MockSQLModule)(nil).DryRun), ctx, c, sqlText)
-}
-
-// Family mocks base method.
-func (m *MockSQLModule) Family() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Family")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// Family indicates an expected call of Family.
-func (mr *MockSQLModuleMockRecorder) Family() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Family", reflect.TypeOf((*MockSQLModule)(nil).Family))
 }
 
 // Kind mocks base method.
@@ -286,18 +286,18 @@ func (mr *MockMemcacheModuleMockRecorder) Delete(ctx, c, keys any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockMemcacheModule)(nil).Delete), ctx, c, keys)
 }
 
-// Family mocks base method.
-func (m *MockMemcacheModule) Family() string {
+// Driver mocks base method.
+func (m *MockMemcacheModule) Driver() string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Family")
+	ret := m.ctrl.Call(m, "Driver")
 	ret0, _ := ret[0].(string)
 	return ret0
 }
 
-// Family indicates an expected call of Family.
-func (mr *MockMemcacheModuleMockRecorder) Family() *gomock.Call {
+// Driver indicates an expected call of Driver.
+func (mr *MockMemcacheModuleMockRecorder) Driver() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Family", reflect.TypeOf((*MockMemcacheModule)(nil).Family))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Driver", reflect.TypeOf((*MockMemcacheModule)(nil).Driver))
 }
 
 // Flush mocks base method.
@@ -441,18 +441,18 @@ func (mr *MockMongoModuleMockRecorder) Databases(ctx, c any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Databases", reflect.TypeOf((*MockMongoModule)(nil).Databases), ctx, c)
 }
 
-// Family mocks base method.
-func (m *MockMongoModule) Family() string {
+// Driver mocks base method.
+func (m *MockMongoModule) Driver() string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Family")
+	ret := m.ctrl.Call(m, "Driver")
 	ret0, _ := ret[0].(string)
 	return ret0
 }
 
-// Family indicates an expected call of Family.
-func (mr *MockMongoModuleMockRecorder) Family() *gomock.Call {
+// Driver indicates an expected call of Driver.
+func (mr *MockMongoModuleMockRecorder) Driver() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Family", reflect.TypeOf((*MockMongoModule)(nil).Family))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Driver", reflect.TypeOf((*MockMongoModule)(nil).Driver))
 }
 
 // IsWrite mocks base method.

@@ -66,7 +66,7 @@ func TestUATSQLModulePostgres(t *testing.T) {
 		User: "postgres", Password: "uat", Database: "postgres",
 		Params: map[string]string{"sslmode": "disable"},
 	}
-	result, err := sql.New().Query(context.Background(), conn, "SELECT 1 AS n")
+	result, err := sql.New(constants.DriverPostgres).Query(context.Background(), conn, "SELECT 1 AS n")
 	if err != nil {
 		t.Fatalf("query: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestUATSQLModulePostgres(t *testing.T) {
 	}
 }
 
-// TestUATSQLModuleMySQL proves the MySQL family against a real server.
+// TestUATSQLModuleMySQL proves the MySQL driver against a real server.
 func TestUATSQLModuleMySQL(t *testing.T) {
 	host, port := startEngine(t, "mysql:8", "3306", map[string]string{"MYSQL_ROOT_PASSWORD": "uat", "MYSQL_ROOT_HOST": "%", "MYSQL_DATABASE": "uat"},
 		wait.ForSQL("3306/tcp", "mysql", func(host string, port network.Port) string {
@@ -85,7 +85,7 @@ func TestUATSQLModuleMySQL(t *testing.T) {
 		Name: "my", Driver: constants.DriverMySQL, Host: host, Port: port,
 		User: "root", Password: "uat", Database: "uat",
 	}
-	result, err := sql.New().Query(context.Background(), conn, "SELECT 1 AS n")
+	result, err := sql.New(constants.DriverMySQL).Query(context.Background(), conn, "SELECT 1 AS n")
 	if err != nil {
 		t.Fatalf("query: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestUATCacheModule(t *testing.T) {
 	conn := entity.Connection{
 		Name: "cache", Driver: constants.DriverRedis, Host: host, Port: port,
 	}
-	if err := memcache.New().Ping(context.Background(), conn); err != nil {
+	if err := memcache.New(constants.DriverRedis).Ping(context.Background(), conn); err != nil {
 		t.Fatalf("ping: %v", err)
 	}
 }

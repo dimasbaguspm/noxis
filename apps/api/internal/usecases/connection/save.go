@@ -40,7 +40,7 @@ func (uc Save) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !module.Supports(connection.Driver) {
-		uc.Fail(ctx, w, fmt.Errorf("driver %q is not a %s driver", connection.Driver, module.Family()))
+		uc.Fail(ctx, w, fmt.Errorf("connection driver %q does not match the engine path %q", connection.Driver, module.Driver()))
 		return
 	}
 	if err := connection.Validate(); err != nil {

@@ -3,7 +3,6 @@ package cache
 import (
 	"net/http"
 
-	"noxis/internal/common"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -29,9 +28,8 @@ func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	ctx = common.WithModuleFamily(ctx, r.PathValue("engine"))
 	var mc interfaces.MemcacheModule
-	if err := common.LoadModule(ctx, &mc); err != nil {
+	if err := uc.RouteModule(ctx, r, &mc); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}

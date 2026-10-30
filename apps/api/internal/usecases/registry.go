@@ -1,9 +1,12 @@
 package usecases
 
 import (
+	"context"
+	"net/http"
 	"time"
 
 	"noxis/internal/auth"
+	"noxis/internal/common"
 	"noxis/internal/common/metrics"
 	"noxis/internal/constants"
 	"noxis/internal/modules"
@@ -20,6 +23,14 @@ type RegistryDeps struct {
 	Metrics *metrics.Metrics
 	// AccessTTL is how long a per-connection grant lasts. Zero falls back to constants.AccessGrantTTL, so a hand-built dep in a test still works.
 	AccessTTL time.Duration
+}
+
+// RouteModule loads a typed capability for the driver the route names, so a handler never reads the engine path parameter itself.
+func (d RegistryDeps) RouteModule(ctx context.Context, r *http.Request, target any) error {
+	if driver := r.PathValue("engine"); driver != "" {
+		ctx = common.WithModuleDriver(ctx, driver)
+	}
+	return common.LoadModule(ctx, target)
 }
 
 // GrantTTL is the configured grant lifetime, or the 120-day default.

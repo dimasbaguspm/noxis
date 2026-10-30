@@ -29,7 +29,7 @@ func (uc Schedule) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decide(ctx, uc.RegistryDeps, w, r, func(change *entity.Change) error {
-		flow, err := flowFor(ctx, change)
+		flow, err := flowFor(ctx, r.PathValue("engine"))
 		if err != nil {
 			return err
 		}

@@ -27,7 +27,7 @@ type Changes struct {
 // NewChanges wires the MongoDB change queue.
 func NewChanges(conns interfaces.ConnectionRepository, store interfaces.ChangeRepository, engine interfaces.MongoModule, m *metrics.Metrics) *Changes {
 	return &Changes{
-		Flow:    changeflow.New(store, constants.FamilyMongo),
+		Flow:    changeflow.New(store, constants.DriverMongo),
 		Conns:   conns,
 		Engine:  engine,
 		Metrics: m,
@@ -35,7 +35,7 @@ func NewChanges(conns interfaces.ConnectionRepository, store interfaces.ChangeRe
 }
 
 // Family is the engine family this flow serves.
-func (changes *Changes) Family() string { return changes.Flow.Family() }
+func (changes *Changes) Driver() string { return changes.Flow.Driver() }
 
 // Satisfier.
 var _ interfaces.MongoChangeFlow = (*Changes)(nil)
@@ -137,7 +137,7 @@ func (changes *Changes) Apply(ctx context.Context, ch *entity.Change, actor stri
 		return *ch, err
 	}
 	res, err := changes.Engine.Apply(ctx, *conn, req)
-	changes.count(ctx, changes.Family(), err)
+	changes.count(ctx, changes.Driver(), err)
 	if err != nil {
 		logging.ErrorWithCtx(ctx, "change failed to apply", err, "change", ch.ID, "connection", ch.Connection, "actor", actor)
 		changeflow.Failed(ch, err)

@@ -6,6 +6,7 @@ import (
 	stdsql "database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"noxis/internal/common/logging"
@@ -19,10 +20,14 @@ const (
 	stmtTimeout = 30 * time.Second
 )
 
-// DB runs verified SQL against registered connections.
-type DB struct{ info infoCache }
+// DB runs verified SQL against one driver's connections.
+type DB struct {
+	info   infoCache
+	driver string
+}
 
-func New() *DB { return &DB{} }
+// New builds the module for one driver name; a module serves that driver and refuses the rest.
+func New(driver string) *DB { return &DB{driver: driver} }
 
 // Result is the shared operation outcome; SQL fills Columns/Rows for reads and EstimatedRows from EXPLAIN when the driver allows it.
 type Result = entity.Result
@@ -67,14 +72,11 @@ func execEach(sqlText string, fn func(stmt string) error) (int, error) {
 	return n, nil
 }
 
-// Family is the namespace this module serves.
-func (db *DB) Family() string { return constants.FamilySQL }
+// Driver is the driver this module serves.
+func (db *DB) Driver() string { return db.driver }
 
-// Supports reports whether the driver speaks SQL.
-func (db *DB) Supports(driver string) bool {
-	_, err := sqlDriver(driver)
-	return err == nil
-}
+// Supports reports whether this module serves the driver.
+func (db *DB) Supports(driver string) bool { return strings.EqualFold(driver, db.driver) }
 
 // Ping verifies a connection answers.
 func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {

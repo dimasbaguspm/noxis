@@ -16,42 +16,54 @@ import (
 	"noxis/internal/repositories"
 )
 
-// Registry loads a typed module from the request context and maps a driver to the family that serves it.
+// Registry loads a typed module from the request context and resolves a driver to the module that serves it.
 type Registry interface {
 	common.ModuleLoader
-	// Engine resolves the module named by an engine family.
-	Engine(name string) (interfaces.Module, error)
-	// Serves reports the family that serves a driver, rather than a hardcoded driver-to-family switch.
-	Serves(driver string) (interfaces.Module, bool)
+	// Engine resolves the module registered for a driver name.
+	Engine(driver string) (interfaces.Module, error)
 }
 
-// New wraps a family map and the change queues in a registry (Default builds the built-in set).
+// New wraps a driver-keyed module map and the change queues in a registry (Default builds the built-in set).
 func New(mods map[string]interfaces.Module, changes interfaces.ChangeFlows) Registry {
 	return registry{mods: mods, changes: changes}
 }
 
-// Default builds the built-in registry: every engine family, its change queue and the auth service, so nothing else declares what the process can do.
+// Default builds the built-in registry: one module per driver name, with its change queue, so nothing else declares what the process can do.
 func Default(repos repositories.Registry, m *metrics.Metrics) Registry {
-	sqlDB, mongoDB := sql.New(), mongodb.New()
-	return New(
-		map[string]interfaces.Module{
-			constants.FamilySQL:      sqlDB,
-			constants.FamilyMemcache: memcache.New(),
-			constants.FamilyMongo:    mongoDB,
-		},
-		interfaces.ChangeFlows{
-			SQL:   sql.NewChanges(repos.Connections, repos.Changes, sqlDB, m),
-			Mongo: mongodb.NewChanges(repos.Connections, repos.Changes, mongoDB, m),
-		},
-	)
+	mods := map[string]interfaces.Module{}
+	changes := interfaces.ChangeFlows{}
+	for _, driver := range sqlDrivers {
+		engine := sql.New(driver)
+		mods[driver] = engine
+		changes[driver] = sql.NewChanges(repos.Connections, repos.Changes, engine, m, driver)
+	}
+	for _, driver := range memcacheDrivers {
+		mods[driver] = memcache.New(driver)
+	}
+	documents := mongodb.New()
+	mods[constants.DriverMongo] = documents
+	changes[constants.DriverMongo] = mongodb.NewChanges(repos.Connections, repos.Changes, documents, m)
+	return New(mods, changes)
 }
+
+// sqlDrivers are the drivers the SQL engine serves, one module each.
+var sqlDrivers = []string{
+	constants.DriverPostgres,
+	constants.DriverMySQL,
+	constants.DriverMariaDB,
+	constants.DriverSQLite,
+	constants.DriverCockroach,
+}
+
+// memcacheDrivers are the drivers the memory-cache engine serves, one module each: valkey is its own state, not an alias.
+var memcacheDrivers = []string{constants.DriverRedis, constants.DriverValkey}
 
 type registry struct {
 	mods    map[string]interfaces.Module
 	changes interfaces.ChangeFlows
 }
 
-// LoadModule fills a requested change-flow capability from the registry.
+// LoadModule fills a requested capability from the registry.
 func (r registry) LoadModule(ctx context.Context, target any) error {
 	switch dst := target.(type) {
 	case *interfaces.Module:
@@ -68,38 +80,57 @@ func (r registry) LoadModule(ctx context.Context, target any) error {
 		}
 		*dst = r.changes
 		return nil
+	case *interfaces.ChangeFlow:
+		if dst == nil {
+			return errors.New("nil module target")
+		}
+		return r.loadFlow(ctx, func(flow interfaces.ChangeFlow) { *dst = flow })
 	case *interfaces.SQLChangeFlow:
 		if dst == nil {
 			return errors.New("nil module target")
 		}
-		if r.changes.SQL == nil {
-			return fmt.Errorf("%w: no SQL change flow registered", constants.ErrUnsupported)
-		}
-		*dst = r.changes.SQL
-		return nil
+		return r.loadFlow(ctx, func(flow interfaces.ChangeFlow) {
+			if selected, ok := flow.(interfaces.SQLChangeFlow); ok {
+				*dst = selected
+			}
+		})
 	case *interfaces.MongoChangeFlow:
 		if dst == nil {
 			return errors.New("nil module target")
 		}
-		if r.changes.Mongo == nil {
-			return fmt.Errorf("%w: no Mongo change flow registered", constants.ErrUnsupported)
-		}
-		*dst = r.changes.Mongo
-		return nil
+		return r.loadFlow(ctx, func(flow interfaces.ChangeFlow) {
+			if selected, ok := flow.(interfaces.MongoChangeFlow); ok {
+				*dst = selected
+			}
+		})
 	default:
 		return fmt.Errorf("%w: no module registered for %T", constants.ErrUnsupported, target)
 	}
+}
+
+// loadFlow resolves the change queue of the driver the route selected.
+func (r registry) loadFlow(ctx context.Context, assign func(interfaces.ChangeFlow)) error {
+	driver, ok := common.ModuleDriver(ctx)
+	if !ok {
+		return fmt.Errorf("%w: driver missing from context", constants.ErrUnsupported)
+	}
+	flow, ok := r.changes[driver]
+	if !ok {
+		return fmt.Errorf("%w: driver %q has no change queue", constants.ErrUnsupported, driver)
+	}
+	assign(flow)
+	return nil
 }
 
 func loadEngine[T any](ctx context.Context, r registry, dst *T, what string) error {
 	if dst == nil {
 		return errors.New("nil module target")
 	}
-	family, ok := common.ModuleFamily(ctx)
+	driver, ok := common.ModuleDriver(ctx)
 	if !ok {
-		return fmt.Errorf("%w: engine family missing from context", constants.ErrUnsupported)
+		return fmt.Errorf("%w: driver missing from context", constants.ErrUnsupported)
 	}
-	module, err := r.Engine(family)
+	module, err := r.Engine(driver)
 	if err != nil {
 		return err
 	}
@@ -111,23 +142,14 @@ func loadEngine[T any](ctx context.Context, r registry, dst *T, what string) err
 	return nil
 }
 
-func (r registry) Engine(name string) (interfaces.Module, error) {
-	mod, ok := r.mods[name]
+func (r registry) Engine(driver string) (interfaces.Module, error) {
+	mod, ok := r.mods[driver]
 	if !ok {
-		return nil, fmt.Errorf("%w: no engine %q", constants.ErrUnsupported, name)
+		return nil, fmt.Errorf("%w: no engine serves driver %q", constants.ErrUnsupported, driver)
 	}
 	return mod, nil
 }
 
-func (r registry) Serves(driver string) (interfaces.Module, bool) {
-	for _, mod := range r.mods {
-		if mod.Supports(driver) {
-			return mod, true
-		}
-	}
-	return nil, false
-}
-
 func unsupported(mod interfaces.Module, what string) error {
-	return fmt.Errorf("%w: engine %q does not serve %s", constants.ErrUnsupported, mod.Family(), what)
+	return fmt.Errorf("%w: driver %q does not serve %s", constants.ErrUnsupported, mod.Driver(), what)
 }

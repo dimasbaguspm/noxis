@@ -25,11 +25,11 @@ func TestRequestLogRecordsStatus(t *testing.T) {
 	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNotFound) })
 
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/external/v1/engine/sql/connections", http.NoBody)
+	req := httptest.NewRequest(http.MethodGet, "/external/v1/engine/postgres/connections", http.NoBody)
 	RequestLog(inner, log).ServeHTTP(rec, req)
 
 	line := buf.String()
-	for _, want := range []string{`"method":"GET"`, `"path":"/external/v1/engine/sql/connections"`, `"status":404`} {
+	for _, want := range []string{`"method":"GET"`, `"path":"/external/v1/engine/postgres/connections"`, `"status":404`} {
 		if !strings.Contains(line, want) {
 			t.Fatalf("log %s missing %s", line, want)
 		}

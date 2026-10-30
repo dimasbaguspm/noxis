@@ -17,5 +17,5 @@ func changeFor(ctx context.Context, deps usecases.RegistryDeps, module interface
 	case interfaces.MongoModule:
 		return deps.MongoChange(ctx, id)
 	}
-	return nil, fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, module.Family())
+	return nil, fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, module.Driver())
 }

@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"noxis/internal/common/logging"
-	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/usecases"
 )
@@ -41,8 +40,8 @@ func (uc RotatePassword) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	if _, ok := uc.Modules.Serves(connection.Driver); !ok {
-		uc.Fail(ctx, w, constants.ErrUnsupported)
+	if _, err := uc.Modules.Engine(connection.Driver); err != nil {
+		uc.Fail(ctx, w, err)
 		return
 	}
 	connection.Password = body.Password

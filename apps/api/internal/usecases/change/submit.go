@@ -3,7 +3,6 @@ package change
 import (
 	"net/http"
 
-	"noxis/internal/common"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -41,7 +40,7 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var flow interfaces.SQLChangeFlow
-		if err := common.LoadModule(ctx, &flow); err != nil {
+		if err := uc.RouteModule(ctx, r, &flow); err != nil {
 			uc.Fail(ctx, w, err)
 			return
 		}
@@ -50,7 +49,7 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 			uc.Fail(ctx, w, err)
 			return
 		}
-		uc.Metrics.ChangeSubmitted(ctx, module.Family(), r.PathValue("engine"))
+		uc.Metrics.ChangeSubmitted(ctx, module.Driver())
 		uc.Respond(w, out)
 	case interfaces.MongoModule:
 		var body entity.MongoChangeRequest
@@ -64,7 +63,7 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var flow interfaces.MongoChangeFlow
-		if err := common.LoadModule(ctx, &flow); err != nil {
+		if err := uc.RouteModule(ctx, r, &flow); err != nil {
 			uc.Fail(ctx, w, err)
 			return
 		}
@@ -73,7 +72,7 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 			uc.Fail(ctx, w, err)
 			return
 		}
-		uc.Metrics.ChangeSubmitted(ctx, module.Family(), r.PathValue("engine"))
+		uc.Metrics.ChangeSubmitted(ctx, module.Driver())
 		uc.Respond(w, out)
 	default:
 		uc.Fail(ctx, w, unsupportedChangeFlow(module))

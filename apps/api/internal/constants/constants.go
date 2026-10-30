@@ -39,17 +39,10 @@ const (
 	DriverSQLite = "sqlite"
 	// DriverCockroach is a postgres-wire SQL database with transactional DDL: a change is proved in the live transaction, never in a throwaway schema.
 	DriverCockroach = "cockroach"
-	DriverRedis  = "redis"
+	DriverRedis     = "redis"
 	// DriverValkey is the Linux Foundation fork of Redis: same protocol, same commands, same family. It is a separate driver name so the console can show what it is actually talking to.
 	DriverValkey = "valkey"
 	DriverMongo  = "mongo"
-)
-
-// Engine families name API namespaces; modules report membership so no driver-to-family switch is needed.
-const (
-	FamilySQL      = "sql"
-	FamilyMemcache = "memcache"
-	FamilyMongo    = "mongodb"
 )
 
 // SchedulerActor attributes changes applied by the authenticated scheduler callback.

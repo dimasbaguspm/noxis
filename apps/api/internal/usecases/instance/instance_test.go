@@ -23,17 +23,17 @@ func deps(t *testing.T) (usecases.RegistryDeps, *mocks.MockConnectionRepository)
 	t.Helper()
 	conns := mocks.NewMockConnectionRepository(gomock.NewController(t))
 	sq := mocks.NewMockSQLModule(gomock.NewController(t))
-	sq.EXPECT().Family().Return(constants.FamilySQL).AnyTimes()
+	sq.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
 	sq.EXPECT().Supports(constants.DriverPostgres).Return(true).AnyTimes()
 	sq.EXPECT().Supports(gomock.Any()).Return(false).AnyTimes()
 	mc := mocks.NewMockMemcacheModule(gomock.NewController(t))
-	mc.EXPECT().Family().Return(constants.FamilyMemcache).AnyTimes()
+	mc.EXPECT().Driver().Return(constants.DriverRedis).AnyTimes()
 	mc.EXPECT().Supports(constants.DriverRedis).Return(true).AnyTimes()
 	mc.EXPECT().Supports(gomock.Any()).Return(false).AnyTimes()
 	return usecases.RegistryDeps{
 		Repositories: repositories.Registry{Connections: conns},
 		Modules: modules.New(map[string]interfaces.Module{
-			constants.FamilySQL: sq, constants.FamilyMemcache: mc,
+			constants.DriverPostgres: sq, constants.DriverRedis: mc,
 		}, interfaces.ChangeFlows{}),
 	}, conns
 }
@@ -52,7 +52,7 @@ func TestGetLookup(t *testing.T) {
 	}
 	var got entity.Connection
 	_ = json.Unmarshal(rec.Body.Bytes(), &got)
-	if got.Family != constants.FamilySQL || got.Password != "" {
+	if got.Driver != constants.DriverPostgres || got.Password != "" {
 		t.Fatalf("instance = %+v", got)
 	}
 

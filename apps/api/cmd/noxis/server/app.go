@@ -190,7 +190,7 @@ func newApp(s sources) app {
 	}
 }
 
-// registerConnectionGauge reports connections per family and driver from the repository on the collector's cadence.
+// registerConnectionGauge reports connections per driver from the repository on the collector's cadence.
 func registerConnectionGauge(m *metrics.Metrics, connections interfaces.ConnectionRepository) {
 	if m == nil {
 		return
@@ -200,15 +200,12 @@ func registerConnectionGauge(m *metrics.Metrics, connections interfaces.Connecti
 		if err != nil {
 			return err
 		}
-		counts := map[[2]string]int64{}
+		counts := map[string]int64{}
 		for i := range list {
-			counts[[2]string{list[i].Family, list[i].Driver}]++
+			counts[list[i].Driver]++
 		}
-		for key, n := range counts {
-			o.ObserveInt64(m.Connections, n, metric.WithAttributes(
-				attribute.String(constants.LabelFamily, key[0]),
-				attribute.String(constants.LabelDriver, key[1]),
-			))
+		for driver, n := range counts {
+			o.ObserveInt64(m.Connections, n, metric.WithAttributes(attribute.String(constants.LabelDriver, driver)))
 		}
 		return nil
 	}, m.Connections)

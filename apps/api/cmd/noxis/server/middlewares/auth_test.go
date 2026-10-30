@@ -38,7 +38,7 @@ func okHandler() http.Handler {
 // WithAuth denies /external/v1/* when no verifier is wired: there is no open mode.
 func TestWithAuthNilVerifierDenies(t *testing.T) {
 	rec := httptest.NewRecorder()
-	WithAuth(nil, okHandler(), discardLog()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/engine/sql/connections", http.NoBody))
+	WithAuth(nil, okHandler(), discardLog()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/engine/postgres/connections", http.NoBody))
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("nil verifier status=%d want=%d", rec.Code, http.StatusUnauthorized)
 	}
@@ -55,9 +55,9 @@ func TestWithAuthGuardsAPI(t *testing.T) {
 		header string
 		want   int
 	}{
-		{"api missing token", "/external/v1/engine/sql/connections", "", http.StatusUnauthorized},
-		{"api bad scheme", "/external/v1/engine/sql/connections", "Token abc", http.StatusUnauthorized},
-		{"api invalid token", "/external/v1/engine/sql/connections", "Bearer nope", http.StatusUnauthorized},
+		{"api missing token", "/external/v1/engine/postgres/connections", "", http.StatusUnauthorized},
+		{"api bad scheme", "/external/v1/engine/postgres/connections", "Token abc", http.StatusUnauthorized},
+		{"api invalid token", "/external/v1/engine/postgres/connections", "Bearer nope", http.StatusUnauthorized},
 		{"console open", "/", "", http.StatusOK},
 		{"health open", "/healthz", "", http.StatusOK},
 	}
