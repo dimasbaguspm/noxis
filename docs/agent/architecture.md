@@ -38,7 +38,7 @@ One file does all wiring, at boot, once: `apps/api/cmd/noxis/server/app.go`.
   the app dependencies remain explicit.
 - `server.Run` attaches the loader to the server base context once. A use case loads
   a typed capability with `common.LoadModule(ctx, &target)`; route-specific engine
-  use cases first attach `{engine}` with `common.WithModuleFamily`. Generic engine
+  use cases first attach `{engine}` with `common.WithModuleDriver`. Generic engine
   checks continue to use `Modules.Engine(name)`.
 
 Add a new use case: create `apps/api/internal/usecases/<domain>/foo.go` with a
@@ -50,7 +50,7 @@ access rule. No constructor boilerplate, no reflection.
 
 `apps/api/internal/modules/modules.go`:
 
-- `Registry` resolves a family by name (`Engine`) and a driver → family (`Serves`); typed lookups go through `common.ModuleLoader`, not one method per interface.
+- `Registry` resolves a driver name to its module (`Engine`); typed lookups go through `common.ModuleLoader`, not one method per capability.
 - `Default(repositories, metrics)` builds `{sql, memcache, mongodb}` and their change flows. **This map
   is the only place families are declared.**
 - `Registry` implements the common typed `ModuleLoader` for registered engine and
@@ -71,7 +71,7 @@ module. This is why one handler serves all families instead of a copy per family
 | `ConnectionRepository` | `interfaces/connection.go` | `sqlite.Store` |
 | `ChangeRepository` | `interfaces/change.go` | `sqlite.Store` |
 | `PermissionRepository` | `interfaces/permission.go` | `sqlite.Store` |
-| `Module` / `SQLModule` | `interfaces/sql.go` | `sql.DB` (`Tables` carries declared keys, so the schema browser and the ERD read one pass) |
+| `Module` + capabilities (`ConsoleQuerier`, `SchemaReader`, `ServerReporter`, `ChangeProver`, `ChangeApplier`) | `interfaces/sql.go` | `sql.DB` (`Tables` carries declared keys, so the schema browser and the ERD read one pass) |
 | `MemcacheModule` | `interfaces/memcache.go` | `memcache.DB` |
 | `MongoModule` | `interfaces/mongodb.go` | `mongodb.DB` |
 | `Verifier` | `interfaces/auth.go` | `auth.OIDC` (tests use a fake) |
@@ -203,7 +203,7 @@ Logs re-emit trace/span ids from ctx so log/trace/metric share identity
 
 ## How to add things
 
-**New engine family:** implement `interfaces.Module` (+ one of the sub-seam
+**New driver:** implement `interfaces.Module` (+ the capability
 interfaces) in `apps/api/internal/modules/<family>/`, register in `modules.Default()`,
 add a family const + driver consts, add a route family in `newHandler`, add
 `Engine<Family>` to `Registry`. Add a compose service to exercise it in UAT.

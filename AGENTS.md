@@ -77,7 +77,7 @@ Inside `apps/api/`:
 | `apps/api/internal/usecases/` | root framework (RegistryDeps + helpers) + one subpackage per domain |
 | `apps/api/internal/modules/` | engine adapters: `sql`, `memcache`, `mongodb`, `auth` + `Registry` |
 | `apps/api/internal/repositories/` | persistence: `sqlite` (the only state) |
-| `apps/api/internal/interfaces/` | seams (`ConnectionRepository`, `Module`, `SQLModule`, …) |
+| `apps/api/internal/interfaces/` | seams (`ConnectionRepository`, `Module` + one capability interface per verb set, …) |
 | `apps/api/internal/entity/` | shared data model (store + wire + REST) |
 | `apps/api/internal/common/` | config, logging/span, idgen, pagination, secret, shared changeflow rules |
 | `apps/api/internal/constants/` | universal values (drivers, families, statuses, limits) |
@@ -91,7 +91,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 
 1. `middlewares.CORS → Trace → WithAuth → RequestLog` wrap the `http.ServeMux`: the span covers the whole request (a refused token is traced), and the request log runs after the principal is attached.
 2. `routes(app, cfg)` lists every endpoint as `{Method, Endpoint, Handler, Public, Middlewares}`; `newHandler` registers the table and attaches auth per route.
-3. `Serve` reads the path/query/body and resolves typed engine capabilities with `common.WithModuleFamily` + `common.LoadModule(ctx, &target)`; generic family checks use `uc.Modules.Engine(...)`.
+3. `Serve` reads the path/query/body and resolves one capability for the driver the route names with `uc.RouteModule(ctx, r, &target)`; the loader asserts the interface against that driver's module. A driver that cannot do the thing is refused by name, never stubbed.
 4. It calls its `Run(ctx, ...)` domain core and writes the response with `respond`/`fail`.
 5. The use case reads repositories/modules from its own struct fields (set explicitly in `newApp`), enforces access via `RawConn`/`Authorize`, persists via a repository.
 6. `fail` maps `constants.ErrNotFound`/`constants.ErrUnsupported`→404, `constants.ErrForbidden`→403, `constants.ErrInvalidCredentials`/`constants.ErrUnauthorized`→401, else 400.

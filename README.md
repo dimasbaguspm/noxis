@@ -84,7 +84,7 @@ The dev stack seeds the root super admin (`root@noxis.local` / `noxis-admin`).
 
 ### Drive it from the API
 
-Everything the console does is a REST call under `/external/v1/engine/{sql|memcache|mongodb}`.
+Everything the console does is a REST call under `/external/v1/engine/{driver}` — `postgres`, `mysql`, `mariadb`, `sqlite`, `cockroach`, `redis`, `valkey` or `mongo`.
 Every call needs the bearer token from `POST /external/v1/auth/login`:
 
 ```bash
@@ -92,7 +92,7 @@ TOKEN=$(curl -s localhost:9000/external/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"root@noxis.local","password":"noxis-admin"}' | jq -r .token)
 
-curl -s -X POST localhost:9000/external/v1/engine/sql/connections/demo/query \
+curl -s -X POST localhost:9000/external/v1/engine/postgres/connections/demo/query \
   -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"sql":"SELECT 6*6 AS n"}'
 ```
@@ -109,7 +109,7 @@ The full OpenAPI spec is in [`openapi.yaml`](openapi.yaml).
 | **Redis / Valkey** | browse keys by pattern, inspect values, TTL/size, remove keys |
 | **MongoDB** | explore databases/collections/documents, reviewed write requests |
 
-Redis and Valkey are treated as one family under their own driver names, because
+Redis and Valkey are separate engine modules under their own driver names, because
 Valkey speaks the same protocol — and the acceptance suite registers a real
 Valkey server to keep that claim honest.
 
