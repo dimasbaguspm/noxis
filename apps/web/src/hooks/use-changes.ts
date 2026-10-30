@@ -3,10 +3,15 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, type ChangeInput } from "@/lib/api";
+import { DRIVER } from "@/lib/families";
 import { queryClient, queryKeys } from "@/lib/query-client";
 import { classify } from "@/lib/statements";
 
 export type ChangeKind = "dml" | "ddl";
+
+// A change lives under the engine path of the driver that serves its connection. Reading the queue spans every
+// SQL connection, and the route only uses that driver to pick the SQL engine, so one SQL driver stands for the
+// family there; submitting and applying act on one connection and take that connection's real driver instead.
 
 // ./changes refetches the queue and any detail after an action, so a page never calls refetch() by hand.
 function invalidateChanges() {
@@ -36,7 +41,8 @@ export function useChangeListQuery(kind?: ChangeKind) {
   const statusFilter = status === "all" ? undefined : status;
   const query = useQuery({
     queryKey: queryKeys.sql.changes.list(kind, connectionFilter, statusFilter, page),
-    queryFn: () => api.changes.list(connectionFilter, page, undefined, statusFilter),
+    queryFn: () =>
+      api.changes(DRIVER.SQL_QUEUE).list(connectionFilter, page, undefined, statusFilter),
   });
   const changes = useMemo(() => {
     if (!kind) return query.data?.changes;
@@ -46,46 +52,57 @@ export function useChangeListQuery(kind?: ChangeKind) {
   return { ...query, changes, total: query.data?.total };
 }
 
+// useChangeGetQuery reads one change; the driver only selects the SQL engine here, since a change is fetched by id.
 export function useChangeGetQuery(id?: string) {
   return useQuery({
     queryKey: queryKeys.sql.changes.get(id ?? ""),
-    queryFn: () => api.changes.get(id as string),
+    queryFn: () => api.changes(DRIVER.SQL_QUEUE).get(id as string),
     enabled: !!id,
   });
 }
 
+// Every mutation names the driver of the change's connection: submitting validates against it and applying runs through it.
 export function useSubmitChangeMutation() {
   return useMutation({
-    mutationFn: (input: ChangeInput) => api.changes.submit(input),
+    mutationFn: ({ driver, ...input }: ChangeInput & { driver: string }) =>
+      api.changes(driver).submit(input),
     onSuccess: invalidateChanges,
   });
 }
 
 export function useApproveChangeMutation() {
   return useMutation({
-    mutationFn: (id: string) => api.changes.approve(id),
+    mutationFn: ({ id, driver }: { id: string; driver: string }) =>
+      api.changes(driver).approve(id),
     onSuccess: invalidateChanges,
   });
 }
 
 export function useApplyChangeMutation() {
   return useMutation({
-    mutationFn: (id: string) => api.changes.apply(id),
+    mutationFn: ({ id, driver }: { id: string; driver: string }) => api.changes(driver).apply(id),
     onSuccess: invalidateChanges,
   });
 }
 
 export function useRejectChangeMutation() {
   return useMutation({
-    mutationFn: (id: string) => api.changes.reject(id),
+    mutationFn: ({ id, driver }: { id: string; driver: string }) => api.changes(driver).reject(id),
     onSuccess: invalidateChanges,
   });
 }
 
 export function useScheduleChangeMutation() {
   return useMutation({
-    mutationFn: ({ id, scheduledAt }: { id: string; scheduledAt: number }) =>
-      api.changes.schedule(id, scheduledAt),
+    mutationFn: ({
+      id,
+      driver,
+      scheduledAt,
+    }: {
+      id: string;
+      driver: string;
+      scheduledAt: number;
+    }) => api.changes(driver).schedule(id, scheduledAt),
     onSuccess: invalidateChanges,
   });
 }

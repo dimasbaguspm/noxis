@@ -220,7 +220,8 @@ export function ChangeSqlReview({
   canApprove: boolean;
   canApply: boolean;
   canReject: boolean;
-  onInverse: (input: ChangeInput) => Promise<ReviewOutcome>;
+  // the inverse change is submitted through the driver of the instance it targets
+  onInverse: (input: ChangeInput & { driver: string }) => Promise<ReviewOutcome>;
   onApprove: () => void;
   onApply: () => void;
   onReject: () => void;
@@ -276,7 +277,7 @@ function ChangeActionBar({
   canApprove: boolean;
   canApply: boolean;
   canReject: boolean;
-  onInverse: (input: ChangeInput) => Promise<ReviewOutcome>;
+  onInverse: (input: ChangeInput & { driver: string }) => Promise<ReviewOutcome>;
   onApprove: () => void;
   onApply: () => void;
   onReject: () => void;

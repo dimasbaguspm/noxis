@@ -53,7 +53,7 @@ func loadTargets() error {
 	for driver, image := range map[string]string{
 		"postgres": "postgres", "mysql": "mysql", "mariadb": "mariadb", "mongo": "mongo",
 		"cockroach": "cockroachdb/cockroach",
-		"redis": "redis", "valkey": "valkey",
+		"redis":     "redis", "valkey": "valkey",
 	} {
 		h, err := hostOf(image)
 		if err != nil {

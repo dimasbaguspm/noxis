@@ -18,12 +18,12 @@ import { P } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 
 // CacheBrowser is a compact read-only key browser on the instance page; removal and flush stay on the full page.
-export function CacheBrowser({ connection }: { connection: string }) {
+export function CacheBrowser({ driver, connection }: { driver: string; connection: string }) {
   const [pattern, setPattern] = useState("*");
   const [key, setKey] = useState<string>();
   const glob = useDebounce(pattern.trim() || "*", 300);
-  const keys = useMemcacheKeysQuery(connection, glob);
-  const value = useMemcacheValueQuery(connection, key);
+  const keys = useMemcacheKeysQuery(driver, connection, glob);
+  const value = useMemcacheValueQuery(driver, connection, key);
   const { pick } = useMemcacheConnections();
   const visible = (keys.page.keys ?? []).slice(0, 100);
 

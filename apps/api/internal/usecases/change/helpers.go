@@ -71,7 +71,7 @@ func filterByStatus(all []entity.Change, status string) []entity.Change {
 }
 
 func unsupportedChangeFlow(module interfaces.Module) error {
-	return fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, module.Family())
+	return fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, module.Driver())
 }
 
 func changeFor(ctx context.Context, deps usecases.RegistryDeps, module interfaces.Module, id string) (*entity.Change, error) {
@@ -84,16 +84,10 @@ func changeFor(ctx context.Context, deps usecases.RegistryDeps, module interface
 	return nil, unsupportedChangeFlow(module)
 }
 
-func flowFor(ctx context.Context, change *entity.Change) (interfaces.ChangeFlow, error) {
-	if change.Kind == constants.KindMongo {
-		var flow interfaces.MongoChangeFlow
-		if err := common.LoadModule(ctx, &flow); err != nil {
-			return nil, err
-		}
-		return flow, nil
-	}
-	var flow interfaces.SQLChangeFlow
-	if err := common.LoadModule(ctx, &flow); err != nil {
+// flowFor is the change queue of the driver the route names, so the driver picks the queue rather than the change's kind.
+func flowFor(ctx context.Context, driver string) (interfaces.ChangeFlow, error) {
+	var flow interfaces.ChangeFlow
+	if err := common.LoadModule(common.WithModuleDriver(ctx, driver), &flow); err != nil {
 		return nil, err
 	}
 	return flow, nil

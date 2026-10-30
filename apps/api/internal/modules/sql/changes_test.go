@@ -24,7 +24,7 @@ func TestReviewDecisionsLogActor(t *testing.T) {
 	controller := gomock.NewController(t)
 	store := mocks.NewMockChangeRepository(controller)
 	store.EXPECT().SaveChange(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	flow := NewChanges(nil, store, nil, nil)
+	flow := NewChanges(nil, store, nil, nil, constants.DriverMySQL)
 	ctx := context.Background()
 
 	approved := entity.Change{ID: "approve-1", Connection: "prod", Status: constants.ChangeValidated}

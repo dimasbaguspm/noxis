@@ -26,7 +26,8 @@ import { useConnectionSelection } from "@/hooks/use-connection";
 import { useConnectionSchemaQuery } from "@/hooks/use-sql";
 import { classify } from "@/lib/statements";
 
-type Choice = { connection: string; notes: string; query: string; rollback: string };
+// Choice is one submitted change plus the driver of the instance it targets: the engine path is the driver, not the console's family.
+type Choice = { driver: string; connection: string; notes: string; query: string; rollback: string };
 const createSchema = z.object({
   notes: z.string().optional(),
   query: z.string().min(1, "Original query is required"),
@@ -50,8 +51,8 @@ export function CreateChangeSheet({
   kind: "dml" | "ddl";
   onSubmit: (input: Choice) => Promise<Outcome>;
 }) {
-  const { connection, pick } = useConnectionSelection();
-  const { data: tables } = useConnectionSchemaQuery(connection);
+  const { connection, driver, pick } = useConnectionSelection();
+  const { data: tables } = useConnectionSchemaQuery(driver, connection);
   const {
     register,
     handleSubmit,
@@ -70,12 +71,13 @@ export function CreateChangeSheet({
   const detected = classify(watch("query"));
 
   const onValid = handleSubmit(async (values) => {
-    if (!connection) {
+    if (!driver || !connection) {
       toast.error("Pick the instance this change targets");
       return;
     }
     setBusy(true);
     const change = await onSubmit({
+      driver,
       connection,
       notes: (values.notes ?? "").trim() || `manual ${kind} change`,
       query: values.query,

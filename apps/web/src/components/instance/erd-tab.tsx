@@ -20,13 +20,15 @@ import type { Table } from "@/lib/api";
 
 // InstanceErd is the schema graph with the same table browser as Query on the left and the canvas on the right.
 export function InstanceErd({
+  driver,
   connection,
   instanceId,
 }: {
+  driver: string;
   connection: string;
   instanceId?: string;
 }) {
-  const erd = useErdQuery(connection);
+  const erd = useErdQuery(driver, connection);
   const tables = useMemo(() => toErdTables(erd.data), [erd.data]);
   const browserTables = useMemo<Table[]>(
     () =>

@@ -14,12 +14,13 @@ import (
 )
 
 func TestLoadModuleByType(t *testing.T) {
-	sqlFlow := sql.NewChanges(nil, nil, nil, nil)
+	sqlFlow := sql.NewChanges(nil, nil, nil, nil, constants.DriverPostgres)
 	mongoFlow := mongodb.NewChanges(nil, nil, nil, nil)
-	r := registry{changes: interfaces.ChangeFlows{SQL: sqlFlow, Mongo: mongoFlow}}
+	r := registry{changes: interfaces.ChangeFlows{constants.DriverPostgres: sqlFlow, constants.DriverMongo: mongoFlow}}
 
 	var gotSQL interfaces.SQLChangeFlow
-	if err := r.LoadModule(context.Background(), &gotSQL); err != nil {
+	ctx := common.WithModuleDriver(context.Background(), constants.DriverPostgres)
+	if err := r.LoadModule(ctx, &gotSQL); err != nil {
 		t.Fatal(err)
 	}
 	if gotSQL != sqlFlow {
@@ -27,7 +28,8 @@ func TestLoadModuleByType(t *testing.T) {
 	}
 
 	var gotMongo interfaces.MongoChangeFlow
-	if err := r.LoadModule(context.Background(), &gotMongo); err != nil {
+	ctx = common.WithModuleDriver(context.Background(), constants.DriverMongo)
+	if err := r.LoadModule(ctx, &gotMongo); err != nil {
 		t.Fatal(err)
 	}
 	if gotMongo != mongoFlow {
@@ -38,32 +40,32 @@ func TestLoadModuleByType(t *testing.T) {
 	if err := r.LoadModule(context.Background(), &gotFlows); err != nil {
 		t.Fatal(err)
 	}
-	if gotFlows.SQL != sqlFlow || gotFlows.Mongo != mongoFlow {
+	if gotFlows[constants.DriverPostgres] != sqlFlow || gotFlows[constants.DriverMongo] != mongoFlow {
 		t.Fatalf("change flows = %#v, want registered flows", gotFlows)
 	}
 }
 
-func TestLoadEngineModuleUsesContextFamily(t *testing.T) {
-	sq, mongo, cache := sql.New(), mongodb.New(), memcache.New()
+func TestLoadEngineModuleUsesContextDriver(t *testing.T) {
+	sq, mongo, cache := sql.New(constants.DriverPostgres), mongodb.New(), memcache.New(constants.DriverRedis)
 	r := registry{mods: map[string]interfaces.Module{
-		constants.FamilySQL:      sq,
-		constants.FamilyMongo:    mongo,
-		constants.FamilyMemcache: cache,
+		constants.DriverPostgres: sq,
+		constants.DriverMongo:    mongo,
+		constants.DriverRedis:    cache,
 	}}
 
-	ctx := common.WithModuleFamily(context.Background(), constants.FamilySQL)
+	ctx := common.WithModuleDriver(context.Background(), constants.DriverPostgres)
 	var gotSQL interfaces.SQLModule
 	if err := r.LoadModule(ctx, &gotSQL); err != nil || gotSQL != sq {
 		t.Fatalf("SQL module = %T, error = %v", gotSQL, err)
 	}
 
-	ctx = common.WithModuleFamily(context.Background(), constants.FamilyMongo)
+	ctx = common.WithModuleDriver(context.Background(), constants.DriverMongo)
 	var gotMongo interfaces.MongoModule
 	if err := r.LoadModule(ctx, &gotMongo); err != nil || gotMongo != mongo {
 		t.Fatalf("Mongo module = %T, error = %v", gotMongo, err)
 	}
 
-	ctx = common.WithModuleFamily(context.Background(), constants.FamilyMemcache)
+	ctx = common.WithModuleDriver(context.Background(), constants.DriverRedis)
 	var gotCache interfaces.MemcacheModule
 	if err := r.LoadModule(ctx, &gotCache); err != nil || gotCache != cache {
 		t.Fatalf("cache module = %T, error = %v", gotCache, err)
@@ -71,10 +73,10 @@ func TestLoadEngineModuleUsesContextFamily(t *testing.T) {
 
 	var wrong interfaces.SQLModule
 	if err := r.LoadModule(ctx, &wrong); !errors.Is(err, constants.ErrUnsupported) {
-		t.Fatalf("wrong-family error = %v, want unsupported", err)
+		t.Fatalf("wrong-driver error = %v, want unsupported", err)
 	}
 	if err := r.LoadModule(context.Background(), &wrong); !errors.Is(err, constants.ErrUnsupported) {
-		t.Fatalf("missing-family error = %v, want unsupported", err)
+		t.Fatalf("missing-driver error = %v, want unsupported", err)
 	}
 }
 

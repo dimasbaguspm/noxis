@@ -80,7 +80,7 @@ func TestQualifiedIdent(t *testing.T) {
 
 func TestSQLiteRejectsUnrestoredRollback(t *testing.T) {
 	conn := newSQLiteFile(t)
-	u := New()
+	u := New(constants.DriverSQLite)
 	ctx := context.Background()
 
 	_, err := u.ValidateChange(ctx, conn,
@@ -105,7 +105,7 @@ func TestSQLiteEmptyDMLIsUnverifiable(t *testing.T) {
 	}
 	db.Close()
 
-	u := New()
+	u := New(constants.DriverSQLite)
 	_, err = u.ValidateChange(context.Background(), conn,
 		"UPDATE empty_people SET name = 'x'",
 		"UPDATE empty_people SET name = ''")

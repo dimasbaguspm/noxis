@@ -3,5 +3,5 @@ import { useInstanceContext } from "./layout";
 
 export default function InstanceErdTab() {
   const { instance } = useInstanceContext();
-  return <InstanceErd connection={instance.name} instanceId={instance.id} />;
+  return <InstanceErd driver={instance.driver} connection={instance.name} instanceId={instance.id} />;
 }

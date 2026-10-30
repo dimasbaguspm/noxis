@@ -6,16 +6,16 @@ import (
 	"noxis/internal/entity"
 )
 
-// ChangeFlow owns one family's change lifecycle; use cases authorize, translate, and answer.
+// ChangeFlow owns one driver's change lifecycle; use cases authorize, translate, and answer.
 type ChangeFlow interface {
-	// Family is the engine family this flow serves.
-	Family() string
+	// Driver is the driver whose queue this flow serves.
+	Driver() string
 	Approve(ctx context.Context, ch *entity.Change, actor string) error
 	Reject(ctx context.Context, ch *entity.Change, actor string) error
 	Schedule(ctx context.Context, ch *entity.Change, at int64, actor string) error
 	// Apply runs an approved change and records the outcome on it.
 	Apply(ctx context.Context, ch *entity.Change, actor string) (entity.Change, error)
-	// Tick applies every due scheduled change of this family.
+	// Tick applies every due scheduled change of this driver.
 	Tick(ctx context.Context, now int64, actor string) (entity.TickResult, error)
 }
 
@@ -31,8 +31,5 @@ type MongoChangeFlow interface {
 	Submit(ctx context.Context, conn entity.Connection, actor, notes string, req MongoRequest) (entity.Change, error)
 }
 
-// ChangeFlows is every family's change queue, resolved together so a use case reaches the one it serves through the registry.
-type ChangeFlows struct {
-	SQL   SQLChangeFlow
-	Mongo MongoChangeFlow
-}
+// ChangeFlows is every driver's change queue, keyed by driver name, so a driver without a queue has none rather than an empty one.
+type ChangeFlows map[string]ChangeFlow

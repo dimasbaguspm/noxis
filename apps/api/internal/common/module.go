@@ -17,22 +17,22 @@ type ModuleLoader interface {
 }
 
 type moduleLoaderKey struct{}
-type moduleFamilyKey struct{}
+type moduleDriverKey struct{}
 
 // WithModuleLoader attaches the process module registry to a context.
 func WithModuleLoader(ctx context.Context, loader ModuleLoader) context.Context {
 	return context.WithValue(ctx, moduleLoaderKey{}, loader)
 }
 
-// WithModuleFamily attaches the route-selected engine family to ctx for typed engine lookup.
-func WithModuleFamily(ctx context.Context, family string) context.Context {
-	return context.WithValue(ctx, moduleFamilyKey{}, family)
+// WithModuleDriver attaches the route-selected driver to ctx for typed module lookup.
+func WithModuleDriver(ctx context.Context, driver string) context.Context {
+	return context.WithValue(ctx, moduleDriverKey{}, driver)
 }
 
-// ModuleFamily returns the route-selected engine family, if one was attached.
-func ModuleFamily(ctx context.Context) (string, bool) {
-	family, ok := ctx.Value(moduleFamilyKey{}).(string)
-	return family, ok && family != ""
+// ModuleDriver returns the route-selected driver, if one was attached.
+func ModuleDriver(ctx context.Context) (string, bool) {
+	driver, ok := ctx.Value(moduleDriverKey{}).(string)
+	return driver, ok && driver != ""
 }
 
 // LoadModule resolves target through the module registry attached to ctx.

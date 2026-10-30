@@ -114,7 +114,6 @@ type InstanceAccess struct {
 	ID          string       `json:"id"`
 	Connection  string       `json:"connection"`
 	Driver      string       `json:"driver"`
-	Family      string       `json:"family"`
 	Permissions []Permission `json:"permissions"`
 }
 
@@ -191,7 +190,6 @@ type LevelList struct {
 // DriverInfo is one entry in the server-owned driver picker catalog.
 type DriverInfo struct {
 	Driver string `json:"driver"`
-	Family string `json:"family"`
 	Label  string `json:"label"`
 }
 

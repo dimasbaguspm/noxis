@@ -43,9 +43,6 @@ func (uc Matrix) Serve(w http.ResponseWriter, r *http.Request) {
 			ID: c.ID, Connection: c.Name, Driver: c.Driver,
 			Permissions: byConnection[c.Name],
 		}
-		if mod, ok := uc.Modules.Serves(c.Driver); ok {
-			row.Family = mod.Family()
-		}
 		if row.Permissions == nil {
 			row.Permissions = []entity.Permission{}
 		}

@@ -45,7 +45,7 @@ import {
 import { useLevelsQuery } from "@/hooks/use-config";
 import type { Connection } from "@/lib/api";
 import { formatDateTime } from "@/lib/dates";
-import { familyByKey, type FamilyKey } from "@/lib/families";
+import { familyByKey, familyOfDriver } from "@/lib/families";
 import { useUrlState } from "@/hooks/use-url-state";
 import { cn } from "@/lib/utils";
 
@@ -58,17 +58,17 @@ const MEMBER_TYPES = [
 // InstanceAccess is the instance review surface: grants and pending requests share one 20:80 workspace.
 export function InstanceAccess({ instance }: { instance: Connection }) {
   const { isAdmin, isInstanceAdmin } = useAuth();
-  const family = instance.family as FamilyKey | undefined;
+  const family = familyOfDriver(instance.driver);
   const name = instance.name;
   const [params, patch] = useUrlState(ACCESS_VIEW_DEFAULTS);
   const view = params.view === "requests" ? "requests" : "granted";
 
-  const permissions = usePermissionsQuery(family, name);
+  const permissions = usePermissionsQuery(instance.driver, name);
   const members = useMembersQuery(isAdmin);
   const levels = useLevelsQuery().data?.levels ?? [];
   const requests = useToApproveQuery();
-  const add = useSetPermission(family, name);
-  const remove = useRemovePermission(family, name);
+  const add = useSetPermission(instance.driver, name);
+  const remove = useRemovePermission(instance.driver, name);
   const decide = useDecideRequest();
 
   const {
@@ -218,7 +218,7 @@ export function InstanceAccess({ instance }: { instance: Connection }) {
             </SheetTitle>
             <SheetDescription>
               {sheet?.kind === "add"
-                ? `Grant a user or group on this ${familyByKey[family ?? "sql"]?.label ?? "instance"}.`
+                ? `Grant a user or group on this ${family ? familyByKey[family].label : "instance"}.`
                 : sheet?.kind === "grant"
                   ? "Change the level or revoke this grant."
                   : "Review the request, then approve or reject it."}

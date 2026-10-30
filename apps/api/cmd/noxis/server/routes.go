@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"noxis/cmd/noxis/server/middlewares"
+	"noxis/internal/common"
 	"noxis/internal/common/config"
 	"noxis/internal/constants"
 	"noxis/internal/interfaces"
@@ -114,10 +115,20 @@ func routes(d app, cfg config.Config) []route {
 
 // newHandler wires the route table to a mux, applying auth to every API route
 // that is not explicitly public and the request log to every route.
+// withDriver attaches the {engine} path value to the request context, so a use case resolves its module without reading the route itself.
+func withDriver(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if driver := r.PathValue("engine"); driver != "" {
+			r = r.WithContext(common.WithModuleDriver(r.Context(), driver))
+		}
+		h.ServeHTTP(w, r)
+	})
+}
+
 func newHandler(d app, cfg config.Config, verifier interfaces.Verifier, log *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 	for _, rt := range routes(d, cfg) {
-		handler := middlewares.RequestLog(rt.Handler, log)
+		handler := middlewares.RequestLog(withDriver(rt.Handler), log)
 		if !rt.Public && strings.HasPrefix(rt.Endpoint, constants.APIPrefix) {
 			handler = middlewares.Auth(verifier, log)(handler)
 		}

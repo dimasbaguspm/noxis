@@ -3,5 +3,5 @@ import { useInstanceContext } from "./layout";
 
 export default function InstanceKeysTab() {
   const { instance } = useInstanceContext();
-  return <CacheBrowser connection={instance.name} />;
+  return <CacheBrowser driver={instance.driver} connection={instance.name} />;
 }

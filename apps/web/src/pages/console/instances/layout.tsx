@@ -47,7 +47,7 @@ import { useAuth } from "@/app/auth-provider";
 import { api, type Connection } from "@/lib/api";
 import { useCrumbLabel } from "@/app/crumb-provider";
 import { queryClient, queryKeys } from "@/lib/query-client";
-import { FAMILY, familyByKey, type FamilyKey } from "@/lib/families";
+import { FAMILY, familyByKey, familyOfDriver, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
@@ -91,11 +91,17 @@ export default function InstanceLayout() {
   // the trail names the instance instead of its id once the detail lands
   useCrumbLabel(PAGE_ROUTES.INSTANCE_DETAIL(id), instance?.name);
 
-  const family = instance?.family as FamilyKey | undefined;
+  // the API addresses the engine by driver; the family is only the console's grouping of it
+  const driver = instance?.driver;
+  const family = familyOfDriver(driver);
   const name = instance?.name ?? "";
   const canRead = canAccess(name, "read");
   const canAdmin = isSuper || isInstanceAdmin(name);
-  const schema = useConnectionSchemaQuery(family === FAMILY.SQL && canRead ? name : undefined);
+  const sqlSchema = family === FAMILY.SQL && canRead;
+  const schema = useConnectionSchemaQuery(
+    sqlSchema ? driver : undefined,
+    sqlSchema ? name : undefined,
+  );
 
   const tables = useMemo<InstanceTable[]>(
     () =>
@@ -117,14 +123,14 @@ export default function InstanceLayout() {
   );
 
   const test = useAction(async () => {
-    if (!family) return;
-    await api.family(family).test(name);
+    if (!driver) return;
+    await api.family(driver).test(name);
     toast.success(`${name}: reachable`);
   });
 
   const remove = useAction(async () => {
-    if (!family) return;
-    await api.family(family).remove(name);
+    if (!driver) return;
+    await api.family(driver).remove(name);
     toast.success(`Deleted ${name}`);
     void queryClient.invalidateQueries({ queryKey: queryKeys.instances.all });
     navigate(PAGE_ROUTES.INSTANCES);
@@ -221,7 +227,7 @@ export default function InstanceLayout() {
     updateSchema,
   };
 
-  const info = useConnectionInfo(instance.name);
+  const info = useConnectionInfo(instance.driver, instance.name);
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">

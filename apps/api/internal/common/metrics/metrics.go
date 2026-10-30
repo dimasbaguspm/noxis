@@ -96,31 +96,28 @@ func (m *Metrics) OpDuration(ctx context.Context, engine, op string, seconds flo
 }
 
 // ChangeSubmitted counts a change that was proposed.
-func (m *Metrics) ChangeSubmitted(ctx context.Context, family, engine string) {
+func (m *Metrics) ChangeSubmitted(ctx context.Context, driver string) {
 	if m == nil {
 		return
 	}
-	m.ChangesSubmit.Add(ctx, 1, metric.WithAttributes(
-		attribute.String(constants.LabelFamily, family),
-		attribute.String(constants.LabelEngine, engine),
-	))
+	m.ChangesSubmit.Add(ctx, 1, metric.WithAttributes(attribute.String(constants.LabelDriver, driver)))
 }
 
 // ChangeApplied counts a change that was applied.
-func (m *Metrics) ChangeApplied(ctx context.Context, family string) {
+func (m *Metrics) ChangeApplied(ctx context.Context, driver string) {
 	if m == nil {
 		return
 	}
-	m.ChangesApplied.Add(ctx, 1, metric.WithAttributes(attribute.String(constants.LabelFamily, family)))
+	m.ChangesApplied.Add(ctx, 1, metric.WithAttributes(attribute.String(constants.LabelDriver, driver)))
 }
 
 // ChangeFailed counts a change that failed, labelled with the stage that failed.
-func (m *Metrics) ChangeFailed(ctx context.Context, family, status string) {
+func (m *Metrics) ChangeFailed(ctx context.Context, driver, status string) {
 	if m == nil {
 		return
 	}
 	m.ChangesFailed.Add(ctx, 1, metric.WithAttributes(
-		attribute.String(constants.LabelFamily, family),
+		attribute.String(constants.LabelDriver, driver),
 		attribute.String(constants.LabelStatus, status),
 	))
 }

@@ -1,5 +1,4 @@
 import type { components } from "@/api/generated";
-import { FAMILY, type FamilyKey } from "@/lib/families";
 import { accessToken, authEnabled, clearSession } from "@/lib/auth";
 import { PAGE_ROUTES } from "@/constants/routes";
 
@@ -34,14 +33,13 @@ export type AccessEvent = components["schemas"]["entity.AccessEvent"];
 export type AccessLevel = components["schemas"]["entity.LevelInfo"];
 export type AccessRequest = components["schemas"]["entity.AccessRequest"];
 
-// DriverInfo is one entry of the server's hardcoded driver catalog.
+// DriverInfo is one entry of the server's hardcoded driver catalog: a driver name and the label a picker shows.
 export interface DriverInfo {
   driver: string;
-  family: FamilyKey;
   label: string;
 }
 
-// InstanceQuery filters the cross-family instance list; empty fields are ignored.
+// InstanceQuery filters the cross-driver instance list; empty fields are ignored.
 export interface InstanceQuery {
   name?: string;
   driver?: string;
@@ -77,16 +75,16 @@ export interface ChangeInput {
 export class ApiClient {
   constructor(private readonly basePath: string = "/external/v1") {}
 
-  // path completes the injected base path for the endpoints that are not family-scoped.
+  // path completes the injected base path for the endpoints that are not engine-scoped.
   private readonly path = (suffix: string) => `${this.basePath}${suffix}`;
 
-  // endpoint builds an engine path from the family, so no call hardcodes a family URL prefix.
-  private readonly endpoint = (family: FamilyKey, path: string) =>
-    `${this.basePath}/engine/${family}/${path}`;
+  // endpoint builds an engine path from the driver, so no call hardcodes an engine URL segment: the server resolves a module by driver.
+  private readonly endpoint = (driver: string, path: string) =>
+    `${this.basePath}/engine/${encodeURIComponent(driver)}/${path}`;
 
   // connectionPath is the connection-scoped path; the name is URL-encoded so a space or slash cannot break the route.
-  private readonly connectionPath = (family: FamilyKey, name: string, suffix = "") =>
-    this.endpoint(family, `connections/${encodeURIComponent(name)}${suffix}`);
+  private readonly connectionPath = (driver: string, name: string, suffix = "") =>
+    this.endpoint(driver, `connections/${encodeURIComponent(name)}${suffix}`);
 
   private readonly request = async <T>(
     method: string,
@@ -115,21 +113,21 @@ export class ApiClient {
     return data as T;
   };
 
-  // connectionOps is the connection lifecycle every family shares; the family decides the namespace, the routes are identical.
-  private readonly connectionOps = (family: FamilyKey) => ({
+  // connectionOps is the connection lifecycle every driver shares; the driver decides the engine namespace, the routes are identical.
+  private readonly connectionOps = (driver: string) => ({
     list: () =>
-      this.request<{ connections: Connection[] }>("GET", this.endpoint(family, "connections")),
+      this.request<{ connections: Connection[] }>("GET", this.endpoint(driver, "connections")),
     save: (c: Connection) =>
-      this.request<Connection>("POST", this.endpoint(family, "connections"), c),
-    remove: (name: string) => this.request<null>("DELETE", this.connectionPath(family, name)),
+      this.request<Connection>("POST", this.endpoint(driver, "connections"), c),
+    remove: (name: string) => this.request<null>("DELETE", this.connectionPath(driver, name)),
     test: (name: string) =>
-      this.request<{ status: string }>("POST", this.connectionPath(family, name, "/test")),
+      this.request<{ status: string }>("POST", this.connectionPath(driver, name, "/test")),
   });
 
-  // groups is the surface every page uses: one namespace per endpoint family.
+  // groups is the surface every page uses: one namespace per engine surface, each addressed by the driver that serves the connection.
   readonly groups = {
     me: () => this.request<Identity>("GET", this.path("/me")),
-    // instances are the cross-family view: one connection addressed by its stable id, whatever family serves it.
+    // instances are the cross-driver view: one connection addressed by its stable id, whichever driver serves it.
     instances: {
       list: (query: InstanceQuery = {}) => {
         const params = new URLSearchParams();
@@ -153,103 +151,99 @@ export class ApiClient {
           { password },
         ),
     },
-    connections: {
-      ...this.connectionOps(FAMILY.SQL),
+    // connections is the SQL surface of one driver: the shared lifecycle plus schema, graph, info and rows.
+    connections: (driver: string) => ({
+      ...this.connectionOps(driver),
       schema: (name: string) =>
-        this.request<{ tables: Table[] }>("GET", this.connectionPath(FAMILY.SQL, name, "/schema")),
+        this.request<{ tables: Table[] }>("GET", this.connectionPath(driver, name, "/schema")),
       erd: (name: string) =>
-        this.request<SchemaGraph>("GET", this.connectionPath(FAMILY.SQL, name, "/erd")),
+        this.request<SchemaGraph>("GET", this.connectionPath(driver, name, "/erd")),
       // info is what the server says about itself: the version it runs and what that version lets the console prove.
       info: (name: string) =>
-        this.request<ServerInfo>("GET", this.connectionPath(FAMILY.SQL, name, "/info")),
+        this.request<ServerInfo>("GET", this.connectionPath(driver, name, "/info")),
       rows: (name: string, schema: string, table: string, limit = 100) =>
         this.request<Result>(
           "GET",
-          this.connectionPath(FAMILY.SQL, name, `/tables/${table}/rows`) +
+          this.connectionPath(driver, name, `/tables/${table}/rows`) +
             `?schema=${encodeURIComponent(schema)}&limit=${limit}`,
         ),
-    },
-    ops: {
+    }),
+    ops: (driver: string) => ({
       query: (name: string, sql: string) =>
-        this.request<Result>("POST", this.connectionPath(FAMILY.SQL, name, "/operations"), {
+        this.request<Result>("POST", this.connectionPath(driver, name, "/operations"), {
           op: "query",
           sql,
         }),
       rollback: (name: string, sql: string) =>
-        this.request<Result>("POST", this.connectionPath(FAMILY.SQL, name, "/operations"), {
+        this.request<Result>("POST", this.connectionPath(driver, name, "/operations"), {
           op: "rollback",
           sql,
         }),
       analyze: (name: string, table: string) =>
-        this.request<Result>("POST", this.connectionPath(FAMILY.SQL, name, "/operations"), {
+        this.request<Result>("POST", this.connectionPath(driver, name, "/operations"), {
           op: "analyze",
           table,
         }),
-    },
-    memcache: {
-      ...this.connectionOps(FAMILY.MEMCACHE),
+    }),
+    memcache: (driver: string) => ({
+      ...this.connectionOps(driver),
       keys: (name: string, pattern = "*", limit = 500) =>
         this.request<MemcacheKeyPage>(
           "GET",
-          this.connectionPath(FAMILY.MEMCACHE, name, "/keys") +
+          this.connectionPath(driver, name, "/keys") +
             `?pattern=${encodeURIComponent(pattern)}&limit=${limit}`,
         ),
       value: (name: string, key: string) =>
         this.request<Result>(
           "GET",
-          this.connectionPath(FAMILY.MEMCACHE, name, "/value") + `?key=${encodeURIComponent(key)}`,
+          this.connectionPath(driver, name, "/value") + `?key=${encodeURIComponent(key)}`,
         ),
       removeKeys: (name: string, keys: string[]) =>
         this.request<{ deleted: number }>(
           "DELETE",
-          this.connectionPath(FAMILY.MEMCACHE, name, "/keys"),
+          this.connectionPath(driver, name, "/keys"),
           { keys },
         ),
       flush: (name: string) =>
         this.request<{ status: string }>(
           "POST",
-          this.connectionPath(FAMILY.MEMCACHE, name, "/flush"),
+          this.connectionPath(driver, name, "/flush"),
           {
             confirm: name,
           },
         ),
-    },
-    mongodb: {
-      ...this.connectionOps(FAMILY.MONGODB),
+    }),
+    mongodb: (driver: string) => ({
+      ...this.connectionOps(driver),
       databases: (name: string) =>
         this.request<{ databases: MongoDatabase[] }>(
           "GET",
-          this.connectionPath(FAMILY.MONGODB, name, "/databases"),
+          this.connectionPath(driver, name, "/databases"),
         ),
       collections: (name: string, database: string) =>
         this.request<{ collections: MongoCollection[] }>(
           "GET",
-          this.connectionPath(FAMILY.MONGODB, name, "/collections") +
+          this.connectionPath(driver, name, "/collections") +
             `?database=${encodeURIComponent(database)}`,
         ),
       // reads only: a write op is refused here and belongs in the request queue
       run: (name: string, req: MongoRequest) =>
-        this.request<MongoResult>(
-          "POST",
-          this.connectionPath(FAMILY.MONGODB, name, "/requests"),
-          req,
-        ),
+        this.request<MongoResult>("POST", this.connectionPath(driver, name, "/requests"), req),
       changes: {
         list: () =>
-          this.request<{ changes: Change[] }>("GET", this.endpoint(FAMILY.MONGODB, "changes")),
+          this.request<{ changes: Change[] }>("GET", this.endpoint(driver, "changes")),
         submit: (input: MongoChangeInput) =>
-          this.request<Change>("POST", this.endpoint(FAMILY.MONGODB, "changes"), input),
-        get: (id: string) =>
-          this.request<Change>("GET", this.endpoint(FAMILY.MONGODB, `changes/${id}`)),
+          this.request<Change>("POST", this.endpoint(driver, "changes"), input),
+        get: (id: string) => this.request<Change>("GET", this.endpoint(driver, `changes/${id}`)),
         approve: (id: string) =>
-          this.request<Change>("POST", this.endpoint(FAMILY.MONGODB, `changes/${id}/approve`)),
+          this.request<Change>("POST", this.endpoint(driver, `changes/${id}/approve`)),
         apply: (id: string) =>
-          this.request<Change>("POST", this.endpoint(FAMILY.MONGODB, `changes/${id}/apply`)),
+          this.request<Change>("POST", this.endpoint(driver, `changes/${id}/apply`)),
         reject: (id: string) =>
-          this.request<Change>("POST", this.endpoint(FAMILY.MONGODB, `changes/${id}/reject`)),
+          this.request<Change>("POST", this.endpoint(driver, `changes/${id}/reject`)),
       },
-    },
-    changes: {
+    }),
+    changes: (driver: string) => ({
       list: (connection?: string, page?: number, perPage?: number, status?: string) => {
         const params = new URLSearchParams();
         if (connection) params.set("connection", connection);
@@ -259,47 +253,47 @@ export class ApiClient {
         const qs = params.toString();
         return this.request<{ changes: Change[]; total: number }>(
           "GET",
-          this.endpoint(FAMILY.SQL, "changes") + (qs ? `?${qs}` : ""),
+          this.endpoint(driver, "changes") + (qs ? `?${qs}` : ""),
         );
       },
-      get: (id: string) => this.request<Change>("GET", this.endpoint(FAMILY.SQL, `changes/${id}`)),
+      get: (id: string) => this.request<Change>("GET", this.endpoint(driver, `changes/${id}`)),
       submit: (input: ChangeInput) =>
-        this.request<Change>("POST", this.endpoint(FAMILY.SQL, "changes"), input),
+        this.request<Change>("POST", this.endpoint(driver, "changes"), input),
       approve: (id: string) =>
-        this.request<Change>("POST", this.endpoint(FAMILY.SQL, `changes/${id}/approve`)),
+        this.request<Change>("POST", this.endpoint(driver, `changes/${id}/approve`)),
       apply: (id: string) =>
-        this.request<Change>("POST", this.endpoint(FAMILY.SQL, `changes/${id}/apply`)),
+        this.request<Change>("POST", this.endpoint(driver, `changes/${id}/apply`)),
       reject: (id: string) =>
-        this.request<Change>("POST", this.endpoint(FAMILY.SQL, `changes/${id}/reject`)),
+        this.request<Change>("POST", this.endpoint(driver, `changes/${id}/reject`)),
       schedule: (id: string, scheduledAt: number) =>
-        this.request<Change>("POST", this.endpoint(FAMILY.SQL, `changes/${id}/schedule`), {
+        this.request<Change>("POST", this.endpoint(driver, `changes/${id}/schedule`), {
           scheduledAt,
         }),
-    },
+    }),
     // config is the server's console-facing configuration (hardcoded Go-side). permissions: per-connection RBAC policy (users and groups), admin-managed.
     permissions: {
       // matrix is the per-instance overview: every instance with its whole policy.
       matrix: () => this.request<{ instances: InstanceAccess[] }>("GET", this.path("/access")),
-      list: (family: FamilyKey, name: string) =>
+      list: (driver: string, name: string) =>
         this.request<{ permissions: Permission[] }>(
           "GET",
-          this.endpoint(family, `connections/${encodeURIComponent(name)}/permissions`),
+          this.endpoint(driver, `connections/${encodeURIComponent(name)}/permissions`),
         ),
-      set: (family: FamilyKey, name: string, member: string, memberType: string, level: string) =>
+      set: (driver: string, name: string, member: string, memberType: string, level: string) =>
         this.request<Permission>(
           "PUT",
-          this.endpoint(family, `connections/${encodeURIComponent(name)}/permissions`),
+          this.endpoint(driver, `connections/${encodeURIComponent(name)}/permissions`),
           {
             member,
             memberType,
             level,
           },
         ),
-      remove: (family: FamilyKey, name: string, member: string) =>
+      remove: (driver: string, name: string, member: string) =>
         this.request<null>(
           "DELETE",
           this.endpoint(
-            family,
+            driver,
             `connections/${encodeURIComponent(name)}/permissions?member=${encodeURIComponent(member)}`,
           ),
         ),
@@ -348,8 +342,8 @@ export class ApiClient {
           this.path("/config/members"),
         ),
     },
-    // family returns the shared connection lifecycle for any engine family.
-    family: (family: FamilyKey) => this.connectionOps(family),
+    // family returns the shared connection lifecycle for any driver.
+    family: (driver: string) => this.connectionOps(driver),
   };
 }
 

@@ -44,7 +44,7 @@ func newHarness(t *testing.T) *harness {
 		conns:   mocks.NewMockConnectionRepository(ctrl),
 		changes: mocks.NewMockChangeRepository(ctrl),
 	}
-	h.sq.EXPECT().Family().Return(constants.FamilySQL).AnyTimes()
+	h.sq.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
 	h.sq.EXPECT().Supports(constants.DriverPostgres).Return(true).AnyTimes()
 	h.sq.EXPECT().Kind(gomock.Any()).Return(constants.KindDDL).AnyTimes()
 	h.sq.EXPECT().Referenced(gomock.Any()).Return([]string{"things"}, []string{"id"}).AnyTimes()
@@ -52,8 +52,8 @@ func newHarness(t *testing.T) *harness {
 		Name: "demo", Driver: constants.DriverPostgres,
 	}, nil).AnyTimes()
 	registry := modules.New(
-		map[string]interfaces.Module{constants.FamilySQL: h.sq},
-		interfaces.ChangeFlows{SQL: sql.NewChanges(h.conns, h.changes, h.sq, nil)},
+		map[string]interfaces.Module{constants.DriverPostgres: h.sq},
+		interfaces.ChangeFlows{constants.DriverPostgres: sql.NewChanges(h.conns, h.changes, h.sq, nil, constants.DriverPostgres)},
 	)
 	h.deps = usecases.RegistryDeps{
 		Repositories: repositories.Registry{Connections: h.conns, Changes: h.changes},
@@ -88,7 +88,7 @@ func TestFilterByConnection(t *testing.T) {
 func TestSubmitWithoutModuleLoaderFailsClosed(t *testing.T) {
 	h := newHarness(t)
 	rec := testkit.Do(testkit.Mux("POST", "/external/v1/engine/{engine}/changes", Submit{RegistryDeps: h.deps}.Serve),
-		http.MethodPost, "/external/v1/engine/sql/changes", sampleSQL, admin())
+		http.MethodPost, "/external/v1/engine/postgres/changes", sampleSQL, admin())
 	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), common.ErrModuleLoaderUnavailable.Error()) {
 		t.Fatalf("missing module loader status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -110,7 +110,7 @@ func TestSubmitThenApprove(t *testing.T) {
 	}).AnyTimes()
 
 	rec := h.do(testkit.Mux("POST", "/external/v1/engine/{engine}/changes", Submit{RegistryDeps: h.deps}.Serve),
-		http.MethodPost, "/external/v1/engine/sql/changes", sampleSQL, admin())
+		http.MethodPost, "/external/v1/engine/postgres/changes", sampleSQL, admin())
 	if rec.Code != http.StatusOK {
 		t.Fatalf("submit status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -123,7 +123,7 @@ func TestSubmitThenApprove(t *testing.T) {
 	}
 
 	rec = h.do(testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/approve", Approve{RegistryDeps: h.deps}.Serve),
-		http.MethodPost, "/external/v1/engine/sql/changes/"+ch.ID+"/approve", "", admin())
+		http.MethodPost, "/external/v1/engine/postgres/changes/"+ch.ID+"/approve", "", admin())
 	if rec.Code != http.StatusOK {
 		t.Fatalf("approve status=%d body=%s", rec.Code, rec.Body.String())
 	}
@@ -141,7 +141,7 @@ func TestSubmitValidationFailures(t *testing.T) {
 	// the dry run still runs; the kind check is what already failed
 	h.sq.EXPECT().ValidateChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, nil)
 	rec := h.do(testkit.Mux("POST", "/external/v1/engine/{engine}/changes", Submit{RegistryDeps: h.deps}.Serve),
-		http.MethodPost, "/external/v1/engine/sql/changes", sampleSQL, admin())
+		http.MethodPost, "/external/v1/engine/postgres/changes", sampleSQL, admin())
 	var failed entity.Change
 	_ = json.Unmarshal(rec.Body.Bytes(), &failed)
 	if failed.Status != constants.ChangeFailed || failed.ID != "" {
@@ -154,7 +154,7 @@ func TestSubmitValidationFailures(t *testing.T) {
 	h2.sq.EXPECT().ValidateChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(entity.Result{}, errors.New("rollback statement 1: syntax error"))
 	rec = h2.do(testkit.Mux("POST", "/external/v1/engine/{engine}/changes", Submit{RegistryDeps: h2.deps}.Serve),
-		http.MethodPost, "/external/v1/engine/sql/changes", sampleSQL, admin())
+		http.MethodPost, "/external/v1/engine/postgres/changes", sampleSQL, admin())
 	_ = json.Unmarshal(rec.Body.Bytes(), &failed)
 	if failed.Status != constants.ChangeFailed || len(failed.Checks) < 2 || !strings.Contains(failed.Checks[1].Error, "syntax error") {
 		t.Fatalf("dry-run failure: %+v", failed)
@@ -174,14 +174,14 @@ func TestSubmitValidationFailures(t *testing.T) {
 		return &c, nil
 	}).AnyTimes()
 	rec = h3.do(testkit.Mux("POST", "/external/v1/engine/{engine}/changes", Submit{RegistryDeps: h3.deps}.Serve),
-		http.MethodPost, "/external/v1/engine/sql/changes", sampleSQL, admin())
+		http.MethodPost, "/external/v1/engine/postgres/changes", sampleSQL, admin())
 	var submitted entity.Change
 	_ = json.Unmarshal(rec.Body.Bytes(), &submitted)
 	if submitted.Status != constants.ChangeUnverified {
 		t.Fatalf("unverified: %+v", submitted)
 	}
 	rec = h3.do(testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/approve", Approve{RegistryDeps: h3.deps}.Serve),
-		http.MethodPost, "/external/v1/engine/sql/changes/"+submitted.ID+"/approve", "", admin())
+		http.MethodPost, "/external/v1/engine/postgres/changes/"+submitted.ID+"/approve", "", admin())
 	if rec.Code != http.StatusOK {
 		t.Fatalf("unverified must be approvable: %d %s", rec.Code, rec.Body.String())
 	}
@@ -193,7 +193,7 @@ func TestKindGated(t *testing.T) {
 		ID: "m1", Kind: constants.KindMongo, Status: constants.ChangeValidated, Connection: "demo",
 	}, nil)
 	rec := h.do(testkit.Mux("POST", "/external/v1/engine/{engine}/changes/{id}/approve", Approve{RegistryDeps: h.deps}.Serve),
-		http.MethodPost, "/external/v1/engine/sql/changes/m1/approve", "", admin())
+		http.MethodPost, "/external/v1/engine/postgres/changes/m1/approve", "", admin())
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("sql engine must not approve a mongo change: %d %s", rec.Code, rec.Body.String())
 	}

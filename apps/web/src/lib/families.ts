@@ -2,7 +2,8 @@ import type { ComponentType } from "react";
 import { Activity, Boxes, Database, Leaf, Network, PenLine } from "lucide-react";
 import { ROUTES, pathOf, type RouteId } from "@/constants/routes";
 
-// FAMILY is the family key vocabulary. The strings are the API Namespace segment too, so they are written once here.
+// FAMILY is the console's own grouping of the engines it serves. It is a UI vocabulary only: the API
+// addresses an engine by driver, and DRIVER_FAMILY maps each driver onto the group it is shown under.
 export const FAMILY = {
   SQL: "sql",
   MEMCACHE: "memcache",
@@ -10,6 +11,33 @@ export const FAMILY = {
 } as const;
 
 export type FamilyKey = (typeof FAMILY)[keyof typeof FAMILY];
+
+// DRIVER is the wire vocabulary the console needs when no connection is in hand. Every other call takes
+// the driver from the connection it acts on (a postgres instance is "postgres", not "sql").
+export const DRIVER = {
+  MONGO: "mongo",
+  // SQL_QUEUE addresses the SQL change queue when no single connection is in scope: that route only picks
+  // the SQL engine, and every SQL driver serves the same queue.
+  SQL_QUEUE: "postgres",
+} as const;
+
+// DRIVER_FAMILY maps the server's drivers onto the console's groups, so the sidebar keeps speaking families
+// while every request speaks drivers.
+const DRIVER_FAMILY: Record<string, FamilyKey> = {
+  postgres: FAMILY.SQL,
+  mysql: FAMILY.SQL,
+  mariadb: FAMILY.SQL,
+  sqlite: FAMILY.SQL,
+  cockroach: FAMILY.SQL,
+  redis: FAMILY.MEMCACHE,
+  valkey: FAMILY.MEMCACHE,
+  mongo: FAMILY.MONGODB,
+};
+
+// familyOfDriver resolves the group a driver is shown under; an unknown driver has no group rather than a wrong one.
+export function familyOfDriver(driver?: string): FamilyKey | undefined {
+  return driver ? DRIVER_FAMILY[driver] : undefined;
+}
 
 export interface NavItem {
   to: string;

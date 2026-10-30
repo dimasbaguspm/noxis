@@ -3,7 +3,6 @@ package mongo
 import (
 	"net/http"
 
-	"noxis/internal/common"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -23,9 +22,8 @@ type Databases struct{ usecases.RegistryDeps }
 func (uc Databases) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	ctx = common.WithModuleFamily(ctx, r.PathValue("engine"))
 	var module interfaces.MongoModule
-	if err := common.LoadModule(ctx, &module); err != nil {
+	if err := uc.RouteModule(ctx, r, &module); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}

@@ -24,9 +24,8 @@ func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	module, ok := uc.Modules.Serves(connection.Driver)
-	if !ok {
-		uc.Fail(ctx, w, constants.ErrUnsupported)
+	if _, err := uc.Modules.Engine(connection.Driver); err != nil {
+		uc.Fail(ctx, w, err)
 		return
 	}
 	readable, err := uc.CanRead(ctx, connection.Name)
@@ -38,6 +37,5 @@ func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, constants.ErrNotFound)
 		return
 	}
-	connection.Family = module.Family()
 	uc.Respond(w, connection.Redacted())
 }

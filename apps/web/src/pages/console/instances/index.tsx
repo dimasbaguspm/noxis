@@ -29,7 +29,7 @@ import { useAuth } from "@/app/auth-provider";
 import { useDriversQuery } from "@/hooks/use-config";
 import { ALL_DRIVERS, useInstancesUrlParams, usePagedInstancesQuery } from "@/hooks/use-instances";
 import { useDebounce } from "@/hooks/use-debounce";
-import { familyByKey, type FamilyKey } from "@/lib/families";
+import { familyByKey, familyOfDriver, type FamilyKey } from "@/lib/families";
 import { PAGE_ROUTES } from "@/constants/routes";
 
 // One row per instance, whichever family it belongs to: the table shows only what they have in common, and the detail page carries the rest.
@@ -51,7 +51,7 @@ export default function DashboardPage() {
   });
   const instances = (list.data?.instances ?? []).map((c) => ({
     ...c,
-    family: c.family as FamilyKey,
+    family: familyOfDriver(c.driver),
   }));
   const total = list.data?.total ?? 0;
   const loading = list.isPending || list.isFetching;
@@ -125,7 +125,7 @@ export default function DashboardPage() {
                     </TableHeader>
                     <TableBody>
                       {instances.map((c) => (
-                        <TableRow key={`${c.family}:${c.name}`}>
+                        <TableRow key={`${c.driver}:${c.name}`}>
                           <TableCell>
                             <span className="flex items-center gap-2 text-sm">
                               <FamilyIcon
@@ -177,8 +177,8 @@ export default function DashboardPage() {
   );
 }
 
-// FamilyIcon renders a family's glyph without naming a component per family.
-function FamilyIcon({ family, className }: { family: FamilyKey; className?: string }) {
-  const Icon = familyByKey[family].icon;
+// FamilyIcon renders a family's glyph without naming a component per family; a driver with no group falls back to the generic box.
+function FamilyIcon({ family, className }: { family?: FamilyKey; className?: string }) {
+  const Icon = family ? familyByKey[family].icon : Boxes;
   return <Icon className={className} />;
 }

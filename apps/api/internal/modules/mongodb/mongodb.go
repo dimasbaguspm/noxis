@@ -43,16 +43,14 @@ func New() *DB { return &DB{} }
 // Satisfier.
 var _ interfaces.MongoModule = (*DB)(nil)
 
-// Family is the namespace this module serves.
-func (db *DB) Family() string { return constants.FamilyMongo }
+// Driver is the driver this module serves.
+func (db *DB) Driver() string { return constants.DriverMongo }
 
 // IsWrite reports whether an op mutates documents.
 func (db *DB) IsWrite(op string) bool { return IsWrite(op) }
 
 // Supports reports whether this module serves the driver.
-func (db *DB) Supports(driver string) bool {
-	return strings.EqualFold(driver, constants.DriverMongo) || strings.EqualFold(driver, "mongodb")
-}
+func (db *DB) Supports(driver string) bool { return strings.EqualFold(driver, constants.DriverMongo) }
 
 // Ping verifies the server answers and the credentials work.
 func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {

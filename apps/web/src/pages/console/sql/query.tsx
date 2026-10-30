@@ -19,28 +19,30 @@ import { Play } from "lucide-react";
 export default function QueryPage() {
   const { canAccess, isSuper } = useAuth();
   const [params] = useSearchParams();
-  const { connection, connections, busy, pick } = useConnectionSelection(
+  const { connection, driver, connections, busy, pick } = useConnectionSelection(
     params.get("connection") ?? undefined,
     params.get("instance") ?? undefined,
   );
 
   const tabs = useSqlTabs(params.get("sql") ?? undefined);
-  const tables = useConnectionSchemaQuery(connection).data ?? [];
+  const tables = useConnectionSchemaQuery(driver, connection).data ?? [];
   const run = useRunQueryMutation();
   const readResult = run.data;
   const loading = run.isPending;
   const execute = (sql: string) => {
-    if (!connection || !sql.trim()) return;
-    void run.mutateAsync({ connection, sql });
+    if (!driver || !connection || !sql.trim()) return;
+    void run.mutateAsync({ driver, connection, sql });
   };
 
   const analyze = useAnalyzeMutation();
   const analyzed = analyze.data;
   const onAnalyze = (table: { schema: string; name: string }) =>
-    connection ? analyze.mutate({ connection, table: `${table.schema}.${table.name}` }) : undefined;
+    driver && connection
+      ? analyze.mutate({ driver, connection, table: `${table.schema}.${table.name}` })
+      : undefined;
 
   const sql = tabs.active?.sql ?? "";
-  const canRun = !!connection && sql.trim().length > 0;
+  const canRun = !!driver && !!connection && sql.trim().length > 0;
   const kind = classify(sql);
   const result = analyzed ?? readResult ?? null;
 

@@ -31,21 +31,20 @@ const (
 // Result is the shared operation outcome, so the console renders a key's value with the same grid component as a SQL row set.
 type Result = entity.Result
 
-// DB talks to Redis servers.
-type DB struct{}
+// DB talks to one memory-cache driver's servers.
+type DB struct{ driver string }
 
-func New() *DB { return &DB{} }
+// New builds the module for one driver name; valkey and redis are separate states.
+func New(driver string) *DB { return &DB{driver: driver} }
 
 // Satisfier.
 var _ interfaces.MemcacheModule = (*DB)(nil)
 
-// Family is the namespace this module serves.
-func (db *DB) Family() string { return constants.FamilyMemcache }
+// Driver is the driver this module serves.
+func (db *DB) Driver() string { return db.driver }
 
 // Supports reports whether this module serves the driver.
-func (db *DB) Supports(driver string) bool {
-	return strings.EqualFold(driver, constants.DriverRedis) || strings.EqualFold(driver, constants.DriverValkey)
-}
+func (db *DB) Supports(driver string) bool { return strings.EqualFold(driver, db.driver) }
 
 // Ping verifies the server answers and the credentials work.
 func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {

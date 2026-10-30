@@ -24,17 +24,17 @@ type Changes struct {
 }
 
 // NewChanges wires the SQL change queue.
-func NewChanges(conns interfaces.ConnectionRepository, store interfaces.ChangeRepository, engine interfaces.SQLModule, m *metrics.Metrics) *Changes {
+func NewChanges(conns interfaces.ConnectionRepository, store interfaces.ChangeRepository, engine interfaces.SQLModule, m *metrics.Metrics, driver string) *Changes {
 	return &Changes{
-		Flow:    changeflow.New(store, constants.FamilySQL),
+		Flow:    changeflow.New(store, driver),
 		Conns:   conns,
 		Engine:  engine,
 		Metrics: m,
 	}
 }
 
-// Family is the engine family this flow serves.
-func (changes *Changes) Family() string { return changes.Flow.Family() }
+// Driver is the driver whose queue this flow serves.
+func (changes *Changes) Driver() string { return changes.Flow.Driver() }
 
 // Satisfier.
 var _ interfaces.SQLChangeFlow = (*Changes)(nil)
@@ -135,7 +135,7 @@ func (changes *Changes) Apply(ctx context.Context, ch *entity.Change, actor stri
 		return *ch, err
 	}
 	res, err := changes.Engine.Apply(ctx, *conn, ch.Query)
-	changes.count(ctx, changes.Family(), err)
+	changes.count(ctx, changes.Driver(), err)
 	if err != nil {
 		logging.ErrorWithCtx(ctx, "change failed to apply", err, "change", ch.ID, "connection", ch.Connection, "actor", actor)
 		changeflow.Failed(ch, err)

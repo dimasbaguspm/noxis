@@ -10,21 +10,16 @@ import (
 	"noxis/internal/interfaces"
 )
 
-// RawConn checks family and access before returning a password-bearing connection.
+// RawConn checks the driver and access before returning a password-bearing connection.
 func (d RegistryDeps) RawConn(ctx context.Context, mod interfaces.Module, name, level string) (*entity.Connection, error) {
 	c, err := d.Repositories.Connections.Get(ctx, name)
 	if err != nil {
 		return nil, err
 	}
 	if !mod.Supports(c.Driver) {
-		logging.WarnWithCtx(ctx, "connection belongs to another engine family",
-			"connection", c.Name, "driver", c.Driver, "family", mod.Family())
-		if other, ok := d.Modules.Serves(c.Driver); ok {
-			return nil, fmt.Errorf("connection %q is not a %s connection (driver %q, try /external/v1/engine/%s)",
-				c.Name, mod.Family(), c.Driver, other.Family())
-		}
-		return nil, fmt.Errorf("connection %q is not a %s connection (driver %q)",
-			c.Name, mod.Family(), c.Driver)
+		logging.WarnWithCtx(ctx, "connection belongs to another driver",
+			"connection", c.Name, "driver", c.Driver, "engine", mod.Driver())
+		return nil, fmt.Errorf("connection %q is a %s connection, not %s", c.Name, c.Driver, mod.Driver())
 	}
 	if err := d.Authorize(ctx, name, level); err != nil {
 		return nil, err

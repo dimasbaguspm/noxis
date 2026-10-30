@@ -62,7 +62,7 @@ interface Row {
 // MemcachePage browses keys, inspects values, removes selections, and confirms database flushes by name.
 export default function MemcachePage() {
   const { isInstanceAdmin } = useAuth();
-  const { connections, connection, pick } = useMemcacheConnections();
+  const { connections, connection, driver, pick } = useMemcacheConnections();
   // removing keys and emptying the database are admin actions on the instance
   const mayAdmin = isInstanceAdmin(connection);
   const { pattern, inspected, setPattern, setInspected } = useMemcacheUrlParams();
@@ -90,8 +90,16 @@ export default function MemcachePage() {
     ),
   });
 
-  const { page, isFetching: loading, refetch: reloadKeys } = useMemcacheKeysQuery(connection, glob);
-  const { result, isFetching: valueLoading } = useMemcacheValueQuery(connection, inspected);
+  const { page, isFetching: loading, refetch: reloadKeys } = useMemcacheKeysQuery(
+    driver,
+    connection,
+    glob,
+  );
+  const { result, isFetching: valueLoading } = useMemcacheValueQuery(
+    driver,
+    connection,
+    inspected,
+  );
 
   const keys = useMemo<Row[]>(() => {
     const rows: Row[] = (page.keys ?? [])
@@ -112,8 +120,8 @@ export default function MemcachePage() {
 
   const removeKeys = useRemoveKeysMutation();
   const onRemoveKeys = async () => {
-    if (!connection || selected.length === 0) return;
-    const res = await removeKeys.mutateAsync({ connection, keys: selected });
+    if (!driver || !connection || selected.length === 0) return;
+    const res = await removeKeys.mutateAsync({ driver, connection, keys: selected });
     toast.success(`${res.deleted} key(s) removed`);
     clearSelection();
     if (inspected && selected.includes(inspected)) setInspected(undefined);
@@ -121,8 +129,8 @@ export default function MemcachePage() {
 
   const flush = useFlushMutation();
   const onFlush = handleSubmit(async () => {
-    if (!connection) return;
-    await flush.mutateAsync(connection);
+    if (!driver || !connection) return;
+    await flush.mutateAsync({ driver, connection });
     toast.success(`${connection}: database emptied`);
     setFlushOpen(false);
     resetFlush();

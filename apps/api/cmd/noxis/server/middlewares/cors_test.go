@@ -9,7 +9,7 @@ import (
 // CORS answers cross-origin preflights and stamps the allowed headers on every response.
 func TestCORSPreflight(t *testing.T) {
 	rec := httptest.NewRecorder()
-	CORS(okHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodOptions, "/external/v1/engine/sql/connections", http.NoBody))
+	CORS(okHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodOptions, "/external/v1/engine/postgres/connections", http.NoBody))
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("preflight status=%d want 204", rec.Code)
 	}
@@ -20,7 +20,7 @@ func TestCORSPreflight(t *testing.T) {
 
 func TestCORSHeadersOnRealRequest(t *testing.T) {
 	rec := httptest.NewRecorder()
-	CORS(okHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/engine/sql/connections", http.NoBody))
+	CORS(okHandler()).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/external/v1/engine/postgres/connections", http.NoBody))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status=%d", rec.Code)
 	}

@@ -35,7 +35,7 @@ func TestNilMetricsIsSafe(t *testing.T) {
 	ctx := context.Background()
 	m.UsecaseError(ctx, "x", "400")
 	m.OpDuration(ctx, "sql", "query", 0.1)
-	m.ChangeSubmitted(ctx, "sql", "postgres")
+	m.ChangeSubmitted(ctx, "postgres")
 	m.ChangeApplied(ctx, "sql")
 	m.ChangeFailed(ctx, "sql", "apply")
 	m.SchedulerTick(ctx, "ok")

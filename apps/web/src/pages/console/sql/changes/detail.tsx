@@ -29,7 +29,11 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const change = detail.data;
   const gone = detail.isError;
   const fetching = detail.isPending;
-  const { data: tables } = useConnectionSchemaQuery(change?.connection);
+  // the change carries its connection by name, so the driver comes from the instance list: every engine path is the driver
+  const driver = (instancesData?.instances ?? []).find(
+    (item) => item.name === change?.connection,
+  )?.driver;
+  const { data: tables } = useConnectionSchemaQuery(driver, change?.connection);
   const approve = useApproveChangeMutation();
   const apply = useApplyChangeMutation();
   const reject = useRejectChangeMutation();
@@ -59,9 +63,12 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
   const instance = (instancesData?.instances ?? []).find((item) => item.name === change.connection);
   const mayReview = isInstanceAdmin(change.connection);
   const mayWrite = canAccess(change.connection, "write");
-  const canApprove = mayReview && (change.status === "validated" || change.status === "unverified");
-  const canApply = mayReview && change.status === "approved";
+  // a review action is addressed by the connection's driver, so it stays hidden until that driver is known
+  const canApprove =
+    !!driver && mayReview && (change.status === "validated" || change.status === "unverified");
+  const canApply = !!driver && mayReview && change.status === "approved";
   const canReject =
+    !!driver &&
     mayReview &&
     change.status !== "applied" &&
     change.status !== "rejected" &&
@@ -81,10 +88,10 @@ export function ChangeDetailPage({ kind }: { kind: ChangeKind }) {
             canApply={canApply}
             canReject={canReject}
             onInverse={(input) => submit.mutateAsync(input)}
-            onApprove={() => approve.mutate(id)}
-            onApply={() => apply.mutate(id)}
-            onReject={() => reject.mutate(id)}
-            onSchedule={(at) => schedule.mutate({ id, scheduledAt: at })}
+            onApprove={() => approve.mutate({ id, driver: driver ?? "" })}
+            onApply={() => apply.mutate({ id, driver: driver ?? "" })}
+            onReject={() => reject.mutate({ id, driver: driver ?? "" })}
+            onSchedule={(at) => schedule.mutate({ id, driver: driver ?? "", scheduledAt: at })}
           />
         }
       />

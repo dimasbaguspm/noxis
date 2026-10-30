@@ -37,8 +37,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 	out := make([]entity.Connection, 0, len(all))
 	for i := range all {
 		connection := &all[i]
-		module, ok := uc.Modules.Serves(connection.Driver)
-		if !ok {
+		if _, err := uc.Modules.Engine(connection.Driver); err != nil {
 			continue
 		}
 		if nameNeedle != "" && !strings.Contains(strings.ToLower(connection.Name), nameNeedle) {
@@ -58,7 +57,6 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		if !readable {
 			continue
 		}
-		connection.Family = module.Family()
 		out = append(out, connection.Redacted())
 	}
 	page, perPage := pagination.Params(query.Get("page"), query.Get("perPage"), constants.DefaultPageSize)

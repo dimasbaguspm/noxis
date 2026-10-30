@@ -35,7 +35,7 @@ func TestApproveAndRejectRules(t *testing.T) {
 	for _, status := range []string{constants.ChangeValidated, constants.ChangeUnverified} {
 		store := &testStore{}
 		change := entity.Change{ID: "change", Status: status}
-		if err := New(store, constants.FamilySQL).Approve(context.Background(), &change, "reviewer"); err != nil {
+		if err := New(store, constants.DriverPostgres).Approve(context.Background(), &change, "reviewer"); err != nil {
 			t.Fatalf("approve %s: %v", status, err)
 		}
 		if change.Status != constants.ChangeApproved || change.ApprovedAt == 0 || change.ApprovedBy != "reviewer" || len(store.saved) != 1 {
@@ -44,7 +44,7 @@ func TestApproveAndRejectRules(t *testing.T) {
 	}
 
 	store := &testStore{}
-	flow := New(store, constants.FamilySQL)
+	flow := New(store, constants.DriverPostgres)
 	applying := entity.Change{Status: constants.ChangeApplying}
 	if err := flow.Reject(context.Background(), &applying, "reviewer"); !errors.Is(err, constants.ErrConflict) {
 		t.Fatalf("reject applying error = %v, want conflict", err)
@@ -60,7 +60,7 @@ func TestApproveAndRejectRules(t *testing.T) {
 }
 
 func TestScheduleApplyableAndDueBoundaries(t *testing.T) {
-	flow := New(&testStore{}, constants.FamilySQL)
+	flow := New(&testStore{}, constants.DriverPostgres)
 	change := entity.Change{ID: "change", Status: constants.ChangeApproved}
 	future := time.Now().Add(time.Minute).Unix()
 	if err := flow.Schedule(context.Background(), &change, future, "reviewer"); err != nil {
@@ -98,7 +98,7 @@ func TestRecordAndTick(t *testing.T) {
 		{ID: "other-kind", Kind: constants.KindMongo, Status: constants.ChangeApproved, ScheduledAt: 100},
 		{ID: "future", Kind: constants.KindDML, Status: constants.ChangeApproved, ScheduledAt: 101},
 	}}
-	flow := New(store, constants.FamilySQL)
+	flow := New(store, constants.DriverPostgres)
 	failed, err := flow.Record(context.Background(), entity.Change{ID: "rejected", Status: constants.ChangeFailed})
 	if err != nil || failed.ID != "" || len(store.saved) != 0 {
 		t.Fatalf("failed submission record = %+v, %v; saves=%d", failed, err, len(store.saved))

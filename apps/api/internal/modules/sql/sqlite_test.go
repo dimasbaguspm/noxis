@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 )
 
@@ -42,7 +43,7 @@ func TestSQLiteDriverAndDSN(t *testing.T) {
 
 func TestSQLiteTablesAndRows(t *testing.T) {
 	conn := newSQLiteFile(t)
-	u := New()
+	u := New(constants.DriverSQLite)
 	ctx := context.Background()
 
 	tables, err := u.Tables(ctx, conn)
@@ -68,7 +69,7 @@ func TestSQLiteTablesAndRows(t *testing.T) {
 // TestSQLiteValidateChangeRollsBack proves the SQLite dry run exercises the live schema inside a transaction and leaves it untouched.
 func TestSQLiteValidateChangeRollsBack(t *testing.T) {
 	conn := newSQLiteFile(t)
-	u := New()
+	u := New(constants.DriverSQLite)
 	ctx := context.Background()
 
 	if _, err := u.ValidateChange(ctx, conn,
@@ -89,7 +90,7 @@ func TestSQLiteValidateChangeRollsBack(t *testing.T) {
 // TestSQLiteOperations covers the operations the compatibility suite runs on the server drivers: apply, dry-run, analyze, and the statement-kind guards.
 func TestSQLiteOperations(t *testing.T) {
 	conn := newSQLiteFile(t)
-	u := New()
+	u := New(constants.DriverSQLite)
 	ctx := context.Background()
 
 	if err := u.VerifyWrite("INSERT INTO people (name) VALUES ('linus')"); err != nil {

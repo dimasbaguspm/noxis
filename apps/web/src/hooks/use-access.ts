@@ -1,14 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import type { FamilyKey } from "@/lib/families";
 import { queryKeys } from "@/lib/query-client";
 
-export function usePermissionsQuery(family: FamilyKey | undefined, name: string) {
+// Grants live under the engine path of the connection's driver, so every hook takes that driver rather than the console's family grouping.
+
+export function usePermissionsQuery(driver: string | undefined, name: string) {
   return useQuery({
-    queryKey: queryKeys.access.permissions(family, name),
-    queryFn: () => api.permissions.list(family as FamilyKey, name),
-    enabled: !!family && !!name,
+    queryKey: queryKeys.access.permissions(driver, name),
+    queryFn: () => api.permissions.list(driver as string, name),
+    enabled: !!driver && !!name,
   });
 }
 
@@ -30,14 +31,20 @@ export function useAccessMatrixQuery(enabled = true) {
 }
 
 // useSetPermission grants a level and owns invalidation; the caller can add its own onSuccess (the editor clears the member input there).
-export function useSetPermission(family: FamilyKey | undefined, name: string) {
+export function useSetPermission(driver: string | undefined, name: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: { member: string; memberType: string; level: string }) =>
-      api.permissions.set(family as FamilyKey, name, input.member, input.memberType, input.level),
+      api.permissions.set(
+        driver as string,
+        name,
+        input.member,
+        input.memberType,
+        input.level,
+      ),
     onSuccess: (_data, input) => {
       toast.success(`${input.member} can ${input.level} ${name}`);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.access.permissions(family, name) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.access.permissions(driver, name) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.access.matrix });
       void queryClient.invalidateQueries({ queryKey: queryKeys.me });
     },
@@ -45,12 +52,12 @@ export function useSetPermission(family: FamilyKey | undefined, name: string) {
   });
 }
 
-export function useRemovePermission(family: FamilyKey | undefined, name: string) {
+export function useRemovePermission(driver: string | undefined, name: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (member: string) => api.permissions.remove(family as FamilyKey, name, member),
+    mutationFn: (member: string) => api.permissions.remove(driver as string, name, member),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.access.permissions(family, name) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.access.permissions(driver, name) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.access.matrix });
       void queryClient.invalidateQueries({ queryKey: queryKeys.me });
     },

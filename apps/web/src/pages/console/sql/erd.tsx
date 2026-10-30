@@ -29,14 +29,14 @@ import { FAMILY } from "@/lib/families";
 // SqlErdPage is the full-screen schema graph: pick an instance and a table on the left, read and zoom the graph on the right.
 export default function SqlErdPage() {
   const { isSuper } = useAuth();
-  const { connections, active, busy, setActive } = useConnections(FAMILY.SQL);
+  const { connections, active, driver, busy, setActive } = useConnections(FAMILY.SQL);
   const [params, setParams] = useSearchParams();
   const [selectedId, setSelectedId] = useState<string>();
 
   const wanted = params.get("instance") ?? params.get("connection");
   const picked = connections.find((c) => c.id === wanted || c.name === wanted);
   const connection = picked?.name ?? active ?? connections[0]?.name;
-  const erd = useErdQuery(connection);
+  const erd = useErdQuery(picked?.driver ?? driver, connection);
 
   const tables = useMemo<ErdTable[]>(() => toErdTables(erd.data), [erd.data]);
   const schemaTables = (erd.data?.tables ?? []) as unknown as Table[];

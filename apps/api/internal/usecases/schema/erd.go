@@ -3,7 +3,6 @@ package schema
 import (
 	"net/http"
 
-	"noxis/internal/common"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -23,9 +22,8 @@ type ERD struct{ usecases.RegistryDeps }
 func (uc ERD) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
-	ctx = common.WithModuleFamily(ctx, r.PathValue("engine"))
 	var sq interfaces.SQLModule
-	if err := common.LoadModule(ctx, &sq); err != nil {
+	if err := uc.RouteModule(ctx, r, &sq); err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
@@ -45,7 +43,7 @@ func (uc ERD) Serve(w http.ResponseWriter, r *http.Request) {
 	assignTableIDs(tables)
 	uc.Respond(w, entity.SchemaGraph{
 		Connection: entity.SchemaConnection{
-			Name: c.Name, Driver: c.Driver, Family: c.Family, Database: c.Database,
+			Name: c.Name, Driver: c.Driver, Database: c.Database,
 		},
 		Tables: tables,
 	})
