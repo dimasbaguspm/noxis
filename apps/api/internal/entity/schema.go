@@ -47,6 +47,5 @@ type SchemaGraph struct {
 type SchemaConnection struct {
 	Name     string `json:"name"`
 	Driver   string `json:"driver"`
-	Family   string `json:"family"`
 	Database string `json:"database"`
 }

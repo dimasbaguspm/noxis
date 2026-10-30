@@ -74,8 +74,8 @@ export const queryKeys = {
   access: {
     // per-instance grants belong to the instance access tab; the approval inbox belongs to the admin section
     all: pageRoot("console.instances.access"),
-    permissions: (family: string | undefined, name: string) =>
-      pageKey("console.instances.access", "permissions", family, name),
+    permissions: (driver: string | undefined, name: string) =>
+      pageKey("console.instances.access", "permissions", driver, name),
     matrix: pageKey("admin.access", "matrix"),
     requests: {
       all: pageRoot("admin.access"),

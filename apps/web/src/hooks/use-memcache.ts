@@ -5,7 +5,7 @@ import { useUrlState } from "@/hooks/use-url-state";
 import { FAMILY } from "@/lib/families";
 import { queryClient, queryKeys } from "@/lib/query-client";
 
-// useMemcacheConnections reads the memory-cache list from the cached instances query, so the dashboard and these pages never disagree.
+// useMemcacheConnections reads the memory-cache list from the cached instances query, so the dashboard and these pages never disagree. The active connection's driver comes along: redis and valkey are different engine paths.
 const MEMCACHE_DEFAULTS = { pattern: "*", key: "" };
 
 // useMemcacheUrlParams is the keys filter and the inspected key, kept in the URL.
@@ -20,25 +20,26 @@ export function useMemcacheUrlParams() {
 }
 
 export function useMemcacheConnections() {
-  const { connections, active, setActive, busy, reload } = useConnections(FAMILY.MEMCACHE);
-  return { connections, connection: active, pick: setActive, busy, reload };
+  const { connections, active, driver, setActive, busy, reload } =
+    useConnections(FAMILY.MEMCACHE);
+  return { connections, connection: active, driver, pick: setActive, busy, reload };
 }
 
 // useMemcacheKeysQuery browses keys by pattern (a bounded full scan server side); the page is cached per pattern so the debounced search replays fast.
-export function useMemcacheKeysQuery(connection?: string, pattern = "*") {
+export function useMemcacheKeysQuery(driver?: string, connection?: string, pattern = "*") {
   const query = useQuery({
     queryKey: queryKeys.memcache.keys(connection, pattern),
-    queryFn: () => api.memcache.keys(connection as string, pattern),
-    enabled: !!connection,
+    queryFn: () => api.memcache(driver as string).keys(connection as string, pattern),
+    enabled: !!driver && !!connection,
   });
   return { ...query, page: query.data ?? { keys: [], total: 0, truncated: false, pattern } };
 }
 
-export function useMemcacheValueQuery(connection?: string, key?: string) {
+export function useMemcacheValueQuery(driver?: string, connection?: string, key?: string) {
   const query = useQuery({
     queryKey: queryKeys.memcache.value(connection, key),
-    queryFn: () => api.memcache.value(connection as string, key as string),
-    enabled: !!connection && !!key,
+    queryFn: () => api.memcache(driver as string).value(connection as string, key as string),
+    enabled: !!driver && !!connection && !!key,
   });
   return { ...query, result: query.data ?? null };
 }
@@ -46,15 +47,23 @@ export function useMemcacheValueQuery(connection?: string, key?: string) {
 // Removing keys and emptying the database invalidate the keyspace cache; the page never calls refetch by hand after an action.
 export function useRemoveKeysMutation() {
   return useMutation({
-    mutationFn: ({ connection, keys }: { connection: string; keys: string[] }) =>
-      api.memcache.removeKeys(connection, keys),
+    mutationFn: ({
+      driver,
+      connection,
+      keys,
+    }: {
+      driver: string;
+      connection: string;
+      keys: string[];
+    }) => api.memcache(driver).removeKeys(connection, keys),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.memcache.all }),
   });
 }
 
 export function useFlushMutation() {
   return useMutation({
-    mutationFn: (connection: string) => api.memcache.flush(connection),
+    mutationFn: ({ driver, connection }: { driver: string; connection: string }) =>
+      api.memcache(driver).flush(connection),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: queryKeys.memcache.all }),
   });
 }

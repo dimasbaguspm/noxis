@@ -34,7 +34,7 @@ func NewChanges(conns interfaces.ConnectionRepository, store interfaces.ChangeRe
 	}
 }
 
-// Family is the engine family this flow serves.
+// Driver is the driver whose queue this flow serves.
 func (changes *Changes) Driver() string { return changes.Flow.Driver() }
 
 // Satisfier.

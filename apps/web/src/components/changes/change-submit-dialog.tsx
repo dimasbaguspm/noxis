@@ -45,6 +45,7 @@ export function ChangeSubmitDialog({
 }: {
   kind: "dml" | "ddl";
   onSubmit: (input: {
+    driver: string;
     connection: string;
     notes: string;
     query: string;
@@ -62,8 +63,8 @@ export function ChangeSubmitDialog({
   trigger?: React.ReactElement;
 }) {
   // the instance is part of the change, so it is chosen here, not on the page
-  const { connection, pick } = useConnectionSelection(initial?.connection);
-  const { data: tables } = useConnectionSchemaQuery(connection); // completion follows the chosen instance
+  const { connection, driver, pick } = useConnectionSelection(initial?.connection);
+  const { data: tables } = useConnectionSchemaQuery(driver, connection); // completion follows the chosen instance
   const {
     register,
     handleSubmit,
@@ -81,12 +82,13 @@ export function ChangeSubmitDialog({
   });
 
   const onValid = handleSubmit(async (values) => {
-    if (!connection) {
+    if (!driver || !connection) {
       toast.error("Pick the instance this change targets");
       return;
     }
     setBusy(true);
     const change = await onSubmit({
+      driver,
       connection,
       notes: values.notes,
       query: values.query,

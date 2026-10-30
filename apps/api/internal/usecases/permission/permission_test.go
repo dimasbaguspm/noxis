@@ -36,7 +36,7 @@ func newHarness(t *testing.T) *harness {
 	sq := mocks.NewMockSQLModule(ctrl)
 
 	conns.EXPECT().Get(gomock.Any(), "demo").Return(&entity.Connection{
-		Name: "demo", Driver: constants.DriverPostgres, Family: constants.DriverPostgres,
+		Name: "demo", Driver: constants.DriverPostgres,
 	}, nil).AnyTimes()
 	sq.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
 	sq.EXPECT().Supports(gomock.Any()).Return(true).AnyTimes()

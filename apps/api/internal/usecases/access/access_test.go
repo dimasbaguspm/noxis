@@ -34,7 +34,7 @@ func newHarness(t *testing.T) *harness {
 	requests := mocks.NewMockAccessRequestRepository(ctrl)
 
 	conns.EXPECT().Get(gomock.Any(), "demo").Return(&entity.Connection{
-		Name: "demo", Driver: constants.DriverPostgres, Family: constants.DriverPostgres,
+		Name: "demo", Driver: constants.DriverPostgres,
 	}, nil).AnyTimes()
 	conns.EXPECT().List(gomock.Any()).Return([]entity.Connection{{Name: "demo"}}, nil).AnyTimes()
 

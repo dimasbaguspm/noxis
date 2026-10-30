@@ -7,7 +7,7 @@ import { InstancePermissions } from "@/components/access/instance-permissions";
 import { useAuth } from "@/app/auth-provider";
 import { useAccessMatrixQuery } from "@/hooks/use-access";
 import { useUrlState } from "@/hooks/use-url-state";
-import { familyByKey, type FamilyKey } from "@/lib/families";
+import { familyByKey, familyOfDriver } from "@/lib/families";
 import { cn } from "@/lib/utils";
 import { Workspace } from "@/components/layout/workspace";
 
@@ -28,7 +28,7 @@ export default function AccessPage() {
               id: i.id ?? "",
               name: i.connection,
               driver: i.driver ?? "",
-              family: i.family ?? "",
+              family: familyOfDriver(i.driver),
               grants: i.permissions?.length ?? 0,
             },
           ]
@@ -87,7 +87,7 @@ export default function AccessPage() {
               ) : (
                 <div className="grid gap-0.5">
                   {instances.map((instance) => {
-                    const meta = familyByKey[instance.family as FamilyKey];
+                    const meta = instance.family ? familyByKey[instance.family] : undefined;
                     const Icon = meta?.icon;
                     return (
                       <button

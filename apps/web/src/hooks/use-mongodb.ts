@@ -1,10 +1,11 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { api, type MongoChangeInput } from "@/lib/api";
+import { api, type MongoChangeInput, type MongoRequest } from "@/lib/api";
 import { useConnections } from "@/hooks/use-connections";
 import { useUrlState } from "@/hooks/use-url-state";
-import { FAMILY } from "@/lib/families";
+import { DRIVER, FAMILY } from "@/lib/families";
 import { queryClient, queryKeys } from "@/lib/query-client";
 
+// Every call here is addressed by the MongoDB driver, which is one name in the server's catalog; DRIVER.MONGO is that name.
 // useMongoConnections reads the MongoDB list from the cached instances query, so the dashboard and these pages never disagree.
 export type MongoView = "json" | "raw" | "tree";
 const MONGO_DEFAULTS = { database: "", collection: "", filter: "{}", view: "json" };
@@ -32,7 +33,7 @@ export function useMongoConnections() {
 export function useMongoDatabasesQuery(connection?: string) {
   const query = useQuery({
     queryKey: queryKeys.mongodb.databases(connection),
-    queryFn: () => api.mongodb.databases(connection as string),
+    queryFn: () => api.mongodb(DRIVER.MONGO).databases(connection as string),
     enabled: !!connection,
     select: (res) => res.databases,
   });
@@ -42,7 +43,7 @@ export function useMongoDatabasesQuery(connection?: string) {
 export function useMongoCollectionsQuery(connection?: string, database?: string) {
   const query = useQuery({
     queryKey: queryKeys.mongodb.collections(connection, database),
-    queryFn: () => api.mongodb.collections(connection as string, database as string),
+    queryFn: () => api.mongodb(DRIVER.MONGO).collections(connection as string, database as string),
     enabled: !!connection && !!database,
     select: (res) => res.collections,
   });
@@ -52,13 +53,8 @@ export function useMongoCollectionsQuery(connection?: string, database?: string)
 // useMongoRunMutation executes one read (find, aggregate, count); writes are not accepted here and belong in the request queue.
 export function useMongoRunMutation() {
   return useMutation({
-    mutationFn: ({
-      connection,
-      body,
-    }: {
-      connection: string;
-      body: Parameters<typeof api.mongodb.run>[1];
-    }) => api.mongodb.run(connection, body),
+    mutationFn: ({ connection, body }: { connection: string; body: MongoRequest }) =>
+      api.mongodb(DRIVER.MONGO).run(connection, body),
   });
 }
 
@@ -70,7 +66,7 @@ function invalidateRequests() {
 export function useMongoChangesListQuery() {
   const query = useQuery({
     queryKey: queryKeys.mongodb.requests.list(),
-    queryFn: () => api.mongodb.changes.list(),
+    queryFn: () => api.mongodb(DRIVER.MONGO).changes.list(),
   });
   return { ...query, changes: query.data?.changes ?? [] };
 }
@@ -78,35 +74,35 @@ export function useMongoChangesListQuery() {
 export function useMongoChangeGetQuery(id?: string) {
   return useQuery({
     queryKey: queryKeys.mongodb.requests.get(id ?? ""),
-    queryFn: () => api.mongodb.changes.get(id as string),
+    queryFn: () => api.mongodb(DRIVER.MONGO).changes.get(id as string),
     enabled: !!id,
   });
 }
 
 export function useMongoSubmitChangeMutation() {
   return useMutation({
-    mutationFn: (input: MongoChangeInput) => api.mongodb.changes.submit(input),
+    mutationFn: (input: MongoChangeInput) => api.mongodb(DRIVER.MONGO).changes.submit(input),
     onSuccess: invalidateRequests,
   });
 }
 
 export function useMongoApproveChangeMutation() {
   return useMutation({
-    mutationFn: (id: string) => api.mongodb.changes.approve(id),
+    mutationFn: (id: string) => api.mongodb(DRIVER.MONGO).changes.approve(id),
     onSuccess: invalidateRequests,
   });
 }
 
 export function useMongoApplyChangeMutation() {
   return useMutation({
-    mutationFn: (id: string) => api.mongodb.changes.apply(id),
+    mutationFn: (id: string) => api.mongodb(DRIVER.MONGO).changes.apply(id),
     onSuccess: invalidateRequests,
   });
 }
 
 export function useMongoRejectChangeMutation() {
   return useMutation({
-    mutationFn: (id: string) => api.mongodb.changes.reject(id),
+    mutationFn: (id: string) => api.mongodb(DRIVER.MONGO).changes.reject(id),
     onSuccess: invalidateRequests,
   });
 }

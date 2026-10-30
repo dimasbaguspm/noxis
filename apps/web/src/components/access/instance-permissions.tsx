@@ -5,19 +5,19 @@ import { GrantTable } from "@/components/access/grant-table";
 import { useMembersQuery, usePermissionsQuery } from "@/hooks/use-access";
 import { useLevelsQuery } from "@/hooks/use-config";
 import type { Connection } from "@/lib/api";
-import { familyByKey, type FamilyKey } from "@/lib/families";
+import { familyByKey, familyOfDriver } from "@/lib/families";
 
-// InstancePermissions is the read-only grant view used by the global Access page.
+// InstancePermissions is the read-only grant view used by the global Access page. The grants live under the connection's driver path; the family is only the wording of the empty state.
 export function InstancePermissions({
   instance,
 }: {
-  instance: Pick<Connection, "name" | "driver" | "family">;
+  instance: Pick<Connection, "name" | "driver">;
 }) {
-  const family = instance.family as FamilyKey | undefined;
-  const permissions = usePermissionsQuery(family, instance.name);
+  const permissions = usePermissionsQuery(instance.driver, instance.name);
   const members = useMembersQuery(true);
   const levels = useLevelsQuery().data?.levels ?? [];
   const grants = permissions.data?.permissions ?? [];
+  const family = familyOfDriver(instance.driver);
 
   if (permissions.isPending) return <Skeleton className="h-48 w-full" />;
   if (grants.length === 0) {
@@ -25,7 +25,7 @@ export function InstancePermissions({
       <Empty
         icon={KeyRound}
         title="No explicit grants"
-        description={`${familyByKey[family ?? "sql"]?.label ?? "This instance"} has no direct user or group grant.`}
+        description={`${family ? familyByKey[family].label : "This instance"} has no direct user or group grant.`}
       />
     );
   }

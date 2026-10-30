@@ -43,7 +43,7 @@ import {
 import { useSetActiveConnection } from "@/hooks/use-connections";
 import { useDriversQuery } from "@/hooks/use-config";
 import { queryClient, queryKeys } from "@/lib/query-client";
-import { FAMILY, type FamilyKey } from "@/lib/families";
+import { FAMILY, familyOfDriver, type FamilyKey } from "@/lib/families";
 import { api, type Connection } from "@/lib/api";
 import { parseDsn } from "@/lib/dsn";
 
@@ -155,7 +155,9 @@ export function ConnectionDialog({
   } = useConnectionWizard({ family, wizard, initial, blank: BLANK, reset });
 
   const fileDriver = isFileDriver(watch("driver"));
-  const client = api.family(kind);
+  // the engine path is the driver the form holds, so switching driver after picking a family changes where the save goes
+  const driver = watch("driver") || BLANK[kind].driver;
+  const client = api.family(driver);
 
   // any edit makes a previous "verified" stale until the probe runs again
   const field = (key: "name" | "host" | "port" | "user" | "password" | "database") => {
@@ -175,7 +177,7 @@ export function ConnectionDialog({
     await queryClient.invalidateQueries({ queryKey: queryKeys.instances.all });
   }
 
-  // applyDsn fills fields from a pasted DSN and switches to its driver family.
+  // applyDsn fills fields from a pasted DSN and switches the picker to the family its driver is grouped under.
   function applyDsn() {
     if (!dsn.trim()) return;
     const parsed = parseDsn(dsn);
@@ -190,7 +192,8 @@ export function ConnectionDialog({
       return;
     }
     setDsnError(null);
-    if (info.family !== kind) setKind(info.family);
+    const next = familyOfDriver(v.driver);
+    if (next && next !== kind) setKind(next);
     setValue("driver", v.driver);
     setValue("host", v.host);
     setValue("port", v.port);
@@ -202,7 +205,7 @@ export function ConnectionDialog({
   }
 
   const onValid = handleSubmit(async (values) => {
-    const form: Connection = { ...values, family: kind } as unknown as Connection;
+    const form: Connection = { ...values, driver: values.driver || driver } as Connection;
     setBusy(true);
     try {
       const saved = await client.save(form);
@@ -342,7 +345,7 @@ export function ConnectionDialog({
                       </SelectTrigger>
                       <SelectContent>
                         {drivers
-                          .filter((d) => d.family === kind)
+                          .filter((d) => familyOfDriver(d.driver) === kind)
                           .map((d) => (
                             <SelectItem key={d.driver} value={d.driver}>
                               {d.label}
