@@ -26,6 +26,7 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	w.mongoSteps(sc)
 	w.connectionSteps(sc)
 	w.changeSteps(sc)
+	w.driverSteps(sc)
 	w.sqlSteps(sc)
 	w.erdSteps(sc)
 	w.authSteps(sc)
