@@ -12,9 +12,9 @@ import (
 
 func changeFor(ctx context.Context, deps usecases.RegistryDeps, module interfaces.Module, id string) (*entity.Change, error) {
 	switch module.(type) {
-	case interfaces.SQLModule:
+	case interfaces.SQLChangeEngine:
 		return deps.SQLChange(ctx, id)
-	case interfaces.MongoModule:
+	case interfaces.MongoChangeEngine:
 		return deps.MongoChange(ctx, id)
 	}
 	return nil, fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, module.Driver())

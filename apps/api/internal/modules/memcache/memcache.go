@@ -37,8 +37,8 @@ type DB struct{ driver string }
 // New builds the module for one driver name; valkey and redis are separate states.
 func New(driver string) *DB { return &DB{driver: driver} }
 
-// Satisfier.
-var _ interfaces.MemcacheModule = (*DB)(nil)
+// Satisfier: a memory-cache module browses keys, and nothing else.
+var _ interfaces.KeyBrowser = (*DB)(nil)
 
 // Driver is the driver this module serves.
 func (db *DB) Driver() string { return db.driver }

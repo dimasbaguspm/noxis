@@ -20,12 +20,12 @@ import (
 type Changes struct {
 	changeflow.Flow
 	Conns   interfaces.ConnectionRepository
-	Engine  interfaces.MongoModule
+	Engine  interfaces.MongoChangeEngine
 	Metrics *metrics.Metrics
 }
 
 // NewChanges wires the MongoDB change queue.
-func NewChanges(conns interfaces.ConnectionRepository, store interfaces.ChangeRepository, engine interfaces.MongoModule, m *metrics.Metrics) *Changes {
+func NewChanges(conns interfaces.ConnectionRepository, store interfaces.ChangeRepository, engine interfaces.MongoChangeEngine, m *metrics.Metrics) *Changes {
 	return &Changes{
 		Flow:    changeflow.New(store, constants.DriverMongo),
 		Conns:   conns,

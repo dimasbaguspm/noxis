@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
 
 	"noxis/internal/common"
 	"noxis/internal/common/metrics"
@@ -66,14 +68,6 @@ type registry struct {
 // LoadModule fills a requested capability from the registry.
 func (r registry) LoadModule(ctx context.Context, target any) error {
 	switch dst := target.(type) {
-	case *interfaces.Module:
-		return loadEngine(ctx, r, dst, "engine operations")
-	case *interfaces.SQLModule:
-		return loadEngine(ctx, r, dst, "sql operations")
-	case *interfaces.MongoModule:
-		return loadEngine(ctx, r, dst, "mongodb operations")
-	case *interfaces.MemcacheModule:
-		return loadEngine(ctx, r, dst, "memory-cache operations")
 	case *interfaces.ChangeFlows:
 		if dst == nil {
 			return errors.New("nil module target")
@@ -104,7 +98,7 @@ func (r registry) LoadModule(ctx context.Context, target any) error {
 			}
 		})
 	default:
-		return fmt.Errorf("%w: no module registered for %T", constants.ErrUnsupported, target)
+		return r.loadEngine(ctx, target)
 	}
 }
 
@@ -122,9 +116,15 @@ func (r registry) loadFlow(ctx context.Context, assign func(interfaces.ChangeFlo
 	return nil
 }
 
-func loadEngine[T any](ctx context.Context, r registry, dst *T, what string) error {
-	if dst == nil {
+// loadEngine fills an interface target with the module registered for the driver the request selected, so a new capability needs no edit here.
+func (r registry) loadEngine(ctx context.Context, target any) error {
+	value := reflect.ValueOf(target)
+	if value.Kind() != reflect.Pointer || value.IsNil() {
 		return errors.New("nil module target")
+	}
+	capability := value.Elem().Type()
+	if capability.Kind() != reflect.Interface {
+		return fmt.Errorf("%w: no module registered for %T", constants.ErrUnsupported, target)
 	}
 	driver, ok := common.ModuleDriver(ctx)
 	if !ok {
@@ -134,12 +134,20 @@ func loadEngine[T any](ctx context.Context, r registry, dst *T, what string) err
 	if err != nil {
 		return err
 	}
-	selected, ok := module.(T)
-	if !ok {
-		return unsupported(module, what)
+	if !reflect.TypeOf(module).Implements(capability) {
+		return fmt.Errorf("%w: driver %q does not serve %s", constants.ErrUnsupported, driver, capabilityName(capability))
 	}
-	*dst = selected
+	value.Elem().Set(reflect.ValueOf(module))
 	return nil
+}
+
+// capabilityName is the interface name without its package, so the refusal reads "does not serve SchemaReader".
+func capabilityName(t reflect.Type) string {
+	name := t.String()
+	if i := strings.LastIndex(name, "."); i >= 0 {
+		return name[i+1:]
+	}
+	return name
 }
 
 func (r registry) Engine(driver string) (interfaces.Module, error) {
@@ -148,8 +156,4 @@ func (r registry) Engine(driver string) (interfaces.Module, error) {
 		return nil, fmt.Errorf("%w: no engine serves driver %q", constants.ErrUnsupported, driver)
 	}
 	return mod, nil
-}
-
-func unsupported(mod interfaces.Module, what string) error {
-	return fmt.Errorf("%w: driver %q does not serve %s", constants.ErrUnsupported, mod.Driver(), what)
 }

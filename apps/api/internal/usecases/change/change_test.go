@@ -30,7 +30,7 @@ const sampleSQL = `{"connection":"demo","notes":"add things","query":"CREATE TAB
 // harness is the change use case's dependency set: one SQL module whose validation outcome the test controls, and a super admin's connection.
 type harness struct {
 	deps    usecases.RegistryDeps
-	sq      *mocks.MockSQLModule
+	sq      *mocks.MockSQLChangeEngine
 	conns   *mocks.MockConnectionRepository
 	changes *mocks.MockChangeRepository
 }
@@ -40,7 +40,7 @@ func newHarness(t *testing.T) *harness {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	h := &harness{
-		sq:      mocks.NewMockSQLModule(ctrl),
+		sq:      mocks.NewMockSQLChangeEngine(ctrl),
 		conns:   mocks.NewMockConnectionRepository(ctrl),
 		changes: mocks.NewMockChangeRepository(ctrl),
 	}

@@ -54,24 +54,24 @@ func TestLoadEngineModuleUsesContextDriver(t *testing.T) {
 	}}
 
 	ctx := common.WithModuleDriver(context.Background(), constants.DriverPostgres)
-	var gotSQL interfaces.SQLModule
+	var gotSQL interfaces.SQLChangeEngine
 	if err := r.LoadModule(ctx, &gotSQL); err != nil || gotSQL != sq {
 		t.Fatalf("SQL module = %T, error = %v", gotSQL, err)
 	}
 
 	ctx = common.WithModuleDriver(context.Background(), constants.DriverMongo)
-	var gotMongo interfaces.MongoModule
+	var gotMongo interfaces.MongoChangeEngine
 	if err := r.LoadModule(ctx, &gotMongo); err != nil || gotMongo != mongo {
 		t.Fatalf("Mongo module = %T, error = %v", gotMongo, err)
 	}
 
 	ctx = common.WithModuleDriver(context.Background(), constants.DriverRedis)
-	var gotCache interfaces.MemcacheModule
+	var gotCache interfaces.KeyBrowser
 	if err := r.LoadModule(ctx, &gotCache); err != nil || gotCache != cache {
 		t.Fatalf("cache module = %T, error = %v", gotCache, err)
 	}
 
-	var wrong interfaces.SQLModule
+	var wrong interfaces.SQLChangeEngine
 	if err := r.LoadModule(ctx, &wrong); !errors.Is(err, constants.ErrUnsupported) {
 		t.Fatalf("wrong-driver error = %v, want unsupported", err)
 	}

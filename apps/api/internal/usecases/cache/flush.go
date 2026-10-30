@@ -29,7 +29,7 @@ func (uc Flush) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	var mc interfaces.MemcacheModule
+	var mc interfaces.KeyBrowser
 	if err := uc.RouteModule(ctx, r, &mc); err != nil {
 		uc.Fail(ctx, w, err)
 		return

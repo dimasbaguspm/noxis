@@ -32,8 +32,15 @@ func New(driver string) *DB { return &DB{driver: driver} }
 // Result is the shared operation outcome; SQL fills Columns/Rows for reads and EstimatedRows from EXPLAIN when the driver allows it.
 type Result = entity.Result
 
-// Satisfier.
-var _ interfaces.SQLModule = (*DB)(nil)
+// Satisfiers: the SQL engine serves every capability the console asks a SQL connection for.
+var (
+	_ interfaces.ConsoleQuerier  = (*DB)(nil)
+	_ interfaces.SchemaReader    = (*DB)(nil)
+	_ interfaces.ServerReporter  = (*DB)(nil)
+	_ interfaces.ChangeProver    = (*DB)(nil)
+	_ interfaces.ChangeApplier   = (*DB)(nil)
+	_ interfaces.SQLChangeEngine = (*DB)(nil)
+)
 
 // withDB opens a short-lived pool (control-plane rates) for one operation.
 func withDB[T any](c entity.Connection, fn func(db *stdsql.DB) (T, error)) (T, error) {

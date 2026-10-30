@@ -28,7 +28,7 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	switch engine := module.(type) {
-	case interfaces.SQLModule:
+	case interfaces.SQLChangeEngine:
 		var change entity.Change
 		if err := uc.Decode(r, &change); err != nil {
 			uc.Fail(ctx, w, err)
@@ -51,7 +51,7 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 		uc.Metrics.ChangeSubmitted(ctx, module.Driver())
 		uc.Respond(w, out)
-	case interfaces.MongoModule:
+	case interfaces.MongoChangeEngine:
 		var body entity.MongoChangeRequest
 		if err := uc.Decode(r, &body); err != nil {
 			uc.Fail(ctx, w, err)
