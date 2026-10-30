@@ -26,10 +26,10 @@ export function DriverPicker({ driver, drivers }: { driver: string; drivers: Dri
   return (
     <SidebarMenuItem>
       <DropdownMenu>
+        {/* A title, not SidebarMenuButton's tooltip: that prop wraps the button in a Tooltip provider, so the menu's
+            trigger never receives the button node and the popup anchors at the viewport origin instead. */}
         <DropdownMenuTrigger
-          render={
-            <SidebarMenuButton tooltip={label || "Pick a driver"} aria-label="Pick a driver" />
-          }
+          render={<SidebarMenuButton aria-label="Pick a driver" title={label || "Pick a driver"} />}
         >
           <Current />
           <span className="truncate">{label || "Pick a driver"}</span>
