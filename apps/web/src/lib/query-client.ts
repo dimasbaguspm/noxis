@@ -56,9 +56,15 @@ export const queryKeys = {
   },
   changes: {
     all: pageRoot("driver.changes.dml"),
-    list: (kind?: "dml" | "ddl", connection?: string, status?: string, page = 1) =>
-      pageKey("driver.changes.dml", "list", kind, connection, status, page),
-    get: (id: string) => pageKey("driver.changes.dml", "get", id),
+    list: (
+      driver: string | undefined,
+      kind?: "dml" | "ddl",
+      connection?: string,
+      status?: string,
+      page = 1,
+    ) => pageKey("driver.changes.dml", "list", driver, kind, connection, status, page),
+    get: (driver: string | undefined, id: string) =>
+      pageKey("driver.changes.dml", "get", driver, id),
   },
   keys: {
     all: pageRoot("driver.keys"),
@@ -79,8 +85,9 @@ export const queryKeys = {
   },
   requests: {
     all: pageRoot("driver.requests"),
-    list: () => pageKey("driver.requests", "list"),
-    get: (id: string) => pageKey("driver.requests.detail", "get", id),
+    list: (driver: string | undefined) => pageKey("driver.requests", "list", driver),
+    get: (driver: string | undefined, id: string) =>
+      pageKey("driver.requests.detail", "get", driver, id),
   },
   access: {
     // per-instance grants belong to the instance access tab; the approval inbox belongs to the admin section
