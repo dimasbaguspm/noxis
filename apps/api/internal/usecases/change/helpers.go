@@ -160,3 +160,20 @@ func decide(ctx context.Context, deps usecases.RegistryDeps, w http.ResponseWrit
 	}
 	deps.Respond(w, change)
 }
+
+// filterByText keeps the changes whose notes or statement mention the needle: the queue's name search is a reader's
+// shorthand, not a SQL parser.
+func filterByText(all []entity.Change, needle string) []entity.Change {
+	needle = strings.TrimSpace(strings.ToLower(needle))
+	if needle == "" {
+		return all
+	}
+	out := make([]entity.Change, 0, len(all))
+	for i := range all {
+		if strings.Contains(strings.ToLower(all[i].Notes), needle) ||
+			strings.Contains(strings.ToLower(all[i].Query), needle) {
+			out = append(out, all[i])
+		}
+	}
+	return out
+}

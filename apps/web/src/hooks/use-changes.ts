@@ -14,32 +14,56 @@ function invalidateChanges() {
   void queryClient.invalidateQueries({ queryKey: queryKeys.changes.all });
 }
 
-const CHANGE_DEFAULTS = { q: "", status: "all", page: "1" };
+const CHANGE_DEFAULTS = { q: "", name: "", status: "all", page: "1" };
 
-// useChangeListUrlParams is the change queue's filter state, kept in the URL.
+// useChangeListUrlParams is the change queue's filter state, kept in the URL: the chosen instances are a comma list so a
+// reload restores the same queue.
 export function useChangeListUrlParams() {
   const [state, patch] = useUrlState(CHANGE_DEFAULTS);
+  const connections = state.q ? state.q.split(",").filter(Boolean) : [];
   return {
-    connection: state.q,
+    connections,
+    name: state.name,
     status: state.status,
     page: Number(state.page),
-    setConnection: (value: string) => patch({ q: value, page: "1" }),
+    setConnections: (value: string[]) => patch({ q: value.join(","), page: "1" }),
+    setName: (value: string) => patch({ name: value, page: "1" }),
     setStatus: (value: string) => patch({ status: value, page: "1" }),
     setPage: (value: number) => patch({ page: String(value) }),
   };
 }
 
-// useChangeListQuery filters the shared server list by URL state so DML and DDL tabs stay distinct.
+// useChangeListQuery asks the server once per chosen instance and merges the pages, so the total is the sum of the queues
+// the reader actually asked for. With nothing chosen it asks once, unfiltered by instance.
 export function useChangeListQuery(kind?: ChangeKind) {
   const { driver = "" } = useParams();
-  const { connection, status, page } = useChangeListUrlParams();
-  const debounced = useDebounce(connection.trim());
-  const connectionFilter = debounced || undefined;
+  const { connections, name, status, page } = useChangeListUrlParams();
+  const search = useDebounce(name.trim());
   const statusFilter = status === "all" ? undefined : status;
+  const targets = connections.length > 0 ? connections : [undefined];
   const query = useQuery({
-    queryKey: queryKeys.changes.list(driver, kind, connectionFilter, statusFilter, page),
-    // the server filters by kind before it paginates, so the total is the queue's own count
-    queryFn: () => api.changes(driver).list(connectionFilter, page, undefined, statusFilter, kind),
+    queryKey: queryKeys.changes.list(
+      driver,
+      kind,
+      connections.join(","),
+      search,
+      statusFilter,
+      page,
+    ),
+    // the server filters by kind before it paginates, so each total is its own queue's count
+    queryFn: async () => {
+      const pages = await Promise.all(
+        targets.map((connection) =>
+          api
+            .changes(driver)
+            .list(connection, page, undefined, statusFilter, kind, search || undefined),
+        ),
+      );
+      return {
+        changes: pages.flatMap((result) => result.changes),
+        total: pages.reduce((sum, result) => sum + result.total, 0),
+      };
+    },
     enabled: !!driver,
   });
 

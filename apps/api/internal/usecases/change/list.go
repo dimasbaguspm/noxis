@@ -18,6 +18,7 @@ type List struct{ usecases.RegistryDeps }
 // @Param connection query string false "substring match on connection name"
 // @Param status query string false "exact status match (unverified, validated, approved, applying, applied, failed, rejected)"
 // @Param kind query string false "dml or ddl (sql change engines only)"
+// @Param q query string false "substring match on notes or statement"
 // @Param page query int false "page number, starting at 1"
 // @Param perPage query int false "items per page (default 20, max 100)"
 // @Success 200 {object} entity.ChangeList
@@ -60,6 +61,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	visible = filterByKind(visible, kind)
+	visible = filterByText(visible, query.Get("q"))
 	page, perPage := pagination.Params(query.Get("page"), query.Get("perPage"), constants.DefaultPageSize)
 	uc.Respond(w, entity.ChangeList{Changes: pagination.Slice(visible, page, perPage), Total: len(visible)})
 }

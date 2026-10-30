@@ -60,10 +60,11 @@ export const queryKeys = {
     list: (
       driver: string | undefined,
       kind?: "dml" | "ddl",
-      connection?: string,
+      connections?: string,
+      name?: string,
       status?: string,
       page = 1,
-    ) => pageKey("driver.changes.dml", "list", driver, kind, connection, status, page),
+    ) => pageKey("driver.changes.dml", "list", driver, kind, connections, name, status, page),
     get: (driver: string | undefined, id: string) =>
       pageKey("driver.changes.dml", "get", driver, id),
   },
