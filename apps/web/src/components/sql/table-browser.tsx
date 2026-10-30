@@ -1,9 +1,8 @@
 import { useTableBrowser } from "@/hooks/use-table-browser";
 import { title } from "radash";
-import { Activity, ChevronDown, ChevronRight, ListTree, Search } from "lucide-react";
+import { Activity, ChevronDown, ChevronRight, ListTree } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FilterField, SearchField } from "@/components/filters/filter-field";
 import { RowMenu } from "@/components/ui/row-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -30,9 +29,8 @@ export function TableBrowser({ tables, onRecords, onAnalyze, onSelect }: Props) 
     useTableBrowser(tables);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="grid gap-1.5">
-        <Label>Schema</Label>
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <FilterField label="Schema">
         <Select value={schemaFilter || "all"} onValueChange={(next) => selectSchema(String(next))}>
           <SelectTrigger className="w-full" aria-label="Schema">
             <SelectValue>
@@ -48,20 +46,15 @@ export function TableBrowser({ tables, onRecords, onAnalyze, onSelect }: Props) 
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </FilterField>
 
-      <div className="grid gap-1.5">
-        <Label>Search tables</Label>
-        <div className="relative">
-          <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-7"
-            placeholder="Search tables"
-            value={filter}
-            onChange={(e) => search(e.target.value)}
-          />
-        </div>
-      </div>
+      <SearchField
+        id="table-search"
+        label="Search tables"
+        placeholder="Search tables"
+        value={filter}
+        onChange={search}
+      />
 
       <ScrollArea className="min-h-0 flex-1">
         {entries.length === 0 && <P className="px-1 py-2">{title("no tables")}</P>}

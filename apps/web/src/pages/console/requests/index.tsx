@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FilterField } from "@/components/filters/filter-field";
 import { Pagination } from "@/components/ui/pagination";
 import {
   Select,
@@ -70,10 +70,9 @@ export function RequestsQueue({ scope }: { scope?: { driver: string; connection:
             }
           >
             {scope ? (
-              <div className="flex flex-col gap-1.5">
-                <Label>Instance</Label>
+              <FilterField label="Instance">
                 <Input value={scope.connection} readOnly disabled />
-              </div>
+              </FilterField>
             ) : (
               <InstanceFilter
                 options={mongoConnections.map((c) => c.name)}
@@ -81,17 +80,15 @@ export function RequestsQueue({ scope }: { scope?: { driver: string; connection:
                 onChange={setConnections}
               />
             )}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="request-name">Name</Label>
+            <FilterField label="Name" htmlFor="request-name">
               <Input
                 id="request-name"
                 placeholder="notes"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Status</Label>
+            </FilterField>
+            <FilterField label="Status">
               <Select value={status} onValueChange={(value) => setStatus(String(value))}>
                 <SelectTrigger className="w-full">
                   <SelectValue>
@@ -111,7 +108,7 @@ export function RequestsQueue({ scope }: { scope?: { driver: string; connection:
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </FilterField>
             <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>
               <Search /> Search
             </Button>
