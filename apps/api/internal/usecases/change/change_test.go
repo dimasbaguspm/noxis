@@ -197,3 +197,49 @@ func TestKindGated(t *testing.T) {
 		t.Fatalf("sql engine must not approve a mongo change: %d %s", rec.Code, rec.Body.String())
 	}
 }
+
+// TestListScopesToTheDriverInThePath proves the queue answers for the driver the route names, not for every SQL driver.
+func TestListScopesToTheDriverInThePath(t *testing.T) {
+	h := newHarness(t)
+	h.conns.EXPECT().List(gomock.Any()).Return([]entity.Connection{
+		{Name: "demo", Driver: constants.DriverPostgres},
+		{Name: "other", Driver: constants.DriverMySQL},
+	}, nil).AnyTimes()
+	h.changes.EXPECT().ListChanges(gomock.Any()).Return([]entity.Change{
+		{ID: "p1", Connection: "demo", Kind: constants.KindDML, Status: constants.ChangeValidated},
+		{ID: "m1", Connection: "other", Kind: constants.KindDML, Status: constants.ChangeValidated},
+	}, nil)
+
+	rec := h.do(testkit.Mux("GET", "/external/v1/engine/{driver}/changes", List{RegistryDeps: h.deps}.Serve),
+		http.MethodGet, "/external/v1/engine/postgres/changes", "", admin())
+	if rec.Code != http.StatusOK {
+		t.Fatalf("list status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	var got entity.ChangeList
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if got.Total != 1 || len(got.Changes) != 1 || got.Changes[0].ID != "p1" {
+		t.Fatalf("queue must hold only the postgres change: %+v", got)
+	}
+	if got.Changes[0].Driver != constants.DriverPostgres {
+		t.Fatalf("change must name the driver that serves it: %+v", got.Changes[0])
+	}
+}
+
+// TestGetRefusesAnotherDriversChange keeps a change reachable only through the driver of its own connection.
+func TestGetRefusesAnotherDriversChange(t *testing.T) {
+	h := newHarness(t)
+	h.conns.EXPECT().List(gomock.Any()).Return([]entity.Connection{
+		{Name: "demo", Driver: constants.DriverMySQL},
+	}, nil).AnyTimes()
+	h.changes.EXPECT().GetChange(gomock.Any(), "m1").Return(&entity.Change{
+		ID: "m1", Connection: "demo", Kind: constants.KindDML, Status: constants.ChangeValidated,
+	}, nil)
+
+	rec := h.do(testkit.Mux("GET", "/external/v1/engine/{driver}/changes/{id}", Get{RegistryDeps: h.deps}.Serve),
+		http.MethodGet, "/external/v1/engine/postgres/changes/m1", "", admin())
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("another driver's change must be not found: %d %s", rec.Code, rec.Body.String())
+	}
+}

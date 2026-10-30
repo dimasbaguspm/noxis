@@ -4,6 +4,8 @@ package entity
 type Change struct {
 	ID          string        `json:"id"`
 	Connection  string        `json:"connection" validate:"required"`
+	// Driver is derived at read time from the connection that serves the change; it is never stored.
+	Driver      string        `json:"driver,omitempty"`
 	Notes       string        `json:"notes" validate:"required"`
 	Query       string        `json:"query" validate:"required"`
 	Rollback    string        `json:"rollback" validate:"required"`

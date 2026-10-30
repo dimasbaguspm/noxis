@@ -2599,6 +2599,8 @@ export interface components {
             connection: string;
             createdAt?: number;
             createdBy?: string;
+            /** @description Driver is derived at read time from the connection that serves the change; it is never stored. */
+            driver?: string;
             estAffected?: number;
             /** @description measured on the dry run (estimates) and on apply (actuals) */
             estDurationMs?: number;
