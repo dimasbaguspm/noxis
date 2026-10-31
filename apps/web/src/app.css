@@ -40,6 +40,7 @@
   --driver-redis: oklch(0.55 0.19 27);
   --driver-valkey: oklch(0.48 0.18 268);
   --driver-dragonfly: oklch(0.52 0.15 175);
+  --driver-couchdb: oklch(0.55 0.17 300);
   --driver-mongo: oklch(0.52 0.14 143);
   --driver-unknown: oklch(0.45 0.02 258);
 }
@@ -80,6 +81,7 @@
   --driver-redis: oklch(0.78 0.14 27);
   --driver-valkey: oklch(0.78 0.13 268);
   --driver-dragonfly: oklch(0.78 0.12 175);
+  --driver-couchdb: oklch(0.78 0.14 300);
   --driver-mongo: oklch(0.8 0.13 143);
   --driver-unknown: oklch(0.74 0.02 258);
 }

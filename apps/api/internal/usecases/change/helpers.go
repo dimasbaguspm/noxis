@@ -36,7 +36,8 @@ func readable(all []entity.Change, module interfaces.Module, allowed map[string]
 				continue
 			}
 		case interfaces.MongoChangeEngine:
-			if change.Kind != constants.KindMongo {
+			// every document engine reviews the same shape of change, so a queue shows what its own engine wrote
+			if change.Kind != constants.KindMongo && change.Kind != constants.KindDocument {
 				continue
 			}
 		}

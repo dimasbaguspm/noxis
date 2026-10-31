@@ -288,6 +288,23 @@ services:
     entrypoint: ["sh", "/seed/keys.sh", "valkey", "6379"]
     restart: "no"
 
+  # CouchDB is a document store with a JSON API: the console's document seam fits it, and a write is proved in a
+  # throwaway database.
+  couchdb:
+    image: couchdb:3.3
+    # one target, so `make dev couchdb` can bring just this one
+    profiles: [couchdb, all]
+    environment:
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: noxis
+    expose: ["5984"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5984/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
   seed-dragonfly:
     image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.27.1
     profiles: [seed]
@@ -313,6 +330,18 @@ services:
     restart: "no"
 
   # Registers whatever was seeded, so the console opens with instances rather than an empty list.
+  seed-couchdb:
+    image: couchdb:3.3
+    profiles: [seed]
+    depends_on:
+      couchdb:
+        condition: service_healthy
+        required: false
+    volumes:
+      - ./dev/seed:/seed:ro
+    entrypoint: ["sh", "/seed/couch.sh", "couchdb", "5984", "admin", "noxis"]
+    restart: "no"
+
   seed-registry:
     image: curlimages/curl:8.11.1
     profiles: [seed]

@@ -42,14 +42,14 @@ func (d RegistryDeps) SQLChange(ctx context.Context, id string) (*entity.Change,
 	return ch, nil
 }
 
-// MongoChange loads a change and insists it is a MongoDB request, so the SQL queue cannot be addressed through the MongoDB flow.
+// MongoChange loads a change and insists it is a document request, so the SQL queue cannot be addressed through the document flow.
 func (d RegistryDeps) MongoChange(ctx context.Context, id string) (*entity.Change, error) {
 	ch, err := d.Repositories.Changes.GetChange(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if ch.Kind != constants.KindMongo {
-		return nil, fmt.Errorf("change %s is %s, not a mongodb request", id, ch.Kind)
+	if ch.Kind != constants.KindMongo && ch.Kind != constants.KindDocument {
+		return nil, fmt.Errorf("change %s is %s, not a document request", id, ch.Kind)
 	}
 	if err := d.Authorize(ctx, ch.Connection, entity.LevelRead); err != nil {
 		return nil, err

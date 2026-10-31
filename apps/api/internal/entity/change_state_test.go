@@ -57,7 +57,7 @@ func TestScheduleApplyableAndDueBoundaries(t *testing.T) {
 	if err := change.Applyable(future); err != nil {
 		t.Fatalf("due schedule was not applyable: %v", err)
 	}
-	if !change.Due(future) || change.Due(future - 1) {
+	if !change.Due(future) || change.Due(future-1) {
 		t.Fatalf("due boundary at %d is wrong", future)
 	}
 	if err := change.Schedule(0, "reviewer", now); err != nil {

@@ -24,6 +24,7 @@ var driverCatalog = []entity.DriverInfo{
 	{Driver: constants.DriverValkey, Label: "Valkey"},
 	{Driver: constants.DriverDragonfly, Label: "Dragonfly"},
 	{Driver: constants.DriverMongo, Label: "MongoDB"},
+	{Driver: constants.DriverCouchDB, Label: "CouchDB"},
 }
 
 // Drivers serves the driver catalog.

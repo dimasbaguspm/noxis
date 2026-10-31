@@ -14,6 +14,7 @@ import (
 	"noxis/internal/constants"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules/cockroach"
+	"noxis/internal/modules/couchdb"
 	"noxis/internal/modules/dragonfly"
 	"noxis/internal/modules/mariadb"
 	"noxis/internal/modules/mongodb"
@@ -79,6 +80,9 @@ func Default(repos repositories.Registry, m *metrics.Metrics) Registry {
 
 	documents := mongodb.New()
 	mods[constants.DriverMongo] = Registration{Engine: documents, Changes: mongodb.NewChanges(repos.Connections, repos.Changes, documents, m)}
+
+	couch := couchdb.New()
+	mods[couch.Driver()] = Registration{Engine: couch, Changes: couchdb.NewChanges(repos.Connections, repos.Changes, couch, m)}
 	return New(mods)
 }
 

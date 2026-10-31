@@ -46,6 +46,9 @@ const (
 	// it is actually talking to.
 	DriverDragonfly = "dragonfly"
 	DriverMongo     = "mongo"
+	// DriverCouchDB is a document store with a JSON API: the console's document seam fits it, and a write is proved in a
+	// throwaway database rather than a scratch collection.
+	DriverCouchDB = "couchdb"
 	// DriverPostgres and its siblings are their own engine: the API namespace, the registry and the change queue are keyed on the driver name.
 )
 

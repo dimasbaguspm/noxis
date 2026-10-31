@@ -55,6 +55,7 @@ func loadTargets() error {
 		"cockroach": "cockroachdb/cockroach",
 		"redis":     "redis", "valkey": "valkey",
 		"dragonfly": "docker.dragonflydb.io/dragonflydb/dragonfly",
+		"couchdb":   "couchdb",
 	} {
 		h, err := hostOf(image)
 		if err != nil {
@@ -105,6 +106,11 @@ func loadTargets() error {
 		},
 		"dragonfly": {
 			Driver: "dragonfly", Host: host["dragonfly"], Port: port["dragonfly"], Database: "0",
+		},
+		"couchdb": {
+			Driver: "couchdb", Host: host["couchdb"], Port: port["couchdb"],
+			User:     env(host["couchdb"], "COUCHDB_USER"),
+			Password: env(host["couchdb"], "COUCHDB_PASSWORD"), Database: "demo",
 		},
 		"mongo": {
 			Driver: "mongo", Host: host["mongo"], Port: port["mongo"],

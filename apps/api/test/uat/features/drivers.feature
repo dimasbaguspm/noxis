@@ -21,6 +21,7 @@ Feature: the driver catalog states what each driver can do
       | valkey    | keys         |
       | dragonfly | keys         |
       | mongo     | documents    |
+      | couchdb   | documents    |
 
   Scenario Outline: a capability a driver lacks is refused by name
     Then a <method> to "<path>" for driver "<driver>" is refused naming the driver
