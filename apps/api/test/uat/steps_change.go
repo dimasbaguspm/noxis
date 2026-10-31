@@ -50,6 +50,7 @@ func (w *world) changeSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I submit a change scheduled at now with query "([^"]*)" and rollback "([^"]*)"$`, w.submitScheduledChange)
 	sc.Step("a scheduler tick applies the due change", w.tickScheduler)
 	sc.Step("applying is rejected", w.applyRejected)
+	sc.Step("applying an unapproved change is refused", w.applyExpectingRefusal)
 	sc.Step("I reject the change", w.rejectChange)
 	sc.Step("the change list still contains it", w.changeStillPresent)
 	sc.Step("the change was not recorded", w.changeNotRecorded)
@@ -251,6 +252,18 @@ func (w *world) changeEstimates(ctx context.Context) error {
 	}
 	if w.change.Status != "applied" {
 		return fmt.Errorf("estimates are recorded on validation; status=%s", w.change.Status)
+	}
+	return nil
+}
+
+// applyExpectingRefusal posts the apply route and keeps the refusal, so a scenario can prove that an unapproved change
+// never reaches the engine.
+func (w *world) applyExpectingRefusal(ctx context.Context) error {
+	if err := w.api(http.MethodPost, w.enginePath("/changes/"+w.changeID+"/apply"), map[string]string{}, nil); err != nil {
+		return err
+	}
+	if w.code == http.StatusOK {
+		return fmt.Errorf("an unapproved change was applied: %s", w.body)
 	}
 	return nil
 }
