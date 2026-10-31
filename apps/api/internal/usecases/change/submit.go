@@ -74,6 +74,29 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 		}
 		uc.Metrics.ChangeSubmitted(ctx, module.Driver())
 		uc.Respond(w, out)
+	case interfaces.SearchEngine:
+		var body entity.SearchChangeRequest
+		if err := uc.Decode(r, &body); err != nil {
+			uc.Fail(ctx, w, err)
+			return
+		}
+		connection, err := uc.RawConn(ctx, engine, body.Connection, entity.LevelWrite)
+		if err != nil {
+			uc.Fail(ctx, w, err)
+			return
+		}
+		var flow interfaces.SearchChangeFlow
+		if err := uc.RouteModule(ctx, r, &flow); err != nil {
+			uc.Fail(ctx, w, err)
+			return
+		}
+		out, err := flow.Submit(ctx, *connection, entity.Actor(ctx), body.Notes, body.SearchRequest)
+		if err != nil {
+			uc.Fail(ctx, w, err)
+			return
+		}
+		uc.Metrics.ChangeSubmitted(ctx, module.Driver())
+		uc.Respond(w, out)
 	default:
 		uc.Fail(ctx, w, unsupportedChangeFlow(module))
 	}

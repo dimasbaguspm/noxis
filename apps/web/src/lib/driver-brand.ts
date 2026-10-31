@@ -19,6 +19,7 @@ const BRANDS: Record<string, { monogram: string; token: string }> = {
   dragonfly: { monogram: "Df", token: "--driver-dragonfly" },
   mongo: { monogram: "Mo", token: "--driver-mongo" },
   couchdb: { monogram: "Cb", token: "--driver-couchdb" },
+  elasticsearch: { monogram: "Es", token: "--driver-elasticsearch" },
 };
 
 const UNKNOWN = "--driver-unknown";

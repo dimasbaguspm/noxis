@@ -15,7 +15,7 @@ import (
 
 func supports(module interfaces.Module) bool {
 	switch module.(type) {
-	case interfaces.SQLChangeEngine, interfaces.MongoChangeEngine:
+	case interfaces.SQLChangeEngine, interfaces.MongoChangeEngine, interfaces.SearchEngine:
 		return true
 	}
 	return false
@@ -38,6 +38,10 @@ func readable(all []entity.Change, module interfaces.Module, allowed map[string]
 		case interfaces.MongoChangeEngine:
 			// every document engine reviews the same shape of change, so a queue shows what its own engine wrote
 			if change.Kind != constants.KindMongo && change.Kind != constants.KindDocument {
+				continue
+			}
+		case interfaces.SearchEngine:
+			if change.Kind != constants.KindSearch {
 				continue
 			}
 		}
@@ -127,6 +131,8 @@ func changeFor(ctx context.Context, deps usecases.RegistryDeps, module interface
 		return deps.SQLChange(ctx, id)
 	case interfaces.MongoChangeEngine:
 		return deps.MongoChange(ctx, id)
+	case interfaces.SearchEngine:
+		return deps.SearchChange(ctx, id)
 	}
 	return nil, unsupportedChangeFlow(module)
 }

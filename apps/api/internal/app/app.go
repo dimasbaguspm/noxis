@@ -30,6 +30,7 @@ import (
 	"noxis/internal/usecases/mongo"
 	"noxis/internal/usecases/permission"
 	"noxis/internal/usecases/schema"
+	"noxis/internal/usecases/search"
 	"noxis/internal/usecases/user"
 )
 
@@ -92,9 +93,11 @@ type App struct {
 	CacheDel  cache.Delete
 	CacheFlsh cache.Flush
 
-	MongoDbs   mongo.Databases
-	MongoColls mongo.Collections
-	MongoRun   mongo.Run
+	MongoDbs      mongo.Databases
+	MongoColls    mongo.Collections
+	MongoRun      mongo.Run
+	SearchTargets search.Targets
+	SearchRun     search.Run
 
 	ChangeList     change.List
 	ChangeSubmit   change.Submit
@@ -177,9 +180,11 @@ func Default(d Deps) App {
 		CacheDel:  cache.Delete{RegistryDeps: deps},
 		CacheFlsh: cache.Flush{RegistryDeps: deps},
 
-		MongoDbs:   mongo.Databases{RegistryDeps: deps},
-		MongoColls: mongo.Collections{RegistryDeps: deps},
-		MongoRun:   mongo.Run{RegistryDeps: deps},
+		MongoDbs:      mongo.Databases{RegistryDeps: deps},
+		MongoColls:    mongo.Collections{RegistryDeps: deps},
+		MongoRun:      mongo.Run{RegistryDeps: deps},
+		SearchTargets: search.Targets{RegistryDeps: deps},
+		SearchRun:     search.Run{RegistryDeps: deps},
 
 		ChangeList:     change.List{RegistryDeps: deps},
 		ChangeSubmit:   change.Submit{RegistryDeps: deps},

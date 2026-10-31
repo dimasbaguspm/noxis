@@ -1201,6 +1201,48 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
+  "/external/v1/engine/{driver}/connections/{name}/search":
+    post:
+      summary: Query one index on a search platform
+      parameters:
+        - description: driver name (elasticsearch)
+          name: driver
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/entity.SearchRequest"
+        description: op, target, and the platform's own query document
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.Result"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
   "/external/v1/engine/{driver}/connections/{name}/tables/{table}/rows":
     get:
       summary: Preview a table's rows
@@ -1241,6 +1283,41 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.Result"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
+  "/external/v1/engine/{driver}/connections/{name}/targets":
+    get:
+      summary: List the indices a search platform holds
+      parameters:
+        - description: driver name (elasticsearch)
+          name: driver
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.SearchTargetList"
         "400":
           description: Bad Request
           content:
@@ -2217,6 +2294,37 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/entity.Table"
+    entity.SearchRequest:
+      type: object
+      properties:
+        limit:
+          description: how many hits a read renders
+          type: integer
+        op:
+          description: search | delete
+          type: string
+        query:
+          description: the platform's own query document, empty means everything
+          type: string
+        target:
+          description: the index the request reads
+          type: string
+    entity.SearchTarget:
+      type: object
+      properties:
+        documents:
+          type: integer
+        name:
+          type: string
+        sizeBytes:
+          type: integer
+    entity.SearchTargetList:
+      type: object
+      properties:
+        targets:
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.SearchTarget"
     entity.ServerInfo:
       type: object
       properties:

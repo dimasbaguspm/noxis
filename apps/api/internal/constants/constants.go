@@ -49,6 +49,9 @@ const (
 	// DriverCouchDB is a document store with a JSON API: the console's document seam fits it, and a write is proved in a
 	// throwaway database rather than a scratch collection.
 	DriverCouchDB = "couchdb"
+	// DriverElasticsearch is a search platform: it indexes documents and answers its own query language, so it is
+	// neither a SQL engine nor a document store.
+	DriverElasticsearch = "elasticsearch"
 	// DriverPostgres and its siblings are their own engine: the API namespace, the registry and the change queue are keyed on the driver name.
 )
 
@@ -60,10 +63,18 @@ const (
 	CapabilityKeys = "keys"
 	// CapabilityDocuments is browsing documents and submitting a document request.
 	CapabilityDocuments = "documents"
+	// CapabilitySearch is browsing what a search platform indexes, querying it, and reviewing a change.
+	CapabilitySearch = "search"
 )
 
 // SchedulerActor attributes changes applied by the authenticated scheduler callback.
 const SchedulerActor = "system:scheduler"
+
+// Search-platform ops: a read, and the one write a search platform can review.
+const (
+	SearchOpSearch = "search"
+	SearchOpDelete = "delete"
+)
 
 // MongoDB request ops.
 const (

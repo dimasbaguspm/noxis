@@ -1973,6 +1973,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/external/v1/engine/{driver}/connections/{name}/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Query one index on a search platform */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description driver name (elasticsearch) */
+                    driver: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            /** @description op, target, and the platform's own query document */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["entity.SearchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.Result"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/external/v1/engine/{driver}/connections/{name}/tables/{table}/rows": {
         parameters: {
             query?: never;
@@ -2009,6 +2073,65 @@ export interface paths {
                     };
                     content: {
                         "*/*": components["schemas"]["entity.Result"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/external/v1/engine/{driver}/connections/{name}/targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the indices a search platform holds */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description driver name (elasticsearch) */
+                    driver: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.SearchTargetList"];
                     };
                 };
                 /** @description Bad Request */
@@ -2947,6 +3070,24 @@ export interface components {
         "entity.SchemaGraph": {
             connection?: components["schemas"]["entity.SchemaConnection"];
             tables?: components["schemas"]["entity.Table"][];
+        };
+        "entity.SearchRequest": {
+            /** @description how many hits a read renders */
+            limit?: number;
+            /** @description search | delete */
+            op?: string;
+            /** @description the platform's own query document, empty means everything */
+            query?: string;
+            /** @description the index the request reads */
+            target?: string;
+        };
+        "entity.SearchTarget": {
+            documents?: number;
+            name?: string;
+            sizeBytes?: number;
+        };
+        "entity.SearchTargetList": {
+            targets?: components["schemas"]["entity.SearchTarget"][];
         };
         "entity.ServerInfo": {
             /** @description Capabilities names what this profile lets the console prove, in the operator's words. */

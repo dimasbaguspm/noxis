@@ -16,6 +16,8 @@ func changeFor(ctx context.Context, deps usecases.RegistryDeps, module interface
 		return deps.SQLChange(ctx, id)
 	case interfaces.MongoChangeEngine:
 		return deps.MongoChange(ctx, id)
+	case interfaces.SearchEngine:
+		return deps.SearchChange(ctx, id)
 	}
 	return nil, fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, module.Driver())
 }

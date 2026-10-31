@@ -42,6 +42,22 @@ func (d RegistryDeps) SQLChange(ctx context.Context, id string) (*entity.Change,
 	return ch, nil
 }
 
+// SearchChange loads a change and insists it is a search-platform request, so a SQL or document queue cannot be
+// addressed through the search flow.
+func (d RegistryDeps) SearchChange(ctx context.Context, id string) (*entity.Change, error) {
+	ch, err := d.Repositories.Changes.GetChange(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if ch.Kind != constants.KindSearch {
+		return nil, fmt.Errorf("change %s is %s, not a search request", id, ch.Kind)
+	}
+	if err := d.Authorize(ctx, ch.Connection, entity.LevelRead); err != nil {
+		return nil, err
+	}
+	return ch, nil
+}
+
 // MongoChange loads a change and insists it is a document request, so the SQL queue cannot be addressed through the document flow.
 func (d RegistryDeps) MongoChange(ctx context.Context, id string) (*entity.Change, error) {
 	ch, err := d.Repositories.Changes.GetChange(ctx, id)
