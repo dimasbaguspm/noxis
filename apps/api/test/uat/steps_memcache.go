@@ -46,9 +46,8 @@ func (w *world) memcacheSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the redis list "([^"]*)" contains "([^"]*)"$`, w.redisSeedList)
 	sc.Step(`^I browse redis keys matching "([^"]*)"$`, w.redisBrowse)
 	sc.Step(`^I browse redis keys matching "([^"]*)" with a limit of (\d+)$`, w.redisBrowseLimited)
-	sc.Step("the browse is truncated with a cursor", w.redisBrowseTruncated)
-	sc.Step("I continue the browse from that cursor", w.redisBrowseMore)
-	sc.Step(`^the browse returns (\d+) key\(s\)$`, w.redisBrowseCount)
+	sc.Step(`^I walk every redis key matching "([^"]*)" in pages of (\d+)$`, w.redisWalkPages)
+	sc.Step(`^the walk found (\d+) key\(s\) with no cursor left$`, w.redisWalkFound)
 	sc.Step(`^I try to browse redis keys matching "([^"]*)"$`, w.redisBrowseToleratingFailure)
 	sc.Step(`^the browse finds the key "([^"]*)"$`, w.redisBrowseFinds)
 	sc.Step(`^the browse does not find the key "([^"]*)"$`, w.redisBrowseMisses)
@@ -176,32 +175,37 @@ func (w *world) redisBrowseLimited(ctx context.Context, pattern string, limit in
 }
 
 // redisBrowseTruncated proves the server said there is more and handed back where it stopped.
-func (w *world) redisBrowseTruncated(ctx context.Context) error {
-	if !w.page.Truncated || w.page.Cursor == 0 {
-		return fmt.Errorf("page truncated=%v cursor=%d, want more to read", w.page.Truncated, w.page.Cursor)
+// redisWalkPages pages from cursor to cursor until the server says the iteration is complete. A scenario cannot assume
+// where a page ends — SCAN treats the count as a hint and may answer the whole keyspace at once — so it proves the
+// contract instead: every key is reached, and the walk ends with no cursor left.
+func (w *world) redisWalkPages(ctx context.Context, pattern string, limit int) error {
+	seen := map[string]bool{}
+	cursor := uint64(0)
+	for pages := 0; pages < 100; pages++ {
+		page := redisPage{}
+		path := fmt.Sprintf(w.enginePath("/connections/%s/keys?pattern=%s&limit=%d&cursor=%d"), w.conn, pattern, limit, cursor)
+		if err := w.api(http.MethodGet, path, nil, &page); err != nil {
+			return err
+		}
+		if w.code != http.StatusOK {
+			return fmt.Errorf("walk %q page %d: %d", pattern, pages, w.code)
+		}
+		for _, k := range page.Keys {
+			seen[k.Name] = true
+		}
+		cursor = page.Cursor
+		if cursor == 0 {
+			w.walked = len(seen)
+			return nil
+		}
 	}
-	return nil
+	return fmt.Errorf("walk %q did not finish in 100 pages", pattern)
 }
 
-// redisBrowseMore continues from the cursor the last page returned, which is what the page's load more does.
-func (w *world) redisBrowseMore(ctx context.Context) error {
-	pattern, cursor := w.page.Pattern, w.page.Cursor
-	next := redisPage{}
-	path := fmt.Sprintf(w.enginePath("/connections/%s/keys?pattern=%s&cursor=%d"), w.conn, pattern, cursor)
-	if err := w.api(http.MethodGet, path, nil, &next); err != nil {
-		return err
-	}
-	if w.code != http.StatusOK {
-		return fmt.Errorf("continue browse: %d", w.code)
-	}
-	w.page = next
-	return nil
-}
-
-// redisBrowseCount asserts how many keys one page held.
-func (w *world) redisBrowseCount(ctx context.Context, want int) error {
-	if len(w.page.Keys) != want {
-		return fmt.Errorf("page held %d key(s), want %d", len(w.page.Keys), want)
+// redisWalkFound asserts how many distinct keys the walk reached.
+func (w *world) redisWalkFound(ctx context.Context, want int) error {
+	if w.walked != want {
+		return fmt.Errorf("the walk reached %d key(s), want %d", w.walked, want)
 	}
 	return nil
 }
