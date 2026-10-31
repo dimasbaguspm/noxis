@@ -18,6 +18,7 @@ const BRANDS: Record<string, { monogram: string; token: string }> = {
   valkey: { monogram: "Vk", token: "--driver-valkey" },
   dragonfly: { monogram: "Df", token: "--driver-dragonfly" },
   mongo: { monogram: "Mo", token: "--driver-mongo" },
+  couchdb: { monogram: "Cb", token: "--driver-couchdb" },
 };
 
 const UNKNOWN = "--driver-unknown";

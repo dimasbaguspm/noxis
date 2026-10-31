@@ -4,8 +4,8 @@ import "fmt"
 
 // Change is a proposed database change (SQL + rollback + notes), moving through submit → validate → approve → apply.
 type Change struct {
-	ID          string        `json:"id"`
-	Connection  string        `json:"connection" validate:"required"`
+	ID         string `json:"id"`
+	Connection string `json:"connection" validate:"required"`
 	// Driver is derived at read time from the connection that serves the change; it is never stored.
 	Driver      string        `json:"driver,omitempty"`
 	Notes       string        `json:"notes" validate:"required"`
