@@ -1,9 +1,9 @@
 package cache
 
 import (
+	"context"
 	"net/http"
 
-	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
@@ -28,27 +28,16 @@ type TTL struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{driver}/connections/{name}/keys/ttl [post]
 func (uc TTL) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx, end := logging.StartSpan(r.Context())
-	defer end(nil)
-	var body ttlRequest
-	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	var mc interfaces.KeyBrowser
-	if err := uc.RouteModule(ctx, r, &mc); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	c, err := uc.RawConn(ctx, mc, r.PathValue("name"), entity.LevelWrite)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	changed, err := mc.Expire(ctx, *c, body.Keys, body.TTLMs)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, map[string]int64{"changed": changed})
+	usecases.RunOp[interfaces.KeyBrowser](uc.RegistryDeps, w, r, "TTL", entity.LevelWrite,
+		func(ctx context.Context, mc interfaces.KeyBrowser, conn entity.Connection) (any, error) {
+			var body ttlRequest
+			if err := uc.Decode(r, &body); err != nil {
+				return nil, err
+			}
+			changed, err := mc.Expire(ctx, conn, body.Keys, body.TTLMs)
+			if err != nil {
+				return nil, err
+			}
+			return map[string]int64{"changed": changed}, nil
+		})
 }

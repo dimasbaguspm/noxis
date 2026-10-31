@@ -29,6 +29,12 @@ func (d RegistryDeps) Decode(r *http.Request, v any) error { return json.NewDeco
 
 // Fail maps err to a status, records it on the operation's span and writes the error envelope.
 func (d RegistryDeps) Fail(ctx context.Context, w http.ResponseWriter, err error) {
+	d.fail(ctx, w, err, logging.CallerName(1))
+}
+
+// fail is Fail with the use case named by the caller, so a shared runner still reports the route that failed rather than
+// its own name.
+func (d RegistryDeps) fail(ctx context.Context, w http.ResponseWriter, err error, useCase string) {
 	code := http.StatusBadRequest
 	switch {
 	case errors.Is(err, constants.ErrNotFound), errors.Is(err, constants.ErrUnsupported):
@@ -41,7 +47,7 @@ func (d RegistryDeps) Fail(ctx context.Context, w http.ResponseWriter, err error
 		code = http.StatusForbidden
 	}
 	// The use case is the caller of Fail; the status is what the client saw.
-	d.Metrics.UsecaseError(ctx, logging.CallerName(1), strconv.Itoa(code))
+	d.Metrics.UsecaseError(ctx, useCase, strconv.Itoa(code))
 	logging.ErrorWithCtx(ctx, "request failed", err, "status", code)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)

@@ -1,9 +1,9 @@
 package schema
 
 import (
+	"context"
 	"net/http"
 
-	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
@@ -20,22 +20,9 @@ type Tables struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{driver}/connections/{name}/schema [get]
 func (uc Tables) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx, end := logging.StartSpan(r.Context())
-	defer end(nil)
-	var module interfaces.SchemaReader
-	if err := uc.RouteModule(ctx, r, &module); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	connection, err := uc.RawConn(ctx, module, r.PathValue("name"), entity.LevelRead)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	tables, err := module.Tables(ctx, *connection)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, entity.TableList{Tables: tables})
+	usecases.RunOp[interfaces.SchemaReader](uc.RegistryDeps, w, r, "Tables", entity.LevelRead,
+		func(ctx context.Context, module interfaces.SchemaReader, conn entity.Connection) (any, error) {
+			tables, err := module.Tables(ctx, conn)
+			return entity.TableList{Tables: tables}, err
+		})
 }

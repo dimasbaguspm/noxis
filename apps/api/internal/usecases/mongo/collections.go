@@ -1,9 +1,9 @@
 package mongo
 
 import (
+	"context"
 	"net/http"
 
-	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
@@ -21,22 +21,9 @@ type Collections struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{driver}/connections/{name}/collections [get]
 func (uc Collections) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx, end := logging.StartSpan(r.Context())
-	defer end(nil)
-	var module interfaces.DocumentBrowser
-	if err := uc.RouteModule(ctx, r, &module); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	connection, err := uc.RawConn(ctx, module, r.PathValue("name"), entity.LevelRead)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	collections, err := module.Collections(ctx, *connection, r.URL.Query().Get("database"))
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, entity.CollectionList{Collections: collections})
+	usecases.RunOp[interfaces.DocumentBrowser](uc.RegistryDeps, w, r, "Collections", entity.LevelRead,
+		func(ctx context.Context, module interfaces.DocumentBrowser, conn entity.Connection) (any, error) {
+			collections, err := module.Collections(ctx, conn, r.URL.Query().Get("database"))
+			return entity.CollectionList{Collections: collections}, err
+		})
 }

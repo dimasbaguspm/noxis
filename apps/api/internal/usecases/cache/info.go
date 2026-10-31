@@ -1,9 +1,9 @@
 package cache
 
 import (
+	"context"
 	"net/http"
 
-	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
@@ -20,22 +20,8 @@ type Info struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{driver}/connections/{name}/stats [get]
 func (uc Info) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx, end := logging.StartSpan(r.Context())
-	defer end(nil)
-	var mc interfaces.KeyBrowser
-	if err := uc.RouteModule(ctx, r, &mc); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	c, err := uc.RawConn(ctx, mc, r.PathValue("name"), entity.LevelRead)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	out, err := mc.Info(ctx, *c)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, out)
+	usecases.RunOp[interfaces.KeyBrowser](uc.RegistryDeps, w, r, "Info", entity.LevelRead,
+		func(ctx context.Context, mc interfaces.KeyBrowser, conn entity.Connection) (any, error) {
+			return mc.Info(ctx, conn)
+		})
 }

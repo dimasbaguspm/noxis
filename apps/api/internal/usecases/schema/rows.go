@@ -1,10 +1,10 @@
 package schema
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
-	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
@@ -24,23 +24,9 @@ type Rows struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{driver}/connections/{name}/tables/{table}/rows [get]
 func (uc Rows) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx, end := logging.StartSpan(r.Context())
-	defer end(nil)
-	var module interfaces.SchemaReader
-	if err := uc.RouteModule(ctx, r, &module); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	connection, err := uc.RawConn(ctx, module, r.PathValue("name"), entity.LevelRead)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	result, err := module.Rows(ctx, *connection, r.URL.Query().Get("schema"), r.PathValue("table"), limit)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, result)
+	usecases.RunOp[interfaces.SchemaReader](uc.RegistryDeps, w, r, "Rows", entity.LevelRead,
+		func(ctx context.Context, module interfaces.SchemaReader, conn entity.Connection) (any, error) {
+			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+			return module.Rows(ctx, conn, r.URL.Query().Get("schema"), r.PathValue("table"), limit)
+		})
 }

@@ -1,10 +1,10 @@
 package cache
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 
-	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
@@ -24,24 +24,10 @@ type Keys struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{driver}/connections/{name}/keys [get]
 func (uc Keys) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx, end := logging.StartSpan(r.Context())
-	defer end(nil)
-	var mc interfaces.KeyBrowser
-	if err := uc.RouteModule(ctx, r, &mc); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	c, err := uc.RawConn(ctx, mc, r.PathValue("name"), entity.LevelRead)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	cursor, _ := strconv.ParseUint(r.URL.Query().Get("cursor"), 10, 64)
-	out, err := mc.Keys(ctx, *c, r.URL.Query().Get("pattern"), cursor, limit)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, out)
+	usecases.RunOp[interfaces.KeyBrowser](uc.RegistryDeps, w, r, "Keys", entity.LevelRead,
+		func(ctx context.Context, mc interfaces.KeyBrowser, conn entity.Connection) (any, error) {
+			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+			cursor, _ := strconv.ParseUint(r.URL.Query().Get("cursor"), 10, 64)
+			return mc.Keys(ctx, conn, r.URL.Query().Get("pattern"), cursor, limit)
+		})
 }

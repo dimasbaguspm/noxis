@@ -1,9 +1,9 @@
 package schema
 
 import (
+	"context"
 	"net/http"
 
-	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
@@ -20,31 +20,21 @@ type ERD struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{driver}/connections/{name}/erd [get]
 func (uc ERD) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx, end := logging.StartSpan(r.Context())
-	defer end(nil)
-	var sq interfaces.SchemaReader
-	if err := uc.RouteModule(ctx, r, &sq); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	c, err := uc.RawConn(ctx, sq, r.PathValue("name"), entity.LevelRead)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	tables, err := sq.Tables(ctx, *c)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	if tables == nil {
-		tables = []entity.Table{}
-	}
-	assignTableIDs(tables)
-	uc.Respond(w, entity.SchemaGraph{
-		Connection: entity.SchemaConnection{
-			Name: c.Name, Driver: c.Driver, Database: c.Database,
-		},
-		Tables: tables,
-	})
+	usecases.RunOp[interfaces.SchemaReader](uc.RegistryDeps, w, r, "ERD", entity.LevelRead,
+		func(ctx context.Context, sq interfaces.SchemaReader, conn entity.Connection) (any, error) {
+			tables, err := sq.Tables(ctx, conn)
+			if err != nil {
+				return nil, err
+			}
+			if tables == nil {
+				tables = []entity.Table{}
+			}
+			assignTableIDs(tables)
+			return entity.SchemaGraph{
+				Connection: entity.SchemaConnection{
+					Name: conn.Name, Driver: conn.Driver, Database: conn.Database,
+				},
+				Tables: tables,
+			}, nil
+		})
 }

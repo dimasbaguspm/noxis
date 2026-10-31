@@ -1,10 +1,10 @@
 package cache
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
-	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
@@ -22,30 +22,18 @@ type Flush struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{driver}/connections/{name}/flush [post]
 func (uc Flush) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx, end := logging.StartSpan(r.Context())
-	defer end(nil)
-	var body entity.CacheFlushRequest
-	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	var mc interfaces.KeyBrowser
-	if err := uc.RouteModule(ctx, r, &mc); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	c, err := uc.RawConn(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	if body.Confirm != c.Name {
-		uc.Fail(ctx, w, fmt.Errorf("flushing %s needs its name typed as confirmation", c.Name))
-		return
-	}
-	if err := mc.Flush(ctx, *c); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, entity.StatusResponse{Status: "flushed"})
+	usecases.RunOp[interfaces.KeyBrowser](uc.RegistryDeps, w, r, "Flush", entity.LevelAdmin,
+		func(ctx context.Context, mc interfaces.KeyBrowser, conn entity.Connection) (any, error) {
+			var body entity.CacheFlushRequest
+			if err := uc.Decode(r, &body); err != nil {
+				return nil, err
+			}
+			if body.Confirm != conn.Name {
+				return nil, fmt.Errorf("flushing %s needs its name typed as confirmation", conn.Name)
+			}
+			if err := mc.Flush(ctx, conn); err != nil {
+				return nil, err
+			}
+			return entity.StatusResponse{Status: "flushed"}, nil
+		})
 }

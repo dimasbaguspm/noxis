@@ -1,9 +1,9 @@
 package cache
 
 import (
+	"context"
 	"net/http"
 
-	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
@@ -21,27 +21,16 @@ type Delete struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{driver}/connections/{name}/keys [delete]
 func (uc Delete) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx, end := logging.StartSpan(r.Context())
-	defer end(nil)
-	var body entity.CacheDeleteRequest
-	if err := uc.Decode(r, &body); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	var mc interfaces.KeyBrowser
-	if err := uc.RouteModule(ctx, r, &mc); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	c, err := uc.RawConn(ctx, mc, r.PathValue("name"), entity.LevelAdmin)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	deleted, err := mc.Delete(ctx, *c, body.Keys)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, entity.CacheDeleteResult{Deleted: deleted})
+	usecases.RunOp[interfaces.KeyBrowser](uc.RegistryDeps, w, r, "Delete", entity.LevelAdmin,
+		func(ctx context.Context, mc interfaces.KeyBrowser, conn entity.Connection) (any, error) {
+			var body entity.CacheDeleteRequest
+			if err := uc.Decode(r, &body); err != nil {
+				return nil, err
+			}
+			deleted, err := mc.Delete(ctx, conn, body.Keys)
+			if err != nil {
+				return nil, err
+			}
+			return entity.CacheDeleteResult{Deleted: deleted}, nil
+		})
 }

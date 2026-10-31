@@ -1,9 +1,9 @@
 package schema
 
 import (
+	"context"
 	"net/http"
 
-	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
@@ -20,22 +20,8 @@ type Info struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{driver}/connections/{name}/info [get]
 func (uc Info) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx, end := logging.StartSpan(r.Context())
-	defer end(nil)
-	var module interfaces.ServerReporter
-	if err := uc.RouteModule(ctx, r, &module); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	c, err := uc.RawConn(ctx, module, r.PathValue("name"), entity.LevelRead)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	info, err := module.ServerInfo(ctx, *c)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, info)
+	usecases.RunOp[interfaces.ServerReporter](uc.RegistryDeps, w, r, "Info", entity.LevelRead,
+		func(ctx context.Context, module interfaces.ServerReporter, conn entity.Connection) (any, error) {
+			return module.ServerInfo(ctx, conn)
+		})
 }

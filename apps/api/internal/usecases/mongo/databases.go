@@ -1,9 +1,9 @@
 package mongo
 
 import (
+	"context"
 	"net/http"
 
-	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
@@ -20,22 +20,9 @@ type Databases struct{ usecases.RegistryDeps }
 // @Failure 404 {object} entity.ErrorResponse
 // @Router /external/v1/engine/{driver}/connections/{name}/databases [get]
 func (uc Databases) Serve(w http.ResponseWriter, r *http.Request) {
-	ctx, end := logging.StartSpan(r.Context())
-	defer end(nil)
-	var module interfaces.DocumentBrowser
-	if err := uc.RouteModule(ctx, r, &module); err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	connection, err := uc.RawConn(ctx, module, r.PathValue("name"), entity.LevelRead)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	databases, err := module.Databases(ctx, *connection)
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	uc.Respond(w, entity.DatabaseList{Databases: databases})
+	usecases.RunOp[interfaces.DocumentBrowser](uc.RegistryDeps, w, r, "Databases", entity.LevelRead,
+		func(ctx context.Context, module interfaces.DocumentBrowser, conn entity.Connection) (any, error) {
+			databases, err := module.Databases(ctx, conn)
+			return entity.DatabaseList{Databases: databases}, err
+		})
 }
