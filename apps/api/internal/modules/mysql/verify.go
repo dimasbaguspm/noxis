@@ -15,6 +15,7 @@ import (
 
 	"noxis/internal/common/idgen"
 	"noxis/internal/common/logging"
+	"noxis/internal/common/sqltext"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -45,8 +46,8 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 	schema := scratchPrefix + idgen.Hex(6)
 	// The dry run executes what the change would execute: a qualifier naming the connection's own database is pointed at
 	// the scratch database, while the mirror below keeps the live names it has to read.
-	proved := rewriteQualifier(query, c.Database, schema)
-	provedRollback := rewriteQualifier(rollback, c.Database, schema)
+	proved := sqltext.RewriteQualifier(query, c.Database, schema)
+	provedRollback := sqltext.RewriteQualifier(rollback, c.Database, schema)
 
 	var mirrored []string
 	var summary string
@@ -101,7 +102,7 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 		if err := compareStates(before, after, refs); err != nil {
 			return struct{}{}, err
 		}
-		if !containsDDL(query) && sampledRows(before) == 0 {
+		if !sqltext.ContainsDDL(query, ddls.set) && sampledRows(before) == 0 {
 			return struct{}{}, interfaces.Unverifiable(constants.UnverifiedNoRows, "no sampled rows for the tables this change touches")
 		}
 		summary = changeSummary(refs, before)
@@ -131,7 +132,7 @@ var qualifiedIdent = regexp.MustCompile("(?i)(?:[a-z_][a-z0-9_$]*|\"[^\"]+\"|`[^
 
 // hasQualifiedIdent finds schema.table and table.column references; either can escape a scratch search_path.
 func hasQualifiedIdent(text string) bool {
-	for _, stmt := range splitStatements(text) {
+	for _, stmt := range sqltext.SplitStatements(text) {
 		if qualifiedIdent.MatchString(stmt) {
 			return true
 		}
@@ -150,15 +151,15 @@ var serverObjects = map[string]bool{"DATABASE": true, "SCHEMA": true, "USER": tr
 // unprovable refuses a batch a scratch database cannot hold, naming the reason so the queue can group it. Everything
 // else is rewritten into the scratch database and proved for real.
 func unprovable(c entity.Connection, sqlText string) error {
-	for _, stmt := range splitStatements(sqlText) {
-		if stripLeadingComments(stmt) == "" {
+	for _, stmt := range sqltext.SplitStatements(sqlText) {
+		if sqltext.StripLeadingComments(stmt) == "" {
 			continue
 		}
 		if serverScoped(stmt) {
 			return interfaces.Unverifiable(constants.UnverifiedServerDDL,
-				fmt.Sprintf("%s changes the server rather than a schema, so a scratch database cannot hold it", strings.Join(keywords(stmt, 2), " ")))
+				fmt.Sprintf("%s changes the server rather than a schema, so a scratch database cannot hold it", strings.Join(sqltext.Keywords(stmt, 2), " ")))
 		}
-		for _, qualifier := range qualifiers(stmt) {
+		for _, qualifier := range sqltext.Qualifiers(stmt) {
 			if strings.EqualFold(qualifier, c.Database) || systemSchemas[strings.ToLower(qualifier)] {
 				continue
 			}
@@ -171,7 +172,7 @@ func unprovable(c entity.Connection, sqlText string) error {
 
 // serverScoped reports whether a statement changes the server rather than a schema.
 func serverScoped(stmt string) bool {
-	words := keywords(stmt, 2)
+	words := sqltext.Keywords(stmt, 2)
 	if len(words) == 0 {
 		return false
 	}
@@ -202,8 +203,8 @@ func (r verifyRef) key() string { return r.schema + "." + r.table }
 
 // verificationRefs resolves every table named by the change, including tables the query creates.
 func verificationRefs(c entity.Connection, sqlText, scratch string) []verifyRef {
-	created := createdTables(sqlText)
-	names, _ := Referenced(sqlText)
+	created := sqltext.CreatedTables(sqlText)
+	names, _ := sqltext.Referenced(sqlText)
 	for name := range created {
 		names = append(names, name)
 	}
@@ -215,7 +216,7 @@ func verificationRefs(c entity.Connection, sqlText, scratch string) []verifyRef 
 		if scratch != "" && !strings.Contains(name, ".") {
 			schema = scratch
 		}
-		if !identOK(schema) || !identOK(table) {
+		if !sqltext.IdentOK(schema) || !sqltext.IdentOK(table) {
 			continue
 		}
 		key := schema + "." + table
@@ -417,7 +418,7 @@ func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback 
 		if err := compareStates(before, after, refs); err != nil {
 			return struct{}{}, err
 		}
-		if !containsDDL(query) && sampledRows(before) == 0 {
+		if !sqltext.ContainsDDL(query, ddls.set) && sampledRows(before) == 0 {
 			return struct{}{}, interfaces.Unverifiable(constants.UnverifiedNoRows, "no sampled rows for the tables this change touches")
 		}
 		summary = changeSummary(refs, before)
@@ -435,15 +436,15 @@ func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback 
 
 // mirrorReferenced copies the structure of every referenced table that already exists live into the scratch schema, so the change has something to act on.
 func mirrorReferenced(ctx context.Context, conn *stdsql.Conn, c entity.Connection, scratch, sqlText string) ([]string, error) {
-	created := createdTables(sqlText)
-	refs, _ := Referenced(sqlText)
+	created := sqltext.CreatedTables(sqlText)
+	refs, _ := sqltext.Referenced(sqlText)
 	var mirrored []string
 	for _, ref := range refs {
 		if created[ref] {
 			continue
 		}
 		schema, table := splitRef(c, ref)
-		if !identOK(schema) || !identOK(table) || created[schema+"."+table] {
+		if !sqltext.IdentOK(schema) || !sqltext.IdentOK(table) || created[schema+"."+table] {
 			continue
 		}
 		exists, err := tableExists(ctx, conn, schema, table)

@@ -1,9 +1,36 @@
-package mysql
+package sqltext_test
 
 import (
 	"reflect"
 	"testing"
+
+	"noxis/internal/common/sqltext"
 )
+
+// splitStatements returns raw fragments; empty ones (trailing separators) are skipped by the callers, so counts here include them.
+func TestSplitStatements(t *testing.T) {
+	cases := []struct {
+		sql  string
+		want int
+	}{
+		{"SELECT 1", 1},
+		{"SELECT 1; SELECT 2", 2},
+		{"SELECT 1;", 2},                                // trailing separator
+		{"SELECT 'a;b'", 1},                             // semicolon in a literal
+		{"SELECT 'it''s; fine'", 1},                     // escaped quote
+		{`SELECT "we;ird"`, 1},                          // quoted identifier
+		{"SELECT 1 -- a; comment\n; SELECT 2", 2},       // line comment
+		{"SELECT 1 /* a; block */; SELECT 2", 2},        // block comment
+		{"INSERT INTO t VALUES ($q$it;s$q$)", 1},        // dollar-quoted
+		{"INSERT INTO t VALUES ($$a;b$$); SELECT 1", 2}, // empty-tag dollars
+		{"SELECT $1, $2", 1},                            // bind params stay plain
+	}
+	for _, tc := range cases {
+		if got := len(sqltext.SplitStatements(tc.sql)); got != tc.want {
+			t.Errorf("sqltext.SplitStatements(%q) = %d statements, want %d", tc.sql, got, tc.want)
+		}
+	}
+}
 
 func TestReferenced(t *testing.T) {
 	cases := []struct {
@@ -39,7 +66,7 @@ func TestReferenced(t *testing.T) {
 		{"DELETE FROM items WHERE id = 1; DROP TABLE old_items", []string{"items", "old_items"}, []string{}},
 	}
 	for _, tc := range cases {
-		tables, columns := Referenced(tc.sql)
+		tables, columns := sqltext.Referenced(tc.sql)
 		if !reflect.DeepEqual(tables, tc.tables) {
 			t.Errorf("%s\ntables = %v, want %v", tc.sql, tables, tc.tables)
 		}
@@ -51,7 +78,7 @@ func TestReferenced(t *testing.T) {
 
 // MySQL resolves unqualified names only in scratch, so the verifier must mirror FK-only parent tables.
 func TestReferencedIncludesForeignKeyTargets(t *testing.T) {
-	tables, _ := Referenced(`CREATE TABLE child (id INT PRIMARY KEY, parent_id INT REFERENCES parent (id))`)
+	tables, _ := sqltext.Referenced(`CREATE TABLE child (id INT PRIMARY KEY, parent_id INT REFERENCES parent (id))`)
 	if len(tables) != 2 || tables[0] != "child" || tables[1] != "parent" {
 		t.Fatalf("tables = %v, want [child parent]", tables)
 	}
