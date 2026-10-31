@@ -11,14 +11,14 @@ import (
 // TestProfileIsComplete fails when the profile leaves out a field a feature reads: the compiler cannot see the gap, this test can.
 func TestProfileIsComplete(t *testing.T) {
 	d := profile
-	if d.name != constants.DriverCockroach || d.driver != dbDriverPostgres || d.schema != schemaPostgres || d.quote != '"' {
+	if d.name != constants.DriverCockroach || d.driver != baseDriver || d.schema != baseSchema || d.quote != '"' {
 		t.Fatalf("profile identity = %+v", d)
 	}
 	if d.dsn == nil || d.analyze == "" || d.maxOpenConns <= 0 || d.txn != txnAlways {
 		t.Fatalf("profile is missing a required field: %+v", d)
 	}
 	if d.keysQuery == "" || d.indexesQuery == "" || d.scanIndex == nil || d.scanEstimate == nil || d.commentsQuery == "" {
-		t.Fatalf("the postgres catalog must survive the derivation: %+v", d)
+		t.Fatalf("the baseline catalog must survive the derivation: %+v", d)
 	}
 	// the estimate and the size come from cockroach's own catalogs; there is no EXPLAIN (FORMAT JSON) to read
 	if d.estimatesQuery == "" || d.explain != "" {
@@ -30,9 +30,9 @@ func TestProfileIsComplete(t *testing.T) {
 	if !d.transactional("CREATE TABLE t (id INT)") || !d.transactional("UPDATE public.t SET id = 1") {
 		t.Fatal("every batch is proved by rolling back the live transaction")
 	}
-	// the derivation is visible: the baseline it copies is the postgres profile in this package
-	if postgresBaseline.name != constants.DriverPostgres || postgresBaseline.txn != txnWhenQualified {
-		t.Fatalf("postgresBaseline = %+v", postgresBaseline)
+	// the derivation is visible: the baseline this package starts from keeps its transactional-DDL rule
+	if baseProfile.driver != baseDriver || baseProfile.txn != txnWhenQualified {
+		t.Fatalf("baseProfile = %+v", baseProfile)
 	}
 }
 
@@ -50,7 +50,7 @@ func TestModuleServesOneDriver(t *testing.T) {
 			t.Errorf("Supports(%q) = true", other)
 		}
 	}
-	// the postgres driver name must not reach this module: it is the baseline, not the driver served
+	// the postgres driver name must not reach this module: it is the wire protocol, not the driver served
 	if _, err := dialectOf(constants.DriverPostgres); err == nil {
 		t.Error("dialectOf must refuse a foreign driver")
 	}
@@ -66,7 +66,7 @@ func TestDSNAndSplitRef(t *testing.T) {
 	if err != nil || !strings.HasPrefix(got, "postgres://u:p@db:26257/demo") {
 		t.Fatalf("dsn = %q, %v", got, err)
 	}
-	if schema, table := splitRef(conn, "items"); schema != schemaPostgres || table != "items" {
+	if schema, table := splitRef(conn, "items"); schema != baseSchema || table != "items" {
 		t.Fatalf("splitRef(items) = %q.%q", schema, table)
 	}
 	if quoted := quoteRef(conn.Driver, "s", "t"); quoted != `"s"."t"` {

@@ -97,14 +97,13 @@ type dialect struct {
 	scanEstimate func(*stdsql.Rows) (estimateRow, error)
 }
 
-var postgresBaseline = dialect{
+var baseProfile = dialect{
 	maxOpenConns: 4,
 	maxIdleConns: 2,
-	name:         constants.DriverPostgres,
-	driver:       dbDriverPostgres,
+	driver:       baseDriver,
 	quote:        '"',
-	schema:       schemaPostgres,
-	dsn:          dsnPostgres,
+	schema:       baseSchema,
+	dsn:          baseDSN,
 
 	analyze: "ANALYZE %s",
 	explain: "EXPLAIN (FORMAT JSON) ",
@@ -120,23 +119,23 @@ var postgresBaseline = dialect{
 			WHERE table_schema = $1 AND table_name = $2 ORDER BY ordinal_position`,
 	generatedColumn: "ALWAYS",
 
-	keysQuery:      keysQueryPostgres,
-	indexesQuery:   indexesQueryPostgres,
-	estimatesQuery: estimatesQueryPostgres,
-	commentsQuery:  commentsQueryPostgres,
-	scanIndex:      scanPostgresIndex,
-	scanEstimate:   scanPostgresEstimate,
+	keysQuery:      baseKeysQuery,
+	indexesQuery:   baseIndexesQuery,
+	estimatesQuery: baseEstimatesQuery,
+	commentsQuery:  baseCommentsQuery,
+	scanIndex:      scanBaseIndex,
+	scanEstimate:   scanBaseEstimate,
 }
 
-// profile is this driver's dialect, derived from the postgres baseline in this package: DDL is transactional, so a change is proved in the live transaction, and there is no CREATE TABLE (LIKE ... INCLUDING ALL), so the scratch path must never run.
+// profile is this driver's dialect, derived from the baseline in this package: DDL is transactional, so a change is proved in the live transaction and the scratch path must never run.
 var profile = func() dialect {
-	d := postgresBaseline
+	d := baseProfile
 	d.name = constants.DriverCockroach
 	d.txn = txnAlways
 	// cockroach keeps its own statistics catalog and range byte counters, so the estimate query is its own; it has no
-	// EXPLAIN (FORMAT JSON), so the planner path stays off. The rest of the postgres catalog works unchanged. The scratch
+	// EXPLAIN (FORMAT JSON), so the planner path stays off. The rest of the baseline catalog works unchanged. The scratch
 	// fields it inherits are never read: nothing in this package creates a throwaway schema.
-	d.estimatesQuery = estimatesQueryCockroach
+	d.estimatesQuery = estimatesQuery
 	d.explain = ""
 	return d
 }()
@@ -187,10 +186,10 @@ func (d dialect) tablePresentStatement(schema, table string) string {
 	return fmt.Sprintf(d.tableExists, schema, table)
 }
 
-// dsnPostgres is the URL form pgx accepts; sslmode stays the homelab default unless the connection says otherwise.
-func dsnPostgres(c entity.Connection) (string, error) {
+// baseDSN is the URL form pgx accepts; sslmode stays the homelab default unless the connection says otherwise.
+func baseDSN(c entity.Connection) (string, error) {
 	u := &url.URL{
-		Scheme: dsnSchemePostgres,
+		Scheme: baseScheme,
 		User:   url.UserPassword(c.User, c.Password),
 		Host:   net.JoinHostPort(c.Host, strconv.Itoa(c.Port)),
 		Path:   "/" + c.Database,
@@ -213,15 +212,15 @@ func dsn(c entity.Connection) (string, error) {
 	return d.dsn(c)
 }
 
-// scanPostgresIndex reads pg_index's columns: uniqueness and primacy are booleans in the catalog.
-func scanPostgresIndex(rows *stdsql.Rows) (indexRow, error) {
+// scanBaseIndex reads pg_index's columns: uniqueness and primacy are booleans in the catalog.
+func scanBaseIndex(rows *stdsql.Rows) (indexRow, error) {
 	var r indexRow
 	err := rows.Scan(&r.schema, &r.table, &r.name, &r.unique, &r.primary, &r.column)
 	return r, err
 }
 
-// scanPostgresEstimate reads reltuples and the relation size.
-func scanPostgresEstimate(rows *stdsql.Rows) (estimateRow, error) {
+// scanBaseEstimate reads reltuples and the relation size.
+func scanBaseEstimate(rows *stdsql.Rows) (estimateRow, error) {
 	var r estimateRow
 	err := rows.Scan(&r.schema, &r.table, &r.estimate, &r.size)
 	return r, err

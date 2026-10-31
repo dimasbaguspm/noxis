@@ -17,11 +17,12 @@ const (
 
 // The database/sql driver this package speaks, the schema an unqualified name resolves to, and the URL scheme pgx accepts.
 const (
-	dbDriverPostgres = "pgx"
+	baseDriver = "pgx"
 
-	schemaPostgres = "public"
+	baseSchema = "public"
 
-	dsnSchemePostgres = "postgres"
+	// baseScheme is the URL scheme pgx accepts, which happens to spell postgres: a wire detail, not the driver served here.
+	baseScheme = "postgres"
 )
 
 // kindSet is an allow-list of statement keywords, with its printable list.

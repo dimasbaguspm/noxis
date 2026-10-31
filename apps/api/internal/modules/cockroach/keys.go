@@ -10,7 +10,7 @@ import (
 
 // keysQuery reads every declared key on a table: primary keys, unique constraints, and foreign keys with the column they reference.
 const (
-	keysQueryPostgres = `
+	baseKeysQuery = `
 	SELECT tc.table_schema, tc.table_name, kcu.column_name, tc.constraint_type,
 	       ccu.table_schema, ccu.table_name, ccu.column_name
 	FROM information_schema.table_constraints tc

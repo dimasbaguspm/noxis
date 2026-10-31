@@ -130,7 +130,7 @@ func splitStatements(sqlText string) []string {
 	return append(stmts, cur.String())
 }
 
-// dollarQuoted matches a postgres dollar-quoted string ($tag$ … $tag$) at i.
+// dollarQuoted matches a dollar-quoted string ($tag$ … $tag$) at i.
 func dollarQuoted(sqlText string, i int) (end int, ok bool) {
 	tagEnd := strings.IndexByte(sqlText[i+1:], '$')
 	if tagEnd < 0 {
@@ -160,7 +160,7 @@ func hintOf(sqlText string, err error) error {
 		return err
 	}
 	if match := quotedValue.FindStringSubmatch(sqlText); match != nil {
-		return fmt.Errorf(`%w — hint: "%s" is an identifier in postgres; use '%s' for a string literal`, err, match[1], match[1])
+		return fmt.Errorf(`%w — hint: "%s" names an identifier; use '%s' for a string literal`, err, match[1], match[1])
 	}
 	return err
 }
