@@ -34,6 +34,7 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	w.sqlSteps(sc)
 	w.erdSteps(sc)
 	w.authSteps(sc)
+	w.routeSteps(sc)
 	w.accessSteps(sc)
 }
 

@@ -57,6 +57,14 @@ its default. Cross-field rules live in `LoadConfig` / `Validate`; a
 | `make down` | stop compose and wipe volumes (`-v`) |
 | `make uat` | godog acceptance suite over the real compose stack |
 
+### Acceptance suite layout
+
+One feature file per endpoint, named after its method and path — `GET_healthz.feature`, `POST_auth_login.feature`, `POST_engine_postgres_connections.feature` — flat in `apps/api/test/uat/features/`. Each file holds the accepted case and the refusals that route owns, and an engine-scoped route uses a `Scenario Outline` with one row per driver.
+
+A file seeds what it needs under names only it uses, asserts no count, order or page split it did not seed, and resets nothing globally. That is what keeps the suite honest: the browse scenario that once asserted a page split Redis never promised passed or failed depending on what earlier scenarios had left behind.
+
+A sign-in rotates the account's single session, so a step that signs in installs the token it mints; otherwise every later scenario in the run presents a dead bearer.
+
 ### UAT switches
 
 `make uat` runs the suite against the compose stack. It does **not** rebuild the
