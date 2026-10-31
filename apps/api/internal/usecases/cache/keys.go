@@ -18,6 +18,7 @@ type Keys struct{ usecases.RegistryDeps }
 // @Param name path string true "connection name"
 // @Param pattern query string false "glob pattern (default *)"
 // @Param limit query int false "scan cap (default 500, max 5000)"
+// @Param cursor query int false "continuation from a previous page; 0 starts the scan"
 // @Success 200 {object} entity.KeyPage
 // @Failure 400 {object} entity.ErrorResponse
 // @Failure 404 {object} entity.ErrorResponse
@@ -36,7 +37,8 @@ func (uc Keys) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	out, err := mc.Keys(ctx, *c, r.URL.Query().Get("pattern"), limit)
+	cursor, _ := strconv.ParseUint(r.URL.Query().Get("cursor"), 10, 64)
+	out, err := mc.Keys(ctx, *c, r.URL.Query().Get("pattern"), cursor, limit)
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return

@@ -24,6 +24,17 @@ Feature: Memory cache keys and metrics
     When I inspect the redis key "queue"
     Then the value grid shows "a"
 
+  Scenario: a keyspace is walked past one page
+    Given the stack is running
+    And a redis connection named "cache"
+    And the redis key "page:1" holds "a"
+    And the redis key "page:2" holds "b"
+    And the redis key "page:3" holds "c"
+    When I browse redis keys matching "page:*" with a limit of 2
+    Then the browse is truncated with a cursor
+    When I continue the browse from that cursor
+    Then the browse returns 1 key(s)
+
   Scenario: the server reports what it holds
     Given the stack is running
     And a redis connection named "cache"

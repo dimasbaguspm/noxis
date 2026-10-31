@@ -9,8 +9,11 @@ type Key struct {
 }
 
 type KeyPage struct {
-	Keys      []Key  `json:"keys"`
-	Total     int64  `json:"total"`
-	Truncated bool   `json:"truncated"`
-	Pattern   string `json:"pattern"`
+	Keys      []Key `json:"keys"`
+	Total     int64 `json:"total"`
+	Truncated bool  `json:"truncated"`
+	// Cursor is where the server stopped scanning: zero means the iteration is complete, anything else is the
+	// continuation a caller passes back to read the next page.
+	Cursor  uint64 `json:"cursor"`
+	Pattern string `json:"pattern"`
 }

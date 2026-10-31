@@ -24,6 +24,8 @@ type redisPage struct {
 	Keys      []redisKey `json:"keys"`
 	Total     int64      `json:"total"`
 	Truncated bool       `json:"truncated"`
+	Cursor    uint64     `json:"cursor"`
+	Pattern   string     `json:"pattern"`
 }
 
 // cacheInfoBody is what a cache server says about itself, only the fields UAT asserts on.
@@ -43,6 +45,10 @@ func (w *world) memcacheSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the redis key "([^"]*)" lives for (\d+) seconds$`, w.redisSeedTTL)
 	sc.Step(`^the redis list "([^"]*)" contains "([^"]*)"$`, w.redisSeedList)
 	sc.Step(`^I browse redis keys matching "([^"]*)"$`, w.redisBrowse)
+	sc.Step(`^I browse redis keys matching "([^"]*)" with a limit of (\d+)$`, w.redisBrowseLimited)
+	sc.Step("the browse is truncated with a cursor", w.redisBrowseTruncated)
+	sc.Step("I continue the browse from that cursor", w.redisBrowseMore)
+	sc.Step(`^the browse returns (\d+) key\(s\)$`, w.redisBrowseCount)
 	sc.Step(`^I try to browse redis keys matching "([^"]*)"$`, w.redisBrowseToleratingFailure)
 	sc.Step(`^the browse finds the key "([^"]*)"$`, w.redisBrowseFinds)
 	sc.Step(`^the browse does not find the key "([^"]*)"$`, w.redisBrowseMisses)
@@ -153,6 +159,50 @@ func (w *world) redisBrowse(ctx context.Context, pattern string) error {
 }
 
 // redisBrowseToleratingFailure browses without insisting on success, so a rejected request can be asserted next.
+// redisBrowseLimited browses one page small enough to leave the scan unfinished, so the cursor can be exercised.
+func (w *world) redisBrowseLimited(ctx context.Context, pattern string, limit int) error {
+	w.page = redisPage{}
+	path := fmt.Sprintf(w.enginePath("/connections/%s/keys?pattern=%s&limit=%d"), w.conn, pattern, limit)
+	if err := w.api(http.MethodGet, path, nil, &w.page); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("browse: %d", w.code)
+	}
+	return nil
+}
+
+// redisBrowseTruncated proves the server said there is more and handed back where it stopped.
+func (w *world) redisBrowseTruncated(ctx context.Context) error {
+	if !w.page.Truncated || w.page.Cursor == 0 {
+		return fmt.Errorf("page truncated=%v cursor=%d, want more to read", w.page.Truncated, w.page.Cursor)
+	}
+	return nil
+}
+
+// redisBrowseMore continues from the cursor the last page returned, which is what the page's load more does.
+func (w *world) redisBrowseMore(ctx context.Context) error {
+	pattern, cursor := w.page.Pattern, w.page.Cursor
+	next := redisPage{}
+	path := fmt.Sprintf(w.enginePath("/connections/%s/keys?pattern=%s&cursor=%d"), w.conn, pattern, cursor)
+	if err := w.api(http.MethodGet, path, nil, &next); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("continue browse: %d", w.code)
+	}
+	w.page = next
+	return nil
+}
+
+// redisBrowseCount asserts how many keys one page held.
+func (w *world) redisBrowseCount(ctx context.Context, want int) error {
+	if len(w.page.Keys) != want {
+		return fmt.Errorf("page held %d key(s), want %d", len(w.page.Keys), want)
+	}
+	return nil
+}
+
 func (w *world) redisBrowseToleratingFailure(ctx context.Context, pattern string) error {
 	w.page = redisPage{}
 	path := fmt.Sprintf(w.enginePath("/connections/%s/keys?pattern=%s"), w.conn, pattern)

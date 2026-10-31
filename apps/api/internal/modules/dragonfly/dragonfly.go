@@ -67,7 +67,7 @@ func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
 // key's type, TTL and size in one pipeline.
 //
 // shortcut: browsing scans at most 5000 keys; add cursor paging when larger keyspaces must be searched.
-func (db *DB) Keys(ctx context.Context, c entity.Connection, pattern string, limit int) (page entity.KeyPage, err error) {
+func (db *DB) Keys(ctx context.Context, c entity.Connection, pattern string, from uint64, limit int) (page entity.KeyPage, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if pattern == "" {
@@ -86,7 +86,7 @@ func (db *DB) Keys(ctx context.Context, c entity.Connection, pattern string, lim
 		ctx, cancel := context.WithTimeout(ctx, opTimeout)
 		defer cancel()
 
-		var cursor uint64
+		cursor := from
 		names := make([]string, 0, limit)
 		for len(names) < limit {
 			batch, next, err := cl.Scan(ctx, cursor, pattern, int64(limit-len(names))).Result()
@@ -101,15 +101,15 @@ func (db *DB) Keys(ctx context.Context, c entity.Connection, pattern string, lim
 		}
 		if len(names) > limit {
 			names = names[:limit]
-			page.Truncated = true
 		}
+		// The cursor is where the server stopped: zero means the iteration is complete, which is the only honest
+		// "there is more" signal, because a later page's total is the whole database rather than what is left.
+		page.Cursor = cursor
 
 		if size, err := cl.DBSize(ctx).Result(); err == nil {
 			page.Total = size
 		}
-		if page.Total > int64(len(names)) {
-			page.Truncated = true
-		}
+		page.Truncated = cursor != 0
 
 		pipe := cl.Pipeline()
 		types := make([]*goredis.StatusCmd, len(names))
