@@ -2,13 +2,10 @@
 package apply
 
 import (
-	"context"
 	"net/http"
 
-	"noxis/internal/common"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 	"noxis/internal/usecases"
 )
 
@@ -40,24 +37,10 @@ func (uc Apply) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	flow, err := flowFor(ctx, r.PathValue("driver"))
-	if err != nil {
-		uc.Fail(ctx, w, err)
-		return
-	}
-	out, err := flow.Apply(ctx, change, entity.Actor(ctx))
+	out, err := uc.ApplyChange(ctx, change, entity.Actor(ctx))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
 	}
 	uc.Respond(w, out)
-}
-
-// flowFor is the change queue of the driver the route names, so the driver picks the queue rather than the change's kind.
-func flowFor(ctx context.Context, driver string) (interfaces.ChangeFlow, error) {
-	var flow interfaces.ChangeFlow
-	if err := common.LoadModule(common.WithModuleDriver(ctx, driver), &flow); err != nil {
-		return nil, err
-	}
-	return flow, nil
 }

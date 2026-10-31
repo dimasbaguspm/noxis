@@ -13,39 +13,14 @@ import (
 	"noxis/internal/modules/redis"
 )
 
-func TestLoadModuleByType(t *testing.T) {
-	sqlFlow := postgres.NewChanges(nil, nil, nil, nil)
-	mongoFlow := mongodb.NewChanges(nil, nil, nil, nil)
-	r := registry{mods: map[string]Registration{
-		constants.DriverPostgres: {Changes: sqlFlow},
-		constants.DriverMongo:    {Changes: mongoFlow},
-	}}
-
-	var gotSQL interfaces.SQLChangeFlow
-	ctx := common.WithModuleDriver(context.Background(), constants.DriverPostgres)
-	if err := r.LoadModule(ctx, &gotSQL); err != nil {
-		t.Fatal(err)
-	}
-	if gotSQL != sqlFlow {
-		t.Fatalf("SQL flow = %T, want registered flow", gotSQL)
-	}
-
-	var gotMongo interfaces.MongoChangeFlow
-	ctx = common.WithModuleDriver(context.Background(), constants.DriverMongo)
-	if err := r.LoadModule(ctx, &gotMongo); err != nil {
-		t.Fatal(err)
-	}
-	if gotMongo != mongoFlow {
-		t.Fatalf("Mongo flow = %T, want registered flow", gotMongo)
-	}
-}
-
-func TestLoadEngineModuleUsesContextDriver(t *testing.T) {
+// TestLoadModuleFillsTheRequestedCapability proves a handler names the seam it needs and the registry hands back the
+// module registered for the driver in the context.
+func TestLoadModuleFillsTheRequestedCapability(t *testing.T) {
 	sq, mongo, cache := postgres.New(), mongodb.New(), redis.New()
-	r := registry{mods: map[string]Registration{
-		constants.DriverPostgres: {Engine: sq},
-		constants.DriverMongo:    {Engine: mongo},
-		constants.DriverRedis:    {Engine: cache},
+	r := registry{mods: map[string]interfaces.Module{
+		constants.DriverPostgres: sq,
+		constants.DriverMongo:    mongo,
+		constants.DriverRedis:    cache,
 	}}
 
 	ctx := common.WithModuleDriver(context.Background(), constants.DriverPostgres)
@@ -77,30 +52,48 @@ func TestLoadEngineModuleUsesContextDriver(t *testing.T) {
 
 func TestLoadModuleRejectsMissingOrUnsupportedTargets(t *testing.T) {
 	r := registry{}
-	var sqlFlow interfaces.SQLChangeFlow
-	if err := r.LoadModule(context.Background(), &sqlFlow); !errors.Is(err, constants.ErrUnsupported) {
-		t.Fatalf("missing SQL flow error = %v, want unsupported", err)
+	var sql interfaces.SQLChangeEngine
+	if err := r.LoadModule(context.Background(), &sql); !errors.Is(err, constants.ErrUnsupported) {
+		t.Fatalf("missing driver error = %v, want unsupported", err)
 	}
 	if err := r.LoadModule(context.Background(), new(string)); !errors.Is(err, constants.ErrUnsupported) {
 		t.Fatalf("unknown target error = %v, want unsupported", err)
 	}
-	if err := r.LoadModule(context.Background(), (*interfaces.SQLChangeFlow)(nil)); err == nil {
+	if err := r.LoadModule(context.Background(), (*interfaces.SQLChangeEngine)(nil)); err == nil {
 		t.Fatal("nil target accepted")
 	}
 }
 
-func TestDriversAndQueues(t *testing.T) {
-	r := New(map[string]Registration{
-		constants.DriverPostgres: {Changes: postgres.NewChanges(nil, nil, nil, nil)},
-		constants.DriverRedis:    {},
+func TestDriversAndEngine(t *testing.T) {
+	r := New(map[string]interfaces.Module{
+		constants.DriverPostgres: postgres.New(),
+		constants.DriverRedis:    redis.New(),
 	})
 	if got := r.Drivers(); len(got) != 2 || got[0] != constants.DriverPostgres || got[1] != constants.DriverRedis {
 		t.Fatalf("drivers = %v, want the registered names sorted", got)
 	}
-	if _, err := r.Changes(constants.DriverRedis); !errors.Is(err, constants.ErrUnsupported) {
-		t.Fatalf("cache queue error = %v, want unsupported", err)
+	if _, err := r.Engine(constants.DriverMySQL); !errors.Is(err, constants.ErrUnsupported) {
+		t.Fatalf("unregistered engine error = %v, want unsupported", err)
 	}
-	if _, err := r.Changes(constants.DriverMySQL); !errors.Is(err, constants.ErrUnsupported) {
-		t.Fatalf("unregistered queue error = %v, want unsupported", err)
+	if module, err := r.Engine(constants.DriverRedis); err != nil || module.Driver() != constants.DriverRedis {
+		t.Fatalf("redis engine = %v, %v", module, err)
+	}
+}
+
+// TestDefaultRegistersEachDriverOnce locks the built-in set: every driver is registered under its own name, so a
+// connection is never served by another driver's module.
+func TestDefaultRegistersEachDriverOnce(t *testing.T) {
+	r := Default()
+	for _, driver := range r.Drivers() {
+		module, err := r.Engine(driver)
+		if err != nil {
+			t.Fatalf("%s: %v", driver, err)
+		}
+		if got := module.Driver(); got != driver {
+			t.Errorf("%s is served by the %s module", driver, got)
+		}
+		if !module.Supports(driver) {
+			t.Errorf("%s: Supports(%q) = false", driver, driver)
+		}
 	}
 }

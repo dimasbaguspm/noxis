@@ -22,9 +22,6 @@ func layerOf(pkg string) (int, bool) {
 		return 3, true
 	case pkg == "noxis/internal/repositories" || strings.HasPrefix(pkg, "noxis/internal/repositories/"):
 		return 4, true
-	// changeflow is the change lifecycle every engine shares, so it sits below the engines and above persistence.
-	case pkg == "noxis/internal/changeflow":
-		return 5, true
 	case strings.HasPrefix(pkg, "noxis/internal/modules/"):
 		return 6, true
 	case pkg == "noxis/internal/modules":

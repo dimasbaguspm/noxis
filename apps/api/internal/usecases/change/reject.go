@@ -23,10 +23,6 @@ func (uc Reject) Serve(w http.ResponseWriter, r *http.Request) {
 	ctx, end := logging.StartSpan(r.Context())
 	defer end(nil)
 	decide(ctx, uc.RegistryDeps, w, r, func(change *entity.Change) error {
-		flow, err := flowFor(ctx, r.PathValue("driver"))
-		if err != nil {
-			return err
-		}
-		return flow.Reject(ctx, change, entity.Actor(ctx))
+		return uc.RejectChange(ctx, change, entity.Actor(ctx))
 	})
 }
