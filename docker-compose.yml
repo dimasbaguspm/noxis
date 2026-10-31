@@ -330,6 +330,23 @@ services:
     restart: "no"
 
   # Registers whatever was seeded, so the console opens with instances rather than an empty list.
+  # Elasticsearch is a search platform: the console browses what it indexes and reviews a delete by query.
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    # one target, so `make dev elasticsearch` can bring just this one
+    profiles: [elasticsearch, all]
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    expose: ["9200"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+
   seed-couchdb:
     image: couchdb:3.3
     profiles: [seed]
@@ -340,6 +357,18 @@ services:
     volumes:
       - ./dev/seed:/seed:ro
     entrypoint: ["sh", "/seed/couch.sh", "couchdb", "5984", "admin", "noxis"]
+    restart: "no"
+
+  seed-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    profiles: [seed]
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+        required: false
+    volumes:
+      - ./dev/seed:/seed:ro
+    entrypoint: ["sh", "/seed/es.sh", "elasticsearch", "9200"]
     restart: "no"
 
   seed-registry:

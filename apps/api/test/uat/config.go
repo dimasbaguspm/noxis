@@ -54,8 +54,9 @@ func loadTargets() error {
 		"postgres": "postgres", "mysql": "mysql", "mariadb": "mariadb", "mongo": "mongo",
 		"cockroach": "cockroachdb/cockroach",
 		"redis":     "redis", "valkey": "valkey",
-		"dragonfly": "docker.dragonflydb.io/dragonflydb/dragonfly",
-		"couchdb":   "couchdb",
+		"dragonfly":     "docker.dragonflydb.io/dragonflydb/dragonfly",
+		"couchdb":       "couchdb",
+		"elasticsearch": "docker.elastic.co/elasticsearch/elasticsearch",
 	} {
 		h, err := hostOf(image)
 		if err != nil {
@@ -111,6 +112,9 @@ func loadTargets() error {
 			Driver: "couchdb", Host: host["couchdb"], Port: port["couchdb"],
 			User:     env(host["couchdb"], "COUCHDB_USER"),
 			Password: env(host["couchdb"], "COUCHDB_PASSWORD"), Database: "demo",
+		},
+		"elasticsearch": {
+			Driver: "elasticsearch", Host: host["elasticsearch"], Port: port["elasticsearch"], Database: "demo",
 		},
 		"mongo": {
 			Driver: "mongo", Host: host["mongo"], Port: port["mongo"],

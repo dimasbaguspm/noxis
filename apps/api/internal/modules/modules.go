@@ -16,6 +16,7 @@ import (
 	"noxis/internal/modules/cockroach"
 	"noxis/internal/modules/couchdb"
 	"noxis/internal/modules/dragonfly"
+	"noxis/internal/modules/elasticsearch"
 	"noxis/internal/modules/mariadb"
 	"noxis/internal/modules/mongodb"
 	"noxis/internal/modules/mysql"
@@ -83,6 +84,9 @@ func Default(repos repositories.Registry, m *metrics.Metrics) Registry {
 
 	couch := couchdb.New()
 	mods[couch.Driver()] = Registration{Engine: couch, Changes: couchdb.NewChanges(repos.Connections, repos.Changes, couch, m)}
+
+	search := elasticsearch.New()
+	mods[search.Driver()] = Registration{Engine: search, Changes: elasticsearch.NewChanges(repos.Connections, repos.Changes, search, m)}
 	return New(mods)
 }
 

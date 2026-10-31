@@ -25,6 +25,7 @@ var driverCatalog = []entity.DriverInfo{
 	{Driver: constants.DriverDragonfly, Label: "Dragonfly"},
 	{Driver: constants.DriverMongo, Label: "MongoDB"},
 	{Driver: constants.DriverCouchDB, Label: "CouchDB"},
+	{Driver: constants.DriverElasticsearch, Label: "Elasticsearch"},
 }
 
 // Drivers serves the driver catalog.
@@ -69,6 +70,9 @@ func capabilities(ctx context.Context, registry modules.Registry, driver string)
 	}
 	if _, ok := mod.(interfaces.MongoChangeEngine); ok {
 		found = append(found, constants.CapabilityDocuments)
+	}
+	if _, ok := mod.(interfaces.SearchEngine); ok {
+		found = append(found, constants.CapabilitySearch)
 	}
 	return found
 }

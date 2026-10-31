@@ -91,6 +91,9 @@ func routes(d app.App, cfg config.Config) []route {
 		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/databases", Handler: http.HandlerFunc(d.MongoDbs.Serve)},
 		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/collections", Handler: http.HandlerFunc(d.MongoColls.Serve)},
 		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/connections/{name}/requests", Handler: http.HandlerFunc(d.MongoRun.Serve)},
+		// Search platforms: what they index, and one query against a target.
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/targets", Handler: http.HandlerFunc(d.SearchTargets.Serve)},
+		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/connections/{name}/search", Handler: http.HandlerFunc(d.SearchRun.Serve)},
 
 		// Instances address a connection by its stable id, across drivers. The engine routes live under {api}/engine/{driver}/..., so these paths never collide with the {driver} wildcard.
 		{Method: http.MethodGet, Endpoint: api + "/instances", Handler: http.HandlerFunc(d.Instances.Serve)},

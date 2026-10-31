@@ -35,7 +35,7 @@ func (c Connection) Validate() error {
 	if c.Port == 0 {
 		return errors.New("port is required")
 	}
-	if c.User == "" && !isKeyValueDriver(c.Driver) {
+	if c.User == "" && !allowsAnonymous(c.Driver) {
 		return errors.New("user is required")
 	}
 	return nil
@@ -45,9 +45,11 @@ func isFileDriver(driver string) bool {
 	return strings.EqualFold(driver, "sqlite") // the file path is Database
 }
 
-func isKeyValueDriver(driver string) bool {
+// allowsAnonymous reports the drivers that commonly run without an ACL user: a cache server with no ACL, and a search
+// cluster with security disabled. Every other driver needs a user, so a typo in the field is caught at registration.
+func allowsAnonymous(driver string) bool {
 	switch strings.ToLower(driver) {
-	case "redis", "valkey", "dragonfly": // cache drivers need no user
+	case "redis", "valkey", "dragonfly", "elasticsearch":
 		return true
 	}
 	return false
