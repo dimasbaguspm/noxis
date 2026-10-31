@@ -30,8 +30,14 @@ func TestProfileIsComplete(t *testing.T) {
 	if !d.transactional("UPDATE t SET id = 1") || d.transactional("CREATE TABLE t (id INT)") {
 		t.Fatal("only DML may be proved in the live transaction")
 	}
-	if !d.qualifiedDDLRefused("CREATE TABLE demo.t (id INT)") || !d.refuseQualifiedDDL {
-		t.Fatal("qualified DDL cannot be dry-run in a scratch schema")
+	// A qualifier naming the connection's own database is rewritten into the scratch database, so it is provable; a
+	// qualifier naming a different database is not, and says so.
+	conn := entity.Connection{Driver: d.name, Database: "demo"}
+	if reason := unprovableReason(conn, "CREATE TABLE demo.t (id INT)"); reason != "" {
+		t.Fatalf("a same-database qualifier must be provable: %s", reason)
+	}
+	if reason := unprovableReason(conn, "CREATE TABLE other.t (id INT)"); reason == "" {
+		t.Fatal("a qualifier in another database cannot be dry-run in a scratch schema")
 	}
 }
 

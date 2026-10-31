@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"noxis/internal/entity"
 )
 
 func TestCreatedTables(t *testing.T) {
@@ -28,23 +30,48 @@ func TestCreatedTables(t *testing.T) {
 	}
 }
 
-func TestQualifiedIdent(t *testing.T) {
+func TestRewriteQualifier(t *testing.T) {
+	cases := []struct {
+		sql  string
+		want string
+	}{
+		{"ALTER TABLE demo.orders ADD COLUMN x INT", "ALTER TABLE noxis_verify_x.orders ADD COLUMN x INT"},
+		{"ALTER TABLE `demo`.`orders` ADD COLUMN x INT", "ALTER TABLE noxis_verify_x.`orders` ADD COLUMN x INT"},
+		{"ALTER TABLE demo . orders ADD COLUMN x INT", "ALTER TABLE noxis_verify_x . orders ADD COLUMN x INT"},
+		{"ALTER TABLE other.orders ADD COLUMN x INT", "ALTER TABLE other.orders ADD COLUMN x INT"},
+		{"INSERT INTO demo.notes (body) VALUES ('demo.notes')", "INSERT INTO noxis_verify_x.notes (body) VALUES ('demo.notes')"},
+		{"ALTER TABLE demo.orders ADD COLUMN x INT -- demo.orders stays", "ALTER TABLE noxis_verify_x.orders ADD COLUMN x INT -- demo.orders stays"},
+		{"SELECT 1.5 FROM demo.orders", "SELECT 1.5 FROM noxis_verify_x.orders"},
+		{"SELECT * FROM `demo` WHERE note = 'demo.orders'", "SELECT * FROM `demo` WHERE note = 'demo.orders'"},
+	}
+	for _, tc := range cases {
+		if got := rewriteQualifier(tc.sql, "demo", "noxis_verify_x"); got != tc.want {
+			t.Errorf("rewriteQualifier(%q) = %q, want %q", tc.sql, got, tc.want)
+		}
+	}
+}
+
+func TestUnprovableReason(t *testing.T) {
+	conn := entity.Connection{Driver: "mysql", Database: "demo"}
 	for _, sql := range []string{
-		"DROP TABLE public.victim",
-		"UPDATE t SET t.name = 'x'",
-		"ALTER TABLE `demo`.`items` ADD COLUMN x INT",
+		"ALTER TABLE other.orders ADD COLUMN x INT",
+		"CREATE DATABASE other",
+		"GRANT ALL ON demo.* TO 'x'@'%'",
+		"CREATE USER 'x'@'%'",
+		"SET GLOBAL max_connections = 100",
 	} {
-		if !hasQualifiedIdent(sql) {
-			t.Errorf("hasQualifiedIdent(%q) = false", sql)
+		if reason := unprovableReason(conn, sql); reason == "" {
+			t.Errorf("unprovableReason(%q) = \"\", want a reason", sql)
 		}
 	}
 	for _, sql := range []string{
-		"DROP TABLE victim",
-		"UPDATE items SET name = 'x'",
-		"SELECT 1",
+		"ALTER TABLE demo.orders ADD COLUMN x INT",
+		"ALTER TABLE orders ADD COLUMN x INT",
+		"CREATE TABLE demo.notes (id INT)",
+		"SELECT COUNT(*) FROM information_schema.tables",
 	} {
-		if hasQualifiedIdent(sql) {
-			t.Errorf("hasQualifiedIdent(%q) = true", sql)
+		if reason := unprovableReason(conn, sql); reason != "" {
+			t.Errorf("unprovableReason(%q) = %q, want no reason", sql, reason)
 		}
 	}
 }

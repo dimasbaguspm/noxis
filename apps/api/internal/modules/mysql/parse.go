@@ -199,3 +199,134 @@ func qualify(c entity.Connection, schema, table string) string {
 }
 
 func itoa(n int) string { return strconv.Itoa(n) }
+
+// qualifiers lists every identifier a dot qualifies, outside literals and comments, in the order they appear.
+func qualifiers(sqlText string) []string {
+	var out []string
+	walkIdentifiers(sqlText, func(name string, qualified bool) (string, bool) {
+		if qualified {
+			out = append(out, name)
+		}
+		return "", false
+	})
+	return out
+}
+
+// rewriteQualifier points a qualifier that names the live database at the scratch database, so a statement the engine
+// would resolve against its own database can be dry-run inside the throwaway one. Literals, quoted values and comments
+// are copied untouched.
+func rewriteQualifier(sqlText, from, to string) string {
+	return walkIdentifiers(sqlText, func(name string, qualified bool) (string, bool) {
+		if qualified && strings.EqualFold(name, from) {
+			return to, true
+		}
+		return "", false
+	})
+}
+
+// walkIdentifiers copies sqlText, asking visit whether to replace an identifier it finds outside string literals and
+// comments. qualified reports whether a dot follows the identifier, so a schema qualifier is told apart from a table or
+// column name. A backtick-quoted identifier is visited by its unescaped name.
+func walkIdentifiers(sqlText string, visit func(name string, qualified bool) (string, bool)) string {
+	// replace keeps the original text unless the identifier is a qualifier and visit wants it changed.
+	replace := func(name, raw string, end int) string {
+		if next := skipSpace(sqlText, end); next >= len(sqlText) || sqlText[next] != '.' {
+			return raw
+		}
+		if replacement, ok := visit(name, true); ok {
+			return replacement
+		}
+		return raw
+	}
+	var b strings.Builder
+	b.Grow(len(sqlText))
+	for i := 0; i < len(sqlText); {
+		c := sqlText[i]
+		switch {
+		case c == '\'':
+			end := skipQuoted(sqlText, i, '\'')
+			b.WriteString(sqlText[i:end])
+			i = end
+		case c == '`':
+			end := skipQuoted(sqlText, i, '`')
+			b.WriteString(replace(strings.ReplaceAll(sqlText[i+1:end-1], "``", "`"), sqlText[i:end], end))
+			i = end
+		case c == '-' && i+1 < len(sqlText) && sqlText[i+1] == '-':
+			end := skipLine(sqlText, i)
+			b.WriteString(sqlText[i:end])
+			i = end
+		case c == '/' && i+1 < len(sqlText) && sqlText[i+1] == '*':
+			end := skipBlock(sqlText, i)
+			b.WriteString(sqlText[i:end])
+			i = end
+		case isIdentStart(c):
+			end := i + 1
+			for end < len(sqlText) && isIdentByte(sqlText[end]) {
+				end++
+			}
+			b.WriteString(replace(sqlText[i:end], sqlText[i:end], end))
+			i = end
+		default:
+			b.WriteByte(c)
+			i++
+		}
+	}
+	return b.String()
+}
+
+// keywords returns the first n words of a statement, uppercased, so a caller can recognise a statement family.
+func keywords(sqlText string, n int) []string {
+	fields := strings.Fields(stripLeadingComments(sqlText))
+	if len(fields) > n {
+		fields = fields[:n]
+	}
+	out := make([]string, 0, len(fields))
+	for _, field := range fields {
+		out = append(out, strings.ToUpper(strings.Trim(field, "(")))
+	}
+	return out
+}
+
+func isIdentStart(c byte) bool {
+	return c == '_' || c == '$' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
+
+func isIdentByte(c byte) bool { return isIdentStart(c) || (c >= '0' && c <= '9') }
+
+// skipQuoted returns the offset just past the quoted run opened at i, honouring the doubled-quote escape.
+//
+// shortcut: a backslash-escaped quote inside a mysql string desyncs this scan the same way it desyncs splitStatements.
+func skipQuoted(sqlText string, i int, quote byte) int {
+	for j := i + 1; j < len(sqlText); j++ {
+		if sqlText[j] != quote {
+			continue
+		}
+		if j+1 < len(sqlText) && sqlText[j+1] == quote {
+			j++
+			continue
+		}
+		return j + 1
+	}
+	return len(sqlText)
+}
+
+func skipLine(sqlText string, i int) int {
+	if end := strings.IndexByte(sqlText[i:], '\n'); end >= 0 {
+		return i + end
+	}
+	return len(sqlText)
+}
+
+func skipBlock(sqlText string, i int) int {
+	if end := strings.Index(sqlText[i+2:], "*/"); end >= 0 {
+		return i + 2 + end + 2
+	}
+	return len(sqlText)
+}
+
+func skipSpace(sqlText string, i int) int {
+	for i < len(sqlText) && (sqlText[i] == ' ' || sqlText[i] == '\t' || sqlText[i] == '\r' || sqlText[i] == '\n') {
+		i++
+	}
+	return i
+}

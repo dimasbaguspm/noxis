@@ -16,13 +16,10 @@ const versionQuery = `SELECT VERSION()`
 // capabilities names what this profile lets the console prove, in the operator's words. It is derived from the profile and never from a typed version: a wrong number would silently pick a weaker proof.
 func (d dialect) capabilities() []string {
 	caps := make([]string, 0, 4)
-	switch {
-	case d.txn == txnAlways:
+	if d.txn == txnAlways {
 		caps = append(caps, "ddl rolled back in a transaction")
-	case d.refuseQualifiedDDL:
-		caps = append(caps, "ddl proved in a scratch schema", "qualified ddl refused")
-	default:
-		caps = append(caps, "ddl proved in a scratch schema")
+	} else {
+		caps = append(caps, "ddl proved in a scratch schema", "qualified ddl proved in scratch")
 	}
 	if d.explain != "" {
 		caps = append(caps, "planner row estimates")

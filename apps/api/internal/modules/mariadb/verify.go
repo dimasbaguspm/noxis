@@ -25,9 +25,6 @@ const scratchPrefix = "noxis_verify_"
 // verifySampleRows bounds how much of a referenced table is copied and hashed during validation.
 const verifySampleRows = 100
 
-// qualifiedIdent matches an identifier with a dot-qualified part, including column references that a scratch search_path would not rewrite.
-var qualifiedIdent = regexp.MustCompile("(?i)(?:[a-z_][a-z0-9_$]*|\"[^\"]+\"|`[^`]+`)\\s*\\.\\s*(?:[a-z_*][a-z0-9_$]*|\"[^\"]+\"|`[^`]+`)")
-
 // ValidateChange runs query and rollback in the proof this profile chose: a rolled-back transaction where DDL is transactional, a scratch schema where it is not.
 func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
@@ -40,11 +37,15 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 	if d.transactional(text) {
 		return validateChangeTx(ctx, c, query, rollback)
 	}
-	if d.qualifiedDDLRefused(text) {
-		return Result{}, fmt.Errorf("%w: qualified names in MySQL DDL cannot be dry-run safely; use unqualified names", interfaces.ErrUnverifiable)
+	if reason := unprovableReason(c, text); reason != "" {
+		return Result{}, fmt.Errorf("%w: %s", interfaces.ErrUnverifiable, reason)
 	}
 	started := time.Now()
 	schema := scratchPrefix + idgen.Hex(6)
+	// The dry run executes what the change would execute: a qualifier naming the connection's own database is pointed at
+	// the scratch database, while the mirror below keeps the live names it has to read.
+	proved := rewriteQualifier(query, c.Database, schema)
+	provedRollback := rewriteQualifier(rollback, c.Database, schema)
 
 	var mirrored []string
 	var summary string
@@ -62,7 +63,7 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 		// Cleanup must survive a cancelled request: the schema exists on the server the moment it is created.
 		defer func() { _ = dropScratch(context.WithoutCancel(ctx), conn, c.Driver, schema) }()
 
-		refs := verificationRefs(c, text, schema)
+		refs := verificationRefs(c, proved+"\n"+provedRollback, schema)
 		mirrored, err = mirrorReferenced(ctx, conn, c, schema, text)
 		if err != nil {
 			return struct{}{}, err
@@ -74,7 +75,7 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 		if err != nil {
 			return struct{}{}, err
 		}
-		if _, err := execEach(query, func(stmt string) error {
+		if _, err := execEach(proved, func(stmt string) error {
 			out, err := conn.ExecContext(ctx, stmt)
 			if err != nil {
 				return hintOf(stmt, err)
@@ -86,7 +87,7 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 		}); err != nil {
 			return struct{}{}, fmt.Errorf("query %w", err)
 		}
-		if _, err := execEach(rollback, func(stmt string) error {
+		if _, err := execEach(provedRollback, func(stmt string) error {
 			_, err := conn.ExecContext(ctx, stmt)
 			return hintOf(stmt, err)
 		}); err != nil {
@@ -113,6 +114,9 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 	if len(mirrored) > 0 {
 		detail += "; mirrored " + strings.Join(mirrored, ", ")
 	}
+	if proved != query || provedRollback != rollback {
+		detail += "; qualified names rewritten into the scratch database"
+	}
 	return Result{
 		Affected:      affected,
 		DurationMs:    time.Since(started).Milliseconds(),
@@ -121,12 +125,67 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 	}, nil
 }
 
+// qualifiedIdent matches an identifier with a dot-qualified part, including column references that a scratch search_path would not rewrite.
+var qualifiedIdent = regexp.MustCompile("(?i)(?:[a-z_][a-z0-9_$]*|\"[^\"]+\"|`[^`]+`)\\s*\\.\\s*(?:[a-z_*][a-z0-9_$]*|\"[^\"]+\"|`[^`]+`)")
+
 // hasQualifiedIdent finds schema.table and table.column references; either can escape a scratch search_path.
 func hasQualifiedIdent(text string) bool {
 	for _, stmt := range splitStatements(text) {
 		if qualifiedIdent.MatchString(stmt) {
 			return true
 		}
+	}
+	return false
+}
+
+// systemSchemas are readable from a scratch database and are never rewritten: a change may read the catalog.
+var systemSchemas = map[string]bool{
+	"information_schema": true, "mysql": true, "performance_schema": true, "sys": true,
+}
+
+// serverObjects are the objects a statement creates, drops or alters outside any schema.
+var serverObjects = map[string]bool{"DATABASE": true, "SCHEMA": true, "USER": true, "ROLE": true, "SERVER": true}
+
+// unprovableReason names why a batch cannot be dry-run in a scratch database, or returns "" when it can. Only two
+// classes are refused: a statement that changes the server itself, and a name in a database the scratch one cannot
+// stand in for. Everything else is rewritten into the scratch database and proved for real.
+func unprovableReason(c entity.Connection, sqlText string) string {
+	for _, stmt := range splitStatements(sqlText) {
+		if stripLeadingComments(stmt) == "" {
+			continue
+		}
+		if serverScoped(stmt) {
+			return fmt.Sprintf("%s changes the server rather than a schema, so a scratch database cannot hold it", strings.Join(keywords(stmt, 2), " "))
+		}
+		for _, qualifier := range qualifiers(stmt) {
+			if strings.EqualFold(qualifier, c.Database) || systemSchemas[strings.ToLower(qualifier)] {
+				continue
+			}
+			return fmt.Sprintf("%q names another database, so the dry run cannot be moved into the scratch database", qualifier)
+		}
+	}
+	return ""
+}
+
+// serverScoped reports whether a statement changes the server rather than a schema.
+func serverScoped(stmt string) bool {
+	words := keywords(stmt, 2)
+	if len(words) == 0 {
+		return false
+	}
+	second := ""
+	if len(words) > 1 {
+		second = words[1]
+	}
+	switch words[0] {
+	case "GRANT", "REVOKE", "FLUSH", "RESET", "PURGE", "INSTALL", "UNINSTALL":
+		return true
+	case "CREATE", "DROP", "ALTER", "RENAME":
+		return serverObjects[second]
+	case "SET":
+		return second == "GLOBAL" || second == "PERSIST" || second == "PERSIST_ONLY"
+	case "CHANGE", "START", "STOP":
+		return second == "MASTER" || second == "REPLICA" || second == "SLAVE"
 	}
 	return false
 }
