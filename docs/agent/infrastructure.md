@@ -50,8 +50,10 @@ entry. Defaults and cross-field rules live in `LoadConfig` / `Validate`; a
 | `make lint` | golangci-lint v2 in `apps/api` (installs on first use) |
 | `make web` | pnpm install + build → sync `bin/dist/*` into the embed dir |
 | `make swagger` | swag init + convert Swagger 2.0 → OpenAPI 3 into root `openapi.{yaml,json}` |
-| `make dev` | compose stack (noxis + postgres/mysql/mariadb/redis/valkey/mongo) |
-| `make dev-ui` | same + hot-reloading Vite console on :5173 |
+| `make dev <target>` | noxis + one target + its seed data + the connection registered; targets: `postgres`, `mysql`, `mariadb`, `cockroach`, `redis`, `valkey`, `mongodb` |
+| `make dev all` | every target at once, seeded |
+| `make dev` | prints the target list and exits non-zero |
+| `make dev-ui` | every target + the hot-reloading Vite console on :5173 |
 | `make down` | stop compose and wipe volumes (`-v`) |
 | `make uat` | godog acceptance suite over the real compose stack |
 
@@ -64,6 +66,12 @@ overrides the default `~@slow` tag filter. `UPDATE_SNAPSHOTS=1` rewrites the
 committed response goldens under `apps/api/test/uat/snapshots/`. `UAT_RECORD=1`
 records the `@stub` scenarios' responses into `apps/api/test/uat/stubs/`;
 `UAT_STUB=1` replays them with the stack down (no docker).
+
+### Seeded dev stack
+
+Every target is a compose profile (`postgres`, `mysql`, `mariadb`, `cockroach`, `redis`, `valkey`, `mongo`, plus `all`), and `noxis` marks each dependency `required: false`, so one target comes up without dragging the other six along. `make dev <target>` maps the friendly name (`mongodb` → `mongo`) to the profile and passes `SEED_DRIVERS` to the seeder.
+
+Each target has its own `seed-*` service using that database's own image — `psql`, `mysql`, `mongosh`, `redis-cli` — so nothing extra is pulled. The scripts live in `dev/seed/`: `sql.sql` for Postgres and Cockroach, `mysql.sql` for MySQL and MariaDB, `keys.sh` for Redis and Valkey, `mongo.js` for MongoDB. `seed-registry` then signs in as the root admin and registers the connections for whichever targets were asked for, so the console opens populated.
 
 ## Docker
 

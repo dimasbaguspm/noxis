@@ -1,6 +1,6 @@
 PATH := $(HOME)/.local/bin:$(HOME)/go/bin:$(PATH)
 
-.PHONY: build test lint swagger web dev down uat mocks
+.PHONY: build test lint swagger web dev dev-ui down uat mocks
 
 build:
 	cd apps/api && go build -o ../../bin/noxis ./cmd/noxis
@@ -33,11 +33,37 @@ swagger:  ## regenerate openapi.yaml|json (OpenAPI 3) from handler annotations
 	npx --yes swagger2openapi .swagger-tmp/swagger.json -o openapi.json
 	rm -rf .swagger-tmp
 
-dev:  ## build + run the dev stack (noxis + a target postgres for playing)
-	docker compose -f docker-compose.yml up --build
+# `make dev <target>`: the goal after dev names the target, and it must not look like a makefile target of its own.
+DEV_TARGETS := postgres mysql mariadb cockroach redis valkey mongodb
+DEV_SEED_all := postgres mysql mariadb cockroach redis valkey mongo
+ifeq (dev,$(firstword $(MAKECMDGOALS)))
+  DEV_TARGET := $(word 2,$(MAKECMDGOALS))
+  ifneq (,$(DEV_TARGET))
+    $(eval $(DEV_TARGET):;@:)
+  endif
+endif
 
-dev-ui:  ## dev stack + the hot-reloading console on :5173
-	docker compose -f docker-compose.yml --profile dev up --build
+dev:  ## start one target with its seed data: make dev postgres|mysql|mariadb|cockroach|redis|valkey|mongodb|all
+	@case "$(DEV_TARGET)" in \
+	  "") \
+	    echo "usage: make dev <target>"; \
+	    echo "  targets: $(DEV_TARGETS) all"; \
+	    echo "  example: make dev postgres   # noxis + postgres, seeded, console on :9000"; \
+	    exit 1 ;; \
+	  all) \
+	    SEED_DRIVERS="$(DEV_SEED_all)" docker compose -f docker-compose.yml --profile all up --build ;; \
+	  postgres|mysql|mariadb|cockroach|redis|valkey) \
+	    SEED_DRIVERS="$(DEV_TARGET)" docker compose -f docker-compose.yml --profile $(DEV_TARGET) up --build ;; \
+	  mongodb) \
+	    SEED_DRIVERS="mongo" docker compose -f docker-compose.yml --profile mongo up --build ;; \
+	  *) \
+	    echo "unknown target: $(DEV_TARGET)"; \
+	    echo "  targets: $(DEV_TARGETS) all"; \
+	    exit 1 ;; \
+	esac
+
+dev-ui:  ## every target + the hot-reloading console on :5173
+	SEED_DRIVERS="$(DEV_SEED_all)" docker compose -f docker-compose.yml --profile all --profile dev up --build
 
 down:  ## stop the dev stack and wipe its data (volumes incl. the registry)
-	docker compose -f docker-compose.yml --profile dev down -v
+	docker compose -f docker-compose.yml --profile all --profile dev down -v

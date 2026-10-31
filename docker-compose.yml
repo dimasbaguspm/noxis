@@ -31,21 +31,30 @@ services:
     # The console is only as useful as the targets it can reach, so the demo
     # stack comes up in order: `up -d` returns with both already healthy,
     # which is what makes the acceptance suite deterministic.
+    # Every target is optional: `make dev postgres` must not drag mongo in, and `make dev all` must still wait for
+    # everything. `required: false` keeps the ordering without the obligation.
     depends_on:
       db:
         condition: service_healthy
+        required: false
       redis:
         condition: service_healthy
+        required: false
       valkey:
         condition: service_healthy
+        required: false
       mongo:
         condition: service_healthy
+        required: false
       mariadb:
         condition: service_healthy
+        required: false
       mysql:
         condition: service_healthy
+        required: false
       cockroach:
         condition: service_healthy
+        required: false
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:9000/healthz"]
       interval: 5s
@@ -56,6 +65,8 @@ services:
 
   db:
     image: postgres:16-alpine
+    # one target, so `make dev postgres` can bring just this one
+    profiles: [postgres, all]
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: noxis
@@ -72,6 +83,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    # one target, so `make dev redis` can bring just this one
+    profiles: [redis, all]
     expose: ["6379"]
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -84,6 +97,8 @@ services:
   # user/password path is the one exercised.
   mongo:
     image: mongo:7
+    # one target, so `make dev mongo` can bring just this one
+    profiles: [mongo, all]
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: noxis
@@ -100,6 +115,8 @@ services:
   # so the compatibility suite runs against both.
   mysql:
     image: mysql:8
+    # one target, so `make dev mysql` can bring just this one
+    profiles: [mysql, all]
     environment:
       MYSQL_ROOT_PASSWORD: noxis
       MYSQL_ROOT_HOST: "%"
@@ -116,6 +133,8 @@ services:
   # DDL commits implicitly to prove the point.
   mariadb:
     image: mariadb:11
+    # one target, so `make dev mariadb` can bring just this one
+    profiles: [mariadb, all]
     environment:
       MARIADB_ROOT_PASSWORD: noxis
       MARIADB_ROOT_HOST: "%"
@@ -132,6 +151,8 @@ services:
   # to keep that claim honest.
   valkey:
     image: valkey/valkey:8-alpine
+    # one target, so `make dev valkey` can bring just this one
+    profiles: [valkey, all]
     expose: ["6379"]
     healthcheck:
       test: ["CMD", "valkey-cli", "ping"]
@@ -159,6 +180,8 @@ services:
   # CockroachDB speaks the postgres wire: one service proves a new engine is a profile entry, not a module.
   cockroach:
     image: cockroachdb/cockroach:v24.1.5
+    # one target, so `make dev cockroach` can bring just this one
+    profiles: [cockroach, all]
     command: start-single-node --insecure
     expose:
       - "26257"
@@ -168,6 +191,115 @@ services:
       timeout: 5s
       retries: 20
       start_period: 10s
+
+  # One seed per target, using that database's own image so nothing extra is pulled. Each runs once and exits; the
+  # console only ever talks to noxis.
+  seed-postgres:
+    image: postgres:16-alpine
+    profiles: [postgres, all]
+    depends_on:
+      db:
+        condition: service_healthy
+        required: false
+    environment:
+      PGPASSWORD: noxis
+    volumes:
+      - ./dev/seed:/seed:ro
+    entrypoint: ["psql", "-h", "db", "-U", "postgres", "-d", "demo", "-v", "ON_ERROR_STOP=1", "-f", "/seed/sql.sql"]
+    restart: "no"
+
+  seed-mysql:
+    image: mysql:8
+    profiles: [mysql, all]
+    depends_on:
+      mysql:
+        condition: service_healthy
+        required: false
+    volumes:
+      - ./dev/seed:/seed:ro
+    entrypoint: ["sh", "-c", "mysql -h mysql -uroot -pnoxis < /seed/mysql.sql"]
+    restart: "no"
+
+  seed-mariadb:
+    image: mariadb:11
+    profiles: [mariadb, all]
+    depends_on:
+      mariadb:
+        condition: service_healthy
+        required: false
+    volumes:
+      - ./dev/seed:/seed:ro
+    entrypoint: ["sh", "-c", "mariadb -h mariadb -uroot -pnoxis < /seed/mysql.sql"]
+    restart: "no"
+
+  seed-cockroach:
+    image: cockroachdb/cockroach:v24.1.5
+    profiles: [cockroach, all]
+    depends_on:
+      cockroach:
+        condition: service_healthy
+        required: false
+    volumes:
+      - ./dev/seed:/seed:ro
+    entrypoint:
+      [
+        "sh",
+        "-c",
+        "cockroach sql --insecure --host=cockroach:26257 --execute='CREATE DATABASE IF NOT EXISTS demo' && cockroach sql --insecure --host=cockroach:26257 --database=demo --file=/seed/sql.sql",
+      ]
+    restart: "no"
+
+  seed-redis:
+    image: redis:7-alpine
+    profiles: [redis, all]
+    depends_on:
+      redis:
+        condition: service_healthy
+        required: false
+    volumes:
+      - ./dev/seed:/seed:ro
+    entrypoint: ["sh", "/seed/keys.sh", "redis", "6379"]
+    restart: "no"
+
+  seed-valkey:
+    image: valkey/valkey:8-alpine
+    profiles: [valkey, all]
+    depends_on:
+      valkey:
+        condition: service_healthy
+        required: false
+    volumes:
+      - ./dev/seed:/seed:ro
+    entrypoint: ["sh", "/seed/keys.sh", "valkey", "6379"]
+    restart: "no"
+
+  seed-mongo:
+    image: mongo:7
+    profiles: [mongo, all]
+    depends_on:
+      mongo:
+        condition: service_healthy
+        required: false
+    volumes:
+      - ./dev/seed:/seed:ro
+    entrypoint: ["mongosh", "--quiet", "--host", "mongo", "-u", "root", "-p", "noxis", "--authenticationDatabase", "admin", "/seed/mongo.js"]
+    restart: "no"
+
+  # Registers whatever was seeded, so the console opens with instances rather than an empty list.
+  seed-registry:
+    image: curlimages/curl:8.11.1
+    profiles: [postgres, mysql, mariadb, cockroach, redis, valkey, mongo, all]
+    depends_on:
+      noxis:
+        condition: service_healthy
+    environment:
+      NOXIS_ADMIN_EMAIL: root@noxis.local
+      NOXIS_ADMIN_PASSWORD: noxis-admin
+      SEED_DRIVERS: ${SEED_DRIVERS:-}
+    volumes:
+      - ./dev/seed:/seed:ro
+    entrypoint: ["sh", "/seed/registry.sh"]
+    restart: "no"
 
 volumes:
   noxis-data:
