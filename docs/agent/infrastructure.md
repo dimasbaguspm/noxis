@@ -71,7 +71,14 @@ records the `@stub` scenarios' responses into `apps/api/test/uat/stubs/`;
 
 Every target is a compose profile (`postgres`, `mysql`, `mariadb`, `cockroach`, `redis`, `valkey`, `mongo`, plus `all`), and `noxis` marks each dependency `required: false`, so one target comes up without dragging the other six along. `make dev <target>` maps the friendly name (`mongodb` → `mongo`) to the profile and passes `SEED_DRIVERS` to the seeder.
 
-The `seed-*` services and `seed-registry` live under their own `seed` profile, which `make dev` adds and the acceptance suite does not — so `make uat` starts the eight services it has always started, with no seeding and no extra registry entries.
+The `seed-*` services and `seed-registry` live under their own `seed` profile, which `make dev` adds and the acceptance suite does not — so `make uat` starts every target in the `all` profile, with no seeding and no extra registry entries.
+
+Splunk is the one target outside `all`: its image is large and licence-gated, so it sits in its own `splunk` profile and its scenarios are tagged `@slow`. To run them, bring it up yourself and keep the stack:
+
+```bash
+docker compose --profile splunk up -d splunk
+UAT_KEEP=1 UAT_TAGS=@splunk make uat
+```
 
 Each target has its own `seed-*` service using that database's own image — `psql`, `mysql`, `mongosh`, `redis-cli` — so nothing extra is pulled. The scripts live in `dev/seed/`: `sql.sql` for Postgres and Cockroach, `mysql.sql` for MySQL and MariaDB, `keys.sh` for Redis and Valkey, `mongo.js` for MongoDB. `seed-registry` then signs in as the root admin and registers the connections for whichever targets were asked for, so the console opens populated.
 

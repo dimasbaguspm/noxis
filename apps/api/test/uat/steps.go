@@ -27,6 +27,7 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	w.couchSteps(sc)
 	w.searchSteps(sc)
 	w.meiliSteps(sc)
+	w.splunkSteps(sc)
 	w.connectionSteps(sc)
 	w.changeSteps(sc)
 	w.driverSteps(sc)

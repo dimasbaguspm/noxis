@@ -54,6 +54,8 @@ const (
 	DriverElasticsearch = "elasticsearch"
 	// DriverMeilisearch is a search platform with its own query parameters and an asynchronous write API.
 	DriverMeilisearch = "meilisearch"
+	// DriverSplunk is a search and observability deployment: its query language is SPL and its results are events.
+	DriverSplunk = "splunk"
 	// DriverPostgres and its siblings are their own engine: the API namespace, the registry and the change queue are keyed on the driver name.
 )
 

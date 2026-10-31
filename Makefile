@@ -34,7 +34,7 @@ swagger:  ## regenerate openapi.yaml|json (OpenAPI 3) from handler annotations
 	rm -rf .swagger-tmp
 
 # `make dev <target>`: the goal after dev names the target, and it must not look like a makefile target of its own.
-DEV_TARGETS := postgres mysql mariadb cockroach redis valkey dragonfly mongodb couchdb elasticsearch meilisearch
+DEV_TARGETS := postgres mysql mariadb cockroach redis valkey dragonfly mongodb couchdb elasticsearch meilisearch splunk
 DEV_SEED_all := postgres mysql mariadb cockroach redis valkey dragonfly mongo couchdb elasticsearch meilisearch
 ifeq (dev,$(firstword $(MAKECMDGOALS)))
   DEV_TARGET := $(word 2,$(MAKECMDGOALS))
@@ -43,7 +43,7 @@ ifeq (dev,$(firstword $(MAKECMDGOALS)))
   endif
 endif
 
-dev:  ## start one target with its seed data: make dev postgres|mysql|mariadb|cockroach|redis|valkey|dragonfly|mongodb|couchdb|elasticsearch|meilisearch|all
+dev:  ## start one target with its seed data: make dev postgres|mysql|mariadb|cockroach|redis|valkey|dragonfly|mongodb|couchdb|elasticsearch|meilisearch|splunk|all
 	@case "$(DEV_TARGET)" in \
 	  "") \
 	    echo "usage: make dev <target>"; \
@@ -52,7 +52,7 @@ dev:  ## start one target with its seed data: make dev postgres|mysql|mariadb|co
 	    exit 1 ;; \
 	  all) \
 	    SEED_DRIVERS="$(DEV_SEED_all)" docker compose -f docker-compose.yml --profile all --profile seed up --build ;; \
-	  postgres|mysql|mariadb|cockroach|redis|valkey|dragonfly|couchdb|elasticsearch|meilisearch) \
+	  postgres|mysql|mariadb|cockroach|redis|valkey|dragonfly|couchdb|elasticsearch|meilisearch|splunk) \
 	    SEED_DRIVERS="$(DEV_TARGET)" docker compose -f docker-compose.yml --profile $(DEV_TARGET) --profile seed up --build ;; \
 	  mongodb) \
 	    SEED_DRIVERS="mongo" docker compose -f docker-compose.yml --profile mongo --profile seed up --build ;; \

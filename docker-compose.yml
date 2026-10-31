@@ -387,6 +387,23 @@ services:
     entrypoint: ["sh", "/seed/es.sh", "elasticsearch", "9200"]
     restart: "no"
 
+  # Splunk is a search and observability deployment. Its image is large and licence-gated, so it is NOT part of the
+  # `all` profile: `make dev splunk` brings it up on its own, and its acceptance suite is opt-in (@slow).
+  splunk:
+    image: splunk/splunk:9.2
+    profiles: [splunk]
+    environment:
+      SPLUNK_START_ARGS: --accept-license
+      SPLUNK_PASSWORD: noxis-noxis
+      SPLUNK_GENERAL_TERMS: --accept-sgt-current-at-splunk-com
+    expose: ["8089", "8000"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -k -u admin:noxis-noxis https://localhost:8089/services/server/info?output_mode=json || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 180s
+
   seed-meilisearch:
     image: getmeili/meilisearch:v1.11
     profiles: [seed]
