@@ -23,6 +23,7 @@ Feature: the driver catalog states what each driver can do
       | mongo     | documents    |
       | couchdb   | documents    |
       | elasticsearch | search   |
+      | meilisearch   | search   |
 
   Scenario Outline: a capability a driver lacks is refused by name
     Then a <method> to "<path>" for driver "<driver>" is refused naming the driver

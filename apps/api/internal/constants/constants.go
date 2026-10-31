@@ -52,6 +52,8 @@ const (
 	// DriverElasticsearch is a search platform: it indexes documents and answers its own query language, so it is
 	// neither a SQL engine nor a document store.
 	DriverElasticsearch = "elasticsearch"
+	// DriverMeilisearch is a search platform with its own query parameters and an asynchronous write API.
+	DriverMeilisearch = "meilisearch"
 	// DriverPostgres and its siblings are their own engine: the API namespace, the registry and the change queue are keyed on the driver name.
 )
 

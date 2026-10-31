@@ -18,6 +18,7 @@ import (
 	"noxis/internal/modules/dragonfly"
 	"noxis/internal/modules/elasticsearch"
 	"noxis/internal/modules/mariadb"
+	"noxis/internal/modules/meilisearch"
 	"noxis/internal/modules/mongodb"
 	"noxis/internal/modules/mysql"
 	"noxis/internal/modules/postgres"
@@ -87,6 +88,9 @@ func Default(repos repositories.Registry, m *metrics.Metrics) Registry {
 
 	search := elasticsearch.New()
 	mods[search.Driver()] = Registration{Engine: search, Changes: elasticsearch.NewChanges(repos.Connections, repos.Changes, search, m)}
+
+	meili := meilisearch.New()
+	mods[meili.Driver()] = Registration{Engine: meili, Changes: meilisearch.NewChanges(repos.Connections, repos.Changes, meili, m)}
 	return New(mods)
 }
 
