@@ -39,10 +39,8 @@ Feature: Memory cache keys and metrics
     And the redis key "page:1" holds "a"
     And the redis key "page:2" holds "b"
     And the redis key "page:3" holds "c"
-    When I browse redis keys matching "page:*" with a limit of 2
-    Then the browse is truncated with a cursor
-    When I continue the browse from that cursor
-    Then the browse returns 1 key(s)
+    When I walk every redis key matching "page:*" in pages of 1
+    Then the walk found 3 key(s) with no cursor left
 
   Scenario: the server reports what it holds
     Given the stack is running

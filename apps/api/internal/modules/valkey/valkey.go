@@ -99,11 +99,10 @@ func (db *DB) Keys(ctx context.Context, c entity.Connection, pattern string, fro
 				break
 			}
 		}
-		if len(names) > limit {
-			names = names[:limit]
-		}
-		// The cursor is where the server stopped: zero means the iteration is complete, which is the only honest
-		// "there is more" signal, because a later page's total is the whole database rather than what is left.
+		// SCAN treats the count as a hint and may answer more than it was asked for, so the page carries what the server
+		// gave rather than trimming it: the cursor has already moved past anything dropped here, and no later page could
+		// return it. The cursor is where the server stopped, and zero is the only honest "there is more" signal, because
+		// a later page's total is the whole database rather than what is left.
 		page.Cursor = cursor
 
 		if size, err := cl.DBSize(ctx).Result(); err == nil {

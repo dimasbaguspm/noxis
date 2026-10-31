@@ -82,6 +82,7 @@ type world struct {
 	changeID  string
 	key       redisKey // the redis key a scenario picked out of a browse
 	page      redisPage
+	walked    int // distinct keys a keyspace walk reached
 	result    resultBody
 	change    changeBody
 
