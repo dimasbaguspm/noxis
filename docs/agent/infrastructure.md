@@ -37,8 +37,8 @@ registers the routes and starts the server with a 10s graceful shutdown.
 | `NOXIS_OIDC_GROUPS_CLAIM` | defaults to `groups` |
 
 `config.LogState` logs secret/auth state once at boot. **No other package reads
-the environment.** To add a var: `EnvX` const + `Config` field + `LoadConfig`
-entry. Defaults and cross-field rules live in `LoadConfig` / `Validate`; a
+the environment.** Viper reads it once, at boot: to add a var, add an `EnvX` const, a `Config` field and a read with
+its default. Cross-field rules live in `LoadConfig` / `Validate`; a
 `.env.example` at the repo root documents every flag.
 
 ## Makefile targets (all run from the repo root)
