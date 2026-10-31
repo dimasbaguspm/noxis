@@ -22,20 +22,23 @@ func layerOf(pkg string) (int, bool) {
 		return 3, true
 	case pkg == "noxis/internal/repositories" || strings.HasPrefix(pkg, "noxis/internal/repositories/"):
 		return 4, true
-	case strings.HasPrefix(pkg, "noxis/internal/modules/"):
+	// changeflow is the change lifecycle every engine shares, so it sits below the engines and above persistence.
+	case pkg == "noxis/internal/changeflow":
 		return 5, true
-	case pkg == "noxis/internal/modules":
+	case strings.HasPrefix(pkg, "noxis/internal/modules/"):
 		return 6, true
-	case pkg == "noxis/internal/usecases":
+	case pkg == "noxis/internal/modules":
 		return 7, true
-	case strings.HasPrefix(pkg, "noxis/internal/usecases/"):
+	case pkg == "noxis/internal/usecases":
 		return 8, true
-	case pkg == "noxis/internal/app":
+	case strings.HasPrefix(pkg, "noxis/internal/usecases/"):
 		return 9, true
-	case pkg == "noxis/cmd/noxis/server/middlewares" || strings.HasPrefix(pkg, "noxis/cmd/noxis/server/middlewares/"):
+	case pkg == "noxis/internal/app":
 		return 10, true
-	case pkg == "noxis/cmd/noxis/server" || strings.HasPrefix(pkg, "noxis/cmd/noxis/server/"):
+	case pkg == "noxis/cmd/noxis/server/middlewares" || strings.HasPrefix(pkg, "noxis/cmd/noxis/server/middlewares/"):
 		return 11, true
+	case pkg == "noxis/cmd/noxis/server" || strings.HasPrefix(pkg, "noxis/cmd/noxis/server/"):
+		return 12, true
 	}
 	return 0, false
 }
