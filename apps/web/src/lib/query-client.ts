@@ -83,6 +83,10 @@ export const queryKeys = {
     all: pageRoot("driver.search"),
     targets: (driver: string | undefined, connection: string | undefined) =>
       pageKey("driver.search", "targets", driver, connection),
+    requests: (driver: string | undefined, connection?: string, status?: string) =>
+      pageKey("driver.search.requests", "list", driver, connection, status),
+    request: (driver: string | undefined, id?: string) =>
+      pageKey("driver.search.requests", "one", driver, id),
   },
   explore: {
     databases: (driver: string | undefined, connection: string | undefined) =>

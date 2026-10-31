@@ -34,7 +34,10 @@ const PAGES: Record<Capability, { page: DriverPage; icon: NavItem["icon"] }[]> =
     { page: "documents", icon: Leaf },
     { page: "requests", icon: PenLine },
   ],
-  [CAPABILITY.SEARCH]: [{ page: "search", icon: Search }],
+  [CAPABILITY.SEARCH]: [
+    { page: "search", icon: Search },
+    { page: "searchRequests", icon: PenLine },
+  ],
 };
 
 // navItems links each page of a capability under the driver in the URL, so no entry hardcodes a path.
