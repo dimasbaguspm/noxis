@@ -21,6 +21,7 @@ func (w *world) steps(sc *godog.ScenarioContext) {
 	})
 	sc.Step("the stack is running", w.stackRunning)
 	w.httpSteps(sc)
+	w.genericSteps(sc)
 	w.snapshotSteps(sc)
 	w.memcacheSteps(sc)
 	w.mongoSteps(sc)

@@ -26,6 +26,90 @@ func (w *world) connectionSteps(sc *godog.ScenarioContext) {
 	sc.Step("changing the connection's host is refused", w.identityChangeRefused)
 	sc.Step("I delete the current connection", w.deleteCurrentConnection)
 	sc.Step("the connection is gone", w.connectionGone)
+	sc.Step(`^connection "([^"]*)" is registered for driver "([^"]*)" on host "([^"]*)" port (\d+)$`, w.registerOnHost)
+	sc.Step("the connection test fails", w.testConnectionFails)
+	sc.Step("I probe the current target", w.probeCurrentTarget)
+	sc.Step("probing a closed port is refused", w.probeClosedPort)
+	sc.Step("opening an unknown instance is refused", w.openUnknownInstance)
+	sc.Step("rotating an unknown instance password is refused", w.rotateUnknownPassword)
+}
+
+// registerOnHost registers a connection that points somewhere it cannot reach, so a route's failure path has a subject.
+func (w *world) registerOnHost(ctx context.Context, name, driver, host string, port int) error {
+	t := targets[driver]
+	conn := map[string]any{
+		"name": name, "driver": t.Driver, "host": host, "port": port,
+		"user": t.User, "password": t.Password, "database": t.Database,
+	}
+	if err := w.api(http.MethodPost, enginePathOf(t.Driver, "/connections"), conn, nil); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("register %s: %d %s", name, w.code, w.body)
+	}
+	w.conn, w.host, w.targetKey = name, host, driver
+	return nil
+}
+
+func (w *world) testConnectionFails(ctx context.Context) error {
+	if err := w.api(http.MethodPost, w.enginePath("/connections/"+w.conn+"/test"), map[string]string{}, nil); err != nil {
+		return err
+	}
+	if w.code == http.StatusOK {
+		return fmt.Errorf("an unreachable target reported a passing test: %s", w.body)
+	}
+	return nil
+}
+
+func (w *world) probeCurrentTarget(ctx context.Context) error {
+	t := targets[w.targetKey]
+	body := map[string]any{
+		"name": w.conn, "driver": t.Driver, "host": t.Host, "port": t.Port,
+		"user": t.User, "password": t.Password, "database": t.Database,
+	}
+	if err := w.api(http.MethodPost, enginePathOf(t.Driver, "/connections/probe"), body, nil); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("probe: %d %s", w.code, w.body)
+	}
+	return nil
+}
+
+func (w *world) probeClosedPort(ctx context.Context) error {
+	t := targets[w.targetKey]
+	body := map[string]any{
+		"name": w.conn, "driver": t.Driver, "host": "127.0.0.1", "port": 1,
+		"user": t.User, "password": t.Password, "database": t.Database,
+	}
+	if err := w.api(http.MethodPost, enginePathOf(t.Driver, "/connections/probe"), body, nil); err != nil {
+		return err
+	}
+	if w.code == http.StatusOK {
+		return fmt.Errorf("a closed port reported a passing probe: %s", w.body)
+	}
+	return nil
+}
+
+func (w *world) openUnknownInstance(ctx context.Context) error {
+	if err := w.api(http.MethodGet, "/external/v1/instances/00000000-0000-0000-0000-000000000000", nil, nil); err != nil {
+		return err
+	}
+	if w.code != http.StatusNotFound {
+		return fmt.Errorf("unknown instance: %d %s, want 404", w.code, w.body)
+	}
+	return nil
+}
+
+func (w *world) rotateUnknownPassword(ctx context.Context) error {
+	body := map[string]string{"password": "irrelevant-uat-secret"}
+	if err := w.api(http.MethodPost, "/external/v1/instances/00000000-0000-0000-0000-000000000000/password", body, nil); err != nil {
+		return err
+	}
+	if w.code != http.StatusNotFound {
+		return fmt.Errorf("unknown instance password: %d %s, want 404", w.code, w.body)
+	}
+	return nil
 }
 
 // registerConnection upserts the default SQL target as a noxis connection.
