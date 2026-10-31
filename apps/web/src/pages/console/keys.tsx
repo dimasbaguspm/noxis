@@ -34,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { CacheStats } from "@/components/instance/cache-stats";
 import { ResultTable } from "@/components/sql/result-table";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useMemcacheBrowser, type SortKey } from "@/hooks/use-memcache-browser";
@@ -44,6 +45,7 @@ import {
   useFlushMutation,
   useMemcacheConnections,
   useMemcacheKeysQuery,
+  useMemcacheInfoQuery,
   useMemcacheValueQuery,
   useMemcacheUrlParams,
   useRemoveKeysMutation,
@@ -96,6 +98,7 @@ export default function MemcachePage() {
     refetch: reloadKeys,
   } = useMemcacheKeysQuery(driver, connection, glob);
   const { result, isFetching: valueLoading } = useMemcacheValueQuery(driver, connection, inspected);
+  const { info } = useMemcacheInfoQuery(driver, connection);
 
   const keys = useMemo<Row[]>(() => {
     const rows: Row[] = (page.keys ?? [])
@@ -161,6 +164,7 @@ export default function MemcachePage() {
             <span>
               {page.total} scanned{page.truncated ? " · scan truncated" : ""}
             </span>
+            <CacheStats info={info} />
           </>
         }
       >

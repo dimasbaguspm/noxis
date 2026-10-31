@@ -2037,6 +2037,65 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/external/v1/engine/{driver}/connections/{name}/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Report what the cache server says about itself */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description driver name (redis, valkey, dragonfly) */
+                    driver: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.CacheInfo"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/external/v1/engine/{driver}/connections/{name}/tables/{table}/rows": {
         parameters: {
             query?: never;
@@ -2791,6 +2850,11 @@ export interface components {
             local?: boolean;
             oidc?: components["schemas"]["entity.OIDCConfig"];
         };
+        "entity.CacheDatabase": {
+            expires?: number;
+            keys?: number;
+            name?: string;
+        };
         "entity.CacheDeleteRequest": {
             keys?: string[];
         };
@@ -2799,6 +2863,30 @@ export interface components {
         };
         "entity.CacheFlushRequest": {
             confirm?: string;
+        };
+        "entity.CacheInfo": {
+            /** @description ConnectedClients and OpsPerSecond are the server's current load. */
+            connectedClients?: number;
+            /** @description Databases are the logical databases the server reports, with how many keys each holds. */
+            databases?: components["schemas"]["entity.CacheDatabase"][];
+            /** @description EvictedKeys and ExpiredKeys are cumulative counts since boot. */
+            evictedKeys?: number;
+            expiredKeys?: number;
+            /** @description KeyspaceHits and KeyspaceMisses give the cache's hit ratio. */
+            keyspaceHits?: number;
+            keyspaceMisses?: number;
+            maxMemoryBytes?: number;
+            opsPerSecond?: number;
+            peakMemoryBytes?: number;
+            /** @description UptimeSeconds is how long the server has been up. */
+            uptimeSeconds?: number;
+            /**
+             * @description UsedMemoryBytes, PeakMemoryBytes and MaxMemoryBytes are what the server reports about its memory; a zero maximum
+             *     means no limit is configured, which is a fact rather than a missing value.
+             */
+            usedMemoryBytes?: number;
+            /** @description Version is the engine's own version string, so a page can say what it is talking to. */
+            version?: string;
         };
         "entity.Change": {
             affectedColumns?: string[];

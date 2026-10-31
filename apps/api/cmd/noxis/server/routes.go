@@ -86,6 +86,7 @@ func routes(d app.App, cfg config.Config) []route {
 		{Method: http.MethodDelete, Endpoint: api + "/engine/{driver}/connections/{name}/keys", Handler: http.HandlerFunc(d.CacheDel.Serve)},
 		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/value", Handler: http.HandlerFunc(d.CacheVal.Serve)},
 		{Method: http.MethodPost, Endpoint: api + "/engine/{driver}/connections/{name}/flush", Handler: http.HandlerFunc(d.CacheFlsh.Serve)},
+		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/stats", Handler: http.HandlerFunc(d.CacheInfo.Serve)},
 
 		// MongoDB-only: databases, collections and read requests.
 		{Method: http.MethodGet, Endpoint: api + "/engine/{driver}/connections/{name}/databases", Handler: http.HandlerFunc(d.MongoDbs.Serve)},

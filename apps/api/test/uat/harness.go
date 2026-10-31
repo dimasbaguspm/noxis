@@ -88,10 +88,11 @@ type world struct {
 	database       mongoDatabase   // the mongo database a scenario picked out
 	collection     mongoCollection // the mongo collection a scenario picked out
 	mongoQueueSize int
-	couch          couchResult  // the last couchdb read a scenario made
-	search         searchResult // the last search-platform query a scenario made
-	ticked         tickBody     // the last /internal/callback/scheduler result
-	scheduledIDs   []string     // changes the scenario scheduled for the tick to pick up
+	couch          couchResult   // the last couchdb read a scenario made
+	search         searchResult  // the last search-platform query a scenario made
+	cacheInfo      cacheInfoBody // the last cache server report a scenario read
+	ticked         tickBody      // the last /internal/callback/scheduler result
+	scheduledIDs   []string      // changes the scenario scheduled for the tick to pick up
 
 	snaps map[string]dbSnapshot // named database dumps, for this scenario
 

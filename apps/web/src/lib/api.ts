@@ -30,6 +30,7 @@ export interface MongoChangeInput extends MongoRequest {
 }
 export type MemcacheKey = components["schemas"]["entity.Key"];
 export type MemcacheKeyPage = components["schemas"]["entity.KeyPage"];
+export type CacheInfo = components["schemas"]["entity.CacheInfo"];
 export type Permission = components["schemas"]["entity.Permission"];
 export type MemberUser = components["schemas"]["entity.Member"];
 export type User = components["schemas"]["entity.User"];
@@ -225,6 +226,9 @@ export class ApiClient {
         this.request<{ status: string }>("POST", this.connectionPath(driver, name, "/flush"), {
           confirm: name,
         }),
+      // what the server says about itself: memory, eviction, the hit ratio and the per-database counts
+      stats: (name: string) =>
+        this.request<CacheInfo>("GET", this.connectionPath(driver, name, "/stats")),
     }),
     search: (driver: string) => ({
       // what the platform indexes, and one query against a target: the query travels as the platform's own document

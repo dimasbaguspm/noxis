@@ -1243,6 +1243,41 @@ paths:
             "*/*":
               schema:
                 $ref: "#/components/schemas/entity.ErrorResponse"
+  "/external/v1/engine/{driver}/connections/{name}/stats":
+    get:
+      summary: Report what the cache server says about itself
+      parameters:
+        - description: driver name (redis, valkey, dragonfly)
+          name: driver
+          in: path
+          required: true
+          schema:
+            type: string
+        - description: connection name
+          name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.CacheInfo"
+        "400":
+          description: Bad Request
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/entity.ErrorResponse"
   "/external/v1/engine/{driver}/connections/{name}/tables/{table}/rows":
     get:
       summary: Preview a table's rows
@@ -1727,6 +1762,15 @@ components:
           type: boolean
         oidc:
           $ref: "#/components/schemas/entity.OIDCConfig"
+    entity.CacheDatabase:
+      type: object
+      properties:
+        expires:
+          type: integer
+        keys:
+          type: integer
+        name:
+          type: string
     entity.CacheDeleteRequest:
       type: object
       properties:
@@ -1743,6 +1787,48 @@ components:
       type: object
       properties:
         confirm:
+          type: string
+    entity.CacheInfo:
+      type: object
+      properties:
+        connectedClients:
+          description: ConnectedClients and OpsPerSecond are the server's current load.
+          type: integer
+        databases:
+          description: Databases are the logical databases the server reports, with how
+            many keys each holds.
+          type: array
+          items:
+            $ref: "#/components/schemas/entity.CacheDatabase"
+        evictedKeys:
+          description: EvictedKeys and ExpiredKeys are cumulative counts since boot.
+          type: integer
+        expiredKeys:
+          type: integer
+        keyspaceHits:
+          description: KeyspaceHits and KeyspaceMisses give the cache's hit ratio.
+          type: integer
+        keyspaceMisses:
+          type: integer
+        maxMemoryBytes:
+          type: integer
+        opsPerSecond:
+          type: integer
+        peakMemoryBytes:
+          type: integer
+        uptimeSeconds:
+          description: UptimeSeconds is how long the server has been up.
+          type: integer
+        usedMemoryBytes:
+          description: >-
+            UsedMemoryBytes, PeakMemoryBytes and MaxMemoryBytes are what the
+            server reports about its memory; a zero maximum
+
+            means no limit is configured, which is a fact rather than a missing value.
+          type: integer
+        version:
+          description: Version is the engine's own version string, so a page can say what
+            it is talking to.
           type: string
     entity.Change:
       type: object
