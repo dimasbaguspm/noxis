@@ -17,21 +17,20 @@ import (
 	"noxis/internal/modules/valkey"
 )
 
-// contract is one module plus the queue it must drive, so every SQL driver is checked the same way.
+// contract is one module plus the driver it must serve, so every SQL driver is checked the same way.
 type contract struct {
 	driver string
 	module interfaces.Module
-	queue  interfaces.ChangeFlow
 }
 
 // TestSQLModulesKeepTheContract walks the five modules: each names its own driver, refuses the other four, proves and applies SQL, and drives a change queue that reports the same driver.
 func TestSQLModulesKeepTheContract(t *testing.T) {
 	contracts := []contract{
-		{constants.DriverPostgres, postgres.New(), postgres.NewChanges(nil, nil, nil, nil)},
-		{constants.DriverMySQL, mysql.New(), mysql.NewChanges(nil, nil, nil, nil)},
-		{constants.DriverMariaDB, mariadb.New(), mariadb.NewChanges(nil, nil, nil, nil)},
-		{constants.DriverSQLite, sqlite.New(), sqlite.NewChanges(nil, nil, nil, nil)},
-		{constants.DriverCockroach, cockroach.New(), cockroach.NewChanges(nil, nil, nil, nil)},
+		{constants.DriverPostgres, postgres.New()},
+		{constants.DriverMySQL, mysql.New()},
+		{constants.DriverMariaDB, mariadb.New()},
+		{constants.DriverSQLite, sqlite.New()},
+		{constants.DriverCockroach, cockroach.New()},
 	}
 	every := []string{
 		constants.DriverPostgres,
@@ -64,12 +63,6 @@ func TestSQLModulesKeepTheContract(t *testing.T) {
 		}
 		if _, ok := c.module.(interfaces.SQLChangeEngine); !ok {
 			t.Errorf("%s: %T does not prove and apply SQL", c.driver, c.module)
-		}
-		if got := c.queue.Driver(); got != c.driver {
-			t.Errorf("%s: its change queue reports %q", c.driver, got)
-		}
-		if _, ok := c.queue.(interfaces.SQLChangeFlow); !ok {
-			t.Errorf("%s: %T cannot submit a SQL change", c.driver, c.queue)
 		}
 	}
 	if len(seen) != len(every) {
@@ -105,7 +98,7 @@ func TestCacheModulesKeepTheContract(t *testing.T) {
 	}
 }
 
-// TestDocumentModuleKeepsTheContract proves the document engine names its driver, browses documents and drives its own change queue.
+// TestDocumentModuleKeepsTheContract proves the document engine names its driver and can prove and apply a document write.
 func TestDocumentModuleKeepsTheContract(t *testing.T) {
 	var module interfaces.Module = mongodb.New()
 	if got := module.Driver(); got != constants.DriverMongo {
@@ -115,13 +108,6 @@ func TestDocumentModuleKeepsTheContract(t *testing.T) {
 		t.Error("Supports does not follow the driver")
 	}
 	if _, ok := module.(interfaces.MongoChangeEngine); !ok {
-		t.Errorf("%T does not browse documents", module)
-	}
-	var queue interfaces.ChangeFlow = mongodb.NewChanges(nil, nil, nil, nil)
-	if got := queue.Driver(); got != constants.DriverMongo {
-		t.Errorf("its change queue reports %q", got)
-	}
-	if _, ok := queue.(interfaces.MongoChangeFlow); !ok {
-		t.Errorf("%T cannot submit a document request", queue)
+		t.Errorf("%T does not prove and apply a document write", module)
 	}
 }

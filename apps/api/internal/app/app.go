@@ -122,7 +122,7 @@ func Default(d Deps) App {
 
 	// The registry owns the drivers and their change queues, so it is built here where the instruments it reports through exist.
 	if d.Modules == nil {
-		d.Modules = modules.Default(d.Repositories, m)
+		d.Modules = modules.Default()
 	}
 
 	deps := usecases.RegistryDeps{

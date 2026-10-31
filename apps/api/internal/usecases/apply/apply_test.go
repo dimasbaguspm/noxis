@@ -15,9 +15,9 @@ import (
 	"noxis/internal/common/testkit"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 	"noxis/internal/mocks"
 	"noxis/internal/modules"
-	"noxis/internal/modules/postgres"
 	"noxis/internal/repositories"
 	"noxis/internal/usecases"
 )
@@ -86,9 +86,7 @@ func newHarness(t *testing.T, store ...entity.Change) *harness {
 	}).AnyTimes()
 	h.sq.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
 	h.sq.EXPECT().Supports(constants.DriverPostgres).Return(true).AnyTimes()
-	registry := modules.New(map[string]modules.Registration{
-		constants.DriverPostgres: {Engine: h.sq, Changes: postgres.NewChanges(conns, h.changes, h.sq, nil)},
-	})
+	registry := modules.New(map[string]interfaces.Module{constants.DriverPostgres: h.sq})
 	h.deps = usecases.RegistryDeps{
 		Repositories: repositories.Registry{Connections: conns, Changes: h.changes},
 		Modules:      registry,

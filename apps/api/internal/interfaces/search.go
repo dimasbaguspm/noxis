@@ -28,9 +28,3 @@ type SearchEngine interface {
 	// IsWrite reports whether an op mutates the platform; a read is refused on the change path.
 	IsWrite(op string) bool
 }
-
-// SearchChangeFlow submits search-platform changes on top of ChangeFlow.
-type SearchChangeFlow interface {
-	ChangeFlow
-	Submit(ctx context.Context, conn entity.Connection, actor, notes string, req SearchRequest) (entity.Change, error)
-}

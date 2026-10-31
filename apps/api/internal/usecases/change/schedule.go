@@ -29,10 +29,6 @@ func (uc Schedule) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	decide(ctx, uc.RegistryDeps, w, r, func(change *entity.Change) error {
-		flow, err := flowFor(ctx, r.PathValue("driver"))
-		if err != nil {
-			return err
-		}
-		return flow.Schedule(ctx, change, body.ScheduledAt, entity.Actor(ctx))
+		return uc.ScheduleChange(ctx, change, body.ScheduledAt, entity.Actor(ctx))
 	})
 }
