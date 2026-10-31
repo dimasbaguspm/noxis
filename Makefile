@@ -51,11 +51,11 @@ dev:  ## start one target with its seed data: make dev postgres|mysql|mariadb|co
 	    echo "  example: make dev postgres   # noxis + postgres, seeded, console on :9000"; \
 	    exit 1 ;; \
 	  all) \
-	    SEED_DRIVERS="$(DEV_SEED_all)" docker compose -f docker-compose.yml --profile all up --build ;; \
+	    SEED_DRIVERS="$(DEV_SEED_all)" docker compose -f docker-compose.yml --profile all --profile seed up --build ;; \
 	  postgres|mysql|mariadb|cockroach|redis|valkey) \
-	    SEED_DRIVERS="$(DEV_TARGET)" docker compose -f docker-compose.yml --profile $(DEV_TARGET) up --build ;; \
+	    SEED_DRIVERS="$(DEV_TARGET)" docker compose -f docker-compose.yml --profile $(DEV_TARGET) --profile seed up --build ;; \
 	  mongodb) \
-	    SEED_DRIVERS="mongo" docker compose -f docker-compose.yml --profile mongo up --build ;; \
+	    SEED_DRIVERS="mongo" docker compose -f docker-compose.yml --profile mongo --profile seed up --build ;; \
 	  *) \
 	    echo "unknown target: $(DEV_TARGET)"; \
 	    echo "  targets: $(DEV_TARGETS) all"; \
@@ -63,7 +63,7 @@ dev:  ## start one target with its seed data: make dev postgres|mysql|mariadb|co
 	esac
 
 dev-ui:  ## every target + the hot-reloading console on :5173
-	SEED_DRIVERS="$(DEV_SEED_all)" docker compose -f docker-compose.yml --profile all --profile dev up --build
+	SEED_DRIVERS="$(DEV_SEED_all)" docker compose -f docker-compose.yml --profile all --profile seed --profile dev up --build
 
 down:  ## stop the dev stack and wipe its data (volumes incl. the registry)
-	docker compose -f docker-compose.yml --profile all --profile dev down -v
+	docker compose -f docker-compose.yml --profile all --profile seed --profile dev down -v

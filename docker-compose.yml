@@ -196,7 +196,7 @@ services:
   # console only ever talks to noxis.
   seed-postgres:
     image: postgres:16-alpine
-    profiles: [postgres, all]
+    profiles: [seed]
     depends_on:
       db:
         condition: service_healthy
@@ -210,7 +210,7 @@ services:
 
   seed-mysql:
     image: mysql:8
-    profiles: [mysql, all]
+    profiles: [seed]
     depends_on:
       mysql:
         condition: service_healthy
@@ -222,7 +222,7 @@ services:
 
   seed-mariadb:
     image: mariadb:11
-    profiles: [mariadb, all]
+    profiles: [seed]
     depends_on:
       mariadb:
         condition: service_healthy
@@ -234,7 +234,7 @@ services:
 
   seed-cockroach:
     image: cockroachdb/cockroach:v24.1.5
-    profiles: [cockroach, all]
+    profiles: [seed]
     depends_on:
       cockroach:
         condition: service_healthy
@@ -251,7 +251,7 @@ services:
 
   seed-redis:
     image: redis:7-alpine
-    profiles: [redis, all]
+    profiles: [seed]
     depends_on:
       redis:
         condition: service_healthy
@@ -263,7 +263,7 @@ services:
 
   seed-valkey:
     image: valkey/valkey:8-alpine
-    profiles: [valkey, all]
+    profiles: [seed]
     depends_on:
       valkey:
         condition: service_healthy
@@ -275,7 +275,7 @@ services:
 
   seed-mongo:
     image: mongo:7
-    profiles: [mongo, all]
+    profiles: [seed]
     depends_on:
       mongo:
         condition: service_healthy
@@ -288,7 +288,7 @@ services:
   # Registers whatever was seeded, so the console opens with instances rather than an empty list.
   seed-registry:
     image: curlimages/curl:8.11.1
-    profiles: [postgres, mysql, mariadb, cockroach, redis, valkey, mongo, all]
+    profiles: [seed]
     depends_on:
       noxis:
         condition: service_healthy
