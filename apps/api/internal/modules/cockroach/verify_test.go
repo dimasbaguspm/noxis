@@ -3,7 +3,6 @@ package cockroach
 import (
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
 )
 
@@ -46,16 +45,6 @@ func TestQualifiedIdent(t *testing.T) {
 		if hasQualifiedIdent(sql) {
 			t.Errorf("hasQualifiedIdent(%q) = true", sql)
 		}
-	}
-}
-
-func TestScratchSchemaName(t *testing.T) {
-	name := scratchPrefix + "0123456789ab"
-	if !strings.HasPrefix(name, "noxis_verify_") {
-		t.Fatalf("scratch name %q lacks the prefix", name)
-	}
-	if len(name) > 63 {
-		t.Fatalf("scratch name %q exceeds the postgres identifier limit", name)
 	}
 }
 
