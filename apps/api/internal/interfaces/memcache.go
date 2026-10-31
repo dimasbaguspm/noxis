@@ -22,6 +22,9 @@ type KeyBrowser interface {
 	Value(ctx context.Context, c entity.Connection, key string) (Result, error)
 	Delete(ctx context.Context, c entity.Connection, keys []string) (int64, error)
 	Flush(ctx context.Context, c entity.Connection) error
+	// Expire sets the expiry of every named key, or clears it when ttlMs is zero, and reports how many the server
+	// still had. A TTL is metadata and reversible, which is why it is the one mutation this seam offers besides delete.
+	Expire(ctx context.Context, c entity.Connection, keys []string, ttlMs int64) (int64, error)
 	// Info reports what the server says about itself: memory, eviction, the hit ratio, clients and per-database counts.
 	Info(ctx context.Context, c entity.Connection) (CacheInfo, error)
 }

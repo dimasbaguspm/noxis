@@ -91,6 +91,7 @@ type App struct {
 	CacheKeys cache.Keys
 	CacheVal  cache.Value
 	CacheInfo cache.Info
+	CacheTTL  cache.TTL
 	CacheDel  cache.Delete
 	CacheFlsh cache.Flush
 
@@ -179,6 +180,7 @@ func Default(d Deps) App {
 		CacheKeys: cache.Keys{RegistryDeps: deps},
 		CacheVal:  cache.Value{RegistryDeps: deps},
 		CacheInfo: cache.Info{RegistryDeps: deps},
+		CacheTTL:  cache.TTL{RegistryDeps: deps},
 		CacheDel:  cache.Delete{RegistryDeps: deps},
 		CacheFlsh: cache.Flush{RegistryDeps: deps},
 

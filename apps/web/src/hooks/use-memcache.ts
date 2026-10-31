@@ -65,6 +65,18 @@ export function useMemcacheKeysQuery(driver?: string, connection?: string, patte
   };
 }
 
+// useMemcacheExpireMutation sets or clears the expiry of the selected keys, then refreshes the page and the server's own
+// numbers, because an expiry change moves the database's expires count too.
+export function useMemcacheExpireMutation(driver?: string, connection?: string) {
+  return useMutation({
+    mutationFn: ({ keys, ttlMs }: { keys: string[]; ttlMs: number }) =>
+      api.memcache(driver as string).expire(connection as string, keys, ttlMs),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.keys.all });
+    },
+  });
+}
+
 // useMemcacheInfoQuery reads the server's own numbers; they change constantly, so they are refreshed on a slow poll
 // rather than on every key action.
 export function useMemcacheInfoQuery(driver?: string, connection?: string) {

@@ -1509,6 +1509,78 @@
                 }
             }
         },
+        "/external/v1/engine/{driver}/connections/{name}/keys/ttl": {
+            "post": {
+                "summary": "Set or clear the expiry of the named keys (ttlMs 0 clears it)",
+                "parameters": [
+                    {
+                        "description": "driver name (redis, valkey, dragonfly)",
+                        "name": "driver",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "connection name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/cache.ttlRequest"
+                            }
+                        }
+                    },
+                    "description": "keys and ttlMs",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "integer",
+                                        "format": "int64"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/entity.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/external/v1/engine/{driver}/connections/{name}/operations": {
             "post": {
                 "summary": "Run a SQL console operation",
@@ -2701,6 +2773,20 @@
             }
         },
         "schemas": {
+            "cache.ttlRequest": {
+                "type": "object",
+                "properties": {
+                    "keys": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "ttlMs": {
+                        "type": "integer"
+                    }
+                }
+            },
             "entity.AccessDecision": {
                 "type": "object",
                 "properties": {

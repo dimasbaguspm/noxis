@@ -15,6 +15,9 @@ export function useMemcacheBrowser(scope: string) {
   const selected = selection.scope === scope ? selection.keys : [];
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "name", desc: false });
   const [flushOpen, setFlushOpen] = useState(false);
+  // the expiry dialog carries its own seconds, so closing it without confirming leaves no draft behind.
+  const [ttlOpen, setTtlOpen] = useState(false);
+  const [ttlSeconds, setTtlSeconds] = useState("3600");
 
   // dropping the selection records the current scope, so a later scope change also starts empty.
   function clearSelection() {
@@ -33,5 +36,17 @@ export function useMemcacheBrowser(scope: string) {
     setSort((prev) => ({ key, desc: prev.key === key ? !prev.desc : false }));
   }
 
-  return { selected, sort, sortBy, clearSelection, toggle, flushOpen, setFlushOpen };
+  return {
+    selected,
+    sort,
+    sortBy,
+    clearSelection,
+    toggle,
+    flushOpen,
+    setFlushOpen,
+    ttlOpen,
+    setTtlOpen,
+    ttlSeconds,
+    setTtlSeconds,
+  };
 }

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowDown, ArrowUp, Copy, Eraser, KeyRound, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Eraser, KeyRound, RefreshCw, Timer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ import {
   useFlushMutation,
   useMemcacheConnections,
   useMemcacheKeysQuery,
+  useMemcacheExpireMutation,
   useMemcacheInfoQuery,
   useMemcacheValueQuery,
   useMemcacheUrlParams,
@@ -70,8 +71,19 @@ export default function MemcachePage() {
   const { pattern, inspected, setPattern, setInspected } = useMemcacheUrlParams();
   const glob = useDebounce(pattern || "*", 300);
   const selectionScope = JSON.stringify([connection, glob]);
-  const { selected, sort, sortBy, clearSelection, toggle, flushOpen, setFlushOpen } =
-    useMemcacheBrowser(selectionScope);
+  const {
+    selected,
+    sort,
+    sortBy,
+    clearSelection,
+    toggle,
+    flushOpen,
+    setFlushOpen,
+    ttlOpen,
+    setTtlOpen,
+    ttlSeconds,
+    setTtlSeconds,
+  } = useMemcacheBrowser(selectionScope);
   const {
     register,
     handleSubmit,
@@ -128,6 +140,7 @@ export default function MemcachePage() {
   };
 
   const flush = useFlushMutation();
+  const expire = useMemcacheExpireMutation(driver, connection);
   const onFlush = handleSubmit(async () => {
     if (!driver || !connection) return;
     await flush.mutateAsync({ driver, connection });
@@ -197,6 +210,15 @@ export default function MemcachePage() {
                     onClick={() => void onRemoveKeys()}
                   >
                     <Trash2 /> Remove selected ({selected.length})
+                  </Button>
+                )}
+                {mayAdmin && (
+                  <Button
+                    variant="outline"
+                    disabled={selected.length === 0 || expire.isPending}
+                    onClick={() => setTtlOpen(true)}
+                  >
+                    <Timer /> Expire ({selected.length})
                   </Button>
                 )}
                 {mayAdmin && (
@@ -356,6 +378,43 @@ export default function MemcachePage() {
           </Workspace.Pane>
         </Workspace.Split>
       </Workspace>
+
+      <Dialog open={ttlOpen} onOpenChange={setTtlOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set or clear an expiry</DialogTitle>
+            <DialogDescription>
+              A TTL is metadata, so this is applied directly: enter seconds to set one, or 0 to
+              clear it. The keys are not touched otherwise.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-muted-foreground">{selected.length} key(s) selected</p>
+            <Input
+              value={ttlSeconds}
+              onChange={(event) => setTtlSeconds(event.target.value)}
+              inputMode="numeric"
+              placeholder="seconds, 0 clears the expiry"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setTtlOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                expire.mutate({ keys: selected, ttlMs: Number(ttlSeconds) * 1000 });
+                setTtlOpen(false);
+              }}
+              disabled={!Number.isFinite(Number(ttlSeconds)) || expire.isPending}
+            >
+              <Timer /> Apply
+            </Button>
+          </DialogFooter>
+          {expire.isError && <p className="text-xs text-destructive">{expire.error.message}</p>}
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={flushOpen}

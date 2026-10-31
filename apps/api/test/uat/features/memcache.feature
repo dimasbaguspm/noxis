@@ -24,6 +24,15 @@ Feature: Memory cache keys and metrics
     When I inspect the redis key "queue"
     Then the value grid shows "a"
 
+  Scenario: an expiry is set and cleared on a key
+    Given the stack is running
+    And a redis connection named "cache"
+    And the redis key "ttl:probe" holds "x"
+    When I set the expiry of the redis key "ttl:probe" to 600 seconds
+    Then the key "ttl:probe" reports a ttl
+    When I clear the expiry of the redis key "ttl:probe"
+    Then the key "ttl:probe" reports no ttl
+
   Scenario: a keyspace is walked past one page
     Given the stack is running
     And a redis connection named "cache"

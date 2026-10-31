@@ -53,6 +53,9 @@ func (w *world) memcacheSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^the browse finds the key "([^"]*)"$`, w.redisBrowseFinds)
 	sc.Step(`^the browse does not find the key "([^"]*)"$`, w.redisBrowseMisses)
 	sc.Step(`^the key "([^"]*)" reports a ttl$`, w.redisKeyHasTTL)
+	sc.Step(`^the key "([^"]*)" reports no ttl$`, w.redisKeyHasNoTTL)
+	sc.Step(`^I set the expiry of the redis key "([^"]*)" to (\d+) seconds$`, w.redisSetTTL)
+	sc.Step(`^I clear the expiry of the redis key "([^"]*)"$`, w.redisClearTTL)
 	sc.Step(`^I inspect the redis key "([^"]*)"$`, w.redisInspect)
 	sc.Step(`^the value grid shows "([^"]*)"$`, w.redisValueShows)
 	sc.Step(`^I delete the redis keys "([^"]*)"$`, w.redisDelete)
@@ -236,6 +239,53 @@ func (w *world) redisKeyHasTTL(ctx context.Context, key string) error {
 		return fmt.Errorf("key %q ttl=%d, want a positive ttl", key, w.key.TTL)
 	}
 	return nil
+}
+
+// redisKeyHasNoTTL is the other half of redisKeyHasTTL: a cleared expiry reads as -1, not as zero seconds.
+func (w *world) redisKeyHasNoTTL(ctx context.Context, key string) error {
+	if w.key.Name != key {
+		return fmt.Errorf("key under test is %q, not %q", w.key.Name, key)
+	}
+	if w.key.TTL != -1 {
+		return fmt.Errorf("key %q ttl=%d, want no expiry", key, w.key.TTL)
+	}
+	return nil
+}
+
+func (w *world) redisSetTTL(ctx context.Context, key string, seconds int) error {
+	return w.redisTTL(ctx, key, int64(seconds)*1000)
+}
+
+func (w *world) redisClearTTL(ctx context.Context, key string) error {
+	return w.redisTTL(ctx, key, 0)
+}
+
+// redisTTL sets or clears one key's expiry and re-reads it: the page a scenario browsed before this call is stale, and
+// asserting a TTL against a stale row would pass for the wrong reason.
+func (w *world) redisTTL(ctx context.Context, key string, ttlMs int64) error {
+	body := map[string]any{"keys": []string{key}, "ttlMs": ttlMs}
+	var out struct {
+		Changed int64 `json:"changed"`
+	}
+	if err := w.api(http.MethodPost, w.enginePath("/connections/"+w.conn+"/keys/ttl"), body, &out); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("ttl: %d", w.code)
+	}
+	if out.Changed != 1 {
+		return fmt.Errorf("ttl changed %d key(s), want 1", out.Changed)
+	}
+	if err := w.redisBrowse(ctx, "*"); err != nil {
+		return err
+	}
+	for _, candidate := range w.page.Keys {
+		if candidate.Name == key {
+			w.key = candidate
+			return nil
+		}
+	}
+	return fmt.Errorf("key %q is not in the browse", key)
 }
 
 func (w *world) redisInspect(ctx context.Context, key string) error {
