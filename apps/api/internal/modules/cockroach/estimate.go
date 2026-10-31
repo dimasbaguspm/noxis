@@ -26,7 +26,7 @@ func estimateRows(ctx context.Context, db *stdsql.DB, driver, stmt string) int64
 	return findRows(doc)
 }
 
-// findRows walks a plan document for the first rows estimate both drivers expose ("Plan Rows" for postgres, "rows_examined_per_scan" for mysql).
+// findRows walks a plan document for the first rows estimate, tolerating either key an engine emits.
 func findRows(node any) int64 {
 	switch v := node.(type) {
 	case map[string]any:

@@ -145,17 +145,12 @@ func (db *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Res
 	})
 }
 
-// DryRun always rolls back; it refuses DDL whose server commits implicitly, which would make the dry run destructive.
+// DryRun always rolls back: this engine's DDL is transactional, so the batch is proved without touching the data.
 func (db *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	d, derr := dialectOf(c.Driver)
-	if derr != nil {
+	if _, derr := dialectOf(c.Driver); derr != nil {
 		return Result{}, derr
-	}
-	// an engine that commits DDL implicitly would apply the batch instead of rolling it back
-	if d.txn == txnWithoutDDL && containsDDL(sqlText) {
-		return Result{}, fmt.Errorf("dry run of DDL is not safe on %s (implicit commit) — try it on a postgres connection", c.Driver)
 	}
 	started := time.Now()
 	_, n, err := runBatch(ctx, c, sqlText, true)
@@ -168,9 +163,7 @@ func (db *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (
 	return Result{DurationMs: time.Since(started).Milliseconds(), Message: fmt.Sprintf("rolled back (dry run): %d statement(s)", n)}, nil
 }
 
-// Apply executes write statements in a transaction and commits.
-//
-// shortcut: MySQL commits DDL implicitly, so mixed DDL/DML batches are not atomic; split them or use PostgreSQL when atomicity is required.
+// Apply executes write statements in one transaction and commits, so a mixed DDL/DML batch is atomic here.
 func (db *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()

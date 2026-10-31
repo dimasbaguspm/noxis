@@ -8,7 +8,7 @@ import (
 	"noxis/internal/entity"
 )
 
-// sysSchemaFilter excludes engine-internal schemas (valid for postgres and mysql).
+// sysSchemaFilter excludes engine-internal schemas.
 const sysSchemaFilter = `table_schema NOT IN ('pg_catalog', 'information_schema', 'mysql', 'performance_schema', 'sys')`
 
 // listTables reports every browsable table with its columns and declared keys, so the schema browser and the ERD view read one pass per driver.

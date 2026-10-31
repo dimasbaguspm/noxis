@@ -8,8 +8,8 @@ import (
 	"noxis/internal/entity"
 )
 
-// indexesQueryPostgres reads every index and its key columns in declaration order.
-const indexesQueryPostgres = `
+// baseIndexesQuery reads every index and its key columns in declaration order.
+const baseIndexesQuery = `
 SELECT n.nspname, t.relname, ic.relname, ix.indisunique, ix.indisprimary, a.attname
 FROM pg_index ix
 JOIN pg_class t ON t.oid = ix.indrelid
@@ -22,14 +22,14 @@ ORDER BY n.nspname, t.relname, ic.relname, s.ord`
 
 // The catalog queries the rest of the browser reads. An engine without one reports nothing: its dialect entry leaves the query empty.
 const (
-	estimatesQueryPostgres = `
+	baseEstimatesQuery = `
 		SELECT n.nspname, c.relname, c.reltuples, pg_total_relation_size(c.oid)
 		FROM pg_class c
 		JOIN pg_namespace n ON n.oid = c.relnamespace
 		WHERE c.relkind IN ('r', 'p') AND n.nspname NOT IN ('pg_catalog', 'information_schema')`
-	// estimatesQueryCockroach reads the statistics collector's estimate and the bytes the table's ranges hold:
+	// estimatesQuery reads the statistics collector's estimate and the bytes the table's ranges hold:
 	// cockroach has no pg_total_relation_size, and its per-table span stats answer the size question directly.
-	estimatesQueryCockroach = `
+	estimatesQuery = `
 		SELECT t.schema_name, t.name, s.estimated_row_count,
 			(SELECT live_bytes FROM crdb_internal.tenant_span_stats(d.id, t.table_id))
 		FROM crdb_internal.tables t
@@ -37,7 +37,7 @@ const (
 		LEFT JOIN crdb_internal.table_row_statistics s ON s.table_id = t.table_id
 		WHERE t.database_name = current_database() AND t.state = 'PUBLIC'
 			AND t.schema_name NOT IN ('crdb_internal', 'pg_catalog', 'information_schema', 'pg_extension')`
-	commentsQueryPostgres = `
+	baseCommentsQuery = `
 		SELECT n.nspname, c.relname, COALESCE(obj_description(c.oid, 'pg_class'), '')
 		FROM pg_class c
 		JOIN pg_namespace n ON n.oid = c.relnamespace
