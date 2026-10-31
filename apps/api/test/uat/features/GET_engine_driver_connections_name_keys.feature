@@ -9,6 +9,7 @@ Feature: GET /external/v1/engine/{driver}/connections/{name}/keys
     And the redis key "<driver>:key" holds "v"
     When I browse redis keys matching "<driver>:*"
     Then the browse finds the key "<driver>:key"
+    And the browse does not find the key "<driver>:absent"
 
     Examples:
       | driver    |
