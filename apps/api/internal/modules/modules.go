@@ -23,6 +23,7 @@ import (
 	"noxis/internal/modules/mysql"
 	"noxis/internal/modules/postgres"
 	"noxis/internal/modules/redis"
+	"noxis/internal/modules/splunk"
 	"noxis/internal/modules/sqlite"
 	"noxis/internal/modules/valkey"
 	"noxis/internal/repositories"
@@ -91,6 +92,9 @@ func Default(repos repositories.Registry, m *metrics.Metrics) Registry {
 
 	meili := meilisearch.New()
 	mods[meili.Driver()] = Registration{Engine: meili, Changes: meilisearch.NewChanges(repos.Connections, repos.Changes, meili, m)}
+
+	spl := splunk.New()
+	mods[spl.Driver()] = Registration{Engine: spl, Changes: splunk.NewChanges(repos.Connections, repos.Changes, spl, m)}
 	return New(mods)
 }
 

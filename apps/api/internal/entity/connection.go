@@ -49,7 +49,7 @@ func isFileDriver(driver string) bool {
 // cluster with security disabled. Every other driver needs a user, so a typo in the field is caught at registration.
 func allowsAnonymous(driver string) bool {
 	switch strings.ToLower(driver) {
-	case "redis", "valkey", "dragonfly", "elasticsearch", "meilisearch":
+	case "redis", "valkey", "dragonfly", "elasticsearch", "meilisearch", "splunk":
 		return true
 	}
 	return false

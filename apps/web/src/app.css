@@ -43,6 +43,7 @@
   --driver-couchdb: oklch(0.55 0.17 300);
   --driver-elasticsearch: oklch(0.58 0.16 60);
   --driver-meilisearch: oklch(0.55 0.18 340);
+  --driver-splunk: oklch(0.52 0.16 15);
   --driver-mongo: oklch(0.52 0.14 143);
   --driver-unknown: oklch(0.45 0.02 258);
 }
@@ -86,6 +87,7 @@
   --driver-couchdb: oklch(0.78 0.14 300);
   --driver-elasticsearch: oklch(0.8 0.14 60);
   --driver-meilisearch: oklch(0.78 0.15 340);
+  --driver-splunk: oklch(0.78 0.14 15);
   --driver-mongo: oklch(0.8 0.13 143);
   --driver-unknown: oklch(0.74 0.02 258);
 }

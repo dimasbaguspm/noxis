@@ -27,6 +27,7 @@ var driverCatalog = []entity.DriverInfo{
 	{Driver: constants.DriverCouchDB, Label: "CouchDB"},
 	{Driver: constants.DriverElasticsearch, Label: "Elasticsearch"},
 	{Driver: constants.DriverMeilisearch, Label: "Meilisearch"},
+	{Driver: constants.DriverSplunk, Label: "Splunk"},
 }
 
 // Drivers serves the driver catalog.
