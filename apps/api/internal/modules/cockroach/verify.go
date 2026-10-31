@@ -6,11 +6,14 @@ import (
 	stdsql "database/sql"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
@@ -226,8 +229,36 @@ func changeSummary(refs []verifyRef, states map[string]tableState) string {
 	return fmt.Sprintf("checked %d table(s), %d sampled row(s)", len(refs), sampledRows(states))
 }
 
-// validateChangeTx exercises live tables because the whole transaction is rolled back.
+// retryableCode is the SQLSTATE a serializable engine returns when a transaction loses a race: the statement is fine
+// and the transaction must be replayed, so it is a retry and never a failed change.
+const retryableCode = "40001"
+
+// retryBudget bounds how many times a contended dry run is replayed before the engine's own reason is reported.
+const retryBudget = 3
+
+// retryable reports the lost-race code, so no other engine error is replayed.
+func retryable(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == retryableCode
+}
+
+// replay retries a dry run while the engine reports a lost race.
+func replay(run func() (Result, error)) (Result, error) {
+	res, err := run()
+	for attempt := 1; attempt < retryBudget && retryable(err); attempt++ {
+		res, err = run()
+	}
+	return res, err
+}
+
+// ValidateChange proves a batch by rolling it back in the live transaction, replaying it when cockroach reports that
+// another transaction won the race.
 func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback string) (Result, error) {
+	return replay(func() (Result, error) { return dryRunTx(ctx, c, query, rollback) })
+}
+
+// dryRunTx exercises live tables because the whole transaction is rolled back.
+func dryRunTx(ctx context.Context, c entity.Connection, query, rollback string) (Result, error) {
 	started := time.Now()
 	var affected int64
 	var summary string
