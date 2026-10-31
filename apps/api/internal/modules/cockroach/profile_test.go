@@ -20,9 +20,9 @@ func TestProfileIsComplete(t *testing.T) {
 	if d.keysQuery == "" || d.indexesQuery == "" || d.scanIndex == nil || d.scanEstimate == nil || d.commentsQuery == "" {
 		t.Fatalf("the postgres catalog must survive the derivation: %+v", d)
 	}
-	// no pg_total_relation_size and no planner row counts, so both stay empty
-	if d.estimatesQuery != "" || d.explain != "" {
-		t.Fatalf("this engine reports no size and no estimate: %+v", d)
+	// the estimate and the size come from cockroach's own catalogs; there is no EXPLAIN (FORMAT JSON) to read
+	if d.estimatesQuery == "" || d.explain != "" {
+		t.Fatalf("this engine reports a size and an estimate but no planner document: %+v", d)
 	}
 	if len(d.capabilities()) == 0 {
 		t.Fatal("capabilities must say what the profile proves")

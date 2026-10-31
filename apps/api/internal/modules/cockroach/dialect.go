@@ -133,8 +133,9 @@ var profile = func() dialect {
 	d := postgresBaseline
 	d.name = constants.DriverCockroach
 	d.txn = txnAlways
-	// cockroach has no pg_total_relation_size, so it reports no size and no planner estimate; the rest of the postgres catalog works unchanged.
-	d.estimatesQuery = ""
+	// cockroach keeps its own statistics catalog and range byte counters, so the estimate query is its own; it has no
+	// EXPLAIN (FORMAT JSON), so the planner path stays off. The rest of the postgres catalog works unchanged.
+	d.estimatesQuery = estimatesQueryCockroach
 	d.explain = ""
 	return d
 }()
