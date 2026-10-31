@@ -1,27 +1,14 @@
-<p align="center">
-  <img src="docs/assets/logo.webp" width="120" height="120" alt="noXis">
-</p>
+# noXis
 
-<h1 align="center">noXis</h1>
+**Selfhosted Unified Database Governance and Operations**
 
-<p align="center"><strong>Selfhosted Unified Database Governance and Operations</strong></p>
+Browse everything you already run. Read instantly. Change it through a review that *proves* the rollback before anyone approves.
 
-<p align="center">
-  Browse everything you already run. Read instantly. Change it through a review that <em>proves</em> the rollback before anyone approves.
-</p>
-
-<p align="center">
-  <img alt="Go" src="https://img.shields.io/badge/go-1.26-00ADD8?logo=go&logoColor=white">
-  <img alt="Console" src="https://img.shields.io/badge/console-react%20%2B%20shadcn%2Fui-111111">
-  <img alt="Image" src="https://img.shields.io/badge/image-ghcr.io%2Fdimasbaguspm%2Fnoxis-2496ED?logo=docker&logoColor=white">
-  <img alt="CI" src="https://github.com/dimasbaguspm/noxis/actions/workflows/ci.yml/badge.svg">
-</p>
-
-**Contents:** [What this is](#what-this-is) · [The problem](#the-problem) · [How it handles it](#how-it-handles-it) · [A change, end to end](#a-change-end-to-end) · [What makes it different](#what-makes-it-different) · [Endpoints](#endpoints) · [Supported databases](#supported-databases) · [Honest limits](#honest-about-limits) · [Run it](#run-it) · [Sign-in and access](#sign-in-and-access) · [Inspired by](#inspired-by) · [Contribute](#contribute)
+**Contents:** [What this is](#what-this-is) · [The problem](#the-problem) · [How it handles it](#how-it-handles-it) · [A change, end to end](#a-change-end-to-end) · [What makes it different](#what-makes-it-different) · [Supported databases](#supported-databases) · [Honest limits](#honest-about-limits) · [Run it](#run-it) · [Sign-in and access](#sign-in-and-access) · [Inspired by](#inspired-by) · [Contribute](#contribute)
 
 ## What this is
 
-One Go binary with a React console baked into it, and one SQLite file for its own state. You point it at databases you already run — Postgres, MySQL, MariaDB, CockroachDB, SQLite, Redis, Valkey, MongoDB — and it becomes the one place you look at them and the one place you change them.
+One Go binary with a React console baked into it, and one SQLite file for its own state. You point it at databases you already run — Postgres, MySQL, MariaDB, CockroachDB, SQLite, Redis, Valkey, Dragonfly, MongoDB, CouchDB, Elasticsearch, Meilisearch, Splunk — and it becomes the one place you look at them and the one place you change them.
 
 No agents on your hosts. No broker. No docker socket. Your databases stay yours, and noXis asks for nothing but a connection string.
 
@@ -87,31 +74,11 @@ The same shape runs for a document store's write requests, where no rollback exi
 | **No sidecar** | Nothing to install next to your database. One binary, one volume, one file. |
 | **The rollback is proven, not promised** | Query and rollback run together in a transaction that always rolls back, with table fingerprints to catch a rollback that changes data. |
 | **Every change is an artifact** | Estimates, actuals, checks, tables, actor and trail — kept, queryable, and never silently deleted. |
-| **The driver *is* the engine** | Eight engines behind capability interfaces, not one fat adapter. A new engine is a package and a registry entry, and the conformance suite keeps the copies honest. |
+| **The driver *is* the engine** | Thirteen engines behind capability interfaces, not one fat adapter. A new engine is a package and a registry entry, and the conformance suite keeps the copies honest. |
 | **The console's URL is the truth** | Driver in the path, instance in the query string. No hidden selection state, so every page is linkable and every reload lands where you left off. |
 | **A page you cannot use is not offered** | Capabilities come from the interfaces a module implements, so the sidebar and the pages cannot drift from what the server can actually do. |
 
 → Driver registry: [apps/api/internal/modules/modules.go](apps/api/internal/modules/modules.go) · capabilities: [apps/api/internal/interfaces](apps/api/internal/interfaces) · console routes: [apps/web/src/constants/routes.ts](apps/web/src/constants/routes.ts)
-
-## Endpoints
-
-Everything lives under `/external/v1` and every call but `auth/login` needs a bearer token. The table below is the shape of the API, not the whole of it.
-
-| Group | Routes |
-| --- | --- |
-| **Session** | `POST /auth/login` · `GET /me` · `POST /auth/logout` · `POST /auth/password` · `GET /auth/config` |
-| **Catalog** | `GET /config/drivers` · `GET /config/levels` · `GET /config/members` |
-| **Instances** | `GET /instances` · `GET /instances/counts` · `GET /instances/{id}` · `POST /instances/{id}/password` |
-| **Connections** | `GET`/`POST /engine/{driver}/connections` · `GET`/`DELETE …/{name}` · `POST …/{name}/test` · `POST …/connections/probe` |
-| **Browse** | `GET …/schema` · `GET …/erd` · `GET …/info` · `GET …/tables/{table}/rows` · `POST …/operations` |
-| **Changes** | `GET`/`POST …/changes` · `GET …/changes/{id}` · `POST …/changes/{id}/approve` · `/apply` · `/reject` · `/schedule` |
-| **Keys** | `GET`/`DELETE …/keys` · `GET …/value` · `POST …/flush` |
-| **Documents** | `GET …/databases` · `GET …/collections` · `GET`/`POST …/requests` |
-| **Access** | `GET /access` · `GET`/`POST /access-requests` · `POST /access-requests/{id}/approve` · `/reject` · `GET /users` · `GET`/`PUT`/`DELETE /users/{subject}` · `GET`/`PUT`/`DELETE …/permissions` |
-
-`{driver}` is one of `postgres`, `mysql`, `mariadb`, `cockroach`, `sqlite`, `redis`, `valkey`, `mongo`.
-
-→ Every route, parameter and schema: [openapi.yaml](openapi.yaml) · [openapi.json](openapi.json) · how a use case is written: [docs/agent/architecture.md](docs/agent/architecture.md#use-case-pattern)
 
 ## Supported databases
 
@@ -123,6 +90,10 @@ Everything lives under `/external/v1` and every call but `auth/login` needs a be
 | **SQLite** | browse, reads, transactional dry runs against a file |
 | **Redis / Valkey** | browse keys by pattern, inspect values with type, TTL and size, remove keys |
 | **MongoDB** | explore databases, collections and documents, reviewed write requests |
+| **Dragonfly** | the Redis path over its own driver |
+| **CouchDB** | explore databases and documents; a write is proved in a throwaway database |
+| **Elasticsearch / Meilisearch** | browse indices, run a query document, review a delete by query |
+| **Splunk** | run SPL, review a delete, with the impact count the same search reports |
 
 Redis and Valkey are separate modules under their own driver names because they are separate servers — and the acceptance suite registers a real Valkey to keep that claim honest.
 
