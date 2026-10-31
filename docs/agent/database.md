@@ -30,7 +30,7 @@ All six tables use SQLite `STRICT` typing, explicit `CHECK` constraints, and que
 
 ### `changes`
 The reviewed-change artifact. Never deleted. `status` ∈
-`validated|unverified|failed|approved|applying|applied|rejected`; `kind` ∈ `dml|ddl|mongo`.
+`validated|unverified|failed|approved|applying|applied|rejected`; `kind` ∈ `dml|ddl|mongo`. A SQL change's kind is declared by the client and derived by the engine; a disagreement is refused before `SaveChange`, so a stored row's kind always matches its own statement.
 `applying` is an atomic execution claim with `applying_at`; after a process crash,
 the remote outcome is unknown, so the scheduler never retries it automatically.
 Keep it visible for manual investigation; do not reset it without confirming the

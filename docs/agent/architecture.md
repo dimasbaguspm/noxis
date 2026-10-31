@@ -105,6 +105,8 @@ The legal transitions of a change are methods on `entity.Change` (`Approve`,
 shared between drivers. Engine execution and decision logging stay with the driver
 modules.
 
+A change's kind is declared by the client and derived by the engine: `entity.Change.RequireKind` refuses a submit whose declaration disagrees with the classification of its own statement, so a page cannot re-file a change into the other queue. The rule lives on the type that holds the state, and each SQL module calls it between deriving and recording.
+
 Every queue is registered in `modules.Default()` next to its engine. Use cases
 load `interfaces.SQLChangeFlow` or `interfaces.MongoChangeFlow` through
 `common.LoadModule`; the SQL, document and cache capabilities use the same loader
@@ -215,6 +217,16 @@ trace and a log file tell the same story.
 `Repository.Sqlite.Store.List`, `Usecases.Op.Serve`, `Modules.Postgres.DB.query`.
 Logs re-emit trace/span ids from ctx so log/trace/metric share identity
 (`logging` package).
+
+## Web console
+
+`apps/web` is a Vite + React console embedded into the binary by `make web`. Its routes are the truth: the driver lives in the path (`/drivers/:driver/...`) and the instance in the query string (`?instance=`), so every page is linkable and a reload lands where the reader left off. `apps/web/src/constants/routes.ts` is the single route registry — path, title, label and section — and pages are registered from it, so a route cannot exist without a name.
+
+The queues share one core. `pages/console/changes/index.tsx` renders both DML and DDL, taking a `kind` and an optional `{driver, connection}` scope; the instance's own page passes the scope, so it reviews one connection with the picker replaced by a read-only field. The filters live in the URL (`useChangeListUrlParams`) and the list is filtered by the server before it paginates.
+
+The left tile of every queue is the same shape: `QueuePanel` (filters scroll, actions pinned at the foot) plus `FilterField` and `SearchField` from `components/filters/`. A page that hand-rolls a label, a gap or a search icon is a bug — those three components are where spacing and affordances are decided.
+
+State lives in hooks. A component with three or more `useState` calls moves that state into `hooks/` and keeps only JSX and event wiring; the vendored primitives in `components/ui/` are the exception. TanStack Query keys are built in `lib/query-client.ts` so invalidation is a prefix, never a guess.
 
 ## How to add things
 

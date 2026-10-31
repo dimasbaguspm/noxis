@@ -133,7 +133,7 @@ func redisSeed(service string, args ...string) error {
 	if service == "valkey" {
 		cli = "valkey-cli"
 	}
-	full := append([]string{"compose", "-f", stackFile, "exec", "-T", service, cli}, args...)
+	full := append([]string{"compose", "-f", stackFile, "--profile", "all", "exec", "-T", service, cli}, args...)
 	out, err := exec.Command("docker", full...).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%s %s: %w\n%s", cli, strings.Join(args, " "), err, out)
@@ -147,9 +147,9 @@ func stackUp() error {
 		return err
 	}
 	if envTrue("UAT_KEEP") {
-		_ = exec.Command("docker", "compose", "-f", stackFile, "rm", "-sf").Run()
+		_ = exec.Command("docker", "compose", "-f", stackFile, "--profile", "all", "rm", "-sf").Run()
 	}
-	args := []string{"compose", "-f", stackFile, "up", "-d", "--remove-orphans"}
+	args := []string{"compose", "-f", stackFile, "--profile", "all", "up", "-d", "--remove-orphans"}
 	if envTrue("UAT_BUILD") {
 		args = append(args, "--build")
 	}
@@ -227,7 +227,7 @@ func stackDown() {
 	if envTrue("UAT_KEEP") {
 		return
 	}
-	_ = exec.Command("docker", "compose", "-f", stackFile, "down", "-v", "--remove-orphans").Run()
+	_ = exec.Command("docker", "compose", "-f", stackFile, "--profile", "all", "down", "-v", "--remove-orphans").Run()
 }
 
 // envTrue reports whether an env switch is set to a truthy value.

@@ -21,7 +21,7 @@ type target struct {
 
 // loadTargets reads the resolved compose config once and fills the package vars the suite drives the stack with.
 func loadTargets() error {
-	out, err := exec.Command("docker", "compose", "-f", stackFile, "config", "--format", "json").Output()
+	out, err := exec.Command("docker", "compose", "-f", stackFile, "--profile", "all", "config", "--format", "json").Output()
 	if err != nil {
 		return fmt.Errorf("compose config: %w", err)
 	}

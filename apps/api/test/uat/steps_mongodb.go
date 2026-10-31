@@ -191,7 +191,7 @@ func (w *world) mongoSeed(ctx context.Context, collection, documents string) err
 		`db.getSiblingDB(%q).getCollection(%q).insertMany(%s)`,
 		t.Database, collection, documents,
 	)
-	out, err := exec.Command("docker", "compose", "-f", stackFile, "exec", "-T", t.Host,
+	out, err := exec.Command("docker", "compose", "-f", stackFile, "--profile", "all", "exec", "-T", t.Host,
 		"mongosh", "-u", t.User, "-p", t.Password, "--authenticationDatabase", "admin",
 		"--quiet", "--eval", script).CombinedOutput()
 	if err != nil {

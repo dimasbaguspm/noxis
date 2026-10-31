@@ -40,7 +40,7 @@ func snapshotterFor(t target) (snapshotter, error) {
 
 // execTarget runs a command in a target's container and returns its stdout.
 func execTarget(t target, env []string, args ...string) ([]byte, error) {
-	full := []string{"compose", "-f", stackFile, "exec", "-T"}
+	full := []string{"compose", "-f", stackFile, "--profile", "all", "exec", "-T"}
 	for _, e := range env {
 		full = append(full, "-e", e)
 	}
@@ -55,7 +55,7 @@ func execTarget(t target, env []string, args ...string) ([]byte, error) {
 
 // execTargetIn pipes data into a command in a target's container.
 func execTargetIn(data []byte, t target, env []string, args ...string) error {
-	full := []string{"compose", "-f", stackFile, "exec", "-T"}
+	full := []string{"compose", "-f", stackFile, "--profile", "all", "exec", "-T"}
 	for _, e := range env {
 		full = append(full, "-e", e)
 	}
@@ -154,7 +154,7 @@ func (redisSnapshot) load(t target, data []byte) error {
 	if err := waitStopped(id, 10*time.Second); err != nil {
 		return err
 	}
-	out, err := exec.Command("docker", "compose", "-f", stackFile, "start", t.Host).CombinedOutput()
+	out, err := exec.Command("docker", "compose", "-f", stackFile, "--profile", "all", "start", t.Host).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("start %s: %w\n%s", t.Host, err, out)
 	}
@@ -170,7 +170,7 @@ func (redisSnapshot) load(t target, data []byte) error {
 }
 
 func containerID(service string) (string, error) {
-	out, err := exec.Command("docker", "compose", "-f", stackFile, "ps", "-q", service).Output()
+	out, err := exec.Command("docker", "compose", "-f", stackFile, "--profile", "all", "ps", "-q", service).Output()
 	if err != nil {
 		return "", fmt.Errorf("container id for %s: %w", service, err)
 	}
