@@ -9,7 +9,6 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 
-	"noxis/internal/common/config"
 	"noxis/internal/common/logging"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -26,26 +25,34 @@ type OIDC struct {
 // Satisfier.
 var _ interfaces.Verifier = (*OIDC)(nil)
 
+// Settings are the identity-provider values this package needs, so it does not depend on how the process is configured.
+type Settings struct {
+	Issuer      string
+	ClientID    string
+	Audience    string
+	GroupsClaim string
+}
+
 // New discovers a configured issuer; an empty issuer disables OIDC.
-func New(ctx context.Context, cfg config.Config) (configured *OIDC, err error) {
+func New(ctx context.Context, cfg Settings) (configured *OIDC, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	issuer := strings.TrimSpace(cfg.OIDCIssuer)
+	issuer := strings.TrimSpace(cfg.Issuer)
 	if issuer == "" {
 		return nil, nil
 	}
-	if cfg.OIDCClientID == "" {
+	if cfg.ClientID == "" {
 		return nil, errors.New("NOXIS_OIDC_CLIENT_ID is required when NOXIS_OIDC_ISSUER is set")
 	}
 	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {
 		return nil, fmt.Errorf("oidc discovery %s: %w", issuer, err)
 	}
-	audience := cfg.OIDCAudience
+	audience := cfg.Audience
 	if audience == "" {
-		audience = cfg.OIDCClientID
+		audience = cfg.ClientID
 	}
-	groupsClaim := cfg.OIDCGroupsClaim
+	groupsClaim := cfg.GroupsClaim
 	if groupsClaim == "" {
 		groupsClaim = defaultGroupsClaim
 	}

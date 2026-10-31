@@ -79,7 +79,7 @@ Inside `apps/api/`:
 | `apps/api/internal/repositories/` | persistence: `sqlite` (the only state) |
 | `apps/api/internal/interfaces/` | seams (`ConnectionRepository`, `Module` + one capability interface per verb set, …) |
 | `apps/api/internal/entity/` | shared data model (store + wire + REST) |
-| `apps/api/internal/common/` | config, logging/span, idgen, pagination, secret, `sqltext` (the pure SQL lexer every engine calls) |
+| `apps/api/internal/common/` | config, logging/span, idgen, pagination, secret, `sqltext` (the pure SQL lexer every engine calls), `auth` (the sign-in and OIDC service) |
 | `apps/api/internal/constants/` | universal values (drivers, capabilities, statuses, limits) |
 | `apps/api/test/uat/` | Gherkin acceptance suite (`make uat`) |
 
