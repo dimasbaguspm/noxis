@@ -83,7 +83,7 @@ Inside `apps/api/`:
 | `apps/api/internal/constants/` | universal values (drivers, capabilities, statuses, limits) |
 | `apps/api/test/uat/` | Gherkin acceptance suite (`make uat`) |
 
-Dependency direction is one-way: `handlers → usecases → modules → repositories → entity`.
+Dependency direction is one-way: `handlers → usecases → modules → changeflow → repositories → entity`.
 `entity` imports only `constants`: the change state machine lives on the change it governs. Modules/repositories assert their seams with
 `var _ interfaces.X = (*Impl)(nil)` next to the struct.
 

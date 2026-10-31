@@ -5,13 +5,13 @@ import (
 	"errors"
 	"time"
 
+	"noxis/internal/changeflow"
 	"noxis/internal/common/idgen"
 	"noxis/internal/common/logging"
 	"noxis/internal/common/metrics"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/modules/queue"
 )
 
 // sqlKinds are the change kinds a SQL engine's queue owns: one driver never claims another engine's change.
@@ -19,14 +19,14 @@ var sqlKinds = []string{constants.KindDML, constants.KindDDL}
 
 // Changes is this driver's SQL queue: its engine over the shared lifecycle.
 type Changes struct {
-	*queue.Queue
+	*changeflow.Queue
 	Engine interfaces.SQLChangeEngine
 }
 
 // NewChanges wires the SQL change queue.
 func NewChanges(conns interfaces.ConnectionRepository, store interfaces.ChangeRepository, engine interfaces.SQLChangeEngine, m *metrics.Metrics) *Changes {
 	changes := &Changes{Engine: engine}
-	changes.Queue = queue.New(constants.DriverMySQL, sqlKinds, conns, store, changes.apply, m)
+	changes.Queue = changeflow.New(constants.DriverMySQL, sqlKinds, conns, store, changes.apply, m)
 	return changes
 }
 
