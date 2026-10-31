@@ -90,7 +90,7 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Metrics.ChangeSubmitted(ctx, module.Driver())
 		uc.Respond(w, out)
 	default:
-		uc.Fail(ctx, w, unsupportedChangeFlow(module))
+		uc.Fail(ctx, w, usecases.UnsupportedChangeFlow(module))
 	}
 }
 

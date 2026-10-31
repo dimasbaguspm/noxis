@@ -33,7 +33,7 @@ func (uc List) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !supports(module) {
-		uc.Fail(ctx, w, unsupportedChangeFlow(module))
+		uc.Fail(ctx, w, usecases.UnsupportedChangeFlow(module))
 		return
 	}
 	all, err := uc.Repositories.Changes.ListChanges(ctx)

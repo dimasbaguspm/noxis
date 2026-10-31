@@ -28,7 +28,7 @@ func (uc Apply) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	change, err := changeFor(ctx, uc.RegistryDeps, module, r.PathValue("id"))
+	change, err := uc.ChangeFor(ctx, module, r.PathValue("id"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
