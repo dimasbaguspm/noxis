@@ -79,6 +79,11 @@ export const queryKeys = {
     value: (driver: string | undefined, connection: string | undefined, key?: string) =>
       pageKey("driver.keys", "value", driver, connection, key),
   },
+  search: {
+    all: pageRoot("driver.search"),
+    targets: (driver: string | undefined, connection: string | undefined) =>
+      pageKey("driver.search", "targets", driver, connection),
+  },
   explore: {
     databases: (driver: string | undefined, connection: string | undefined) =>
       pageKey("driver.documents", "databases", driver, connection),

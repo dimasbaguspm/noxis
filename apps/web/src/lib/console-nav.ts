@@ -1,16 +1,17 @@
 import type { ComponentType } from "react";
-import { Activity, Boxes, Database, Leaf, Network, PenLine } from "lucide-react";
+import { Activity, Boxes, Database, Leaf, Network, PenLine, Search } from "lucide-react";
 import { DRIVER_PAGES, PAGE_ROUTES, ROUTES, type DriverPage } from "@/constants/routes";
 import type { DriverInfo } from "@/lib/api";
 
 // A capability is what a driver's module can actually do. The server declares it per driver, so the console derives its
 // pages from the capability and a driver it has never seen still gets the pages its module serves.
-export type Capability = "sql" | "keys" | "documents";
+export type Capability = "sql" | "keys" | "documents" | "search";
 
 export const CAPABILITY = {
   SQL: "sql",
   KEYS: "keys",
   DOCUMENTS: "documents",
+  SEARCH: "search",
 } as const;
 
 export interface NavItem {
@@ -33,6 +34,7 @@ const PAGES: Record<Capability, { page: DriverPage; icon: NavItem["icon"] }[]> =
     { page: "documents", icon: Leaf },
     { page: "requests", icon: PenLine },
   ],
+  [CAPABILITY.SEARCH]: [{ page: "search", icon: Search }],
 };
 
 // navItems links each page of a capability under the driver in the URL, so no entry hardcodes a path.

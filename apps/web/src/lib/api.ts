@@ -13,6 +13,8 @@ export type MongoDatabase = components["schemas"]["entity.Database"];
 export type MongoCollection = components["schemas"]["entity.Collection"];
 export type MongoRequest = components["schemas"]["entity.MongoRequest"];
 export type MongoResult = components["schemas"]["entity.Result"];
+export type SearchTarget = components["schemas"]["entity.SearchTarget"];
+export type SearchRequest = components["schemas"]["entity.SearchRequest"];
 
 // MongoChangeInput is one submitted request: the change envelope plus the request itself, flat so the wizard sends a single object.
 export interface MongoChangeInput extends MongoRequest {
@@ -216,6 +218,16 @@ export class ApiClient {
         this.request<{ status: string }>("POST", this.connectionPath(driver, name, "/flush"), {
           confirm: name,
         }),
+    }),
+    search: (driver: string) => ({
+      // what the platform indexes, and one query against a target: the query travels as the platform's own document
+      targets: (name: string) =>
+        this.request<{ targets: SearchTarget[] }>(
+          "GET",
+          this.connectionPath(driver, name, "/targets"),
+        ),
+      run: (name: string, request: SearchRequest) =>
+        this.request<Result>("POST", this.connectionPath(driver, name, "/search"), request),
     }),
     mongodb: (driver: string) => ({
       ...this.connectionOps(driver),

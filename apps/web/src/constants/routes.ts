@@ -75,6 +75,13 @@ export const ROUTES = {
     entity: "explore",
     section: "driver",
   },
+  "driver.search": {
+    path: `${DRIVERS}/:driver/search`,
+    title: "Search",
+    label: "Search",
+    entity: "search",
+    section: "driver",
+  },
   "driver.requests": {
     path: `${DRIVERS}/:driver/requests`,
     title: "Requests",
@@ -332,6 +339,7 @@ export const DRIVER_PAGES = {
   ddl: "driver.changes.ddl",
   keys: "driver.keys",
   documents: "driver.documents",
+  search: "driver.search",
   requests: "driver.requests",
 } as const satisfies Record<string, RouteId>;
 
