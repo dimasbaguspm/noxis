@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"noxis/cmd/noxis/server/middlewares"
-	"noxis/internal/auth"
 	"noxis/internal/common"
+	"noxis/internal/common/auth"
 	"noxis/internal/common/config"
 	"noxis/internal/interfaces"
 	"noxis/internal/repositories"
@@ -39,7 +39,12 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 	}
 	defer store.Close()
 
-	oidc, err := auth.New(ctx, cfg)
+	oidc, err := auth.New(ctx, auth.Settings{
+		Issuer:      cfg.OIDCIssuer,
+		ClientID:    cfg.OIDCClientID,
+		Audience:    cfg.OIDCAudience,
+		GroupsClaim: cfg.OIDCGroupsClaim,
+	})
 	if err != nil {
 		return err
 	}

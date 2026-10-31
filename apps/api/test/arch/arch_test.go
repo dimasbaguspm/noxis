@@ -18,6 +18,10 @@ func layerOf(pkg string) (int, bool) {
 		return 1, true
 	case pkg == "noxis/internal/interfaces":
 		return 2, true
+	// common/auth is a service, not a utility: it spans, it logs and it holds a repository seam, so it sits above the
+	// packages it uses even though it lives under common.
+	case pkg == "noxis/internal/common/auth":
+		return 4, true
 	case pkg == "noxis/internal/common" || strings.HasPrefix(pkg, "noxis/internal/common/"):
 		return 3, true
 	case pkg == "noxis/internal/repositories" || strings.HasPrefix(pkg, "noxis/internal/repositories/"):

@@ -8,7 +8,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
-	authsvc "noxis/internal/auth"
+	authsvc "noxis/internal/common/auth"
 	"noxis/internal/common/config"
 	"noxis/internal/common/metrics"
 	"noxis/internal/constants"

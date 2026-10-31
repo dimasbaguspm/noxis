@@ -11,14 +11,15 @@ domain      apps/api/internal/entity             (data model + change state mach
             apps/api/internal/interfaces          (seams)
 infra       apps/api/internal/modules/*          (engine adapters, one package per driver)
             apps/api/internal/repositories/*     (persistence)
-cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagination, secret, sqltext)
+cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagination, secret, sqltext, auth)
             apps/api/internal/constants          (universal values)
 ```
 
 Rule: dependencies point inward and only downward. The order (low → high) is
-`constants · entity · interfaces → common/* → repositories/* → modules/<driver>
+`constants · entity · interfaces → common/* → common/auth · repositories/* → modules/<driver>
 → modules (registry) → usecases (root) → usecases/* (domains) → middlewares → cmd/noxis/server
-(routes)`. A package may import only packages below its layer, and two packages
+(routes)`. `common/auth` sits one rank above the utilities it uses, because it is a service — it spans, it logs and it
+holds a repository seam — even though it lives under `common`. A package may import only packages below its layer, and two packages
 in the same layer may not import each other. `cmd/noxis` is the process entry and the composition root, exempt from the
 model because it wires everything. `test/arch/arch_test.go` reads the graph from `go list` and fails
 on any bent edge, so the rule is enforced, not just documented. Repositories and
@@ -88,7 +89,7 @@ driver instead of a copy per driver.
 | `Module` + capabilities (`ConsoleQuerier`, `SchemaReader`, `ServerReporter`, `ChangeProver`, `ChangeApplier`) | `interfaces/sql.go` | each `modules/<sql driver>.DB` (`Tables` carries declared keys, so the schema browser and the ERD read one pass) |
 | `KeyBrowser` | `interfaces/memcache.go` | `redis.DB`, `valkey.DB` |
 | `DocumentBrowser`, `MongoChangeEngine` | `interfaces/mongodb.go` | `mongodb.DB` |
-| `Verifier` | `interfaces/auth.go` | `auth.OIDC` (tests use a fake) |
+| `Verifier` | `interfaces/auth.go` | `common/auth.OIDC` (tests use a fake) |
 
 A driver implements only the capabilities it can prove, and a compile-time
 `var _ interfaces.X` assert per capability keeps the claim honest — the loader
@@ -177,7 +178,7 @@ the same declaration a reader can find.
   `member` still needs a grant per connection, and an `admin` role never widens
   data access.
 - An OIDC login whose verified email equals an account's `email` is blended into
-  it (`internal/auth.Service.Verify` → `GetUserByEmail`): same subject, role and
+  it (`common/auth.Service.Verify` → `GetUserByEmail`): same subject, role and
   grants. Unmatched or unverified OIDC identities are recorded as reference rows,
   then resolved from SQLite on every request; stored role/status are authoritative
   and banned identities are refused.

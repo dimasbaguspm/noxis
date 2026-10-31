@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"noxis/internal/auth"
 	"noxis/internal/common"
+	"noxis/internal/common/auth"
 	"noxis/internal/common/metrics"
 	"noxis/internal/constants"
 	"noxis/internal/modules"
