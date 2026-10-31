@@ -1,7 +1,7 @@
 Feature: one SQL engine that behaves the same on every supported database
   As an operator I want the console's SQL operations to work the same on
-  postgres, mysql, mariadb and sqlite, so a connection's driver only changes how
-  noxis talks to it, not what an operator can do.
+  postgres, mysql, mariadb, sqlite and cockroach, so a connection's driver only
+  changes how noxis talks to it, not what an operator can do.
 
   Background:
     Given the stack is running
@@ -25,6 +25,7 @@ Feature: one SQL engine that behaves the same on every supported database
       | mysql    |
       | mariadb  |
       | sqlite   |
+      | cockroach |
 
   Scenario Outline: analyze and a row preview work on <driver>
     Given connection "compat_<driver>" is registered for driver "<driver>"
@@ -59,6 +60,7 @@ Feature: one SQL engine that behaves the same on every supported database
       | mysql    |
       | mariadb  |
       | sqlite   |
+      | cockroach |
 
   Scenario Outline: a DDL dry run is refused where the engine commits DDL implicitly
     Given connection "compat_<driver>" is registered for driver "<driver>"
@@ -79,30 +81,4 @@ Feature: one SQL engine that behaves the same on every supported database
       | mysql    |
       | mariadb  |
       | sqlite   |
-
-  Scenario: a change validates, applies and is browsable on cockroach
-    Given connection "compat_cockroach" is registered for driver "cockroach"
-    And the connection test passes
-    When I submit a change with query "CREATE TABLE IF NOT EXISTS uat_cr_compat (id INT PRIMARY KEY, note STRING)" and rollback "DROP TABLE uat_cr_compat"
-    Then the change is "validated"
-    And I approve the change
-    And I apply the change
-    Then the change is "applied"
-    And the schema lists table "uat_cr_compat"
-    When I read "SELECT COUNT(*) AS n FROM uat_cr_compat"
-    Then the result has 1 row(s)
-    And the first row's "n" is "0"
-
-  Scenario: a DML dry run rolls back on cockroach
-    Given connection "compat_cockroach" is registered for driver "cockroach"
-    When I submit a change with query "CREATE TABLE IF NOT EXISTS uat_cr_dry (id INT PRIMARY KEY)" and rollback "DROP TABLE uat_cr_dry"
-    And I approve the change
-    And I apply the change
-    Then I dry-run "INSERT INTO uat_cr_dry (id) VALUES (4242)"
-    And I read "SELECT COUNT(*) AS n FROM uat_cr_dry WHERE id = 4242"
-    Then the result has 1 row(s)
-    And the first row's "n" is "0"
-
-  Scenario: the server reports its own version on cockroach
-    Given connection "compat_cockroach" is registered for driver "cockroach"
-    Then the server reports its version and capabilities
+      | cockroach |
