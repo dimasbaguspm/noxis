@@ -75,6 +75,20 @@ export const ROUTES = {
     entity: "explore",
     section: "driver",
   },
+  "driver.search.requests": {
+    path: `${DRIVERS}/:driver/search/requests`,
+    title: "Search requests",
+    label: "Requests",
+    entity: "requests",
+    section: "driver",
+  },
+  "driver.search.requests.detail": {
+    path: `${DRIVERS}/:driver/search/requests/:id`,
+    title: "Search request",
+    label: "Request",
+    entity: "requests",
+    section: "driver",
+  },
   "driver.search": {
     path: `${DRIVERS}/:driver/search`,
     title: "Search",
@@ -340,6 +354,7 @@ export const DRIVER_PAGES = {
   keys: "driver.keys",
   documents: "driver.documents",
   search: "driver.search",
+  searchRequests: "driver.search.requests",
   requests: "driver.requests",
 } as const satisfies Record<string, RouteId>;
 
@@ -372,6 +387,8 @@ export const PAGE_ROUTES = {
       driver,
       id,
     }),
+  SEARCH_REQUEST_DETAIL: (driver: string, id: string) =>
+    pathOf("driver.search.requests.detail", { driver, id }),
   REQUEST_NEW: (driver: string) => pathOf("driver.requests.new", { driver }),
   REQUEST_DETAIL: (driver: string, id: string) => pathOf("driver.requests.detail", { driver, id }),
   MY: "/my",

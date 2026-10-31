@@ -228,6 +228,25 @@ export class ApiClient {
         ),
       run: (name: string, request: SearchRequest) =>
         this.request<Result>("POST", this.connectionPath(driver, name, "/search"), request),
+      changes: {
+        // the search queue is its own: the same list endpoint, filtered to the kind this capability owns
+        list: (connection?: string, status?: string) => {
+          const params = new URLSearchParams({ kind: "search" });
+          if (connection) params.set("connection", connection);
+          if (status) params.set("status", status);
+          return this.request<{ changes: Change[]; total: number }>(
+            "GET",
+            this.endpoint(driver, "changes") + `?${params.toString()}`,
+          );
+        },
+        get: (id: string) => this.request<Change>("GET", this.endpoint(driver, `changes/${id}`)),
+        approve: (id: string) =>
+          this.request<Change>("POST", this.endpoint(driver, `changes/${id}/approve`)),
+        apply: (id: string) =>
+          this.request<Change>("POST", this.endpoint(driver, `changes/${id}/apply`)),
+        reject: (id: string) =>
+          this.request<Change>("POST", this.endpoint(driver, `changes/${id}/reject`)),
+      },
     }),
     mongodb: (driver: string) => ({
       ...this.connectionOps(driver),

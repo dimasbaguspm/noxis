@@ -33,6 +33,8 @@ const DmlPage = lazy(() => import("@/pages/console/changes/dml"));
 const DdlPage = lazy(() => import("@/pages/console/changes/ddl"));
 const KeysPage = lazy(() => import("@/pages/console/keys"));
 const SearchPage = lazy(() => import("@/pages/console/search"));
+const SearchRequestsPage = lazy(() => import("@/pages/console/search-requests"));
+const SearchRequestDetailPage = lazy(() => import("@/pages/console/search-request-detail"));
 const ExplorePage = lazy(() => import("@/pages/console/explore"));
 const RequestsPage = lazy(() => import("@/pages/console/requests"));
 const RequestNewPage = lazy(() => import("@/pages/console/requests/new"));
@@ -96,6 +98,11 @@ const router = createBrowserRouter([
       { path: routePath(patternOf("driver.keys")), element: <KeysPage /> },
       { path: routePath(patternOf("driver.documents")), element: <ExplorePage /> },
       { path: routePath(patternOf("driver.search")), element: <SearchPage /> },
+      { path: routePath(patternOf("driver.search.requests")), element: <SearchRequestsPage /> },
+      {
+        path: routePath(patternOf("driver.search.requests.detail")),
+        element: <SearchRequestDetailPage />,
+      },
       { path: routePath(patternOf("driver.requests")), element: <RequestsPage /> },
       { path: routePath(patternOf("driver.requests.new")), element: <RequestNewPage /> },
       { path: routePath(patternOf("driver.requests.detail")), element: <RequestDetailPage /> },
