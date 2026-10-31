@@ -10,6 +10,12 @@ Feature: POST /external/v1/engine/{driver}/connections/{name}/search
     When I search elasticsearch index "uat_index" for {"match_all":{}}
     Then the search result has 1 document(s)
 
+  Scenario: meilisearch answers a query
+    Given a meilisearch connection named "meili"
+    And I seed meilisearch index "uat_index" with {"id":"1","name":"a"}
+    When I search meilisearch index "uat_index" for {"q":"a"}
+    Then the meilisearch result has 1 document(s)
+
   Scenario: the route needs a session
     Given no session
     When I send a POST to "/external/v1/engine/elasticsearch/connections/anything/search" with body:
