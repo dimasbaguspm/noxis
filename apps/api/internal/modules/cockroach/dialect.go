@@ -134,7 +134,8 @@ var profile = func() dialect {
 	d.name = constants.DriverCockroach
 	d.txn = txnAlways
 	// cockroach keeps its own statistics catalog and range byte counters, so the estimate query is its own; it has no
-	// EXPLAIN (FORMAT JSON), so the planner path stays off. The rest of the postgres catalog works unchanged.
+	// EXPLAIN (FORMAT JSON), so the planner path stays off. The rest of the postgres catalog works unchanged. The scratch
+	// fields it inherits are never read: nothing in this package creates a throwaway schema.
 	d.estimatesQuery = estimatesQueryCockroach
 	d.explain = ""
 	return d
@@ -164,11 +165,6 @@ func (d dialect) transactional(text string) bool {
 	return false
 }
 
-// qualifiedDDLRefused reports whether this engine must refuse DDL with qualified names instead of dry-running it.
-func (d dialect) qualifiedDDLRefused(text string) bool {
-	return d.refuseQualifiedDDL && containsDDL(text) && hasQualifiedIdent(text)
-}
-
 // quoteRef quotes a table reference.
 func (d dialect) quoteRef(schema, table string) string {
 	q := string(d.quote)
@@ -178,25 +174,12 @@ func (d dialect) quoteRef(schema, table string) string {
 	return q + table + q
 }
 
-// quoteColumn quotes a column name.
-func (d dialect) quoteColumn(name string) string {
-	q := string(d.quote)
-	return q + strings.ReplaceAll(name, q, q+q) + q
-}
-
 // quoteRef is the driver-aware identifier quoting the console and the verifier share.
 func quoteRef(driver, schema, table string) string {
 	if d, err := dialectOf(driver); err == nil {
 		return d.quoteRef(schema, table)
 	}
 	return `"` + schema + `"."` + table + `"`
-}
-
-func quoteColumn(driver, name string) string {
-	if d, err := dialectOf(driver); err == nil {
-		return d.quoteColumn(name)
-	}
-	return `"` + name + `"`
 }
 
 // tablePresentStatement is the catalog lookup for one table, with identifiers inlined because the two drivers do not share placeholder syntax.

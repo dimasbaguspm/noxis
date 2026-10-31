@@ -1,10 +1,13 @@
 package cockroach
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 func TestCreatedTables(t *testing.T) {
@@ -49,16 +52,6 @@ func TestQualifiedIdent(t *testing.T) {
 	}
 }
 
-func TestScratchSchemaName(t *testing.T) {
-	name := scratchPrefix + "0123456789ab"
-	if !strings.HasPrefix(name, "noxis_verify_") {
-		t.Fatalf("scratch name %q lacks the prefix", name)
-	}
-	if len(name) > 63 {
-		t.Fatalf("scratch name %q exceeds the postgres identifier limit", name)
-	}
-}
-
 func mapKeys(set map[string]bool) []string {
 	if len(set) == 0 {
 		return nil
@@ -69,4 +62,43 @@ func mapKeys(set map[string]bool) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// TestReplayRetriesALostRace proves a contended dry run is replayed instead of recorded as a failed change.
+func TestReplayRetriesALostRace(t *testing.T) {
+	calls := 0
+	res, err := replay(func() (Result, error) {
+		calls++
+		if calls == 1 {
+			return Result{}, fmt.Errorf("query: %w", &pgconn.PgError{Code: retryableCode})
+		}
+		return Result{Message: "proved"}, nil
+	})
+	if err != nil || res.Message != "proved" || calls != 2 {
+		t.Fatalf("replay = %+v, %v after %d calls", res, err, calls)
+	}
+}
+
+// TestReplayGivesUpWhenTheRaceNeverClears proves the budget is bounded and the engine's own reason survives.
+func TestReplayGivesUpWhenTheRaceNeverClears(t *testing.T) {
+	calls := 0
+	_, err := replay(func() (Result, error) {
+		calls++
+		return Result{}, &pgconn.PgError{Code: retryableCode}
+	})
+	if err == nil || calls != retryBudget {
+		t.Fatalf("replay ran %d times, err = %v", calls, err)
+	}
+}
+
+// TestReplayDoesNotRetryAnotherError proves a real failure is reported on the first attempt.
+func TestReplayDoesNotRetryAnotherError(t *testing.T) {
+	calls := 0
+	_, err := replay(func() (Result, error) {
+		calls++
+		return Result{}, errors.New("rollback did not restore public.t")
+	})
+	if err == nil || calls != 1 {
+		t.Fatalf("replay ran %d times, err = %v", calls, err)
+	}
 }
