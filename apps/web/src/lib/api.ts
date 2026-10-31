@@ -207,11 +207,11 @@ export class ApiClient {
     }),
     memcache: (driver: string) => ({
       ...this.connectionOps(driver),
-      keys: (name: string, pattern = "*", limit = 500) =>
+      keys: (name: string, pattern = "*", cursor = 0, limit = 500) =>
         this.request<MemcacheKeyPage>(
           "GET",
           this.connectionPath(driver, name, "/keys") +
-            `?pattern=${encodeURIComponent(pattern)}&limit=${limit}`,
+            `?pattern=${encodeURIComponent(pattern)}&cursor=${cursor}&limit=${limit}`,
         ),
       value: (name: string, key: string) =>
         this.request<Result>(

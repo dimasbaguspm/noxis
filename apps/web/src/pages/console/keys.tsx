@@ -96,6 +96,7 @@ export default function MemcachePage() {
     page,
     isFetching: loading,
     refetch: reloadKeys,
+    loadMore,
   } = useMemcacheKeysQuery(driver, connection, glob);
   const { result, isFetching: valueLoading } = useMemcacheValueQuery(driver, connection, inspected);
   const { info } = useMemcacheInfoQuery(driver, connection);
@@ -165,6 +166,16 @@ export default function MemcachePage() {
               {page.total} scanned{page.truncated ? " · scan truncated" : ""}
             </span>
             <CacheStats info={info} />
+            {page.truncated && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadMore.mutate()}
+                disabled={loadMore.isPending}
+              >
+                Load more
+              </Button>
+            )}
           </>
         }
       >

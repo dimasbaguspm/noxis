@@ -1502,6 +1502,8 @@ export interface paths {
                     pattern?: string;
                     /** @description scan cap (default 500, max 5000) */
                     limit?: number;
+                    /** @description continuation from a previous page; 0 starts the scan */
+                    cursor?: number;
                 };
                 header?: never;
                 path: {
@@ -3034,6 +3036,11 @@ export interface components {
             type?: string;
         };
         "entity.KeyPage": {
+            /**
+             * @description Cursor is where the server stopped scanning: zero means the iteration is complete, anything else is the
+             *     continuation a caller passes back to read the next page.
+             */
+            cursor?: number;
             keys?: components["schemas"]["entity.Key"][];
             pattern?: string;
             total?: number;

@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, type MemcacheKey } from "@/lib/api";
 import { useDriverConnections } from "@/hooks/use-driver-connections";
 import { useUrlState } from "@/hooks/use-url-state";
 import { queryClient, queryKeys } from "@/lib/query-client";
@@ -24,14 +25,44 @@ export function useMemcacheConnections() {
   return useDriverConnections();
 }
 
-// useMemcacheKeysQuery browses keys by pattern (a bounded full scan server side); the page is cached per pattern so the debounced search replays fast.
+// useMemcacheKeysQuery browses keys by pattern and carries the scan cursor, so a keyspace larger than one page can be
+// walked past it. Paging is append-only on purpose: a SCAN cursor is not a snapshot, so the pages already shown stay put.
 export function useMemcacheKeysQuery(driver?: string, connection?: string, pattern = "*") {
   const query = useQuery({
     queryKey: queryKeys.keys.keys(driver, connection, pattern),
     queryFn: () => api.memcache(driver as string).keys(connection as string, pattern),
     enabled: !!driver && !!connection,
   });
-  return { ...query, page: query.data ?? { keys: [], total: 0, truncated: false, pattern } };
+  const first = query.data;
+  // held is the pages fetched after the first, tagged with the scope they belong to so a pattern change drops them.
+  const scope = `${driver}|${connection}|${pattern}`;
+  const [held, setHeld] = useState<{ scope: string; keys: MemcacheKey[]; cursor: number }>({
+    scope: "",
+    keys: [],
+    cursor: 0,
+  });
+  const paged =
+    held.scope === scope ? held : { keys: [] as MemcacheKey[], cursor: first?.cursor ?? 0 };
+  const loadMore = useMutation({
+    mutationFn: () =>
+      api.memcache(driver as string).keys(connection as string, pattern, paged.cursor),
+    onSuccess: (page) =>
+      setHeld({
+        scope,
+        keys: [...paged.keys, ...(page.keys ?? [])],
+        cursor: page.cursor ?? 0,
+      }),
+  });
+  return {
+    ...query,
+    page: {
+      keys: [...(first?.keys ?? []), ...paged.keys],
+      total: first?.total ?? 0,
+      truncated: paged.cursor !== 0,
+      pattern,
+    },
+    loadMore,
+  };
 }
 
 // useMemcacheInfoQuery reads the server's own numbers; they change constantly, so they are refreshed on a slow poll

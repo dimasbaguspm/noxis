@@ -1399,6 +1399,14 @@
                         "schema": {
                             "type": "integer"
                         }
+                    },
+                    {
+                        "description": "continuation from a previous page; 0 starts the scan",
+                        "name": "cursor",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
                     }
                 ],
                 "responses": {
@@ -3346,6 +3354,10 @@
             "entity.KeyPage": {
                 "type": "object",
                 "properties": {
+                    "cursor": {
+                        "description": "Cursor is where the server stopped scanning: zero means the iteration is complete, anything else is the\ncontinuation a caller passes back to read the next page.",
+                        "type": "integer"
+                    },
                     "keys": {
                         "type": "array",
                         "items": {
