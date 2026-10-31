@@ -11,9 +11,10 @@ Feature: GET /external/v1/engine/{driver}/connections/{name}/stats
     Then the cache stats report a used memory and at least one key
 
     Examples:
-      | driver |
-      | redis  |
-      | valkey |
+      | driver    |
+      | redis     |
+      | valkey    |
+      | dragonfly |
 
   Scenario: the route needs a session
     Given no session
