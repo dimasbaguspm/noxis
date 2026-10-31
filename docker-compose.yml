@@ -359,6 +359,22 @@ services:
     entrypoint: ["sh", "/seed/couch.sh", "couchdb", "5984", "admin", "noxis"]
     restart: "no"
 
+  # Meilisearch is a search platform with its own query parameters and an asynchronous write API.
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    # one target, so `make dev meilisearch` can bring just this one
+    profiles: [meilisearch, all]
+    environment:
+      MEILI_MASTER_KEY: noxis
+      MEILI_NO_ANALYTICS: "true"
+    expose: ["7700"]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:7700/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
   seed-elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
     profiles: [seed]
@@ -369,6 +385,18 @@ services:
     volumes:
       - ./dev/seed:/seed:ro
     entrypoint: ["sh", "/seed/es.sh", "elasticsearch", "9200"]
+    restart: "no"
+
+  seed-meilisearch:
+    image: getmeili/meilisearch:v1.11
+    profiles: [seed]
+    depends_on:
+      meilisearch:
+        condition: service_healthy
+        required: false
+    volumes:
+      - ./dev/seed:/seed:ro
+    entrypoint: ["sh", "/seed/meili.sh", "meilisearch", "7700", "noxis"]
     restart: "no"
 
   seed-registry:

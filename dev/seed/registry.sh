@@ -32,6 +32,7 @@ for driver in $SEED_DRIVERS; do
     dragonfly) register dragonfly '{"name":"demo-dragonfly","driver":"dragonfly","host":"dragonfly","port":6379,"database":"0"}' ;;
     couchdb)   register couchdb   '{"name":"demo-couchdb","driver":"couchdb","host":"couchdb","port":5984,"user":"admin","password":"noxis","database":"demo"}' ;;
     elasticsearch) register elasticsearch '{"name":"demo-elasticsearch","driver":"elasticsearch","host":"elasticsearch","port":9200,"database":"demo"}' ;;
+    meilisearch) register meilisearch '{"name":"demo-meilisearch","driver":"meilisearch","host":"meilisearch","port":7700,"password":"noxis","database":"demo"}' ;;
     mongo)     register mongo     '{"name":"demo-mongo","driver":"mongo","host":"mongo","port":27017,"user":"root","password":"noxis","database":"demo"}' ;;
     *) echo "seed: unknown driver $driver" ;;
   esac

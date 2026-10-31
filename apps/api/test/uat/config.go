@@ -57,6 +57,7 @@ func loadTargets() error {
 		"dragonfly":     "docker.dragonflydb.io/dragonflydb/dragonfly",
 		"couchdb":       "couchdb",
 		"elasticsearch": "docker.elastic.co/elasticsearch/elasticsearch",
+		"meilisearch":   "getmeili/meilisearch",
 	} {
 		h, err := hostOf(image)
 		if err != nil {
@@ -115,6 +116,10 @@ func loadTargets() error {
 		},
 		"elasticsearch": {
 			Driver: "elasticsearch", Host: host["elasticsearch"], Port: port["elasticsearch"], Database: "demo",
+		},
+		"meilisearch": {
+			Driver: "meilisearch", Host: host["meilisearch"], Port: port["meilisearch"],
+			Password: env(host["meilisearch"], "MEILI_MASTER_KEY"), Database: "demo",
 		},
 		"mongo": {
 			Driver: "mongo", Host: host["mongo"], Port: port["mongo"],
