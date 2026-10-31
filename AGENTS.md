@@ -102,7 +102,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 - **Nothing is shared across modules except a pure function, and pure functions live in `common`.** A module proves and applies; the change lifecycle, the queue and the HTTP preamble are orchestration and live in `usecases`.
 - **Context:** authenticated principal and immutable module loader only. Repositories and other app dependencies stay explicit; use `common.LoadModule(ctx, &target)` for registered typed modules.
 - **Repositories:** pass one `repositories.Registry` through app sources and expose it as `RegistryDeps.Repositories`; modules receive only the repositories they use.
-- **No env reads outside `apps/api/internal/common/config`.** Add a `EnvX` const + field + `fieldOf` case.
+- **No env reads outside `apps/api/internal/common/config`.** Add an `EnvX` const + a `Config` field + a viper read with its default.
 - **No hardcoded drivers/capabilities/statuses.** Add to `apps/api/internal/constants`.
 - **Secrets:** passwords are redacted on every response (`Connection.Redacted()`); encrypted at rest via `apps/api/internal/common/secret` when `NOXIS_SECRET_KEY` set.
 - **Authz:** the single gate is `usecases.RawConn` (per-connection) + `RequireSuper` (global management). The env root is the only super; everyone else needs a non-expired per-connection grant.

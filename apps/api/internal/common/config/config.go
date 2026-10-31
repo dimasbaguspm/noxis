@@ -5,10 +5,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
-	"strconv"
-	"strings"
 	"time"
+
+	"github.com/spf13/viper"
 
 	"noxis/internal/constants"
 	"noxis/internal/entity"
@@ -60,26 +59,35 @@ type Config struct {
 	OIDCGroupsClaim string
 }
 
-// LoadConfig reads every env var exactly once, per process, folding in defaults.
+// LoadConfig reads every env var exactly once, per process, folding in defaults. Viper is the reader: a key is named
+// once, its default is declared beside it, and an empty variable reads as the default rather than as an empty value.
 func LoadConfig() Config {
-	cfg := Config{
-		Listen:          firstNonEmpty(os.Getenv(EnvListen), defaultListen),
-		DB:              firstNonEmpty(os.Getenv(EnvDB), defaultDB),
-		SecretKey:       os.Getenv(EnvSecretKey),
-		AdminEmail:      os.Getenv(EnvAdminEmail),
-		AdminPassword:   os.Getenv(EnvAdminPassword),
-		SchedulerKey:    os.Getenv(EnvSchedulerKey),
-		SchedulerSecret: os.Getenv(EnvSchedulerSecret),
-		OTELCollector:   os.Getenv(EnvOTELCollector),
-		OTELName:        os.Getenv(EnvOTELName),
-		AccessGrantTTL:  time.Duration(accessGrantDays(os.Getenv(EnvAccessGrantDays))) * 24 * time.Hour,
-
-		OIDCIssuer:      os.Getenv(EnvOIDCIssuer),
-		OIDCClientID:    os.Getenv(EnvOIDCClientID),
-		OIDCAudience:    os.Getenv(EnvOIDCAudience),
-		OIDCGroupsClaim: os.Getenv(EnvOIDCGroupsClaim),
+	v := viper.New()
+	v.AutomaticEnv()
+	v.SetDefault(EnvListen, defaultListen)
+	v.SetDefault(EnvDB, defaultDB)
+	v.SetDefault(EnvAccessGrantDays, defaultAccessGrantDays)
+	days := v.GetInt(EnvAccessGrantDays)
+	if days <= 0 {
+		days = defaultAccessGrantDays
 	}
-	return cfg
+	return Config{
+		Listen:          v.GetString(EnvListen),
+		DB:              v.GetString(EnvDB),
+		SecretKey:       v.GetString(EnvSecretKey),
+		AdminEmail:      v.GetString(EnvAdminEmail),
+		AdminPassword:   v.GetString(EnvAdminPassword),
+		SchedulerKey:    v.GetString(EnvSchedulerKey),
+		SchedulerSecret: v.GetString(EnvSchedulerSecret),
+		OTELCollector:   v.GetString(EnvOTELCollector),
+		OTELName:        v.GetString(EnvOTELName),
+		AccessGrantTTL:  time.Duration(days) * 24 * time.Hour,
+
+		OIDCIssuer:      v.GetString(EnvOIDCIssuer),
+		OIDCClientID:    v.GetString(EnvOIDCClientID),
+		OIDCAudience:    v.GetString(EnvOIDCAudience),
+		OIDCGroupsClaim: v.GetString(EnvOIDCGroupsClaim),
+	}
 }
 
 // Validate enforces the rules defaults cannot: connection passwords are always encrypted at rest, so the secret key is required.
@@ -88,15 +96,6 @@ func (c Config) Validate() error {
 		return fmt.Errorf("%s is required (64 hex characters, e.g. openssl rand -hex 32)", EnvSecretKey)
 	}
 	return nil
-}
-
-// accessGrantDays parses the grant lifetime in days, falling back to the 120-day default when the value is absent, unparseable or not positive.
-func accessGrantDays(raw string) int {
-	n, err := strconv.Atoi(strings.TrimSpace(raw))
-	if err != nil || n <= 0 {
-		return defaultAccessGrantDays
-	}
-	return n
 }
 
 // GrantTTL falls back to the constant when a caller built Config by hand.
@@ -121,15 +120,6 @@ func LogState(ctx context.Context, log *slog.Logger, c Config) {
 	} else {
 		log.InfoContext(ctx, "scheduler trigger enabled")
 	}
-}
-
-func firstNonEmpty(values ...string) string {
-	for _, v := range values {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
 }
 
 // AuthInfo derives the console's auth bootstrap from the config, so no route or server wiring hardcodes what is available.
