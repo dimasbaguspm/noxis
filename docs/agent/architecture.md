@@ -10,14 +10,15 @@ application apps/api/internal/app              (composition root: Default)
             apps/api/internal/usecases        (root framework; one subpackage per domain)
 domain      apps/api/internal/entity             (data model + change state machine; imports only constants)
             apps/api/internal/interfaces          (seams)
-infra       apps/api/internal/modules/*          (engine adapters, one package per driver)
+infra       apps/api/internal/changeflow         (the change lifecycle every engine shares)
+            apps/api/internal/modules/*          (engine adapters, one package per driver)
             apps/api/internal/repositories/*     (persistence)
 cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagination, secret)
             apps/api/internal/constants          (universal values)
 ```
 
 Rule: dependencies point inward and only downward. The order (low → high) is
-`constants · entity · interfaces → common/* → repositories/* → modules/<driver>
+`constants · entity · interfaces → common/* → repositories/* → changeflow → modules/<driver>
 → modules (registry) → usecases (root) → usecases/* (domains) → app → middlewares → cmd/noxis/server
 (routes)`. A package may import only packages below its layer, and two packages
 in the same layer may not import each other. `internal/app` is the composition root: it sits above

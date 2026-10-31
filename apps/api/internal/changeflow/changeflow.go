@@ -1,7 +1,7 @@
-// Package queue holds the one implementation of a driver's change lifecycle: a change is validated by its engine, then
+// Package changeflow holds the one implementation of a driver's change lifecycle: a change is validated by its engine, then
 // recorded, reviewed, scheduled and applied. Every engine shares this path instead of copying it, so a fix to the state
 // machine or the audit trail lands once rather than six times.
-package queue
+package changeflow
 
 import (
 	"context"

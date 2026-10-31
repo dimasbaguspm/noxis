@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	"noxis/internal/changeflow"
 	"noxis/internal/common/idgen"
 	"noxis/internal/common/logging"
 	"noxis/internal/common/metrics"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
-	"noxis/internal/modules/queue"
 )
 
 // mongoKinds are the change kinds this queue owns: a document store that is not MongoDB declares its own.
@@ -20,14 +20,14 @@ var mongoKinds = []string{constants.KindMongo}
 
 // Changes is the document queue: the engine over the shared lifecycle.
 type Changes struct {
-	*queue.Queue
+	*changeflow.Queue
 	Engine interfaces.MongoChangeEngine
 }
 
 // NewChanges wires the document change queue.
 func NewChanges(conns interfaces.ConnectionRepository, store interfaces.ChangeRepository, engine interfaces.MongoChangeEngine, m *metrics.Metrics) *Changes {
 	changes := &Changes{Engine: engine}
-	changes.Queue = queue.New(constants.DriverMongo, mongoKinds, conns, store, changes.apply, m)
+	changes.Queue = changeflow.New(constants.DriverMongo, mongoKinds, conns, store, changes.apply, m)
 	return changes
 }
 
