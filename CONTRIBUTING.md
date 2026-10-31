@@ -72,5 +72,5 @@ Stacked work is fine: branch each ticket off its parent's branch, and open the P
 
 - `make dev <target>` refuses to start? Check `docker compose version` — the stack uses profiles and `required: false`.
 - A web change does not show up in the binary? The console is embedded: run `make web`.
-- `make uat` needs the whole stack and about eight minutes; run it before opening a PR that touches the API.
+- `make uat` needs the whole stack and about eight minutes; run it before opening a PR that touches the API. It reuses the previous image unless you set `UAT_BUILD=1`, so after a branch switch a failure may be a stale binary rather than your code.
 - Anything the docs disagree with the code about is a documentation bug — please open the issue.
