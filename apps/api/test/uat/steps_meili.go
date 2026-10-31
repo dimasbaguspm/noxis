@@ -46,6 +46,12 @@ func (w *world) registerMeili(ctx context.Context, name string) error {
 // meiliSeed makes the index filterable and then loads the documents. Both are tasks the server runs in the background,
 // so each is waited for: a query issued before the settings land would answer the wrong question.
 func (w *world) meiliSeed(ctx context.Context, index, documents string) error {
+	if err := awaitTarget(30*time.Second, func() error {
+		_, err := meiliCurl("http://localhost:7700/health")
+		return err
+	}); err != nil {
+		return err
+	}
 	base := "http://localhost:7700/indexes/" + index
 	settings := `{"filterableAttributes":["user","role","team"]}`
 	if err := w.meiliAwait("-X", "PATCH", "-H", "Content-Type: application/json", "-d", settings, base+"/settings"); err != nil {

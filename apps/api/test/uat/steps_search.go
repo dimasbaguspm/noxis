@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/cucumber/godog"
 )
@@ -46,6 +47,12 @@ func (w *world) registerSearch(ctx context.Context, name string) error {
 
 // searchSeed writes one document straight into an index, then refreshes so the query sees it.
 func (w *world) searchSeed(ctx context.Context, id, index, body string) error {
+	// The cluster is the slowest service in the stack: a cold JVM answers long after noxis does, so the seed waits for it.
+	if err := awaitTarget(90*time.Second, func() error {
+		return searchCurl("http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s")
+	}); err != nil {
+		return err
+	}
 	base := "http://localhost:9200/" + index
 	if err := searchCurl("-X", "PUT", "-H", "Content-Type: application/json", "-d", body, base+"/_doc/"+id); err != nil {
 		return err

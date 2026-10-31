@@ -143,6 +143,21 @@ func redisSeed(service string, args ...string) error {
 	return nil
 }
 
+// awaitTarget retries one probe until it answers, because a target container is up long before the engine behind it
+// listens: the acceptance stack waits for noxis, and every other service is still starting behind it.
+func awaitTarget(budget time.Duration, probe func() error) error {
+	deadline := time.Now().Add(budget)
+	for {
+		if err := probe(); err == nil {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("target did not answer within %s", budget)
+		}
+		time.Sleep(time.Second)
+	}
+}
+
 // stackUp brings the compose stack up. It rebuilds only when UAT_BUILD=1; a run against a cold cache still builds, because compose builds a missing image.
 func stackUp() error {
 	if err := loadTargets(); err != nil {
