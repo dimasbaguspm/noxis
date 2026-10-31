@@ -64,6 +64,7 @@ func (changes *Changes) Submit(ctx context.Context, conn entity.Connection, acto
 		ch.ScratchSchema = res.ScratchSchema
 	case errors.Is(err, interfaces.ErrUnverifiable):
 		ch.Status, dry.Error = constants.ChangeUnverified, err.Error()
+		ch.UnverifiedReason = interfaces.UnverifiableReason(err)
 	default:
 		ch.Status, dry.Error = constants.ChangeFailed, err.Error()
 	}

@@ -15,7 +15,7 @@ import (
 const changeColumns = `id, connection, notes, query, rollback, kind, status, checks, created_at, created_by,
 	approved_at, approved_by, applying_at, applied_at, applied_by, rejected_at, rejected_by,
 	est_duration_ms, est_affected, applied_affected, applied_duration_ms, scheduled_at, scheduled_by,
-	affected_tables, affected_columns`
+	affected_tables, affected_columns, unverified_reason`
 
 // SaveChange upserts a change.
 func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
@@ -34,7 +34,7 @@ func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
 		return fmt.Errorf("encode columns: %w", err)
 	}
 	result, err := s.db.ExecContext(ctx, `
-		INSERT INTO changes (`+changeColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO changes (`+changeColumns+`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
 			connection=excluded.connection, notes=excluded.notes, query=excluded.query,
 			rollback=excluded.rollback, kind=excluded.kind, status=excluded.status, checks=excluded.checks,
@@ -45,12 +45,13 @@ func (s *Store) SaveChange(ctx context.Context, c entity.Change) (err error) {
 			est_duration_ms=excluded.est_duration_ms, est_affected=excluded.est_affected,
 			applied_affected=excluded.applied_affected, applied_duration_ms=excluded.applied_duration_ms,
 			scheduled_at=excluded.scheduled_at, scheduled_by=excluded.scheduled_by,
-			affected_tables=excluded.affected_tables, affected_columns=excluded.affected_columns
+			affected_tables=excluded.affected_tables, affected_columns=excluded.affected_columns,
+			unverified_reason=excluded.unverified_reason
 		WHERE changes.status != ? OR excluded.status IN (?, ?)`,
 		c.ID, c.Connection, c.Notes, c.Query, c.Rollback, c.Kind, c.Status, string(checks),
 		c.CreatedAt, c.CreatedBy, c.ApprovedAt, c.ApprovedBy, c.ApplyingAt, c.AppliedAt, c.AppliedBy,
 		c.RejectedAt, c.RejectedBy, c.EstDurationMs, c.EstAffected, c.AppliedAffected, c.AppliedDurationMs,
-		c.ScheduledAt, c.ScheduledBy, string(tables), string(columns),
+		c.ScheduledAt, c.ScheduledBy, string(tables), string(columns), c.UnverifiedReason,
 		constants.ChangeApplying, constants.ChangeFailed, constants.ChangeApplied)
 	if err != nil {
 		return fmt.Errorf("save change %s: %w", c.ID, err)
@@ -123,7 +124,7 @@ func scanChange(row scanner) (entity.Change, error) {
 	if err := row.Scan(&c.ID, &c.Connection, &c.Notes, &c.Query, &c.Rollback, &c.Kind, &c.Status, &checks,
 		&c.CreatedAt, &c.CreatedBy, &c.ApprovedAt, &c.ApprovedBy, &c.ApplyingAt, &c.AppliedAt, &c.AppliedBy,
 		&c.RejectedAt, &c.RejectedBy, &c.EstDurationMs, &c.EstAffected, &c.AppliedAffected, &c.AppliedDurationMs,
-		&c.ScheduledAt, &c.ScheduledBy, &tables, &columns); err != nil {
+		&c.ScheduledAt, &c.ScheduledBy, &tables, &columns, &c.UnverifiedReason); err != nil {
 		return c, err
 	}
 	for _, target := range []struct {

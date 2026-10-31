@@ -70,3 +70,29 @@ var ErrUnverifiable = errors.New("unverifiable on this driver")
 
 // IsUnverifiable reports the driver-cannot-dry-run case.
 func IsUnverifiable(err error) bool { return errors.Is(err, ErrUnverifiable) }
+
+// Unverifiable names why a change could not be dry-run: the reason is a code the queue can group by, and the detail is
+// the one line a reviewer reads.
+func Unverifiable(reason, detail string) error {
+	return &unverifiable{reason: reason, detail: detail}
+}
+
+// UnverifiableReason reports the code an unverifiable error carries, or "" when it carries none.
+func UnverifiableReason(err error) string {
+	var target *unverifiable
+	if errors.As(err, &target) {
+		return target.reason
+	}
+	return ""
+}
+
+// unverifiable is the sentinel plus its reason, so a caller reads why without parsing prose.
+type unverifiable struct {
+	reason string
+	detail string
+}
+
+func (u *unverifiable) Error() string { return ErrUnverifiable.Error() + ": " + u.detail }
+
+// Is keeps errors.Is(err, ErrUnverifiable) true whatever the reason.
+func (u *unverifiable) Is(target error) bool { return target == ErrUnverifiable }

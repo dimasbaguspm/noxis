@@ -15,6 +15,7 @@ import (
 
 	"noxis/internal/common/idgen"
 	"noxis/internal/common/logging"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
@@ -37,8 +38,8 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 	if d.transactional(text) {
 		return validateChangeTx(ctx, c, query, rollback)
 	}
-	if reason := unprovableReason(c, text); reason != "" {
-		return Result{}, fmt.Errorf("%w: %s", interfaces.ErrUnverifiable, reason)
+	if err := unprovable(c, text); err != nil {
+		return Result{}, err
 	}
 	started := time.Now()
 	schema := scratchPrefix + idgen.Hex(6)
@@ -101,7 +102,7 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 			return struct{}{}, err
 		}
 		if !containsDDL(query) && sampledRows(before) == 0 {
-			return struct{}{}, fmt.Errorf("%w: no sampled rows for the tables this change touches", interfaces.ErrUnverifiable)
+			return struct{}{}, interfaces.Unverifiable(constants.UnverifiedNoRows, "no sampled rows for the tables this change touches")
 		}
 		summary = changeSummary(refs, before)
 		return struct{}{}, nil
@@ -146,25 +147,26 @@ var systemSchemas = map[string]bool{
 // serverObjects are the objects a statement creates, drops or alters outside any schema.
 var serverObjects = map[string]bool{"DATABASE": true, "SCHEMA": true, "USER": true, "ROLE": true, "SERVER": true}
 
-// unprovableReason names why a batch cannot be dry-run in a scratch database, or returns "" when it can. Only two
-// classes are refused: a statement that changes the server itself, and a name in a database the scratch one cannot
-// stand in for. Everything else is rewritten into the scratch database and proved for real.
-func unprovableReason(c entity.Connection, sqlText string) string {
+// unprovable refuses a batch a scratch database cannot hold, naming the reason so the queue can group it. Everything
+// else is rewritten into the scratch database and proved for real.
+func unprovable(c entity.Connection, sqlText string) error {
 	for _, stmt := range splitStatements(sqlText) {
 		if stripLeadingComments(stmt) == "" {
 			continue
 		}
 		if serverScoped(stmt) {
-			return fmt.Sprintf("%s changes the server rather than a schema, so a scratch database cannot hold it", strings.Join(keywords(stmt, 2), " "))
+			return interfaces.Unverifiable(constants.UnverifiedServerDDL,
+				fmt.Sprintf("%s changes the server rather than a schema, so a scratch database cannot hold it", strings.Join(keywords(stmt, 2), " ")))
 		}
 		for _, qualifier := range qualifiers(stmt) {
 			if strings.EqualFold(qualifier, c.Database) || systemSchemas[strings.ToLower(qualifier)] {
 				continue
 			}
-			return fmt.Sprintf("%q names another database, so the dry run cannot be moved into the scratch database", qualifier)
+			return interfaces.Unverifiable(constants.UnverifiedForeignSchema,
+				fmt.Sprintf("%q names another database, so the dry run cannot be moved into the scratch database", qualifier))
 		}
 	}
-	return ""
+	return nil
 }
 
 // serverScoped reports whether a statement changes the server rather than a schema.
@@ -416,7 +418,7 @@ func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback 
 			return struct{}{}, err
 		}
 		if !containsDDL(query) && sampledRows(before) == 0 {
-			return struct{}{}, fmt.Errorf("%w: no sampled rows for the tables this change touches", interfaces.ErrUnverifiable)
+			return struct{}{}, interfaces.Unverifiable(constants.UnverifiedNoRows, "no sampled rows for the tables this change touches")
 		}
 		summary = changeSummary(refs, before)
 		return struct{}{}, nil

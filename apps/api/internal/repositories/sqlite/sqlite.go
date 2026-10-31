@@ -72,7 +72,7 @@ func Open(ctx context.Context, path, secretKey string) (*Store, error) {
 	return s, nil
 }
 
-const schemaVersion = 1
+const schemaVersion = 2
 
 func initializeSchema(ctx context.Context, db *sql.DB) error {
 	var version int
@@ -119,6 +119,7 @@ CREATE TABLE changes (
   kind        TEXT NOT NULL CHECK (kind IN (%s)),
   status      TEXT NOT NULL CHECK (status IN (%s)),
   checks      TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(checks)),
+  unverified_reason TEXT NOT NULL DEFAULT '',
   created_at  INTEGER NOT NULL CHECK (created_at > 0),
   created_by  TEXT NOT NULL DEFAULT '',
   approved_at INTEGER NOT NULL DEFAULT 0 CHECK (approved_at >= 0),
@@ -224,7 +225,7 @@ CREATE INDEX access_events_by_connection ON access_events(connection, at DESC);
 
 func schemaSQL() string {
 	return fmt.Sprintf(schemaTemplate,
-		sqlValues(constants.KindDML, constants.KindDDL, constants.KindMongo),
+		sqlValues(constants.KindDML, constants.KindDDL, constants.KindMongo, constants.KindDocument, constants.KindSearch),
 		sqlValues(constants.ChangeValidated, constants.ChangeUnverified, constants.ChangeFailed, constants.ChangeApproved, constants.ChangeApplying, constants.ChangeApplied, constants.ChangeRejected),
 		sqlValues(entity.MemberUser, entity.MemberGroup),
 		sqlValues(entity.LevelRead, entity.LevelWrite, entity.LevelAdmin),

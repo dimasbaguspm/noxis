@@ -60,8 +60,8 @@ func TestUnprovableReason(t *testing.T) {
 		"CREATE USER 'x'@'%'",
 		"SET GLOBAL max_connections = 100",
 	} {
-		if reason := unprovableReason(conn, sql); reason == "" {
-			t.Errorf("unprovableReason(%q) = \"\", want a reason", sql)
+		if err := unprovable(conn, sql); err == nil {
+			t.Errorf("unprovable(%q) = nil, want a reason", sql)
 		}
 	}
 	for _, sql := range []string{
@@ -70,8 +70,8 @@ func TestUnprovableReason(t *testing.T) {
 		"CREATE TABLE demo.notes (id INT)",
 		"SELECT COUNT(*) FROM information_schema.tables",
 	} {
-		if reason := unprovableReason(conn, sql); reason != "" {
-			t.Errorf("unprovableReason(%q) = %q, want no reason", sql, reason)
+		if err := unprovable(conn, sql); err != nil {
+			t.Errorf("unprovable(%q) = %q, want no reason", sql, err)
 		}
 	}
 }

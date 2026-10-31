@@ -48,7 +48,7 @@ Feature: changes verify in a throwaway scratch schema
     Given connection "pg_scratch" is registered
     When I run the write "CREATE TABLE IF NOT EXISTS uat_pg_empty (id INT, note TEXT)"
     And I submit a change with query "UPDATE uat_pg_empty SET note = 'new'" and rollback "UPDATE uat_pg_empty SET note = 'old'"
-    Then the change is "unverified"
+    Then the change is unverified because "no-rows"
     And no scratch schemas remain
 
   Scenario: a mysql-family DDL change verifies instead of being unverified
@@ -82,10 +82,10 @@ Feature: changes verify in a throwaway scratch schema
   Scenario: a qualified name in another database cannot be proved
     Given connection "my_scratch" is registered for driver "mariadb"
     When I submit a change with query "CREATE TABLE other.uat_foreign (id INT)" and rollback "DROP TABLE other.uat_foreign"
-    Then the change is "unverified"
+    Then the change is unverified because "foreign-schema"
     And no scratch schemas remain
 
   Scenario: a statement that changes the server is not dry-run
     Given connection "my_scratch" is registered for driver "mariadb"
     When I submit a change with query "CREATE USER uat_nobody" and rollback "DROP USER uat_nobody"
-    Then the change is "unverified"
+    Then the change is unverified because "server-ddl"
