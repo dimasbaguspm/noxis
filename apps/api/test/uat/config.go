@@ -54,6 +54,7 @@ func loadTargets() error {
 		"postgres": "postgres", "mysql": "mysql", "mariadb": "mariadb", "mongo": "mongo",
 		"cockroach": "cockroachdb/cockroach",
 		"redis":     "redis", "valkey": "valkey",
+		"dragonfly": "docker.dragonflydb.io/dragonflydb/dragonfly",
 	} {
 		h, err := hostOf(image)
 		if err != nil {
@@ -101,6 +102,9 @@ func loadTargets() error {
 		},
 		"valkey": {
 			Driver: "valkey", Host: host["valkey"], Port: port["valkey"], Database: "0",
+		},
+		"dragonfly": {
+			Driver: "dragonfly", Host: host["dragonfly"], Port: port["dragonfly"], Database: "0",
 		},
 		"mongo": {
 			Driver: "mongo", Host: host["mongo"], Port: port["mongo"],

@@ -22,6 +22,7 @@ var driverCatalog = []entity.DriverInfo{
 	{Driver: constants.DriverCockroach, Label: "CockroachDB"},
 	{Driver: constants.DriverRedis, Label: "Redis"},
 	{Driver: constants.DriverValkey, Label: "Valkey"},
+	{Driver: constants.DriverDragonfly, Label: "Dragonfly"},
 	{Driver: constants.DriverMongo, Label: "MongoDB"},
 }
 

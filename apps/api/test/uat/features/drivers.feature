@@ -19,6 +19,7 @@ Feature: the driver catalog states what each driver can do
       | cockroach | sql          |
       | redis     | keys         |
       | valkey    | keys         |
+      | dragonfly | keys         |
       | mongo     | documents    |
 
   Scenario Outline: a capability a driver lacks is refused by name

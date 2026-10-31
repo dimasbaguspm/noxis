@@ -29,6 +29,7 @@ type redisPage struct {
 func (w *world) memcacheSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^a redis connection named "([^"]*)"$`, w.registerRedis)
 	sc.Step(`^a valkey connection named "([^"]*)"$`, w.registerValkey)
+	sc.Step(`^a dragonfly connection named "([^"]*)"$`, w.registerDragonfly)
 	sc.Step("the redis server answers", w.redisAnswers)
 	sc.Step(`^the redis key "([^"]*)" holds "([^"]*)"$`, w.redisSeedString)
 	sc.Step(`^the redis key "([^"]*)" lives for (\d+) seconds$`, w.redisSeedTTL)
@@ -53,6 +54,11 @@ func (w *world) registerRedis(ctx context.Context, name string) error {
 // registerValkey registers the compose valkey service: same protocol, its own driver name, and it must be served by the same module.
 func (w *world) registerValkey(ctx context.Context, name string) error {
 	return w.registerCache(ctx, name, "valkey")
+}
+
+// registerDragonfly registers the compose dragonfly service: redis protocol, its own driver name.
+func (w *world) registerDragonfly(ctx context.Context, name string) error {
+	return w.registerCache(ctx, name, "dragonfly")
 }
 
 // registerCache builds the memcache connection from the target the compose file declares.

@@ -32,6 +32,13 @@ Feature: Memory cache keys and metrics
     When I browse redis keys matching "valkey:*"
     Then the browse finds the key "valkey:key"
 
+  Scenario: a Dragonfly server is served by the same family
+    Given the stack is running
+    And a dragonfly connection named "dragonfly"
+    And the redis key "dragonfly:key" holds "from-dragonfly"
+    When I browse redis keys matching "dragonfly:*"
+    Then the browse finds the key "dragonfly:key"
+
   Scenario: removing keys, and the guard on emptying the database
     Given the stack is running
     And a redis connection named "cache"

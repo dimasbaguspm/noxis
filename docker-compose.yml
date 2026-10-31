@@ -261,6 +261,21 @@ services:
     entrypoint: ["sh", "/seed/keys.sh", "redis", "6379"]
     restart: "no"
 
+  # Dragonfly speaks the redis wire protocol; like valkey it gets its own driver name so the console shows what it is
+  # actually talking to.
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.27.1
+    # one target, so `make dev dragonfly` can bring just this one
+    profiles: [dragonfly, all]
+    command: ["--port", "6379"]
+    expose: ["6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
+
   seed-valkey:
     image: valkey/valkey:8-alpine
     profiles: [seed]
@@ -271,6 +286,18 @@ services:
     volumes:
       - ./dev/seed:/seed:ro
     entrypoint: ["sh", "/seed/keys.sh", "valkey", "6379"]
+    restart: "no"
+
+  seed-dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.27.1
+    profiles: [seed]
+    depends_on:
+      dragonfly:
+        condition: service_healthy
+        required: false
+    volumes:
+      - ./dev/seed:/seed:ro
+    entrypoint: ["sh", "/seed/keys.sh", "dragonfly", "6379"]
     restart: "no"
 
   seed-mongo:

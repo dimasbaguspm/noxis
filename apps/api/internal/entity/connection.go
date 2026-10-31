@@ -47,7 +47,7 @@ func isFileDriver(driver string) bool {
 
 func isKeyValueDriver(driver string) bool {
 	switch strings.ToLower(driver) {
-	case "redis", "valkey": // cache drivers need no user
+	case "redis", "valkey", "dragonfly": // cache drivers need no user
 		return true
 	}
 	return false
