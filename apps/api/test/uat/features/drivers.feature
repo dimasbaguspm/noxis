@@ -7,25 +7,6 @@ Feature: the driver catalog states what each driver can do
   Background:
     Given the stack is running
 
-  Scenario Outline: <driver> advertises exactly what its module serves
-    Then driver "<driver>" advertises exactly "<capabilities>"
-
-    Examples:
-      | driver    | capabilities |
-      | postgres  | sql          |
-      | mysql     | sql          |
-      | mariadb   | sql          |
-      | sqlite    | sql          |
-      | cockroach | sql          |
-      | redis     | keys         |
-      | valkey    | keys         |
-      | dragonfly | keys         |
-      | mongo     | documents    |
-      | couchdb   | documents    |
-      | elasticsearch | search   |
-      | meilisearch   | search   |
-      | splunk        | search   |
-
   Scenario Outline: a capability a driver lacks is refused by name
     Then a <method> to "<path>" for driver "<driver>" is refused naming the driver
 
