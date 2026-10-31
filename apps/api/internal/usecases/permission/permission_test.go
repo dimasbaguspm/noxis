@@ -12,6 +12,7 @@ import (
 	"noxis/internal/common/testkit"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 	"noxis/internal/mocks"
 	"noxis/internal/modules"
 	"noxis/internal/repositories"
@@ -77,7 +78,7 @@ func newHarness(t *testing.T) *harness {
 
 	h.deps = usecases.RegistryDeps{
 		Repositories: repositories.Registry{Connections: conns, Permissions: perms, Users: users},
-		Modules:      modules.New(map[string]modules.Registration{constants.DriverPostgres: {Engine: sq}}),
+		Modules:      modules.New(map[string]interfaces.Module{constants.DriverPostgres: sq}),
 	}
 	return h
 }

@@ -1,4 +1,4 @@
-package postgres
+package usecases_test
 
 import (
 	"bytes"
@@ -13,9 +13,26 @@ import (
 
 	"noxis/internal/constants"
 	"noxis/internal/entity"
+	"noxis/internal/interfaces"
 	"noxis/internal/mocks"
+	"noxis/internal/modules"
+	"noxis/internal/repositories"
+	"noxis/internal/usecases"
 )
 
+func deps(t *testing.T, store *mocks.MockChangeRepository, conns *mocks.MockConnectionRepository, engine interfaces.Module) usecases.RegistryDeps {
+	t.Helper()
+	mods := map[string]interfaces.Module{}
+	if engine != nil {
+		mods[engine.Driver()] = engine
+	}
+	return usecases.RegistryDeps{
+		Repositories: repositories.Registry{Connections: conns, Changes: store},
+		Modules:      modules.New(mods),
+	}
+}
+
+// TestReviewDecisionsLogActor proves the audit trail names who decided and what they decided, whatever the engine is.
 func TestReviewDecisionsLogActor(t *testing.T) {
 	var output bytes.Buffer
 	previous := slog.Default()
@@ -25,19 +42,19 @@ func TestReviewDecisionsLogActor(t *testing.T) {
 	controller := gomock.NewController(t)
 	store := mocks.NewMockChangeRepository(controller)
 	store.EXPECT().SaveChange(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	flow := NewChanges(nil, store, nil, nil)
+	d := deps(t, store, nil, nil)
 	ctx := context.Background()
 
 	approved := entity.Change{ID: "approve-1", Connection: "prod", Status: constants.ChangeValidated}
-	if err := flow.Approve(ctx, &approved, "local:reviewer"); err != nil {
+	if err := d.ApproveChange(ctx, &approved, "local:reviewer"); err != nil {
 		t.Fatal(err)
 	}
 	rejected := entity.Change{ID: "reject-1", Connection: "prod", Status: constants.ChangeValidated}
-	if err := flow.Reject(ctx, &rejected, "local:reviewer"); err != nil {
+	if err := d.RejectChange(ctx, &rejected, "local:reviewer"); err != nil {
 		t.Fatal(err)
 	}
 	scheduled := entity.Change{ID: "schedule-1", Connection: "prod", Status: constants.ChangeApproved}
-	if err := flow.Schedule(ctx, &scheduled, time.Now().Add(time.Minute).Unix(), "local:reviewer"); err != nil {
+	if err := d.ScheduleChange(ctx, &scheduled, time.Now().Add(time.Minute).Unix(), "local:reviewer"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -48,7 +65,8 @@ func TestReviewDecisionsLogActor(t *testing.T) {
 	}
 }
 
-// TestTickLeavesAnotherDriversChangeAlone proves each driver's queue ticks only its own connections: with one queue per driver, a queue that claimed another driver's change would apply it through the wrong engine.
+// TestTickLeavesAnotherDriversChangeAlone proves the scheduler applies a change through the engine that serves its
+// connection: a change on a connection this process cannot serve is left for the process that can.
 func TestTickLeavesAnotherDriversChangeAlone(t *testing.T) {
 	controller := gomock.NewController(t)
 	store := mocks.NewMockChangeRepository(controller)
@@ -60,7 +78,9 @@ func TestTickLeavesAnotherDriversChangeAlone(t *testing.T) {
 		Status: constants.ChangeApproved, ScheduledAt: 1,
 	}}, nil)
 
-	res, err := NewChanges(conns, store, nil, nil).Tick(context.Background(), 2, "local:ticker")
+	engine := mocks.NewMockSQLChangeEngine(controller)
+	engine.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
+	res, err := deps(t, store, conns, engine).TickChanges(context.Background(), 2, "local:ticker")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,12 +89,13 @@ func TestTickLeavesAnotherDriversChangeAlone(t *testing.T) {
 	}
 }
 
-// TestTickRunsDueChangesOnce locks the rest of the loop: a change runs when its slot arrives, a future one waits, a lost claim is skipped rather than failed, and an engine refusal is reported.
+// TestTickRunsDueChangesOnce locks the loop: a change runs when its slot arrives, a future one waits, a lost claim is
+// skipped rather than failed, and an engine refusal is reported.
 func TestTickRunsDueChangesOnce(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	store := mocks.NewMockChangeRepository(ctrl)
-	conns := mocks.NewMockConnectionRepository(ctrl)
-	engine := mocks.NewMockSQLChangeEngine(ctrl)
+	controller := gomock.NewController(t)
+	store := mocks.NewMockChangeRepository(controller)
+	conns := mocks.NewMockConnectionRepository(controller)
+	engine := mocks.NewMockSQLChangeEngine(controller)
 
 	store.EXPECT().ListChanges(gomock.Any()).Return([]entity.Change{
 		{ID: "due", Connection: "demo", Query: "CREATE TABLE due (id INT)", Kind: constants.KindDDL, Status: constants.ChangeApproved, ScheduledAt: 100},
@@ -83,6 +104,7 @@ func TestTickRunsDueChangesOnce(t *testing.T) {
 		{ID: "failing", Connection: "demo", Query: "CREATE TABLE nope (id INT)", Kind: constants.KindDDL, Status: constants.ChangeApproved, ScheduledAt: 100},
 	}, nil)
 	conns.EXPECT().Get(gomock.Any(), "demo").Return(&entity.Connection{Name: "demo", Driver: constants.DriverPostgres}, nil).AnyTimes()
+	engine.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
 	store.EXPECT().ClaimChange(gomock.Any(), "due", gomock.Any(), constants.SchedulerActor).Return(true, nil)
 	store.EXPECT().ClaimChange(gomock.Any(), "claimed", gomock.Any(), constants.SchedulerActor).Return(false, nil)
 	store.EXPECT().ClaimChange(gomock.Any(), "failing", gomock.Any(), constants.SchedulerActor).Return(true, nil)
@@ -90,7 +112,7 @@ func TestTickRunsDueChangesOnce(t *testing.T) {
 	engine.EXPECT().Apply(gomock.Any(), gomock.Any(), "CREATE TABLE due (id INT)").Return(entity.Result{Affected: 1}, nil)
 	engine.EXPECT().Apply(gomock.Any(), gomock.Any(), "CREATE TABLE nope (id INT)").Return(entity.Result{}, errors.New("engine said no"))
 
-	result, err := NewChanges(conns, store, engine, nil).Tick(context.Background(), 100, constants.SchedulerActor)
+	result, err := deps(t, store, conns, engine).TickChanges(context.Background(), 100, constants.SchedulerActor)
 	if err != nil {
 		t.Fatalf("tick: %v", err)
 	}

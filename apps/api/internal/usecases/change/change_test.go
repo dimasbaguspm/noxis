@@ -19,7 +19,6 @@ import (
 	"noxis/internal/interfaces"
 	"noxis/internal/mocks"
 	"noxis/internal/modules"
-	"noxis/internal/modules/postgres"
 	"noxis/internal/repositories"
 	"noxis/internal/usecases"
 )
@@ -52,9 +51,7 @@ func newHarness(t *testing.T) *harness {
 	h.conns.EXPECT().Get(gomock.Any(), "demo").Return(&entity.Connection{
 		Name: "demo", Driver: constants.DriverPostgres,
 	}, nil).AnyTimes()
-	registry := modules.New(map[string]modules.Registration{
-		constants.DriverPostgres: {Engine: h.sq, Changes: postgres.NewChanges(h.conns, h.changes, h.sq, nil)},
-	})
+	registry := modules.New(map[string]interfaces.Module{constants.DriverPostgres: h.sq})
 	h.deps = usecases.RegistryDeps{
 		Repositories: repositories.Registry{Connections: h.conns, Changes: h.changes},
 		Modules:      registry,
@@ -85,12 +82,16 @@ func TestFilterByConnection(t *testing.T) {
 	}
 }
 
-func TestSubmitWithoutModuleLoaderFailsClosed(t *testing.T) {
+// TestSubmitWithoutRegisteredEngineFailsClosed proves a submit never guesses an engine: with no module registered for
+// the driver in the path, the request is refused instead of being recorded against nothing.
+func TestSubmitWithoutRegisteredEngineFailsClosed(t *testing.T) {
 	h := newHarness(t)
-	rec := testkit.Do(testkit.Mux("POST", "/external/v1/engine/{driver}/changes", Submit{RegistryDeps: h.deps}.Serve),
+	deps := h.deps
+	deps.Modules = modules.New(map[string]interfaces.Module{})
+	rec := testkit.Do(testkit.Mux("POST", "/external/v1/engine/{driver}/changes", Submit{RegistryDeps: deps}.Serve),
 		http.MethodPost, "/external/v1/engine/postgres/changes", sampleSQL, admin())
-	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), common.ErrModuleLoaderUnavailable.Error()) {
-		t.Fatalf("missing module loader status=%d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("unregistered engine status=%d body=%s", rec.Code, rec.Body.String())
 	}
 }
 

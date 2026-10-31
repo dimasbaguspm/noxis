@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"noxis/internal/common"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -135,15 +134,6 @@ func changeFor(ctx context.Context, deps usecases.RegistryDeps, module interface
 		return deps.SearchChange(ctx, id)
 	}
 	return nil, unsupportedChangeFlow(module)
-}
-
-// flowFor is the change queue of the driver the route names, so the driver picks the queue rather than the change's kind.
-func flowFor(ctx context.Context, driver string) (interfaces.ChangeFlow, error) {
-	var flow interfaces.ChangeFlow
-	if err := common.LoadModule(common.WithModuleDriver(ctx, driver), &flow); err != nil {
-		return nil, err
-	}
-	return flow, nil
 }
 
 func decide(ctx context.Context, deps usecases.RegistryDeps, w http.ResponseWriter, r *http.Request, apply func(*entity.Change) error) {
