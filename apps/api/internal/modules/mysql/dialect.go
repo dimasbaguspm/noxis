@@ -70,8 +70,6 @@ type dialect struct {
 
 	// txn says when a batch is proved by rolling back the live transaction.
 	txn txnRule
-	// refuseQualifiedDDL rejects a DDL batch that names a schema: the scratch schema would not contain it, so the dry run would lie.
-	refuseQualifiedDDL bool
 	// scratchCreate, scratchDrop and scratchUse create, drop and enter the throwaway schema, with room for its name.
 	scratchCreate string
 	scratchDrop   string
@@ -110,14 +108,13 @@ var profile = dialect{
 	analyze: "ANALYZE TABLE %s",
 	explain: "EXPLAIN FORMAT=JSON ",
 
-	txn:                txnWithoutDDL,
-	refuseQualifiedDDL: true,
-	scratchCreate:      "CREATE DATABASE `%s`",
-	scratchDrop:        "DROP DATABASE IF EXISTS `%s`",
-	scratchUse:         "USE `%s`",
-	tableExists:        `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '%s' AND table_name = '%s'`,
-	mirrorTable:        "CREATE TABLE %s LIKE %s",
-	identityOverride:   "",
+	txn:              txnWithoutDDL,
+	scratchCreate:    "CREATE DATABASE `%s`",
+	scratchDrop:      "DROP DATABASE IF EXISTS `%s`",
+	scratchUse:       "USE `%s`",
+	tableExists:      `SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '%s' AND table_name = '%s'`,
+	mirrorTable:      "CREATE TABLE %s LIKE %s",
+	identityOverride: "",
 	copyColumnsQuery: `SELECT column_name, extra FROM information_schema.columns
 			WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position`,
 	generatedColumn: "GENERATED",
@@ -152,11 +149,6 @@ func (d dialect) transactional(text string) bool {
 		return !containsDDL(text)
 	}
 	return false
-}
-
-// qualifiedDDLRefused reports whether this engine must refuse DDL with qualified names instead of dry-running it.
-func (d dialect) qualifiedDDLRefused(text string) bool {
-	return d.refuseQualifiedDDL && containsDDL(text) && hasQualifiedIdent(text)
 }
 
 // quoteRef quotes a table reference.

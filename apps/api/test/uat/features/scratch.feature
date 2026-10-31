@@ -57,3 +57,35 @@ Feature: changes verify in a throwaway scratch schema
     Then the change is "validated"
     And the change was verified in a scratch schema
     And no scratch schemas remain
+
+  Scenario Outline: a qualified DDL change is proved in the scratch database on <driver>
+    Given connection "<driver>_qualified" is registered for driver "<driver>"
+    When I submit a change with query "CREATE TABLE IF NOT EXISTS demo.uat_qualified (id INT, note VARCHAR(64))" and rollback "DROP TABLE demo.uat_qualified"
+    Then the change is "validated"
+    And the change was verified in a scratch schema
+    And no scratch schemas remain
+
+    Examples:
+      | driver  |
+      | mysql   |
+      | mariadb |
+
+  Scenario: a qualified change against an existing table is proved on its structure
+    Given connection "my_scratch" is registered for driver "mariadb"
+    When I run the write "CREATE TABLE IF NOT EXISTS demo.uat_qualified_base (id INT, note VARCHAR(64))"
+    And I run the write "INSERT INTO demo.uat_qualified_base (id, note) VALUES (1, 'old')"
+    And I submit a change with query "ALTER TABLE demo.uat_qualified_base ADD COLUMN tag VARCHAR(32)" and rollback "ALTER TABLE demo.uat_qualified_base DROP COLUMN tag"
+    Then the change is "validated"
+    And the change was verified in a scratch schema
+    And no scratch schemas remain
+
+  Scenario: a qualified name in another database cannot be proved
+    Given connection "my_scratch" is registered for driver "mariadb"
+    When I submit a change with query "CREATE TABLE other.uat_foreign (id INT)" and rollback "DROP TABLE other.uat_foreign"
+    Then the change is "unverified"
+    And no scratch schemas remain
+
+  Scenario: a statement that changes the server is not dry-run
+    Given connection "my_scratch" is registered for driver "mariadb"
+    When I submit a change with query "CREATE USER uat_nobody" and rollback "DROP USER uat_nobody"
+    Then the change is "unverified"
