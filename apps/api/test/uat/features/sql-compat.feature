@@ -36,11 +36,12 @@ Feature: one SQL engine that behaves the same on every supported database
     And table "uat_compat_preview" has 0 row(s)
 
     Examples:
-      | driver   |
-      | postgres |
-      | mysql    |
-      | mariadb  |
-      | sqlite   |
+      | driver    |
+      | postgres  |
+      | mysql     |
+      | mariadb   |
+      | sqlite    |
+      | cockroach |
 
   Scenario Outline: a DML dry run rolls back on <driver>
     Given connection "compat_<driver>" is registered for driver "<driver>"
