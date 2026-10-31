@@ -30,12 +30,10 @@ func layerOf(pkg string) (int, bool) {
 		return 8, true
 	case strings.HasPrefix(pkg, "noxis/internal/usecases/"):
 		return 9, true
-	case pkg == "noxis/internal/app":
-		return 10, true
 	case pkg == "noxis/cmd/noxis/server/middlewares" || strings.HasPrefix(pkg, "noxis/cmd/noxis/server/middlewares/"):
-		return 11, true
+		return 10, true
 	case pkg == "noxis/cmd/noxis/server" || strings.HasPrefix(pkg, "noxis/cmd/noxis/server/"):
-		return 12, true
+		return 11, true
 	}
 	return 0, false
 }

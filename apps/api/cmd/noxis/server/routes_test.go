@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"noxis/internal/app"
 	"noxis/internal/common/config"
 	"noxis/internal/constants"
 )
@@ -14,7 +13,7 @@ import (
 // Go's mux would panic at startup, but the table should fail in a unit test.
 func TestRoutesAreUnique(t *testing.T) {
 	seen := map[string]bool{}
-	for _, rt := range routes(app.App{}, config.Config{}) {
+	for _, rt := range routes(Wiring{}, config.Config{}) {
 		key := rt.Method + " " + rt.Endpoint
 		if seen[key] {
 			t.Fatalf("duplicate route %s", key)
@@ -34,7 +33,7 @@ func TestOnlyLoginAndConfigArePublic(t *testing.T) {
 		http.MethodPost + " " + constants.APIPrefix + "/auth/login": true,
 	}
 	got := map[string]bool{}
-	for _, rt := range routes(app.App{}, config.Config{}) {
+	for _, rt := range routes(Wiring{}, config.Config{}) {
 		if !strings.HasPrefix(rt.Endpoint, constants.APIPrefix) || !rt.Public {
 			continue
 		}
