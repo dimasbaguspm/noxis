@@ -33,6 +33,8 @@ type Change struct {
 	AppliedAffected   int64  `json:"appliedAffected,omitempty"`
 	AppliedDurationMs int64  `json:"appliedDurationMs,omitempty"`
 	ScratchSchema     string `json:"scratchSchema,omitempty"`
+	// UnverifiedReason is why the dry run was skipped, from a closed set, so a reviewer reads one line instead of prose.
+	UnverifiedReason string `json:"unverifiedReason,omitempty"`
 	// ScheduledAt is the unix time the change should run; 0 means execute immediately (on manual apply, as before).
 	ScheduledAt int64 `json:"scheduledAt,omitempty"`
 }

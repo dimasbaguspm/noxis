@@ -563,6 +563,10 @@ export interface paths {
                     connection?: string;
                     /** @description exact status match (unverified, validated, approved, applying, applied, failed, rejected) */
                     status?: string;
+                    /** @description dml or ddl (sql change engines only) */
+                    kind?: string;
+                    /** @description substring match on notes or statement */
+                    q?: string;
                     /** @description page number, starting at 1 */
                     page?: number;
                     /** @description items per page (default 20, max 100) */
@@ -2707,6 +2711,8 @@ export interface components {
             scratchSchema?: string;
             /** @description validated | unverified | failed | approved | applying | applied | rejected */
             status?: string;
+            /** @description UnverifiedReason is why the dry run was skipped, from a closed set, so a reviewer reads one line instead of prose. */
+            unverifiedReason?: string;
         };
         "entity.ChangeCheck": {
             detail?: string;

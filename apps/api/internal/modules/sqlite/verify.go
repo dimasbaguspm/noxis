@@ -14,6 +14,7 @@ import (
 
 	"noxis/internal/common/idgen"
 	"noxis/internal/common/logging"
+	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 )
@@ -40,7 +41,7 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 		return validateChangeTx(ctx, c, query, rollback)
 	}
 	if d.qualifiedDDLRefused(text) {
-		return Result{}, fmt.Errorf("%w: qualified names in MySQL DDL cannot be dry-run safely; use unqualified names", interfaces.ErrUnverifiable)
+		return Result{}, interfaces.Unverifiable(constants.UnverifiedQualifiedDDL, "qualified names in DDL cannot be dry-run safely; use unqualified names")
 	}
 	started := time.Now()
 	schema := scratchPrefix + idgen.Hex(6)
@@ -99,7 +100,7 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 			return struct{}{}, err
 		}
 		if !containsDDL(query) && sampledRows(before) == 0 {
-			return struct{}{}, fmt.Errorf("%w: no sampled rows for the tables this change touches", interfaces.ErrUnverifiable)
+			return struct{}{}, interfaces.Unverifiable(constants.UnverifiedNoRows, "no sampled rows for the tables this change touches")
 		}
 		summary = changeSummary(refs, before)
 		return struct{}{}, nil
@@ -356,7 +357,7 @@ func validateChangeTx(ctx context.Context, c entity.Connection, query, rollback 
 			return struct{}{}, err
 		}
 		if !containsDDL(query) && sampledRows(before) == 0 {
-			return struct{}{}, fmt.Errorf("%w: no sampled rows for the tables this change touches", interfaces.ErrUnverifiable)
+			return struct{}{}, interfaces.Unverifiable(constants.UnverifiedNoRows, "no sampled rows for the tables this change touches")
 		}
 		summary = changeSummary(refs, before)
 		return struct{}{}, nil

@@ -15,15 +15,16 @@ import (
 
 // changeBody is the wire shape of a change (only the fields UAT asserts on).
 type changeBody struct {
-	ID            string      `json:"id"`
-	Notes         string      `json:"notes"`
-	Status        string      `json:"status"`
-	Checks        []checkBody `json:"checks"`
-	EstDurationMs int64       `json:"estDurationMs"`
-	EstAffected   int64       `json:"estAffected"`
-	ScratchSchema string      `json:"scratchSchema"`
-	ScheduledAt   int64       `json:"scheduledAt"`
-	BatchID       string      `json:"batchId"`
+	ID               string      `json:"id"`
+	Notes            string      `json:"notes"`
+	Status           string      `json:"status"`
+	UnverifiedReason string      `json:"unverifiedReason"`
+	Checks           []checkBody `json:"checks"`
+	EstDurationMs    int64       `json:"estDurationMs"`
+	EstAffected      int64       `json:"estAffected"`
+	ScratchSchema    string      `json:"scratchSchema"`
+	ScheduledAt      int64       `json:"scheduledAt"`
+	BatchID          string      `json:"batchId"`
 }
 
 // checkBody is one validation outcome on a change.
@@ -43,6 +44,7 @@ type tickBody struct {
 func (w *world) changeSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I submit a change with query "([^"]*)" and rollback "([^"]*)"$`, w.submitChange)
 	sc.Step(`^the change is "([^"]*)"$`, w.changeStatus)
+	sc.Step(`^the change is unverified because "([^"]*)"$`, w.changeUnverifiedReason)
 	sc.Step("I approve the change", w.approve)
 	sc.Step("I apply the change", w.apply)
 	sc.Step(`^I submit a change scheduled at now with query "([^"]*)" and rollback "([^"]*)"$`, w.submitScheduledChange)
@@ -76,6 +78,17 @@ func (w *world) submitChange(ctx context.Context, query, rollback string) error 
 func (w *world) changeStatus(ctx context.Context, want string) error {
 	if w.change.Status != want {
 		return fmt.Errorf("change status %q want %q (checks: %v)", w.change.Status, want, w.change.Checks)
+	}
+	return nil
+}
+
+// changeUnverifiedReason checks why a change could not be proved, so the queue can group what no driver proved.
+func (w *world) changeUnverifiedReason(ctx context.Context, want string) error {
+	if w.change.Status != "unverified" {
+		return fmt.Errorf("change status %q want \"unverified\" (checks: %v)", w.change.Status, w.change.Checks)
+	}
+	if w.change.UnverifiedReason != want {
+		return fmt.Errorf("unverified reason %q want %q (checks: %v)", w.change.UnverifiedReason, want, w.change.Checks)
 	}
 	return nil
 }

@@ -149,6 +149,16 @@ function SubmittedBy({ change }: { change: Change }) {
   );
 }
 
+// UNVERIFIED spells out why no dry run happened, keyed by the reason the API records, so a reviewer reads a sentence
+// instead of a code.
+const UNVERIFIED: Record<string, string> = {
+  "server-ddl": "The batch changes the server itself, so a throwaway schema cannot hold it.",
+  "foreign-schema":
+    "A statement names another database, so the dry run cannot move into a throwaway schema.",
+  "qualified-ddl": "A statement names a schema a throwaway schema would not contain.",
+  "no-rows": "The tables this change touches held no sampled rows, so the rollback proved nothing.",
+};
+
 function ChangeAlerts({ change }: { change: Change }) {
   if (change.scheduledAt && change.scheduledAt > Math.floor(Date.now() / 1000)) {
     return (
@@ -179,6 +189,15 @@ function ChangeAlerts({ change }: { change: Change }) {
     return (
       <Alert variant="success" title="Approved">
         Ready to apply now, or schedule it for later.
+      </Alert>
+    );
+  }
+  if (change.status === "unverified") {
+    return (
+      <Alert variant="warning" title="Not proved">
+        {UNVERIFIED[change.unverifiedReason ?? ""] ??
+          "This driver cannot dry-run the change, so nothing was proved."}{" "}
+        Approve it only after checking it yourself.
       </Alert>
     );
   }

@@ -34,10 +34,10 @@ func TestProfileIsComplete(t *testing.T) {
 	// A qualifier naming the connection's own database is rewritten into the scratch database, so it is provable; a
 	// qualifier naming a different database is not, and says so.
 	conn := entity.Connection{Driver: d.name, Database: "demo"}
-	if reason := unprovableReason(conn, "CREATE TABLE demo.t (id INT)"); reason != "" {
-		t.Fatalf("a same-database qualifier must be provable: %s", reason)
+	if err := unprovable(conn, "CREATE TABLE demo.t (id INT)"); err != nil {
+		t.Fatalf("a same-database qualifier must be provable: %s", err)
 	}
-	if reason := unprovableReason(conn, "CREATE TABLE other.t (id INT)"); reason == "" {
+	if err := unprovable(conn, "CREATE TABLE other.t (id INT)"); err == nil {
 		t.Fatal("a qualifier in another database cannot be dry-run in a scratch schema")
 	}
 }

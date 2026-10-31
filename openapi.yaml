@@ -1744,6 +1744,10 @@ components:
           description: validated | unverified | failed | approved | applying | applied |
             rejected
           type: string
+        unverifiedReason:
+          description: UnverifiedReason is why the dry run was skipped, from a closed set,
+            so a reviewer reads one line instead of prose.
+          type: string
     entity.ChangeCheck:
       type: object
       properties:
