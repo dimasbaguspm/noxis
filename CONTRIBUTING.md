@@ -57,7 +57,7 @@ Stacked work is fine: branch each ticket off its parent's branch, and open the P
 | Path | What it owns |
 | --- | --- |
 | `apps/api/cmd/noxis/` | process entry, routes, middlewares |
-| `apps/api/internal/app/` | the composition root: every use case wired explicitly |
+| `apps/api/cmd/noxis/server/` | the composition root: wiring, the route table, middlewares |
 | `apps/api/internal/usecases/` | one package per domain, one file per use case |
 | `apps/api/internal/modules/` | one package per engine driver, plus the registry |
 | `apps/api/internal/repositories/` | persistence — SQLite is the only state |

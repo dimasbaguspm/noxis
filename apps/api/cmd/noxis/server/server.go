@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"noxis/cmd/noxis/server/middlewares"
-	"noxis/internal/app"
 	"noxis/internal/auth"
 	"noxis/internal/common"
 	"noxis/internal/common/config"
@@ -29,15 +28,6 @@ const shutdownTimeout = 10 * time.Second
 // The store must satisfy every repository seam Default() fills; the assertion
 // lives here because a package may not import its own sibling.
 var _ repositories.Store = (*sqlite.Store)(nil)
-
-// newDeps assembles the runtime container once: the stores, the registry (with the auth service) and the transport values, then builds every use case.
-func newDeps(store *sqlite.Store, cfg config.Config, authSvc *auth.Service) app.App {
-	return app.Default(app.Deps{
-		Repositories: repositories.Default(store),
-		Auth:         cfg.AuthInfo(),
-		AuthService:  authSvc,
-	})
-}
 
 func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 	if err := cfg.Validate(); err != nil {
@@ -62,15 +52,15 @@ func Run(ctx context.Context, log *slog.Logger, cfg config.Config) error {
 
 	log.InfoContext(ctx, "noxis serving", "addr", cfg.Listen, "db", cfg.DB)
 
-	d := newDeps(store, cfg, authSvc)
+	w := NewWiring(store, cfg, authSvc)
 	if err := authSvc.EnsureRoot(ctx, cfg.AdminEmail, cfg.AdminPassword); err != nil {
 		return err
 	}
 
 	// Middleware order is CORS → trace → auth → request log, so denied tokens are traced and actor fields attach after auth.
-	handler := middlewares.CORS(middlewares.Trace(newHandler(d, cfg, authSvc, log)))
+	handler := middlewares.CORS(middlewares.Trace(newHandler(w, cfg, authSvc, log)))
 	srv := &http.Server{Addr: cfg.Listen, Handler: handler}
-	baseCtx := common.WithModuleLoader(ctx, d.Modules)
+	baseCtx := common.WithModuleLoader(ctx, w.Modules)
 	// every request ctx descends from ours
 	srv.BaseContext = func(net.Listener) context.Context {
 		return baseCtx
