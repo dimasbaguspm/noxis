@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
@@ -27,14 +28,15 @@ func (d RegistryDeps) RawConn(ctx context.Context, mod interfaces.Module, name, 
 	return c, nil
 }
 
-// SqlChange loads a change and insists it is a SQL one, so a MongoDB request cannot be opened through the SQL flow.
-func (d RegistryDeps) SQLChange(ctx context.Context, id string) (*entity.Change, error) {
+// Change loads a change and insists it carries one of the kinds this queue serves, so a request cannot be opened through
+// another engine's flow. what names the queue in the refusal, because the reader cares which one turned them away.
+func (d RegistryDeps) Change(ctx context.Context, id, what string, kinds ...string) (*entity.Change, error) {
 	ch, err := d.Repositories.Changes.GetChange(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if ch.Kind != constants.KindDML && ch.Kind != constants.KindDDL {
-		return nil, fmt.Errorf("change %s is %s, not a sql change", id, ch.Kind)
+	if !slices.Contains(kinds, ch.Kind) {
+		return nil, fmt.Errorf("change %s is %s, not a %s", id, ch.Kind, what)
 	}
 	if err := d.Authorize(ctx, ch.Connection, entity.LevelRead); err != nil {
 		return nil, err
@@ -42,33 +44,20 @@ func (d RegistryDeps) SQLChange(ctx context.Context, id string) (*entity.Change,
 	return ch, nil
 }
 
-// SearchChange loads a change and insists it is a search-platform request, so a SQL or document queue cannot be
-// addressed through the search flow.
-func (d RegistryDeps) SearchChange(ctx context.Context, id string) (*entity.Change, error) {
-	ch, err := d.Repositories.Changes.GetChange(ctx, id)
-	if err != nil {
-		return nil, err
+// ChangeFor loads the change through the flow its engine owns: the module's capability picks the kinds and the wording.
+func (d RegistryDeps) ChangeFor(ctx context.Context, module interfaces.Module, id string) (*entity.Change, error) {
+	switch module.(type) {
+	case interfaces.SQLChangeEngine:
+		return d.Change(ctx, id, "sql change", constants.KindDML, constants.KindDDL)
+	case interfaces.MongoChangeEngine:
+		return d.Change(ctx, id, "document request", constants.KindMongo, constants.KindDocument)
+	case interfaces.SearchEngine:
+		return d.Change(ctx, id, "search request", constants.KindSearch)
 	}
-	if ch.Kind != constants.KindSearch {
-		return nil, fmt.Errorf("change %s is %s, not a search request", id, ch.Kind)
-	}
-	if err := d.Authorize(ctx, ch.Connection, entity.LevelRead); err != nil {
-		return nil, err
-	}
-	return ch, nil
+	return nil, UnsupportedChangeFlow(module)
 }
 
-// MongoChange loads a change and insists it is a document request, so the SQL queue cannot be addressed through the document flow.
-func (d RegistryDeps) MongoChange(ctx context.Context, id string) (*entity.Change, error) {
-	ch, err := d.Repositories.Changes.GetChange(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if ch.Kind != constants.KindMongo && ch.Kind != constants.KindDocument {
-		return nil, fmt.Errorf("change %s is %s, not a document request", id, ch.Kind)
-	}
-	if err := d.Authorize(ctx, ch.Connection, entity.LevelRead); err != nil {
-		return nil, err
-	}
-	return ch, nil
+// UnsupportedChangeFlow refuses an engine that reviews no changes at all, naming it rather than the queue it lacks.
+func UnsupportedChangeFlow(module interfaces.Module) error {
+	return fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, module.Driver())
 }

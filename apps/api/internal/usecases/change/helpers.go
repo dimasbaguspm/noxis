@@ -120,29 +120,13 @@ func filterByKind(all []entity.Change, kind string) []entity.Change {
 	return out
 }
 
-func unsupportedChangeFlow(module interfaces.Module) error {
-	return fmt.Errorf("%w: engine %q does not serve changes", constants.ErrUnsupported, module.Driver())
-}
-
-func changeFor(ctx context.Context, deps usecases.RegistryDeps, module interfaces.Module, id string) (*entity.Change, error) {
-	switch module.(type) {
-	case interfaces.SQLChangeEngine:
-		return deps.SQLChange(ctx, id)
-	case interfaces.MongoChangeEngine:
-		return deps.MongoChange(ctx, id)
-	case interfaces.SearchEngine:
-		return deps.SearchChange(ctx, id)
-	}
-	return nil, unsupportedChangeFlow(module)
-}
-
 func decide(ctx context.Context, deps usecases.RegistryDeps, w http.ResponseWriter, r *http.Request, apply func(*entity.Change) error) {
 	module, err := deps.Modules.Engine(r.PathValue("driver"))
 	if err != nil {
 		deps.Fail(ctx, w, err)
 		return
 	}
-	change, err := changeFor(ctx, deps, module, r.PathValue("id"))
+	change, err := deps.ChangeFor(ctx, module, r.PathValue("id"))
 	if err != nil {
 		deps.Fail(ctx, w, err)
 		return

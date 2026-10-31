@@ -27,7 +27,7 @@ func (uc Get) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var change *entity.Change
-	change, err = changeFor(ctx, uc.RegistryDeps, module, r.PathValue("id"))
+	change, err = uc.ChangeFor(ctx, module, r.PathValue("id"))
 	if err != nil {
 		uc.Fail(ctx, w, err)
 		return
