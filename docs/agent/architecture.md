@@ -10,15 +10,14 @@ application apps/api/internal/app              (composition root: Default)
             apps/api/internal/usecases        (root framework; one subpackage per domain)
 domain      apps/api/internal/entity             (data model + change state machine; imports only constants)
             apps/api/internal/interfaces          (seams)
-infra       apps/api/internal/changeflow         (the change lifecycle every engine shares)
-            apps/api/internal/modules/*          (engine adapters, one package per driver)
+infra       apps/api/internal/modules/*          (engine adapters, one package per driver)
             apps/api/internal/repositories/*     (persistence)
-cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagination, secret)
+cross-cut   apps/api/internal/common/*           (config, logging, idgen, pagination, secret, sqltext)
             apps/api/internal/constants          (universal values)
 ```
 
 Rule: dependencies point inward and only downward. The order (low → high) is
-`constants · entity · interfaces → common/* → repositories/* → changeflow → modules/<driver>
+`constants · entity · interfaces → common/* → repositories/* → modules/<driver>
 → modules (registry) → usecases (root) → usecases/* (domains) → app → middlewares → cmd/noxis/server
 (routes)`. A package may import only packages below its layer, and two packages
 in the same layer may not import each other. `internal/app` is the composition root: it sits above
@@ -51,18 +50,21 @@ access rule. No constructor boilerplate, no reflection.
 
 `apps/api/internal/modules/modules.go`:
 
-- `Registry` resolves a driver name to its `Registration`: `Engine(driver)` for the module,
-  `Changes(driver)` for the queue that applies its changes, `Drivers()` for the sorted names.
-  Typed lookups go through `common.ModuleLoader`, not one method per capability.
-- `Default(repositories, metrics)` builds one `Registration` per driver — `postgres`, `mysql`,
-  `mariadb`, `sqlite`, `cockroach`, `redis`, `valkey`, `mongo` — holding the module and, where
-  the driver has one, its change queue. **This map is the only place the process declares what
-  it can do**, and a map hit can never depend on iteration order.
+- `Registry` resolves a driver name to its module: `Engine(driver)` for the module,
+  `Drivers()` for the sorted names. Typed lookups go through `common.ModuleLoader`, not one
+  method per capability.
+- `Default()` builds one module per driver — `postgres`, `mysql`, `mariadb`, `sqlite`,
+  `cockroach`, `redis`, `valkey`, `dragonfly`, `mongo`, `couchdb`, `elasticsearch`,
+  `meilisearch`, `splunk`. **This map is the only place the process declares what the process
+  can do**, and a map hit can never depend on iteration order.
 - Each driver is its own package under `apps/api/internal/modules/<driver>`, holding
   its own connection string, quote style, catalog queries, proof strategy and
-  verification rules. Driver packages share nothing but `interfaces` and
-  `constants`: no shared kit, and no driver package imports another. Duplication is
-  a decision; `test/driver/conformance_test.go` is the guard.
+  verification rules. Driver packages share no code at all: a module imports `interfaces`,
+  `constants`, `common` and its own dependencies, never another module. The one thing two
+  drivers may share is a **pure function**, and pure functions live in `common` — `common/sqltext`
+  holds the batch lexer and the reference extraction for exactly that reason. Duplication of
+  behaviour is a decision; `test/driver/conformance_test.go` and the byte-identical-body check in
+  `test/arch` are the guards.
 - The registry implements the common typed `ModuleLoader` for registered engine and
   change-flow capabilities. `common.LoadModule(ctx, &target)` resolves them from
   request context; engine lookups use the driver the route attached, and absent or
@@ -86,7 +88,6 @@ driver instead of a copy per driver.
 | `KeyBrowser` | `interfaces/memcache.go` | `redis.DB`, `valkey.DB` |
 | `DocumentBrowser`, `MongoChangeEngine` | `interfaces/mongodb.go` | `mongodb.DB` |
 | `Verifier` | `interfaces/auth.go` | `auth.OIDC` (tests use a fake) |
-| `SQLChangeFlow` / `MongoChangeFlow` | `interfaces/changeflow.go` | every `modules/<driver>.Changes` |
 
 A driver implements only the capabilities it can prove, and a compile-time
 `var _ interfaces.X` assert per capability keeps the claim honest — the loader
@@ -97,22 +98,21 @@ returns unsupported rather than a stub.
 ## Where the rules live
 
 A use case authorizes the caller, decodes the request, maps the answer to a
-status, and nothing else. Domain rules live in a module: the change lifecycle
-belongs to the driver that runs it, so each `modules/<driver>.Changes` owns
-submit → validate → approve/reject/schedule → apply, its claim and its tick loop.
-The legal transitions of a change are methods on `entity.Change` (`Approve`,
-`Reject`, `Schedule`, `Applyable`, `Due`, `MarkApplying`, `MarkApplied`,
-`MarkFailed`), so the rules sit on the type that holds the state and no package is
-shared between drivers. Engine execution and decision logging stay with the driver
-modules.
+status, and nothing else. An engine module does exactly two things about a change: it proves a
+body (`ValidateChange`) and it runs one (`Apply`). Everything between those — recording,
+reviewing, scheduling, claiming, ticking, auditing — is orchestration, so it lives in
+`internal/usecases/changes.go` on `RegistryDeps` (`ApproveChange`, `RejectChange`,
+`ScheduleChange`, `ApplyChange`, `TickChanges`, `RecordChange`), and the change's kind picks the
+capability that runs it. No module owns a queue and no package is shared between drivers.
+The legal transitions of a change are methods on `entity.Change` (`Approve`, `Reject`,
+`Schedule`, `Applyable`, `Due`, `MarkApplying`, `MarkApplied`, `MarkFailed`), so the rules sit on
+the type that holds the state.
 
 A change's kind is declared by the client and derived by the engine: `entity.Change.RequireKind` refuses a submit whose declaration disagrees with the classification of its own statement, so a page cannot re-file a change into the other queue. The rule lives on the type that holds the state, and each SQL module calls it between deriving and recording.
 
-Every queue is registered in `modules.Default()` next to its engine. Use cases
-load `interfaces.SQLChangeFlow` or `interfaces.MongoChangeFlow` through
-`common.LoadModule`; the SQL, document and cache capabilities use the same loader
-with the route's driver attached. A module may read repositories; it never imports
-the registry or a sibling driver package.
+A module declares its capabilities by implementing the interfaces, so nothing registers a queue:
+`uc.Modules.Engine(driver)` plus a type assertion is the whole dispatch. A module may read
+repositories; it never imports the registry or a sibling driver package.
 
 ## Use-case pattern
 
@@ -124,7 +124,12 @@ the registry or a sibling driver package.
   `usecases.RegistryDeps`, so the shared steps are methods on the receiver:
   `uc.RawConn` (load connection + check driver + authorize), `uc.Authorize` /
   `uc.RequireSuper` / `uc.RequireAdmin` / `uc.EffectiveGrant` (policy),
-  `uc.Respond` / `uc.Fail` / `uc.Decode` (transport). `applyChange`/`applySQL`/`applyMongo` live in `apply`.
+  `uc.Respond` / `uc.Fail` / `uc.Decode` (transport), `uc.Change` / `uc.ChangeFor` (load a change
+  and insist its kind belongs to this queue).
+- An engine route that reads its connection from the path goes through
+  `usecases.RunOp[Capability]`, which owns the span, the module and the connection. A route whose
+  level depends on its request body (the console op, the document run, the search run) keeps its own
+  pre-flight, because the runner cannot see the body.
 - Domain rejects are returned, not panicked. `constants.ErrForbidden` → 403.
 
 ## Serve pattern
@@ -135,15 +140,15 @@ A `Serve` resolves the engine, decodes, does the work and writes:
 
 ```go
 func (uc Foo) Serve(w http.ResponseWriter, r *http.Request) {
-    ctx, end := logging.StartSpan(r.Context())
-    defer end(nil)
-    mod, err := uc.Modules.Engine(r.PathValue("driver"))
-    if err != nil { uc.Fail(ctx, w, err); return }
-    out, err := doWork(ctx, mod, /* path/query/body */)
-    if err != nil { uc.Fail(ctx, w, err); return }
-    uc.Respond(w, out)
+    usecases.RunOp[interfaces.SchemaReader](uc.RegistryDeps, w, r, "Foo", entity.LevelRead,
+        func(ctx context.Context, module interfaces.SchemaReader, conn entity.Connection) (any, error) {
+            return module.Tables(ctx, conn)
+        })
 }
 ```
+
+`RunOp` takes the route's name so the error metric reports the use case that failed rather than
+the runner.
 
 Routes are declared in `apps/api/cmd/noxis/server/routes.go` (`routes` +
 `newHandler`) and point straight at a use case `Serve`; there is no handler package

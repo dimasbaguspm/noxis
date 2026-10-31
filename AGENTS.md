@@ -79,11 +79,11 @@ Inside `apps/api/`:
 | `apps/api/internal/repositories/` | persistence: `sqlite` (the only state) |
 | `apps/api/internal/interfaces/` | seams (`ConnectionRepository`, `Module` + one capability interface per verb set, …) |
 | `apps/api/internal/entity/` | shared data model (store + wire + REST) |
-| `apps/api/internal/common/` | config, logging/span, idgen, pagination, secret |
+| `apps/api/internal/common/` | config, logging/span, idgen, pagination, secret, `sqltext` (the pure SQL lexer every engine calls) |
 | `apps/api/internal/constants/` | universal values (drivers, capabilities, statuses, limits) |
 | `apps/api/test/uat/` | Gherkin acceptance suite (`make uat`) |
 
-Dependency direction is one-way: `handlers → usecases → modules → changeflow → repositories → entity`.
+Dependency direction is one-way: `handlers → usecases → modules → repositories → entity`.
 `entity` imports only `constants`: the change state machine lives on the change it governs. Modules/repositories assert their seams with
 `var _ interfaces.X = (*Impl)(nil)` next to the struct.
 
@@ -98,7 +98,8 @@ Dependency direction is one-way: `handlers → usecases → modules → changefl
 
 ## Conventions
 
-- **One use case = one file = one `Serve` method.** No use case calls another; shared steps are package helpers in `usecases` (`raw.go`, `policy.go`, `apply.go`).
+- **One use case = one file = one `Serve` method.** No use case calls another; shared steps are package helpers in `usecases` (`raw.go`, `policy.go`, `changes.go`, `run.go`).
+- **Nothing is shared across modules except a pure function, and pure functions live in `common`.** A module proves and applies; the change lifecycle, the queue and the HTTP preamble are orchestration and live in `usecases`.
 - **Context:** authenticated principal and immutable module loader only. Repositories and other app dependencies stay explicit; use `common.LoadModule(ctx, &target)` for registered typed modules.
 - **Repositories:** pass one `repositories.Registry` through app sources and expose it as `RegistryDeps.Repositories`; modules receive only the repositories they use.
 - **No env reads outside `apps/api/internal/common/config`.** Add a `EnvX` const + field + `fieldOf` case.
