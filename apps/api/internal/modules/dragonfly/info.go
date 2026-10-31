@@ -19,7 +19,8 @@ func (db *DB) Info(ctx context.Context, c entity.Connection) (info entity.CacheI
 	_, err = withClient(ctx, c, func(ctx context.Context, cl *goredis.Client) (struct{}, error) {
 		ctx, cancel := context.WithTimeout(ctx, opTimeout)
 		defer cancel()
-		raw, err := cl.Info(ctx, "server", "clients", "memory", "stats", "keyspace").Result()
+		// Dragonfly answers INFO with one section at most: the multi-section form Redis 7 accepts is a syntax error here.
+		raw, err := cl.Info(ctx, "all").Result()
 		if err != nil {
 			return struct{}{}, fmt.Errorf("info %s: %w", c.Name, err)
 		}
