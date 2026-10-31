@@ -6,31 +6,7 @@ import (
 	"testing"
 )
 
-// splitStatements returns raw fragments; empty ones (trailing separators) are skipped by the callers, so counts here include them.
-func TestSplitStatements(t *testing.T) {
-	cases := []struct {
-		sql  string
-		want int
-	}{
-		{"SELECT 1", 1},
-		{"SELECT 1; SELECT 2", 2},
-		{"SELECT 1;", 2},                                // trailing separator
-		{"SELECT 'a;b'", 1},                             // semicolon in a literal
-		{"SELECT 'it''s; fine'", 1},                     // escaped quote
-		{`SELECT "we;ird"`, 1},                          // quoted identifier
-		{"SELECT 1 -- a; comment\n; SELECT 2", 2},       // line comment
-		{"SELECT 1 /* a; block */; SELECT 2", 2},        // block comment
-		{"INSERT INTO t VALUES ($q$it;s$q$)", 1},        // dollar-quoted
-		{"INSERT INTO t VALUES ($$a;b$$); SELECT 1", 2}, // empty-tag dollars
-		{"SELECT $1, $2", 1},                            // bind params stay plain
-	}
-	for _, tc := range cases {
-		if got := len(splitStatements(tc.sql)); got != tc.want {
-			t.Errorf("splitStatements(%q) = %d statements, want %d", tc.sql, got, tc.want)
-		}
-	}
-}
-
+// TestVerifyKindPerStatement proves a read cannot hide a write behind a semicolon.
 func TestVerifyKindPerStatement(t *testing.T) {
 	if err := verifyKind("DROP TABLE t", reads); err == nil {
 		t.Error("query must reject DDL")

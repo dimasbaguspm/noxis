@@ -9,6 +9,7 @@ import (
 	// database/sql drivers, registered for the drivers we accept.
 	_ "modernc.org/sqlite"
 
+	"noxis/internal/common/sqltext"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 )
@@ -131,14 +132,14 @@ func (d dialect) transactional(text string) bool {
 	case txnWhenQualified:
 		return hasQualifiedIdent(text)
 	case txnWithoutDDL:
-		return !containsDDL(text)
+		return !sqltext.ContainsDDL(text, ddls.set)
 	}
 	return false
 }
 
 // qualifiedDDLRefused reports whether this engine must refuse DDL with qualified names instead of dry-running it.
 func (d dialect) qualifiedDDLRefused(text string) bool {
-	return d.refuseQualifiedDDL && containsDDL(text) && hasQualifiedIdent(text)
+	return d.refuseQualifiedDDL && sqltext.ContainsDDL(text, ddls.set) && hasQualifiedIdent(text)
 }
 
 // quoteRef quotes a table reference.

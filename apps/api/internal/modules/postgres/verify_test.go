@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"noxis/internal/common/sqltext"
 )
 
 func TestCreatedTables(t *testing.T) {
@@ -21,7 +23,7 @@ func TestCreatedTables(t *testing.T) {
 		{"CREATE TABLE a (id INT); CREATE TABLE b (id INT)", []string{"a", "b"}},
 	}
 	for _, tc := range cases {
-		got := mapKeys(createdTables(tc.sql))
+		got := mapKeys(sqltext.CreatedTables(tc.sql))
 		if !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("%s: createdTables = %v, want %v", tc.sql, got, tc.want)
 		}

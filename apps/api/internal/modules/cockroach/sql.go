@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"noxis/internal/common/logging"
+	"noxis/internal/common/sqltext"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -64,8 +65,8 @@ func withDB[T any](c entity.Connection, fn func(db *stdsql.DB) (T, error)) (T, e
 // execEach runs every non-empty statement of a batch through fn, numbering failures and returning how many ran.
 func execEach(sqlText string, fn func(stmt string) error) (int, error) {
 	n := 0
-	for _, stmt := range splitStatements(sqlText) {
-		if firstKeyword(stmt) == "" {
+	for _, stmt := range sqltext.SplitStatements(sqlText) {
+		if sqltext.FirstKeyword(stmt) == "" {
 			continue
 		}
 		n++
@@ -122,7 +123,7 @@ func (db *DB) run(ctx context.Context, c entity.Connection, sqlText string) (Res
 		var last Result
 		n, err := execEach(sqlText, func(stmt string) error {
 			var err error
-			if reads.set[firstKeyword(stmt)] {
+			if reads.set[sqltext.FirstKeyword(stmt)] {
 				last, err = query(ctx, db, stmt)
 				if err == nil {
 					last.EstimatedRows = estimateRows(ctx, db, c.Driver, stmt)
@@ -228,7 +229,7 @@ func inTx(c entity.Connection, rollback bool, fn func(tx *stdsql.Tx) (int, error
 func (db *DB) Rows(ctx context.Context, c entity.Connection, schema, table string, limit int) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	if !identOK(table) || (schema != "" && !identOK(schema)) {
+	if !sqltext.IdentOK(table) || (schema != "" && !sqltext.IdentOK(schema)) {
 		return Result{}, fmt.Errorf("invalid table %q", table)
 	}
 	if limit <= 0 || limit > maxPreviewRows {
@@ -259,7 +260,7 @@ func (db *DB) Tables(ctx context.Context, c entity.Connection) (tables []entity.
 func (db *DB) Analyze(ctx context.Context, c entity.Connection, table string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
-	if !identOK(table) {
+	if !sqltext.IdentOK(table) {
 		return Result{}, fmt.Errorf("invalid table name %q", table)
 	}
 	d, err := dialectOf(c.Driver)
@@ -272,7 +273,7 @@ func (db *DB) Analyze(ctx context.Context, c entity.Connection, table string) (r
 
 // Referenced reports the tables and columns a batch mentions, so the change record can list what it touches.
 func (db *DB) Referenced(sqlText string) (tables []string, columns []string) {
-	return Referenced(sqlText)
+	return sqltext.Referenced(sqlText)
 }
 
 // VerifyWrite exposes the write guard (a change's query must be a write).
@@ -281,8 +282,8 @@ func (db *DB) VerifyWrite(sqlText string) error { return verifyKind(sqlText, wri
 // Kind classifies a batch as dml, ddl, or read (mixed batches report ddl when any DDL appears — that is the stricter review).
 func (db *DB) Kind(sqlText string) string {
 	kind := constants.KindDML
-	for _, stmt := range splitStatements(sqlText) {
-		k := firstKeyword(stmt)
+	for _, stmt := range sqltext.SplitStatements(sqlText) {
+		k := sqltext.FirstKeyword(stmt)
 		if k == "" {
 			continue
 		}

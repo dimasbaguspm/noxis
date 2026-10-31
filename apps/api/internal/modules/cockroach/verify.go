@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"noxis/internal/common/logging"
+	"noxis/internal/common/sqltext"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 	"noxis/internal/interfaces"
@@ -37,7 +38,7 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, ro
 
 // hasQualifiedIdent finds schema.table and table.column references; either can escape a scratch search_path.
 func hasQualifiedIdent(text string) bool {
-	for _, stmt := range splitStatements(text) {
+	for _, stmt := range sqltext.SplitStatements(text) {
 		if qualifiedIdent.MatchString(stmt) {
 			return true
 		}
@@ -55,8 +56,8 @@ func (r verifyRef) key() string { return r.schema + "." + r.table }
 
 // verificationRefs resolves every table named by the change, including tables the query creates.
 func verificationRefs(c entity.Connection, sqlText, scratch string) []verifyRef {
-	created := createdTables(sqlText)
-	names, _ := Referenced(sqlText)
+	created := sqltext.CreatedTables(sqlText)
+	names, _ := sqltext.Referenced(sqlText)
 	for name := range created {
 		names = append(names, name)
 	}
@@ -68,7 +69,7 @@ func verificationRefs(c entity.Connection, sqlText, scratch string) []verifyRef 
 		if scratch != "" && !strings.Contains(name, ".") {
 			schema = scratch
 		}
-		if !identOK(schema) || !identOK(table) {
+		if !sqltext.IdentOK(schema) || !sqltext.IdentOK(table) {
 			continue
 		}
 		key := schema + "." + table
@@ -298,7 +299,7 @@ func dryRunTx(ctx context.Context, c entity.Connection, query, rollback string) 
 		if err := compareStates(before, after, refs); err != nil {
 			return struct{}{}, err
 		}
-		if !containsDDL(query) && sampledRows(before) == 0 {
+		if !sqltext.ContainsDDL(query, ddls.set) && sampledRows(before) == 0 {
 			return struct{}{}, interfaces.Unverifiable(constants.UnverifiedNoRows, "no sampled rows for the tables this change touches")
 		}
 		summary = changeSummary(refs, before)

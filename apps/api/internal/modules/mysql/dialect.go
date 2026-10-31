@@ -11,6 +11,7 @@ import (
 
 	// database/sql drivers, registered for the drivers we accept.
 
+	"noxis/internal/common/sqltext"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
 )
@@ -146,7 +147,7 @@ func (d dialect) transactional(text string) bool {
 	case txnWhenQualified:
 		return hasQualifiedIdent(text)
 	case txnWithoutDDL:
-		return !containsDDL(text)
+		return !sqltext.ContainsDDL(text, ddls.set)
 	}
 	return false
 }

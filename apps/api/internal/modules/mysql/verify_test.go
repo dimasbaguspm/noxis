@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"noxis/internal/common/sqltext"
 	"noxis/internal/entity"
 )
 
@@ -23,7 +24,7 @@ func TestCreatedTables(t *testing.T) {
 		{"CREATE TABLE a (id INT); CREATE TABLE b (id INT)", []string{"a", "b"}},
 	}
 	for _, tc := range cases {
-		got := mapKeys(createdTables(tc.sql))
+		got := mapKeys(sqltext.CreatedTables(tc.sql))
 		if !reflect.DeepEqual(got, tc.want) {
 			t.Errorf("%s: createdTables = %v, want %v", tc.sql, got, tc.want)
 		}
@@ -45,8 +46,8 @@ func TestRewriteQualifier(t *testing.T) {
 		{"SELECT * FROM `demo` WHERE note = 'demo.orders'", "SELECT * FROM `demo` WHERE note = 'demo.orders'"},
 	}
 	for _, tc := range cases {
-		if got := rewriteQualifier(tc.sql, "demo", "noxis_verify_x"); got != tc.want {
-			t.Errorf("rewriteQualifier(%q) = %q, want %q", tc.sql, got, tc.want)
+		if got := sqltext.RewriteQualifier(tc.sql, "demo", "noxis_verify_x"); got != tc.want {
+			t.Errorf("sqltext.RewriteQualifier(%q) = %q, want %q", tc.sql, got, tc.want)
 		}
 	}
 }
