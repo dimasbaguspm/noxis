@@ -116,6 +116,14 @@ func submitSQL(ctx context.Context, deps usecases.RegistryDeps, engine interface
 		ch.Checks[0].Detail = "write statements only"
 	}
 	dry := entity.ChangeCheck{Target: "dry-run (query + rollback)"}
+	if ch.Status == constants.ChangeFailed {
+		// The write guard already refused this batch: a dry run cannot rescue it, and letting one run would overwrite the
+		// refusal with "unverified", which is a state a reviewer may approve.
+		dry.Error = "skipped: the query is not a write"
+		ch.Checks = append(ch.Checks, dry)
+		logSubmitted(ctx, ch, actor, dry.Error)
+		return deps.RecordChange(ctx, ch)
+	}
 	res, err := engine.ValidateChange(ctx, conn, ch.Query, ch.Rollback)
 	switch {
 	case err == nil:

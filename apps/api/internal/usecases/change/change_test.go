@@ -139,14 +139,17 @@ func TestSubmitValidationFailures(t *testing.T) {
 	// a read on the change path is refused up front
 	h := newHarness(t)
 	h.sq.EXPECT().VerifyWrite(gomock.Any()).Return(errors.New(`statement "SELECT" not allowed here`)).AnyTimes()
-	// the dry run still runs; the kind check is what already failed
-	h.sq.EXPECT().ValidateChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, nil)
+	// the dry run never runs: it would overwrite the refusal with "unverified", which a reviewer may approve
+	h.sq.EXPECT().ValidateChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 	rec := h.do(testkit.Mux("POST", "/external/v1/engine/{driver}/changes", Submit{RegistryDeps: h.deps}.Serve),
 		http.MethodPost, "/external/v1/engine/postgres/changes", sampleSQL, admin())
 	var failed entity.Change
 	_ = json.Unmarshal(rec.Body.Bytes(), &failed)
 	if failed.Status != constants.ChangeFailed || failed.ID != "" {
 		t.Fatalf("write failure: %+v", failed)
+	}
+	if len(failed.Checks) < 2 || !strings.Contains(failed.Checks[1].Error, "not a write") {
+		t.Fatalf("the skipped dry run must say why: %+v", failed.Checks)
 	}
 
 	// a dry-run failure lands as failed with the reason recorded

@@ -53,6 +53,21 @@ Feature: POST /external/v1/engine/{driver}/changes
       | valkey    |
       | dragonfly |
 
+  # A read is refused by the write guard and returned unrecorded: the artifact carries the check that failed, and no id,
+  # because a change that cannot run is never queued.
+  Scenario Outline: <driver> refuses a read submitted as a change
+    Given connection "submit_read_<driver>" is registered for driver "<driver>"
+    When I submit a change with query "SELECT 1" and rollback "SELECT 1"
+    Then the change is "failed"
+
+    Examples:
+      | driver    |
+      | postgres  |
+      | mysql     |
+      | mariadb   |
+      | cockroach |
+      | sqlite    |
+
   Scenario: a change without a rollback is refused
     Given connection "submit_norollback" is registered for driver "postgres"
     When I send a POST to "/external/v1/engine/postgres/changes" with body:
