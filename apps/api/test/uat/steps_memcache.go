@@ -26,6 +26,14 @@ type redisPage struct {
 	Truncated bool       `json:"truncated"`
 }
 
+// cacheInfoBody is what a cache server says about itself, only the fields UAT asserts on.
+type cacheInfoBody struct {
+	UsedMemoryBytes int64 `json:"usedMemoryBytes"`
+	Databases       []struct {
+		Keys int64 `json:"keys"`
+	} `json:"databases"`
+}
+
 func (w *world) memcacheSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^a redis connection named "([^"]*)"$`, w.registerRedis)
 	sc.Step(`^a valkey connection named "([^"]*)"$`, w.registerValkey)
@@ -45,6 +53,36 @@ func (w *world) memcacheSteps(sc *godog.ScenarioContext) {
 	sc.Step(`^I empty the redis database as "([^"]*)"$`, w.redisFlush)
 	sc.Step("the redis flush is rejected", w.redisFlushRejected)
 	sc.Step("the redis database is empty", w.redisEmpty)
+	sc.Step("I read the cache server's stats", w.redisStats)
+	sc.Step("the cache stats report a used memory and at least one key", w.redisStatsSane)
+}
+
+// redisStats reads what the server says about itself, which is the only place memory and eviction are reported.
+func (w *world) redisStats(ctx context.Context) error {
+	var out cacheInfoBody
+	if err := w.api(http.MethodGet, w.enginePath("/connections/"+w.conn+"/stats"), nil, &out); err != nil {
+		return err
+	}
+	if w.code != http.StatusOK {
+		return fmt.Errorf("cache stats: %d", w.code)
+	}
+	w.cacheInfo = out
+	return nil
+}
+
+// redisStatsSane proves the report carries numbers rather than an empty shape: memory used, and keys the server counts.
+func (w *world) redisStatsSane(ctx context.Context) error {
+	if w.cacheInfo.UsedMemoryBytes <= 0 {
+		return fmt.Errorf("used memory %d, want a positive number", w.cacheInfo.UsedMemoryBytes)
+	}
+	keys := int64(0)
+	for _, database := range w.cacheInfo.Databases {
+		keys += database.Keys
+	}
+	if keys < 1 {
+		return fmt.Errorf("databases %+v report no keys", w.cacheInfo.Databases)
+	}
+	return nil
 }
 
 func (w *world) registerRedis(ctx context.Context, name string) error {

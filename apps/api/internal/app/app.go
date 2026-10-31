@@ -90,6 +90,7 @@ type App struct {
 	Levels    metadata.Levels
 	CacheKeys cache.Keys
 	CacheVal  cache.Value
+	CacheInfo cache.Info
 	CacheDel  cache.Delete
 	CacheFlsh cache.Flush
 
@@ -177,6 +178,7 @@ func Default(d Deps) App {
 		Levels:    metadata.Levels{RegistryDeps: deps},
 		CacheKeys: cache.Keys{RegistryDeps: deps},
 		CacheVal:  cache.Value{RegistryDeps: deps},
+		CacheInfo: cache.Info{RegistryDeps: deps},
 		CacheDel:  cache.Delete{RegistryDeps: deps},
 		CacheFlsh: cache.Flush{RegistryDeps: deps},
 

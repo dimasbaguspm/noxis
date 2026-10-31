@@ -24,6 +24,13 @@ Feature: Memory cache keys and metrics
     When I inspect the redis key "queue"
     Then the value grid shows "a"
 
+  Scenario: the server reports what it holds
+    Given the stack is running
+    And a redis connection named "cache"
+    And the redis key "stats:probe" holds "x"
+    When I read the cache server's stats
+    Then the cache stats report a used memory and at least one key
+
   Scenario: a Valkey server is served by the same family
     Given the stack is running
     And a valkey connection named "valkey"

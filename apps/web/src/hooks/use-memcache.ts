@@ -34,6 +34,18 @@ export function useMemcacheKeysQuery(driver?: string, connection?: string, patte
   return { ...query, page: query.data ?? { keys: [], total: 0, truncated: false, pattern } };
 }
 
+// useMemcacheInfoQuery reads the server's own numbers; they change constantly, so they are refreshed on a slow poll
+// rather than on every key action.
+export function useMemcacheInfoQuery(driver?: string, connection?: string) {
+  const query = useQuery({
+    queryKey: queryKeys.keys.stats(driver, connection),
+    queryFn: () => api.memcache(driver as string).stats(connection as string),
+    enabled: !!driver && !!connection,
+    refetchInterval: 30_000,
+  });
+  return { ...query, info: query.data };
+}
+
 export function useMemcacheValueQuery(driver?: string, connection?: string, key?: string) {
   const query = useQuery({
     queryKey: queryKeys.keys.value(driver, connection, key),
