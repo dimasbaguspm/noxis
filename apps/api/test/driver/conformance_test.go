@@ -7,6 +7,7 @@ import (
 	"noxis/internal/constants"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules/cockroach"
+	"noxis/internal/modules/dragonfly"
 	"noxis/internal/modules/mariadb"
 	"noxis/internal/modules/mongodb"
 	"noxis/internal/modules/mysql"
@@ -76,7 +77,7 @@ func TestSQLModulesKeepTheContract(t *testing.T) {
 	}
 }
 
-// TestCacheModulesKeepTheContract walks the two cache engines: each names its own driver, refuses the other, and browses keys instead of claiming it can prove a change.
+// TestCacheModulesKeepTheContract walks the cache engines: each names its own driver, refuses the other, and browses keys instead of claiming it can prove a change.
 func TestCacheModulesKeepTheContract(t *testing.T) {
 	contracts := []struct {
 		driver string
@@ -84,12 +85,13 @@ func TestCacheModulesKeepTheContract(t *testing.T) {
 	}{
 		{constants.DriverRedis, redis.New()},
 		{constants.DriverValkey, valkey.New()},
+		{constants.DriverDragonfly, dragonfly.New()},
 	}
 	for _, c := range contracts {
 		if got := c.module.Driver(); got != c.driver {
 			t.Errorf("%s: Driver() = %q", c.driver, got)
 		}
-		for _, other := range []string{constants.DriverRedis, constants.DriverValkey, constants.DriverPostgres, "oracle"} {
+		for _, other := range []string{constants.DriverRedis, constants.DriverValkey, constants.DriverDragonfly, constants.DriverPostgres, "oracle"} {
 			if got, want := c.module.Supports(other), other == c.driver; got != want {
 				t.Errorf("%s: Supports(%q) = %v, want %v", c.driver, other, got, want)
 			}

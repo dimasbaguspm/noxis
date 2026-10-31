@@ -14,6 +14,7 @@ import (
 	"noxis/internal/constants"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules/cockroach"
+	"noxis/internal/modules/dragonfly"
 	"noxis/internal/modules/mariadb"
 	"noxis/internal/modules/mongodb"
 	"noxis/internal/modules/mysql"
@@ -72,6 +73,9 @@ func Default(repos repositories.Registry, m *metrics.Metrics) Registry {
 
 	valkeyCache := valkey.New()
 	mods[valkeyCache.Driver()] = Registration{Engine: valkeyCache}
+
+	df := dragonfly.New()
+	mods[df.Driver()] = Registration{Engine: df}
 
 	documents := mongodb.New()
 	mods[constants.DriverMongo] = Registration{Engine: documents, Changes: mongodb.NewChanges(repos.Connections, repos.Changes, documents, m)}

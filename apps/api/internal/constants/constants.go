@@ -42,7 +42,10 @@ const (
 	DriverRedis     = "redis"
 	// DriverValkey is the Linux Foundation fork of Redis: same protocol, same commands. It is a separate driver name so the console can show what it is actually talking to.
 	DriverValkey = "valkey"
-	DriverMongo  = "mongo"
+	// DriverDragonfly is a redis-protocol cache server: the same commands, its own driver name so the console shows what
+	// it is actually talking to.
+	DriverDragonfly = "dragonfly"
+	DriverMongo     = "mongo"
 	// DriverPostgres and its siblings are their own engine: the API namespace, the registry and the change queue are keyed on the driver name.
 )
 

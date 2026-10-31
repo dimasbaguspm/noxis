@@ -16,6 +16,7 @@ const BRANDS: Record<string, { monogram: string; token: string }> = {
   cockroach: { monogram: "Cr", token: "--driver-cockroach" },
   redis: { monogram: "Rd", token: "--driver-redis" },
   valkey: { monogram: "Vk", token: "--driver-valkey" },
+  dragonfly: { monogram: "Df", token: "--driver-dragonfly" },
   mongo: { monogram: "Mo", token: "--driver-mongo" },
 };
 

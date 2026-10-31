@@ -29,6 +29,7 @@ for driver in $SEED_DRIVERS; do
     cockroach) register cockroach '{"name":"demo-cockroach","driver":"cockroach","host":"cockroach","port":26257,"user":"root","database":"demo"}' ;;
     redis)     register redis     '{"name":"demo-redis","driver":"redis","host":"redis","port":6379,"database":"0"}' ;;
     valkey)    register valkey    '{"name":"demo-valkey","driver":"valkey","host":"valkey","port":6379,"database":"0"}' ;;
+    dragonfly) register dragonfly '{"name":"demo-dragonfly","driver":"dragonfly","host":"dragonfly","port":6379,"database":"0"}' ;;
     mongo)     register mongo     '{"name":"demo-mongo","driver":"mongo","host":"mongo","port":27017,"user":"root","password":"noxis","database":"demo"}' ;;
     *) echo "seed: unknown driver $driver" ;;
   esac
