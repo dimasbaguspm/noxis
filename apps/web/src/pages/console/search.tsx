@@ -1,10 +1,22 @@
-import { Play, Search as SearchIcon } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Play, Search as SearchIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Empty } from "@/components/ui/empty";
 import { Textarea } from "@/components/ui/textarea";
 import { JsonTree } from "@/components/mongodb/json-tree";
 import { useDriverConnections } from "@/hooks/use-driver-connections";
+import { useSearchRaise } from "@/hooks/use-search-changes";
 import { useSearchMutation, useSearchTargetsQuery, useSearchUrlParams } from "@/hooks/use-search";
+import { PAGE_ROUTES } from "@/constants/routes";
 import { bytes, compact } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +37,7 @@ export default function SearchPage() {
   const { target, query, setTarget, setQuery } = useSearchUrlParams();
   const { targets, isPending, isError } = useSearchTargetsQuery(driver, connection);
   const run = useSearchMutation(driver, connection);
+  const { open, setOpen, notes, setNotes, raise } = useSearchRaise(driver, connection);
   // an empty target means the first one the platform reports, so the page has something to run against on arrival.
   const picked = target || targets[0]?.name || "";
   const hits = run.data?.documents ?? [];
@@ -109,6 +122,14 @@ export default function SearchPage() {
             </Button>
             {picked && <span className="text-xs text-muted-foreground">on {picked}</span>}
             {run.data && <span className="text-xs text-muted-foreground">{run.data.message}</span>}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setOpen(true)}
+              disabled={!picked || !query.trim()}
+            >
+              <Trash2 className="size-4" /> Delete what this matches
+            </Button>
           </div>
           <div className="min-h-0 flex-1 overflow-auto rounded-md border p-3">
             {run.isError ? (
@@ -134,6 +155,61 @@ export default function SearchPage() {
           </div>
         </section>
       </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete what this query matches</DialogTitle>
+            <DialogDescription>
+              This is submitted for review, not run: the platform reports how many documents match,
+              and a reviewer approves that number before anything is deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-muted-foreground">
+              target <span className="font-mono text-foreground">{picked}</span>
+            </p>
+            <pre className="max-h-32 overflow-auto rounded-md border p-2 font-mono text-xs">
+              {query}
+            </pre>
+            <Input
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="why this delete is needed"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => raise.mutate({ target: picked, query })}
+              disabled={!notes.trim() || raise.isPending}
+            >
+              <Trash2 className="size-4" /> Raise for review
+            </Button>
+          </DialogFooter>
+          {raise.isError && <p className="text-xs text-destructive">{raise.error.message}</p>}
+          {raise.data && (
+            <p className="text-xs text-muted-foreground">
+              {raise.data.status === "failed" ? (
+                <>Refused: {raise.data.checks?.[1]?.error ?? "the platform refused it"}</>
+              ) : (
+                <>
+                  Raised ·{" "}
+                  <Link
+                    to={PAGE_ROUTES.SEARCH_REQUEST_DETAIL(driver ?? "", raise.data.id ?? "")}
+                    className="underline underline-offset-4"
+                  >
+                    review it
+                  </Link>
+                </>
+              )}
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

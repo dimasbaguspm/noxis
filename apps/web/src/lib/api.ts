@@ -16,6 +16,13 @@ export type MongoResult = components["schemas"]["entity.Result"];
 export type SearchTarget = components["schemas"]["entity.SearchTarget"];
 export type SearchRequest = components["schemas"]["entity.SearchRequest"];
 
+// SearchChangeInput is one submitted search change: the change envelope plus the request itself, flat so the page sends a
+// single object.
+export interface SearchChangeInput extends SearchRequest {
+  connection: string;
+  notes: string;
+}
+
 // MongoChangeInput is one submitted request: the change envelope plus the request itself, flat so the wizard sends a single object.
 export interface MongoChangeInput extends MongoRequest {
   connection: string;
@@ -240,6 +247,9 @@ export class ApiClient {
           );
         },
         get: (id: string) => this.request<Change>("GET", this.endpoint(driver, `changes/${id}`)),
+        // a delete is the one write a search platform reviews: the same target and query, submitted as a change
+        submit: (input: SearchChangeInput) =>
+          this.request<Change>("POST", this.endpoint(driver, "changes"), input),
         approve: (id: string) =>
           this.request<Change>("POST", this.endpoint(driver, `changes/${id}/approve`)),
         apply: (id: string) =>

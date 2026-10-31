@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { queryClient, queryKeys } from "@/lib/query-client";
@@ -24,6 +25,27 @@ export function useSearchChangeQuery(driver?: string, id?: string) {
     queryFn: () => api.search(driver as string).changes.get(id as string),
     enabled: !!driver && !!id,
   });
+}
+
+// useSearchRaise is the reviewed path for a search platform: the target and query already on screen, submitted as a
+// change so what a reviewer approves is the impact the platform counted.
+export function useSearchRaise(driver?: string, connection?: string) {
+  const [open, setOpen] = useState(false);
+  const [notes, setNotes] = useState("");
+  const raise = useMutation({
+    mutationFn: (input: { target: string; query: string }) =>
+      api.search(driver as string).changes.submit({
+        connection: connection as string,
+        notes,
+        op: "delete",
+        target: input.target,
+        query: input.query,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.search.requests(driver) });
+    },
+  });
+  return { open, setOpen, notes, setNotes, raise };
 }
 
 // useSearchChangeAction decides one change, then refreshes the queue and the change itself so the page never shows a
