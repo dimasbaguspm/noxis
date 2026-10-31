@@ -1601,6 +1601,72 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/external/v1/engine/{driver}/connections/{name}/keys/ttl": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set or clear the expiry of the named keys (ttlMs 0 clears it) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description driver name (redis, valkey, dragonfly) */
+                    driver: string;
+                    /** @description connection name */
+                    name: string;
+                };
+                cookie?: never;
+            };
+            /** @description keys and ttlMs */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["cache.ttlRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": {
+                            [key: string]: number;
+                        };
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "*/*": components["schemas"]["entity.ErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/external/v1/engine/{driver}/connections/{name}/operations": {
         parameters: {
             query?: never;
@@ -2809,6 +2875,10 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        "cache.ttlRequest": {
+            keys?: string[];
+            ttlMs?: number;
+        };
         "entity.AccessDecision": {
             note?: string;
         };

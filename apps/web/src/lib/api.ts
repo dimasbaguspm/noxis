@@ -226,6 +226,12 @@ export class ApiClient {
         this.request<{ status: string }>("POST", this.connectionPath(driver, name, "/flush"), {
           confirm: name,
         }),
+      // a TTL is metadata and reversible, which is why it is the one mutation this page offers besides delete
+      expire: (name: string, keys: string[], ttlMs: number) =>
+        this.request<{ changed: number }>("POST", this.connectionPath(driver, name, "/keys/ttl"), {
+          keys,
+          ttlMs,
+        }),
       // what the server says about itself: memory, eviction, the hit ratio and the per-database counts
       stats: (name: string) =>
         this.request<CacheInfo>("GET", this.connectionPath(driver, name, "/stats")),

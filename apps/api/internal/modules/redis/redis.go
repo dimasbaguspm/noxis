@@ -251,6 +251,42 @@ func (db *DB) Delete(ctx context.Context, c entity.Connection, keys []string) (d
 	return deleted, err
 }
 
+// Expire sets or clears the expiry of every named key, and reports how many of them the server still had: a key that
+// vanished between the scan and this call is a false rather than an error, because the page it was read from is a scan
+// and not a snapshot.
+func (db *DB) Expire(ctx context.Context, c entity.Connection, keys []string, ttlMs int64) (changed int64, err error) {
+	ctx, end := logging.StartSpan(ctx)
+	defer func() { end(err) }()
+	if len(keys) == 0 {
+		return 0, fmt.Errorf("no keys to expire")
+	}
+	if len(keys) > maxKeysPerDelete {
+		return 0, fmt.Errorf("too many keys at once (%d, max %d)", len(keys), maxKeysPerDelete)
+	}
+	_, err = withClient(ctx, c, func(ctx context.Context, cl *goredis.Client) (struct{}, error) {
+		ctx, cancel := context.WithTimeout(ctx, opTimeout)
+		defer cancel()
+		pipe := cl.Pipeline()
+		cmds := make([]*goredis.BoolCmd, len(keys))
+		for i, key := range keys {
+			if ttlMs <= 0 {
+				cmds[i] = pipe.Persist(ctx, key)
+				continue
+			}
+			cmds[i] = pipe.Expire(ctx, key, time.Duration(ttlMs)*time.Millisecond)
+		}
+		// a missing key answers false instead of failing the batch, so pipe errors are not fatal here.
+		_, _ = pipe.Exec(ctx)
+		for _, cmd := range cmds {
+			if ok, err := cmd.Result(); err == nil && ok {
+				changed++
+			}
+		}
+		return struct{}{}, nil
+	})
+	return changed, err
+}
+
 // Flush empties the connected logical database only.
 func (db *DB) Flush(ctx context.Context, c entity.Connection) (err error) {
 	ctx, end := logging.StartSpan(ctx)
