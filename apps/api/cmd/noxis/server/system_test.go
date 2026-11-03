@@ -44,7 +44,9 @@ func TestConsoleServesEmbeddedFiles(t *testing.T) {
 	}
 }
 
-// A console route that names no file gets the shell, so a deep link works after a reload.
+// A console route that names no file gets the shell — the built SPA when the
+// console was built into the binary, the placeholder when it was not — so a deep
+// link still works after a reload.
 func TestConsoleFallsBackToShell(t *testing.T) {
 	rec := serveConsole(t, "/connections/demo")
 	if rec.Code != http.StatusOK {
@@ -53,8 +55,9 @@ func TestConsoleFallsBackToShell(t *testing.T) {
 	if got := rec.Header().Get(constants.HeaderContentType); !strings.Contains(got, "text/html") {
 		t.Fatalf("content-type=%q want text/html", got)
 	}
-	if !strings.Contains(rec.Body.String(), "<div id=\"root\">") {
-		t.Fatalf("body is not the console shell: %s", rec.Body.String())
+	body := rec.Body.String()
+	if !strings.HasPrefix(body, "<!doctype html>") || !strings.Contains(body, "noXis") {
+		t.Fatalf("body is not a console shell: %s", body)
 	}
 }
 
