@@ -72,7 +72,7 @@ Inside `apps/api/`:
 | --- | --- |
 | `apps/api/cmd/noxis/` | process entry: CLI, server wiring (routes), middlewares |
 | `apps/api/cmd/noxis/server/wiring.go` | composition root: the framework, the registry and the auth service, built once |
-| `apps/api/cmd/noxis/server/static/` | embedded console (built SPA; placeholder committed) |
+| `apps/api/cmd/noxis/server/static/` | embedded console (built SPA; placeholder, icons and logos committed) |
 | `apps/api/cmd/noxis/server/middlewares/` | CORS → auth → request-log/span |
 | `apps/api/internal/usecases/` | root framework (RegistryDeps + helpers) + one subpackage per domain |
 | `apps/api/internal/modules/` | engine adapters: one package per driver (`postgres`, `mysql`, `mariadb`, `sqlite`, `cockroach`, `redis`, `valkey`, `mongodb`) + `Registry` |
@@ -103,7 +103,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 - **Context:** authenticated principal and immutable module loader only. Repositories and other app dependencies stay explicit; use `common.LoadModule(ctx, &target)` for registered typed modules.
 - **Repositories:** pass one `repositories.Registry` through app sources and expose it as `RegistryDeps.Repositories`; modules receive only the repositories they use.
 - **No env reads outside `apps/api/internal/common/config`.** Add an `EnvX` const + a `Config` field + a viper read with its default.
-- **No hardcoded drivers/capabilities/statuses.** Add to `apps/api/internal/constants`.
+- **No hardcoded drivers/capabilities/statuses/headers/media types.** Add to `apps/api/internal/constants`, in the file named after the thing: `drivers.go`, `changes.go`, `http.go` (header names, auth schemes, content types, CORS lists), and so on.
 - **Secrets:** passwords are redacted on every response (`Connection.Redacted()`); encrypted at rest via `apps/api/internal/common/secret` when `NOXIS_SECRET_KEY` set.
 - **Authz:** the single gate is `usecases.RawConn` (per-connection) + `RequireSuper` (global management). The env root is the only super; everyone else needs a non-expired per-connection grant.
 - **Errors:** wrap with `%w`; compare with `errors.Is`. Sentinel errors live in `interfaces` / `usecases`.
@@ -125,7 +125,7 @@ Dependency direction is one-way: `handlers → usecases → modules → reposito
 ## Notes that bite
 
 - `Makefile swagger` rewrites `openapi.yaml|json` from Swagger 2.0 → OpenAPI 3; the web client `gen:api` reads the same files. Regenerate and commit both after route/annotation changes.
-- `apps/api/cmd/noxis/server/static/` is gitignored except `placeholder.html`; `go:embed` needs a file at compile time.
+- `apps/api/cmd/noxis/server/static/` is gitignored except `placeholder.html`, `favicon.ico` and the logos; `go:embed` needs a file at compile time.
 - The retired master/slave + Kafka design is gone from the code, docs and CI. If an old branch, issue or note mentions `doorman`, `slave`, `kafka`, `NOXIS_BROKER` or `NOXIS_TOPIC_PREFIX`, it predates the rewrite — do not restore it.
 
 ## Docs index

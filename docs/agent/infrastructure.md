@@ -125,9 +125,11 @@ via TanStack Query, monaco editor, `oidc-client-ts` for PKCE login.
 - `pnpm gen:api` regenerates `src/api/generated.ts` from `openapi.yaml`.
 - Layout: `src/pages/*` (routes), `src/components/*` (by domain: changes,
   connection, layout, mongodb, sql, ui), `src/hooks/*` (queries), `src/lib/*`.
-- `apps/api/cmd/noxis/server/static/` is gitignored except `placeholder.html`
-  (go:embed needs a compile-time file). `getConsole` answers JSON 404 for any
-  unknown `/external/v1/*` instead of serving the SPA shell.
+- `apps/api/cmd/noxis/server/static/` is gitignored except `placeholder.html`,
+  `favicon.ico` and the logos (go:embed needs a compile-time file). `getConsole`
+  serves any embedded file by its real content type, hands the SPA shell to a
+  deep link, 404s a missing bundle or icon, and answers JSON 404 for any unknown
+  `/external/v1/*` instead of serving the SPA shell.
 
 ## Devcontainer
 
