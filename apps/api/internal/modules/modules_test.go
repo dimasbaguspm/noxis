@@ -42,13 +42,18 @@ func TestLoadModuleFillsTheRequestedCapability(t *testing.T) {
 		t.Fatalf("cache module = %T, error = %v", gotCache, err)
 	}
 
-	// Every module answers every seam now, and refuses by verb: what it does not serve comes back as unsupported.
+	// A module answers every seam, so the declaration is what refuses: the loader turns down SQL for the cache driver,
+	// and the module would answer the same refusal if a caller reached it directly.
 	cacheModule, err := r.Engine(constants.DriverRedis)
 	if err != nil || cacheModule != cache {
 		t.Fatalf("redis engine = %v, %v", cacheModule, err)
 	}
 	if _, err := cacheModule.Query(context.Background(), entity.Connection{}, "select 1"); !errors.Is(err, constants.ErrUnsupported) {
 		t.Fatalf("cache query error = %v, want unsupported", err)
+	}
+	var wrongSQL interfaces.SQLChangeEngine
+	if err := r.LoadModule(ctx, &wrongSQL); !errors.Is(err, constants.ErrUnsupported) {
+		t.Fatalf("cache driver loaded for a SQL seam: %v", err)
 	}
 }
 
