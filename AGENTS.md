@@ -77,7 +77,7 @@ Inside `apps/api/`:
 | `apps/api/internal/usecases/` | root framework (RegistryDeps + helpers) + one subpackage per domain |
 | `apps/api/internal/modules/` | engine adapters: one package per driver (`postgres`, `mysql`, `mariadb`, `sqlite`, `cockroach`, `redis`, `valkey`, `mongodb`) + `Registry` |
 | `apps/api/internal/repositories/` | persistence: `sqlite` (the only state) |
-| `apps/api/internal/interfaces/` | seams (`ConnectionRepository`, `Module` + one capability interface per verb set, …) |
+| `apps/api/internal/interfaces/` | seams (`ConnectionRepository`, `Engine` + `Module` with the family capability seams, …) |
 | `apps/api/internal/entity/` | shared data model (store + wire + REST) |
 | `apps/api/internal/common/` | config, logging/span, idgen, pagination, secret, `sqltext` (the pure SQL lexer every engine calls), `auth` (the sign-in and OIDC service) |
 | `apps/api/internal/constants/` | universal values (drivers, capabilities, statuses, limits) |
