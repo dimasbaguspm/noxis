@@ -116,9 +116,8 @@ func routes(w Wiring, cfg config.Config) []route {
 		{Method: http.MethodGet, Endpoint: api + "/instances/{id}", Handler: http.HandlerFunc(instance.Get{RegistryDeps: w.Usecases}.Serve)},
 		{Method: http.MethodPost, Endpoint: api + "/instances/{id}/password", Handler: http.HandlerFunc(instance.RotatePassword{RegistryDeps: w.Usecases}.Serve)},
 
-		// Console and probes.
-		{Method: http.MethodGet, Endpoint: "/assets/", Handler: http.HandlerFunc(getAssets)}, // embedded FS keeps the assets/ prefix
-		{Method: http.MethodGet, Endpoint: "/", Handler: http.HandlerFunc(getConsole)},       // the operator console (SPA shell)
+		// Console and probes: one catch-all serves the embedded console (shell, icons, hashed bundles).
+		{Method: http.MethodGet, Endpoint: "/", Handler: http.HandlerFunc(getConsole)},
 
 		// Scheduling uses an authenticated external callback; no in-process ticker runs.
 		{
