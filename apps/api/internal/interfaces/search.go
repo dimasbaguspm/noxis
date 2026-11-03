@@ -16,15 +16,15 @@ type (
 // proves a change before anyone approves it. A search platform is neither SQL nor a document store, so it gets its own
 // seam rather than a borrowed one.
 type SearchEngine interface {
-	Module
+	Engine
 	// Targets lists what the platform indexes, so the console can pick one.
 	Targets(ctx context.Context, c entity.Connection) ([]SearchTarget, error)
 	// Search runs a read against one target; a write is refused here by design.
 	Search(ctx context.Context, c entity.Connection, req SearchRequest) (Result, error)
-	// ValidateChange proves a write without applying it: the impact the reviewer needs before approving.
-	ValidateChange(ctx context.Context, c entity.Connection, req SearchRequest) (Result, error)
-	// Apply runs a reviewed write for real.
-	Apply(ctx context.Context, c entity.Connection, req SearchRequest) (Result, error)
+	// ValidateSearchChange proves a write without applying it: the impact the reviewer needs before approving.
+	ValidateSearchChange(ctx context.Context, c entity.Connection, req SearchRequest) (Result, error)
+	// ApplySearch runs a reviewed write for real.
+	ApplySearch(ctx context.Context, c entity.Connection, req SearchRequest) (Result, error)
 	// IsWrite reports whether an op mutates the platform; a read is refused on the change path.
 	IsWrite(op string) bool
 }

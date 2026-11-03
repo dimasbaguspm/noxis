@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 
@@ -81,11 +82,32 @@ func (r registry) LoadModule(ctx context.Context, target any) error {
 	if !ok {
 		return fmt.Errorf("%w: no engine serves driver %q", constants.ErrUnsupported, driver)
 	}
+	// Every module answers every seam, so the type assertion no longer refuses anything: the module's declaration does.
+	if wanted := capabilityOf(target); wanted != "" && !slices.Contains(module.Capabilities(), wanted) {
+		return fmt.Errorf("%w: driver %q does not serve %s", constants.ErrUnsupported, driver, capabilityName(capability))
+	}
 	if !reflect.TypeOf(module).Implements(capability) {
 		return fmt.Errorf("%w: driver %q does not serve %s", constants.ErrUnsupported, driver, capabilityName(capability))
 	}
 	value.Elem().Set(reflect.ValueOf(module))
 	return nil
+}
+
+// capabilityOf maps the seam a use case asks for to the capability a module must declare. A seam nobody classifies is
+// filled by any module, so a new interface does not need an entry here to work.
+func capabilityOf(target any) string {
+	switch target.(type) {
+	case *interfaces.ConsoleQuerier, *interfaces.SchemaReader, *interfaces.ServerReporter,
+		*interfaces.ChangeProver, *interfaces.ChangeApplier, *interfaces.SQLChangeEngine:
+		return constants.CapabilitySQL
+	case *interfaces.KeyBrowser:
+		return constants.CapabilityKeys
+	case *interfaces.DocumentBrowser, *interfaces.MongoChangeEngine:
+		return constants.CapabilityDocuments
+	case *interfaces.SearchEngine:
+		return constants.CapabilitySearch
+	}
+	return ""
 }
 
 // capabilityName is the interface name without its package, so the refusal reads "does not serve SchemaReader".

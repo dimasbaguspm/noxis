@@ -40,7 +40,9 @@ const (
 )
 
 // DB talks to CouchDB servers.
-type DB struct{}
+type DB struct {
+	interfaces.Unsupported
+}
 
 // New builds the CouchDB module.
 func New() *DB { return &DB{} }
@@ -68,6 +70,9 @@ func IsWrite(op string) bool {
 	}
 	return false
 }
+
+// Capabilities reports what this module serves.
+func (db *DB) Capabilities() []string { return []string{constants.CapabilityDocuments} }
 
 // Ping verifies a connection answers with its welcome document.
 func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
@@ -241,7 +246,7 @@ func (db *DB) ValidateRequest(ctx context.Context, c entity.Connection, req enti
 }
 
 // Apply runs a write for real, after review.
-func (db *DB) Apply(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
+func (db *DB) ApplyDocument(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := validateRequest(req); err != nil {

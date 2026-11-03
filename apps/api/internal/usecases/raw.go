@@ -12,7 +12,7 @@ import (
 )
 
 // RawConn checks the driver and access before returning a password-bearing connection.
-func (d RegistryDeps) RawConn(ctx context.Context, mod interfaces.Module, name, level string) (*entity.Connection, error) {
+func (d RegistryDeps) RawConn(ctx context.Context, mod interfaces.Engine, name, level string) (*entity.Connection, error) {
 	c, err := d.Repositories.Connections.Get(ctx, name)
 	if err != nil {
 		return nil, err
@@ -46,12 +46,12 @@ func (d RegistryDeps) Change(ctx context.Context, id, what string, kinds ...stri
 
 // ChangeFor loads the change through the flow its engine owns: the module's capability picks the kinds and the wording.
 func (d RegistryDeps) ChangeFor(ctx context.Context, module interfaces.Module, id string) (*entity.Change, error) {
-	switch module.(type) {
-	case interfaces.SQLChangeEngine:
+	switch {
+	case Serves(module, constants.CapabilitySQL):
 		return d.Change(ctx, id, "sql change", constants.KindDML, constants.KindDDL)
-	case interfaces.MongoChangeEngine:
+	case Serves(module, constants.CapabilityDocuments):
 		return d.Change(ctx, id, "document request", constants.KindMongo, constants.KindDocument)
-	case interfaces.SearchEngine:
+	case Serves(module, constants.CapabilitySearch):
 		return d.Change(ctx, id, "search request", constants.KindSearch)
 	}
 	return nil, UnsupportedChangeFlow(module)

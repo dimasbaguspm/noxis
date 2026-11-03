@@ -34,19 +34,27 @@ const (
 type Result = entity.Result
 
 // DB talks to Redis servers.
-type DB struct{}
+type DB struct {
+	interfaces.Unsupported
+}
 
 // New builds the redis module.
 func New() *DB { return &DB{} }
 
 // Satisfier: a redis module browses keys, and nothing else.
-var _ interfaces.KeyBrowser = (*DB)(nil)
+var (
+	_ interfaces.KeyBrowser = (*DB)(nil)
+	_ interfaces.Module     = (*DB)(nil)
+)
 
 // Driver is the driver this module serves.
 func (db *DB) Driver() string { return driver }
 
 // Supports reports whether this module serves the driver.
 func (db *DB) Supports(name string) bool { return strings.EqualFold(name, driver) }
+
+// Capabilities reports what this module serves.
+func (db *DB) Capabilities() []string { return []string{constants.CapabilityKeys} }
 
 // Ping verifies the server answers and the credentials work.
 func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {

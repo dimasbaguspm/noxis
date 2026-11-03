@@ -22,7 +22,11 @@ const (
 )
 
 // DB runs verified SQL against this driver's connections.
-type DB struct{ info infoCache }
+type DB struct {
+	interfaces.Unsupported
+
+	info infoCache
+}
 
 // New builds the module; it serves one driver and refuses the rest.
 func New() *DB { return &DB{} }
@@ -38,6 +42,7 @@ var (
 	_ interfaces.ChangeProver    = (*DB)(nil)
 	_ interfaces.ChangeApplier   = (*DB)(nil)
 	_ interfaces.SQLChangeEngine = (*DB)(nil)
+	_ interfaces.Module          = (*DB)(nil)
 )
 
 // withDB opens a short-lived pool (control-plane rates) for one operation.
@@ -84,6 +89,9 @@ func (db *DB) Driver() string { return constants.DriverCockroach }
 func (db *DB) Supports(driver string) bool {
 	return strings.EqualFold(driver, constants.DriverCockroach)
 }
+
+// Capabilities reports what this module serves.
+func (db *DB) Capabilities() []string { return []string{constants.CapabilitySQL} }
 
 // Ping verifies a connection answers.
 func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
@@ -165,7 +173,7 @@ func (db *DB) DryRun(ctx context.Context, c entity.Connection, sqlText string) (
 }
 
 // Apply executes write statements in one transaction and commits, so a mixed DDL/DML batch is atomic here.
-func (db *DB) Apply(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
+func (db *DB) ApplySQL(ctx context.Context, c entity.Connection, sqlText string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err = verifyKind(sqlText, writes); err != nil {

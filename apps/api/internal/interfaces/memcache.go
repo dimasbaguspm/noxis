@@ -16,7 +16,7 @@ type (
 
 // KeyBrowser is the console's only route to a memory-cache server (redis or valkey): browse, read one value, delete, flush.
 type KeyBrowser interface {
-	Module
+	Engine
 	// Keys browses one page of the keyspace from a cursor; a zero cursor starts the iteration.
 	Keys(ctx context.Context, c entity.Connection, pattern string, cursor uint64, limit int) (KeyPage, error)
 	Value(ctx context.Context, c entity.Connection, key string) (Result, error)

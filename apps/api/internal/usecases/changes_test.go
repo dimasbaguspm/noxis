@@ -78,7 +78,8 @@ func TestTickLeavesAnotherDriversChangeAlone(t *testing.T) {
 		Status: constants.ChangeApproved, ScheduledAt: 1,
 	}}, nil)
 
-	engine := mocks.NewMockSQLChangeEngine(controller)
+	engine := mocks.NewMockModule(controller)
+	engine.EXPECT().Capabilities().Return([]string{constants.CapabilitySQL}).AnyTimes()
 	engine.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
 	res, err := deps(t, store, conns, engine).TickChanges(context.Background(), 2, "local:ticker")
 	if err != nil {
@@ -95,7 +96,8 @@ func TestTickRunsDueChangesOnce(t *testing.T) {
 	controller := gomock.NewController(t)
 	store := mocks.NewMockChangeRepository(controller)
 	conns := mocks.NewMockConnectionRepository(controller)
-	engine := mocks.NewMockSQLChangeEngine(controller)
+	engine := mocks.NewMockModule(controller)
+	engine.EXPECT().Capabilities().Return([]string{constants.CapabilitySQL}).AnyTimes()
 
 	store.EXPECT().ListChanges(gomock.Any()).Return([]entity.Change{
 		{ID: "due", Connection: "demo", Query: "CREATE TABLE due (id INT)", Kind: constants.KindDDL, Status: constants.ChangeApproved, ScheduledAt: 100},
@@ -109,8 +111,8 @@ func TestTickRunsDueChangesOnce(t *testing.T) {
 	store.EXPECT().ClaimChange(gomock.Any(), "claimed", gomock.Any(), constants.SchedulerActor).Return(false, nil)
 	store.EXPECT().ClaimChange(gomock.Any(), "failing", gomock.Any(), constants.SchedulerActor).Return(true, nil)
 	store.EXPECT().SaveChange(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	engine.EXPECT().Apply(gomock.Any(), gomock.Any(), "CREATE TABLE due (id INT)").Return(entity.Result{Affected: 1}, nil)
-	engine.EXPECT().Apply(gomock.Any(), gomock.Any(), "CREATE TABLE nope (id INT)").Return(entity.Result{}, errors.New("engine said no"))
+	engine.EXPECT().ApplySQL(gomock.Any(), gomock.Any(), "CREATE TABLE due (id INT)").Return(entity.Result{Affected: 1}, nil)
+	engine.EXPECT().ApplySQL(gomock.Any(), gomock.Any(), "CREATE TABLE nope (id INT)").Return(entity.Result{}, errors.New("engine said no"))
 
 	result, err := deps(t, store, conns, engine).TickChanges(context.Background(), 100, constants.SchedulerActor)
 	if err != nil {

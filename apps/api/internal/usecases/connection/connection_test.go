@@ -25,7 +25,7 @@ func deps(t *testing.T) (usecases.RegistryDeps, *mocks.MockConnectionRepository,
 	t.Helper()
 	conns := mocks.NewMockConnectionRepository(gomock.NewController(t))
 	perms := mocks.NewMockPermissionRepository(gomock.NewController(t))
-	sq := mocks.NewMockSQLChangeEngine(gomock.NewController(t))
+	sq := mocks.NewMockModule(gomock.NewController(t))
 	sq.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
 	sq.EXPECT().Supports(gomock.Any()).Return(true).AnyTimes()
 	return usecases.RegistryDeps{
@@ -101,7 +101,7 @@ func super() *entity.Identity { return &entity.Identity{Subject: "root", Role: e
 func TestProbeSavesNothing(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	conns := mocks.NewMockConnectionRepository(ctrl)
-	sq := mocks.NewMockSQLChangeEngine(ctrl)
+	sq := mocks.NewMockModule(ctrl)
 	sq.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
 	sq.EXPECT().Supports(gomock.Any()).Return(true).AnyTimes()
 	sq.EXPECT().Ping(gomock.Any(), gomock.Any()).Return(nil)
@@ -124,7 +124,7 @@ func TestProbeSavesNothing(t *testing.T) {
 func TestProbeReportsTheProbeError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	conns := mocks.NewMockConnectionRepository(ctrl)
-	sq := mocks.NewMockSQLChangeEngine(ctrl)
+	sq := mocks.NewMockModule(ctrl)
 	sq.EXPECT().Driver().Return(constants.DriverPostgres).AnyTimes()
 	sq.EXPECT().Supports(gomock.Any()).Return(true).AnyTimes()
 	sq.EXPECT().Ping(gomock.Any(), gomock.Any()).Return(errors.New("connection refused"))

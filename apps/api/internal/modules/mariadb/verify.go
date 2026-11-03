@@ -28,7 +28,7 @@ const scratchPrefix = "noxis_verify_"
 const verifySampleRows = 100
 
 // ValidateChange runs query and rollback in the proof this profile chose: a rolled-back transaction where DDL is transactional, a scratch schema where it is not.
-func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
+func (db *DB) ValidateSQLChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	d, derr := dialectOf(c.Driver)

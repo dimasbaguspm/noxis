@@ -7,5 +7,5 @@
 // internal/interfaces changes.
 //
 //go:generate go run go.uber.org/mock/mockgen -package mocks -destination repositories.go noxis/internal/interfaces ConnectionRepository,ChangeRepository,PermissionRepository,UserRepository,AccessEventRepository,AccessRequestRepository
-//go:generate go run go.uber.org/mock/mockgen -package mocks -destination modules.go noxis/internal/interfaces SQLChangeEngine,MongoChangeEngine,KeyBrowser
+//go:generate go run go.uber.org/mock/mockgen -package mocks -destination modules.go noxis/internal/interfaces Module,SQLChangeEngine,MongoChangeEngine,KeyBrowser,SearchEngine
 package mocks

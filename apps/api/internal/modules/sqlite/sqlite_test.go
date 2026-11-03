@@ -60,7 +60,7 @@ func TestSQLiteValidateChangeRollsBack(t *testing.T) {
 	u := New()
 	ctx := context.Background()
 
-	if _, err := u.ValidateChange(ctx, conn,
+	if _, err := u.ValidateSQLChange(ctx, conn,
 		"INSERT INTO people (name) VALUES ('linus')",
 		"DELETE FROM people WHERE name = 'linus'"); err != nil {
 		t.Fatalf("validate: %v", err)
@@ -90,11 +90,11 @@ func TestSQLiteOperations(t *testing.T) {
 	if _, err := u.Query(ctx, conn, "INSERT INTO people (name) VALUES ('x')"); err == nil {
 		t.Fatal("the read path must refuse DML")
 	}
-	if _, err := u.Apply(ctx, conn, "SELECT * FROM people"); err == nil {
+	if _, err := u.ApplySQL(ctx, conn, "SELECT * FROM people"); err == nil {
 		t.Fatal("the write path must refuse a read")
 	}
 
-	if _, err := u.Apply(ctx, conn, "INSERT INTO people (name) VALUES ('linus')"); err != nil {
+	if _, err := u.ApplySQL(ctx, conn, "INSERT INTO people (name) VALUES ('linus')"); err != nil {
 		t.Fatalf("apply: %v", err)
 	}
 	// a dry run rolls back, so the count stays at three
@@ -121,7 +121,7 @@ func TestSQLiteRejectsUnrestoredRollback(t *testing.T) {
 	conn := newSQLiteFile(t)
 	u := New()
 
-	_, err := u.ValidateChange(context.Background(), conn,
+	_, err := u.ValidateSQLChange(context.Background(), conn,
 		"UPDATE people SET name = 'changed' WHERE id = 1",
 		"UPDATE people SET name = 'changed' WHERE id = 1")
 	if err == nil {
@@ -145,7 +145,7 @@ func TestSQLiteEmptyDMLIsUnverifiable(t *testing.T) {
 	db.Close()
 
 	u := New()
-	_, err = u.ValidateChange(context.Background(), conn,
+	_, err = u.ValidateSQLChange(context.Background(), conn,
 		"UPDATE empty_people SET name = 'x'",
 		"UPDATE empty_people SET name = ''")
 	if !errors.Is(err, interfaces.ErrUnverifiable) {

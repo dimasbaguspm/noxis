@@ -12,10 +12,15 @@ import (
 	"noxis/internal/usecases"
 )
 
+// changeCapabilities are the families that review a change, so a driver that declares one of them serves the queue.
+var changeCapabilities = []string{constants.CapabilitySQL, constants.CapabilityDocuments, constants.CapabilitySearch}
+
+// supports reports whether the module reviews changes at all: a driver with no change family has no queue to serve.
 func supports(module interfaces.Module) bool {
-	switch module.(type) {
-	case interfaces.SQLChangeEngine, interfaces.MongoChangeEngine, interfaces.SearchEngine:
-		return true
+	for _, capability := range changeCapabilities {
+		if usecases.Serves(module, capability) {
+			return true
+		}
 	}
 	return false
 }
@@ -29,20 +34,9 @@ func readable(all []entity.Change, module interfaces.Module, allowed map[string]
 		if !allowed[change.Connection] || drivers[change.Connection] != driver {
 			continue
 		}
-		switch module.(type) {
-		case interfaces.SQLChangeEngine:
-			if change.Kind != constants.KindDML && change.Kind != constants.KindDDL {
-				continue
-			}
-		case interfaces.MongoChangeEngine:
-			// every document engine reviews the same shape of change, so a queue shows what its own engine wrote
-			if change.Kind != constants.KindMongo && change.Kind != constants.KindDocument {
-				continue
-			}
-		case interfaces.SearchEngine:
-			if change.Kind != constants.KindSearch {
-				continue
-			}
+		// the queue shows what its own engine wrote: the module's declared family picks the kinds it reviews.
+		if !usecases.ServesKind(module, change.Kind) {
+			continue
 		}
 		change.Driver = driver
 		out = append(out, change)
@@ -101,7 +95,7 @@ func changeKind(raw string, module interfaces.Module) (string, error) {
 	if raw != constants.KindDML && raw != constants.KindDDL {
 		return "", fmt.Errorf("kind must be %s or %s", constants.KindDML, constants.KindDDL)
 	}
-	if _, ok := module.(interfaces.SQLChangeEngine); !ok {
+	if !usecases.Serves(module, constants.CapabilitySQL) {
 		return "", fmt.Errorf("%w: engine %q has no %s or %s kind", constants.ErrUnsupported, module.Driver(), constants.KindDML, constants.KindDDL)
 	}
 	return raw, nil

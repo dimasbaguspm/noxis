@@ -83,17 +83,24 @@ driver instead of a copy per driver.
 
 | Interface | File | Implemented by |
 | --- | --- | --- |
+| `Engine` (`Driver`, `Supports`, `Capabilities`, `Ping`) | `interfaces/engine.go` | every `modules/<driver>.DB` |
+| `Module` (the whole verb surface, all four families) | `interfaces/engine.go` | every `modules/<driver>.DB` by embedding `interfaces.Unsupported` for the verbs it does not serve |
+| capability seams (`ConsoleQuerier`, `SchemaReader`, `ServerReporter`, `ChangeProver`, `ChangeApplier`) | `interfaces/sql.go` | each `modules/<sql driver>.DB` (`Tables` carries declared keys, so the schema browser and the ERD read one pass) |
+| `KeyBrowser` | `interfaces/memcache.go` | `redis.DB`, `valkey.DB`, `dragonfly.DB` |
+| `DocumentBrowser`, `MongoChangeEngine` | `interfaces/mongodb.go` | `mongodb.DB`, `couchdb.DB` |
+| `SearchEngine` | `interfaces/search.go` | `elasticsearch.DB`, `meilisearch.DB`, `splunk.DB` |
 | `ConnectionRepository` | `interfaces/connection.go` | `sqlite.Store` |
 | `ChangeRepository` | `interfaces/change.go` | `sqlite.Store` |
 | `PermissionRepository` | `interfaces/permission.go` | `sqlite.Store` |
-| `Module` + capabilities (`ConsoleQuerier`, `SchemaReader`, `ServerReporter`, `ChangeProver`, `ChangeApplier`) | `interfaces/sql.go` | each `modules/<sql driver>.DB` (`Tables` carries declared keys, so the schema browser and the ERD read one pass) |
-| `KeyBrowser` | `interfaces/memcache.go` | `redis.DB`, `valkey.DB` |
-| `DocumentBrowser`, `MongoChangeEngine` | `interfaces/mongodb.go` | `mongodb.DB` |
 | `Verifier` | `interfaces/auth.go` | `common/auth.OIDC` (tests use a fake) |
 
-A driver implements only the capabilities it can prove, and a compile-time
-`var _ interfaces.X` assert per capability keeps the claim honest — the loader
-returns unsupported rather than a stub.
+Every module answers the same contract: the verbs its family serves are declared in its own files,
+and the rest are promoted from `interfaces.Unsupported`, which refuses with `ErrUnsupported` and the
+verb's name. A module says which family it serves in `Capabilities()`, so the driver catalog and the
+change dispatch read a declaration instead of asserting a type that every module now satisfies. A
+compile-time `var _ interfaces.Module` plus the family seam keeps the claim honest, and
+`test/arch/module_contract_test.go` fails when a module forgets a verb its family serves or declares
+one it does not.
 
 `ErrNotFound` and `ErrUnsupported` live in `constants` and drive HTTP 404.
 
@@ -112,8 +119,9 @@ the type that holds the state.
 
 A change's kind is declared by the client and derived by the engine: `entity.Change.RequireKind` refuses a submit whose declaration disagrees with the classification of its own statement, so a page cannot re-file a change into the other queue. The rule lives on the type that holds the state, and each SQL module calls it between deriving and recording.
 
-A module declares its capabilities by implementing the interfaces, so nothing registers a queue:
-`uc.Modules.Engine(driver)` plus a type assertion is the whole dispatch. A module may read
+A module declares its family in `Capabilities()`, so nothing registers a queue:
+`uc.Modules.Engine(driver)` plus `usecases.Serves`/`ServesKind` is the whole dispatch, and a verb the
+driver does not serve is refused by the module itself with `ErrUnsupported`. A module may read
 repositories; it never imports the registry or a sibling driver package.
 
 ## Use-case pattern
@@ -238,12 +246,13 @@ State lives in hooks. A component with three or more `useState` calls moves that
 
 ## How to add things
 
-**New driver:** create `apps/api/internal/modules/<driver>/`, implement
-`interfaces.Module` plus only the capability interfaces the server can honour,
-register it in `modules.Default()` under its own driver name, add the driver const
-and its capability consts, add its row to the driver catalog
-(`usecases/driver/driver.go`), and add a compose service plus an acceptance
-scenario. The driver name is the API namespace, so no route edit is needed.
+**New driver:** create `apps/api/internal/modules/<driver>/`, declare the identity methods
+(`Driver`, `Supports`, `Capabilities`, `Ping`) and the verbs the family serves on `DB`, embed
+`interfaces.Unsupported` so every other verb refuses honestly, assert `var _ interfaces.Module`,
+register it in `modules.Default()` under its own driver name, add the driver const and its
+capability consts, add its row to the driver catalog (`usecases/driver/driver.go`), and add a
+compose service plus an acceptance scenario. The driver name is the API namespace, so no route edit
+is needed. `test/arch/module_contract_test.go` needs the new package's family added to its table.
 
 **New SQL-looking operation:** add the op const, add the method to the capability
 interface in `interfaces/sql.go`, implement it in every SQL driver package that can

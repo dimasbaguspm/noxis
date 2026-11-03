@@ -36,12 +36,15 @@ const (
 )
 
 // DB talks to MongoDB servers.
-type DB struct{}
+type DB struct {
+	interfaces.Unsupported
+}
 
 func New() *DB { return &DB{} }
 
 // Satisfiers: the document engine browses documents and proves a write request.
 var (
+	_ interfaces.Module            = (*DB)(nil)
 	_ interfaces.DocumentBrowser   = (*DB)(nil)
 	_ interfaces.MongoChangeEngine = (*DB)(nil)
 )
@@ -54,6 +57,9 @@ func (db *DB) IsWrite(op string) bool { return IsWrite(op) }
 
 // Supports reports whether this module serves the driver.
 func (db *DB) Supports(driver string) bool { return strings.EqualFold(driver, constants.DriverMongo) }
+
+// Capabilities reports what this module serves.
+func (db *DB) Capabilities() []string { return []string{constants.CapabilityDocuments} }
 
 // Ping verifies the server answers and the credentials work.
 func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
@@ -197,7 +203,7 @@ func (db *DB) ValidateRequest(ctx context.Context, c entity.Connection, req enti
 }
 
 // Apply runs a write for real, after review.
-func (db *DB) Apply(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
+func (db *DB) ApplyDocument(ctx context.Context, c entity.Connection, req entity.MongoRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := validateRequest(req); err != nil {
