@@ -30,7 +30,7 @@ const verifySampleRows = 100
 var qualifiedIdent = regexp.MustCompile("(?i)(?:[a-z_][a-z0-9_$]*|\"[^\"]+\"|`[^`]+`)\\s*\\.\\s*(?:[a-z_*][a-z0-9_$]*|\"[^\"]+\"|`[^`]+`)")
 
 // ValidateChange runs query and rollback in the proof this profile chose: a rolled-back transaction where DDL is transactional, a scratch schema where it is not.
-func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
+func (db *DB) ValidateSQLChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	d, derr := dialectOf(c.Driver)

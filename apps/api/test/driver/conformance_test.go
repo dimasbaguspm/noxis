@@ -2,6 +2,7 @@
 package driver
 
 import (
+	"slices"
 	"testing"
 
 	"noxis/internal/constants"
@@ -61,8 +62,8 @@ func TestSQLModulesKeepTheContract(t *testing.T) {
 		if c.module.Supports("oracle") {
 			t.Errorf("%s: Supports(an unknown driver) = true", c.driver)
 		}
-		if _, ok := c.module.(interfaces.SQLChangeEngine); !ok {
-			t.Errorf("%s: %T does not prove and apply SQL", c.driver, c.module)
+		if !serves(c.module, constants.CapabilitySQL) {
+			t.Errorf("%s: %T does not declare SQL", c.driver, c.module)
 		}
 	}
 	if len(seen) != len(every) {
@@ -89,10 +90,10 @@ func TestCacheModulesKeepTheContract(t *testing.T) {
 				t.Errorf("%s: Supports(%q) = %v, want %v", c.driver, other, got, want)
 			}
 		}
-		if _, ok := c.module.(interfaces.KeyBrowser); !ok {
-			t.Errorf("%s: %T does not browse keys", c.driver, c.module)
+		if !serves(c.module, constants.CapabilityKeys) {
+			t.Errorf("%s: %T does not declare keys", c.driver, c.module)
 		}
-		if _, ok := c.module.(interfaces.SQLChangeEngine); ok {
+		if serves(c.module, constants.CapabilitySQL) {
 			t.Errorf("%s: %T claims to prove SQL", c.driver, c.module)
 		}
 	}
@@ -107,7 +108,13 @@ func TestDocumentModuleKeepsTheContract(t *testing.T) {
 	if !module.Supports(constants.DriverMongo) || module.Supports(constants.DriverRedis) {
 		t.Error("Supports does not follow the driver")
 	}
-	if _, ok := module.(interfaces.MongoChangeEngine); !ok {
-		t.Errorf("%T does not prove and apply a document write", module)
+	if !serves(module, constants.CapabilityDocuments) {
+		t.Errorf("%T does not declare documents", module)
 	}
+}
+
+// serves reports whether a module declares a capability: every module answers every verb now, so the declaration is
+// what says which family it actually serves.
+func serves(module interfaces.Module, capability string) bool {
+	return slices.Contains(module.Capabilities(), capability)
 }

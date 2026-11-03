@@ -145,33 +145,24 @@ func (d RegistryDeps) applyBody(ctx context.Context, conn entity.Connection, ch 
 	if err != nil {
 		return entity.Result{}, err
 	}
+	if !ServesKind(module, ch.Kind) {
+		return entity.Result{}, unsupportedKind(module, ch.Kind)
+	}
 	switch ch.Kind {
 	case constants.KindDML, constants.KindDDL:
-		engine, ok := module.(interfaces.SQLChangeEngine)
-		if !ok {
-			return entity.Result{}, unsupportedKind(module, ch.Kind)
-		}
-		return engine.Apply(ctx, conn, ch.Query)
+		return module.ApplySQL(ctx, conn, ch.Query)
 	case constants.KindMongo, constants.KindDocument:
-		engine, ok := module.(interfaces.MongoChangeEngine)
-		if !ok {
-			return entity.Result{}, unsupportedKind(module, ch.Kind)
-		}
 		var req entity.MongoRequest
 		if err := json.Unmarshal([]byte(ch.Query), &req); err != nil {
 			return entity.Result{}, fmt.Errorf("stored request is unreadable: %w", err)
 		}
-		return engine.Apply(ctx, conn, req)
+		return module.ApplyDocument(ctx, conn, req)
 	case constants.KindSearch:
-		engine, ok := module.(interfaces.SearchEngine)
-		if !ok {
-			return entity.Result{}, unsupportedKind(module, ch.Kind)
-		}
 		var req entity.SearchRequest
 		if err := json.Unmarshal([]byte(ch.Query), &req); err != nil {
 			return entity.Result{}, fmt.Errorf("stored request is unreadable: %w", err)
 		}
-		return engine.Apply(ctx, conn, req)
+		return module.ApplySearch(ctx, conn, req)
 	}
 	return entity.Result{}, unsupportedKind(module, ch.Kind)
 }
@@ -187,18 +178,7 @@ func (d RegistryDeps) serves(ctx context.Context, ch entity.Change) bool {
 	if err != nil {
 		return false
 	}
-	switch ch.Kind {
-	case constants.KindDML, constants.KindDDL:
-		_, ok := module.(interfaces.SQLChangeEngine)
-		return ok
-	case constants.KindMongo, constants.KindDocument:
-		_, ok := module.(interfaces.MongoChangeEngine)
-		return ok
-	case constants.KindSearch:
-		_, ok := module.(interfaces.SearchEngine)
-		return ok
-	}
-	return false
+	return ServesKind(module, ch.Kind)
 }
 
 // claim atomically reserves an approved change before the engine write.

@@ -16,7 +16,7 @@ type (
 
 // DocumentBrowser is the console's only route to a document server: browse databases and collections, run a read.
 type DocumentBrowser interface {
-	Module
+	Engine
 	Databases(ctx context.Context, c entity.Connection) ([]MongoDatabase, error)
 	Collections(ctx context.Context, c entity.Connection, database string) ([]MongoCollection, error)
 	// Run executes a read request; a write is refused here by design.
@@ -25,11 +25,11 @@ type DocumentBrowser interface {
 
 // MongoChangeEngine is the whole document engine a change queue drives: it proves a request and applies it.
 type MongoChangeEngine interface {
-	Module
+	Engine
 	// ValidateRequest dry-runs a write against a scratch collection.
 	ValidateRequest(ctx context.Context, c entity.Connection, req MongoRequest) (MongoResult, error)
-	// Apply executes a write for real, after review.
-	Apply(ctx context.Context, c entity.Connection, req MongoRequest) (MongoResult, error)
+	// ApplyDocument executes a write for real, after review.
+	ApplyDocument(ctx context.Context, c entity.Connection, req MongoRequest) (MongoResult, error)
 	// IsWrite reports whether an op mutates documents; a read is refused on the change path.
 	IsWrite(op string) bool
 }

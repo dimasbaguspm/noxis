@@ -29,7 +29,7 @@ func approved(id string) entity.Change {
 // harness holds the change store and the SQL module, both mocked.
 type harness struct {
 	deps        usecases.RegistryDeps
-	sq          *mocks.MockSQLChangeEngine
+	sq          *mocks.MockModule
 	changes     *mocks.MockChangeRepository
 	stored      map[string]entity.Change
 	saveErr     error
@@ -40,13 +40,14 @@ func newHarness(t *testing.T, store ...entity.Change) *harness {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	h := &harness{
-		sq:      mocks.NewMockSQLChangeEngine(ctrl),
+		sq:      mocks.NewMockModule(ctrl),
 		changes: mocks.NewMockChangeRepository(ctrl),
 		stored:  map[string]entity.Change{},
 	}
 	for i := range store {
 		h.stored[store[i].ID] = store[i]
 	}
+	h.sq.EXPECT().Capabilities().Return([]string{constants.CapabilitySQL}).AnyTimes()
 	conns := mocks.NewMockConnectionRepository(ctrl)
 	conns.EXPECT().Get(gomock.Any(), "demo").Return(&entity.Connection{
 		Name: "demo", Driver: constants.DriverPostgres,
@@ -101,7 +102,7 @@ func (h *harness) do(handler http.Handler, method, path, body string, p *entity.
 
 func TestApplyAfterApprove(t *testing.T) {
 	h := newHarness(t, approved("x"))
-	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{Affected: 1, Message: "applied: 1 statement(s)"}, nil)
+	h.sq.EXPECT().ApplySQL(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{Affected: 1, Message: "applied: 1 statement(s)"}, nil)
 
 	mux := testkit.Mux("POST", "/external/v1/engine/{driver}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
 	rec := h.do(mux, http.MethodPost, "/external/v1/engine/postgres/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
@@ -146,7 +147,7 @@ func TestTickSkipsRejected(t *testing.T) {
 
 func TestApplyFailureIsRecorded(t *testing.T) {
 	h := newHarness(t, approved("x"))
-	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, errors.New("statement 1: duplicate key"))
+	h.sq.EXPECT().ApplySQL(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, errors.New("statement 1: duplicate key"))
 
 	mux := testkit.Mux("POST", "/external/v1/engine/{driver}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
 	rec := h.do(mux, http.MethodPost, "/external/v1/engine/postgres/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
@@ -166,7 +167,7 @@ func TestApplyFailureIsRecorded(t *testing.T) {
 func TestApplyFailureReportsOutcomeSaveFailure(t *testing.T) {
 	h := newHarness(t, approved("x"))
 	h.saveErr = errors.New("sqlite unavailable")
-	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, errors.New("duplicate key"))
+	h.sq.EXPECT().ApplySQL(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, errors.New("duplicate key"))
 
 	mux := testkit.Mux("POST", "/external/v1/engine/{driver}/changes/{id}/apply", Apply{RegistryDeps: h.deps}.Serve)
 	rec := h.do(mux, http.MethodPost, "/external/v1/engine/postgres/changes/x/apply", "", &entity.Identity{Subject: "root", Role: entity.RoleSuper})
@@ -205,7 +206,7 @@ func TestTickAppliesDueScheduledChange(t *testing.T) {
 	due := approved("due")
 	due.ScheduledAt = time.Now().Add(-time.Minute).Unix()
 	h := newHarness(t, due, approved("wait")) // "wait" is immediate: not due
-	h.sq.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{Message: "applied"}, nil)
+	h.sq.EXPECT().ApplySQL(gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{Message: "applied"}, nil)
 
 	rec := h.do(testkit.Mux("POST", "/internal/callback/scheduler", Tick{RegistryDeps: h.deps}.Serve),
 		http.MethodPost, "/internal/callback/scheduler", "", nil)

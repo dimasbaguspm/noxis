@@ -30,7 +30,7 @@ var qualifiedIdent = regexp.MustCompile("(?i)(?:[a-z_][a-z0-9_$]*|\"[^\"]+\"|`[^
 
 // ValidateChange proves a batch by rolling it back in the live transaction: this engine has transactional DDL, so a
 // throwaway schema would prove less than the real thing.
-func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
+func (db *DB) ValidateSQLChange(ctx context.Context, c entity.Connection, query, rollback string) (res Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	return validateChangeTx(ctx, c, query, rollback)

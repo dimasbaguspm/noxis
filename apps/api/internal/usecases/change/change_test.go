@@ -30,7 +30,7 @@ const sampleSQL = `{"connection":"demo","notes":"add things","query":"CREATE TAB
 // harness is the change use case's dependency set: one SQL module whose validation outcome the test controls, and a super admin's connection.
 type harness struct {
 	deps    usecases.RegistryDeps
-	sq      *mocks.MockSQLChangeEngine
+	sq      *mocks.MockModule
 	conns   *mocks.MockConnectionRepository
 	changes *mocks.MockChangeRepository
 }
@@ -40,7 +40,7 @@ func newHarness(t *testing.T) *harness {
 	t.Helper()
 	ctrl := gomock.NewController(t)
 	h := &harness{
-		sq:      mocks.NewMockSQLChangeEngine(ctrl),
+		sq:      mocks.NewMockModule(ctrl),
 		conns:   mocks.NewMockConnectionRepository(ctrl),
 		changes: mocks.NewMockChangeRepository(ctrl),
 	}
@@ -48,6 +48,7 @@ func newHarness(t *testing.T) *harness {
 	h.sq.EXPECT().Supports(constants.DriverPostgres).Return(true).AnyTimes()
 	h.sq.EXPECT().Kind(gomock.Any()).Return(constants.KindDDL).AnyTimes()
 	h.sq.EXPECT().Referenced(gomock.Any()).Return([]string{"things"}, []string{"id"}).AnyTimes()
+	h.sq.EXPECT().Capabilities().Return([]string{constants.CapabilitySQL}).AnyTimes()
 	h.conns.EXPECT().Get(gomock.Any(), "demo").Return(&entity.Connection{
 		Name: "demo", Driver: constants.DriverPostgres,
 	}, nil).AnyTimes()
@@ -98,7 +99,7 @@ func TestSubmitWithoutRegisteredEngineFailsClosed(t *testing.T) {
 func TestSubmitThenApprove(t *testing.T) {
 	h := newHarness(t)
 	h.sq.EXPECT().VerifyWrite(gomock.Any()).Return(nil).AnyTimes()
-	h.sq.EXPECT().ValidateChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+	h.sq.EXPECT().ValidateSQLChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(entity.Result{Message: "query and rollback both valid (rolled back)"}, nil)
 	saved := entity.Change{}
 	h.changes.EXPECT().SaveChange(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, c entity.Change) error {
@@ -140,7 +141,7 @@ func TestSubmitValidationFailures(t *testing.T) {
 	h := newHarness(t)
 	h.sq.EXPECT().VerifyWrite(gomock.Any()).Return(errors.New(`statement "SELECT" not allowed here`)).AnyTimes()
 	// the dry run never runs: it would overwrite the refusal with "unverified", which a reviewer may approve
-	h.sq.EXPECT().ValidateChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	h.sq.EXPECT().ValidateSQLChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 	rec := h.do(testkit.Mux("POST", "/external/v1/engine/{driver}/changes", Submit{RegistryDeps: h.deps}.Serve),
 		http.MethodPost, "/external/v1/engine/postgres/changes", sampleSQL, admin())
 	var failed entity.Change
@@ -155,7 +156,7 @@ func TestSubmitValidationFailures(t *testing.T) {
 	// a dry-run failure lands as failed with the reason recorded
 	h2 := newHarness(t)
 	h2.sq.EXPECT().VerifyWrite(gomock.Any()).Return(nil).AnyTimes()
-	h2.sq.EXPECT().ValidateChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+	h2.sq.EXPECT().ValidateSQLChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(entity.Result{}, errors.New("rollback statement 1: syntax error"))
 	rec = h2.do(testkit.Mux("POST", "/external/v1/engine/{driver}/changes", Submit{RegistryDeps: h2.deps}.Serve),
 		http.MethodPost, "/external/v1/engine/postgres/changes", sampleSQL, admin())
@@ -167,7 +168,7 @@ func TestSubmitValidationFailures(t *testing.T) {
 	// mysql DDL cannot be dry-run: unverified, still approvable
 	h3 := newHarness(t)
 	h3.sq.EXPECT().VerifyWrite(gomock.Any()).Return(nil).AnyTimes()
-	h3.sq.EXPECT().ValidateChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, interfaces.ErrUnverifiable)
+	h3.sq.EXPECT().ValidateSQLChange(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(entity.Result{}, interfaces.ErrUnverifiable)
 	unverified := entity.Change{}
 	h3.changes.EXPECT().SaveChange(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, c entity.Change) error {
 		unverified = c

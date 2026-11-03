@@ -8,7 +8,6 @@ import (
 	"noxis/internal/common/logging"
 	"noxis/internal/constants"
 	"noxis/internal/entity"
-	"noxis/internal/interfaces"
 	"noxis/internal/modules"
 	"noxis/internal/usecases"
 )
@@ -53,7 +52,7 @@ func (uc Drivers) catalog(ctx context.Context) []entity.DriverInfo {
 	return list
 }
 
-// capabilities reads a driver's module and reports the surfaces it serves; an unregistered driver reports none rather than guessing.
+// capabilities reads a driver's module and reports the surfaces it declares; an unregistered driver reports none rather than guessing.
 func capabilities(ctx context.Context, registry modules.Registry, driver string) []string {
 	found := []string{}
 	if registry == nil {
@@ -64,17 +63,5 @@ func capabilities(ctx context.Context, registry modules.Registry, driver string)
 		logging.WarnWithCtx(ctx, "driver catalog names an unregistered driver", "driver", driver, "error", err)
 		return found
 	}
-	if _, ok := mod.(interfaces.SQLChangeEngine); ok {
-		found = append(found, constants.CapabilitySQL)
-	}
-	if _, ok := mod.(interfaces.KeyBrowser); ok {
-		found = append(found, constants.CapabilityKeys)
-	}
-	if _, ok := mod.(interfaces.MongoChangeEngine); ok {
-		found = append(found, constants.CapabilityDocuments)
-	}
-	if _, ok := mod.(interfaces.SearchEngine); ok {
-		found = append(found, constants.CapabilitySearch)
-	}
-	return found
+	return append(found, mod.Capabilities()...)
 }

@@ -34,55 +34,55 @@ func (uc Submit) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	switch engine := module.(type) {
-	case interfaces.SQLChangeEngine:
+	switch {
+	case usecases.Serves(module, constants.CapabilitySQL):
 		var change entity.Change
 		if err := uc.Decode(r, &change); err != nil {
 			uc.Fail(ctx, w, err)
 			return
 		}
-		connection, err := uc.RawConn(ctx, engine, change.Connection, entity.LevelWrite)
+		connection, err := uc.RawConn(ctx, module, change.Connection, entity.LevelWrite)
 		if err != nil {
 			uc.Fail(ctx, w, err)
 			return
 		}
-		out, err := submitSQL(ctx, uc.RegistryDeps, engine, *connection, entity.Actor(ctx), change)
+		out, err := submitSQL(ctx, uc.RegistryDeps, module, *connection, entity.Actor(ctx), change)
 		if err != nil {
 			uc.Fail(ctx, w, err)
 			return
 		}
 		uc.Metrics.ChangeSubmitted(ctx, module.Driver())
 		uc.Respond(w, out)
-	case interfaces.MongoChangeEngine:
+	case usecases.Serves(module, constants.CapabilityDocuments):
 		var body entity.MongoChangeRequest
 		if err := uc.Decode(r, &body); err != nil {
 			uc.Fail(ctx, w, err)
 			return
 		}
-		connection, err := uc.RawConn(ctx, engine, body.Connection, entity.LevelWrite)
+		connection, err := uc.RawConn(ctx, module, body.Connection, entity.LevelWrite)
 		if err != nil {
 			uc.Fail(ctx, w, err)
 			return
 		}
-		out, err := submitDocument(ctx, uc.RegistryDeps, engine, *connection, entity.Actor(ctx), body)
+		out, err := submitDocument(ctx, uc.RegistryDeps, module, *connection, entity.Actor(ctx), body)
 		if err != nil {
 			uc.Fail(ctx, w, err)
 			return
 		}
 		uc.Metrics.ChangeSubmitted(ctx, module.Driver())
 		uc.Respond(w, out)
-	case interfaces.SearchEngine:
+	case usecases.Serves(module, constants.CapabilitySearch):
 		var body entity.SearchChangeRequest
 		if err := uc.Decode(r, &body); err != nil {
 			uc.Fail(ctx, w, err)
 			return
 		}
-		connection, err := uc.RawConn(ctx, engine, body.Connection, entity.LevelWrite)
+		connection, err := uc.RawConn(ctx, module, body.Connection, entity.LevelWrite)
 		if err != nil {
 			uc.Fail(ctx, w, err)
 			return
 		}
-		out, err := submitSearch(ctx, uc.RegistryDeps, engine, *connection, entity.Actor(ctx), body)
+		out, err := submitSearch(ctx, uc.RegistryDeps, module, *connection, entity.Actor(ctx), body)
 		if err != nil {
 			uc.Fail(ctx, w, err)
 			return
@@ -124,7 +124,7 @@ func submitSQL(ctx context.Context, deps usecases.RegistryDeps, engine interface
 		logSubmitted(ctx, ch, actor, dry.Error)
 		return deps.RecordChange(ctx, ch)
 	}
-	res, err := engine.ValidateChange(ctx, conn, ch.Query, ch.Rollback)
+	res, err := engine.ValidateSQLChange(ctx, conn, ch.Query, ch.Rollback)
 	switch {
 	case err == nil:
 		dry.OK, dry.Detail = true, res.Message
@@ -198,7 +198,7 @@ func submitSearch(ctx context.Context, deps usecases.RegistryDeps, engine interf
 	ch.Checks = append(ch.Checks, kind)
 
 	dry := entity.ChangeCheck{Target: "dry-run (impact count)"}
-	if res, err := engine.ValidateChange(ctx, conn, body.SearchRequest); err == nil {
+	if res, err := engine.ValidateSearchChange(ctx, conn, body.SearchRequest); err == nil {
 		dry.OK, dry.Detail = true, res.Message
 		ch.EstDurationMs, ch.EstAffected = res.DurationMs, res.Affected
 	} else {

@@ -34,7 +34,9 @@ const (
 )
 
 // DB talks to Meilisearch servers.
-type DB struct{}
+type DB struct {
+	interfaces.Unsupported
+}
 
 // New builds the Meilisearch module.
 func New() *DB { return &DB{} }
@@ -54,6 +56,9 @@ func (db *DB) Supports(driver string) bool {
 
 // IsWrite reports whether an op mutates the server; a read is refused on the change path.
 func (db *DB) IsWrite(op string) bool { return op == constants.SearchOpDelete }
+
+// Capabilities reports what this module serves.
+func (db *DB) Capabilities() []string { return []string{constants.CapabilitySearch} }
 
 // Ping verifies a server answers its health endpoint.
 func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
@@ -132,7 +137,7 @@ func (db *DB) Search(ctx context.Context, c entity.Connection, req entity.Search
 }
 
 // ValidateChange asks the server how many documents the filter matches, and refuses a filter that matches nothing.
-func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, req entity.SearchRequest) (res entity.Result, err error) {
+func (db *DB) ValidateSearchChange(ctx context.Context, c entity.Connection, req entity.SearchRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := validateRequest(req); err != nil {
@@ -164,7 +169,7 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, req entit
 }
 
 // Apply runs a reviewed delete by filter and waits for the task the server accepted.
-func (db *DB) Apply(ctx context.Context, c entity.Connection, req entity.SearchRequest) (res entity.Result, err error) {
+func (db *DB) ApplySearch(ctx context.Context, c entity.Connection, req entity.SearchRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := validateRequest(req); err != nil {

@@ -34,7 +34,9 @@ const (
 )
 
 // DB talks to Elasticsearch clusters.
-type DB struct{}
+type DB struct {
+	interfaces.Unsupported
+}
 
 // New builds the Elasticsearch module.
 func New() *DB { return &DB{} }
@@ -54,6 +56,9 @@ func (db *DB) Supports(driver string) bool {
 
 // IsWrite reports whether an op mutates the cluster; a read is refused on the change path.
 func (db *DB) IsWrite(op string) bool { return op == constants.SearchOpDelete }
+
+// Capabilities reports what this module serves.
+func (db *DB) Capabilities() []string { return []string{constants.CapabilitySearch} }
 
 // Ping verifies a cluster answers with its own version.
 func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
@@ -144,7 +149,7 @@ func (db *DB) Search(ctx context.Context, c entity.Connection, req entity.Search
 
 // ValidateChange asks the cluster how many documents the delete would remove, and refuses a query that matches nothing:
 // an approval of an empty delete is an approval of nothing.
-func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, req entity.SearchRequest) (res entity.Result, err error) {
+func (db *DB) ValidateSearchChange(ctx context.Context, c entity.Connection, req entity.SearchRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := validateRequest(req); err != nil {
@@ -174,7 +179,7 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, req entit
 }
 
 // Apply runs a reviewed delete by query for real.
-func (db *DB) Apply(ctx context.Context, c entity.Connection, req entity.SearchRequest) (res entity.Result, err error) {
+func (db *DB) ApplySearch(ctx context.Context, c entity.Connection, req entity.SearchRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := validateRequest(req); err != nil {

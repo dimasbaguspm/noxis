@@ -7,6 +7,7 @@ import (
 
 	"noxis/internal/common"
 	"noxis/internal/constants"
+	"noxis/internal/entity"
 	"noxis/internal/interfaces"
 	"noxis/internal/modules/mongodb"
 	"noxis/internal/modules/postgres"
@@ -41,15 +42,18 @@ func TestLoadModuleFillsTheRequestedCapability(t *testing.T) {
 		t.Fatalf("cache module = %T, error = %v", gotCache, err)
 	}
 
-	var wrong interfaces.SQLChangeEngine
-	if err := r.LoadModule(ctx, &wrong); !errors.Is(err, constants.ErrUnsupported) {
-		t.Fatalf("wrong-driver error = %v, want unsupported", err)
+	// Every module answers every seam now, and refuses by verb: what it does not serve comes back as unsupported.
+	cacheModule, err := r.Engine(constants.DriverRedis)
+	if err != nil || cacheModule != cache {
+		t.Fatalf("redis engine = %v, %v", cacheModule, err)
 	}
-	if err := r.LoadModule(context.Background(), &wrong); !errors.Is(err, constants.ErrUnsupported) {
-		t.Fatalf("missing-driver error = %v, want unsupported", err)
+	if _, err := cacheModule.Query(context.Background(), entity.Connection{}, "select 1"); !errors.Is(err, constants.ErrUnsupported) {
+		t.Fatalf("cache query error = %v, want unsupported", err)
 	}
 }
 
+// TestLoadModuleRejectsMissingOrUnsupportedTargets proves the loader refuses a request it cannot fill: no driver in the
+// context, a target that is not an interface, and a nil target.
 func TestLoadModuleRejectsMissingOrUnsupportedTargets(t *testing.T) {
 	r := registry{}
 	var sql interfaces.SQLChangeEngine

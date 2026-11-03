@@ -36,7 +36,9 @@ const (
 )
 
 // DB talks to a Splunk management API.
-type DB struct{}
+type DB struct {
+	interfaces.Unsupported
+}
 
 // New builds the Splunk module.
 func New() *DB { return &DB{} }
@@ -54,6 +56,9 @@ func (db *DB) Supports(driver string) bool { return strings.EqualFold(driver, co
 
 // IsWrite reports whether an op mutates the deployment; a read is refused on the change path.
 func (db *DB) IsWrite(op string) bool { return op == constants.SearchOpDelete }
+
+// Capabilities reports what this module serves.
+func (db *DB) Capabilities() []string { return []string{constants.CapabilitySearch} }
 
 // Ping verifies the management API answers, which is also how the version is discovered.
 func (db *DB) Ping(ctx context.Context, c entity.Connection) (err error) {
@@ -117,7 +122,7 @@ func (db *DB) Search(ctx context.Context, c entity.Connection, req entity.Search
 
 // ValidateChange runs the search without the delete command and reports how many events it matches, refusing a search
 // that matches nothing: approving an empty delete is approving nothing.
-func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, req entity.SearchRequest) (res entity.Result, err error) {
+func (db *DB) ValidateSearchChange(ctx context.Context, c entity.Connection, req entity.SearchRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := validateRequest(req); err != nil {
@@ -150,7 +155,7 @@ func (db *DB) ValidateChange(ctx context.Context, c entity.Connection, req entit
 }
 
 // Apply runs the search with the delete command, for real.
-func (db *DB) Apply(ctx context.Context, c entity.Connection, req entity.SearchRequest) (res entity.Result, err error) {
+func (db *DB) ApplySearch(ctx context.Context, c entity.Connection, req entity.SearchRequest) (res entity.Result, err error) {
 	ctx, end := logging.StartSpan(ctx)
 	defer func() { end(err) }()
 	if err := validateRequest(req); err != nil {
