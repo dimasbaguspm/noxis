@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"testing"
 	"time"
+
+	"noxis/internal/constants"
 )
 
 func TestWithSchedulerAuth(t *testing.T) {
@@ -45,13 +47,13 @@ func TestWithSchedulerAuth(t *testing.T) {
 
 			req := httptest.NewRequest(http.MethodPost, "/internal/callback/scheduler", http.NoBody)
 			if tc.auth != "" {
-				req.Header.Set("Authorization", tc.auth)
+				req.Header.Set(constants.HeaderAuthorization, tc.auth)
 			}
 			if tc.timestamp != "" {
-				req.Header.Set(SchedulerTimestampHeader, tc.timestamp)
+				req.Header.Set(constants.HeaderSchedulerTimestamp, tc.timestamp)
 			}
 			if tc.signature != "" {
-				req.Header.Set(SchedulerSignatureHeader, tc.signature)
+				req.Header.Set(constants.HeaderSchedulerSignature, tc.signature)
 			}
 			rec := httptest.NewRecorder()
 			handler.ServeHTTP(rec, req)

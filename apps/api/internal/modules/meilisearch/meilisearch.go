@@ -294,10 +294,10 @@ func call(ctx context.Context, c entity.Connection, method, path string, body, o
 		return err
 	}
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set(constants.HeaderContentType, constants.MediaTypeJSON)
 	}
 	if c.Password != "" {
-		req.Header.Set("Authorization", "Bearer "+c.Password)
+		req.Header.Set(constants.HeaderAuthorization, constants.SchemeBearer+" "+c.Password)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

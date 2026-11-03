@@ -270,10 +270,10 @@ func call(ctx context.Context, c entity.Connection, method, path string, body io
 		return err
 	}
 	if body != nil {
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set(constants.HeaderContentType, constants.MediaTypeForm)
 	}
 	if c.Password != "" {
-		req.Header.Set("Authorization", "Splunk "+c.Password)
+		req.Header.Set(constants.HeaderAuthorization, constants.SchemeSplunk+" "+c.Password)
 	}
 	resp, err := client(c).Do(req)
 	if err != nil {

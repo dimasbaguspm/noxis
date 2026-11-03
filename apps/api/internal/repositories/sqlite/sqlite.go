@@ -21,6 +21,9 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// driverName is the name modernc registers with database/sql; it is not the noxis driver name, which only happens to match.
+const driverName = "sqlite"
+
 type Store struct {
 	db     *sql.DB
 	secret *secret.Cipher
@@ -50,7 +53,7 @@ func Open(ctx context.Context, path, secretKey string) (*Store, error) {
 			return nil, fmt.Errorf("open %s: mkdir: %w", path, err)
 		}
 	}
-	db, err := sql.Open("sqlite", path)
+	db, err := sql.Open(driverName, path)
 	if err != nil {
 		return nil, fmt.Errorf("open %s: %w", path, err)
 	}

@@ -53,8 +53,8 @@ func authPublic(path string) bool {
 
 // bearerToken returns the token from `Authorization: Bearer <token>`.
 func bearerToken(r *http.Request) string {
-	header := r.Header.Get("Authorization")
-	const prefix = "Bearer "
+	header := r.Header.Get(constants.HeaderAuthorization)
+	prefix := constants.SchemeBearer + " "
 	if len(header) < len(prefix) || !strings.EqualFold(header[:len(prefix)], prefix) {
 		return ""
 	}
@@ -62,7 +62,7 @@ func bearerToken(r *http.Request) string {
 }
 
 func writeUnauthorized(w http.ResponseWriter, message string) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(constants.HeaderContentType, constants.MediaTypeJSON)
 	w.WriteHeader(http.StatusUnauthorized)
 	_ = json.NewEncoder(w).Encode(entity.ErrorResponse{Error: message})
 }

@@ -31,6 +31,12 @@ const (
 	LabelUsecase = "usecase"
 )
 
+// Metric status label values: the outcome a sample was recorded with.
+const (
+	MetricStatusOK     = "ok"
+	MetricStatusFailed = "failed"
+)
+
 // Metric is one registered metric definition: the name, its instrument and the label keys a sample carries.
 type Metric struct {
 	Name   string

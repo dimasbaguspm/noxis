@@ -23,9 +23,9 @@ func (uc Tick) Serve(w http.ResponseWriter, r *http.Request) {
 		uc.Fail(ctx, w, err)
 		return
 	}
-	status := "ok"
+	status := constants.MetricStatusOK
 	if len(result.Failed) > 0 {
-		status = "failed"
+		status = constants.MetricStatusFailed
 	}
 	uc.Metrics.SchedulerTick(ctx, status)
 	uc.Respond(w, result)
