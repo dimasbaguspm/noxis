@@ -49,3 +49,14 @@ func TestOnlyLoginAndConfigArePublic(t *testing.T) {
 		}
 	}
 }
+
+// TestConsoleCatchAllIsRegistered keeps the console in the table: without
+// "GET /" the shell, the favicon and the logo all answer 404.
+func TestConsoleCatchAllIsRegistered(t *testing.T) {
+	for _, rt := range routes(Wiring{}, config.Config{}) {
+		if rt.Method == http.MethodGet && rt.Endpoint == "/" {
+			return
+		}
+	}
+	t.Fatal(`route "GET /" is missing: the console and every embedded asset would 404`)
+}

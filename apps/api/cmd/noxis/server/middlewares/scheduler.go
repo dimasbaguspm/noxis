@@ -10,13 +10,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"noxis/internal/constants"
 )
 
 // The scheduler trigger is authenticated with a shared pair: the API key identifies the caller (bearer), the secret signs the request.
 const (
-	SchedulerTimestampHeader = "X-Noxis-Timestamp"
-	SchedulerSignatureHeader = "X-Noxis-Signature"
-
 	schedulerMaxSkew = 5 * time.Minute
 	schedulerMaxBody = 1 << 20 // 1 MiB; the trigger carries no payload today
 )
@@ -42,7 +41,7 @@ func WithSchedulerAuth(apiKey, secret string, next http.Handler) http.Handler {
 			writeUnauthorized(w, "invalid scheduler api key")
 			return
 		}
-		timestamp := r.Header.Get(SchedulerTimestampHeader)
+		timestamp := r.Header.Get(constants.HeaderSchedulerTimestamp)
 		sent, err := strconv.ParseInt(timestamp, 10, 64)
 		if err != nil {
 			writeUnauthorized(w, "missing or invalid scheduler timestamp")
@@ -57,7 +56,7 @@ func WithSchedulerAuth(apiKey, secret string, next http.Handler) http.Handler {
 			writeUnauthorized(w, "invalid scheduler body")
 			return
 		}
-		presented = strings.ToLower(r.Header.Get(SchedulerSignatureHeader))
+		presented = strings.ToLower(r.Header.Get(constants.HeaderSchedulerSignature))
 		if !hmac.Equal([]byte(presented), []byte(SchedulerSignature(secret, timestamp, body))) {
 			writeUnauthorized(w, "invalid scheduler signature")
 			return

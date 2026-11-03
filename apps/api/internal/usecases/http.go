@@ -14,7 +14,7 @@ import (
 
 // Respond writes v as a JSON 200. A nil v writes an empty 200 body.
 func (d RegistryDeps) Respond(w http.ResponseWriter, v any) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(constants.HeaderContentType, constants.MediaTypeJSON)
 	w.WriteHeader(http.StatusOK)
 	if v != nil {
 		_ = json.NewEncoder(w).Encode(v)
@@ -43,7 +43,7 @@ func (d RegistryDeps) Fail(ctx context.Context, w http.ResponseWriter, err error
 	// The use case is the caller of Fail; the status is what the client saw.
 	d.Metrics.UsecaseError(ctx, logging.CallerName(1), strconv.Itoa(code))
 	logging.ErrorWithCtx(ctx, "request failed", err, "status", code)
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(constants.HeaderContentType, constants.MediaTypeJSON)
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(entity.ErrorResponse{Error: err.Error()})
 }

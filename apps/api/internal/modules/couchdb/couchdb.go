@@ -419,7 +419,7 @@ func call(ctx context.Context, c entity.Connection, method, path string, body, o
 		return err
 	}
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set(constants.HeaderContentType, constants.MediaTypeJSON)
 	}
 	if c.User != "" {
 		req.SetBasicAuth(c.User, c.Password)

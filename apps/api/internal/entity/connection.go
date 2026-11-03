@@ -3,6 +3,8 @@ package entity
 import (
 	"errors"
 	"strings"
+
+	"noxis/internal/constants"
 )
 
 // Connection is a registered database instance. noxis connects to databases that already exist; it does not create them. The password never leaves the API.
@@ -42,14 +44,14 @@ func (c Connection) Validate() error {
 }
 
 func isFileDriver(driver string) bool {
-	return strings.EqualFold(driver, "sqlite") // the file path is Database
+	return strings.EqualFold(driver, constants.DriverSQLite) // the file path is Database
 }
 
 // allowsAnonymous reports the drivers that commonly run without an ACL user: a cache server with no ACL, and a search
 // cluster with security disabled. Every other driver needs a user, so a typo in the field is caught at registration.
 func allowsAnonymous(driver string) bool {
 	switch strings.ToLower(driver) {
-	case "redis", "valkey", "dragonfly", "elasticsearch", "meilisearch", "splunk":
+	case constants.DriverRedis, constants.DriverValkey, constants.DriverDragonfly, constants.DriverElasticsearch, constants.DriverMeilisearch, constants.DriverSplunk:
 		return true
 	}
 	return false
