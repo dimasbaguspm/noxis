@@ -11,3 +11,12 @@ web/dist/
 # a binary built by hand lands next to the tree, never in it
 /noxis
 web/node_modules/
+
+# A production console build is compiled by the Dockerfile and never committed.
+internal/web/dist/assets/
+internal/web/dist/*.js
+internal/web/dist/*.css
+internal/web/dist/*.ttf
+internal/web/dist/*.woff*
+internal/web/dist/*.map
+web/dist/
