@@ -10,7 +10,7 @@
 # Numbers measured on master; a package with no line here has no floor yet and the gate says so.
 noxis/internal/domain 96
 noxis/internal/app/password 100
-noxis/internal/app/proposal 82
+noxis/internal/app/proposal 83
 noxis/internal/app/read 92
 noxis/internal/app/target 81
 noxis/internal/adapters/mysql 4
@@ -26,7 +26,7 @@ noxis/internal/web 77
 noxis/cmd/noxis/http/handlers 69
 noxis/internal/common/ref 94
 noxis/internal/common/secret 87
-noxis/internal/common/sqltext 73
+noxis/internal/common/sqltext 74
 noxis/internal/common/telemetry 67
 noxis/cmd/noxis/commands 8
 noxis/cmd/noxis/http/middlewares 18
