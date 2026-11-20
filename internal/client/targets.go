@@ -162,3 +162,85 @@ func (c *Client) ProbeTarget(ctx context.Context, ref string) (ProbeResult, erro
 	_, err := c.do(ctx, http.MethodPost, targetPath(ref)+"/probe", nil, &out)
 	return out, err
 }
+
+// Rows is one bounded result set. Truncated is the honest answer where a keyset cannot be
+// inferred from arbitrary SQL.
+type Rows struct {
+	Columns    []Column    `json:"columns"`
+	Values     [][]*string `json:"values"`
+	RowCount   int         `json:"row_count"`
+	Truncated  bool        `json:"truncated"`
+	DurationMS int64       `json:"duration_ms"`
+}
+
+// Column is one result column, typed as the engine names it.
+type Column struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+// Table is one table in a schema.
+type Table struct {
+	Name      string `json:"name"`
+	Engine    string `json:"engine"`
+	Rows      int64  `json:"rows"`
+	SizeBytes int64  `json:"size_bytes"`
+}
+
+// ColumnInfo is a column's definition.
+type ColumnInfo struct {
+	Name     string  `json:"name"`
+	Type     string  `json:"type"`
+	Nullable bool    `json:"nullable"`
+	Key      string  `json:"key"`
+	Extra    string  `json:"extra"`
+	Default  *string `json:"default"`
+}
+
+// IndexInfo is one index, in key order.
+type IndexInfo struct {
+	Name    string   `json:"name"`
+	Unique  bool     `json:"unique"`
+	Columns []string `json:"columns"`
+}
+
+// TableDetail is a table's columns, indexes and DDL.
+type TableDetail struct {
+	Table
+	Columns   []ColumnInfo `json:"columns"`
+	Indexes   []IndexInfo  `json:"indexes"`
+	CreateSQL string       `json:"create_sql"`
+}
+
+// Query runs one statement the server will refuse unless it is a read.
+func (c *Client) Query(ctx context.Context, ref, sql string, limit int) (Rows, error) {
+	var out Rows
+	body := struct {
+		SQL   string `json:"sql"`
+		Limit int    `json:"limit,omitempty"`
+	}{SQL: sql, Limit: limit}
+	_, err := c.do(ctx, http.MethodPost, targetPath(ref)+"/query", body, &out)
+	return out, err
+}
+
+// Databases lists the schemas behind one target.
+func (c *Client) Databases(ctx context.Context, ref string) ([]string, error) {
+	var out []string
+	_, err := c.do(ctx, http.MethodGet, targetPath(ref)+"/databases", nil, &out)
+	return out, err
+}
+
+// Tables lists the tables in one schema.
+func (c *Client) Tables(ctx context.Context, ref, database string) ([]Table, error) {
+	var out []Table
+	_, err := c.do(ctx, http.MethodGet, targetPath(ref)+"/databases/"+url.PathEscape(database)+"/tables", nil, &out)
+	return out, err
+}
+
+// Table describes one table.
+func (c *Client) Table(ctx context.Context, ref, database, table string) (TableDetail, error) {
+	var out TableDetail
+	_, err := c.do(ctx, http.MethodGet,
+		targetPath(ref)+"/databases/"+url.PathEscape(database)+"/tables/"+url.PathEscape(table), nil, &out)
+	return out, err
+}

@@ -5,6 +5,7 @@ package handlers
 import (
 	"log/slog"
 
+	"noxis/internal/app/read"
 	"noxis/internal/app/target"
 )
 
@@ -13,6 +14,15 @@ import (
 type Deps struct {
 	Log     *slog.Logger
 	Targets TargetUseCases
+	Read    ReadUseCases
+}
+
+// ReadUseCases are the read-only use cases, one field per route.
+type ReadUseCases struct {
+	Query     *read.Query
+	Databases *read.Databases
+	Tables    *read.Tables
+	Table     *read.Table
 }
 
 // TargetUseCases are the target use cases, one field per endpoint group so a route table

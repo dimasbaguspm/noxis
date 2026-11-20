@@ -10,6 +10,7 @@ import (
 	"noxis/cmd/http/middlewares"
 	"noxis/internal/adapters/mysql"
 	"noxis/internal/adapters/sqlite"
+	appread "noxis/internal/app/read"
 	"noxis/internal/app/target"
 	"noxis/internal/common/config"
 	"noxis/internal/common/secret"
@@ -45,11 +46,18 @@ func build(ctx context.Context, cfg config.Config, log *slog.Logger) (http.Handl
 		log.Warn("SECRET_KEY is unset: a target that carries a password cannot be registered until it is")
 	}
 
+	driver := mysql.New(cfg.ProbeTimeout)
 	useCases := target.Deps{
 		Targets: state,
 		Journal: state,
 		Sealer:  sealer,
-		Driver:  mysql.New(cfg.ProbeTimeout),
+		Driver:  driver,
+	}
+	reads := appread.Deps{
+		Targets: state,
+		Sealer:  sealer,
+		Driver:  driver,
+		Timeout: cfg.QueryTimeout,
 	}
 	handlers_ := handlers.New(handlers.Deps{
 		Log: log,
@@ -60,6 +68,12 @@ func build(ctx context.Context, cfg config.Config, log *slog.Logger) (http.Handl
 			Update:  target.NewUpdate(useCases),
 			Archive: target.NewArchive(useCases),
 			Probe:   target.NewProbe(useCases),
+		},
+		Read: handlers.ReadUseCases{
+			Query:     appread.NewQuery(reads),
+			Databases: appread.NewDatabases(reads),
+			Tables:    appread.NewTables(reads),
+			Table:     appread.NewTable(reads),
 		},
 	})
 

@@ -72,6 +72,10 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the capabilities say it has not been probed$`, w.assertNotProbed)
 	ctx.Step(`^the target reports probe status "([^"]*)"$`, w.assertProbeStatus)
 
+	// reads
+	ctx.Step(`^I run the statement "([^"]*)"$`, w.runStatement)
+	ctx.Step(`^the refusal mentions "([^"]*)"$`, w.assertRefusalMentions)
+
 	// shared assertions
 	ctx.Step(`^the request succeeds$`, w.assertSuccess)
 	ctx.Step(`^the request succeeds with status (\d+)$`, w.assertSuccessStatus)
@@ -366,4 +370,25 @@ func (w *world) assertProbeStatus(want string) error {
 		return errors.New("a probe that ran left no timestamp")
 	}
 	return nil
+}
+
+// runStatement sends one statement to a target and remembers how it went.
+func (w *world) runStatement(statement string) error {
+	_, w.err = w.api.Query(context.Background(), w.target.Ref, statement, 0)
+	return nil
+}
+
+// assertRefusalMentions checks the refusal text, which is where the server explains itself.
+func (w *world) assertRefusalMentions(want string) error {
+	if w.err == nil {
+		return fmt.Errorf("the statement was accepted, want a refusal mentioning %q", want)
+	}
+	var apiErr *client.Error
+	if errors.As(w.err, &apiErr) {
+		if strings.Contains(apiErr.Message, want) {
+			return nil
+		}
+		return fmt.Errorf("refusal %q does not mention %q", apiErr.Message, want)
+	}
+	return w.err
 }
