@@ -9,6 +9,7 @@ import { Alert } from '../components/alert';
 import { AppButton } from '../components/app-button';
 import { AsyncState } from '../components/async-state';
 import { DataTable } from '../components/data-table';
+import { EngineMark } from '../components/engine-mark';
 import { Form } from '../components/form';
 import { NumberInput, SelectInput } from '../components/inputs';
 import { RenderWhen } from '../components/render-when';
@@ -46,7 +47,10 @@ export function TargetsPage() {
         <Heading level={1} id="instances-title">
           Instances
         </Heading>
-        <Tag className="hidden sm:inline">MySQL · MariaDB</Tag>
+        <span className="hidden items-center gap-1.5 sm:flex">
+          <EngineMark engine="mysql" />
+          <EngineMark engine="mariadb" />
+        </span>
         <span className="flex-1" />
         <Input
           allowClear
@@ -112,7 +116,7 @@ export function TargetsPage() {
               key: 'driver',
               title: 'Engine',
               width: 100,
-              render: (row) => <Tag>{row.driver}</Tag>,
+              render: (row) => <EngineMark engine={row.driver} />,
             },
             {
               key: 'host',

@@ -12,19 +12,12 @@ import type { ProposalValues } from '../forms/schemas';
 import type { Schema } from '../editor/sql-editor';
 
 // Filing a change from the instance page, which is where an operator already is when they think of one.
-// The kind is the tab it was filed from, and the API decides what that means: a DML proposal runs in a
-// transaction, a DDL one is a single statement. The rollback is the point of the form, not an extra
-// field, so it sits directly under the statement with a sentence about what an empty one means.
+// The engine decides what the statement means — a data change runs in a transaction, a schema change is
+// a single statement — and the form does not ask which, because the SQL already says. The rollback is
+// the point of the form, not an extra field, so it sits directly under the query with a sentence about
+// what an empty one means.
 
-export function CreateProposal({
-  target,
-  kind,
-  schema,
-}: {
-  target: string;
-  kind: 'dml' | 'ddl';
-  schema: Schema | null;
-}) {
+export function CreateProposal({ target, schema }: { target: string; schema: Schema | null }) {
   const { message } = AntApp.useApp();
   const [open, setOpen] = useState(false);
   const create = useCreateProposal(target);
@@ -33,13 +26,13 @@ export function CreateProposal({
     <>
       <Can do="propose">
         <AppButton intent="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>
-          New {kind === 'ddl' ? 'DDL' : 'DML'}
+          New change
         </AppButton>
       </Can>
 
       <Modal
         open={open}
-        title={`A ${kind === 'ddl' ? 'schema' : 'data'} change`}
+        title="A data change"
         onCancel={() => setOpen(false)}
         footer={null}
         width={720}

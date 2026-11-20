@@ -3,6 +3,7 @@ import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSession } from '../api/session-context';
+import { Logo } from '../components/logo';
 
 // A topbar and a content region, and nothing else. At 360px the host hides and the identity reduces to
 // an avatar; the two facts that survive are which server, and who you are.
@@ -28,12 +29,7 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
           aria-label="noXis, back to the instances"
           aria-current={home ? 'page' : undefined}
         >
-          <span
-            aria-hidden="true"
-            className="grid h-6 w-6 place-items-center rounded-md bg-brand-soft"
-          >
-            <span className="h-2 w-2 rounded-sm bg-brand" />
-          </span>
+          <Logo size={22} />
           noXis
         </Link>
 

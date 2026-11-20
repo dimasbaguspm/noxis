@@ -39,7 +39,7 @@ export function Card({
       }
       styles={{ body: { padding: 0 } }}
     >
-      <div className={bodyClassName}>{children}</div>
+      <div className={bodyClassName ?? 'p-4'}>{children}</div>
       {footer ? (
         <div className="noxis-card-footer flex flex-wrap items-center gap-2">{footer}</div>
       ) : null}

@@ -18,6 +18,7 @@ import { AppButton } from '../components/app-button';
 import { AsyncState } from '../components/async-state';
 import { CreateProposal } from '../components/create-proposal';
 import { DataTable } from '../components/data-table';
+import { EngineMark } from '../components/engine-mark';
 import type { Column } from '../components/data-table';
 import { Panel, Tile, Tiles } from '../components/panel';
 import { RenderWhen } from '../components/render-when';
@@ -61,18 +62,14 @@ export function TargetPage() {
                     <Heading level={1} id="target-title">
                       {target.data.name}
                     </Heading>
-                    <Tag>{target.data.driver}</Tag>
+                    <EngineMark engine={target.data.driver} size={16} />
                     <RenderWhen condition={target.data.archived_at}>
                       <Tag>archived</Tag>
                     </RenderWhen>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <Statistic
-                      label="Version"
-                      value={target.data.server_version ?? '—'}
-                      hint={target.data.driver}
-                    />
+                    <Statistic label="Version" value={target.data.server_version ?? '—'} />
                     <Statistic
                       label="Tables"
                       value={tables.data ? tables.data.length : '—'}
@@ -338,12 +335,10 @@ function Result({
 
 function Changes({ target, schema }: { target: string; schema: Schema | null }) {
   const navigate = useNavigate();
-  const [kind, setKind] = useState<'all' | 'dml' | 'ddl'>('all');
   const [status, setStatus] = useState('all');
   const [term, setTerm] = useState('');
   const proposals = useProposals({
     target,
-    kind: kind === 'all' ? undefined : kind,
     status: status === 'all' ? undefined : status,
     limit: 50,
   });
@@ -371,15 +366,6 @@ function Changes({ target, schema }: { target: string; schema: Schema | null }) 
           className="max-w-[240px]"
         />
         <Segmented
-          value={kind}
-          onChange={(value) => setKind(value as 'all' | 'dml' | 'ddl')}
-          options={[
-            { value: 'all', label: 'All' },
-            { value: 'dml', label: 'DML' },
-            { value: 'ddl', label: 'DDL' },
-          ]}
-        />
-        <Segmented
           value={status}
           onChange={(value) => setStatus(String(value))}
           options={['all', 'verified', 'approved', 'applied', 'failed']}
@@ -388,7 +374,7 @@ function Changes({ target, schema }: { target: string; schema: Schema | null }) 
         <Text size="xs" tone="muted">
           {visible.length} of {items.length}
         </Text>
-        <CreateProposal target={target} kind={kind === 'ddl' ? 'ddl' : 'dml'} schema={schema} />
+        <CreateProposal target={target} schema={schema} />
       </div>
 
       <AsyncState
@@ -426,12 +412,6 @@ function Changes({ target, schema }: { target: string; schema: Schema | null }) 
                   {row.title}
                 </Link>
               ),
-            },
-            {
-              key: 'kind',
-              title: 'Kind',
-              width: 90,
-              render: (row) => <Tag className="m-0">{row.kind}</Tag>,
             },
             {
               key: 'status',

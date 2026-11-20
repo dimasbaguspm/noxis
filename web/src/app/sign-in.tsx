@@ -4,6 +4,7 @@ import { useSession } from '../api/session-context';
 import { Alert } from '../components/alert';
 import { Form } from '../components/form';
 import { List, ListItem } from '../components/list';
+import { Logo } from '../components/logo';
 import { Heading, Text } from '../components/text';
 import { TextInput } from '../components/text-input';
 import { tokenSchema } from '../forms/schemas';
@@ -35,7 +36,7 @@ export function SignIn() {
     <div className="grid min-h-dvh grid-cols-1 md:grid-cols-[65fr_35fr]">
       <section className="hidden flex-col justify-between gap-10 bg-white p-10 md:flex lg:p-14">
         <div className="flex items-center gap-2.5 text-base font-bold tracking-tight">
-          <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-brand" />
+          <Logo size={24} />
           noXis
         </div>
 
@@ -69,7 +70,7 @@ export function SignIn() {
 
         <div className="relative mx-auto w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl shadow-orange-900/20 sm:p-7">
           <div className="mb-6 flex items-center gap-2.5 text-base font-bold tracking-tight md:hidden">
-            <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-brand" />
+            <Logo size={22} tone="onBrand" />
             noXis
           </div>
 
