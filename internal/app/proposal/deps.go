@@ -60,8 +60,14 @@ func (d Deps) rehearse(ctx context.Context, proposal domain.Proposal) (domain.Pr
 		rehearsal.CreatedAt = time.Now().UTC()
 	}
 	if err != nil {
-		// The engine could not be reached at all: there is no evidence to store, but the attempt
-		// still has to be visible.
+		// The engine could not be reached at all. There is no diff to show, but the attempt is still
+		// an attempt: it is stored as a failed rehearsal, exactly like one that proved nothing.
+		rehearsal.Status = domain.RehearsalFailed
+		rehearsal.Error = err.Error()
+		if _, storeErr := d.Rehearsals.CreateRehearsal(ctx, rehearsal); storeErr != nil {
+			return proposal, rehearsal, storeErr
+		}
+		proposal.RehearsalRef = rehearsal.Ref
 		proposal.Status = domain.StatusFailed
 		proposal.Failure = err.Error()
 		proposal.UpdatedAt = time.Now().UTC()
