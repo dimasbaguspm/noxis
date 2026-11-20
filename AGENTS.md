@@ -91,8 +91,9 @@ seam next to the struct: `var _ ports.Driver = (*DB)(nil)`.
   route needs is declared in the route table, not in the handler. Request path:
   resolve caller → per-route scope → handler.
 - **Secrets:** `SECRET_KEY` (32 bytes, hex or base64) seals target passwords with
-  AES-256-GCM, AAD = the target `ref`, envelope `v1:<b64>`. `SECRET_KEY_PREVIOUS`
-  opens old rows, which re-seal on write. A password never appears on a response.
+  AES-256-GCM, AAD = the target `ref`, envelope `v1:<b64>`. There is no previous key: a row
+  sealed with another one refuses and says to re-enter the password. A password never
+  appears on a response.
 - **No env reads outside `internal/common/config`.** Add a field to `Config` and a
   default there.
 - **No hardcoded scopes/drivers/statuses/headers/limits.** They live in

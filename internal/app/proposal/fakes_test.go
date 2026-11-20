@@ -180,7 +180,6 @@ func (f *fakeJournal) Entries(_ context.Context, subjectRef string, _ int) ([]do
 type fakeSealer struct {
 	enabled bool
 	openErr error
-	stale   bool
 }
 
 func (f *fakeSealer) Enabled() bool { return f.enabled }
@@ -189,11 +188,11 @@ func (f *fakeSealer) Seal(_ string, plain []byte) (string, error) {
 	return "sealed:" + string(plain), nil
 }
 
-func (f *fakeSealer) Open(_ string, sealed string) ([]byte, bool, error) {
+func (f *fakeSealer) Open(_ string, sealed string) ([]byte, error) {
 	if f.openErr != nil {
-		return nil, false, f.openErr
+		return nil, f.openErr
 	}
-	return []byte(strings.TrimPrefix(sealed, "sealed:")), f.stale, nil
+	return []byte(strings.TrimPrefix(sealed, "sealed:")), nil
 }
 
 // fakeDriver answers what each test says it should. A driver that guesses is a driver whose failure

@@ -26,15 +26,12 @@ type Token struct {
 
 // Config is the resolved environment.
 type Config struct {
-	LogLevel          string
-	LogFormat         string
-	QueryTimeout      time.Duration
-	ProbeTimeout      time.Duration
-	OTELEndpoint      string
-	OTELServiceName   string
-	SecretKey         []byte
-	SecretKeyPrevious []byte
-	Tokens            []Token
+	QueryTimeout    time.Duration
+	ProbeTimeout    time.Duration
+	OTELEndpoint    string
+	OTELServiceName string
+	SecretKey       []byte
+	Tokens          []Token
 }
 
 var tokenName = regexp.MustCompile(`^[a-z][a-z0-9_-]{1,31}$`)
@@ -44,10 +41,7 @@ func Load() (Config, error) { return LoadFrom(os.Getenv) }
 
 // LoadFrom is Load with the environment injected, so the parse rules are testable.
 func LoadFrom(get func(string) string) (Config, error) {
-	cfg := Config{
-		LogLevel:  or(get("LOG_LEVEL"), "info"),
-		LogFormat: or(get("LOG_FORMAT"), "text"),
-	}
+	cfg := Config{}
 	var err error
 	if cfg.QueryTimeout, err = duration(or(get("QUERY_TIMEOUT"), "30s"), "QUERY_TIMEOUT"); err != nil {
 		return Config{}, err
@@ -60,11 +54,6 @@ func LoadFrom(get func(string) string) (Config, error) {
 	if raw := strings.TrimSpace(get("SECRET_KEY")); raw != "" {
 		if cfg.SecretKey, err = secret.ParseKey(raw); err != nil {
 			return Config{}, fmt.Errorf("config: SECRET_KEY: %w", err)
-		}
-	}
-	if raw := strings.TrimSpace(get("SECRET_KEY_PREVIOUS")); raw != "" {
-		if cfg.SecretKeyPrevious, err = secret.ParseKey(raw); err != nil {
-			return Config{}, fmt.Errorf("config: SECRET_KEY_PREVIOUS: %w", err)
 		}
 	}
 	raw, err := tokensRaw(get)

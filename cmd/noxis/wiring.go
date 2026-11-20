@@ -6,9 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"noxis/internal/httpapi"
-	"noxis/internal/httpapi/handlers"
-	"noxis/internal/httpapi/middlewares"
 	"noxis/internal/adapters/mysql"
 	"noxis/internal/adapters/sqlite"
 	"noxis/internal/app/proposal"
@@ -16,6 +13,9 @@ import (
 	"noxis/internal/app/target"
 	"noxis/internal/common/config"
 	"noxis/internal/common/secret"
+	"noxis/internal/httpapi"
+	"noxis/internal/httpapi/handlers"
+	"noxis/internal/httpapi/middlewares"
 )
 
 // buildServer is the composition root: config → logger → adapters → use cases → transport. It is
@@ -26,7 +26,7 @@ func buildServer(ctx context.Context, cfg config.Config, statePath string, log *
 	if err != nil {
 		return nil, nil, err
 	}
-	sealer, err := secret.New(cfg.SecretKey, cfg.SecretKeyPrevious)
+	sealer, err := secret.New(cfg.SecretKey)
 	if err != nil {
 		_ = state.Close()
 		return nil, nil, err

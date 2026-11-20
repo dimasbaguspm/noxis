@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"time"
 
-	"noxis/internal/httpapi/middlewares"
-	"noxis/internal/httpapi/respond"
 	"noxis/internal/app/target"
 	"noxis/internal/domain"
+	"noxis/internal/httpapi/middlewares"
+	"noxis/internal/httpapi/respond"
 )
 
 // maxBody bounds a request body. A registration is a few hundred bytes; anything larger is

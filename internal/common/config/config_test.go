@@ -28,9 +28,6 @@ func TestLoadReadsOnlyWhatItOwns(t *testing.T) {
 	if cfg.QueryTimeout != 30*time.Second || cfg.ProbeTimeout != 5*time.Second {
 		t.Fatalf("timeouts = %s / %s", cfg.QueryTimeout, cfg.ProbeTimeout)
 	}
-	if cfg.LogLevel != "info" || cfg.LogFormat != "text" {
-		t.Fatalf("logging = %s / %s", cfg.LogLevel, cfg.LogFormat)
-	}
 }
 
 func TestLoadRefusesWithoutTokens(t *testing.T) {

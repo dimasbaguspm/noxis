@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"noxis/internal/httpapi/respond"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
+	"noxis/internal/httpapi/respond"
 )
 
 // quiet is the logger Fail takes. The test asserts the body; the log line is the operator's copy.

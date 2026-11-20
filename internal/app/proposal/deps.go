@@ -37,7 +37,7 @@ func (d Deps) rehearse(ctx context.Context, proposal domain.Proposal) (domain.Pr
 	if err != nil {
 		return proposal, domain.Rehearsal{}, err
 	}
-	plain, _, err := password.Open(d.Sealer, target)
+	plain, err := password.Open(d.Sealer, target)
 	if err != nil {
 		return proposal, domain.Rehearsal{}, err
 	}

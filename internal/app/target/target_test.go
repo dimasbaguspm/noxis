@@ -14,9 +14,9 @@ import (
 // ---- doubles (handwritten, in the package that uses them) ----
 
 type fakeTargets struct {
-	target  domain.Target
-	stored  []domain.Target
-	err     error
+	target    domain.Target
+	stored    []domain.Target
+	err       error
 	updateErr error
 }
 
@@ -74,7 +74,6 @@ type fakeSealer struct {
 	enabled bool
 	openErr error
 	sealErr error
-	stale   bool
 }
 
 func (f *fakeSealer) Enabled() bool { return f.enabled }
@@ -86,11 +85,11 @@ func (f *fakeSealer) Seal(_ string, plain []byte) (string, error) {
 	return "sealed:" + string(plain), nil
 }
 
-func (f *fakeSealer) Open(_ string, sealed string) ([]byte, bool, error) {
+func (f *fakeSealer) Open(_ string, sealed string) ([]byte, error) {
 	if f.openErr != nil {
-		return nil, false, f.openErr
+		return nil, f.openErr
 	}
-	return []byte(strings.TrimPrefix(sealed, "sealed:")), f.stale, nil
+	return []byte(strings.TrimPrefix(sealed, "sealed:")), nil
 }
 
 type fakeDriver struct {
@@ -371,20 +370,6 @@ func TestProbeStoresAFailure(t *testing.T) {
 	}
 	if len(f.journal.entries) != 1 || f.journal.entries[0].Kind != "probed" {
 		t.Fatalf("journal = %+v, want one `probed` line", f.journal.entries)
-	}
-}
-
-// A row sealed with the previous key is re-sealed the moment the plaintext is in hand.
-func TestProbeResealsAStalePassword(t *testing.T) {
-	f := newFixture()
-	f.sealer.stale = true
-
-	out, err := NewProbe(f.deps).Run(context.Background(), ProbeInput{Ref: f.target.Ref, Actor: "ops"})
-	if err != nil {
-		t.Fatalf("Probe: %v", err)
-	}
-	if out.Target.Secret != "sealed:pw" {
-		t.Fatalf("secret = %q, want it re-sealed with the current key", out.Target.Secret)
 	}
 }
 

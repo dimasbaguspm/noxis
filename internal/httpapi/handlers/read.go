@@ -3,9 +3,9 @@ package handlers
 import (
 	"net/http"
 
-	"noxis/internal/httpapi/respond"
 	"noxis/internal/app/read"
 	"noxis/internal/domain"
+	"noxis/internal/httpapi/respond"
 )
 
 // RunQuery runs one statement through the read guard. It is the only route that takes SQL, and it

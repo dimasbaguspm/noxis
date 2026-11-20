@@ -7,3 +7,6 @@ bin/
 
 web/node_modules/
 web/dist/
+
+# a binary built by hand lands next to the tree, never in it
+/noxis

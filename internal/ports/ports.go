@@ -33,12 +33,12 @@ type Journal interface {
 	Entries(ctx context.Context, subjectRef string, limit int) ([]domain.JournalEntry, error)
 }
 
-// Sealer seals a target password at rest. internal/common/secret implements it; the second
-// return of Open reports a value that only a previous key could open.
+// Sealer seals a target password at rest. internal/common/secret implements it, with the one key
+// the deployment was given.
 type Sealer interface {
 	Enabled() bool
 	Seal(aad string, plain []byte) (string, error)
-	Open(aad, sealed string) ([]byte, bool, error)
+	Open(aad, sealed string) ([]byte, error)
 }
 
 // Driver is one engine this build speaks. It answers only what an engine can answer: it
