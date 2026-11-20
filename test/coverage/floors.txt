@@ -20,12 +20,13 @@ noxis/internal/common/config 78
 noxis/internal/common/cursor 100
 noxis/internal/common/dotconfig 66
 noxis/cmd/noxis/http/respond 93
-noxis/cmd/noxis 66
+noxis/cmd/noxis 67
 noxis/cmd/noxis/http 74
-noxis/internal/web 75
+noxis/internal/web 77
 noxis/cmd/noxis/http/handlers 69
 noxis/internal/common/ref 94
 noxis/internal/common/secret 87
 noxis/internal/common/sqltext 73
 noxis/internal/common/telemetry 67
 noxis/cmd/noxis/commands 8
+noxis/cmd/noxis/http/middlewares 18

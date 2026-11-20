@@ -34,9 +34,26 @@ agent ──read──────────────▶ rows
 | Binary | What it is |
 | --- | --- |
 | `noxis http serve` | the server: REST API over `/v1`, the only writer of the state file |
-| `noxis web serve` | the console, served from the same binary on `:3000` (`--port`, `--api`) |
+| `noxis web serve --api <url>` | the console, served from the same binary on `:3000` (`--port`, `--api`) |
 | `noxis <command>` | a client of that API — `auth`, `target`, `query`, `propose`, `review` |
 | `web/*` | a standalone console, later; not embedded, talks to the same API |
+
+## The API and the console may live on different hosts
+
+The console is a page in a browser, so it calls the API at the address *the browser* can reach, not
+the one the console process happens to see. The API, in turn, has to allow that page's origin.
+
+```bash
+# VPS A: the API, and the origin the console will be served from
+CONSOLE_ORIGINS=https://console.example.com noxis http serve
+
+# VPS B: the console, told where the API is (required: there is no default)
+noxis web serve --api https://api.example.com --port 3000
+```
+
+The console answers `/config.json` with `{"api": "https://api.example.com"}`, so a build learns its
+API from the deployment instead of carrying one baked into a bundle. Nothing else changes when the
+two run on one machine: `--api http://localhost:9000` is the local case.
 
 ## Run it
 

@@ -31,7 +31,7 @@ func newWebServe() *cobra.Command {
 		apiURL string
 	)
 	cmd := &cobra.Command{
-		Use:   "serve",
+		Use:   "serve --api https://api.example.com",
 		Short: "Serve the console from this binary",
 		Args:  cobra.NoArgs,
 		// The console is a page: it needs no token, and it never touches the state file.
@@ -41,7 +41,8 @@ func newWebServe() *cobra.Command {
 		},
 	}
 	cmd.Flags().IntVar(&port, "port", constants.ConsolePort, "the port the console listens on")
-	cmd.Flags().StringVar(&apiURL, "api", constants.DefaultAPIURL, "the API the console is told to call")
+	cmd.Flags().StringVar(&apiURL, "api", "",
+		"the API's public URL, as the browser reaches it (required: the console may be on another host)")
 	return cmd
 }
 
@@ -51,7 +52,13 @@ func serveConsole(ctx context.Context, cmd *cobra.Command, port int, apiURL stri
 	if port < 1 || port > 65535 {
 		return fmt.Errorf("port %d is outside 1-65535", port)
 	}
-	console, err := web.New(apiURL)
+	// The console is a page in somebody's browser: the address it calls must be the one the browser
+	// can reach, not the one this process happens to see.
+	api, err := web.ParseAPI(apiURL)
+	if err != nil {
+		return err
+	}
+	console, err := web.New(api)
 	if err != nil {
 		return err
 	}
@@ -66,7 +73,7 @@ func serveConsole(ctx context.Context, cmd *cobra.Command, port int, apiURL stri
 		Handler:           console.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
-	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "console on http://localhost:%d, calling %s (%s)\n",
+	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "console on :%d, calling %s (%s)\n",
 		port, console.API(), built(console.Built()))
 
 	serveErr := make(chan error, 1)

@@ -86,3 +86,51 @@ func TestPathTraversalIsNotServed(t *testing.T) {
 		t.Fatal("the handler served a file from outside the build")
 	}
 }
+
+// A build cannot bake in the API it belongs to: the same binary is served from a laptop and from a
+// VPS, and the browser needs the address it can reach. /config.json is that answer, uncached.
+func TestConfigJSONNamesTheAPI(t *testing.T) {
+	console, err := web.New("https://api.example.com")
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	rec := httptest.NewRecorder()
+	console.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/config.json", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("config.json = %d", rec.Code)
+	}
+	if got := rec.Header().Get("Content-Type"); got != "application/json" {
+		t.Fatalf("content-type = %q", got)
+	}
+	if got := rec.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("cache-control = %q, want no-store", got)
+	}
+	if !strings.Contains(rec.Body.String(), `"api":"https://api.example.com"`) {
+		t.Fatalf("body = %s", rec.Body)
+	}
+}
+
+// The API URL is resolved by the browser, so it must be absolute and it must not end in a slash: a
+// bare host would be read as a path, and a trailing slash produces a double slash on every call.
+func TestParseAPIRefusesWhatABrowserCannotUse(t *testing.T) {
+	for _, raw := range []string{"", "api.example.com", "/api", "ftp://api.example.com"} {
+		if _, err := web.ParseAPI(raw); err == nil {
+			t.Fatalf("ParseAPI(%q) accepted it", raw)
+		}
+	}
+	for raw, want := range map[string]string{
+		"https://api.example.com":       "https://api.example.com",
+		"https://api.example.com/":      "https://api.example.com",
+		"http://192.168.1.10:9000":      "http://192.168.1.10:9000",
+		" https://api.example.com/api/": "https://api.example.com/api",
+	} {
+		got, err := web.ParseAPI(raw)
+		if err != nil {
+			t.Fatalf("ParseAPI(%q): %v", raw, err)
+		}
+		if got != want {
+			t.Fatalf("ParseAPI(%q) = %q, want %q", raw, got, want)
+		}
+	}
+}
