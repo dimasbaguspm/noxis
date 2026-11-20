@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"noxis/cmd/http/middlewares"
-	"noxis/cmd/http/respond"
+	"noxis/internal/httpapi/middlewares"
+	"noxis/internal/httpapi/respond"
 	"noxis/internal/app/target"
 	"noxis/internal/domain"
 )

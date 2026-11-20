@@ -1,5 +1,6 @@
-// Command noxis is the client: every command is a call to a running noxisd. It holds no
-// database connection, no state file and no rule of its own.
+// Command noxis is the whole product in one binary: \`http serve\` is the API that owns the state
+// file, \`web serve\` is the console, and every other word is the client that talks to the API over
+// HTTP. One image, one entrypoint, no launcher script.
 package main
 
 import (
@@ -74,7 +75,8 @@ func newRoot() *cobra.Command {
 		return opts.prepare(cmd)
 	}
 
-	root.AddCommand(newWhoami(opts), newVersion(), newAuth(opts), newTarget(opts),
+	root.AddCommand(newHTTP(), newWeb(),
+		newWhoami(opts), newVersion(), newAuth(opts), newTarget(opts),
 		newQuery(opts), newDatabases(opts), newTables(opts), newTable(opts),
 		newPropose(opts), newProposals(opts), newProposalShow(opts), newRehearse(opts),
 		newApprove(opts), newReject(opts), newApplyProposal(opts), newEvents(opts))

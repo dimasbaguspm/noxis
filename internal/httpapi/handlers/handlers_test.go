@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"noxis/cmd/http/middlewares"
+	"noxis/internal/httpapi/middlewares"
 	"noxis/internal/app/proposal"
 	"noxis/internal/app/read"
 	"noxis/internal/app/target"

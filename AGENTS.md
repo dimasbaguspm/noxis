@@ -8,8 +8,11 @@ Read this first in every session. It is the map; `docs/agent/` is the detail.
 
 Two binaries over one state file, for **MySQL and MariaDB only**:
 
-- `cmd/http` → `noxisd`, the REST API. The only writer of the state file.
-- `cmd/cli` → `noxis`, a client of that API. No database access of its own.
+- `cmd/noxis` → one binary, three faces: `noxis http serve` is the REST API and the only writer
+  of the state file, `noxis web serve` is the console, and every other word is a client of that
+  API with no database access of its own.
+- `internal/httpapi` → the transport the `http serve` face is built from: route table, handlers,
+  middlewares.
 - `web/` → the console, later, standalone and never embedded.
 
 The product bet: an **agent** reads through `read` scope, proposes DDL/DML through
@@ -41,8 +44,8 @@ Do not start implementation until the epic and its tickets exist.
 ```bash
 make test    # go test ./... — unit + the layering test            (~5s)
 make lint    # golangci-lint v2                                    (~30s)
-make build   # bin/noxisd + bin/noxis
-make uat     # godog over a real noxisd process                    (~20s)
+make build   # bin/noxis
+make uat     # godog over a real `noxis http serve` process        (~20s)
 make cover   # per-package coverage against test/coverage/floors.txt
 make uat-slow # the same plus @slow: boots MySQL 8.4 + MariaDB 11.4   (~2m, docker)
 ```
@@ -51,8 +54,8 @@ make uat-slow # the same plus @slow: boots MySQL 8.4 + MariaDB 11.4   (~2m, dock
 
 | Path | Role |
 | --- | --- |
-| `cmd/http/` | `main`, `wiring` (composition root), `routes` (the route table), `respond`, `handlers/`, `middlewares/` |
-| `cmd/cli/` | `main`, `root`, one file per command group, `output/` |
+| `cmd/noxis/` | `main`/`root`, `http` (`http serve`, `healthcheck`), `web`, `wiring` (composition root), one file per command group |
+| `internal/httpapi/` | `routes` (the route table), `handlers/`, `middlewares/`, `respond/` |
 | `internal/domain/` | entities, value objects, the state machine, sentinel errors — **stdlib only** |
 | `internal/ports/` | consumer-owned interfaces (`TargetStore`, `ProposalStore`, `Journal`, `Driver`, `Clock`) |
 | `internal/app/` | use cases: one file = one use case = one `Run`; imports `domain` + `ports` only |
@@ -60,7 +63,7 @@ make uat-slow # the same plus @slow: boots MySQL 8.4 + MariaDB 11.4   (~2m, dock
 | `internal/adapters/mysql/` | implements `Driver`; registered twice (`mysql`, `mariadb`) with a version probe |
 | `internal/common/` | `config`, `telemetry`, `dotconfig` (the CLI's 0600 profile file), `secret`, `ref`, `cursor`, `sqltext` |
 | `internal/constants/` | scopes, drivers, wire names, limits, error codes |
-| `internal/client/` | typed REST client — `cmd/cli` and the UAT steps both use it |
+| `internal/client/` | typed REST client — the CLI face and the UAT steps both use it |
 | `test/uat/` | godog: `features/`, `steps/`, a runner that boots the real binary |
 | `web/` | standalone console (own `package.json`, own CI job, CORS to the API) |
 | `docs/agent/`, `docs/plan/` | agent docs, plan archive |
@@ -80,7 +83,7 @@ seam next to the struct: `var _ ports.Driver = (*DB)(nil)`.
   SQL and a fake cursor would lie.
 - **One use case = one file = one `Run`.** No use case calls another; shared steps are
   package helpers.
-- **Handlers are transport, and they live in `cmd/http`.** They read the request,
+- **Handlers are transport, and they live in `internal/httpapi`.** They read the request,
   resolve a `ref`, call one use case, write the envelope. No SQL, no policy, no
   business rules there.
 - **Auth is env-declared.** `TOKENS` is inline JSON, `{"<name>": {"secret": "...",

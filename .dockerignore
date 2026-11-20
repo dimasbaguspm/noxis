@@ -1,0 +1,11 @@
+# Nothing that is not needed to build the binary.
+.git
+bin
+data
+*.db
+*.db-wal
+*.db-shm
+docs
+test
+web/node_modules
+web/dist

@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"noxis/cmd/http/middlewares"
-	"noxis/cmd/http/respond"
+	"noxis/internal/httpapi/middlewares"
+	"noxis/internal/httpapi/respond"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 )

@@ -6,8 +6,9 @@ import (
 	"log/slog"
 	"net/http"
 
-	"noxis/cmd/http/handlers"
-	"noxis/cmd/http/middlewares"
+	"noxis/internal/httpapi"
+	"noxis/internal/httpapi/handlers"
+	"noxis/internal/httpapi/middlewares"
 	"noxis/internal/adapters/mysql"
 	"noxis/internal/adapters/sqlite"
 	"noxis/internal/app/proposal"
@@ -17,18 +18,10 @@ import (
 	"noxis/internal/common/secret"
 )
 
-// deps is what the transport is built from. This struct and build() are the only places a
-// concrete adapter is named: nothing below the transport knows the state file exists.
-type deps struct {
-	cfg      config.Config
-	log      *slog.Logger
-	auth     *middlewares.Authenticator
-	handlers *handlers.Handlers
-}
-
-// build is the composition root: config → logger → adapters → use cases → transport. It
-// returns the closer for the state file so the caller can shut it down in order.
-func build(ctx context.Context, cfg config.Config, statePath string, log *slog.Logger) (http.Handler, io.Closer, error) {
+// buildServer is the composition root: config → logger → adapters → use cases → transport. It is
+// the only place in the tree that names a concrete adapter, and it returns the closer for the state
+// file so the caller can shut things down in order.
+func buildServer(ctx context.Context, cfg config.Config, statePath string, log *slog.Logger) (http.Handler, io.Closer, error) {
 	state, err := sqlite.Open(ctx, statePath)
 	if err != nil {
 		return nil, nil, err
@@ -96,6 +89,6 @@ func build(ctx context.Context, cfg config.Config, statePath string, log *slog.L
 		},
 	})
 
-	handler := newMux(deps{cfg: cfg, log: log, auth: auth, handlers: handlers_})
+	handler := httpapi.NewMux(httpapi.Deps{Log: log, Auth: auth, Handlers: handlers_})
 	return handler, state, nil
 }
