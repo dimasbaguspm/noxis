@@ -2,7 +2,8 @@ import { CheckOutlined, CloseOutlined, RedoOutlined, ThunderboltOutlined } from 
 import { Alert, App as AntApp, Card, Descriptions, Flex, Input, Tag, Timeline } from 'antd';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useCan, useSession } from '../api/session-context';
+import { useSession } from '../api/session-context';
+import { Can, usePermissions } from '../api/permissions';
 import { useEvents, useProposal, useProposalActions } from '../api/queries';
 import { AppButton } from '../components/app-button';
 import { AsyncState } from '../components/async-state';
@@ -19,8 +20,7 @@ export function ProposalPage() {
   const proposal = useProposal(ref);
   const events = useEvents(ref);
   const actions = useProposalActions(ref);
-  const canApprove = useCan('approve');
-  const canApply = useCan('apply');
+  const { can } = usePermissions();
   const [confirming, setConfirming] = useState<string | null>(null);
 
   const found = proposal.data;
@@ -116,7 +116,7 @@ export function ProposalPage() {
                     <AppButton
                       intent="primary"
                       icon={<CheckOutlined />}
-                      disabled={!canApprove || ['approved', 'applied'].includes(found.status)}
+                      disabled={!can['review:proposal'] || ['approved', 'applied'].includes(found.status)}
                       loading={busy}
                       onClick={() => void run(() => actions.decide.mutateAsync({ approve: true }), 'approved')}
                     >
@@ -125,7 +125,7 @@ export function ProposalPage() {
                     <AppButton
                       intent="danger"
                       icon={<CloseOutlined />}
-                      disabled={!canApprove || found.status === 'applied'}
+                      disabled={!can['review:proposal'] || found.status === 'applied'}
                       onClick={() => {
                         setConfirming(found.ref);
                         void run(() => actions.decide.mutateAsync({ approve: false }), 'rejected').finally(() =>
@@ -145,16 +145,16 @@ export function ProposalPage() {
                     <AppButton
                       intent="primary"
                       icon={<ThunderboltOutlined />}
-                      disabled={!canApply || found.status !== 'approved'}
+                      disabled={!can['execute:proposal'] || found.status !== 'approved'}
                       onClick={apply}
                     >
                       Apply
                     </AppButton>
-                    <RenderWhen condition={!canApprove || !canApply}>
-                      <span className="text-xs text-muted">
-                        {identity?.name} cannot {!canApprove ? 'approve' : 'apply'} this change
-                      </span>
-                    </RenderWhen>
+                    <Can do="review:proposal" fallback={<span className="text-xs text-muted">{identity?.name} cannot review this change</span>}>
+                      <Can do="execute:proposal" fallback={<span className="text-xs text-muted">apply needs the apply scope</span>}>
+                        <span />
+                      </Can>
+                    </Can>
                   </div>
                   <RenderWhen condition={confirming}>
                     <span aria-live="polite" className="text-xs text-muted">

@@ -1,6 +1,7 @@
 import { PlayCircleOutlined } from '@ant-design/icons';
 import { Alert, Card, Descriptions, Segmented, Table, Tabs, Tag, Typography, Input } from 'antd';
 import { useMemo, useState } from 'react';
+import { Breadcrumb } from '../components/breadcrumb';
 import { Link, useParams } from 'react-router-dom';
 import { useProposals, useRunQuery, useSchema, useTarget } from '../api/queries';
 import { AppButton } from '../components/app-button';
@@ -14,7 +15,7 @@ import type { Proposal, Rows } from '../api/types';
 // on purpose — the API exposes columns and indexes, not foreign keys, and a diagram from half a graph
 // is a confident lie.
 
-type Tab = 'query' | 'dml' | 'ddl' | 'history';
+type Tab = 'query' | 'dml' | 'ddl';
 
 export function TargetPage() {
   const { ref = '' } = useParams();
@@ -23,9 +24,7 @@ export function TargetPage() {
 
   return (
     <section className="flex flex-col gap-5" aria-labelledby="target-title">
-      <Link to="/" className="w-fit text-sm text-brand hover:underline">
-        ← Instances
-      </Link>
+      <Breadcrumb items={[{ label: 'Instances', to: '/' }, { label: target.data?.name ?? 'Instance' }]} />
 
       <AsyncState loading={target.isLoading} error={target.error} onRetry={() => void target.refetch()}>
         <RenderWhen condition={target.data}>
@@ -73,7 +72,6 @@ export function TargetPage() {
                   { key: 'query', label: 'Query', children: <QueryTab ref_={ref} database={target.data.database} /> },
                   { key: 'dml', label: 'DML', children: <Queue target={ref} kind="dml" /> },
                   { key: 'ddl', label: 'DDL', children: <Queue target={ref} kind="ddl" /> },
-                  { key: 'history', label: 'History', children: <Queue target={ref} /> },
                 ]}
               />
             </>

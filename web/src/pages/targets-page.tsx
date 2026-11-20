@@ -125,15 +125,23 @@ function TargetCard({ target, onOpen }: { target: Target; onOpen: () => void }) 
       }}
       className="cursor-pointer border-line transition-transform hover:-translate-y-px hover:border-brand"
     >
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-[15px] font-semibold">{target.name}</span>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start gap-2">
+          <span aria-hidden="true" className="mt-1 h-2.5 w-2.5 shrink-0 rounded-sm bg-brand" />
+          <span className="text-[15px] leading-tight font-semibold">{target.name}</span>
           <span className="flex-1" />
-          <Tag>{target.driver}</Tag>
+          <Tag className="m-0">{target.driver}</Tag>
         </div>
-        <span className="font-mono text-xs text-muted">
-          {target.username}@{target.host}:{target.port}/{target.database}
-        </span>
+        <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+          <dt className="text-muted">Host</dt>
+          <dd className="m-0 truncate font-mono">
+            {target.host}:{target.port}
+          </dd>
+          <dt className="text-muted">Database</dt>
+          <dd className="m-0 truncate font-mono">{target.database}</dd>
+          <dt className="text-muted">User</dt>
+          <dd className="m-0 truncate font-mono">{target.username}</dd>
+        </dl>
         <div className="flex flex-wrap gap-1.5">
           <RenderWhen condition={target.archived_at}>
             <Tag>archived</Tag>

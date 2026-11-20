@@ -50,10 +50,19 @@ func NewAuthenticator(tokens []config.Token, log *slog.Logger) (*Authenticator, 
 // scope the route names; otherwise the handler receives the caller on its context.
 func (a *Authenticator) Require(scopes []string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		caller, ok := a.resolve(r.Header.Get(constants.HeaderAuthorization))
+		header := r.Header.Get(constants.HeaderAuthorization)
+		caller, ok := a.resolve(header)
 		if !ok {
-			a.log.Warn("refused", "reason", "no token", "path", r.URL.Path)
-			respond.Refuse(w, http.StatusUnauthorized, constants.CodeUnauthorized, "a bearer token is required")
+			// "Send a token" and "that token is not mine" are different mistakes and send the reader to
+			// different places: the first to the sign-in card, the second to whoever issued the token.
+			if strings.TrimSpace(header) == "" {
+				a.log.Warn("refused", "reason", "no token", "path", r.URL.Path)
+				respond.Refuse(w, http.StatusUnauthorized, constants.CodeUnauthorized, "a bearer token is required")
+				return
+			}
+			a.log.Warn("refused", "reason", "unknown token", "path", r.URL.Path)
+			respond.Refuse(w, http.StatusUnauthorized, constants.CodeUnauthorized,
+				"that token is not one this server accepts")
 			return
 		}
 		if !caller.HasAll(scopes) {

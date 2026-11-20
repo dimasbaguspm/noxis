@@ -4,6 +4,7 @@ import { lazy, Suspense } from 'react';
 import { Skeleton } from 'antd';
 import { theme } from '../theme';
 import { SessionProvider, useSession } from '../api/session-context';
+import { PermissionProvider } from '../api/permissions';
 import { AppShell } from './app-shell';
 import { SignIn } from './sign-in';
 import { TargetsPage } from '../pages/targets-page';
@@ -20,9 +21,11 @@ export function App() {
     <ConfigProvider theme={theme}>
       <AntApp>
         <SessionProvider>
-          <BrowserRouter>
-            <Gate />
-          </BrowserRouter>
+          <PermissionProvider>
+            <BrowserRouter>
+              <Gate />
+            </BrowserRouter>
+          </PermissionProvider>
         </SessionProvider>
       </AntApp>
     </ConfigProvider>
