@@ -8,7 +8,7 @@ import (
 	"noxis/internal/domain"
 )
 
-type health struct {
+type Health struct {
 	Status  string `json:"status"`
 	Version string `json:"version"`
 }
@@ -22,10 +22,10 @@ type health struct {
 // @Success 200 {object} respond.Envelope
 // @Router /healthz [get]
 func (*Handlers) Healthz(w http.ResponseWriter, _ *http.Request) {
-	respond.OK(w, health{Status: "ok", Version: constants.Version})
+	respond.OK(w, Health{Status: "ok", Version: constants.Version})
 }
 
-type whoami struct {
+type Whoami struct {
 	Name   string   `json:"name"`
 	Scopes []string `json:"scopes"`
 }
@@ -42,7 +42,7 @@ type whoami struct {
 // @Router /v1/whoami [get]
 func (*Handlers) Whoami(w http.ResponseWriter, r *http.Request) {
 	caller := middlewares.Caller(r.Context())
-	respond.OK(w, whoami{Name: caller.Name, Scopes: scopes(caller)})
+	respond.OK(w, Whoami{Name: caller.Name, Scopes: scopes(caller)})
 }
 
 func scopes(caller domain.Caller) []string {

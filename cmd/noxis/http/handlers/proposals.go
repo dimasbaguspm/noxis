@@ -12,46 +12,53 @@ import (
 	"time"
 )
 
-// proposalWire is a proposal on the wire. It carries the statement and its rollback because a
-// reviewer has to read both before deciding.
-type proposalWire struct {
-	Ref           string        `json:"ref"`
-	TargetRef     string        `json:"target_ref"`
-	Title         string        `json:"title"`
-	Kind          string        `json:"kind"`
-	Query         string        `json:"query"`
-	Rollback      string        `json:"rollback"`
-	Note          string        `json:"note"`
-	Status        string        `json:"status"`
-	Tier          string        `json:"tier"`
-	Irreversible  bool          `json:"irreversible"`
-	ProposedBy    string        `json:"proposed_by"`
-	RehearsalRef  string        `json:"rehearsal_ref,omitempty"`
-	DecidedBy     string        `json:"decided_by,omitempty"`
-	DecidedAt     *time.Time    `json:"decided_at,omitempty"`
-	DecidedNote   string        `json:"decided_note,omitempty"`
-	AppliedBy     string        `json:"applied_by,omitempty"`
-	AppliedAt     *time.Time    `json:"applied_at,omitempty"`
-	Failure       string        `json:"failure,omitempty"`
-	StartedAt     *time.Time    `json:"started_at,omitempty"`
-	Progress      *progressWire `json:"progress,omitempty"`
-	Algorithm     string        `json:"algorithm,omitempty"`
-	RowsEstimated int64         `json:"rows_estimated,omitempty"`
-	RowsAffected  int64         `json:"rows_affected,omitempty"`
-	CreatedAt     time.Time     `json:"created_at"`
-	UpdatedAt     time.Time     `json:"updated_at"`
+// ProposalDetail is a proposal and the rehearsal that last judged it: the evidence, together with
+// the thing it is evidence about.
+type ProposalDetail struct {
+	Proposal
+	Rehearsal *Rehearsal `json:"rehearsal,omitempty"`
 }
 
-// progressWire is what the engine said about a statement that was still running when the caller
+// Proposal is a proposal on the wire. It carries the statement and its rollback because a
+// reviewer has to read both before deciding.
+type Proposal struct {
+	Ref           string     `json:"ref"`
+	TargetRef     string     `json:"target_ref"`
+	Title         string     `json:"title"`
+	Kind          string     `json:"kind"`
+	Query         string     `json:"query"`
+	Rollback      string     `json:"rollback"`
+	Note          string     `json:"note"`
+	Status        string     `json:"status"`
+	Tier          string     `json:"tier"`
+	Irreversible  bool       `json:"irreversible"`
+	ProposedBy    string     `json:"proposed_by"`
+	RehearsalRef  string     `json:"rehearsal_ref,omitempty"`
+	DecidedBy     string     `json:"decided_by,omitempty"`
+	DecidedAt     *time.Time `json:"decided_at,omitempty"`
+	DecidedNote   string     `json:"decided_note,omitempty"`
+	AppliedBy     string     `json:"applied_by,omitempty"`
+	AppliedAt     *time.Time `json:"applied_at,omitempty"`
+	Failure       string     `json:"failure,omitempty"`
+	StartedAt     *time.Time `json:"started_at,omitempty"`
+	Progress      *Progress  `json:"progress,omitempty"`
+	Algorithm     string     `json:"algorithm,omitempty"`
+	RowsEstimated int64      `json:"rows_estimated,omitempty"`
+	RowsAffected  int64      `json:"rows_affected,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+}
+
+// Progress is what the engine said about a statement that was still running when the caller
 // asked. Percent is -1 when the engine does not report one.
-type progressWire struct {
+type Progress struct {
 	Stage   string `json:"stage,omitempty"`
 	Percent int    `json:"percent"`
 }
 
-// rehearsalWire is the evidence behind a proposal: diffs, the note that says how far the claim
+// Rehearsal is the evidence behind a proposal: diffs, the note that says how far the claim
 // goes, and the tier it was actually run at.
-type rehearsalWire struct {
+type Rehearsal struct {
 	Ref          string    `json:"ref"`
 	ProposalRef  string    `json:"proposal_ref"`
 	Tier         string    `json:"tier"`
@@ -68,15 +75,15 @@ type rehearsalWire struct {
 
 // progressOf reports progress only while a statement is running: a finished apply has nothing to
 // say about stages, and an absent field is clearer than a zero.
-func progressOf(progress domain.Progress) *progressWire {
+func progressOf(progress domain.Progress) *Progress {
 	if progress.Stage == "" && progress.Percent < 0 {
 		return nil
 	}
-	return &progressWire{Stage: progress.Stage, Percent: progress.Percent}
+	return &Progress{Stage: progress.Stage, Percent: progress.Percent}
 }
 
-func toProposalWire(p domain.Proposal) proposalWire {
-	return proposalWire{
+func toProposalWire(p domain.Proposal) Proposal {
+	return Proposal{
 		Ref: p.Ref, TargetRef: p.TargetRef, Title: p.Title, Kind: string(p.Kind), Query: p.Query,
 		Rollback: p.Rollback, Note: p.Note, Status: string(p.Status), Tier: string(p.Tier),
 		Irreversible: p.Irreversible, ProposedBy: p.ProposedBy, RehearsalRef: p.RehearsalRef,
@@ -88,8 +95,8 @@ func toProposalWire(p domain.Proposal) proposalWire {
 	}
 }
 
-func toRehearsalWire(r domain.Rehearsal) rehearsalWire {
-	return rehearsalWire{
+func toRehearsalWire(r domain.Rehearsal) Rehearsal {
+	return Rehearsal{
 		Ref: r.Ref, ProposalRef: r.ProposalRef, Tier: string(r.Tier), Status: string(r.Status),
 		SchemaDiff: r.SchemaDiff, RowDiff: r.RowDiff, Plan: r.Plan, Irreversible: r.Irreversible,
 		Note: r.Note, DurationMS: r.DurationMS, Error: r.Error, CreatedAt: r.CreatedAt,
@@ -133,13 +140,10 @@ func (h *Handlers) CreateProposal(w http.ResponseWriter, r *http.Request) {
 		respond.Fail(w, h.Log, err)
 		return
 	}
-	respond.Created(w, struct {
-		proposalWire
-		Rehearsal *rehearsalWire `json:"rehearsal,omitempty"`
-	}{proposalWire: toProposalWire(out.Proposal), Rehearsal: wireOf(out.Rehearsal)})
+	respond.Created(w, ProposalDetail{Proposal: toProposalWire(out.Proposal), Rehearsal: wireOf(out.Rehearsal)})
 }
 
-func wireOf(rehearsal domain.Rehearsal) *rehearsalWire {
+func wireOf(rehearsal domain.Rehearsal) *Rehearsal {
 	if rehearsal.Ref == "" {
 		return nil
 	}
@@ -189,7 +193,7 @@ func (h *Handlers) ListProposals(w http.ResponseWriter, r *http.Request) {
 		respond.Fail(w, h.Log, err)
 		return
 	}
-	wires := make([]proposalWire, 0, len(page.Proposals))
+	wires := make([]Proposal, 0, len(page.Proposals))
 	for _, item := range page.Proposals {
 		wires = append(wires, toProposalWire(item))
 	}
@@ -224,10 +228,7 @@ func (h *Handlers) GetProposal(w http.ResponseWriter, r *http.Request) {
 		respond.Fail(w, h.Log, err)
 		return
 	}
-	body := struct {
-		proposalWire
-		Rehearsal *rehearsalWire `json:"rehearsal,omitempty"`
-	}{proposalWire: toProposalWire(out.Proposal)}
+	body := ProposalDetail{Proposal: toProposalWire(out.Proposal)}
 	if out.HasRehearsal {
 		body.Rehearsal = wireOf(out.Rehearsal)
 	}
@@ -266,10 +267,7 @@ func (h *Handlers) RehearseProposal(w http.ResponseWriter, r *http.Request) {
 		respond.Fail(w, h.Log, err)
 		return
 	}
-	respond.OK(w, struct {
-		proposalWire
-		Rehearsal *rehearsalWire `json:"rehearsal,omitempty"`
-	}{proposalWire: toProposalWire(updated), Rehearsal: wireOf(rehearsal)})
+	respond.OK(w, ProposalDetail{Proposal: toProposalWire(updated), Rehearsal: wireOf(rehearsal)})
 }
 
 // ApproveProposal records a human's approval. The caller's own token decides whether it may: the
@@ -381,8 +379,8 @@ func (h *Handlers) ApplyProposal(w http.ResponseWriter, r *http.Request) {
 	respond.OK(w, toProposalWire(out.Proposal))
 }
 
-// journalWire is one line of the append-only history, on the wire.
-type journalWire struct {
+// JournalEntry is one line of the append-only history, on the wire.
+type JournalEntry struct {
 	Ref         string            `json:"ref"`
 	SubjectRef  string            `json:"subject_ref"`
 	SubjectKind string            `json:"subject_kind"`
@@ -412,9 +410,9 @@ func (h *Handlers) ProposalEvents(w http.ResponseWriter, r *http.Request) {
 		respond.Fail(w, h.Log, err)
 		return
 	}
-	wires := make([]journalWire, 0, len(entries))
+	wires := make([]JournalEntry, 0, len(entries))
 	for _, entry := range entries {
-		wires = append(wires, journalWire{
+		wires = append(wires, JournalEntry{
 			Ref: entry.Ref, SubjectRef: entry.SubjectRef, SubjectKind: entry.SubjectKind,
 			Kind: entry.Kind, Actor: entry.Actor, Detail: entry.Detail, CreatedAt: entry.CreatedAt,
 		})
