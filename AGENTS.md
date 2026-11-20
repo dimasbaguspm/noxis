@@ -43,6 +43,7 @@ make test    # go test ./... — unit + the layering test            (~5s)
 make lint    # golangci-lint v2                                    (~30s)
 make build   # bin/noxisd + bin/noxis
 make uat     # godog over a real noxisd process                    (~20s)
+make uat-slow # the same plus @slow: boots MySQL 8.4 + MariaDB 11.4   (~2m, docker)
 ```
 
 ## Repo map

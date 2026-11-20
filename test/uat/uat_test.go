@@ -3,6 +3,7 @@
 package uat
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -92,6 +93,12 @@ func run(m *testing.M) (int, error) {
 			return 0, err
 		}
 	}
+	if slow() {
+		if err := enginesUp(); err != nil {
+			return 0, err
+		}
+		defer enginesDown()
+	}
 
 	return m.Run(), nil
 }
@@ -120,7 +127,39 @@ func waitForServer(base string, within time.Duration) error {
 	return fmt.Errorf("noxisd did not answer %s/healthz within %s", base, within)
 }
 
+// slow reports whether this run may talk to real engines. Without it the @slow scenarios are
+// excluded rather than skipped silently: a scenario that never ran is not evidence.
+func slow() bool { return os.Getenv("UAT_SLOW") == "1" }
+
+const composeFile = "compose.yml"
+
+// enginesUp boots the engines the @slow scenarios name and waits for them to answer.
+func enginesUp() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "docker", "compose", "-f", composeFile, "up", "-d", "--wait")
+	cmd.Dir = "."
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("docker compose up: %w\n%s", err, out)
+	}
+	return nil
+}
+
+// enginesDown removes them, and their volumes, even when a scenario failed.
+func enginesDown() {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "docker", "compose", "-f", composeFile, "down", "-v")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		fmt.Fprintf(os.Stderr, "uat: docker compose down: %v\n%s\n", err, out)
+	}
+}
+
 func TestAcceptance(t *testing.T) {
+	tags := "~@slow"
+	if slow() {
+		tags = "@slow"
+	}
 	suite := godog.TestSuite{
 		Name:                "noxis",
 		ScenarioInitializer: steps.InitializeScenario,
@@ -128,6 +167,7 @@ func TestAcceptance(t *testing.T) {
 			Format:   "pretty",
 			Paths:    []string{"features"},
 			TestingT: t,
+			Tags:     tags,
 			// Strict makes an undefined step a failure: a scenario that silently skips its
 			// assertions is worse than no scenario at all.
 			Strict: true,

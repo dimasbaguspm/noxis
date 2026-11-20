@@ -18,7 +18,7 @@ One `internal/adapters/mysql` package behind `ports.Driver`. The DSN is built on
 
 - [x] A probe distinguishes MySQL 8.4 from MariaDB 11.4 by what the server reports, verified against real containers
 - [x] Capabilities are derived from the engine, so a route cannot offer what it cannot do
-- [ ] `@slow` UAT runs both engines in containers — verified by hand this round, the harness is still `@fast`
+- [x] `@slow` UAT runs both engines in containers (`UAT_SLOW=1 make uat-slow`, compose booted and removed by the suite)
 - [x] The probe timeout comes from `PROBE_TIMEOUT`, and an unreachable target answers 422 rather than holding the request
 
 ## Risks & notes
