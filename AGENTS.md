@@ -120,5 +120,6 @@ seam next to the struct: `var _ ports.Driver = (*DB)(nil)`.
 ## Docs index
 
 - `docs/agent/architecture.md` — layers, seams, request flow, how to add a use case.
+- `docs/agent/database.md` — the state file: schema versions, tables, sealing, paging.
 - `docs/agent/review.md` — review checklist and invariants.
 - `docs/plan/` — one snapshot per completed plan with an index.

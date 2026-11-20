@@ -32,16 +32,17 @@ func run(ctx context.Context) error {
 	}
 	log := logging.New(cfg.LogLevel, cfg.LogFormat)
 
-	handler, err := build(cfg, log)
+	handler, closer, err := build(ctx, cfg, log)
 	if err != nil {
 		return err
 	}
+	// The state file closes after the listener has stopped taking requests.
+	defer func() { _ = closer.Close() }()
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
-		ErrorLog:          nil,
 	}
 
 	serveErr := make(chan error, 1)
