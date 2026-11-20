@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"noxis/internal/common/cursor"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"noxis/internal/ports"
@@ -33,7 +34,10 @@ type ListOutput struct {
 
 // Run clamps the page, validates the filters and asks the store for one row more than the
 // page size, which is how "is there a next page" is answered without counting.
-func (l *List) Run(ctx context.Context, in ListInput) (ListOutput, error) {
+func (l *List) Run(ctx context.Context, in ListInput) (out0 ListOutput, err error) {
+	ctx, end := telemetry.Span(ctx, "target.List.Run")
+	defer func() { end(err) }()
+
 	after, err := cursor.Ref(in.Cursor)
 	if err != nil {
 		return ListOutput{}, fmt.Errorf("%w: %w", domain.ErrInvalid, err)

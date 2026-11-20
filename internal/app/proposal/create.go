@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"noxis/internal/common/ref"
 	"noxis/internal/common/sqltext"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"strings"
@@ -36,7 +37,10 @@ type CreateOutput struct {
 }
 
 // Run classifies, stores, rehearses and journals.
-func (c *Create) Run(ctx context.Context, in CreateInput) (CreateOutput, error) {
+func (c *Create) Run(ctx context.Context, in CreateInput) (out0 CreateOutput, err error) {
+	ctx, end := telemetry.Span(ctx, "proposal.Create.Run")
+	defer func() { end(err) }()
+
 	targetRef, err := requireRef(in.TargetRef)
 	if err != nil {
 		return CreateOutput{}, err

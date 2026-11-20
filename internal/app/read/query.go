@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"noxis/internal/common/cursor"
 	"noxis/internal/common/sqltext"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 )
@@ -25,7 +26,10 @@ type QueryInput struct {
 
 // Run classifies, refuses, connects and reads. The refusal happens before a connection is opened,
 // so a write never reaches an engine even when the target is reachable.
-func (q *Query) Run(ctx context.Context, in QueryInput) (domain.Rows, error) {
+func (q *Query) Run(ctx context.Context, in QueryInput) (out0 domain.Rows, err error) {
+	ctx, end := telemetry.Span(ctx, "read.Query.Run")
+	defer func() { end(err) }()
+
 	statement, err := sqltext.Classify(in.SQL)
 	if err != nil {
 		return domain.Rows{}, fmt.Errorf("%w: %w", domain.ErrInvalid, err)

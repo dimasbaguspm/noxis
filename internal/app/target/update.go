@@ -3,6 +3,7 @@ package target
 import (
 	"context"
 	"fmt"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"time"
@@ -35,7 +36,10 @@ type UpdateInput struct {
 
 // Run reads, applies, validates and writes back. Validation runs after the patch, so a
 // patch that would make the target invalid is refused rather than stored.
-func (u *Update) Run(ctx context.Context, in UpdateInput) (domain.Target, error) {
+func (u *Update) Run(ctx context.Context, in UpdateInput) (out0 domain.Target, err error) {
+	ctx, end := telemetry.Span(ctx, "target.Update.Run")
+	defer func() { end(err) }()
+
 	ref, err := requireRef(in.Ref)
 	if err != nil {
 		return domain.Target{}, err

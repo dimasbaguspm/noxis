@@ -2,6 +2,7 @@ package proposal
 
 import (
 	"context"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 )
 
@@ -20,7 +21,10 @@ type GetOutput struct {
 }
 
 // Run reads the proposal, then its latest rehearsal when there is one.
-func (g *Get) Run(ctx context.Context, ref string) (GetOutput, error) {
+func (g *Get) Run(ctx context.Context, ref string) (out0 GetOutput, err error) {
+	ctx, end := telemetry.Span(ctx, "proposal.Get.Run")
+	defer func() { end(err) }()
+
 	value, err := requireRef(ref)
 	if err != nil {
 		return GetOutput{}, err

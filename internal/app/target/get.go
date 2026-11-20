@@ -2,6 +2,7 @@ package target
 
 import (
 	"context"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 )
 
@@ -13,7 +14,10 @@ type Get struct{ Deps }
 func NewGet(d Deps) *Get { return &Get{Deps: d} }
 
 // Run reads the target.
-func (g *Get) Run(ctx context.Context, ref string) (domain.Target, error) {
+func (g *Get) Run(ctx context.Context, ref string) (out0 domain.Target, err error) {
+	ctx, end := telemetry.Span(ctx, "target.Get.Run")
+	defer func() { end(err) }()
+
 	value, err := requireRef(ref)
 	if err != nil {
 		return domain.Target{}, err

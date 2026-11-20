@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"strings"
 	"time"
@@ -90,7 +91,10 @@ func (c *Client) Live(ctx context.Context) (Health, error) {
 }
 
 // do performs one call and returns the cursor of the page it answered, when it answered one.
-func (c *Client) do(ctx context.Context, method, path string, body, out any) (string, error) {
+func (c *Client) do(ctx context.Context, method, path string, body, out any) (next string, err error) {
+	ctx, end := telemetry.Span(ctx, "client.Client.Do")
+	defer func() { end(err) }()
+
 	var reader io.Reader
 	if body != nil {
 		buf, err := json.Marshal(body)

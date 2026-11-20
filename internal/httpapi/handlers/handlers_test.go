@@ -15,6 +15,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"go.opentelemetry.io/otel"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 )
 
 const (
@@ -326,5 +330,34 @@ func TestEveryRouteAnswers(t *testing.T) {
 	// plaintext the caller typed.
 	if stored := s.targets[targetRef].Secret; stored == password || !strings.HasPrefix(stored, "sealed:") {
 		t.Fatalf("the rotated password was stored as %q", stored)
+	}
+}
+
+// A trace reads as the call stack it is: the handler's span, and under it the use case that did the
+// work. Without this, a slow apply is one wide bar with no answer to "which layer".
+func TestApplyIsTracedEndToEnd(t *testing.T) {
+	recorder := tracetest.NewSpanRecorder()
+	provider := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(recorder))
+	previous := otel.GetTracerProvider()
+	otel.SetTracerProvider(provider)
+	t.Cleanup(func() { otel.SetTracerProvider(previous) })
+
+	s := newStore()
+	s.seedTarget(targetRef)
+	s.seedProposal(proposalRef, targetRef, domain.StatusApproved)
+
+	rec := request(t, newHandlers(s).ApplyProposal, http.MethodPost, "/v1/proposals/"+proposalRef+"/apply", "", ops)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body)
+	}
+
+	names := map[string]bool{}
+	for _, span := range recorder.Ended() {
+		names[span.Name()] = true
+	}
+	for _, want := range []string{"handlers.ApplyProposal", "proposal.Apply.Run"} {
+		if !names[want] {
+			t.Fatalf("no %q span; the trace had %v", want, names)
+		}
 	}
 }

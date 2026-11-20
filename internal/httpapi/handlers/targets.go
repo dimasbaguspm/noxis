@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"noxis/internal/app/target"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 	"noxis/internal/httpapi/middlewares"
 	"noxis/internal/httpapi/respond"
@@ -78,6 +79,10 @@ func toWires(targets []domain.Target) []targetWire {
 // CreateTarget registers one target. It needs `admin`: a token that may read must not be
 // able to widen what the server points at.
 func (h *Handlers) CreateTarget(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.CreateTarget")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	var body struct {
 		Name     string            `json:"name"`
 		Driver   string            `json:"driver"`
@@ -114,6 +119,10 @@ func (h *Handlers) CreateTarget(w http.ResponseWriter, r *http.Request) {
 
 // ListTargets answers one page of targets, newest first.
 func (h *Handlers) ListTargets(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.ListTargets")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	query := r.URL.Query()
 	limit, err := intParam(query.Get("limit"))
 	if err != nil {
@@ -136,6 +145,10 @@ func (h *Handlers) ListTargets(w http.ResponseWriter, r *http.Request) {
 
 // GetTarget reads one target by reference.
 func (h *Handlers) GetTarget(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.GetTarget")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	found, err := h.Targets.Get.Run(r.Context(), r.PathValue("ref"))
 	if err != nil {
 		respond.Fail(w, h.Log, err)
@@ -146,6 +159,10 @@ func (h *Handlers) GetTarget(w http.ResponseWriter, r *http.Request) {
 
 // UpdateTarget rotates a password, renames a target, or retunes its TLS mode and options.
 func (h *Handlers) UpdateTarget(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.UpdateTarget")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	var body struct {
 		Name     *string            `json:"name"`
 		Username *string            `json:"username"`
@@ -177,6 +194,10 @@ func (h *Handlers) UpdateTarget(w http.ResponseWriter, r *http.Request) {
 
 // ArchiveTarget puts a target away. Nothing is deleted.
 func (h *Handlers) ArchiveTarget(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.ArchiveTarget")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	archived, err := h.Targets.Archive.Run(r.Context(), target.ArchiveInput{
 		Ref:   r.PathValue("ref"),
 		Actor: middlewares.Caller(r.Context()).Name,
@@ -221,6 +242,10 @@ func intParam(raw string) (int, error) {
 // capabilities it derived. A probe that cannot connect is a 422 whose message is the driver's
 // own, and the target itself now says the attempt failed.
 func (h *Handlers) ProbeTarget(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.ProbeTarget")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	result, err := h.Targets.Probe.Run(r.Context(), target.ProbeInput{
 		Ref:   r.PathValue("ref"),
 		Actor: middlewares.Caller(r.Context()).Name,
@@ -239,6 +264,10 @@ func (h *Handlers) ProbeTarget(w http.ResponseWriter, r *http.Request) {
 // a connection: the set is derived from the declared driver and, once probed, from the measured
 // version.
 func (h *Handlers) TargetCapabilities(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.TargetCapabilities")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	found, err := h.Targets.Get.Run(r.Context(), r.PathValue("ref"))
 	if err != nil {
 		respond.Fail(w, h.Log, err)

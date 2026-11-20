@@ -3,6 +3,7 @@ package sqlite
 import (
 	"context"
 	"fmt"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 	"noxis/internal/ports"
 	"strings"
@@ -16,8 +17,11 @@ const proposalColumns = `ref, target_ref, title, kind, query, rollback, note, st
 
 // Create stores one proposal. Two proposals with the same title are allowed: a title describes a
 // change, and the same change may be proposed twice.
-func (d *DB) CreateProposal(ctx context.Context, proposal domain.Proposal) (domain.Proposal, error) {
-	_, err := d.db.ExecContext(ctx, `INSERT INTO proposals (`+proposalColumns+`)
+func (d *DB) CreateProposal(ctx context.Context, proposal domain.Proposal) (out0 domain.Proposal, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.CreateProposal")
+	defer func() { end(err) }()
+
+	_, err = d.db.ExecContext(ctx, `INSERT INTO proposals (`+proposalColumns+`)
 		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		proposal.Ref, proposal.TargetRef, proposal.Title, string(proposal.Kind), proposal.Query,
 		proposal.Rollback, proposal.Note, string(proposal.Status), string(proposal.Tier),
@@ -35,7 +39,10 @@ func (d *DB) CreateProposal(ctx context.Context, proposal domain.Proposal) (doma
 }
 
 // ByRef reads one proposal.
-func (d *DB) ProposalByRef(ctx context.Context, ref string) (domain.Proposal, error) {
+func (d *DB) ProposalByRef(ctx context.Context, ref string) (out0 domain.Proposal, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.ProposalByRef")
+	defer func() { end(err) }()
+
 	row := d.db.QueryRowContext(ctx, `SELECT `+proposalColumns+` FROM proposals WHERE ref = ?`, ref)
 	proposal, err := scanProposal(row)
 	if err != nil {
@@ -45,7 +52,10 @@ func (d *DB) ProposalByRef(ctx context.Context, ref string) (domain.Proposal, er
 }
 
 // List answers one page of the queue, newest first.
-func (d *DB) ListProposals(ctx context.Context, filter ports.ProposalFilter) ([]domain.Proposal, error) {
+func (d *DB) ListProposals(ctx context.Context, filter ports.ProposalFilter) (out0 []domain.Proposal, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.ListProposals")
+	defer func() { end(err) }()
+
 	var (
 		where []string
 		args  []any
@@ -99,7 +109,10 @@ func (d *DB) ListProposals(ctx context.Context, filter ports.ProposalFilter) ([]
 }
 
 // Update writes a proposal back. A missing row is reported rather than silently ignored.
-func (d *DB) UpdateProposal(ctx context.Context, proposal domain.Proposal) (domain.Proposal, error) {
+func (d *DB) UpdateProposal(ctx context.Context, proposal domain.Proposal) (out0 domain.Proposal, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.UpdateProposal")
+	defer func() { end(err) }()
+
 	res, err := d.db.ExecContext(ctx, `UPDATE proposals SET
 			title = ?, kind = ?, query = ?, rollback = ?, note = ?, status = ?, tier = ?,
 			irreversible = ?, rehearsal_ref = ?, decided_by = ?, decided_at = ?, decided_note = ?,
@@ -173,12 +186,18 @@ func scanProposal(row scanner) (domain.Proposal, error) {
 }
 
 // Create stores one rehearsal attempt.
-func (d *DB) CreateRehearsal(ctx context.Context, rehearsal domain.Rehearsal) (domain.Rehearsal, error) {
+func (d *DB) CreateRehearsal(ctx context.Context, rehearsal domain.Rehearsal) (out0 domain.Rehearsal, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.CreateRehearsal")
+	defer func() { end(err) }()
+
 	return d.insertRehearsal(ctx, rehearsal)
 }
 
 // ByRef reads one rehearsal.
-func (d *DB) RehearsalByRef(ctx context.Context, ref string) (domain.Rehearsal, error) {
+func (d *DB) RehearsalByRef(ctx context.Context, ref string) (out0 domain.Rehearsal, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.RehearsalByRef")
+	defer func() { end(err) }()
+
 	row := d.db.QueryRowContext(ctx, `SELECT `+rehearsalColumns+` FROM rehearsals WHERE ref = ?`, ref)
 	rehearsal, err := scanRehearsal(row)
 	if err != nil {
@@ -188,7 +207,10 @@ func (d *DB) RehearsalByRef(ctx context.Context, ref string) (domain.Rehearsal, 
 }
 
 // Latest reads the most recent rehearsal of one proposal.
-func (d *DB) LatestRehearsal(ctx context.Context, proposalRef string) (domain.Rehearsal, error) {
+func (d *DB) LatestRehearsal(ctx context.Context, proposalRef string) (out0 domain.Rehearsal, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.LatestRehearsal")
+	defer func() { end(err) }()
+
 	row := d.db.QueryRowContext(ctx, `SELECT `+rehearsalColumns+`
 		FROM rehearsals WHERE proposal_ref = ? ORDER BY ref DESC LIMIT 1`, proposalRef)
 	rehearsal, err := scanRehearsal(row)
@@ -201,8 +223,11 @@ func (d *DB) LatestRehearsal(ctx context.Context, proposalRef string) (domain.Re
 const rehearsalColumns = `ref, proposal_ref, tier, status, schema_diff, row_diff, plan, irreversible,
 	note, duration_ms, error, created_at`
 
-func (d *DB) insertRehearsal(ctx context.Context, rehearsal domain.Rehearsal) (domain.Rehearsal, error) {
-	_, err := d.db.ExecContext(ctx, `INSERT INTO rehearsals (`+rehearsalColumns+`)
+func (d *DB) insertRehearsal(ctx context.Context, rehearsal domain.Rehearsal) (out0 domain.Rehearsal, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.insertRehearsal")
+	defer func() { end(err) }()
+
+	_, err = d.db.ExecContext(ctx, `INSERT INTO rehearsals (`+rehearsalColumns+`)
 		VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
 		rehearsal.Ref, rehearsal.ProposalRef, string(rehearsal.Tier), string(rehearsal.Status),
 		rehearsal.SchemaDiff, rehearsal.RowDiff, rehearsal.Plan, boolInt(rehearsal.Irreversible),
@@ -263,7 +288,10 @@ func (d *DB) SetProgress(ctx context.Context, ref string, progress domain.Progre
 // ClaimProposal moves a proposal from one status to another only while it is still there. The
 // conditional update is the lock: whoever's update reports a row won the claim, everyone else learns
 // the proposal is no longer theirs to run.
-func (d *DB) ClaimProposal(ctx context.Context, ref string, from, to domain.Status) (domain.Proposal, error) {
+func (d *DB) ClaimProposal(ctx context.Context, ref string, from, to domain.Status) (out0 domain.Proposal, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.ClaimProposal")
+	defer func() { end(err) }()
+
 	res, err := d.db.ExecContext(ctx, `UPDATE proposals SET status = ?, updated_at = ?
 		WHERE ref = ? AND status = ?`, string(to), millis(time.Now().UTC()), ref, string(from))
 	if err != nil {

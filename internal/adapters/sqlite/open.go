@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 	"noxis/internal/ports"
 	"os"
@@ -93,7 +94,10 @@ func (d *DB) settle(ctx context.Context) error {
 	return nil
 }
 
-func (d *DB) userVersion(ctx context.Context) (int, error) {
+func (d *DB) userVersion(ctx context.Context) (out0 int, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.userVersion")
+	defer func() { end(err) }()
+
 	var version int
 	if err := d.db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return 0, fmt.Errorf("state: read schema version: %w", err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 )
 
@@ -42,7 +43,10 @@ func (d *DB) Append(ctx context.Context, entries ...domain.JournalEntry) error {
 }
 
 // Entries answers the newest lines about one subject.
-func (d *DB) Entries(ctx context.Context, subjectRef string, limit int) ([]domain.JournalEntry, error) {
+func (d *DB) Entries(ctx context.Context, subjectRef string, limit int) (out0 []domain.JournalEntry, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.Entries")
+	defer func() { end(err) }()
+
 	rows, err := d.db.QueryContext(ctx, `SELECT ref, subject_ref, subject_kind, kind, actor, detail, created_at
 		FROM journal WHERE subject_ref = ? ORDER BY ref DESC LIMIT ?`, subjectRef, limit)
 	if err != nil {

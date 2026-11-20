@@ -2,6 +2,7 @@ package proposal
 
 import (
 	"context"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 )
 
@@ -13,7 +14,10 @@ type Events struct{ Deps }
 func NewEvents(d Deps) *Events { return &Events{Deps: d} }
 
 // Run answers the journal lines for one proposal, newest first.
-func (e *Events) Run(ctx context.Context, ref string) ([]domain.JournalEntry, error) {
+func (e *Events) Run(ctx context.Context, ref string) (out0 []domain.JournalEntry, err error) {
+	ctx, end := telemetry.Span(ctx, "proposal.Events.Run")
+	defer func() { end(err) }()
+
 	value, err := requireRef(ref)
 	if err != nil {
 		return nil, err

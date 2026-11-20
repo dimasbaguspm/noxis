@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 	"noxis/internal/ports"
 	"strings"
@@ -15,7 +16,10 @@ const targetColumns = `ref, name, driver, host, port, database, username, passwo
 const targetPlaceholders = `?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?`
 
 // Create inserts one target. A name collision is a conflict, not an overwrite.
-func (d *DB) Create(ctx context.Context, target domain.Target) (domain.Target, error) {
+func (d *DB) Create(ctx context.Context, target domain.Target) (out0 domain.Target, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.Create")
+	defer func() { end(err) }()
+
 	options, err := encodeOptions(target.Options)
 	if err != nil {
 		return domain.Target{}, err
@@ -36,7 +40,10 @@ func (d *DB) Create(ctx context.Context, target domain.Target) (domain.Target, e
 }
 
 // ByRef reads one target by its reference.
-func (d *DB) ByRef(ctx context.Context, ref string) (domain.Target, error) {
+func (d *DB) ByRef(ctx context.Context, ref string) (out0 domain.Target, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.ByRef")
+	defer func() { end(err) }()
+
 	row := d.db.QueryRowContext(ctx, `SELECT `+targetColumns+` FROM targets WHERE ref = ?`, ref)
 	target, err := scanTarget(row)
 	if err != nil {
@@ -47,7 +54,10 @@ func (d *DB) ByRef(ctx context.Context, ref string) (domain.Target, error) {
 
 // List answers a page. Ordering is `ref DESC` — the UUIDv7 encodes creation time, so newest
 // first and the keyset are the same column.
-func (d *DB) List(ctx context.Context, filter ports.TargetFilter) ([]domain.Target, error) {
+func (d *DB) List(ctx context.Context, filter ports.TargetFilter) (out0 []domain.Target, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.List")
+	defer func() { end(err) }()
+
 	var (
 		where []string
 		args  []any
@@ -97,7 +107,10 @@ func (d *DB) List(ctx context.Context, filter ports.TargetFilter) ([]domain.Targ
 
 // Update writes back a target that already exists. A missing row is reported as such: a
 // silent zero would hide a lost write.
-func (d *DB) Update(ctx context.Context, target domain.Target) (domain.Target, error) {
+func (d *DB) Update(ctx context.Context, target domain.Target) (out0 domain.Target, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.Update")
+	defer func() { end(err) }()
+
 	options, err := encodeOptions(target.Options)
 	if err != nil {
 		return domain.Target{}, err

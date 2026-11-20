@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"noxis/internal/app/password"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"time"
@@ -33,7 +34,10 @@ type ApplyOutput struct {
 
 // Run claims the proposal, decides whether the statement can answer in the call, and applies it. A
 // failure is stored on the proposal: a silent retry is how the same change lands twice.
-func (a *Apply) Run(ctx context.Context, in ApplyInput) (ApplyOutput, error) {
+func (a *Apply) Run(ctx context.Context, in ApplyInput) (out0 ApplyOutput, err error) {
+	ctx, end := telemetry.Span(ctx, "proposal.Apply.Run")
+	defer func() { end(err) }()
+
 	ref, err := requireRef(in.Ref)
 	if err != nil {
 		return ApplyOutput{}, err
