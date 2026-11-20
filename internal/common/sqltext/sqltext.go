@@ -92,7 +92,8 @@ func scrub(sql string) (scrubbed, upper string, err error) {
 	out := []byte(sql)
 	for i := 0; i < len(sql); i++ {
 		switch {
-		case sql[i] == '-' && i+1 < len(sql) && sql[i+1] == '-':
+		case sql[i] == '-' && i+1 < len(sql) && sql[i+1] == '-' &&
+			(i+2 == len(sql) || sql[i+2] == ' ' || sql[i+2] == '\t' || sql[i+2] == '\n' || sql[i+2] == '\r'):
 			i = blankUntilLineEnd(out, i)
 		case sql[i] == '#':
 			i = blankUntilLineEnd(out, i)
@@ -242,6 +243,13 @@ func tablesOf(scrubbed, upper string) []string {
 	var tables []string
 	for i := 0; i < len(uppers)-1; i++ {
 		switch uppers[i] {
+		// INDEX names its table after ON (`CREATE INDEX x ON t (...)`), which is a different shape
+		// from every other statement that matters here.
+		case "INDEX":
+			if name := tableAfterOn(tokens, uppers, i); name != "" {
+				tables = append(tables, name)
+			}
+			continue
 		// TABLE covers ALTER/CREATE/DROP/TRUNCATE/RENAME, which name their object that way. It is
 		// also what a statement a rehearsal must scope is most likely to say.
 		case "FROM", "JOIN", "UPDATE", "INTO", "TABLE":
@@ -256,6 +264,22 @@ func tablesOf(scrubbed, upper string) []string {
 		tables = append(tables, name)
 	}
 	return tables
+}
+
+// tableAfterOn reads `… INDEX <name> ON <table> …`, skipping the index name and any options
+// between it and ON. It returns "" when the shape is not one it recognises.
+func tableAfterOn(tokens, uppers []string, from int) string {
+	for i := from + 1; i < len(uppers)-1; i++ {
+		if uppers[i] != "ON" {
+			continue
+		}
+		name := strings.Trim(tokens[i+1], "`")
+		if name == "" || name == "(" || name == "SELECT" {
+			return ""
+		}
+		return name
+	}
+	return ""
 }
 
 // tokenize splits on whitespace, keeping parentheses and commas as their own tokens so depth and

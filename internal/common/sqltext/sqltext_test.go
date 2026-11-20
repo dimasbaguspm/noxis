@@ -108,6 +108,47 @@ func TestClassifyMarksLockingReads(t *testing.T) {
 	}
 }
 
+func TestCommentsAreAcceptedEverywhere(t *testing.T) {
+	// The point is not that comments are stripped: it is that they change nothing. A statement with
+	// comments before, inside and after it is the statement without them.
+	for _, tc := range []struct {
+		name string
+		sql  string
+		kind Kind
+	}{
+		{"ddl with leading comments", "-- add a column\n/* and a note */\nALTER TABLE users ADD COLUMN x INT", DDL},
+		{"ddl with inline comments", "ALTER TABLE users -- the table\n  ADD COLUMN x INT /* the column */", DDL},
+		{"dml with inline comments", "UPDATE users SET x = 1 WHERE id = 2 -- one row\n", Update},
+		{"select with hash comment", "# a note\nSELECT * FROM users", Select},
+		{"create index with comments", "-- index it\nCREATE INDEX idx ON users (email) /* fast reads */", DDL},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Classify(tc.sql)
+			if err != nil {
+				t.Fatalf("Classify: %v", err)
+			}
+			if got.Kind != tc.kind {
+				t.Fatalf("kind = %q, want %q", got.Kind, tc.kind)
+			}
+		})
+	}
+}
+
+func TestDashDashNeedsWhitespace(t *testing.T) {
+	// MySQL only starts a comment at `-- `, so `a--b` is an expression, not a comment.
+	got, err := Classify("SELECT 1--2 AS n")
+	if err != nil {
+		t.Fatalf("Classify: %v", err)
+	}
+	if got.Kind != Select {
+		t.Fatalf("kind = %q", got.Kind)
+	}
+	// A real comment still ends the statement before the semicolon check.
+	if _, err := Classify("SELECT 1 -- trailing\n;"); err != nil {
+		t.Fatalf("Classify with a trailing comment: %v", err)
+	}
+}
+
 func TestClassifyRefusesUnterminated(t *testing.T) {
 	for _, sql := range []string{"SELECT 'oops", "SELECT /* oops", "SELECT `oops"} {
 		if _, err := Classify(sql); err == nil {
@@ -142,6 +183,10 @@ func TestTables(t *testing.T) {
 		{"INSERT INTO archive (id) SELECT id FROM users", []string{"archive", "users"}},
 		{"SELECT 1", nil},
 		{"SELECT * FROM (SELECT 1) t", nil},
+		{"CREATE INDEX idx_email ON users (email)", []string{"users"}},
+		{"CREATE UNIQUE INDEX idx_email ON app.users (email)", []string{"app.users"}},
+		{"DROP INDEX idx_email ON users", []string{"users"}},
+		{"CREATE INDEX idx ON users (a) USING BTREE", []string{"users"}},
 	} {
 		got, err := Classify(tc.sql)
 		if err != nil {
