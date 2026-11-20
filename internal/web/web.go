@@ -38,6 +38,12 @@ func New(apiURL string) (*Console, error) {
 	if err != nil {
 		return nil, err
 	}
+	return newFrom(dist, apiURL)
+}
+
+// newFrom is New over any filesystem, so the placeholder branch — the one that renders an API address
+// into a page — stays testable after a real build replaces the committed placeholder.
+func newFrom(dist fs.FS, apiURL string) (*Console, error) {
 	index, err := fs.ReadFile(dist, "index.html")
 	if err != nil {
 		return nil, errors.New("web: the embedded console has no index.html")

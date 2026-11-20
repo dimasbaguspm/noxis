@@ -8,13 +8,16 @@ include .env
 export
 endif
 
-.PHONY: help build run test lint fmt tidy mocks spec uat uat-slow clean
+.PHONY: help build run test lint fmt tidy mocks spec web uat uat-slow clean
 
 help: ## list the targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2}'
 
 build: ## compile the one binary: bin/noxis (http serve, web serve, cli)
 	$(GO) build -trimpath -ldflags "-s -w" -o $(BIN)/noxis ./cmd/noxis
+
+web: ## build the console into internal/web/dist (needs npm ci once, in web/)
+	npm --prefix web run build
 
 run: ## run the API on the constant listen address
 	$(GO) run ./cmd/noxis http serve

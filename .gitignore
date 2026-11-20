@@ -10,3 +10,4 @@ web/dist/
 
 # a binary built by hand lands next to the tree, never in it
 /noxis
+web/node_modules/

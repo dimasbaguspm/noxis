@@ -1,23 +1,37 @@
 # The console
 
-The console is a static build that ships **inside** the binary. `noxis web serve` serves whatever
-was compiled into `internal/web/dist`, on port 3000 unless `--port` says otherwise.
-
-- `internal/web/dist/index.html` and `internal/web/dist/NOT_BUILT` are a committed placeholder. The
-  binary serves that page, and says in its log that it is a placeholder, instead of answering 404 to
-  the first thing an operator opens.
-- A real build replaces `internal/web/dist` and **deletes `NOT_BUILT`**. That file is the only signal
-  the binary uses to tell a built console from the placeholder.
-
-## Building
+React + TypeScript + Ant Design, built by Vite straight into `internal/web/dist`, which the binary
+embeds and serves with `noxis web serve`. One command builds the console the image carries:
 
 ```bash
-npm ci && npm run build     # writes dist/
-rm -rf ../internal/web/dist && cp -r dist ../internal/web/dist
-rm ../internal/web/dist/NOT_BUILT
-make -C .. build
+npm ci                 # once
+make -C .. web         # or: npm run build
+make -C .. build       # the binary now carries it
+noxis web serve --api https://api.example.com
 ```
 
-The console talks to the API over HTTP and knows its address only from `noxis web serve --api`. It
-holds no token of its own: signing in is the CLI's job, and the console is served by a process the
-operator starts next to the API.
+`dist/NOT_BUILT` is the only signal that separates a committed placeholder from a real build. A build
+empties the directory, so the marker disappears on its own; the placeholder exists so a binary built
+without npm still answers something a human can read.
+
+## Shape
+
+| Path | What it is |
+| --- | --- |
+| `src/api/client.ts` | the envelope, the bearer header, the token cookie, one function per route |
+| `src/api/session.tsx` | the API it found, the identity `/v1/whoami` confirmed, sign in and out |
+| `src/app/` | the shell (topbar + content) and the sign-in card |
+| `src/pages/TargetsPage.tsx` | the list, the search, the create drawer |
+| `src/pages/TargetPage.tsx` | Query, DML, DDL, History for one target |
+| `src/pages/ProposalPage.tsx` | the statement, the rollback, the rehearsal, review and apply |
+| `src/editor/SqlEditor.tsx` | Monaco, bundled (never a CDN), completing from the target's own schema |
+
+## Theme
+
+Orange `#f97316` on white, one grey scale, 8px radius. Every colour comes from `src/theme.ts`; a screen
+that needs a colour imports it from there rather than writing a hex literal.
+
+## What the console does not do yet
+
+- It has no ERD tab: the API exposes columns and indexes, not foreign keys.
+- It signs in with a pasted token; the CLI's stored session is not handed to the browser (#821).
