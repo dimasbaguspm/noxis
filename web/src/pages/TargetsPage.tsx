@@ -1,23 +1,14 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  App as AntApp,
-  Button,
-  Card,
-  Drawer,
-  Empty,
-  Flex,
-  Form,
-  Input,
-  InputNumber,
-  Select,
-  Space,
-  Tag,
-  Typography,
-} from 'antd';
+import { useCallback, useEffect, useState } from 'react';
+import { App as AntApp, Button, Card, Drawer, Empty, Flex, Input, InputNumber, Select, Tag, Typography } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useSession } from '../api/session';
 import { Async, useLoader } from '../components/Async';
+import { Field, TextField } from '../components/Field';
+import { targetDefaults, targetSchema } from '../forms/schemas';
+import type { TargetValues } from '../forms/schemas';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Controller, useForm } from 'react-hook-form';
 import type { Target } from '../api/types';
 
 // The landing screen: everything the operator has, one card each, searchable, with the one action a
@@ -157,17 +148,6 @@ export function TargetsPage() {
   );
 }
 
-type FormValues = {
-  name: string;
-  driver: string;
-  host: string;
-  port: number;
-  database: string;
-  username: string;
-  password?: string;
-  tls_mode: string;
-};
-
 function CreateTargetDrawer({
   open,
   onClose,
@@ -178,92 +158,116 @@ function CreateTargetDrawer({
   onCreated: (target: Target) => void;
 }) {
   const { api } = useSession();
-  const [form] = Form.useForm<FormValues>();
-  const [busy, setBusy] = useState(false);
   const [refused, setRefused] = useState<string | null>(null);
-  const initial = useMemo<Partial<FormValues>>(
-    () => ({ driver: 'mysql', port: 3306, tls_mode: 'preferred' }),
-    [],
-  );
+  const form = useForm<TargetValues>({ resolver: zodResolver(targetSchema), defaultValues: targetDefaults });
+  const errors = form.formState.errors;
 
-  const submit = async (values: FormValues) => {
+  const submit = form.handleSubmit(async (values) => {
     if (!api) return;
-    setBusy(true);
     setRefused(null);
     try {
       onCreated(await api.createTarget({ ...values, options: {} }));
-      form.resetFields();
+      form.reset(targetDefaults);
     } catch (cause) {
       // The server's sentence, not a generic one: it names the field that is wrong.
       setRefused(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setBusy(false);
     }
-  };
+  });
 
   return (
     <Drawer
       title="New instance"
       open={open}
       onClose={onClose}
-      width={Math.min(480, window.innerWidth)}
+      width={Math.min(460, window.innerWidth)}
       destroyOnHidden
-    >
-      <Form form={form} layout="vertical" initialValues={initial} onFinish={submit} requiredMark={false}>
-        <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-          <Input autoFocus placeholder="prod" />
-        </Form.Item>
-        <Flex gap={12}>
-          <Form.Item name="driver" label="Engine" style={{ flex: 1 }} rules={[{ required: true }]}>
-            <Select
-              options={[
-                { value: 'mysql', label: 'MySQL 8' },
-                { value: 'mariadb', label: 'MariaDB 11' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item name="tls_mode" label="TLS" style={{ flex: 1 }}>
-            <Select
-              options={[
-                { value: 'preferred', label: 'preferred' },
-                { value: 'required', label: 'required' },
-                { value: 'skip-verify', label: 'skip verify' },
-                { value: 'disabled', label: 'disabled' },
-              ]}
-            />
-          </Form.Item>
-        </Flex>
-        <Flex gap={12}>
-          <Form.Item name="host" label="Host" style={{ flex: 3 }} rules={[{ required: true }]}>
-            <Input placeholder="db.internal" />
-          </Form.Item>
-          <Form.Item name="port" label="Port" style={{ flex: 1 }} rules={[{ required: true }]}>
-            <InputNumber min={1} max={65535} style={{ width: '100%' }} />
-          </Form.Item>
-        </Flex>
-        <Form.Item name="database" label="Database" rules={[{ required: true }]}>
-          <Input placeholder="app" />
-        </Form.Item>
-        <Form.Item name="username" label="Username" rules={[{ required: true }]}>
-          <Input placeholder="noxis" autoComplete="off" />
-        </Form.Item>
-        <Form.Item
-          name="password"
-          label="Password"
-          extra="Sealed with SECRET_KEY and never returned by the API."
-        >
-          <Input.Password autoComplete="new-password" />
-        </Form.Item>
-
-        {refused ? <Typography.Paragraph type="danger">{refused}</Typography.Paragraph> : null}
-
-        <Space>
-          <Button type="primary" htmlType="submit" loading={busy}>
+      footer={
+        <Flex justify="flex-end" gap={8}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="primary" loading={form.formState.isSubmitting} onClick={() => void submit()}>
             Register
           </Button>
-          <Button onClick={onClose}>Cancel</Button>
-        </Space>
-      </Form>
+        </Flex>
+      }
+    >
+      <form onSubmit={submit}>
+        <TextField control={form.control} name="name" label="Name" autoFocus placeholder="prod" error={errors.name?.message} />
+
+        <Flex gap={12}>
+          <div style={{ flex: 1 }}>
+            <Field label="Engine">
+              <Controller
+                control={form.control}
+                name="driver"
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    options={[
+                      { value: 'mysql', label: 'MySQL' },
+                      { value: 'mariadb', label: 'MariaDB' },
+                    ]}
+                  />
+                )}
+              />
+            </Field>
+          </div>
+          <div style={{ flex: 1 }}>
+            <Field label="TLS">
+              <Controller
+                control={form.control}
+                name="tls_mode"
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    options={[
+                      { value: 'preferred', label: 'Preferred' },
+                      { value: 'verify', label: 'Verify' },
+                      { value: 'skip-verify', label: 'Skip verify' },
+                    ]}
+                  />
+                )}
+              />
+            </Field>
+          </div>
+        </Flex>
+
+        <Flex gap={12}>
+          <div style={{ flex: 3 }}>
+            <TextField control={form.control} name="host" label="Host" placeholder="db.internal" error={errors.host?.message} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <Field label="Port" error={errors.port?.message}>
+              <Controller
+                control={form.control}
+                name="port"
+                render={({ field }) => (
+                  <InputNumber min={1} max={65535} style={{ width: '100%' }} value={field.value} onChange={(v) => field.onChange(v ?? 0)} />
+                )}
+              />
+            </Field>
+          </div>
+        </Flex>
+
+        <TextField control={form.control} name="database" label="Database" placeholder="app" error={errors.database?.message} />
+        <TextField
+          control={form.control}
+          name="username"
+          label="Username"
+          placeholder="noxis"
+          autoComplete="off"
+          error={errors.username?.message}
+        />
+        <TextField
+          control={form.control}
+          name="password"
+          label="Password"
+          password
+          autoComplete="new-password"
+          hint="Sealed with SECRET_KEY; never returned."
+        />
+
+        {refused ? <Typography.Text type="danger">{refused}</Typography.Text> : null}
+      </form>
     </Drawer>
   );
 }

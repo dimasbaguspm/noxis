@@ -69,8 +69,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(
     async (token: string) => {
       if (!config) throw new Error('the console has no API to sign in to');
-      writeToken(token.trim());
-      const client = api(config.api);
+      const clean = token.trim();
+      writeToken(clean);
+      // The token goes with the request that proves it, not through the cookie we just wrote: a cookie
+      // the browser has not stored yet would turn a good token into a 401 that then erases it.
+      const client = api(config.api, clean);
       try {
         await verify(client);
         setError(null);

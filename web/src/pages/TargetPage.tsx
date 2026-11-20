@@ -7,6 +7,8 @@ import {
   Descriptions,
   Empty,
   Flex,
+  Input,
+  Segmented,
   Table,
   Tabs,
   Tag,
@@ -153,12 +155,7 @@ function QueryTab({ target }: { target: Target }) {
 
   return (
     <Flex vertical gap={12}>
-      <Alert
-        type="info"
-        showIcon
-        message="Read only"
-        description="SELECT, EXPLAIN and SHOW. A write, a locking read or a compound statement is refused before it reaches the engine."
-      />
+      <Alert type="info" showIcon message="SELECT, EXPLAIN and SHOW only" />
       <SqlEditor value={sql} onChange={setSql} schema={schema} height={200} />
       <Flex gap={8}>
         <Button type="primary" icon={<PlayCircleOutlined />} loading={busy} onClick={() => void run()}>
@@ -195,52 +192,96 @@ function QueryTab({ target }: { target: Target }) {
 function QueueTab({ target, kind }: { target: Target; kind?: 'dml' | 'ddl' }) {
   const { api } = useSession();
   const [state, load] = useLoader<Proposal[]>();
+  const [status, setStatus] = useState<string>('all');
+  const [term, setTerm] = useState('');
 
   const fetch = useCallback(async () => {
     if (!api) return [];
-    const page = await api.proposals({ target: target.ref, kind, limit: 24 });
+    const page = await api.proposals({
+      target: target.ref,
+      kind,
+      status: status === 'all' ? undefined : status,
+      limit: 50,
+    });
     return page.items;
-  }, [api, target.ref, kind]);
+  }, [api, target.ref, kind, status]);
 
   useEffect(() => {
     void load(fetch);
   }, [load, fetch]);
 
+  // The API filters by status; it has no free-text query for proposals, so the title filter runs over
+  // the page that came back. Filtering what is on screen is honest; pretending to search the queue is
+  // not.
+  const visible = state.kind === 'ready' ? state.value.filter((item) => matches(item, term)) : [];
+
   return (
-    <Async
-      state={state}
-      isEmpty={(items) => items.length === 0}
-      retry={() => void load(fetch)}
-      empty={<Empty description="Nothing here yet" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
-    >
-      {(items) => (
-        <Table
-          size="small"
-          rowKey="ref"
-          pagination={false}
-          scroll={{ x: 'max-content' }}
-          dataSource={items}
-          columns={[
-            {
-              title: 'Title',
-              dataIndex: 'title',
-              render: (_: unknown, row: Proposal) => <Link to={`/proposals/${row.ref}`}>{row.title}</Link>,
-            },
-            { title: 'Kind', dataIndex: 'kind', render: (kind: string) => <Tag>{kind}</Tag> },
-            { title: 'Status', dataIndex: 'status', render: (status: string) => <Tag>{status}</Tag> },
-            { title: 'By', dataIndex: 'proposed_by' },
-            {
-              title: 'Statement',
-              dataIndex: 'query',
-              render: (query: string) => (
-                <Typography.Text className="noxis-mono" ellipsis style={{ maxWidth: 320 }}>
-                  {query}
-                </Typography.Text>
-              ),
-            },
-          ]}
+    <Flex vertical gap={12}>
+      <Flex gap={8} wrap align="center">
+        <Input
+          allowClear
+          placeholder="Filter by title"
+          value={term}
+          onChange={(event) => setTerm(event.target.value)}
+          style={{ maxWidth: 280 }}
+          aria-label="Filter proposals by title"
         />
-      )}
-    </Async>
+        <Segmented
+          value={status}
+          onChange={(value) => setStatus(String(value))}
+          options={['all', 'verified', 'approved', 'applied', 'failed']}
+        />
+        <span style={{ flex: 1 }} />
+        <Typography.Text type="secondary">
+          {visible.length} of {state.kind === 'ready' ? state.value.length : 0}
+        </Typography.Text>
+      </Flex>
+
+      <Async
+        state={state}
+        isEmpty={() => visible.length === 0}
+        retry={() => void load(fetch)}
+        empty={<Empty description="Nothing matches" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+      >
+        {() => (
+          <Table
+            size="small"
+            rowKey="ref"
+            pagination={false}
+            scroll={{ x: 'max-content' }}
+            dataSource={visible}
+            columns={[
+              {
+                title: 'Title',
+                dataIndex: 'title',
+                render: (_: unknown, row: Proposal) => <Link to={`/proposals/${row.ref}`}>{row.title}</Link>,
+              },
+              { title: 'Status', dataIndex: 'status', render: (value: string) => <Tag>{value}</Tag> },
+              { title: 'By', dataIndex: 'proposed_by', responsive: ['md'] },
+              {
+                title: 'Statement',
+                dataIndex: 'query',
+                responsive: ['lg'],
+                render: (query: string) => (
+                  <Typography.Text className="noxis-mono" ellipsis style={{ maxWidth: 320 }}>
+                    {query}
+                  </Typography.Text>
+                ),
+              },
+            ]}
+          />
+        )}
+      </Async>
+    </Flex>
+  );
+}
+
+function matches(proposal: Proposal, term: string): boolean {
+  const needle = term.trim().toLowerCase();
+  if (!needle) return true;
+  return (
+    proposal.title.toLowerCase().includes(needle) ||
+    proposal.query.toLowerCase().includes(needle) ||
+    proposal.proposed_by.toLowerCase().includes(needle)
   );
 }

@@ -1,61 +1,69 @@
-import { Alert, Button, Card, Form, Input, Typography } from 'antd';
-import { LockOutlined } from '@ant-design/icons';
+import { Button, Card, Form, Typography } from 'antd';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { useSession } from '../api/session';
+import { tokenSchema } from '../forms/schemas';
+import type { TokenValues } from '../forms/schemas';
+import { TextField } from '../components/Field';
 
-// A token, once. The console proves it against /v1/whoami before it keeps it: a card that accepts a
-// token the server refuses is a card that teaches the wrong thing about where the problem is.
+// A token, once. Proved against /v1/whoami before it is kept: a card that accepts a token the server
+// refuses teaches the wrong thing about where the problem is.
 
 export function SignIn() {
-  const { signIn, config, error } = useSession();
-  const [busy, setBusy] = useState(false);
+  const { signIn, config } = useSession();
   const [refused, setRefused] = useState<string | null>(null);
+  const form = useForm<TokenValues>({
+    resolver: zodResolver(tokenSchema),
+    mode: 'onChange',
+    defaultValues: { token: '' },
+  });
 
-  const submit = async ({ token }: { token: string }) => {
-    setBusy(true);
+  const submit = form.handleSubmit(async ({ token }) => {
     setRefused(null);
     try {
       await signIn(token);
     } catch (cause) {
       setRefused(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setBusy(false);
     }
-  };
+  });
 
   return (
     <div className="noxis-signin">
       <Card className="noxis-signin-card">
-        <Typography.Title level={3} style={{ marginTop: 0 }}>
-          Sign in to noXis
+        <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
+          Sign in
         </Typography.Title>
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 20 }}>
-          Paste a token the API accepts. The CLI already has one:{' '}
-          <Typography.Text code>noxis auth signin &lt;token&gt;</Typography.Text> stores it, and the
-          token is the same string.
-        </Typography.Paragraph>
+        <Typography.Text type="secondary">
+          {config ? (
+            <>
+              to <Typography.Text code>{config.api.replace(/^https?:\/\//, '')}</Typography.Text>
+            </>
+          ) : (
+            'to noXis'
+          )}
+        </Typography.Text>
 
-        {config ? (
-          <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-            This console calls <Typography.Text code>{config.api}</Typography.Text>
-          </Typography.Paragraph>
-        ) : null}
-
-        {error && !refused ? <Alert type="warning" showIcon message={error} style={{ marginBottom: 16 }} /> : null}
-        {refused ? <Alert type="error" showIcon message={refused} style={{ marginBottom: 16 }} /> : null}
-
-        <Form layout="vertical" onFinish={submit} requiredMark={false}>
-          <Form.Item
+        <Form layout="vertical" onFinish={submit} style={{ marginTop: 20 }}>
+          <TextField
+            control={form.control}
             name="token"
             label="Token"
-            rules={[{ required: true, message: 'a token is required' }]}
-          >
-            <Input.Password prefix={<LockOutlined />} placeholder="the token the API was given" autoFocus />
-          </Form.Item>
-          <Button type="primary" htmlType="submit" block loading={busy}>
-            Sign in
+            password
+            autoFocus
+            autoComplete="off"
+            error={form.formState.errors.token?.message}
+            hint={refused ?? undefined}
+          />
+          <Button type="primary" htmlType="submit" block loading={form.formState.isSubmitting}>
+            Continue
           </Button>
         </Form>
+
+        <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0, fontSize: 12 }}>
+          <Typography.Text code>noxis auth signin</Typography.Text> stores the same token for the CLI;
+          run <Typography.Text code>noxis web serve</Typography.Text> and it is already here.
+        </Typography.Paragraph>
       </Card>
     </div>
   );
