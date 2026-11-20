@@ -2,11 +2,7 @@ import { Link } from 'react-router-dom';
 
 // A breadcrumb is where you are and how to leave: the last item is the page, the rest are links. A
 // "back" button guesses; a crumb states.
-export function Breadcrumb({
-  items,
-}: {
-  items: { label: string; to?: string }[];
-}) {
+export function Breadcrumb({ items }: { items: { label: string; to?: string }[] }) {
   return (
     <nav aria-label="Breadcrumb">
       <ol className="m-0 flex list-none flex-wrap items-center gap-1.5 p-0 text-sm">
@@ -19,7 +15,10 @@ export function Breadcrumb({
                   {item.label}
                 </Link>
               ) : (
-                <span aria-current={last ? 'page' : undefined} className={last ? 'font-medium' : 'text-muted'}>
+                <span
+                  aria-current={last ? 'page' : undefined}
+                  className={last ? 'font-medium' : 'text-muted'}
+                >
                   {item.label}
                 </span>
               )}

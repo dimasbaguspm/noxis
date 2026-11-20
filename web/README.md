@@ -16,15 +16,15 @@ without npm still answers something a human can read.
 
 ## Shape
 
-| Path | What it is |
-| --- | --- |
-| `src/api/client.ts` | the envelope, the bearer header, the token cookie, one function per route |
-| `src/api/session.tsx` | the API it found, the identity `/v1/whoami` confirmed, sign in and out |
-| `src/app/` | the shell (topbar + content) and the sign-in card |
-| `src/pages/TargetsPage.tsx` | the list, the search, the create drawer |
-| `src/pages/TargetPage.tsx` | Query, DML, DDL, History for one target |
-| `src/pages/ProposalPage.tsx` | the statement, the rollback, the rehearsal, review and apply |
-| `src/editor/SqlEditor.tsx` | Monaco, bundled (never a CDN), completing from the target's own schema |
+| Path                         | What it is                                                                |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| `src/api/client.ts`          | the envelope, the bearer header, the token cookie, one function per route |
+| `src/api/session.tsx`        | the API it found, the identity `/v1/whoami` confirmed, sign in and out    |
+| `src/app/`                   | the shell (topbar + content) and the sign-in card                         |
+| `src/pages/TargetsPage.tsx`  | the list, the search, the create drawer                                   |
+| `src/pages/TargetPage.tsx`   | Query, DML, DDL, History for one target                                   |
+| `src/pages/ProposalPage.tsx` | the statement, the rollback, the rehearsal, review and apply              |
+| `src/editor/SqlEditor.tsx`   | Monaco, bundled (never a CDN), completing from the target's own schema    |
 
 ## Theme
 

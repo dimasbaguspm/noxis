@@ -11,7 +11,9 @@ import { TargetsPage } from '../pages/targets-page';
 
 // The instance and proposal screens bring Monaco with them; the list is what an operator opens every
 // time, so it never pays for the editor.
-const TargetPage = lazy(() => import('../pages/target-page').then((m) => ({ default: m.TargetPage })));
+const TargetPage = lazy(() =>
+  import('../pages/target-page').then((m) => ({ default: m.TargetPage })),
+);
 const ProposalPage = lazy(() =>
   import('../pages/proposal-page').then((m) => ({ default: m.ProposalPage })),
 );

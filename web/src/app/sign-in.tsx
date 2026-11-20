@@ -54,8 +54,8 @@ export function SignIn() {
         </Form>
 
         <p className="mt-4 mb-0 text-xs text-muted">
-          The CLI stores the same token. Run <span className="font-mono">noxis web serve</span> and it
-          is already here.
+          The CLI stores the same token. Run <span className="font-mono">noxis web serve</span> and
+          it is already here.
         </p>
       </Card>
     </div>

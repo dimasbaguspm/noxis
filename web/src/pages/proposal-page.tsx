@@ -77,7 +77,11 @@ export function ProposalPage() {
         ← Instances
       </Link>
 
-      <AsyncState loading={proposal.isLoading} error={proposal.error} onRetry={() => void proposal.refetch()}>
+      <AsyncState
+        loading={proposal.isLoading}
+        error={proposal.error}
+        onRetry={() => void proposal.refetch()}
+      >
         <RenderWhen condition={found}>
           {found ? (
             <div className="flex flex-col gap-4">
@@ -98,7 +102,10 @@ export function ProposalPage() {
                     <Descriptions.Item label="Proposed by">{found.proposed_by}</Descriptions.Item>
                     <Descriptions.Item label="Tier">{found.tier}</Descriptions.Item>
                     <Descriptions.Item label="Instance">
-                      <Link to={`/targets/${found.target_ref}`} className="text-brand hover:underline">
+                      <Link
+                        to={`/targets/${found.target_ref}`}
+                        className="text-brand hover:underline"
+                      >
                         open
                       </Link>
                     </Descriptions.Item>
@@ -109,16 +116,24 @@ export function ProposalPage() {
                   {found.rollback ? (
                     <SqlBlock sql={found.rollback} label="rollback" />
                   ) : (
-                    <Alert type="warning" showIcon message="No rollback: this change is irreversible" />
+                    <Alert
+                      type="warning"
+                      showIcon
+                      message="No rollback: this change is irreversible"
+                    />
                   )}
 
                   <div className="flex flex-wrap items-center gap-2">
                     <AppButton
                       intent="primary"
                       icon={<CheckOutlined />}
-                      disabled={!can['review:proposal'] || ['approved', 'applied'].includes(found.status)}
+                      disabled={
+                        !can['review:proposal'] || ['approved', 'applied'].includes(found.status)
+                      }
                       loading={busy}
-                      onClick={() => void run(() => actions.decide.mutateAsync({ approve: true }), 'approved')}
+                      onClick={() =>
+                        void run(() => actions.decide.mutateAsync({ approve: true }), 'approved')
+                      }
                     >
                       Approve
                     </AppButton>
@@ -128,9 +143,10 @@ export function ProposalPage() {
                       disabled={!can['review:proposal'] || found.status === 'applied'}
                       onClick={() => {
                         setConfirming(found.ref);
-                        void run(() => actions.decide.mutateAsync({ approve: false }), 'rejected').finally(() =>
-                          setConfirming(null),
-                        );
+                        void run(
+                          () => actions.decide.mutateAsync({ approve: false }),
+                          'rejected',
+                        ).finally(() => setConfirming(null));
                       }}
                     >
                       Reject
@@ -150,8 +166,20 @@ export function ProposalPage() {
                     >
                       Apply
                     </AppButton>
-                    <Can do="review:proposal" fallback={<span className="text-xs text-muted">{identity?.name} cannot review this change</span>}>
-                      <Can do="execute:proposal" fallback={<span className="text-xs text-muted">apply needs the apply scope</span>}>
+                    <Can
+                      do="review:proposal"
+                      fallback={
+                        <span className="text-xs text-muted">
+                          {identity?.name} cannot review this change
+                        </span>
+                      }
+                    >
+                      <Can
+                        do="execute:proposal"
+                        fallback={
+                          <span className="text-xs text-muted">apply needs the apply scope</span>
+                        }
+                      >
                         <span />
                       </Can>
                     </Can>

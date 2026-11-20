@@ -50,7 +50,10 @@ export function AsyncState({
   }
 
   return (
-    <RenderWhen condition={!empty} fallback={<EmptyState description={emptyDescription} action={emptyAction} />}>
+    <RenderWhen
+      condition={!empty}
+      fallback={<EmptyState description={emptyDescription} action={emptyAction} />}
+    >
       {children}
     </RenderWhen>
   );
