@@ -40,24 +40,22 @@ export function SignIn() {
           noXis
         </div>
 
-        <div className="max-w-xl">
+        <div className="max-w-lg">
           <Heading level={1} className="text-[32px] leading-tight">
-            Data governance for the databases you already run
+            Data governance, with a person in the loop
           </Heading>
           <Text as="p" size="lg" tone="muted" className="mt-4 leading-relaxed">
-            An agent reads, and proposes. A rehearsal proves the change in a throwaway database, and
-            a person holding <code>approve</code> decides. Nothing here happens because a model was
-            confident.
+            An agent proposes. A rehearsal proves the change in a throwaway database. A person
+            holding <code>approve</code> decides.
           </Text>
           <List className="mt-6">
-            <ListItem>Read and propose, never apply: the two scopes are two people.</ListItem>
-            <ListItem>Every change is rehearsed, diffed, and rolled back before review.</ListItem>
-            <ListItem>Every action is journaled with the name of the caller that took it.</ListItem>
+            <ListItem>Read and propose, never apply.</ListItem>
+            <ListItem>Every change is rehearsed before review.</ListItem>
           </List>
         </div>
 
         <Text size="xs" tone="muted">
-          One binary · one state file · no telemetry
+          Rehearsed · reviewed · journaled
         </Text>
       </section>
 
