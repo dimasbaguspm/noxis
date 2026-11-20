@@ -23,7 +23,8 @@ var groups = []group{
 	{"this binary", []string{"http", "web"}},
 	{"targets", []string{"target"}},
 	{"reading", []string{"query", "databases", "tables", "table"}},
-	{"proposals", []string{"propose", "proposals", "show-proposal", "rehearse", "approve", "reject", "apply", "events"}},
+	{"proposals", []string{"propose", "proposals", "show-proposal", "watch", "rehearse", "approve", "reject", "apply", "events"}},
+	{"the API itself", []string{"describe"}},
 }
 
 // welcome is what a bare `noxis` says: what this binary is, where it points, and the four commands

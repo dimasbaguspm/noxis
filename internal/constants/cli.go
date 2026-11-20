@@ -10,6 +10,15 @@ const DefaultAPIURL = "http://localhost:9000"
 // before the work it was about to do.
 const AuthCheckWindow = 60 * time.Second
 
+// WatchInterval is how often `watch` asks the API what a proposal is doing: the same cadence the
+// server polls a running statement with, so a caller is never told more often than the engine itself
+// is asked.
+const WatchInterval = 2 * time.Second
+
+// WatchTimeout bounds one wait. A wait that hangs is worse than a wait that fails, and a caller that
+// knows its change is large says so with --timeout.
+const WatchTimeout = 5 * time.Minute
+
 // Command annotations, read once by the root command's boot check. A command that starts a session
 // cannot require one, and a command that asks the server who it is must not be preceded by a second
 // call asking the same question.

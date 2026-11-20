@@ -3,8 +3,10 @@ package commands
 import (
 	"fmt"
 	"noxis/internal/client"
+	"noxis/internal/constants"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -59,7 +61,7 @@ func NewPropose(s *Session) *cobra.Command {
 func NewProposals(s *Session) *cobra.Command {
 	var limit int
 	var cursor, status, kind, target string
-	var onlyMine bool
+	var onlyMine, everyPage bool
 	cmd := &cobra.Command{
 		Use:     "proposals",
 		Aliases: []string{"changes"},
@@ -73,6 +75,14 @@ func NewProposals(s *Session) *cobra.Command {
 			page, err := api.ListProposals(cmd.Context(), limit, cursor, status, kind, target, onlyMine)
 			if err != nil {
 				return err
+			}
+			if everyPage {
+				page, err = walkAll(page, func(cursor string) (client.Page[client.Proposal], error) {
+					return api.ListProposals(cmd.Context(), limit, cursor, status, kind, target, onlyMine)
+				})
+				if err != nil {
+					return err
+				}
 			}
 			if s.JSON {
 				return PrintJSON(cmd, page)
@@ -101,6 +111,7 @@ func NewProposals(s *Session) *cobra.Command {
 	flags.StringVar(&kind, "kind", "", "dml or ddl")
 	flags.StringVar(&target, "target", "", "only this target")
 	flags.BoolVar(&onlyMine, "mine", false, "only the proposals this token made")
+	flags.BoolVar(&everyPage, "all", false, "every page, not just the first")
 	return cmd
 }
 
@@ -306,11 +317,16 @@ func decide(cmd *cobra.Command, s *Session, ref, note string, approve bool) erro
 }
 
 func NewApplyProposal(s *Session) *cobra.Command {
-	var confirm bool
+	var confirm, wait bool
+	var timeout time.Duration
 	cmd := &cobra.Command{
 		Use:   "apply <proposal-ref>",
 		Short: "Run an approved proposal against the target",
-		Args:  cobra.ExactArgs(1),
+		Long: "Runs the statement a human approved.\n\n" +
+			"A change above " + fmt.Sprint(constants.ApplyBackgroundRows) + " rows is answered as running and finishes\n" +
+			"later; --wait follows it to its ending, which is what a script wants and what a person who\n" +
+			"walked away deserves.",
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			api, err := s.Client()
 			if err != nil {
@@ -320,6 +336,12 @@ func NewApplyProposal(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if wait && applied.Status == applying {
+				applied, err = waitFor(cmd.Context(), api, args[0], settledStatuses, constants.WatchInterval, timeout)
+				if err != nil {
+					return err
+				}
+			}
 			if s.JSON {
 				return PrintJSON(cmd, applied)
 			}
@@ -327,7 +349,10 @@ func NewApplyProposal(s *Session) *cobra.Command {
 			return err
 		},
 	}
-	cmd.Flags().BoolVar(&confirm, "confirm-destructive", false, "acknowledge that the change cannot be undone")
+	flags := cmd.Flags()
+	flags.BoolVar(&confirm, "confirm-destructive", false, "acknowledge that the change cannot be undone")
+	flags.BoolVar(&wait, "wait", false, "wait until the statement settles, and print the ending")
+	flags.DurationVar(&timeout, "timeout", constants.WatchTimeout, "how long --wait waits before giving up")
 	return cmd
 }
 

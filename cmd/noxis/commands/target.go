@@ -63,6 +63,7 @@ func newTargetAdd(s *Session) *cobra.Command {
 
 func newTargetList(s *Session) *cobra.Command {
 	in := client.ListTargetsInput{}
+	var everyPage bool
 	cmd := &cobra.Command{
 		Use:     "ls",
 		Aliases: []string{"list"},
@@ -76,6 +77,16 @@ func newTargetList(s *Session) *cobra.Command {
 			page, err := api.ListTargets(cmd.Context(), in)
 			if err != nil {
 				return err
+			}
+			if everyPage {
+				page, err = walkAll(page, func(cursor string) (client.Page[client.Target], error) {
+					next := in
+					next.Cursor = cursor
+					return api.ListTargets(cmd.Context(), next)
+				})
+				if err != nil {
+					return err
+				}
 			}
 			if s.JSON {
 				return PrintJSON(cmd, page)
@@ -99,9 +110,10 @@ func newTargetList(s *Session) *cobra.Command {
 	flags := cmd.Flags()
 	flags.IntVar(&in.Limit, "limit", 0, "page size, default 50")
 	flags.StringVar(&in.Cursor, "cursor", "", "cursor from the previous page")
+	flags.BoolVar(&everyPage, "all", false, "every page, not just the first")
 	flags.StringVar(&in.Driver, "driver", "", "only this driver")
 	flags.StringVar(&in.Query, "q", "", "filter by name")
-	flags.BoolVar(&in.IncludeArchived, "all", false, "include archived targets")
+	flags.BoolVar(&in.IncludeArchived, "archived", false, "include archived instances")
 	return cmd
 }
 

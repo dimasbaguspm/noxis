@@ -9,7 +9,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"noxis/cmd/noxis/commands"
 	"noxis/cmd/noxis/http"
 	"noxis/internal/constants"
@@ -28,11 +27,21 @@ func main() {
 func run() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if err := newRoot().ExecuteContext(ctx); err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
+	root := newRoot()
+	if err := root.ExecuteContext(ctx); err != nil {
+		// A command that failed still owes an agent a shape: --json is honoured on the way out, not
+		// only on data. The exit code stays one because the code travels inside the document.
+		commands.Report(os.Stderr, err, jsonOutput(root))
 		return 1
 	}
 	return 0
+}
+
+// jsonOutput reads the machine-shape flag back off the tree: run() holds the command, not the session
+// the flags were bound to, and a failure has to be shaped the same way the answer would have been.
+func jsonOutput(root *cobra.Command) bool {
+	flag := root.PersistentFlags().Lookup("json")
+	return flag != nil && flag.Value.String() == "true"
 }
 
 // newRoot builds the command tree once: one session, filled by the persistent flags, handed to
@@ -65,7 +74,6 @@ func newRoot() *cobra.Command {
 		}
 		return session.Prepare(cmd)
 	}
-
 	root.AddCommand(newHelp(root), http.NewHTTP(buildServer), newWeb(),
 		commands.NewWhoami(session), commands.NewVersion(), commands.NewAuth(session),
 		commands.NewTarget(session),
