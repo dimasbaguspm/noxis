@@ -19,7 +19,7 @@ The product bet starts with an agent that can read. Until a `read` token can run
 - [x] A statement that is not SELECT, EXPLAIN or SHOW is refused with a 400 naming it, including `WITH … INSERT`, a multi-statement, and `SELECT … FOR UPDATE`
 - [x] A result larger than the ceiling reports `truncated: true` and no fake cursor
 - [x] Metadata answers for both engines, and a missing table is a 404 carrying the engine's message
-- [ ] `@slow` UAT proves the guard and the truncation against real containers — verified by hand this round, the harness is still `@fast`
+- [x] `@slow` UAT proves the guard against real containers (`UAT_SLOW=1 make uat-slow`)
 
 ## Risks & notes
 

@@ -25,6 +25,7 @@ type world struct {
 	health   client.Health
 	target   client.Target
 	targets  []client.Target
+	rows     client.Rows
 	caps     client.Capabilities
 	cursor   string
 	err      error
@@ -36,6 +37,7 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Before(func(c context.Context, _ *godog.Scenario) (context.Context, error) {
 		w.identity, w.health = client.Identity{}, client.Health{}
 		w.target, w.targets, w.cursor, w.err = client.Target{}, nil, "", nil
+		w.rows = client.Rows{}
 		w.caps = client.Capabilities{}
 		w.api, w.err = client.New(os.Getenv("UAT_URL"), "")
 		return c, w.err
@@ -75,6 +77,11 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	// reads
 	ctx.Step(`^I run the statement "([^"]*)"$`, w.runStatement)
 	ctx.Step(`^the refusal mentions "([^"]*)"$`, w.assertRefusalMentions)
+	ctx.Step(`^the result has (\d+) rows?$`, w.assertResultRows)
+
+	// slow
+	ctx.Step(`^I register the "(mysql|mariadb)" container as "([^"]*)"$`, w.registerContainer)
+	ctx.Step(`^the capabilities report a version$`, w.assertVersionKnown)
 
 	// shared assertions
 	ctx.Step(`^the request succeeds$`, w.assertSuccess)
@@ -374,7 +381,7 @@ func (w *world) assertProbeStatus(want string) error {
 
 // runStatement sends one statement to a target and remembers how it went.
 func (w *world) runStatement(statement string) error {
-	_, w.err = w.api.Query(context.Background(), w.target.Ref, statement, 0)
+	w.rows, w.err = w.api.Query(context.Background(), w.target.Ref, statement, 0)
 	return nil
 }
 
@@ -391,4 +398,43 @@ func (w *world) assertRefusalMentions(want string) error {
 		return fmt.Errorf("refusal %q does not mention %q", apiErr.Message, want)
 	}
 	return w.err
+}
+
+// registerContainer registers one of the engines the @slow compose file boots.
+func (w *world) registerContainer(engine, name string) error {
+	port := 33307
+	if engine == "mysql" {
+		port = 33306
+	}
+	w.target, w.err = w.api.CreateTarget(context.Background(), client.CreateTargetInput{
+		Name:     name,
+		Driver:   engine,
+		Host:     "127.0.0.1",
+		Port:     port,
+		Database: "app",
+		Username: "noxis",
+		Password: "noxispw",
+		TLSMode:  constants.TLSPreferred,
+	})
+	return nil
+}
+
+func (w *world) assertVersionKnown() error {
+	if w.err != nil {
+		return w.err
+	}
+	if w.caps.Version == "" {
+		return errors.New("the capabilities report no version after a probe")
+	}
+	return nil
+}
+
+func (w *world) assertResultRows(want int) error {
+	if w.err != nil {
+		return w.err
+	}
+	if w.rows.RowCount != want {
+		return fmt.Errorf("result has %d row(s), want %d", w.rows.RowCount, want)
+	}
+	return nil
 }
