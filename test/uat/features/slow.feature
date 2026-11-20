@@ -49,6 +49,13 @@ Feature: Talking to a real engine
     And the proposal is "verified"
     And the rehearsal row diff mentions "users"
 
+  Scenario: a compound statement is a proposal, not two statements
+    Given I hold the ops token
+    And I register the "mysql" container as "uat-compound"
+    When I propose "BEGIN UPDATE users SET note = 'blocked' WHERE id = 1; END" titled "a block"
+    Then the request succeeds with status 201
+    And the proposal is "failed"
+
   Scenario: a destructive change with no rollback is irreversible
     Given I hold the ops token
     And I register the "mariadb" container as "uat-propose-destructive"

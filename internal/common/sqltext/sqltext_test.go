@@ -197,3 +197,61 @@ func TestTables(t *testing.T) {
 		}
 	}
 }
+
+// A block is one statement to the engine and several to a reader, so the classifier answers both:
+// what it is (the first verb inside) and that it is a block, which is what a read route refuses.
+func TestCompoundStatementIsOneStatement(t *testing.T) {
+	statement, err := Classify("BEGIN SET @x = 1; UPDATE users SET note = @x; END")
+	if err != nil {
+		t.Fatalf("Classify: %v", err)
+	}
+	if !statement.Block {
+		t.Fatal("a BEGIN … END block was not marked as one")
+	}
+	if statement.Kind != Update {
+		t.Fatalf("kind = %s, want the verb of the first statement inside", statement.Kind)
+	}
+	if statement.Read() {
+		t.Fatal("a block was accepted as a read")
+	}
+	if statement.Reason == "" {
+		t.Fatal("a block was refused without saying why")
+	}
+}
+
+// The CASE … END inside a block is balanced like the block itself: a match on the first END would
+// end the block in the middle of a statement.
+func TestCompoundStatementCountsNestedEnds(t *testing.T) {
+	statement, err := Classify("BEGIN UPDATE t SET a = CASE WHEN b THEN 1 ELSE 2 END; END")
+	if err != nil {
+		t.Fatalf("Classify: %v", err)
+	}
+	if !statement.Block || statement.Kind != Update {
+		t.Fatalf("block = %v, kind = %s", statement.Block, statement.Kind)
+	}
+}
+
+// Everything after the block's END is a second statement, and a guard that reads only the first
+// would pass the second.
+func TestCompoundStatementRefusesASecondStatementAfterIt(t *testing.T) {
+	if _, err := Classify("BEGIN SET @x = 1; END; DROP TABLE users"); !errors.Is(err, ErrMultiple) {
+		t.Fatalf("err = %v, want ErrMultiple", err)
+	}
+}
+
+// BEGIN is also a transaction. It has no matching END, so it is not a block, and it is not a change
+// this build knows how to rehearse either.
+func TestTransactionIsNotABlock(t *testing.T) {
+	for _, sql := range []string{"BEGIN", "BEGIN WORK", "BEGIN;"} {
+		statement, err := Classify(sql)
+		if err != nil {
+			t.Fatalf("Classify(%q): %v", sql, err)
+		}
+		if statement.Block {
+			t.Fatalf("%q was read as a compound statement", sql)
+		}
+		if statement.Read() {
+			t.Fatalf("%q was accepted as a read", sql)
+		}
+	}
+}

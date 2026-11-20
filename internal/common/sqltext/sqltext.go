@@ -48,12 +48,18 @@ type Statement struct {
 	// Locking marks a read that takes locks or writes a file: `SELECT ... FOR UPDATE`,
 	// `LOCK IN SHARE MODE`, `INTO OUTFILE`, `INTO DUMPFILE`.
 	Locking bool
+	// Block marks a compound statement: `BEGIN … END`, one statement to the engine and several to a
+	// reader. Kind is the verb of the first statement inside it.
+	Block bool
 	// Reason says why a read route must refuse, empty when it may not.
 	Reason string
 }
 
 // Read reports whether a read route may run this statement at all.
 func (s Statement) Read() bool {
+	if s.Block {
+		return false
+	}
 	return s.Kind == Select || s.Kind == Explain || s.Kind == Show
 }
 
@@ -68,21 +74,78 @@ func Classify(sql string) (Statement, error) {
 	if err != nil {
 		return Statement{}, err
 	}
-	if err := single(scrubbed); err != nil {
-		return Statement{}, err
-	}
-	if len(tokenize(upper)) == 0 {
+	tokens := tokenize(upper)
+	if len(tokens) == 0 {
 		// A statement can be nothing but a comment once the literals and comments are blanked.
 		return Statement{}, ErrEmpty
 	}
 
-	statement := Statement{Kind: classifyKind(upper), Raw: raw}
+	statement := Statement{Raw: raw}
+	if start, end, isBlock := block(tokens); isBlock {
+		// A block is one statement to the engine and several to a reader: everything after its END
+		// is a second statement, and the verb that matters is the first one inside it.
+		if len(tokens) > end+1 {
+			return Statement{}, ErrMultiple
+		}
+		statement.Block = true
+		statement.Kind = kindInside(tokens[start:end])
+		statement.Reason = "a compound statement is not a read: it runs several statements as one"
+	} else {
+		if err := single(scrubbed); err != nil {
+			return Statement{}, err
+		}
+		statement.Kind = classifyKind(upper)
+	}
 	statement.Tables = tablesOf(scrubbed, upper)
 	statement.Locking = locksOrWrites(upper)
 	if statement.Locking {
 		statement.Reason = "a locking read is not a read: it takes rows out of the server's control"
 	}
 	return statement, nil
+}
+
+// kindInside names a block by the first statement that changes something, and only falls back to a
+// read when nothing inside it writes. A `SET @x = (SELECT …)` before the UPDATE is setup, not the
+// point of the block.
+func kindInside(tokens []string) Kind {
+	for _, write := range []Kind{Insert, Update, Delete, DDL} {
+		for _, token := range tokens {
+			if kindOfVerb(token) == write {
+				return write
+			}
+		}
+	}
+	for _, token := range tokens {
+		if kind := kindOfVerb(token); kind != Other {
+			return kind
+		}
+	}
+	return Other
+}
+
+// block reports whether the tokens are `BEGIN … END` and returns the bounds of what is inside it. A
+// `CASE … END` balances like the block itself, so the match is a count rather than the first END
+// found. `BEGIN` alone — a transaction — has no match and is not a block.
+func block(tokens []string) (start, end int, ok bool) {
+	if len(tokens) < 3 || tokens[0] != "BEGIN" {
+		return 0, 0, false
+	}
+	depth := 0
+	for i := 0; i < len(tokens); i++ {
+		switch tokens[i] {
+		case "BEGIN", "CASE":
+			depth++
+		case "END":
+			depth--
+			if depth < 0 {
+				return 0, 0, false
+			}
+			if depth == 0 {
+				return 1, i, true
+			}
+		}
+	}
+	return 0, 0, false
 }
 
 // scrub blanks comments and the contents of literals, and returns the same text uppercased.
