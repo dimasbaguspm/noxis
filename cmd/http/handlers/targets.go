@@ -33,9 +33,13 @@ type targetWire struct {
 	Options     map[string]string `json:"options"`
 	HasPassword bool              `json:"has_password"`
 	CreatedBy   string            `json:"created_by"`
-	ArchivedAt  *time.Time        `json:"archived_at,omitempty"`
-	CreatedAt   time.Time         `json:"created_at"`
-	UpdatedAt   time.Time         `json:"updated_at"`
+	// What the last probe measured. Empty until a probe succeeds.
+	ServerVersion   string     `json:"server_version,omitempty"`
+	LastProbeAt     *time.Time `json:"last_probe_at,omitempty"`
+	LastProbeStatus string     `json:"last_probe_status,omitempty"`
+	ArchivedAt      *time.Time `json:"archived_at,omitempty"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
 func toWire(t domain.Target) targetWire {
@@ -44,20 +48,23 @@ func toWire(t domain.Target) targetWire {
 		options = map[string]string{}
 	}
 	return targetWire{
-		Ref:         t.Ref,
-		Name:        t.Name,
-		Driver:      t.Driver,
-		Host:        t.Host,
-		Port:        t.Port,
-		Database:    t.Database,
-		Username:    t.Username,
-		TLSMode:     t.TLSMode,
-		Options:     options,
-		HasPassword: t.Secret != "",
-		CreatedBy:   t.CreatedBy,
-		ArchivedAt:  t.ArchivedAt,
-		CreatedAt:   t.CreatedAt,
-		UpdatedAt:   t.UpdatedAt,
+		Ref:             t.Ref,
+		Name:            t.Name,
+		Driver:          t.Driver,
+		Host:            t.Host,
+		Port:            t.Port,
+		Database:        t.Database,
+		Username:        t.Username,
+		TLSMode:         t.TLSMode,
+		Options:         options,
+		HasPassword:     t.Secret != "",
+		CreatedBy:       t.CreatedBy,
+		ServerVersion:   t.ServerVersion,
+		LastProbeAt:     t.LastProbeAt,
+		LastProbeStatus: t.LastProbeStatus,
+		ArchivedAt:      t.ArchivedAt,
+		CreatedAt:       t.CreatedAt,
+		UpdatedAt:       t.UpdatedAt,
 	}
 }
 
@@ -209,4 +216,34 @@ func intParam(raw string) (int, error) {
 		return 0, fmt.Errorf("must not be negative")
 	}
 	return value, nil
+}
+
+// ProbeTarget opens one connection, records what it measured on the target, and answers the
+// capabilities it derived. A probe that cannot connect is a 422 whose message is the driver's
+// own, and the target itself now says the attempt failed.
+func (h *Handlers) ProbeTarget(w http.ResponseWriter, r *http.Request) {
+	result, err := h.Targets.Probe.Run(r.Context(), target.ProbeInput{
+		Ref:   r.PathValue("ref"),
+		Actor: middlewares.Caller(r.Context()).Name,
+	})
+	if err != nil {
+		respond.Fail(w, h.Log, err)
+		return
+	}
+	respond.OK(w, struct {
+		Target       targetWire          `json:"target"`
+		Capabilities domain.Capabilities `json:"capabilities"`
+	}{Target: toWire(result.Target), Capabilities: result.Capabilities})
+}
+
+// TargetCapabilities answers what this build may offer for the target's engine without opening
+// a connection: the set is derived from the declared driver and, once probed, from the measured
+// version.
+func (h *Handlers) TargetCapabilities(w http.ResponseWriter, r *http.Request) {
+	found, err := h.Targets.Get.Run(r.Context(), r.PathValue("ref"))
+	if err != nil {
+		respond.Fail(w, h.Log, err)
+		return
+	}
+	respond.OK(w, domain.CapabilitiesFor(found.Driver, domain.MeasuredServer(found.Driver, found.ServerVersion)))
 }

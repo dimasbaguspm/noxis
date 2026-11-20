@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"noxis/internal/constants"
 	"noxis/internal/domain"
@@ -61,7 +62,19 @@ func Fail(w http.ResponseWriter, log *slog.Logger, err error) {
 		Refuse(w, status, code, "the server could not complete the request")
 		return
 	}
-	Refuse(w, status, code, err.Error())
+	Refuse(w, status, code, cause(err))
+}
+
+// cause drops the sentinel's own name from a wrapped error, so a client reads
+// "Error 1045 ..." instead of "unsupported: Error 1045 ..." under a code that already says it.
+func cause(err error) string {
+	text := err.Error()
+	for _, name := range []string{"invalid", "not found", "forbidden", "unauthorized", "conflict", "unsupported"} {
+		if rest, found := strings.CutPrefix(text, name+": "); found {
+			return rest
+		}
+	}
+	return text
 }
 
 // Refuse writes a failure without an error value: the middlewares refuse before any use

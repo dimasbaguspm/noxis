@@ -13,20 +13,24 @@ import (
 // Secret — a sealed blob the domain never opens, because sealing is an adapter's job —
 // and never as a field that could reach a response by accident.
 type Target struct {
-	Ref        string
-	Name       string
-	Driver     string
-	Host       string
-	Port       int
-	Database   string
-	Username   string
-	Secret     string
-	TLSMode    string
-	Options    map[string]string
-	CreatedBy  string
-	ArchivedAt *time.Time
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	Ref       string
+	Name      string
+	Driver    string
+	Host      string
+	Port      int
+	Database  string
+	Username  string
+	Secret    string
+	TLSMode   string
+	Options   map[string]string
+	CreatedBy string
+	// The measured engine: what the last probe saw. Empty until a probe succeeds.
+	ServerVersion   string
+	LastProbeAt     *time.Time
+	LastProbeStatus string
+	ArchivedAt      *time.Time
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 var targetName = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{1,62}$`)

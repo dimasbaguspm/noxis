@@ -23,6 +23,7 @@ type TargetUseCases struct {
 	Get     *target.Get
 	Update  *target.Update
 	Archive *target.Archive
+	Probe   *target.Probe
 }
 
 // Handlers carries Deps so a route table can name one method per endpoint.
