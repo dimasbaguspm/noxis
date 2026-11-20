@@ -8,15 +8,15 @@ import (
 	"testing"
 )
 
-// The binary always has a page to serve: the placeholder is committed, and it names the API it was
-// built for so an operator reading it knows where to point curl.
-func TestPlaceholderIsServedAndSaysSo(t *testing.T) {
+// A build is served from the binary, and the binary knows it is a build: `Built` is what the serve
+// command logs, and what told an operator the placeholder was a placeholder.
+func TestTheBuildIsServed(t *testing.T) {
 	console, err := web.New("http://localhost:9000")
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	if console.Built() {
-		t.Fatal("the committed placeholder was reported as a real console")
+	if !console.Built() {
+		t.Fatal("the committed console build was reported as a placeholder")
 	}
 
 	rec := httptest.NewRecorder()
@@ -29,11 +29,8 @@ func TestPlaceholderIsServedAndSaysSo(t *testing.T) {
 		t.Fatalf("content type = %q", got)
 	}
 	body := rec.Body.String()
-	if !strings.Contains(body, "not built") {
-		t.Fatalf("the placeholder does not say it is one:\n%s", body)
-	}
-	if !strings.Contains(body, "http://localhost:9000") {
-		t.Fatal("the placeholder does not name the API it was told to call")
+	if !strings.Contains(body, `id="root"`) {
+		t.Fatalf("the build has no mount point:\n%s", body)
 	}
 }
 
@@ -48,7 +45,7 @@ func TestUnknownRouteFallsBackToTheShell(t *testing.T) {
 	for _, path := range []string{"/proposals", "/proposals/0192f0c0-0000-7000-8000-000000000001", "/nope"} {
 		rec := httptest.NewRecorder()
 		console.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
-		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "not built") {
+		if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `id="root"`) {
 			t.Fatalf("%s answered %d, want the shell", path, rec.Code)
 		}
 	}

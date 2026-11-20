@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/theme.ts","./src/api/client.ts","./src/api/session.tsx","./src/api/types.ts","./src/app/App.tsx","./src/app/AppShell.tsx","./src/app/SignIn.tsx","./src/components/Async.tsx","./src/editor/SqlEditor.tsx","./src/pages/ProposalPage.tsx","./src/pages/TargetPage.tsx","./src/pages/TargetsPage.tsx"],"version":"5.9.3"}
