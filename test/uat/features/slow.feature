@@ -87,3 +87,11 @@ Feature: Talking to a real engine
     And I apply the proposal confirming destruction
     Then the request succeeds
     And the proposal is "applied"
+
+  Scenario: a CREATE INDEX is scoped and proven
+    Given I hold the ops token
+    And I register the "mysql" container as "uat-propose-index"
+    When I propose "CREATE INDEX idx_users_note ON users (note)" with rollback "DROP INDEX idx_users_note ON users" titled "index the note column"
+    Then the request succeeds with status 201
+    And the proposal is "verified"
+    And the rehearsal schema diff mentions "idx_users_note"

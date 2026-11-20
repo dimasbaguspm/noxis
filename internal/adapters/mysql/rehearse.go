@@ -214,7 +214,8 @@ func (d *DB) rehearseInScratch(ctx context.Context, pool *sql.DB, database strin
 	rehearsal.Status = domain.RehearsalVerified
 	rehearsal.Note = "rebuilt from the engine's own DDL in a throwaway database; the rollback restored it exactly"
 	if change.Tier != domain.TierRehearsal {
-		rehearsal.Note += "; no rows were copied, so a DML result here proves shape, not effect"
+		rehearsal.Note += "; no rows were copied, so a DML result here proves shape, not effect, " +
+			"and an index is proven to build, not to hold on your data"
 	}
 }
 
