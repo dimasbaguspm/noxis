@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -96,10 +97,28 @@ func run(m *testing.M) (int, error) {
 		}
 	}
 	if slow() {
-		if err := enginesUp(); err != nil {
+		addrs, stop, err := enginesUp(context.Background())
+		if err != nil {
 			return 0, err
 		}
-		defer enginesDown()
+		defer stop()
+		for engine, addr := range addrs {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				return 0, err
+			}
+			for name, value := range map[string]string{
+				"UAT_" + strings.ToUpper(engine) + "_HOST": host,
+				"UAT_" + strings.ToUpper(engine) + "_PORT": port,
+				"UAT_DB_USER":     dbUser,
+				"UAT_DB_PASSWORD": dbPassword,
+				"UAT_DB_NAME":     dbName,
+			} {
+				if err := os.Setenv(name, value); err != nil {
+					return 0, err
+				}
+			}
+		}
 	}
 
 	return m.Run(), nil
@@ -132,70 +151,6 @@ func waitForServer(base string, within time.Duration) error {
 // slow reports whether this run may talk to real engines. Without it the @slow scenarios are
 // excluded rather than skipped silently: a scenario that never ran is not evidence.
 func slow() bool { return os.Getenv("UAT_SLOW") == "1" }
-
-const composeFile = "compose.yml"
-
-// enginesUp boots the engines the @slow scenarios name and waits for them to answer. It removes any
-// leftovers first: a container from an interrupted run holds the port and answers with a connection
-// that dies mid-query, which reads like a product bug and is not one.
-func enginesUp() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-	defer cancel()
-	if out, err := exec.CommandContext(ctx, "docker", "compose", "-f", composeFile, "down", "-v", "--remove-orphans").
-		CombinedOutput(); err != nil {
-		fmt.Fprintf(os.Stderr, "uat: docker compose down (pre-run): %v\n%s\n", err, out)
-	}
-	cmd := exec.CommandContext(ctx, "docker", "compose", "-f", composeFile, "up", "-d", "--wait")
-	cmd.Dir = "."
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("docker compose up: %w\n%s", err, out)
-	}
-	// A healthy healthcheck means the server answers ping; it does not mean the account the steps
-	// use can authenticate yet, and MySQL stays busy finishing its boot for a few seconds.
-	return waitForLogin(ctx)
-}
-
-// waitForLogin logs in as the account the scenarios use, on both engines, until it works. Anything
-// less than this let the first scenario fail with a connection the driver called invalid.
-func waitForLogin(ctx context.Context) error {
-	deadline := time.Now().Add(45 * time.Second)
-	for {
-		if err := loginAs("mysql", "mysql"); err != nil {
-			if time.Now().After(deadline) {
-				return err
-			}
-			time.Sleep(time.Second)
-			continue
-		}
-		if err := loginAs("mariadb", "mariadb"); err != nil {
-			if time.Now().After(deadline) {
-				return err
-			}
-			time.Sleep(time.Second)
-			continue
-		}
-		return nil
-	}
-}
-
-func loginAs(service, client string) error {
-	cmd := exec.Command("docker", "compose", "-f", composeFile, "exec", "-T", service,
-		client, "-h127.0.0.1", "-unoxis", "-pnoxispw", "app", "-e", "SELECT 1")
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("%s is not ready for the steps' account: %w\n%s", service, err, out)
-	}
-	return nil
-}
-
-// enginesDown removes them, and their volumes, even when a scenario failed.
-func enginesDown() {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, "docker", "compose", "-f", composeFile, "down", "-v")
-	if out, err := cmd.CombinedOutput(); err != nil {
-		fmt.Fprintf(os.Stderr, "uat: docker compose down: %v\n%s\n", err, out)
-	}
-}
 
 func TestAcceptance(t *testing.T) {
 	tags := "~@slow"

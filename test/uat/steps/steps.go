@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/cucumber/godog"
@@ -425,18 +426,21 @@ func (w *world) assertRefusalMentions(want string) error {
 
 // registerContainer registers one of the engines the @slow compose file boots.
 func (w *world) registerContainer(engine, name string) error {
-	port := 33307
-	if engine == "mysql" {
-		port = 33306
+	// The harness boots the engine on a port the runtime picks and hands it over here, so two slow
+	// runs can happen at once.
+	host := os.Getenv("UAT_" + strings.ToUpper(engine) + "_HOST")
+	port, err := strconv.Atoi(os.Getenv("UAT_" + strings.ToUpper(engine) + "_PORT"))
+	if err != nil || host == "" {
+		return fmt.Errorf("the %s engine was not handed over by the harness", engine)
 	}
 	w.target, w.err = w.api.CreateTarget(context.Background(), client.CreateTargetInput{
 		Name:     name,
 		Driver:   engine,
-		Host:     "127.0.0.1",
+		Host:     host,
 		Port:     port,
-		Database: "app",
-		Username: "noxis",
-		Password: "noxispw",
+		Database: os.Getenv("UAT_DB_NAME"),
+		Username: os.Getenv("UAT_DB_USER"),
+		Password: os.Getenv("UAT_DB_PASSWORD"),
 		TLSMode:  constants.TLSPreferred,
 	})
 	return nil
