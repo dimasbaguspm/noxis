@@ -36,8 +36,11 @@ func newWhoami(opts *options) *cobra.Command {
 func newVersion() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
-		Short: "Print the client version",
+		Short: "Print the binary version",
 		Args:  cobra.NoArgs,
+		// A version is a fact about the binary, not about a session: it answers before signing in,
+		// which is what a container's first health check needs.
+		Annotations: map[string]string{annoNoToken: "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			_, err := fmt.Fprintf(cmd.OutOrStdout(), "noxis %s\n", constants.Version)
 			return err
