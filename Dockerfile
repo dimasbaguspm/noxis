@@ -7,12 +7,14 @@
 # The console: built here, never committed. `internal/web/dist` holds only a placeholder in the
 # repository, so the image is the one place a production build exists.
 FROM node:22-alpine AS console
+RUN corepack enable
 WORKDIR /web
-COPY web/package.json web/package-lock.json ./
-RUN npm ci
+# The lockfile names the graph that was tested, and .npmrc names how it is installed.
+COPY web/package.json web/pnpm-lock.yaml web/.npmrc ./
+RUN pnpm install --frozen-lockfile
 COPY web/ ./
 # vite writes to ../internal/web/dist, which is /internal/web/dist from here.
-RUN npm run build
+RUN pnpm run build
 
 FROM golang:1.26 AS build
 WORKDIR /src
