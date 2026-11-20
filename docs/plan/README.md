@@ -28,4 +28,5 @@ history of a decision. This index starts at the v2 rebuild.
 
 ### Hardening (v2, second pass)
 
-- [[chore]: boot the acceptance engines with testcontainers](764-testcontainers.md) — plan issue #764, in review
+- [[chore]: boot the acceptance engines with testcontainers](764-testcontainers.md) — plan issue #764, PR #774, merged 2026-11-20
+- **[plan: harden the rehearsal and give the CLI an identity](762-second-pass-hardening.md)** — plan issue #762, PRs #771–#781, closed 2026-11-20
