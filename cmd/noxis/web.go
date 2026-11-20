@@ -35,7 +35,7 @@ func newWebServe() *cobra.Command {
 		Short: "Serve the console from this binary",
 		Args:  cobra.NoArgs,
 		// The console is a page: it needs no token, and it never touches the state file.
-		Annotations: map[string]string{annoNoToken: "true"},
+		Annotations: map[string]string{constants.AnnoNoToken: "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return serveConsole(cmd.Context(), cmd, port, apiURL)
 		},

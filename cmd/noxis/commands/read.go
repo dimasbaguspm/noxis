@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"fmt"
@@ -8,9 +8,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newQuery runs one statement. The server refuses anything that is not a read, so this command
+// NewQuery runs one statement. The server refuses anything that is not a read, so this command
 // does not decide what a read is: it sends and prints, and the refusal comes back as an error.
-func newQuery(opts *options) *cobra.Command {
+func NewQuery(s *Session) *cobra.Command {
 	var (
 		sqlText string
 		from    string
@@ -32,7 +32,7 @@ func newQuery(opts *options) *cobra.Command {
 			if statement == "" {
 				return fmt.Errorf("give the statement with --sql or --file")
 			}
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -40,8 +40,8 @@ func newQuery(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, rows)
+			if s.JSON {
+				return PrintJSON(cmd, rows)
 			}
 			return printRows(cmd, rows)
 		},
@@ -80,13 +80,13 @@ func printRows(cmd *cobra.Command, rows client.Rows) error {
 	return err
 }
 
-func newDatabases(opts *options) *cobra.Command {
+func NewDatabases(s *Session) *cobra.Command {
 	return &cobra.Command{
 		Use:   "databases <ref>",
 		Short: "List the schemas behind a target",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -94,8 +94,8 @@ func newDatabases(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, databases)
+			if s.JSON {
+				return PrintJSON(cmd, databases)
 			}
 			for _, name := range databases {
 				if _, err := fmt.Fprintln(cmd.OutOrStdout(), name); err != nil {
@@ -107,13 +107,13 @@ func newDatabases(opts *options) *cobra.Command {
 	}
 }
 
-func newTables(opts *options) *cobra.Command {
+func NewTables(s *Session) *cobra.Command {
 	return &cobra.Command{
 		Use:   "tables <ref> <schema>",
 		Short: "List the tables in a schema",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -121,8 +121,8 @@ func newTables(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, tables)
+			if s.JSON {
+				return PrintJSON(cmd, tables)
 			}
 			rows := make([][]string, 0, len(tables))
 			for _, table := range tables {
@@ -135,13 +135,13 @@ func newTables(opts *options) *cobra.Command {
 	}
 }
 
-func newTable(opts *options) *cobra.Command {
+func NewTable(s *Session) *cobra.Command {
 	return &cobra.Command{
 		Use:   "table <ref> <schema> <table>",
 		Short: "Show one table: columns, indexes and its DDL",
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -149,8 +149,8 @@ func newTable(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, detail)
+			if s.JSON {
+				return PrintJSON(cmd, detail)
 			}
 			rows := make([][]string, 0, len(detail.Columns))
 			for _, column := range detail.Columns {

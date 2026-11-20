@@ -1,10 +1,10 @@
-package httpapi_test
+package http_test
 
 import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"noxis/internal/httpapi"
+	apiserver "noxis/cmd/noxis/http"
 	"sort"
 	"strings"
 	"testing"
@@ -23,7 +23,7 @@ type document struct {
 func load(t *testing.T) document {
 	t.Helper()
 	var doc document
-	if err := yaml.Unmarshal(httpapiContract(t), &doc); err != nil {
+	if err := yaml.Unmarshal(openAPIContract(t), &doc); err != nil {
 		t.Fatalf("parse openapi.yaml: %v", err)
 	}
 	return doc
@@ -41,7 +41,7 @@ func TestEveryRouteIsDocumented(t *testing.T) {
 		t.Fatal("info needs a title and a version")
 	}
 
-	for _, route := range httpapi.Routes(httpapi.Deps{}) {
+	for _, route := range apiserver.Routes(apiserver.Deps{}) {
 		item, ok := doc.Paths[route.Path]
 		if !ok {
 			t.Fatalf("path %s is served but not documented", route.Path)
@@ -73,8 +73,8 @@ func TestOpenAPIRoutes(t *testing.T) {
 		handler     http.HandlerFunc
 		contentType string
 	}{
-		{"json", httpapi.OpenAPIJSON, "application/json"},
-		{"yaml", httpapi.OpenAPIYAML, "application/yaml"},
+		{"json", apiserver.OpenAPIJSON, "application/json"},
+		{"yaml", apiserver.OpenAPIYAML, "application/yaml"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			rec := httptest.NewRecorder()
@@ -93,7 +93,7 @@ func TestOpenAPIRoutes(t *testing.T) {
 	}
 
 	rec := httptest.NewRecorder()
-	httpapi.OpenAPIJSON(rec, httptest.NewRequest(http.MethodGet, "/openapi.json", nil))
+	apiserver.OpenAPIJSON(rec, httptest.NewRequest(http.MethodGet, "/openapi.json", nil))
 	var body struct {
 		OpenAPI string         `json:"openapi"`
 		Paths   map[string]any `json:"paths"`
@@ -120,11 +120,11 @@ func scopeList(value any) []string {
 	return out
 }
 
-// httpapiContract is the embedded document, reachable through the YAML route: the test reads what a
+// openAPIContract is the embedded document, reachable through the YAML route: the test reads what a
 // client reads, not a file path that only the test knows.
-func httpapiContract(t *testing.T) []byte {
+func openAPIContract(t *testing.T) []byte {
 	t.Helper()
 	rec := httptest.NewRecorder()
-	httpapi.OpenAPIYAML(rec, httptest.NewRequest(http.MethodGet, "/openapi.yaml", nil))
+	apiserver.OpenAPIYAML(rec, httptest.NewRequest(http.MethodGet, "/openapi.yaml", nil))
 	return rec.Body.Bytes()
 }

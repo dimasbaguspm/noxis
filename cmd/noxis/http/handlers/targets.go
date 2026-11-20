@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"noxis/cmd/noxis/http/middlewares"
+	"noxis/cmd/noxis/http/respond"
 	"noxis/internal/app/target"
 	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
-	"noxis/internal/httpapi/middlewares"
-	"noxis/internal/httpapi/respond"
 	"strconv"
 	"time"
 )

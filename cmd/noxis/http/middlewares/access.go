@@ -3,10 +3,10 @@ package middlewares
 import (
 	"log/slog"
 	"net/http"
+	"noxis/cmd/noxis/http/respond"
 	"noxis/internal/common/ref"
 	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
-	"noxis/internal/httpapi/respond"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"

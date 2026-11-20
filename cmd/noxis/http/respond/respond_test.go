@@ -7,9 +7,9 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"noxis/cmd/noxis/http/respond"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
-	"noxis/internal/httpapi/respond"
 	"strings"
 	"testing"
 )

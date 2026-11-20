@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"noxis/cmd/noxis/http/respond"
 	"noxis/internal/common/config"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
-	"noxis/internal/httpapi/respond"
 	"strings"
 )
 

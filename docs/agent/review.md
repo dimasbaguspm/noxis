@@ -7,13 +7,13 @@ review blocker, not a style note.
 
 - [ ] `internal/domain` imports nothing outside the standard library (`make test` runs `test/arch`).
 - [ ] No use case calls another use case.
-- [ ] No SQL outside `internal/adapters/sqlite`, no HTTP outside `internal/httpapi`.
+- [ ] No SQL outside `internal/adapters/sqlite`, no HTTP outside `cmd/noxis/http`.
 - [ ] A new port is described in the caller's vocabulary, not the adapter's.
 - [ ] No `NOXIS_` env read outside `internal/common/config`.
 
 ## Identity and access
 
-- [ ] Every new route appears in `internal/httpapi/routes.go` with its scopes or `Public: true`.
+- [ ] Every new route appears in `cmd/noxis/http/routes.go` with its scopes or `Public: true`.
 - [ ] A scope check is never done inside a handler — it comes from the route table.
 - [ ] Anything on the wire is a `ref`; no integer id, no `rowid`, no name-keyed filter.
 - [ ] A secret, a password, or a cipher appears in no response and no log line.

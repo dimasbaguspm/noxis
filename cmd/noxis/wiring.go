@@ -5,15 +5,15 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	apiserver "noxis/cmd/noxis/http"
+	"noxis/cmd/noxis/http/handlers"
+	"noxis/cmd/noxis/http/middlewares"
 	"noxis/internal/adapters/mysql"
 	"noxis/internal/adapters/sqlite"
 	"noxis/internal/app/proposal"
 	"noxis/internal/app/target"
 	"noxis/internal/common/config"
 	"noxis/internal/common/secret"
-	"noxis/internal/httpapi"
-	"noxis/internal/httpapi/handlers"
-	"noxis/internal/httpapi/middlewares"
 
 	appread "noxis/internal/app/read"
 )
@@ -89,6 +89,6 @@ func buildServer(ctx context.Context, cfg config.Config, statePath string, log *
 		},
 	})
 
-	handler := httpapi.NewMux(httpapi.Deps{Log: log, Auth: auth, Handlers: handlers_})
+	handler := apiserver.NewMux(apiserver.Deps{Log: log, Auth: auth, Handlers: handlers_})
 	return handler, state, nil
 }
