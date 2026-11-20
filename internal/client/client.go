@@ -79,14 +79,14 @@ type Health struct {
 // Whoami asks the API which caller this token is.
 func (c *Client) Whoami(ctx context.Context) (Identity, error) {
 	var out Identity
-	_, err := c.do(ctx, http.MethodGet, constants.PathWhoami, nil, &out)
+	_, err := c.do(ctx, http.MethodGet, pathWhoami, nil, &out)
 	return out, err
 }
 
 // Live asks the public health route whether the process is up.
 func (c *Client) Live(ctx context.Context) (Health, error) {
 	var out Health
-	_, err := c.do(ctx, http.MethodGet, constants.PathHealthz, nil, &out)
+	_, err := c.do(ctx, http.MethodGet, pathHealthz, nil, &out)
 	return out, err
 }
 

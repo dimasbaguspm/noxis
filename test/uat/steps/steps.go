@@ -231,7 +231,7 @@ func (w *world) assertNoPasswordOnWire() error {
 		return w.err
 	}
 	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet,
-		os.Getenv("UAT_URL")+constants.PathTargets+"/"+w.target.Ref, http.NoBody)
+		fmt.Sprintf("%s/v1/targets/%s", os.Getenv("UAT_URL"), w.target.Ref), http.NoBody)
 	if err != nil {
 		return err
 	}

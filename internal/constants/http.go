@@ -10,14 +10,6 @@ const (
 	MediaTypeYAML = "application/yaml"
 
 	SchemeBearer = "Bearer"
-
-	PathHealthz     = "/healthz"
-	PathOpenAPIJSON = "/openapi.json"
-	PathOpenAPIYAML = "/openapi.yaml"
-	PathPrefix      = "/v1"
-	PathWhoami      = "/v1/whoami"
-	PathTargets     = "/v1/targets"
-	PathProposals   = "/v1/proposals"
 )
 
 // The server's deployment contract. These are constants on purpose: a state file that can be moved
@@ -31,6 +23,6 @@ const (
 	StatePath   = "/data/noxis.db"
 )
 
-// ConsoleOrigins are the origins allowed to call the API from a browser. The console is standalone;
-// while it is a development server this is the one origin there is.
+// ConsoleOrigins are the origins allowed to call the API from a browser. A variable until #807 makes
+// the deployment say which console it has.
 var ConsoleOrigins = []string{"http://localhost:5173", "http://127.0.0.1:5173"}

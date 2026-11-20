@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"noxis/internal/constants"
 	"strconv"
 	"time"
 )
@@ -72,7 +71,7 @@ func (c *Client) ListTargets(ctx context.Context, in ListTargetsInput) (Page[Tar
 	if in.IncludeArchived {
 		query.Set("include_archived", "true")
 	}
-	path := constants.PathTargets
+	path := pathTargets
 	if encoded := query.Encode(); encoded != "" {
 		path += "?" + encoded
 	}
@@ -84,7 +83,7 @@ func (c *Client) ListTargets(ctx context.Context, in ListTargetsInput) (Page[Tar
 // CreateTarget registers a target. It needs a token holding `admin`.
 func (c *Client) CreateTarget(ctx context.Context, in CreateTargetInput) (Target, error) {
 	var out Target
-	_, err := c.do(ctx, http.MethodPost, constants.PathTargets, in, &out)
+	_, err := c.do(ctx, http.MethodPost, pathTargets, in, &out)
 	return out, err
 }
 
@@ -119,7 +118,7 @@ func (c *Client) ArchiveTarget(ctx context.Context, ref string) (Target, error) 
 }
 
 func targetPath(ref string) string {
-	return fmt.Sprintf("%s/%s", constants.PathTargets, url.PathEscape(ref))
+	return fmt.Sprintf("%s/%s", pathTargets, url.PathEscape(ref))
 }
 
 // Capabilities is what the API says this build may offer for one target's engine. It is the
@@ -325,7 +324,7 @@ func (c *Client) ListProposals(ctx context.Context, limit int, cursor, status, k
 	if mine {
 		query.Set("mine", "true")
 	}
-	path := constants.PathProposals
+	path := pathProposals
 	if encoded := query.Encode(); encoded != "" {
 		path += "?" + encoded
 	}
@@ -337,7 +336,7 @@ func (c *Client) ListProposals(ctx context.Context, limit int, cursor, status, k
 // GetProposal reads one proposal with its rehearsal.
 func (c *Client) GetProposal(ctx context.Context, ref string) (Proposal, error) {
 	var out Proposal
-	_, err := c.do(ctx, http.MethodGet, fmt.Sprintf("%s/%s", constants.PathProposals, url.PathEscape(ref)), nil, &out)
+	_, err := c.do(ctx, http.MethodGet, fmt.Sprintf("%s/%s", pathProposals, url.PathEscape(ref)), nil, &out)
 	return out, err
 }
 
@@ -347,7 +346,7 @@ func (c *Client) RehearseProposal(ctx context.Context, ref, tier string) (Propos
 	body := struct {
 		Tier string `json:"tier,omitempty"`
 	}{Tier: tier}
-	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/%s/rehearse", constants.PathProposals, url.PathEscape(ref)), body, &out)
+	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/%s/rehearse", pathProposals, url.PathEscape(ref)), body, &out)
 	return out, err
 }
 
@@ -378,7 +377,7 @@ func (c *Client) decide(ctx context.Context, ref, decision, note string) (Propos
 	body := struct {
 		Note string `json:"note,omitempty"`
 	}{Note: note}
-	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/%s/%s", constants.PathProposals, url.PathEscape(ref), decision), body, &out)
+	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/%s/%s", pathProposals, url.PathEscape(ref), decision), body, &out)
 	return out, err
 }
 
@@ -389,13 +388,13 @@ func (c *Client) ApplyProposal(ctx context.Context, ref string, confirm bool) (P
 	body := struct {
 		ConfirmDestructive bool `json:"confirm_destructive,omitempty"`
 	}{ConfirmDestructive: confirm}
-	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/%s/apply", constants.PathProposals, url.PathEscape(ref)), body, &out)
+	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/%s/apply", pathProposals, url.PathEscape(ref)), body, &out)
 	return out, err
 }
 
 // ProposalEvents answers the history of one proposal, newest first.
 func (c *Client) ProposalEvents(ctx context.Context, ref string) ([]Event, error) {
 	var out []Event
-	_, err := c.do(ctx, http.MethodGet, fmt.Sprintf("%s/%s/events", constants.PathProposals, url.PathEscape(ref)), nil, &out)
+	_, err := c.do(ctx, http.MethodGet, fmt.Sprintf("%s/%s/events", pathProposals, url.PathEscape(ref)), nil, &out)
 	return out, err
 }
