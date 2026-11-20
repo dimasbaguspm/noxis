@@ -49,9 +49,13 @@ let configPromise: Promise<Config> | null = null;
 
 export function loadConfig(): Promise<Config> {
   const fallback: Config = { api: import.meta.env.VITE_API_URL ?? 'http://localhost:9000' };
+  // An absolute path, not `./config.json`: the console owns deep links of its own, and on `/targets/:ref`
+  // a relative fetch asks the server for `/targets/config.json`, which the SPA fallback answers with the
+  // shell as HTML. The shape is checked too, so a wrong answer falls back instead of becoming a config
+  // with no API in it.
   configPromise ??= axios
-    .get<Config>('./config.json', { headers: { Accept: 'application/json' } })
-    .then((response) => response.data)
+    .get<Config>('/config.json', { headers: { Accept: 'application/json' } })
+    .then((response) => (typeof response.data?.api === 'string' ? response.data : fallback))
     .catch(() => fallback);
   return configPromise;
 }

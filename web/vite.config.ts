@@ -3,9 +3,12 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 // The console is served by the binary, from the same origin as its assets, but it calls an API that
-// may live on another host. Everything is relative (`./`) so a build works under any prefix.
+// may live on another host. The assets are absolute (`/assets/…`), not relative: the console has deep
+// links of its own (`/targets/:ref`), and `./assets` under one of those resolves to
+// `/targets/assets/…`, which the server answers with the shell — a page that loads and renders
+// nothing.
 export default defineConfig({
-  base: './',
+  base: '/',
   plugins: [react(), tailwindcss()],
   build: {
     // Straight into what the binary embeds: one command builds the console the image carries.
