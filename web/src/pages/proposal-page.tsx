@@ -170,7 +170,6 @@ export function ProposalPage() {
                   <Heading level={1} id="proposal-title">
                     {found.title}
                   </Heading>
-                  <Tag className="m-0">{found.kind}</Tag>
                   <StatusTag status={found.status} />
                   <RenderWhen condition={found.irreversible}>
                     <Tag color="red" className="m-0">

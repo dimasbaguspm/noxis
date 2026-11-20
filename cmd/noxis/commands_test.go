@@ -177,17 +177,23 @@ func TestTargetListPrintsTheCursor(t *testing.T) {
 		t.Fatalf("target ls: %v", err)
 	}
 
-	// The CLI prints the page it was handed, so the fields are the client's own names.
+	// `--json` prints the envelope the API sent, so an agent parses one shape whether it read the CLI or
+	// the wire.
 	var printed struct {
-		Items []struct {
+		Data []struct {
 			Ref string `json:"ref"`
-		}
-		NextCursor string
+		} `json:"data"`
+		Meta struct {
+			NextCursor string `json:"next_cursor"`
+		} `json:"meta"`
 	}
 	if err := json.Unmarshal(out.Bytes(), &printed); err != nil {
 		t.Fatalf("output is not json: %v (%s)", err, out.String())
 	}
-	if printed.NextCursor == "" {
+	if len(printed.Data) == 0 || printed.Data[0].Ref == "" {
+		t.Fatalf("the page carried no data: %s", out.String())
+	}
+	if printed.Meta.NextCursor == "" {
 		t.Fatalf("the cursor was not printed: %s", out.String())
 	}
 }

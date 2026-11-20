@@ -47,7 +47,16 @@ export function CreateProposal({ target, schema }: { target: string; schema: Sch
               query: values.query,
               rollback: values.rollback || undefined,
             });
-            void message.success(`${filed.title} filed`);
+            // A filed change whose rehearsal failed is not a success: the CLI exits non-zero on the same
+            // answer, so the console says it too instead of a green tick over a failed proposal.
+            if (filed.status === 'failed') {
+              void message.warning({
+                content: `${filed.title} is filed, but the rehearsal failed`,
+                duration: 6,
+              });
+            } else {
+              void message.success(`${filed.title} filed`);
+            }
             setOpen(false);
           }}
         >
