@@ -30,6 +30,9 @@ body {
    viewport and the whole shell scrolls sideways. */
 .noxis-main {
   min-width: 0;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
   padding: 16px;
 }
 
@@ -112,11 +115,36 @@ body {
 .noxis-target-card:focus-visible {
   border-color: var(--noxis-orange);
   box-shadow: 0 6px 20px rgb(249 115 22 / 12%);
+  transform: translateY(-1px);
 }
 
 .noxis-target-card:focus-visible {
   outline: 2px solid var(--noxis-orange);
   outline-offset: 2px;
+}
+
+/* Ant Design animates its own overlays; these two are the console's, and they are short enough to
+   read as a response rather than as an effect. */
+.noxis-fade-in {
+  animation: noxis-fade 160ms ease-out;
+}
+
+@keyframes noxis-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .noxis-mono {

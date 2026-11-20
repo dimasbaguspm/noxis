@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"noxis/internal/common/dotconfig"
 	"strings"
 	"testing"
 )
@@ -22,5 +23,41 @@ func TestWebServeNeedsTheAPI(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "--api") {
 		t.Fatalf("error = %q, want it to name --api", err)
+	}
+}
+
+// A machine that signed the CLI in is a machine that has an API and a token already: the console
+// starts from that session rather than asking for what the terminal knows.
+func TestConsoleInheritsTheCLISession(t *testing.T) {
+	isolated(t)
+	store(t, dotconfig.Profile{APIURL: "https://api.example.com", Token: "tok"})
+
+	session, err := cliSession("", false)
+	if err != nil {
+		t.Fatalf("cliSession: %v", err)
+	}
+	if session.APIURL != "https://api.example.com" || session.Token != "tok" {
+		t.Fatalf("session = %+v", session)
+	}
+}
+
+// A machine that never signed in is not an error: the console asks for a token, as it always did.
+func TestConsoleWithoutASessionIsNotAnError(t *testing.T) {
+	isolated(t)
+	session, err := cliSession("", false)
+	if err != nil {
+		t.Fatalf("cliSession: %v", err)
+	}
+	if session.APIURL != "" || session.Token != "" {
+		t.Fatalf("session = %+v, want the empty one", session)
+	}
+}
+
+// A profile that was named and is not there is a typo, and a typo has to fail rather than silently
+// fall back to the current session.
+func TestConsoleRefusesANamedProfileThatIsMissing(t *testing.T) {
+	isolated(t)
+	if _, err := cliSession("nope", true); err == nil {
+		t.Fatal("a named profile that does not exist was accepted")
 	}
 }
