@@ -365,11 +365,13 @@ function Changes({ target, schema }: { target: string; schema: Schema | null }) 
           aria-label="Filter changes by title"
           className="max-w-[240px]"
         />
-        <Segmented
-          value={status}
-          onChange={(value) => setStatus(String(value))}
-          options={['all', 'verified', 'approved', 'applied', 'failed']}
-        />
+        <div className="max-w-full overflow-x-auto">
+          <Segmented
+            value={status}
+            onChange={(value) => setStatus(String(value))}
+            options={['all', 'verified', 'approved', 'applied', 'failed']}
+          />
+        </div>
         <span className="flex-1" />
         <Text size="xs" tone="muted">
           {visible.length} of {items.length}

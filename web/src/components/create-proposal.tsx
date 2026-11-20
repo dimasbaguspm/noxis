@@ -35,7 +35,7 @@ export function CreateProposal({ target, schema }: { target: string; schema: Sch
         title="A data change"
         onCancel={() => setOpen(false)}
         footer={null}
-        width={720}
+        width="min(920px, 94vw)"
         destroyOnHidden
       >
         <Form<ProposalValues>
@@ -57,11 +57,11 @@ export function CreateProposal({ target, schema }: { target: string; schema: Sch
             autoFocus
             placeholder="add a column for the audit flag"
           />
-          <SqlField name="query" label="Query" schema={schema} height={170} />
+          <SqlField name="query" label="Query" schema={schema} height={220} />
           <SqlField
             name="rollback"
             label="Rollback"
-            height={110}
+            height={140}
             hint="Leave it empty only if this cannot be undone: an apply then has to acknowledge that by name."
           />
           <Form.Submit block>File the proposal</Form.Submit>

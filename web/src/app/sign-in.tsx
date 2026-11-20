@@ -36,7 +36,7 @@ export function SignIn() {
     <div className="grid min-h-dvh grid-cols-1 md:grid-cols-[65fr_35fr]">
       <section className="hidden flex-col justify-between gap-10 bg-white p-10 md:flex lg:p-14">
         <div className="flex items-center gap-2.5 text-base font-bold tracking-tight">
-          <Logo size={24} />
+          <Logo size={40} />
           noXis
         </div>
 
@@ -46,11 +46,8 @@ export function SignIn() {
           </Heading>
           <Text as="p" size="lg" tone="muted" className="mt-4 leading-relaxed">
             An agent reads, and proposes. A rehearsal proves the change in a throwaway database, and
-            a person holding{' '}
-            <Text mono size="sm">
-              approve
-            </Text>{' '}
-            decides. Nothing here happens because a model was confident.
+            a person holding <code>approve</code> decides. Nothing here happens because a model was
+            confident.
           </Text>
           <List className="mt-6">
             <ListItem>Read and propose, never apply: the two scopes are two people.</ListItem>
@@ -70,7 +67,7 @@ export function SignIn() {
 
         <div className="relative mx-auto w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl shadow-orange-900/20 sm:p-7">
           <div className="mb-6 flex items-center gap-2.5 text-base font-bold tracking-tight md:hidden">
-            <Logo size={22} tone="onBrand" />
+            <Logo size={32} tone="onBrand" />
             noXis
           </div>
 
@@ -78,10 +75,7 @@ export function SignIn() {
           <Text as="p" size="sm" tone="muted" className="mt-1 mb-5">
             {config ? (
               <>
-                to{' '}
-                <Text mono size="sm">
-                  {config.api.replace(/^https?:\/\//, '')}
-                </Text>
+                to <code>{config.api.replace(/^https?:\/\//, '')}</code>
               </>
             ) : (
               'with the token your CLI holds'
@@ -110,11 +104,7 @@ export function SignIn() {
           </Form>
 
           <Text as="p" size="xs" tone="muted" className="mt-4 leading-relaxed">
-            The CLI stores the same token. Run{' '}
-            <Text mono size="xs">
-              noxis web serve
-            </Text>{' '}
-            and it is already here.
+            The CLI stores the same token. Run <code>noxis web serve</code> and it is already here.
           </Text>
         </div>
       </aside>

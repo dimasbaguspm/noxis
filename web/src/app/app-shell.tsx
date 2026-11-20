@@ -1,5 +1,5 @@
 import { Avatar, Dropdown, Tag, Tooltip } from 'antd';
-import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
+import { DownOutlined, LogoutOutlined } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSession } from '../api/session-context';
@@ -50,12 +50,26 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
             menu={{
               items: [
                 {
+                  key: 'who',
+                  disabled: true,
+                  label: (
+                    <div className="flex max-w-64 flex-col gap-1 py-0.5">
+                      <span className="text-[13px] font-semibold text-ink">{identity.name}</span>
+                      <span className="truncate font-mono text-[11px] text-muted">
+                        {config?.api.replace(/^https?:\/\//, '') ?? 'no API'}
+                      </span>
+                    </div>
+                  ),
+                },
+                {
                   key: 'scopes',
                   disabled: true,
                   label: (
-                    <div className="flex max-w-60 flex-wrap gap-1">
+                    <div className="flex max-w-64 flex-wrap gap-1">
                       {identity.scopes.map((scope) => (
-                        <Tag key={scope}>{scope}</Tag>
+                        <Tag key={scope} className="m-0">
+                          {scope}
+                        </Tag>
                       ))}
                     </div>
                   ),
@@ -67,11 +81,14 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
           >
             <button
               type="button"
-              className="flex items-center gap-2 rounded-md px-1 py-1 hover:bg-brand-soft"
-              aria-label={`signed in as ${identity.name}`}
+              className="flex items-center gap-2 rounded-full border border-line py-0.5 pr-2.5 pl-0.5 transition-colors hover:border-brand hover:bg-brand-soft"
+              aria-label={`signed in as ${identity.name}, open the session menu`}
             >
-              <Avatar size={28} className="!bg-brand" icon={<UserOutlined />} />
-              <span className="hidden font-semibold sm:inline">{identity.name}</span>
+              <Avatar size={26} className="!bg-brand !text-[11px] !font-semibold">
+                {initials(identity.name)}
+              </Avatar>
+              <span className="hidden text-[13px] font-semibold sm:inline">{identity.name}</span>
+              <DownOutlined className="hidden text-[10px] text-muted sm:inline" />
             </button>
           </Dropdown>
         ) : anonymous ? (
@@ -84,4 +101,10 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
       </main>
     </div>
   );
+}
+
+/** Two letters for the avatar: a token name is a word, and a word in a 26px circle is a smudge. */
+function initials(name: string): string {
+  const letters = name.replace(/[^a-zA-Z0-9]/g, '');
+  return letters.slice(0, 2).toUpperCase() || '?';
 }
