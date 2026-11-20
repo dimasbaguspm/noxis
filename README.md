@@ -33,15 +33,16 @@ agent ──read──────────────▶ rows
 
 | Binary | What it is |
 | --- | --- |
-| `noxisd` (`cmd/http`) | the server: REST API over `/v1`, the only writer of the state file |
-| `noxis` (`cmd/cli`) | a client of that API — `whoami`, and later `target`, `query`, `propose`, `review` |
+| `noxis http serve` | the server: REST API over `/v1`, the only writer of the state file |
+| `noxis web serve` | the console, served from the same binary (see #789) |
+| `noxis <command>` | a client of that API — `auth`, `target`, `query`, `propose`, `review` |
 | `web/*` | a standalone console, later; not embedded, talks to the same API |
 
 ## Run it
 
 ```bash
 cp .env.example .env            # set TOKENS, SECRET_KEY
-make run                        # noxisd on :9000
+make run                        # the API on :9000
 curl -s localhost:9000/healthz
 curl -s -H "Authorization: Bearer <secret>" localhost:9000/v1/whoami
 ```
@@ -61,12 +62,25 @@ re-checks `whoami` on boot, cached for a minute; a token the server no longer ac
 Supported engines: **MySQL 8** and **MariaDB 11**, both through one module registered
 under two driver names.
 
+In a container: one binary, distroless, non-root, read-only root filesystem.
+
+```bash
+docker build -t noxis .
+docker run -d --name noxis --read-only -p 9000:9000 \
+  -e TOKENS='{"agent":{"secret":"...","scopes":["read"]}}' -e SECRET_KEY=<64 hex> \
+  -v noxisdata:/data noxis
+```
+
+The state file lives in `/data`, which the image owns as `nonroot`; a bind mount instead of a
+named volume must be writable by uid 65532. The image is its own healthcheck
+(`/noxis http healthcheck`), so it needs no curl and no shell.
+
 ## Verify
 
 ```bash
 make test    # unit + the layering test that keeps domain pure
 make lint
-make uat     # godog, against a real noxisd process
+make uat     # godog, against a real `noxis http serve` process
 ```
 
 ## Status

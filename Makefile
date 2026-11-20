@@ -13,12 +13,11 @@ endif
 help: ## list the targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2}'
 
-build: ## compile bin/noxisd (server) and bin/noxis (cli)
-	$(GO) build -o $(BIN)/noxisd ./cmd/http
-	$(GO) build -o $(BIN)/noxis ./cmd/cli
+build: ## compile the one binary: bin/noxis (http serve, web serve, cli)
+	$(GO) build -trimpath -ldflags "-s -w" -o $(BIN)/noxis ./cmd/noxis
 
-run: ## run the server on HTTP_ADDR
-	$(GO) run ./cmd/http
+run: ## run the API on the constant listen address
+	$(GO) run ./cmd/noxis http serve
 
 test: ## unit + architecture tests
 	$(GO) test ./...
@@ -35,7 +34,7 @@ fmt: ## gofmt the tree
 tidy: ## settle go.mod
 	$(GO) mod tidy
 
-uat: ## acceptance suite (godog over a real noxisd process)
+uat: ## acceptance suite (godog over a real `noxis http serve` process)
 	$(GO) test ./test/uat/... -count=1 -timeout 10m
 
 uat-slow: ## acceptance suite including @slow: boots MySQL 8.4 + MariaDB 11.4 (needs docker)

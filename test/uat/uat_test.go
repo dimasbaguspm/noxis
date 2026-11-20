@@ -1,4 +1,4 @@
-// Package uat runs the acceptance suite against a real process: the noxisd binary the
+// Package uat runs the acceptance suite against a real process: the noxis binary the
 // user gets, on a port, holding the environment a deployment would set.
 package uat
 
@@ -27,7 +27,7 @@ const (
 	revSecret   = "sk_uat_rev_0123456789abcdef0123456789rev"
 )
 
-// TestMain builds noxisd, starts it on a free port and hands the address to the steps
+// TestMain builds noxis, starts `http serve` on a free port and hands the address to the steps
 // through the environment, which is how the suite stays a black box.
 func TestMain(m *testing.M) {
 	code, err := run(m)
@@ -45,11 +45,11 @@ func run(m *testing.M) (int, error) {
 	}
 	defer func() { _ = os.RemoveAll(dir) }()
 
-	binary := filepath.Join(dir, "noxisd")
-	build := exec.Command("go", "build", "-o", binary, "./cmd/http")
+	binary := filepath.Join(dir, "noxis")
+	build := exec.Command("go", "build", "-o", binary, "./cmd/noxis")
 	build.Dir = "../.."
 	if out, err := build.CombinedOutput(); err != nil {
-		return 0, fmt.Errorf("build noxisd: %w\n%s", err, out)
+		return 0, fmt.Errorf("build noxis: %w\n%s", err, out)
 	}
 
 	addr, err := freeAddr()
@@ -63,13 +63,12 @@ func run(m *testing.M) (int, error) {
 
 	// The listen address and the state file are constants on purpose; the flags exist for this suite
 	// and for development, so a second instance never needs an environment variable.
-	cmd := exec.Command(binary, "-addr", addr, "-state", filepath.Join(dir, "state.db"))
+	cmd := exec.Command(binary, "http", "serve", "--addr", addr, "--state", filepath.Join(dir, "state.db"))
 	cmd.Dir = dir
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	cmd.Env = append(os.Environ(),
 		"SECRET_KEY="+hex.EncodeToString(key),
-		"LOG_LEVEL=warn",
 		"TOKENS="+fmt.Sprintf(
 			`{"agent":{"secret":%q,"scopes":["read","propose"]},"rev":{"secret":%q,"scopes":["read","propose","approve"]},"ops":{"secret":%q,"scopes":["read","propose","approve","apply","admin"]}}`,
 			agentSecret, revSecret, opsSecret),
@@ -145,7 +144,7 @@ func waitForServer(base string, within time.Duration) error {
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	return fmt.Errorf("noxisd did not answer %s/healthz within %s", base, within)
+	return fmt.Errorf("noxis http serve did not answer %s/healthz within %s", base, within)
 }
 
 // slow reports whether this run may talk to real engines. Without it the @slow scenarios are

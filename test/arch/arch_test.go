@@ -31,6 +31,12 @@ var layers = []layer{
 	}},
 	{prefix: "noxis/internal/common", allowed: []string{"noxis/internal/constants", "noxis/internal/common"}},
 	{prefix: "noxis/internal/client", allowed: []string{"noxis/internal/constants"}},
+	// The transport may call use cases and read the wire vocabulary; it may not name an adapter —
+	// that is the composition root's job, and the root lives in cmd/noxis.
+	{prefix: "noxis/internal/httpapi", allowed: []string{
+		"noxis/internal/domain", "noxis/internal/ports", "noxis/internal/app",
+		"noxis/internal/common", "noxis/internal/constants", "noxis/internal/httpapi",
+	}},
 }
 
 func TestImportDirection(t *testing.T) {

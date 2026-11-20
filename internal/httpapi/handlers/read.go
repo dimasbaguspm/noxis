@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"noxis/cmd/http/respond"
+	"noxis/internal/httpapi/respond"
 	"noxis/internal/app/read"
 	"noxis/internal/domain"
 )

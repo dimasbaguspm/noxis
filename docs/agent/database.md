@@ -1,6 +1,6 @@
 # The state file
 
-One SQLite file, written by `noxisd` and by nothing else. It holds targets, the journal,
+One SQLite file, written by `noxis http serve` and by nothing else. It holds targets, the journal,
 and — as later tickets land — proposals and rehearsals. It is an audit trail before it is
 a cache, which is why nothing here migrates one.
 
@@ -86,7 +86,7 @@ copied proves shape, not effect).
 `password_cipher` is sealed with `SECRET_KEY` and bound to the row's `ref` as additional
 authenticated data: a sealed value copied into another row will not open. The domain type
 carries it as an opaque `Secret` string, the use case is the only place a plaintext
-password exists, and the wire type in `cmd/http/handlers` has no password field at all —
+password exists, and the wire type in `internal/httpapi/handlers` has no password field at all —
 only `has_password`. `SECRET_KEY_PREVIOUS` opens rows sealed with the old key and reports
 them as stale so the next write re-seals them.
 

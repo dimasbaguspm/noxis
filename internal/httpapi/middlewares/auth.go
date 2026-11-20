@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"noxis/cmd/http/respond"
+	"noxis/internal/httpapi/respond"
 	"noxis/internal/common/config"
 	"noxis/internal/constants"
 	"noxis/internal/domain"

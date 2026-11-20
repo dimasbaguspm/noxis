@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"noxis/cmd/http/respond"
+	"noxis/internal/httpapi/respond"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 )

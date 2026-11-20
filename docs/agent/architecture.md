@@ -3,8 +3,8 @@
 ## Layers
 
 ```
-cmd/http ─┐                        transport: reads HTTP, calls one use case
-cmd/cli  ─┤ (via internal/client)
+cmd/noxis ─┐                       one binary: http serve, web serve, the CLI
+internal/httpapi ─┤ (transport)
           ▼
       internal/app                 use cases: the only place a workflow lives
           ▼
@@ -42,7 +42,7 @@ Rules, enforced by `test/arch`:
    and refuses before the handler runs.
 4. The handler reads the body and path params, calls one use case, and writes with
    `respond` / `fail`.
-5. The use case calls the ports it holds as fields, built once in `cmd/http/wiring.go`,
+5. The use case calls the ports it holds as fields, built once in `cmd/noxis/wiring.go`,
    and returns a domain value or a sentinel error.
 6. `POST /proposals/{ref}/apply` answers **202** when the table is past `constants.ApplyBackgroundRows`: the claim happens in the request, the statement runs in a goroutine on `context.WithoutCancel`, and the caller polls `GET /proposals/{ref}` for `progress` and, at the end, the `algorithm` the engine chose. Below the threshold the answer waits and the receipt comes back with it.
 7. `fail` maps `ErrNotFound → 404`, `ErrForbidden → 403`, `ErrUnauthorized → 401`,
@@ -99,5 +99,5 @@ not a v7 ref is a 400, not a lookup.
 3. `internal/app/<verb>/run.go` — one struct with its dependencies as fields, one
    `Run(ctx, in) (out, error)`.
 4. `internal/adapters/sqlite` — implement the port; assert it.
-5. `cmd/http/handlers` — the handler; `cmd/http/routes.go` — the route with its scopes.
+5. `internal/httpapi/handlers` — the handler; `internal/httpapi/routes.go` — the route with its scopes.
 6. `test/uat/features/` — one scenario that proves the user-facing sentence.
