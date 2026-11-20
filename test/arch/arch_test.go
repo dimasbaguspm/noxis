@@ -39,6 +39,8 @@ var layers = []layer{
 		"noxis/internal/common", "noxis/internal/constants", "noxis/internal/client",
 		"noxis/cmd/noxis/http",
 	}},
+	// The generated mocks stand where an adapter does, so they may name the ports and nothing else.
+	{prefix: "noxis/internal/mocks", allowed: []string{"noxis/internal/domain", "noxis/internal/ports"}},
 	// The CLI talks HTTP through the typed client and knows nothing else. It may not import the
 	// server it calls, and it may not import the bootstrap that started it.
 	{prefix: "noxis/cmd/noxis/commands", allowed: []string{

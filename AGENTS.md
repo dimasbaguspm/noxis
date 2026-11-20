@@ -113,9 +113,12 @@ seam next to the struct: `var _ ports.Driver = (*DB)(nil)`.
   template it already is. The exception is a single separator with nothing else around it, and a SQL
   fragment that is entirely constant stays a constant.
 - **No new dependency for a few lines.** No abstraction or option nobody asked for.
-- **Test doubles:** handwritten fakes in the test package that uses them; generated
-  mocks only when an interface has more than three call sites (then
-  `go.uber.org/mock`, regenerated and committed).
+- **Test doubles:** `make mocks` generates a testify mock for every port into
+  `internal/mocks`, and CI fails when the committed files are stale. A collaborator a
+  test only has to answer (`Sealer`, `Driver`, `Journal`) is that generated mock. A store
+  a test drives through several dependent calls stays an in-memory fake in the package
+  that uses it, with a comment saying why: a mock there would write the implementation's
+  call order into the test.
 
 ## Notes that bite
 

@@ -3,9 +3,12 @@ package handlers
 import (
 	"context"
 	"noxis/internal/domain"
+	"noxis/internal/mocks"
 	"noxis/internal/ports"
 	"strings"
 	"time"
+
+	"github.com/stretchr/testify/mock"
 )
 
 // store is one double for every port the use cases hold. The handlers only ever see the four use
@@ -83,56 +86,6 @@ func (s *store) Entries(_ context.Context, subjectRef string, _ int) ([]domain.J
 		}
 	}
 	return found, nil
-}
-
-// ---- sealer ----
-
-type testSealer struct{}
-
-func (testSealer) Enabled() bool { return true }
-
-func (testSealer) Seal(_ string, plain []byte) (string, error) { return "sealed:" + string(plain), nil }
-
-func (testSealer) Open(_ string, sealed string) ([]byte, error) {
-	return []byte(strings.TrimPrefix(sealed, "sealed:")), nil
-}
-
-// ---- driver ----
-
-type testDriver struct{ s *store }
-
-func (d testDriver) Probe(_ context.Context, _ domain.Target, _ string) (domain.Capabilities, error) {
-	return d.s.driverCaps, d.s.driverErr
-}
-
-func (d testDriver) Query(_ context.Context, _ domain.Target, _, _ string, _ int) (domain.Rows, error) {
-	return d.s.driverRows, d.s.driverErr
-}
-
-func (d testDriver) Databases(_ context.Context, _ domain.Target, _ string) ([]string, error) {
-	return nil, d.s.driverErr
-}
-
-func (d testDriver) Tables(_ context.Context, _ domain.Target, _, _ string) ([]domain.Table, error) {
-	return nil, d.s.driverErr
-}
-
-func (d testDriver) Table(_ context.Context, _ domain.Target, _, _, _ string) (domain.TableDetail, error) {
-	return domain.TableDetail{}, d.s.driverErr
-}
-
-func (d testDriver) Rehearse(_ context.Context, _ domain.Target, _ string, _ domain.Change) (domain.Rehearsal, error) {
-	return d.s.rehearsal, d.s.rehearseErr
-}
-
-func (d testDriver) Plan(_ context.Context, _ domain.Target, _ string, _ domain.Change) (domain.Plan, error) {
-	return d.s.plan, nil
-}
-
-func (d testDriver) Apply(_ context.Context, _ domain.Target, _ string, _ domain.Change,
-	_ func(domain.Progress),
-) (domain.Receipt, error) {
-	return d.s.receipt, d.s.applyErr
 }
 
 // ---- proposals ----
@@ -227,4 +180,59 @@ func (s *store) seedProposal(ref, targetRef string, status domain.Status) domain
 	}
 	s.proposals[ref] = proposal
 	return proposal
+}
+
+// newSealer is the generated mock, wired to the fake's own rules: a password is "sealed" by prefix,
+// which is enough to prove nothing a handler returns carries it.
+func newSealer() *mocks.MockSealer {
+	sealer := &mocks.MockSealer{}
+	sealer.EXPECT().Enabled().Return(true)
+	sealer.EXPECT().Seal(mock.Anything, mock.Anything).
+		RunAndReturn(func(_ string, plain []byte) (string, error) {
+			return "sealed:" + string(plain), nil
+		})
+	sealer.EXPECT().Open(mock.Anything, mock.Anything).
+		RunAndReturn(func(_, sealed string) ([]byte, error) {
+			return []byte(strings.TrimPrefix(sealed, "sealed:")), nil
+		})
+	return sealer
+}
+
+// newDriver answers every engine call from the fake's fields, read at call time, so a test can still
+// set what the engine says after the handlers were built.
+func newDriver(s *store) *mocks.MockDriver {
+	driver := &mocks.MockDriver{}
+	driver.EXPECT().Probe(mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(context.Context, domain.Target, string) (domain.Capabilities, error) {
+			return s.driverCaps, s.driverErr
+		})
+	driver.EXPECT().Query(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(context.Context, domain.Target, string, string, int) (domain.Rows, error) {
+			return s.driverRows, s.driverErr
+		})
+	driver.EXPECT().Databases(mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(context.Context, domain.Target, string) ([]string, error) {
+			return nil, s.driverErr
+		})
+	driver.EXPECT().Tables(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(context.Context, domain.Target, string, string) ([]domain.Table, error) {
+			return nil, s.driverErr
+		})
+	driver.EXPECT().Table(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(context.Context, domain.Target, string, string, string) (domain.TableDetail, error) {
+			return domain.TableDetail{}, s.driverErr
+		})
+	driver.EXPECT().Rehearse(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(context.Context, domain.Target, string, domain.Change) (domain.Rehearsal, error) {
+			return s.rehearsal, s.rehearseErr
+		})
+	driver.EXPECT().Plan(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(context.Context, domain.Target, string, domain.Change) (domain.Plan, error) {
+			return s.plan, nil
+		})
+	driver.EXPECT().Apply(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(context.Context, domain.Target, string, domain.Change, func(domain.Progress)) (domain.Receipt, error) {
+			return s.receipt, s.applyErr
+		})
+	return driver
 }
