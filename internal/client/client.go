@@ -112,41 +112,18 @@ func (c *Client) Live(ctx context.Context) (Health, error) {
 	return out, err
 }
 
+// OpenAPI answers the document the server serves: the contract that deployment implements, not a copy
+// this binary happened to be built with.
+func (c *Client) OpenAPI(ctx context.Context) ([]byte, error) {
+	raw, _, err := c.send(ctx, http.MethodGet, pathOpenAPI, nil)
+	return raw, err
+}
+
 // do performs one call and returns the cursor of the page it answered, when it answered one.
-func (c *Client) do(ctx context.Context, method, path string, body, out any) (next string, err error) {
-	ctx, end := telemetry.Span(ctx, "client.Client.Do")
-	defer func() { end(err) }()
-
-	var reader io.Reader
-	if body != nil {
-		buf, err := json.Marshal(body)
-		if err != nil {
-			return "", fmt.Errorf("client: encode request: %w", err)
-		}
-		reader = bytes.NewReader(buf)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, c.base.String()+path, reader)
+func (c *Client) do(ctx context.Context, method, path string, body, out any) (string, error) {
+	raw, status, err := c.send(ctx, method, path, body)
 	if err != nil {
-		return "", fmt.Errorf("client: request: %w", err)
-	}
-	req.Header.Set("Accept", constants.MediaTypeJSON)
-	if body != nil {
-		req.Header.Set(constants.HeaderContentType, constants.MediaTypeJSON)
-	}
-	if c.token != "" {
-		req.Header.Set(constants.HeaderAuthorization, fmt.Sprintf("%s %s", constants.SchemeBearer, c.token))
-	}
-
-	res, err := c.http.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("client: %s %s: %w", method, path, err)
-	}
-	defer func() { _ = res.Body.Close() }()
-	c.lastStatus = res.StatusCode
-
-	raw, err := io.ReadAll(io.LimitReader(res.Body, 8<<20))
-	if err != nil {
-		return "", fmt.Errorf("client: read response: %w", err)
+		return "", err
 	}
 
 	var envelope struct {
@@ -161,13 +138,13 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) (ne
 	}
 	if err := json.Unmarshal(raw, &envelope); err != nil {
 		// Not our envelope: a proxy or a bare http.Error answered instead.
-		return "", &Error{Status: res.StatusCode, Message: snippet(raw)}
+		return "", &Error{Status: status, Message: snippet(raw)}
 	}
 	if envelope.Error != nil {
-		return "", &Error{Status: res.StatusCode, Code: envelope.Error.Code, Message: envelope.Error.Message}
+		return "", &Error{Status: status, Code: envelope.Error.Code, Message: envelope.Error.Message}
 	}
-	if res.StatusCode >= http.StatusMultipleChoices {
-		return "", &Error{Status: res.StatusCode, Message: snippet(raw)}
+	if status >= http.StatusMultipleChoices {
+		return "", &Error{Status: status, Message: snippet(raw)}
 	}
 	if out != nil && len(envelope.Data) > 0 {
 		if err := json.Unmarshal(envelope.Data, out); err != nil {
@@ -178,6 +155,47 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) (ne
 		return envelope.Meta.NextCursor, nil
 	}
 	return "", nil
+}
+
+// send is the one place a request is built: the bearer, the content type, the body, and a bounded
+// read. It answers the body and the status, because a caller reading a document rather than an
+// envelope still needs the status to tell a refusal from an answer.
+func (c *Client) send(ctx context.Context, method, path string, body any) (raw []byte, status int, err error) {
+	ctx, end := telemetry.Span(ctx, "client.Client.Do")
+	defer func() { end(err) }()
+
+	var reader io.Reader
+	if body != nil {
+		buf, err := json.Marshal(body)
+		if err != nil {
+			return nil, 0, fmt.Errorf("client: encode request: %w", err)
+		}
+		reader = bytes.NewReader(buf)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, c.base.String()+path, reader)
+	if err != nil {
+		return nil, 0, fmt.Errorf("client: request: %w", err)
+	}
+	req.Header.Set("Accept", constants.MediaTypeJSON)
+	if body != nil {
+		req.Header.Set(constants.HeaderContentType, constants.MediaTypeJSON)
+	}
+	if c.token != "" {
+		req.Header.Set(constants.HeaderAuthorization, fmt.Sprintf("%s %s", constants.SchemeBearer, c.token))
+	}
+
+	res, err := c.http.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("client: %s %s: %w", method, path, err)
+	}
+	defer func() { _ = res.Body.Close() }()
+	c.lastStatus = res.StatusCode
+
+	raw, err = io.ReadAll(io.LimitReader(res.Body, 8<<20))
+	if err != nil {
+		return nil, res.StatusCode, fmt.Errorf("client: read response: %w", err)
+	}
+	return raw, res.StatusCode, nil
 }
 
 func snippet(raw []byte) string {
