@@ -41,9 +41,9 @@ agent ──read──────────────▶ rows
 
 ```bash
 cp .env.example .env            # set TOKENS, SECRET_KEY
-make run                        # noxisd on :8080
-curl -s localhost:8080/healthz
-curl -s -H "Authorization: Bearer <secret>" localhost:8080/v1/whoami
+make run                        # noxisd on :9000
+curl -s localhost:9000/healthz
+curl -s -H "Authorization: Bearer <secret>" localhost:9000/v1/whoami
 ```
 
 ```bash

@@ -29,7 +29,7 @@ func newMux(d deps) http.Handler {
 	}
 	return middlewares.Chain(mux,
 		middlewares.Recover(d.log),
-		middlewares.CORS(d.cfg.CORSOrigins),
+		middlewares.CORS(constants.ConsoleOrigins),
 		middlewares.Access(d.log),
 	)
 }
