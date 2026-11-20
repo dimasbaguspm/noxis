@@ -1,0 +1,94 @@
+package main
+
+import (
+	"bytes"
+	"strings"
+	"testing"
+	"time"
+
+	"noxis/internal/common/dotconfig"
+)
+
+// A bare `noxis` is the first thing a person types, so it has to say where it points and what to do
+// next — without a token, without a network call, and without failing because nobody signed in.
+func TestBareNoxisGreets(t *testing.T) {
+	isolated(t)
+
+	root := newRoot()
+	var out, errOut bytes.Buffer
+	root.SetOut(&out)
+	root.SetErr(&errOut)
+	root.SetArgs(nil)
+	if err := root.Execute(); err != nil {
+		t.Fatalf("bare noxis: %v (stderr %s)", err, errOut.String())
+	}
+
+	greeting := out.String()
+	for _, want := range []string{"http serve", "web serve", "auth signin", "noxis help", "--json", "Not signed in"} {
+		if !strings.Contains(greeting, want) {
+			t.Fatalf("welcome does not mention %q:\n%s", want, greeting)
+		}
+	}
+}
+
+// A signed-in profile is named in the greeting, and the token is not.
+func TestWelcomeNamesTheSession(t *testing.T) {
+	isolated(t)
+	store(t, dotconfig.Profile{
+		APIURL: "http://staging", Token: "hunter2", Caller: "reviewer",
+		Scopes: []string{"read", "approve"}, CheckedAt: time.Now().UTC(),
+	})
+
+	root := newRoot()
+	var out bytes.Buffer
+	root.SetOut(&out)
+	root.SetArgs(nil)
+	if err := root.Execute(); err != nil {
+		t.Fatalf("bare noxis: %v", err)
+	}
+	if !strings.Contains(out.String(), "Signed in to http://staging as reviewer") {
+		t.Fatalf("welcome = %s", out.String())
+	}
+	if strings.Contains(out.String(), "hunter2") {
+		t.Fatal("the welcome printed the token")
+	}
+}
+
+// `?` and `help` are the same map, and it is grouped by what a person is trying to do.
+func TestHelpIsGrouped(t *testing.T) {
+	isolated(t)
+
+	for _, invocation := range [][]string{{"help"}, {"?"}} {
+		root := newRoot()
+		var out bytes.Buffer
+		root.SetOut(&out)
+		root.SetErr(&out)
+		root.SetArgs(invocation)
+		if err := root.Execute(); err != nil {
+			t.Fatalf("%v: %v", invocation, err)
+		}
+		text := out.String()
+		for _, want := range []string{"SESSION", "THIS BINARY", "TARGETS", "READING", "PROPOSALS", "apply"} {
+			if !strings.Contains(text, want) {
+				t.Fatalf("%v does not print %q:\n%s", invocation, want, text)
+			}
+		}
+	}
+}
+
+// `noxis help <command>` is the command's own usage, which is what a person typing it expects.
+func TestHelpForOneCommand(t *testing.T) {
+	isolated(t)
+
+	root := newRoot()
+	var out bytes.Buffer
+	root.SetOut(&out)
+	root.SetErr(&out)
+	root.SetArgs([]string{"help", "target"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("help target: %v", err)
+	}
+	if !strings.Contains(out.String(), "noxis target") {
+		t.Fatalf("help target = %s", out.String())
+	}
+}

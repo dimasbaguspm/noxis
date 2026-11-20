@@ -56,9 +56,15 @@ func newRoot() *cobra.Command {
 	opts := &options{}
 	root := &cobra.Command{
 		Use:           "noxis",
-		Short:         "Client for the noXis API",
+		Short:         "Reviewed access to MySQL and MariaDB",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		// A bare `noxis` is the first thing a person types: it answers with the map, not the usage,
+		// and it cannot require the session it is about to tell you how to create.
+		Annotations: map[string]string{annoNoToken: "true"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return welcome(cmd.OutOrStdout())
+		},
 	}
 	root.PersistentFlags().StringVar(&opts.apiURL, "api-url", "",
 		"the noxisd to call (default $API_URL, then the signed-in profile)")
@@ -75,7 +81,7 @@ func newRoot() *cobra.Command {
 		return opts.prepare(cmd)
 	}
 
-	root.AddCommand(newHTTP(), newWeb(),
+	root.AddCommand(newHelp(root), newHTTP(), newWeb(),
 		newWhoami(opts), newVersion(), newAuth(opts), newTarget(opts),
 		newQuery(opts), newDatabases(opts), newTables(opts), newTable(opts),
 		newPropose(opts), newProposals(opts), newProposalShow(opts), newRehearse(opts),
