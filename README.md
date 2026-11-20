@@ -62,6 +62,10 @@ re-checks `whoami` on boot, cached for a minute; a token the server no longer ac
 Supported engines: **MySQL 8** and **MariaDB 11**, both through one module registered
 under two driver names.
 
+The contract is served by the API itself: `curl localhost:9000/openapi.json` (or `.yaml`) describes
+every route, its parameters, its bodies and the scopes it needs. A test walks the route table
+against that document, so a route nobody documented fails CI.
+
 In a container: one binary, distroless, non-root, read-only root filesystem.
 
 ```bash

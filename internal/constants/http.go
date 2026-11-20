@@ -7,14 +7,17 @@ const (
 	HeaderContentType   = "Content-Type"
 
 	MediaTypeJSON = "application/json; charset=utf-8"
+	MediaTypeYAML = "application/yaml"
 
 	SchemeBearer = "Bearer"
 
-	PathHealthz   = "/healthz"
-	PathPrefix    = "/v1"
-	PathWhoami    = "/v1/whoami"
-	PathTargets   = "/v1/targets"
-	PathProposals = "/v1/proposals"
+	PathHealthz     = "/healthz"
+	PathOpenAPIJSON = "/openapi.json"
+	PathOpenAPIYAML = "/openapi.yaml"
+	PathPrefix      = "/v1"
+	PathWhoami      = "/v1/whoami"
+	PathTargets     = "/v1/targets"
+	PathProposals   = "/v1/proposals"
 )
 
 // The server's deployment contract. These are constants on purpose: a state file that can be moved
