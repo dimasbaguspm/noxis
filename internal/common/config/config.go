@@ -30,6 +30,8 @@ type Config struct {
 	LogFormat         string
 	QueryTimeout      time.Duration
 	ProbeTimeout      time.Duration
+	OTELEndpoint      string
+	OTELServiceName   string
 	SecretKey         []byte
 	SecretKeyPrevious []byte
 	Tokens            []Token
@@ -53,6 +55,8 @@ func LoadFrom(get func(string) string) (Config, error) {
 	if cfg.ProbeTimeout, err = duration(or(get("PROBE_TIMEOUT"), "5s"), "PROBE_TIMEOUT"); err != nil {
 		return Config{}, err
 	}
+	cfg.OTELEndpoint = or(get("OTEL_EXPORTER_OTLP_ENDPOINT"), "")
+	cfg.OTELServiceName = or(get("OTEL_SERVICE_NAME"), "noxis")
 	if raw := strings.TrimSpace(get("SECRET_KEY")); raw != "" {
 		if cfg.SecretKey, err = secret.ParseKey(raw); err != nil {
 			return Config{}, fmt.Errorf("config: SECRET_KEY: %w", err)

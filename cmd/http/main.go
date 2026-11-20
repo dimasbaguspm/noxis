@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"noxis/internal/common/config"
-	"noxis/internal/common/logging"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 )
 
@@ -36,7 +36,17 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	log := logging.New(cfg.LogLevel, cfg.LogFormat)
+	log, stopTelemetry, err := telemetry.New(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	// Telemetry flushes last: a span that is still batched when the process exits is a span the
+	// collector never sees.
+	defer func() {
+		flush, cancel := context.WithTimeout(context.WithoutCancel(ctx), telemetry.FlushTimeout)
+		defer cancel()
+		_ = stopTelemetry(flush)
+	}()
 
 	handler, closer, err := build(ctx, cfg, *statePath, log)
 	if err != nil {
@@ -44,7 +54,6 @@ func run(ctx context.Context) error {
 	}
 	// The state file closes after the listener has stopped taking requests.
 	defer func() { _ = closer.Close() }()
-
 	server := &http.Server{
 		Addr:              *addr,
 		Handler:           handler,

@@ -26,7 +26,8 @@ func newMux(d deps) http.Handler {
 		if !rt.Public {
 			handler = d.auth.Require(rt.Scopes, handler)
 		}
-		mux.HandleFunc(fmt.Sprintf("%s %s", rt.Method, rt.Path), handler)
+		route := fmt.Sprintf("%s %s", rt.Method, rt.Path)
+		mux.Handle(route, middlewares.Span(route)(handler))
 	}
 	return middlewares.Chain(mux,
 		middlewares.Recover(d.log),

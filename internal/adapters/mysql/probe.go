@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 	"noxis/internal/ports"
 )
@@ -36,7 +37,10 @@ const probeQuery = "SELECT @@version, @@version_comment, @@max_allowed_packet"
 
 // Probe connects, asks the server who it is, and disconnects. The measured flavour wins over
 // the declared driver: `domain.CapabilitiesFor` says so in its notes when the two disagree.
-func (d *DB) Probe(ctx context.Context, target domain.Target, password string) (domain.Capabilities, error) {
+func (d *DB) Probe(ctx context.Context, target domain.Target, password string) (caps domain.Capabilities, err error) {
+	ctx, end := telemetry.Span(ctx, "mysql.DB.Probe")
+	defer func() { end(err) }()
+
 	pool, err := sql.Open(driverName, dsnOf(target, password))
 	if err != nil {
 		return domain.Capabilities{}, connectError(err, password)
@@ -57,7 +61,7 @@ func (d *DB) Probe(ctx context.Context, target domain.Target, password string) (
 	}
 
 	server := domain.ParseServerVersion(version, comment)
-	caps := domain.CapabilitiesFor(target.Driver, server)
+	caps = domain.CapabilitiesFor(target.Driver, server)
 	if maxPacket <= 0 {
 		caps.Notes = append(caps.Notes, "the server did not report max_allowed_packet")
 	}

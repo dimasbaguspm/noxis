@@ -11,6 +11,7 @@ import (
 
 	"noxis/internal/app/password"
 	"noxis/internal/common/ref"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"noxis/internal/ports"
@@ -48,6 +49,11 @@ func (d Deps) rehearse(ctx context.Context, proposal domain.Proposal) (domain.Pr
 		Rollback: proposal.Rollback,
 		Tier:     proposal.Tier,
 	})
+
+	// One measurement per attempt, whatever the verdict: a rehearsal that proved nothing is still
+	// work the engine did.
+	telemetry.Rehearsal(ctx, string(rehearsal.Tier), string(rehearsal.Status), target.Driver,
+		float64(rehearsal.DurationMS)/1000)
 	rehearsal.Ref = ref.New()
 	rehearsal.ProposalRef = proposal.Ref
 	if rehearsal.CreatedAt.IsZero() {
