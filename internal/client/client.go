@@ -39,6 +39,28 @@ type Page[T any] struct {
 	NextCursor string
 }
 
+// pageMeta is the envelope's meta, and it is absent rather than empty on the last page: the API says
+// "no cursor" by not saying it at all.
+type pageMeta struct {
+	NextCursor string `json:"next_cursor"`
+}
+
+type pageEnvelope[T any] struct {
+	Data []T       `json:"data"`
+	Meta *pageMeta `json:"meta,omitempty"`
+}
+
+// MarshalJSON answers the shape the API sent, so `--json` on any list is the same document an agent
+// would have read from the wire. Without this, the CLI printed Go field names (`Items`, `NextCursor`)
+// and every reader needed a second parser for the same data.
+func (p Page[T]) MarshalJSON() ([]byte, error) {
+	out := pageEnvelope[T]{Data: p.Items}
+	if p.NextCursor != "" {
+		out.Meta = &pageMeta{NextCursor: p.NextCursor}
+	}
+	return json.Marshal(out)
+}
+
 // Client talks to one noxisd.
 type Client struct {
 	base  *url.URL

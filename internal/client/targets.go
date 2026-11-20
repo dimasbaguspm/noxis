@@ -147,6 +147,27 @@ func (c *Client) TargetCapabilities(ctx context.Context, ref string) (Capabiliti
 	return out, err
 }
 
+// TestTargetInput is a connection nobody stored: a registration without the name, because a name is
+// the row's business and this call writes no row.
+type TestTargetInput struct {
+	Driver   string            `json:"driver"`
+	Host     string            `json:"host"`
+	Port     int               `json:"port,omitempty"`
+	Database string            `json:"database"`
+	Username string            `json:"username"`
+	Password string            `json:"password,omitempty"`
+	TLSMode  string            `json:"tls_mode,omitempty"`
+	Options  map[string]string `json:"options,omitempty"`
+}
+
+// TestTarget dials the credentials as typed and answers what the engine said. Nothing is written: the
+// console calls this before it registers an instance, and the CLI calls it for the same reason.
+func (c *Client) TestTarget(ctx context.Context, in TestTargetInput) (Capabilities, error) {
+	var out Capabilities
+	_, err := c.do(ctx, http.MethodPost, pathTargets+"/test", in, &out)
+	return out, err
+}
+
 // ProbeResult is what a probe measured and the target as it now stands.
 type ProbeResult struct {
 	Target       Target       `json:"target"`

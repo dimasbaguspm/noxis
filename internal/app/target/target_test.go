@@ -94,9 +94,12 @@ func (f *fakeSealer) Open(_ string, sealed string) ([]byte, error) {
 type fakeDriver struct {
 	caps     domain.Capabilities
 	probeErr error
+	// dialled is the draft the driver was asked to reach: the test use case's only observable.
+	dialled domain.Target
 }
 
-func (f *fakeDriver) Probe(_ context.Context, _ domain.Target, _ string) (domain.Capabilities, error) {
+func (f *fakeDriver) Probe(_ context.Context, target domain.Target, _ string) (domain.Capabilities, error) {
+	f.dialled = target
 	return f.caps, f.probeErr
 }
 
@@ -380,5 +383,60 @@ func TestProbeRefusesAnArchivedTarget(t *testing.T) {
 
 	if _, err := NewProbe(f.deps).Run(context.Background(), ProbeInput{Ref: f.target.Ref}); !errors.Is(err, domain.ErrConflict) {
 		t.Fatalf("Probe on an archived target: %v, want ErrConflict", err)
+	}
+}
+
+// ---- test a configuration ----
+
+// A configuration nobody has stored is dialled with what was typed, and nothing is written: the
+// value of the test is that a typo dies before it becomes a row.
+func TestTestDialsWithoutStoring(t *testing.T) {
+	f := newFixture()
+	f.driver.caps = domain.Capabilities{Version: "8.4.2"}
+
+	caps, err := NewTest(f.deps).Run(context.Background(), TestInput{
+		Driver: "mysql", Host: "db.internal", Port: 3306, Database: "app",
+		Username: "noxis", Password: "typed", TLSMode: "preferred",
+	})
+	if err != nil {
+		t.Fatalf("Test: %v", err)
+	}
+	if caps.Version != "8.4.2" {
+		t.Fatalf("version = %q, want 8.4.2", caps.Version)
+	}
+	if len(f.targets.stored) != 0 {
+		t.Fatalf("a test stored %d targets, want none", len(f.targets.stored))
+	}
+	if len(f.journal.entries) != 0 {
+		t.Fatalf("a test wrote %d journal lines, want none", len(f.journal.entries))
+	}
+	if f.driver.dialled.Port != 3306 || f.driver.dialled.TLSMode != "preferred" {
+		t.Fatalf("dialled %+v, want the typed port and TLS mode", f.driver.dialled)
+	}
+}
+
+// A field that cannot work is refused before a socket is opened.
+func TestTestRefusesAnEmptyHost(t *testing.T) {
+	f := newFixture()
+
+	_, err := NewTest(f.deps).Run(context.Background(), TestInput{
+		Driver: "mysql", Database: "app", Username: "noxis",
+	})
+	if !errors.Is(err, domain.ErrInvalid) {
+		t.Fatalf("Test with no host: %v, want ErrInvalid", err)
+	}
+}
+
+// A config with no port is dialled on the engine's default, so a form may leave it empty.
+func TestTestDefaultsThePort(t *testing.T) {
+	f := newFixture()
+
+	if _, err := NewTest(f.deps).Run(context.Background(), TestInput{
+		Driver: "mysql", Host: "db.internal", Database: "app", Username: "noxis",
+	}); err != nil {
+		t.Fatalf("Test: %v", err)
+	}
+	if f.driver.dialled.Port != 3306 {
+		t.Fatalf("port = %d, want 3306", f.driver.dialled.Port)
 	}
 }

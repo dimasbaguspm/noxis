@@ -14,19 +14,22 @@ import (
 
 func NewTarget(s *Session) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "target",
-		Short: "Manage the databases this noxis governs",
+		Use:     "target",
+		Aliases: []string{"instance", "instances", "targets"},
+		Short:   "Manage the instances this noxis governs",
 	}
-	cmd.AddCommand(newTargetAdd(s), newTargetList(s), newTargetShow(s), newTargetProbe(s), newTargetArchive(s))
+	cmd.AddCommand(newTargetAdd(s), newTargetList(s), newTargetShow(s), newTargetProbe(s),
+		newTargetTest(s), newTargetArchive(s))
 	return cmd
 }
 
 func newTargetAdd(s *Session) *cobra.Command {
 	in := client.CreateTargetInput{}
 	cmd := &cobra.Command{
-		Use:   "add",
-		Short: "Register a MySQL or MariaDB target",
-		Args:  cobra.NoArgs,
+		Use:     "add",
+		Aliases: []string{"create", "new"},
+		Short:   "Register a MySQL or MariaDB instance",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			api, err := s.Client()
 			if err != nil {
@@ -61,9 +64,10 @@ func newTargetAdd(s *Session) *cobra.Command {
 func newTargetList(s *Session) *cobra.Command {
 	in := client.ListTargetsInput{}
 	cmd := &cobra.Command{
-		Use:   "ls",
-		Short: "List targets, newest first",
-		Args:  cobra.NoArgs,
+		Use:     "ls",
+		Aliases: []string{"list"},
+		Short:   "List instances, newest first",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			api, err := s.Client()
 			if err != nil {
@@ -103,9 +107,10 @@ func newTargetList(s *Session) *cobra.Command {
 
 func newTargetShow(s *Session) *cobra.Command {
 	return &cobra.Command{
-		Use:   "show <ref>",
-		Short: "Show one target",
-		Args:  cobra.ExactArgs(1),
+		Use:     "show <ref>",
+		Aliases: []string{"get"},
+		Short:   "Show one instance",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			api, err := s.Client()
 			if err != nil {
@@ -202,17 +207,7 @@ func newTargetProbe(s *Session) *cobra.Command {
 			if s.JSON {
 				return PrintJSON(cmd, result)
 			}
-			rows := [][]string{
-				{"engine", result.Capabilities.Flavor},
-				{"version", result.Capabilities.Version},
-				{"explain json", yesNo(result.Capabilities.ExplainJSON)},
-				{"shadow ddl rehearsal", yesNo(result.Capabilities.ShadowDDLRehearsal)},
-				{"row image rehearsal", yesNo(result.Capabilities.RowImageRehearsal)},
-			}
-			for _, note := range result.Capabilities.Notes {
-				rows = append(rows, []string{"note", note})
-			}
-			return writeTable(cmd.OutOrStdout(), nil, rows)
+			return printCapabilities(cmd, result.Capabilities)
 		},
 	}
 }
@@ -239,4 +234,56 @@ func yesNo(value bool) string {
 		return "yes"
 	}
 	return "no"
+}
+
+// printCapabilities is one answer for a probe and for a test: what the engine said it is, and what
+// this build may therefore do with it.
+func printCapabilities(cmd *cobra.Command, caps client.Capabilities) error {
+	rows := make([][]string, 0, 5+len(caps.Notes))
+	rows = append(rows,
+		[]string{"engine", caps.Flavor},
+		[]string{"version", caps.Version},
+		[]string{"explain json", yesNo(caps.ExplainJSON)},
+		[]string{"shadow ddl rehearsal", yesNo(caps.ShadowDDLRehearsal)},
+		[]string{"row image rehearsal", yesNo(caps.RowImageRehearsal)},
+	)
+	for _, note := range caps.Notes {
+		rows = append(rows, []string{"note", note})
+	}
+	return writeTable(cmd.OutOrStdout(), nil, rows)
+}
+
+// newTargetTest dials a configuration nobody has stored — the console's "Test connection", from the
+// CLI. It writes nothing, so a typo costs a connection rather than a row somebody has to archive.
+func newTargetTest(s *Session) *cobra.Command {
+	in := client.TestTargetInput{}
+	cmd := &cobra.Command{
+		Use:     "test",
+		Aliases: []string{"check"},
+		Short:   "Dial the credentials as typed, and store nothing",
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			api, err := s.Client()
+			if err != nil {
+				return err
+			}
+			caps, err := api.TestTarget(cmd.Context(), in)
+			if err != nil {
+				return err
+			}
+			if s.JSON {
+				return PrintJSON(cmd, caps)
+			}
+			return printCapabilities(cmd, caps)
+		},
+	}
+	flags := cmd.Flags()
+	flags.StringVar(&in.Driver, "driver", constants.DriverMySQL, "mysql or mariadb")
+	flags.StringVar(&in.Host, "host", "", "host to connect to")
+	flags.IntVar(&in.Port, "port", 0, "port, default 3306")
+	flags.StringVar(&in.Database, "database", "", "database to connect to")
+	flags.StringVar(&in.Username, "username", "", "user to connect as")
+	flags.StringVar(&in.Password, "password", "", "password, which lands in the shell history: prefer the API with a secret store")
+	flags.StringVar(&in.TLSMode, "tls-mode", constants.TLSPreferred, "preferred, skip-verify or verify")
+	return cmd
 }

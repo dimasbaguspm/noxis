@@ -16,8 +16,9 @@ help: ## list the targets
 build: ## compile the one binary: bin/noxis (http serve, web serve, cli)
 	$(GO) build -trimpath -ldflags "-s -w" -o $(BIN)/noxis ./cmd/noxis
 
-web: ## build the console into internal/web/dist (needs npm ci once, in web/)
-	npm --prefix web run build
+web: ## build the console into internal/web/dist (pnpm, pinned; `pnpm -C web install` once)
+	pnpm -C web install --frozen-lockfile
+	pnpm -C web run build
 
 run: ## run the API on the constant listen address
 	$(GO) run ./cmd/noxis http serve

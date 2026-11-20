@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-// One schema per form, so the rules live in one place and the field renders the message the schema
-// produced. The enums mirror what the server accepts: a value the API would refuse is not offered.
+// One schema per form. The rules live here and the field renders the message the schema produced; the
+// enums are the values the API accepts, so a choice the server would refuse is not on screen.
 
 export const tokenSchema = z.object({
   token: z.string().trim().min(1, 'a token is required'),
@@ -31,7 +31,28 @@ export const targetDefaults: TargetValues = {
   tls_mode: 'preferred',
 };
 
-// The queues filter the page the API returned; there is no `q` for proposals, and filtering what is
-// on screen is honest where pretending to search the whole queue would not be.
-export const statuses = ['verified', 'approved', 'applied', 'failed', 'rejected'] as const;
-export type Status = (typeof statuses)[number];
+export const driverOptions = [
+  { value: 'mysql', label: 'MySQL' },
+  { value: 'mariadb', label: 'MariaDB' },
+];
+
+export const tlsOptions = [
+  { value: 'preferred', label: 'Preferred' },
+  { value: 'verify', label: 'Verify' },
+  { value: 'skip-verify', label: 'Skip verify' },
+];
+
+export const proposalSchema = z.object({
+  title: z.string().trim().min(1, 'a title is required').max(120, '120 characters at most'),
+  query: z.string().trim().min(1, 'the statement is required'),
+  rollback: z.string().optional(),
+});
+export type ProposalValues = z.infer<typeof proposalSchema>;
+
+export const proposalDefaults: ProposalValues = {
+  title: '',
+  query: '',
+  rollback: '',
+};
+
+export const statuses = ['verified', 'approved', 'applied', 'failed'] as const;

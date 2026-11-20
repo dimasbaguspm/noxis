@@ -12,9 +12,10 @@ import (
 func NewPropose(s *Session) *cobra.Command {
 	var title, sqlText, from, rollback, rollbackFile, note, tier string
 	cmd := &cobra.Command{
-		Use:   "propose <target-ref>",
-		Short: "Propose a change; it is rehearsed before you see it",
-		Args:  cobra.ExactArgs(1),
+		Use:     "propose <instance-ref>",
+		Aliases: []string{"change"},
+		Short:   "Propose a change; it is rehearsed before you see it",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			statement, err := content(sqlText, from)
 			if err != nil {
@@ -60,9 +61,10 @@ func NewProposals(s *Session) *cobra.Command {
 	var cursor, status, kind, target string
 	var onlyMine bool
 	cmd := &cobra.Command{
-		Use:   "proposals",
-		Short: "List the proposal queue, newest first",
-		Args:  cobra.NoArgs,
+		Use:     "proposals",
+		Aliases: []string{"changes"},
+		Short:   "List the change queue, newest first",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			api, err := s.Client()
 			if err != nil {
@@ -104,9 +106,10 @@ func NewProposals(s *Session) *cobra.Command {
 
 func NewProposalShow(s *Session) *cobra.Command {
 	return &cobra.Command{
-		Use:   "show-proposal <ref>",
-		Short: "Show one proposal and the rehearsal that judged it",
-		Args:  cobra.ExactArgs(1),
+		Use:     "show-proposal <ref>",
+		Aliases: []string{"proposal", "show-change"},
+		Short:   "Show one proposal and the rehearsal that judged it",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			api, err := s.Client()
 			if err != nil {

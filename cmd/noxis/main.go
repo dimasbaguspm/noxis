@@ -41,7 +41,7 @@ func newRoot() *cobra.Command {
 	session := &commands.Session{}
 	root := &cobra.Command{
 		Use:           "noxis",
-		Short:         "Reviewed access to MySQL and MariaDB",
+		Short:         "Data governance for the databases you run",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		// A bare `noxis` is the first thing a person types: it answers with the map, not the usage,

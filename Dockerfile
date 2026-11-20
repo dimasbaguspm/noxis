@@ -4,6 +4,18 @@
 # executable; the runtime stage is distroless: no shell, no package manager, no libc to exploit,
 # and a nonroot user that owns nothing but its own state file.
 
+# The console: built here, never committed. `internal/web/dist` holds only a placeholder in the
+# repository, so the image is the one place a production build exists.
+FROM node:22-alpine AS console
+RUN corepack enable
+WORKDIR /web
+# The lockfile names the graph that was tested, and .npmrc names how it is installed.
+COPY web/package.json web/pnpm-lock.yaml web/.npmrc ./
+RUN pnpm install --frozen-lockfile
+COPY web/ ./
+# vite writes to ../internal/web/dist, which is /internal/web/dist from here.
+RUN pnpm run build
+
 FROM golang:1.26 AS build
 WORKDIR /src
 
@@ -12,6 +24,10 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
+# The console is embedded by the Go build, so it has to be in place before it runs.
+COPY --from=console /internal/web/dist ./internal/web/dist
+# The repository's placeholder carries the marker that says "not built"; the real build must not.
+RUN rm -f ./internal/web/dist/NOT_BUILT
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags "-s -w" -o /out/noxis ./cmd/noxis
 # /data belongs to the runtime user, so a named volume inherits an owner that can write to it.
 RUN mkdir -p /out/data && chown 65532:65532 /out/data

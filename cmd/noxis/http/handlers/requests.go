@@ -18,6 +18,19 @@ type CreateTargetRequest struct {
 	Options  map[string]string `json:"options,omitempty"`
 }
 
+// TestTargetRequest is a registration that has not been made: the same connection fields, with no
+// name and no promise to store anything.
+type TestTargetRequest struct {
+	Driver   string            `json:"driver" example:"mysql" enums:"mysql,mariadb"`
+	Host     string            `json:"host" example:"db.internal"`
+	Port     int               `json:"port" example:"3306"`
+	Database string            `json:"database" example:"app"`
+	Username string            `json:"username" example:"noxis"`
+	Password string            `json:"password" example:"typed-once"`
+	TLSMode  string            `json:"tls_mode" example:"preferred"`
+	Options  map[string]string `json:"options,omitempty"`
+}
+
 // UpdateTargetRequest is a patch: a field that is absent is a field nobody asked to change.
 type UpdateTargetRequest struct {
 	Name     *string            `json:"name,omitempty"`

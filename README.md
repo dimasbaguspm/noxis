@@ -1,6 +1,6 @@
 # noXis
 
-**Reviewed access to the MySQL and MariaDB you already run.**
+**Data governance for the databases you already run.**
 
 An agent (or a person) reads your databases through one API. When something needs to
 change, it writes the statement and the statement that undoes it, and gets back a

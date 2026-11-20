@@ -50,10 +50,20 @@ func NewAuthenticator(tokens []config.Token, log *slog.Logger) (*Authenticator, 
 // scope the route names; otherwise the handler receives the caller on its context.
 func (a *Authenticator) Require(scopes []string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		caller, ok := a.resolve(r.Header.Get(constants.HeaderAuthorization))
+		header := r.Header.Get(constants.HeaderAuthorization)
+		caller, ok := a.resolve(header)
 		if !ok {
-			a.log.Warn("refused", "reason", "no token", "path", r.URL.Path)
-			respond.Refuse(w, http.StatusUnauthorized, constants.CodeUnauthorized, "a bearer token is required")
+			// "Send a token" and "that token is not mine" are different mistakes and send the reader to
+			// different places: the first to the sign-in card, the second to whoever issued the token. A
+			// header that is not a bearer is the first mistake, not a rejected one.
+			if !isBearer(header) {
+				a.log.Warn("refused", "reason", "no token", "path", r.URL.Path)
+				respond.Refuse(w, http.StatusUnauthorized, constants.CodeUnauthorized, "a bearer token is required")
+				return
+			}
+			a.log.Warn("refused", "reason", "unknown token", "path", r.URL.Path)
+			respond.Refuse(w, http.StatusUnauthorized, constants.CodeUnauthorized,
+				"that token is not one this server accepts")
 			return
 		}
 		if !caller.HasAll(scopes) {
@@ -88,6 +98,14 @@ func (a *Authenticator) resolve(header string) (domain.Caller, bool) {
 		}
 	}
 	return match, ok
+}
+
+// isBearer reports whether the header even claims to carry a bearer token. "Send a token" and "I do
+// not know that token" are two different 401s, and the difference is this question, not an empty
+// string comparison: `Basic abc` and `Bearer ` both belong to the first.
+func isBearer(header string) bool {
+	scheme, secret, found := strings.Cut(header, " ")
+	return found && strings.EqualFold(scheme, constants.SchemeBearer) && strings.TrimSpace(secret) != ""
 }
 
 // WithCaller puts the authenticated caller on the context.

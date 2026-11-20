@@ -1,187 +1,266 @@
-:root {
-  color-scheme: light;
-  --noxis-orange: #f97316;
-  --noxis-orange-soft: #fff7ed;
-  --noxis-ink: #1f2937;
-  --noxis-muted: #6b7280;
-  --noxis-line: #e5e7eb;
-}
+@import 'tailwindcss';
 
-* {
-  box-sizing: border-box;
+/* The palette is one orange on white, defined once. Ant Design's tokens (src/theme.ts) are built from
+   the same values, so a component cannot pick a second orange: the CSS variables feed Tailwind, the
+   tokens feed Ant Design, and both come from this block. */
+@theme {
+  --color-brand: #f97316;
+  --color-brand-soft: #fff7ed;
+  --color-ink: #1f2937;
+  --color-muted: #6b7280;
+  --color-line: #e5e7eb;
+  --font-sans:
+    Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 html,
 body,
 #root {
   height: 100%;
-  margin: 0;
 }
 
 body {
+  margin: 0;
   background: #fafafa;
-  color: var(--noxis-ink);
-  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    sans-serif;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-/* The content region is a grid child: without this a wide table pushes the page wider than the
-   viewport and the whole shell scrolls sideways. */
-.noxis-main {
-  min-width: 0;
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 16px;
-}
-
-@media (min-width: 768px) {
-  .noxis-main {
-    padding: 24px;
-  }
-}
-
-.noxis-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  font-size: 16px;
-  white-space: nowrap;
-}
-
-.noxis-brand-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  background: var(--noxis-orange);
-}
-
-.noxis-topbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 56px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--noxis-line);
-  background: #fff;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.noxis-topbar-spacer {
-  flex: 1;
-  min-width: 0;
-}
-
-.noxis-host {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-  color: var(--noxis-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 40vw;
-}
-
-.noxis-card-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: 1fr;
-}
-
-@media (min-width: 640px) {
-  .noxis-card-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1200px) {
-  .noxis-card-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.noxis-target-card {
-  cursor: pointer;
-  border: 1px solid var(--noxis-line);
-  transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
-}
-
-.noxis-target-card:hover,
-.noxis-target-card:focus-visible {
-  border-color: var(--noxis-orange);
-  box-shadow: 0 6px 20px rgb(249 115 22 / 12%);
-  transform: translateY(-1px);
-}
-
-.noxis-target-card:focus-visible {
-  outline: 2px solid var(--noxis-orange);
+/* A keyboard user must see where they are, on everything, without the component opting in. */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
 
-/* Ant Design animates its own overlays; these two are the console's, and they are short enough to
-   read as a response rather than as an effect. */
-.noxis-fade-in {
-  animation: noxis-fade 160ms ease-out;
-}
-
-@keyframes noxis-fade {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
 }
 
-.noxis-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+/* The Alert, made to be read. Ant Design ships a dense banner; this console has one message per
+   screen, so it gets room, a bigger line, and a border in the tone's own colour rather than a
+   background wash that fights the white. */
+.noxis-alert.ant-alert {
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--color-line);
+  background: #ffffff;
+}
+
+.noxis-alert .ant-alert-icon {
+  margin-top: 2px;
+  font-size: 17px;
+}
+
+.noxis-alert .ant-alert-message {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.noxis-alert .ant-alert-description {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.noxis-alert-error.ant-alert {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.noxis-alert-warning.ant-alert {
+  border-color: #fed7aa;
+  background: var(--color-brand-soft);
+}
+
+.noxis-alert-success.ant-alert {
+  border-color: #bbf7d0;
+  background: #f7fdf9;
+}
+
+/* One table style for the whole console: the header is a label rather than a row, and the body is
+   the only place a monospaced value appears inside one. */
+.noxis-data-table .ant-table {
+  font-size: 13.5px;
+}
+
+.noxis-data-table .ant-table-thead > tr > th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  background: transparent;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.noxis-data-table .ant-table-tbody > tr > td {
+  padding-block: 10px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.noxis-data-table .ant-table-tbody > tr:last-child > td {
+  border-bottom: 0;
+}
+
+/* The ornament, done the expensive way: light that moves like light, and a hairline that turns so
+   slowly you notice it only when you stop looking. Two blurred glows on long, eased paths (nothing
+   linear, nothing that snaps back), plus two gradient arcs with round caps on a faint track. All of it
+   is aria-hidden decoration, and the reduced-motion rule above parks it for anyone who asked. */
+.noxis-glow {
+  position: absolute;
+  top: -28%;
+  right: -20%;
+  width: 46rem;
+  height: 46rem;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at 38% 34%,
+    rgb(255 247 237 / 0.85),
+    rgb(251 146 60 / 0.45) 42%,
+    transparent 72%
+  );
+  filter: blur(72px);
+  animation: noxis-glow-drift 26s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+  will-change: transform;
+}
+
+.noxis-glow-2 {
+  top: auto;
+  right: auto;
+  left: -24%;
+  bottom: -26%;
+  width: 38rem;
+  height: 38rem;
+  background: radial-gradient(
+    circle at 58% 42%,
+    rgb(255 255 255 / 0.3),
+    rgb(234 88 12 / 0.32) 48%,
+    transparent 76%
+  );
+  animation-duration: 34s;
+  animation-delay: -9s;
+}
+
+@keyframes noxis-glow-drift {
+  from {
+    transform: translate3d(-2%, 1%, 0) scale(1);
+    opacity: 0.85;
+  }
+  to {
+    transform: translate3d(3%, -3%, 0) scale(1.08);
+    opacity: 1;
+  }
+}
+
+.noxis-orbit {
+  position: absolute;
+  right: -16%;
+  bottom: -20%;
+  width: 44rem;
+  height: 44rem;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.noxis-orbit-track {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.12);
+  stroke-width: 1;
+}
+
+.noxis-orbit-arc {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  transform-origin: 300px 300px;
+  animation: noxis-orbit-turn 32s linear infinite;
+}
+
+.noxis-orbit-arc-2 {
+  stroke-width: 1.5;
+  animation-duration: 54s;
+  animation-direction: reverse;
+}
+
+@keyframes noxis-orbit-turn {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The row that opens an instance says so on hover, because a table row that navigates should look
+   like something you can click. */
+.noxis-data-table .ant-table-tbody > tr[role='link']:hover > td {
+  background: var(--color-brand-soft);
+}
+
+.noxis-data-table .ant-table-tbody > tr[role='link']:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: -2px;
+}
+
+/* A sticky header over a white body needs an edge, or the first row slides under nothing. */
+.noxis-data-table .ant-table-thead > tr > th.ant-table-cell-fix-left,
+.noxis-data-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
+  background: #fafafa;
+}
+
+.noxis-data-table .ant-table-tbody > tr > td.ant-table-cell-fix-left,
+.noxis-data-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+  background: #ffffff;
+}
+
+/* One card for the console: a head that reads as a label, a body with no padding of its own so an
+   editor or a table can reach the edge, and a footer where the actions sit. */
+.noxis-card.ant-card {
+  border-radius: 12px;
+  border-color: var(--color-line);
+}
+
+.noxis-card .ant-card-head {
+  min-height: 40px;
+  padding-inline: 14px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.noxis-card .ant-card-head-title {
+  padding-block: 8px;
+}
+
+.noxis-card .ant-card-extra {
   font-size: 12px;
 }
 
-.noxis-sql-block {
-  background: #0f172a;
-  color: #e2e8f0;
-  border-radius: 8px;
-  padding: 12px 14px;
-  overflow-x: auto;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12.5px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
+.noxis-card-footer {
+  border-top: 1px solid var(--color-line);
+  padding: 10px 14px;
+  background: #fcfcfd;
+  border-radius: 0 0 12px 12px;
 }
 
-.noxis-editor {
-  border: 1px solid var(--noxis-line);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.noxis-signin {
-  min-height: 100%;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background:
-    radial-gradient(1200px 600px at 10% -10%, var(--noxis-orange-soft), transparent),
-    #ffffff;
-}
-
-.noxis-signin-card {
-  width: 100%;
-  max-width: 420px;
+/* A piece of a command, a word the interface treats as one. Tailwind's preflight makes `code` look like
+   the text around it, which is how it ends up as a stray mono word; this is the console's one code
+   style, so a sentence that names a command reads as a sentence that names a command. */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  padding: 0.1em 0.34em;
+  border-radius: 5px;
+  border: 1px solid #fed7aa;
+  background: var(--color-brand-soft);
+  color: #c2410c;
+  white-space: nowrap;
 }
