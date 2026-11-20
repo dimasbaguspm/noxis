@@ -52,6 +52,14 @@ func TestEveryRouteIsDocumented(t *testing.T) {
 		}
 		served[strings.ToLower(route.Method)+" "+route.Path] = true
 
+		// The scopes come from the route table through cmd/spec, not from a comment: this proves the
+		// copy landed and that a route's scopes never changed without the document following.
+		declared := stringsFrom(operation["x-scopes"])
+		if strings.Join(declared, ",") != strings.Join(route.Scopes, ",") {
+			t.Fatalf("%s %s declares scopes %v, the route table says %v",
+				route.Method, route.Path, declared, route.Scopes)
+		}
+
 		// A public route must not inherit the document's default security; a route behind a token
 		// must name the scheme, or a client cannot know it needs one.
 		_, secured := operation["security"]
@@ -117,4 +125,19 @@ func openAPIContract(t *testing.T) []byte {
 	rec := httptest.NewRecorder()
 	apiserver.OpenAPIYAML(rec, httptest.NewRequest(http.MethodGet, "/openapi.yaml", nil))
 	return rec.Body.Bytes()
+}
+
+// stringsFrom reads a list of strings out of a decoded document, whatever it decoded into.
+func stringsFrom(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		if text, ok := item.(string); ok {
+			out = append(out, text)
+		}
+	}
+	return out
 }

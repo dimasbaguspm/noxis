@@ -19,9 +19,9 @@ import (
 // a mistake or an attack.
 const maxBody = 1 << 20
 
-// targetWire is what a client sees. The sealed password is not a field here, so it cannot
+// Target is what a client sees. The sealed password is not a field here, so it cannot
 // be leaked by a later refactor: `has_password` is the only trace of it.
-type targetWire struct {
+type Target struct {
 	Ref         string            `json:"ref"`
 	Name        string            `json:"name"`
 	Driver      string            `json:"driver"`
@@ -42,12 +42,18 @@ type targetWire struct {
 	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
-func toWire(t domain.Target) targetWire {
+// ProbeResult is what a probe answers: the target as it now stands, and what the engine said.
+type ProbeResult struct {
+	Target       Target              `json:"target"`
+	Capabilities domain.Capabilities `json:"capabilities"`
+}
+
+func toWire(t domain.Target) Target {
 	options := t.Options
 	if options == nil {
 		options = map[string]string{}
 	}
-	return targetWire{
+	return Target{
 		Ref:             t.Ref,
 		Name:            t.Name,
 		Driver:          t.Driver,
@@ -68,8 +74,8 @@ func toWire(t domain.Target) targetWire {
 	}
 }
 
-func toWires(targets []domain.Target) []targetWire {
-	out := make([]targetWire, 0, len(targets))
+func toWires(targets []domain.Target) []Target {
+	out := make([]Target, 0, len(targets))
 	for _, t := range targets {
 		out = append(out, toWire(t))
 	}
@@ -298,10 +304,7 @@ func (h *Handlers) ProbeTarget(w http.ResponseWriter, r *http.Request) {
 		respond.Fail(w, h.Log, err)
 		return
 	}
-	respond.OK(w, struct {
-		Target       targetWire          `json:"target"`
-		Capabilities domain.Capabilities `json:"capabilities"`
-	}{Target: toWire(result.Target), Capabilities: result.Capabilities})
+	respond.OK(w, ProbeResult{Target: toWire(result.Target), Capabilities: result.Capabilities})
 }
 
 // TargetCapabilities answers what this build may offer for the target's engine without opening
