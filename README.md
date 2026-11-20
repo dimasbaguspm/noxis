@@ -38,6 +38,36 @@ agent ──read──────────────▶ rows
 | `noxis <command>` | a client of that API — `auth`, `target`, `query`, `propose`, `review` |
 | `web/*` | a standalone console, later; not embedded, talks to the same API |
 
+## Try it locally with compose
+
+```bash
+docker compose up -d --build      # api :9000, console :3000, mysql :3307
+open http://localhost:3000        # paste the ops token below
+```
+
+The stack comes with development tokens, a sealed-password key, and a MySQL seeded with `users` and
+`orders` so a query returns something. Register it from the console (or the CLI):
+
+| Field | Value |
+| --- | --- |
+| host / port | `mysql` (the service name) / `3306` |
+| database | `app` |
+| username / password | `noxis` / `noxis` |
+| TLS | `skip-verify` — the container's certificate is self-signed and `verify` would refuse it |
+
+```
+ops    dev_ops_0123456789abcdef0123456789aa    read propose approve apply admin
+agent  dev_agent_0123456789abcdef0123456789    read propose
+```
+
+Every value is overridable in a `.env` beside `docker-compose.yml` (`API_PORT`, `CONSOLE_PORT`,
+`MYSQL_PORT`, `TOKENS`, `SECRET_KEY`, `CONSOLE_ORIGINS`, `MYSQL_IMAGE`). MySQL is published on **3307**
+so it never fights a MySQL you already run. `docker compose down -v` throws the state file away with
+the stack; without `-v` the journal survives a restart.
+
+The same binary serves both faces: `api` runs `http serve` and owns the state file, `console` runs
+`web serve --api http://localhost:9000` — the address the *browser* reaches, not the service name.
+
 ## The API and the console may live on different hosts
 
 The console is a page in a browser, so it calls the API at the address *the browser* can reach, not
