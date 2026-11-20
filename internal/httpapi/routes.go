@@ -57,6 +57,8 @@ func Routes(d Deps) []Route {
 	proposalOne := constants.PathProposals + "/{ref}"
 	return []Route{
 		{Method: http.MethodGet, Path: constants.PathHealthz, Handler: d.Handlers.Healthz, Public: true},
+		{Method: http.MethodGet, Path: constants.PathOpenAPIJSON, Handler: OpenAPIJSON, Public: true},
+		{Method: http.MethodGet, Path: constants.PathOpenAPIYAML, Handler: OpenAPIYAML, Public: true},
 		{Method: http.MethodGet, Path: constants.PathWhoami, Handler: d.Handlers.Whoami},
 
 		{Method: http.MethodGet, Path: constants.PathTargets, Handler: d.Handlers.ListTargets, Scopes: read},
