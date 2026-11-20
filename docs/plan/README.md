@@ -30,3 +30,7 @@ history of a decision. This index starts at the v2 rebuild.
 
 - [[chore]: boot the acceptance engines with testcontainers](764-testcontainers.md) — plan issue #764, PR #774, merged 2026-11-20
 - **[plan: harden the rehearsal and give the CLI an identity](762-second-pass-hardening.md)** — plan issue #762, PRs #771–#781, closed 2026-11-20
+
+### One binary (v2, third pass)
+
+- **[plan: one binary, a contract, and a console that ships with it](783-one-binary.md)** — plan issue #783, PRs #791–#797, closed 2026-11-21
