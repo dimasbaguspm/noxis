@@ -1,15 +1,26 @@
-import { PlayCircleOutlined } from '@ant-design/icons';
-import { Alert, Card, Descriptions, Segmented, Table, Tabs, Tag, Typography, Input } from 'antd';
+import { ApiOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import {
+  Alert,
+  App as AntApp,
+  Card,
+  Descriptions,
+  Input,
+  Segmented,
+  Table,
+  Tabs,
+  Tag,
+  Typography,
+} from 'antd';
 import { useMemo, useState } from 'react';
 import { Breadcrumb } from '../components/breadcrumb';
 import { Link, useParams } from 'react-router-dom';
-import { useProposals, useRunQuery, useSchema, useTarget } from '../api/queries';
+import { useProbeTarget, useProposals, useRunQuery, useSchema, useTarget } from '../api/queries';
 import { AppButton } from '../components/app-button';
 import { AsyncState } from '../components/async-state';
 import { RenderWhen } from '../components/render-when';
 import { StatusTag } from '../components/sql-block';
 import { SqlEditor } from '../editor/sql-editor';
-import type { Proposal, Rows } from '../api/types';
+import type { Proposal, Rows, Target } from '../api/types';
 
 // The instance page: what this server is, and the four things an operator does with it. ERD is absent
 // on purpose — the API exposes columns and indexes, not foreign keys, and a diagram from half a graph
@@ -24,9 +35,15 @@ export function TargetPage() {
 
   return (
     <section className="flex flex-col gap-5" aria-labelledby="target-title">
-      <Breadcrumb items={[{ label: 'Instances', to: '/' }, { label: target.data?.name ?? 'Instance' }]} />
+      <Breadcrumb
+        items={[{ label: 'Instances', to: '/' }, { label: target.data?.name ?? 'Instance' }]}
+      />
 
-      <AsyncState loading={target.isLoading} error={target.error} onRetry={() => void target.refetch()}>
+      <AsyncState
+        loading={target.isLoading}
+        error={target.error}
+        onRetry={() => void target.refetch()}
+      >
         <RenderWhen condition={target.data}>
           {target.data ? (
             <>
@@ -52,16 +69,11 @@ export function TargetPage() {
                     </Descriptions.Item>
                     <Descriptions.Item label="Database">{target.data.database}</Descriptions.Item>
                     <Descriptions.Item label="TLS">{target.data.tls_mode}</Descriptions.Item>
-                    <Descriptions.Item label="Password">
-                      {target.data.has_password ? 'sealed' : 'none'}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Probe">
-                      {target.data.last_probe_status ?? 'never'}
-                    </Descriptions.Item>
                     <Descriptions.Item label="Registered by">
                       {target.data.created_by}
                     </Descriptions.Item>
                   </Descriptions>
+                  <Connectivity target={target.data} />
                 </div>
               </Card>
 
@@ -69,7 +81,11 @@ export function TargetPage() {
                 activeKey={tab}
                 onChange={(key) => setTab(key as Tab)}
                 items={[
-                  { key: 'query', label: 'Query', children: <QueryTab ref_={ref} database={target.data.database} /> },
+                  {
+                    key: 'query',
+                    label: 'Query',
+                    children: <QueryTab ref_={ref} database={target.data.database} />,
+                  },
                   { key: 'dml', label: 'DML', children: <Queue target={ref} kind="dml" /> },
                   { key: 'ddl', label: 'DDL', children: <Queue target={ref} kind="ddl" /> },
                 ]}
@@ -79,6 +95,67 @@ export function TargetPage() {
         </RenderWhen>
       </AsyncState>
     </section>
+  );
+}
+
+// Connectivity is why an operator opens this page: one button, the engine's own answer, and the time
+// it arrived. A failed probe is stored on the target, so a refresh does not forget it.
+function Connectivity({ target }: { target: Target }) {
+  const { message } = AntApp.useApp();
+  const probe = useProbeTarget();
+  const [failure, setFailure] = useState<string | null>(null);
+  const ok = target.last_probe_status === 'ok';
+
+  return (
+    <div className="mt-4 flex flex-col gap-2 border-t border-line pt-3">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <span className="text-xs font-semibold tracking-wide text-muted uppercase">
+          Connectivity
+        </span>
+        <RenderWhen condition={target.last_probe_status}>
+          <Tag color={ok ? 'green' : 'red'} className="m-0">
+            {ok ? 'reachable' : 'unreachable'}
+          </Tag>
+        </RenderWhen>
+        <RenderWhen condition={!target.last_probe_status}>
+          <Tag className="m-0">never probed</Tag>
+        </RenderWhen>
+        <span className="text-xs text-muted">
+          {target.last_probe_at
+            ? `answered ${new Date(target.last_probe_at).toLocaleString()}`
+            : 'not contacted yet'}
+          {target.server_version ? ` · ${target.server_version}` : ''}
+        </span>
+        <span className="flex-1" />
+        <AppButton
+          icon={<ApiOutlined />}
+          loading={probe.isPending}
+          onClick={() => {
+            setFailure(null);
+            probe.mutate(target.ref, {
+              onSuccess: (data) => {
+                void message.success({
+                  key: 'probe',
+                  content: `Answered as ${data.capabilities.version || data.capabilities.driver}`,
+                });
+              },
+              onError: (error) =>
+                setFailure(error instanceof Error ? error.message : String(error)),
+            });
+          }}
+        >
+          Test connection
+        </AppButton>
+      </div>
+      <RenderWhen condition={failure}>
+        <Alert
+          type="error"
+          showIcon
+          message="The instance did not answer"
+          description={failure ?? ''}
+        />
+      </RenderWhen>
+    </div>
   );
 }
 
@@ -123,7 +200,11 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
         </AppButton>
       </div>
       <RenderWhen condition={run.error}>
-        <Alert type="error" showIcon message={run.error instanceof Error ? run.error.message : 'failed'} />
+        <Alert
+          type="error"
+          showIcon
+          message={run.error instanceof Error ? run.error.message : 'failed'}
+        />
       </RenderWhen>
       <RenderWhen condition={run.data}>
         <Result rows={run.data as Rows} columns={columns} records={rows} />
@@ -222,7 +303,11 @@ function Queue({ target, kind }: { target: string; kind?: 'dml' | 'ddl' }) {
                 </Link>
               ),
             },
-            { title: 'Status', dataIndex: 'status', render: (value: string) => <StatusTag status={value} /> },
+            {
+              title: 'Status',
+              dataIndex: 'status',
+              render: (value: string) => <StatusTag status={value} />,
+            },
             { title: 'By', dataIndex: 'proposed_by', responsive: ['md'] },
           ]}
         />

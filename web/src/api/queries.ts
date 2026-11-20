@@ -1,9 +1,4 @@
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { createClient, params, unwrap, unwrapPage } from './http';
 import { useSession } from './session-context';
@@ -30,7 +25,8 @@ export const keys = {
   capabilities: (ref: string) => ['capabilities', ref] as const,
   tables: (ref: string, db: string) => ['tables', ref, db] as const,
   table: (ref: string, db: string, table: string) => ['table', ref, db, table] as const,
-  proposals: (filter: Record<string, string | number | undefined>) => ['proposals', filter] as const,
+  proposals: (filter: Record<string, string | number | undefined>) =>
+    ['proposals', filter] as const,
   proposal: (ref: string) => ['proposal', ref] as const,
   events: (ref: string) => ['events', ref] as const,
 };
@@ -84,13 +80,15 @@ export function useSchema(ref: string, database: string) {
         client!.get(`/v1/targets/${ref}/databases/${encodeURIComponent(database)}/tables`),
       );
       const details = await Promise.all(
-        tables.slice(0, 200).map((table) =>
-          unwrap<TableDetail>(
-            client!.get(
-              `/v1/targets/${ref}/databases/${encodeURIComponent(database)}/tables/${encodeURIComponent(table.name)}`,
+        tables
+          .slice(0, 200)
+          .map((table) =>
+            unwrap<TableDetail>(
+              client!.get(
+                `/v1/targets/${ref}/databases/${encodeURIComponent(database)}/tables/${encodeURIComponent(table.name)}`,
+              ),
             ),
           ),
-        ),
       );
       return {
         database,
@@ -114,6 +112,16 @@ export function useProposals(filter: {
     queryKey: keys.proposals(filter),
     enabled: Boolean(client),
     queryFn: () => unwrapPage<Proposal>(client!.get('/v1/proposals', params({ ...filter }))),
+  });
+}
+
+/** useTestConnection dials a configuration nobody stored yet. It writes nothing, so the form can ask
+ * before it decides to register. */
+export function useTestConnection() {
+  const client = useClient();
+  return useMutation({
+    mutationFn: (input: Record<string, unknown>) =>
+      unwrap<Capabilities>(client!.post('/v1/targets/test', input)),
   });
 }
 

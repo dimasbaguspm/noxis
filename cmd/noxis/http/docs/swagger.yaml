@@ -82,6 +82,37 @@ components:
                         - rehearsal
                     type: string
             type: object
+        handlers.TestTargetRequest:
+            properties:
+                database:
+                    example: app
+                    type: string
+                driver:
+                    enum:
+                        - mysql
+                        - mariadb
+                    example: mysql
+                    type: string
+                host:
+                    example: db.internal
+                    type: string
+                options:
+                    additionalProperties:
+                        type: string
+                    type: object
+                password:
+                    example: typed-once
+                    type: string
+                port:
+                    example: 3306
+                    type: integer
+                tls_mode:
+                    example: preferred
+                    type: string
+                username:
+                    example: noxis
+                    type: string
+            type: object
         handlers.UpdateTargetRequest:
             properties:
                 name:
@@ -863,6 +894,44 @@ paths:
             summary: Run a read
             tags:
                 - reading
+            x-scopes:
+                - read
+    /v1/targets/test:
+        post:
+            description: Opens one connection with the credentials as typed and answers what the engine said. Requires the read scope.
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/handlers.TestTargetRequest'
+                            description: the configuration to dial
+                            summary: body
+                description: the configuration to dial
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/respond.Envelope'
+                    description: OK
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/respond.Envelope'
+                    description: Bad Request
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/respond.Envelope'
+                    description: Unprocessable Entity
+            security:
+                - BearerAuth: []
+            summary: Test a configuration
+            tags:
+                - targets
             x-scopes:
                 - read
     /v1/whoami:

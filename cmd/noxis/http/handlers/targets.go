@@ -123,6 +123,47 @@ func (h *Handlers) CreateTarget(w http.ResponseWriter, r *http.Request) {
 	respond.Created(w, toWire(created))
 }
 
+// TestTarget dials a configuration that is not stored yet, so the console can refuse a typo
+// before it becomes a row. Nothing is written and nothing is journaled: a test that leaves a
+// trace is a probe, and a probe is what a stored target gets.
+// @Summary Test a configuration
+// @Description Opens one connection with the credentials as typed and answers what the engine said. Requires the read scope.
+// @Tags targets
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body handlers.TestTargetRequest true "the configuration to dial"
+// @Success 200 {object} respond.Envelope
+// @Failure 400 {object} respond.Envelope
+// @Failure 422 {object} respond.Envelope
+// @Router /v1/targets/test [post]
+func (h *Handlers) TestTarget(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.TestTarget")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
+	var body TestTargetRequest
+	if err := decode(w, r, &body); err != nil {
+		respond.Fail(w, h.Log, err)
+		return
+	}
+	caps, err := h.Targets.Test.Run(r.Context(), target.TestInput{
+		Driver:   body.Driver,
+		Host:     body.Host,
+		Port:     body.Port,
+		Database: body.Database,
+		Username: body.Username,
+		Password: body.Password,
+		TLSMode:  body.TLSMode,
+		Options:  body.Options,
+	})
+	if err != nil {
+		respond.Fail(w, h.Log, err)
+		return
+	}
+	respond.OK(w, caps)
+}
+
 // ListTargets answers one page of targets, newest first.
 // @Summary List targets
 // @Description One page of governed servers, newest first. Paging is a keyset cursor, never an offset.

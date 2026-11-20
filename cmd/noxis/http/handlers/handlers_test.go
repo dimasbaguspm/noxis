@@ -49,6 +49,7 @@ func newHandlers(s *store) *Handlers {
 			Create: target.NewCreate(targetDeps), List: target.NewList(targetDeps),
 			Get: target.NewGet(targetDeps), Update: target.NewUpdate(targetDeps),
 			Archive: target.NewArchive(targetDeps), Probe: target.NewProbe(targetDeps),
+			Test: target.NewTest(targetDeps),
 		},
 		Read: ReadUseCases{
 			Query: read.NewQuery(readDeps), Databases: read.NewDatabases(readDeps),
@@ -298,6 +299,11 @@ func TestEveryRouteAnswers(t *testing.T) {
 		body    string
 	}{
 		{"list targets", h.ListTargets, http.MethodGet, "/v1/targets", ""},
+		{
+			"test a configuration", h.TestTarget, http.MethodPost, "/v1/targets/test",
+			`{"driver":"mysql","host":"db.internal","port":3306,"database":"app",` +
+				`"username":"noxis","password":"` + password + `","tls_mode":"preferred"}`,
+		},
 		{"get target", h.GetTarget, http.MethodGet, "/v1/targets/" + target.Ref, ""},
 		{
 			"update target", h.UpdateTarget, http.MethodPatch, "/v1/targets/" + target.Ref,

@@ -1,10 +1,10 @@
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { App as AntApp, Card, Drawer, Input, Tag } from 'antd';
+import { Alert, App as AntApp, Card, Drawer, Input, Tag } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCreateTarget, useTargets } from '../api/queries';
-import type { TargetValues } from '../forms/schemas';
+import { useCreateTarget, useTargets, useTestConnection } from '../api/queries';
 import { driverOptions, targetDefaults, targetSchema, tlsOptions } from '../forms/schemas';
+import type { TargetValues } from '../forms/schemas';
 import { AppButton } from '../components/app-button';
 import { AsyncState } from '../components/async-state';
 import { Form } from '../components/form';
@@ -149,9 +149,10 @@ function TargetCard({ target, onOpen }: { target: Target; onOpen: () => void }) 
           <RenderWhen condition={target.server_version}>
             <Tag>{target.server_version}</Tag>
           </RenderWhen>
-          <Tag>{target.has_password ? 'password sealed' : 'no password'}</Tag>
           <RenderWhen condition={target.last_probe_status}>
-            <Tag>probe: {target.last_probe_status}</Tag>
+            <Tag color={target.last_probe_status === 'ok' ? 'green' : 'red'}>
+              probe: {target.last_probe_status}
+            </Tag>
           </RenderWhen>
         </div>
       </div>
@@ -159,16 +160,45 @@ function TargetCard({ target, onOpen }: { target: Target; onOpen: () => void }) 
   );
 }
 
+// The test dials a connection, not a registration: the API refuses a field it did not ask for, and a
+// name is the row's business rather than the socket's.
+function connectionOf(values: TargetValues) {
+  return {
+    driver: values.driver,
+    host: values.host,
+    port: values.port,
+    database: values.database,
+    username: values.username,
+    password: values.password,
+    tls_mode: values.tls_mode,
+    options: {},
+  };
+}
+
 function CreateTargetForm({ onCreated }: { onCreated: (target: Target) => void }) {
   const create = useCreateTarget();
+  const test = useTestConnection();
+  // A refused test keeps the values that failed: "register anyway" is the operator's decision, not a
+  // second submit that would dial the same dead host again.
+  const [blocked, setBlocked] = useState<{ values: TargetValues; message: string } | null>(null);
+
+  const send = async (values: TargetValues) => {
+    onCreated(await create.mutateAsync({ ...values, options: {} }));
+  };
 
   return (
     <Form<TargetValues>
       schema={targetSchema}
       defaultValues={targetDefaults}
       onSubmit={async (values) => {
-        const target = await create.mutateAsync({ ...values, options: {} });
-        onCreated(target);
+        setBlocked(null);
+        try {
+          await test.mutateAsync(connectionOf(values));
+        } catch (error) {
+          setBlocked({ values, message: error instanceof Error ? error.message : String(error) });
+          return;
+        }
+        await send(values);
       }}
     >
       <TextInput name="name" label="Name" autoFocus placeholder="prod" />
@@ -190,13 +220,25 @@ function CreateTargetForm({ onCreated }: { onCreated: (target: Target) => void }
       </div>
       <TextInput name="database" label="Database" placeholder="app" />
       <TextInput name="username" label="Username" placeholder="noxis" autoComplete="off" />
-      <TextInput
-        name="password"
-        label="Password"
-        password
-        autoComplete="new-password"
-        hint="Sealed with SECRET_KEY; never returned."
-      />
+      <TextInput name="password" label="Password" password autoComplete="new-password" />
+      <RenderWhen condition={blocked}>
+        <Alert
+          type="warning"
+          showIcon
+          className="mb-3"
+          message="The instance did not answer"
+          description={blocked?.message}
+          action={
+            <AppButton
+              size="small"
+              loading={create.isPending}
+              onClick={() => blocked && void send(blocked.values)}
+            >
+              Register anyway
+            </AppButton>
+          }
+        />
+      </RenderWhen>
       <RenderWhen condition={create.error}>
         <p role="alert" className="mb-3 text-sm text-red-600">
           {create.error instanceof Error ? create.error.message : String(create.error)}

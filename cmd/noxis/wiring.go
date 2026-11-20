@@ -71,6 +71,7 @@ func buildServer(ctx context.Context, cfg config.Config, statePath string, log *
 			Update:  target.NewUpdate(useCases),
 			Archive: target.NewArchive(useCases),
 			Probe:   target.NewProbe(useCases),
+			Test:    target.NewTest(useCases),
 		},
 		Read: handlers.ReadUseCases{
 			Query:     appread.NewQuery(reads),
