@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"noxis/internal/domain"
@@ -65,12 +64,8 @@ func (d *DB) Probe(ctx context.Context, target domain.Target, password string) (
 	return caps, nil
 }
 
-// connectError keeps a refusal quotable: it says what the driver said, with the password cut
-// out of the message in case the driver echoed the DSN back.
+// connectError keeps a refusal quotable: it says what the driver said, with the password cut out
+// of the message in case the driver echoed the DSN back.
 func connectError(err error, password string) error {
-	message := err.Error()
-	if password != "" {
-		message = strings.ReplaceAll(message, password, "***")
-	}
-	return fmt.Errorf("%w: %s", domain.ErrUnsupported, message)
+	return fmt.Errorf("%w: %s", domain.ErrUnsupported, scrub(err, password))
 }

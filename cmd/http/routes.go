@@ -49,5 +49,10 @@ func routes(d deps) []route {
 		{Method: http.MethodDelete, Path: one, Handler: d.handlers.ArchiveTarget, Scopes: admin},
 		{Method: http.MethodPost, Path: one + "/probe", Handler: d.handlers.ProbeTarget, Scopes: read},
 		{Method: http.MethodGet, Path: one + "/capabilities", Handler: d.handlers.TargetCapabilities, Scopes: read},
+
+		{Method: http.MethodPost, Path: constants.PathTargets + "/{ref}/query", Handler: d.handlers.RunQuery, Scopes: read},
+		{Method: http.MethodGet, Path: constants.PathTargets + "/{ref}/databases", Handler: d.handlers.ListDatabases, Scopes: read},
+		{Method: http.MethodGet, Path: constants.PathTargets + "/{ref}/databases/{db}/tables", Handler: d.handlers.ListTables, Scopes: read},
+		{Method: http.MethodGet, Path: constants.PathTargets + "/{ref}/databases/{db}/tables/{table}", Handler: d.handlers.ShowTable, Scopes: read},
 	}
 }

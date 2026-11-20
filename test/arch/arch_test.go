@@ -22,6 +22,9 @@ var layers = []layer{
 	{prefix: "noxis/internal/ports", allowed: []string{"noxis/internal/domain"}},
 	{prefix: "noxis/internal/app", allowed: []string{
 		"noxis/internal/domain", "noxis/internal/ports", "noxis/internal/common", "noxis/internal/constants",
+		// A use case may use a shared helper from a sibling package; it may not call another use
+		// case's Run. `password` is the only helper today.
+		"noxis/internal/app/password",
 	}},
 	{prefix: "noxis/internal/adapters", allowed: []string{
 		"noxis/internal/domain", "noxis/internal/ports", "noxis/internal/common", "noxis/internal/constants",

@@ -22,7 +22,9 @@ Rules, enforced by `test/arch`:
 1. `internal/domain` imports `internal/constants` (values only) and the standard library —
    no I/O, no context plumbing, no adapter.
 2. `internal/ports` imports `domain` and the standard library.
-3. `internal/app` imports `domain`, `ports`, and pure helpers from `internal/common`.
+3. `internal/app` imports `domain`, `ports`, pure helpers from `internal/common`, and at most
+   one shared helper from a sibling package (`internal/app/password`, which opens a sealed
+   credential for the use cases that connect). A use case never calls another use case's `Run`.
 4. `internal/adapters/*` import `domain`, `ports`, `internal/common`, and their driver.
 5. Only `cmd/*` names a concrete adapter.
 6. Nothing imports `noxis/cmd/...` — hence the transports are both `package main`

@@ -128,6 +128,9 @@ func TestAcceptance(t *testing.T) {
 			Format:   "pretty",
 			Paths:    []string{"features"},
 			TestingT: t,
+			// Strict makes an undefined step a failure: a scenario that silently skips its
+			// assertions is worse than no scenario at all.
+			Strict: true,
 		},
 	}
 	if suite.Run() != 0 {

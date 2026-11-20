@@ -45,4 +45,14 @@ type Sealer interface {
 // never stores, never decides policy, and never sees a sealed password.
 type Driver interface {
 	Probe(ctx context.Context, target domain.Target, password string) (domain.Capabilities, error)
+	// Query runs one statement a read route has already classified, and returns at most limit
+	// rows plus whether it stopped early.
+	Query(ctx context.Context, target domain.Target, password, statement string, limit int) (domain.Rows, error)
+	// Databases lists the schemas the connection can see.
+	Databases(ctx context.Context, target domain.Target, password string) ([]string, error)
+	// Tables lists the tables in one schema.
+	Tables(ctx context.Context, target domain.Target, password, database string) ([]domain.Table, error)
+	// Table describes one table: its columns, its indexes and the DDL the engine would use to
+	// create it, which is the same statement a rehearsal will rebuild from.
+	Table(ctx context.Context, target domain.Target, password, database, table string) (domain.TableDetail, error)
 }
