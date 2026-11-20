@@ -39,6 +39,7 @@ review blocker, not a style note.
 ## Durability
 
 - [ ] The state file schema changed ⇒ `PRAGMA user_version` bumped, no migration path added.
+- [ ] `make cover` passes and a package whose coverage rose has its floor raised in the same PR: a floor is a ratchet, never a ceiling to lower.
 - [ ] The journal is append-only; nothing in the codebase deletes from it.
 - [ ] Targets archive; they are never hard-deleted.
 

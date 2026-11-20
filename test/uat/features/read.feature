@@ -9,6 +9,15 @@ Feature: Reading through a target
     Then the request fails with status 400
     And the refusal mentions "delete"
 
+  Scenario: an archived target cannot be read
+    Given I hold the ops token
+    And I register a target named "uat-read-archived" on port 1
+    When I archive the target I registered
+    Then the request succeeds
+    And I run the statement "SELECT 1"
+    Then the request fails with status 409
+    And the refusal mentions "archived"
+
   Scenario: a second statement in one request is refused
     Given I hold the ops token
     And I register a target named "uat-read-two" on port 1
