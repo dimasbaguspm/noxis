@@ -2,6 +2,7 @@ import { Tag } from 'antd';
 import { clsx } from 'clsx';
 import { useState } from 'react';
 import { AppButton } from './app-button';
+import { Eyebrow } from './text';
 
 // A statement is shown as a statement: a quiet block of SQL with a copy action, not a `<code>` tag in
 // the middle of a paragraph. The colour is the only dark surface in the console, because code that
@@ -26,8 +27,8 @@ export function SqlBlock({
   return (
     <figure className="m-0">
       <div className="mb-2 flex items-center gap-2">
-        <figcaption className="text-xs font-medium tracking-wide text-muted uppercase">
-          {label ?? 'statement'}
+        <figcaption>
+          <Eyebrow>{label ?? 'statement'}</Eyebrow>
         </figcaption>
         <span className="flex-1" />
         {copyable ? (

@@ -1,5 +1,6 @@
 import { clsx } from 'clsx';
 import type { ReactNode } from 'react';
+import { Eyebrow, Heading, Text } from './text';
 
 // The instance page's facts used to be an Ant Design Description list: evenly sized key/value pairs in
 // a grid that Ant Design decides. A panel is the same idea with the direction written down — a title,
@@ -21,9 +22,7 @@ export function Panel({
     <section className={clsx('flex flex-col gap-2.5', className)}>
       {title ? (
         <div className="flex items-center gap-2">
-          <h2 className="m-0 text-[11px] font-semibold tracking-[0.08em] text-muted uppercase">
-            {title}
-          </h2>
+          <Heading level={5}>{title}</Heading>
           <span className="flex-1" />
           {action}
         </div>
@@ -54,10 +53,10 @@ export function Tile({
 }) {
   return (
     <div className={clsx('flex min-w-0 flex-col gap-0.5', className)}>
-      <span className="text-[11px] tracking-wide text-muted uppercase">{label}</span>
-      <span className={clsx('truncate text-sm text-ink', mono && 'font-mono text-[13px]')}>
+      <Eyebrow>{label}</Eyebrow>
+      <Text mono={mono} className={clsx('truncate', mono && 'text-[13px]')}>
         {value}
-      </span>
+      </Text>
     </div>
   );
 }

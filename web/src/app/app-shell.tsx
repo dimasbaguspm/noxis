@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSession } from '../api/session-context';
 import { Logo } from '../components/logo';
+import { Text } from '../components/text';
 
 // A topbar and a content region, and nothing else. At 360px the host hides and the identity reduces to
 // an avatar; the two facts that survive are which server, and who you are.
@@ -29,17 +30,21 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
           aria-label="noXis, back to the instances"
           aria-current={home ? 'page' : undefined}
         >
-          <Logo size={22} />
-          noXis
+          <Logo size={26} />
         </Link>
 
         <span className="flex-1" />
 
         {config ? (
           <Tooltip title="The API this console was told to call">
-            <span className="hidden max-w-[40vw] truncate rounded-md border border-line px-2 py-0.5 font-mono text-[11px] text-muted sm:inline">
+            <Text
+              mono
+              size="xs"
+              tone="muted"
+              className="hidden max-w-[40vw] truncate rounded-md border border-line px-2 py-0.5 sm:inline"
+            >
               {config.api.replace(/^https?:\/\//, '')}
-            </span>
+            </Text>
           </Tooltip>
         ) : null}
 
@@ -54,10 +59,10 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
                   disabled: true,
                   label: (
                     <div className="flex max-w-64 flex-col gap-1 py-0.5">
-                      <span className="text-[13px] font-semibold text-ink">{identity.name}</span>
-                      <span className="truncate font-mono text-[11px] text-muted">
+                      <Text className="font-semibold">{identity.name}</Text>
+                      <Text mono size="xs" tone="muted" className="truncate">
                         {config?.api.replace(/^https?:\/\//, '') ?? 'no API'}
-                      </span>
+                      </Text>
                     </div>
                   ),
                 },
@@ -87,7 +92,7 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
               <Avatar size={26} className="!bg-brand !text-[11px] !font-semibold">
                 {initials(identity.name)}
               </Avatar>
-              <span className="hidden text-[13px] font-semibold sm:inline">{identity.name}</span>
+              <Text className="hidden font-semibold sm:inline">{identity.name}</Text>
               <DownOutlined className="hidden text-[10px] text-muted sm:inline" />
             </button>
           </Dropdown>

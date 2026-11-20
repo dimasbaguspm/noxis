@@ -14,8 +14,9 @@ import (
 
 func NewTarget(s *Session) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "target",
-		Short: "Manage the databases this noxis governs",
+		Use:     "target",
+		Aliases: []string{"instance", "instances", "targets"},
+		Short:   "Manage the instances this noxis governs",
 	}
 	cmd.AddCommand(newTargetAdd(s), newTargetList(s), newTargetShow(s), newTargetProbe(s), newTargetArchive(s))
 	return cmd
@@ -24,9 +25,10 @@ func NewTarget(s *Session) *cobra.Command {
 func newTargetAdd(s *Session) *cobra.Command {
 	in := client.CreateTargetInput{}
 	cmd := &cobra.Command{
-		Use:   "add",
-		Short: "Register a MySQL or MariaDB target",
-		Args:  cobra.NoArgs,
+		Use:     "add",
+		Aliases: []string{"create", "new"},
+		Short:   "Register a MySQL or MariaDB instance",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			api, err := s.Client()
 			if err != nil {
@@ -61,9 +63,10 @@ func newTargetAdd(s *Session) *cobra.Command {
 func newTargetList(s *Session) *cobra.Command {
 	in := client.ListTargetsInput{}
 	cmd := &cobra.Command{
-		Use:   "ls",
-		Short: "List targets, newest first",
-		Args:  cobra.NoArgs,
+		Use:     "ls",
+		Aliases: []string{"list"},
+		Short:   "List instances, newest first",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			api, err := s.Client()
 			if err != nil {
@@ -103,9 +106,10 @@ func newTargetList(s *Session) *cobra.Command {
 
 func newTargetShow(s *Session) *cobra.Command {
 	return &cobra.Command{
-		Use:   "show <ref>",
-		Short: "Show one target",
-		Args:  cobra.ExactArgs(1),
+		Use:     "show <ref>",
+		Aliases: []string{"get"},
+		Short:   "Show one instance",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			api, err := s.Client()
 			if err != nil {
@@ -187,9 +191,10 @@ func writeTable(w io.Writer, header []string, rows [][]string) error {
 
 func newTargetProbe(s *Session) *cobra.Command {
 	return &cobra.Command{
-		Use:   "probe <ref>",
-		Short: "Connect once and record what the engine actually is",
-		Args:  cobra.ExactArgs(1),
+		Use:     "probe <ref>",
+		Aliases: []string{"test"},
+		Short:   "Connect once and record what the engine actually is",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			api, err := s.Client()
 			if err != nil {

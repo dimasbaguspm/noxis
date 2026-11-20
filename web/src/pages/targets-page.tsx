@@ -105,7 +105,7 @@ export function TargetsPage() {
               render: (row) => (
                 <span className="flex items-center gap-2">
                   <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-sm bg-brand" />
-                  <span className="font-semibold text-ink">{row.name}</span>
+                  <Text className="font-semibold">{row.name}</Text>
                   <RenderWhen condition={row.archived_at}>
                     <Tag className="m-0">archived</Tag>
                   </RenderWhen>

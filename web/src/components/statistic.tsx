@@ -1,6 +1,6 @@
 import { Statistic as AntStatistic } from 'antd';
 import type { ReactNode } from 'react';
-import { Eyebrow } from './text';
+import { Eyebrow, Text } from './text';
 
 // Ant Design's Statistic is the right big number — right aligned digits, a suffix, a formatter — with
 // a title style this console does not use. Wrapped, so a screen names a label and a value and the
@@ -32,7 +32,11 @@ export function Statistic({
           letterSpacing: '-0.01em',
         }}
       />
-      {hint ? <span className="truncate text-xs text-muted">{hint}</span> : null}
+      {hint ? (
+        <Text size="xs" tone="muted" className="truncate">
+          {hint}
+        </Text>
+      ) : null}
     </div>
   );
 }

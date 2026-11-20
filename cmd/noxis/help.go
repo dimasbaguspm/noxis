@@ -41,8 +41,8 @@ One binary, three faces:
 
 Next steps:
   noxis auth signin <token> --api-url %s
-  noxis target add --name prod --host db --database app --username noxis
-  noxis propose <target-ref> --title "add a column" --sql "ALTER TABLE users ADD COLUMN note TEXT"
+  noxis instance add --name prod --host db --database app --username noxis
+  noxis propose <instance-ref> --title "add a column" --sql "ALTER TABLE users ADD COLUMN note TEXT"
 
   noxis help            every command, grouped           noxis ?        the same
   --json on any command for an agent to read

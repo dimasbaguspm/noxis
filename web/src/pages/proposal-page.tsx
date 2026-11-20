@@ -57,9 +57,9 @@ export function ProposalPage() {
       okButtonProps: { danger: true },
       content: (
         <Flex vertical gap={8}>
-          <p className="m-0">
+          <Text as="p">
             The rehearsal found no rollback. Type <strong>{found.title}</strong> to confirm.
-          </p>
+          </Text>
           <Input
             onChange={(event) => {
               typed = event.target.value;

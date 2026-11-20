@@ -29,7 +29,7 @@ export function Card({
     <AntCard
       className={clsx('noxis-card', className)}
       loading={loading}
-      title={title ? <span className="text-sm font-semibold text-ink">{title}</span> : undefined}
+      title={title ? <Text className="font-semibold">{title}</Text> : undefined}
       extra={
         extra ? (
           <Text size="xs" tone="muted">

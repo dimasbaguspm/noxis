@@ -62,8 +62,40 @@ export function SignIn() {
       </section>
 
       <aside className="noxis-signin-panel relative flex flex-col justify-center overflow-hidden bg-brand px-6 py-12 md:px-10">
-        <span aria-hidden="true" className="noxis-aura" />
-        <span aria-hidden="true" className="noxis-ring" />
+        <span aria-hidden="true" className="noxis-glow" />
+        <span aria-hidden="true" className="noxis-glow noxis-glow-2" />
+        <svg aria-hidden="true" className="noxis-orbit" viewBox="0 0 600 600" fill="none">
+          <defs>
+            <linearGradient id="noxis-orbit-a" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="50%" stopColor="#ffffff" stopOpacity="0.55" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="noxis-orbit-b" x1="1" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#fed7aa" stopOpacity="0" />
+              <stop offset="50%" stopColor="#fed7aa" stopOpacity="0.45" />
+              <stop offset="100%" stopColor="#fed7aa" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <circle className="noxis-orbit-track" cx="300" cy="300" r="252" />
+          <circle className="noxis-orbit-track" cx="300" cy="300" r="198" />
+          <circle
+            className="noxis-orbit-arc"
+            cx="300"
+            cy="300"
+            r="252"
+            stroke="url(#noxis-orbit-a)"
+            strokeDasharray="150 1433"
+          />
+          <circle
+            className="noxis-orbit-arc noxis-orbit-arc-2"
+            cx="300"
+            cy="300"
+            r="198"
+            stroke="url(#noxis-orbit-b)"
+            strokeDasharray="94 1150"
+          />
+        </svg>
 
         <div className="relative mx-auto w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl shadow-orange-900/20 sm:p-7">
           <div className="mb-6 flex items-center gap-2.5 text-base font-bold tracking-tight md:hidden">
