@@ -5,7 +5,9 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/url"
 	"noxis/internal/common/secret"
 	"noxis/internal/constants"
 	"os"
@@ -31,6 +33,10 @@ type Config struct {
 	OTELServiceName string
 	SecretKey       []byte
 	Tokens          []Token
+	// ConsoleOrigins are the browser origins allowed to call the API. They are deployment, not
+	// code: the console may be served from another host than the API, and only the deployment knows
+	// which one.
+	ConsoleOrigins []string
 }
 
 var tokenName = regexp.MustCompile(`^[a-z][a-z0-9_-]{1,31}$`)
@@ -62,7 +68,38 @@ func LoadFrom(get func(string) string) (Config, error) {
 	if cfg.Tokens, err = ParseTokens(raw); err != nil {
 		return Config{}, err
 	}
+	if cfg.ConsoleOrigins, err = ParseOrigins(or(get("CONSOLE_ORIGINS"), constants.DefaultConsoleOrigins)); err != nil {
+		return Config{}, err
+	}
 	return cfg, nil
+}
+
+// ParseOrigins reads the comma-separated origin list. An origin is a scheme and a host and nothing
+// else — a trailing slash or a path is a typo that would silently never match a browser's Origin
+// header, which carries neither.
+func ParseOrigins(raw string) ([]string, error) {
+	var out []string
+	for _, origin := range strings.Split(raw, ",") {
+		origin = strings.TrimSpace(origin)
+		if origin == "" {
+			continue
+		}
+		parsed, err := url.Parse(origin)
+		if err != nil {
+			return nil, fmt.Errorf("config: CONSOLE_ORIGINS: %q is not a URL: %w", origin, err)
+		}
+		if parsed.Scheme != "http" && parsed.Scheme != "https" {
+			return nil, fmt.Errorf("config: CONSOLE_ORIGINS: %q is not http or https", origin)
+		}
+		if parsed.Host == "" || (parsed.Path != "" && parsed.Path != "/") {
+			return nil, fmt.Errorf("config: CONSOLE_ORIGINS: %q is not an origin (scheme://host[:port])", origin)
+		}
+		out = append(out, parsed.Scheme+"://"+parsed.Host)
+	}
+	if len(out) == 0 {
+		return nil, errors.New("config: CONSOLE_ORIGINS names no origin")
+	}
+	return out, nil
 }
 
 // ParseTokens reads the inline token JSON: {"<name>": {"secret": "...", "scopes": [...]}}.

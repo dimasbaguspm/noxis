@@ -89,6 +89,11 @@ func buildServer(ctx context.Context, cfg config.Config, statePath string, log *
 		},
 	})
 
-	handler := apiserver.NewMux(apiserver.Deps{Log: log, Auth: auth, Handlers: handlers_})
+	handler := apiserver.NewMux(apiserver.Deps{
+		Log:      log,
+		Auth:     auth,
+		Handlers: handlers_,
+		Origins:  cfg.ConsoleOrigins,
+	})
 	return handler, state, nil
 }

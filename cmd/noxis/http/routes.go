@@ -17,6 +17,9 @@ type Deps struct {
 	Log      *slog.Logger
 	Auth     *middlewares.Authenticator
 	Handlers *handlers.Handlers
+	// Origins are the browser origins the API answers. The console may live on another host than
+	// the API, so the deployment names them and this package only echoes one back.
+	Origins []string
 }
 
 // Route is one line of the API. A route that is not Public names the scopes it needs, so the whole
@@ -42,7 +45,7 @@ func NewMux(d Deps) http.Handler {
 	}
 	return middlewares.Chain(mux,
 		middlewares.Recover(d.Log),
-		middlewares.CORS(constants.ConsoleOrigins),
+		middlewares.CORS(d.Origins),
 		middlewares.Access(d.Log),
 	)
 }

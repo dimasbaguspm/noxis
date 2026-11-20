@@ -6,10 +6,13 @@ package web
 import (
 	"bytes"
 	"embed"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 )
@@ -59,18 +62,46 @@ func New(apiURL string) (*Console, error) {
 	return &Console{dist: dist, index: page, built: markerErr != nil, api: apiURL}, nil
 }
 
+// ParseAPI reads the API's public URL. It must be absolute and http or https, because the browser
+// resolves it from the page's own origin: a bare host would be read as a path, and a trailing slash
+// would produce a double slash on every call.
+func ParseAPI(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", errors.New("web: the console needs the API's public URL: pass --api https://api.example.com")
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return "", fmt.Errorf("web: --api %q is not a URL: %w", raw, err)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", fmt.Errorf("web: --api %q is not http or https", raw)
+	}
+	if parsed.Host == "" {
+		return "", fmt.Errorf("web: --api %q has no host", raw)
+	}
+	return parsed.Scheme + "://" + parsed.Host + strings.TrimSuffix(parsed.Path, "/"), nil
+}
+
 // Built reports whether a real console was compiled in, which is what the serve command logs.
 func (c *Console) Built() bool { return c.built }
 
 // API is the address the console was told to call.
 func (c *Console) API() string { return c.api }
 
-// Handler answers files, then the single-page fallback, then nothing.
+// Handler answers files, then the single-page fallback, then nothing. `/config.json` is answered
+// first and always: it is how a build learns which API it belongs to, and a console that was served
+// from one machine and calls another cannot bake that into its bundle.
 func (c *Console) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			w.Header().Set("Allow", "GET, HEAD")
 			http.Error(w, "the console is read-only", http.StatusMethodNotAllowed)
+			return
+		}
+
+		if path.Clean(r.URL.Path) == "/config.json" {
+			c.serveConfig(w)
 			return
 		}
 
@@ -93,6 +124,20 @@ func (c *Console) Handler() http.Handler {
 		}
 		http.ServeContent(w, r, name, info.ModTime(), bytes.NewReader(data))
 	})
+}
+
+// serveConfig is the deployment's answer to "which API am I?". It is not cached: a console that
+// remembers the wrong server is a console that reports a network error nobody can explain.
+func (c *Console) serveConfig(w http.ResponseWriter) {
+	body, err := json.Marshal(map[string]string{"api": c.api})
+	if err != nil {
+		http.Error(w, "the console has no API configured", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(body)
 }
 
 func (c *Console) serveIndex(w http.ResponseWriter) {

@@ -23,6 +23,6 @@ const (
 	StatePath   = "/data/noxis.db"
 )
 
-// ConsoleOrigins are the origins allowed to call the API from a browser. A variable until #807 makes
-// the deployment say which console it has.
-var ConsoleOrigins = []string{"http://localhost:5173", "http://127.0.0.1:5173"}
+// DefaultConsoleOrigins are the browser origins a development console is served from: the Vite dev
+// server and the same thing addressed by address. A deployment names its own in CONSOLE_ORIGINS.
+const DefaultConsoleOrigins = "http://localhost:5173,http://127.0.0.1:5173"
