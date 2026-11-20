@@ -22,8 +22,8 @@ import (
 // refusal, and this file is an audit trail before it is a cache.
 //
 // v1: targets and journal. v2: targets carry what the last probe measured. v3: proposals and
-// their rehearsals.
-const SchemaVersion = 3
+// their rehearsals. v4: a proposal carries the apply's progress and receipt.
+const SchemaVersion = 4
 
 // DB is the state file.
 type DB struct {
@@ -165,6 +165,12 @@ var schema = []string{
 		applied_by    TEXT    NOT NULL DEFAULT '',
 		applied_at    INTEGER,
 		failure       TEXT    NOT NULL DEFAULT '',
+		started_at    INTEGER,
+		progress_stage TEXT  NOT NULL DEFAULT '',
+		progress_percent INTEGER NOT NULL DEFAULT -1,
+		algorithm     TEXT    NOT NULL DEFAULT '',
+		rows_estimated INTEGER NOT NULL DEFAULT 0,
+		rows_affected INTEGER NOT NULL DEFAULT 0,
 		created_at    INTEGER NOT NULL,
 		updated_at    INTEGER NOT NULL
 	) STRICT`,

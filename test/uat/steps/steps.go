@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cucumber/godog"
 
@@ -101,6 +102,8 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^I apply the proposal confirming destruction$`, w.applyConfirming)
 	ctx.Step(`^the events mention "([^"]*)"$`, w.assertEventsMention)
 	ctx.Step(`^the engine has column "([^"]*)" on table "([^"]*)"$`, w.assertEngineColumn)
+	ctx.Step(`^I poll the proposal until it is "([^"]*)"$`, w.pollProposal)
+	ctx.Step(`^the receipt names the algorithm "([^"]*)"$`, w.assertAlgorithm)
 
 	// slow
 	ctx.Step(`^I register the "(mysql|mariadb)" container as "([^"]*)"$`, w.registerContainer)
@@ -488,6 +491,35 @@ func (w *world) proposeAtTier(query, title, tier string) error {
 
 func (w *world) proposeWithoutRollback(query, title string) error {
 	return w.propose(title, query, "", "")
+}
+
+// pollProposal reads the proposal until it reaches the status. A 202 is a promise that the answer is
+// somewhere else, and this is the only way to keep it.
+func (w *world) pollProposal(want string) error {
+	if w.err != nil {
+		return w.err
+	}
+	deadline := time.Now().Add(90 * time.Second)
+	for time.Now().Before(deadline) {
+		proposal, err := w.api.GetProposal(context.Background(), w.proposal.Ref)
+		if err != nil {
+			return err
+		}
+		w.proposal = proposal
+		if proposal.Status == want {
+			return nil
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	return fmt.Errorf("proposal stayed %q for 90s, want %q", w.proposal.Status, want)
+}
+
+// assertAlgorithm checks the receipt names what the engine did, not what was expected of it.
+func (w *world) assertAlgorithm(want string) error {
+	if w.proposal.Algorithm != want {
+		return fmt.Errorf("receipt says algorithm %q, want %q", w.proposal.Algorithm, want)
+	}
+	return nil
 }
 
 func (w *world) assertProposalStatus(want string) error {

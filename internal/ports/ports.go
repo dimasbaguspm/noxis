@@ -59,8 +59,13 @@ type Driver interface {
 	// returns a verdict rather than an error for a change that does not survive: the caller stores
 	// the evidence either way.
 	Rehearse(ctx context.Context, target domain.Target, password string, change domain.Change) (domain.Rehearsal, error)
+	// Plan says how big the change is before it runs, so the caller can be told to poll instead of
+	// holding a request open for a table copy.
+	Plan(ctx context.Context, target domain.Target, password string, change domain.Change) (domain.Plan, error)
 	// Apply runs the approved statement for real, in one transaction where the engine has one.
-	Apply(ctx context.Context, target domain.Target, password string, change domain.Change) error
+	// report receives what the engine says about the statement while it runs; it may be nil.
+	Apply(ctx context.Context, target domain.Target, password string, change domain.Change,
+		report func(domain.Progress)) (domain.Receipt, error)
 }
 
 // Proposals is the store of proposed changes. A proposal is never deleted: a rejected one is a
@@ -73,6 +78,9 @@ type Proposals interface {
 	// ClaimProposal moves a proposal from one status to another only while it is still in `from`.
 	// Apply uses it before touching a database, so two operators cannot both believe they won.
 	ClaimProposal(ctx context.Context, ref string, from, to domain.Status) (domain.Proposal, error)
+	// SetProgress writes only what the engine said about the running statement, so the watcher never
+	// races the receipt that ends the apply.
+	SetProgress(ctx context.Context, ref string, progress domain.Progress) error
 }
 
 // ProposalFilter is one page of the queue: a keyset cursor, a ceiling, and the filters a reviewer

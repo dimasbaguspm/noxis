@@ -15,26 +15,38 @@ import (
 // proposalWire is a proposal on the wire. It carries the statement and its rollback because a
 // reviewer has to read both before deciding.
 type proposalWire struct {
-	Ref          string     `json:"ref"`
-	TargetRef    string     `json:"target_ref"`
-	Title        string     `json:"title"`
-	Kind         string     `json:"kind"`
-	Query        string     `json:"query"`
-	Rollback     string     `json:"rollback"`
-	Note         string     `json:"note"`
-	Status       string     `json:"status"`
-	Tier         string     `json:"tier"`
-	Irreversible bool       `json:"irreversible"`
-	ProposedBy   string     `json:"proposed_by"`
-	RehearsalRef string     `json:"rehearsal_ref,omitempty"`
-	DecidedBy    string     `json:"decided_by,omitempty"`
-	DecidedAt    *time.Time `json:"decided_at,omitempty"`
-	DecidedNote  string     `json:"decided_note,omitempty"`
-	AppliedBy    string     `json:"applied_by,omitempty"`
-	AppliedAt    *time.Time `json:"applied_at,omitempty"`
-	Failure      string     `json:"failure,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	Ref           string        `json:"ref"`
+	TargetRef     string        `json:"target_ref"`
+	Title         string        `json:"title"`
+	Kind          string        `json:"kind"`
+	Query         string        `json:"query"`
+	Rollback      string        `json:"rollback"`
+	Note          string        `json:"note"`
+	Status        string        `json:"status"`
+	Tier          string        `json:"tier"`
+	Irreversible  bool          `json:"irreversible"`
+	ProposedBy    string        `json:"proposed_by"`
+	RehearsalRef  string        `json:"rehearsal_ref,omitempty"`
+	DecidedBy     string        `json:"decided_by,omitempty"`
+	DecidedAt     *time.Time    `json:"decided_at,omitempty"`
+	DecidedNote   string        `json:"decided_note,omitempty"`
+	AppliedBy     string        `json:"applied_by,omitempty"`
+	AppliedAt     *time.Time    `json:"applied_at,omitempty"`
+	Failure       string        `json:"failure,omitempty"`
+	StartedAt     *time.Time    `json:"started_at,omitempty"`
+	Progress      *progressWire `json:"progress,omitempty"`
+	Algorithm     string        `json:"algorithm,omitempty"`
+	RowsEstimated int64         `json:"rows_estimated,omitempty"`
+	RowsAffected  int64         `json:"rows_affected,omitempty"`
+	CreatedAt     time.Time     `json:"created_at"`
+	UpdatedAt     time.Time     `json:"updated_at"`
+}
+
+// progressWire is what the engine said about a statement that was still running when the caller
+// asked. Percent is -1 when the engine does not report one.
+type progressWire struct {
+	Stage   string `json:"stage,omitempty"`
+	Percent int    `json:"percent"`
 }
 
 // rehearsalWire is the evidence behind a proposal: diffs, the note that says how far the claim
@@ -54,6 +66,15 @@ type rehearsalWire struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
+// progressOf reports progress only while a statement is running: a finished apply has nothing to
+// say about stages, and an absent field is clearer than a zero.
+func progressOf(progress domain.Progress) *progressWire {
+	if progress.Stage == "" && progress.Percent < 0 {
+		return nil
+	}
+	return &progressWire{Stage: progress.Stage, Percent: progress.Percent}
+}
+
 func toProposalWire(p domain.Proposal) proposalWire {
 	return proposalWire{
 		Ref: p.Ref, TargetRef: p.TargetRef, Title: p.Title, Kind: string(p.Kind), Query: p.Query,
@@ -61,6 +82,8 @@ func toProposalWire(p domain.Proposal) proposalWire {
 		Irreversible: p.Irreversible, ProposedBy: p.ProposedBy, RehearsalRef: p.RehearsalRef,
 		DecidedBy: p.DecidedBy, DecidedAt: p.DecidedAt, DecidedNote: p.DecidedNote,
 		AppliedBy: p.AppliedBy, AppliedAt: p.AppliedAt, Failure: p.Failure,
+		StartedAt: p.StartedAt, Algorithm: string(p.Algorithm), RowsEstimated: p.RowsEstimated,
+		RowsAffected: p.RowsAffected, Progress: progressOf(p.Progress),
 		CreatedAt: p.CreatedAt, UpdatedAt: p.UpdatedAt,
 	}
 }
@@ -246,7 +269,7 @@ func (h *Handlers) ApplyProposal(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	applied, err := h.Proposals.Apply.Run(r.Context(), proposal.ApplyInput{
+	out, err := h.Proposals.Apply.Run(r.Context(), proposal.ApplyInput{
 		Ref:                r.PathValue("ref"),
 		Actor:              middlewares.Caller(r.Context()).Name,
 		ConfirmDestructive: body.ConfirmDestructive,
@@ -255,7 +278,13 @@ func (h *Handlers) ApplyProposal(w http.ResponseWriter, r *http.Request) {
 		respond.Fail(w, h.Log, err)
 		return
 	}
-	respond.OK(w, toProposalWire(applied))
+	if out.Started {
+		// The statement outlives the request: the answer is "poll the proposal", not a held
+		// connection and a client timeout that says nothing about the change.
+		respond.Accepted(w, toProposalWire(out.Proposal))
+		return
+	}
+	respond.OK(w, toProposalWire(out.Proposal))
 }
 
 // journalWire is one line of the append-only history, on the wire.
