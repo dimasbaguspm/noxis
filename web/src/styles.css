@@ -43,3 +43,71 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* The Alert, made to be read. Ant Design ships a dense banner; this console has one message per
+   screen, so it gets room, a bigger line, and a border in the tone's own colour rather than a
+   background wash that fights the white. */
+.noxis-alert.ant-alert {
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--color-line);
+  background: #ffffff;
+}
+
+.noxis-alert .ant-alert-icon {
+  margin-top: 2px;
+  font-size: 17px;
+}
+
+.noxis-alert .ant-alert-message {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.noxis-alert .ant-alert-description {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.noxis-alert-error.ant-alert {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.noxis-alert-warning.ant-alert {
+  border-color: #fed7aa;
+  background: var(--color-brand-soft);
+}
+
+.noxis-alert-success.ant-alert {
+  border-color: #bbf7d0;
+  background: #f7fdf9;
+}
+
+/* One table style for the whole console: the header is a label rather than a row, and the body is
+   the only place a monospaced value appears inside one. */
+.noxis-data-table .ant-table {
+  font-size: 13.5px;
+}
+
+.noxis-data-table .ant-table-thead > tr > th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  background: transparent;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.noxis-data-table .ant-table-tbody > tr > td {
+  padding-block: 10px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.noxis-data-table .ant-table-tbody > tr:last-child > td {
+  border-bottom: 0;
+}

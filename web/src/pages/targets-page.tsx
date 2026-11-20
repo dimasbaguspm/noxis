@@ -1,10 +1,11 @@
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Alert, App as AntApp, Card, Drawer, Input, Tag } from 'antd';
+import { App as AntApp, Card, Drawer, Input, Tag } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateTarget, useTargets, useTestConnection } from '../api/queries';
 import { driverOptions, targetDefaults, targetSchema, tlsOptions } from '../forms/schemas';
 import type { TargetValues } from '../forms/schemas';
+import { Alert } from '../components/alert';
 import { AppButton } from '../components/app-button';
 import { AsyncState } from '../components/async-state';
 import { Form } from '../components/form';
@@ -223,10 +224,9 @@ function CreateTargetForm({ onCreated }: { onCreated: (target: Target) => void }
       <TextInput name="password" label="Password" password autoComplete="new-password" />
       <RenderWhen condition={blocked}>
         <Alert
-          type="warning"
-          showIcon
+          tone="warning"
           className="mb-3"
-          message="The instance did not answer"
+          title="The instance did not answer"
           description={blocked?.message}
           action={
             <AppButton
@@ -238,11 +238,6 @@ function CreateTargetForm({ onCreated }: { onCreated: (target: Target) => void }
             </AppButton>
           }
         />
-      </RenderWhen>
-      <RenderWhen condition={create.error}>
-        <p role="alert" className="mb-3 text-sm text-red-600">
-          {create.error instanceof Error ? create.error.message : String(create.error)}
-        </p>
       </RenderWhen>
       <Form.Submit block>Register</Form.Submit>
     </Form>

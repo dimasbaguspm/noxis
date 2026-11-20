@@ -8,7 +8,7 @@ import { PermissionProvider } from '../api/permissions';
 import { AppShell } from './app-shell';
 import { SignIn } from './sign-in';
 import { TargetsPage } from '../pages/targets-page';
-
+import { ErrorBoundary } from '../components/error-boundary';
 // The instance and proposal screens bring Monaco with them; the list is what an operator opens every
 // time, so it never pays for the editor.
 const TargetPage = lazy(() =>
@@ -25,7 +25,9 @@ export function App() {
         <SessionProvider>
           <PermissionProvider>
             <BrowserRouter>
-              <Gate />
+              <ErrorBoundary>
+                <Gate />
+              </ErrorBoundary>
             </BrowserRouter>
           </PermissionProvider>
         </SessionProvider>
@@ -37,10 +39,14 @@ export function App() {
 function Gate() {
   const { boot } = useSession();
 
+  // The sign-in screen is the whole window: a split needs the edges, and a topbar above a two-column
+  // page would make the split look like a panel rather than a page.
+  if (boot === 'anonymous') return <SignIn />;
+
   if (boot !== 'ready') {
     return (
-      <AppShell anonymous={boot === 'anonymous'}>
-        {boot === 'anonymous' ? <SignIn /> : <Skeleton active paragraph={{ rows: 6 }} />}
+      <AppShell>
+        <Skeleton active paragraph={{ rows: 6 }} />
       </AppShell>
     );
   }

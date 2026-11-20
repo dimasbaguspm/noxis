@@ -1,11 +1,12 @@
 import { CheckOutlined, CloseOutlined, RedoOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import { Alert, App as AntApp, Card, Descriptions, Flex, Input, Tag, Timeline } from 'antd';
+import { App as AntApp, Card, Descriptions, Flex, Input, Tag, Timeline } from 'antd';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useSession } from '../api/session-context';
 import { Can, usePermissions } from '../api/permissions';
 import { useEvents, useProposal, useProposalActions } from '../api/queries';
 import { AppButton } from '../components/app-button';
+import { Alert } from '../components/alert';
 import { AsyncState } from '../components/async-state';
 import { RenderWhen } from '../components/render-when';
 import { SqlBlock, StatusTag } from '../components/sql-block';
@@ -116,11 +117,7 @@ export function ProposalPage() {
                   {found.rollback ? (
                     <SqlBlock sql={found.rollback} label="rollback" />
                   ) : (
-                    <Alert
-                      type="warning"
-                      showIcon
-                      message="No rollback: this change is irreversible"
-                    />
+                    <Alert tone="warning" title="No rollback: this change is irreversible" />
                   )}
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -207,7 +204,7 @@ export function ProposalPage() {
                         <p className="m-0 text-sm">{found.rehearsal.note}</p>
                       </RenderWhen>
                       <RenderWhen condition={found.rehearsal.error}>
-                        <Alert type="error" showIcon message={found.rehearsal.error} />
+                        <Alert tone="error" title={found.rehearsal.error} />
                       </RenderWhen>
                       <RenderWhen condition={found.rehearsal.schema_diff}>
                         <SqlBlock sql={found.rehearsal.schema_diff ?? ''} label="schema diff" />

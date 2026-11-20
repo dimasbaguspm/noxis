@@ -1,5 +1,7 @@
-import { Alert, Skeleton } from 'antd';
+import { Skeleton } from 'antd';
 import type { ReactNode } from 'react';
+import { Alert } from './alert';
+import { AppButton } from './app-button';
 import { EmptyState } from './empty-state';
 import { RenderWhen } from './render-when';
 
@@ -34,16 +36,15 @@ export function AsyncState({
   if (error) {
     return (
       <Alert
-        type="error"
-        showIcon
-        message="That did not work"
+        tone="error"
+        title="That did not work"
         description={error instanceof Error ? error.message : String(error)}
         action={
           onRetry ? (
-            <button type="button" onClick={onRetry} className="px-2 text-brand underline">
+            <AppButton size="small" onClick={onRetry}>
               Try again
-            </button>
-          ) : null
+            </AppButton>
+          ) : undefined
         }
       />
     );

@@ -1,32 +1,26 @@
 import { ApiOutlined, PlayCircleOutlined } from '@ant-design/icons';
-import {
-  Alert,
-  App as AntApp,
-  Card,
-  Descriptions,
-  Input,
-  Segmented,
-  Table,
-  Tabs,
-  Tag,
-  Typography,
-} from 'antd';
+import { App as AntApp, Card, Input, Segmented, Tabs, Tag, Typography } from 'antd';
 import { useMemo, useState } from 'react';
 import { Breadcrumb } from '../components/breadcrumb';
 import { Link, useParams } from 'react-router-dom';
 import { useProbeTarget, useProposals, useRunQuery, useSchema, useTarget } from '../api/queries';
+import { Alert } from '../components/alert';
 import { AppButton } from '../components/app-button';
 import { AsyncState } from '../components/async-state';
+import { DataTable } from '../components/data-table';
+import type { Column } from '../components/data-table';
+import { Panel, Tile, Tiles } from '../components/panel';
 import { RenderWhen } from '../components/render-when';
 import { StatusTag } from '../components/sql-block';
 import { SqlEditor } from '../editor/sql-editor';
 import type { Proposal, Rows, Target } from '../api/types';
 
-// The instance page: what this server is, and the four things an operator does with it. ERD is absent
+// The instance page: what this server is, and the three things an operator does with it. ERD is absent
 // on purpose — the API exposes columns and indexes, not foreign keys, and a diagram from half a graph
 // is a confident lie.
 
 type Tab = 'query' | 'dml' | 'ddl';
+type Row = Record<string, string | null>;
 
 export function TargetPage() {
   const { ref = '' } = useParams();
@@ -48,7 +42,7 @@ export function TargetPage() {
           {target.data ? (
             <>
               <Card>
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-4">
                   <div className="flex flex-wrap items-center gap-2.5">
                     <h1 id="target-title" className="m-0 text-xl font-semibold">
                       {target.data.name}
@@ -61,18 +55,20 @@ export function TargetPage() {
                       <Tag>archived</Tag>
                     </RenderWhen>
                   </div>
-                  <Descriptions size="small" column={{ xs: 1, sm: 2, lg: 3 }}>
-                    <Descriptions.Item label="Host">
-                      <span className="font-mono text-xs">
-                        {target.data.username}@{target.data.host}:{target.data.port}
-                      </span>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Database">{target.data.database}</Descriptions.Item>
-                    <Descriptions.Item label="TLS">{target.data.tls_mode}</Descriptions.Item>
-                    <Descriptions.Item label="Registered by">
-                      {target.data.created_by}
-                    </Descriptions.Item>
-                  </Descriptions>
+
+                  <Panel>
+                    <Tiles>
+                      <Tile
+                        label="Host"
+                        mono
+                        value={`${target.data.username}@${target.data.host}:${target.data.port}`}
+                      />
+                      <Tile label="Database" mono value={target.data.database} />
+                      <Tile label="TLS" value={target.data.tls_mode} />
+                      <Tile label="Registered by" value={target.data.created_by} />
+                    </Tiles>
+                  </Panel>
+
                   <Connectivity target={target.data} />
                 </div>
               </Card>
@@ -107,9 +103,9 @@ function Connectivity({ target }: { target: Target }) {
   const ok = target.last_probe_status === 'ok';
 
   return (
-    <div className="mt-4 flex flex-col gap-2 border-t border-line pt-3">
+    <div className="flex flex-col gap-2 border-t border-line pt-3">
       <div className="flex flex-wrap items-center gap-2.5">
-        <span className="text-xs font-semibold tracking-wide text-muted uppercase">
+        <span className="text-[11px] font-semibold tracking-[0.08em] text-muted uppercase">
           Connectivity
         </span>
         <RenderWhen condition={target.last_probe_status}>
@@ -148,12 +144,7 @@ function Connectivity({ target }: { target: Target }) {
         </AppButton>
       </div>
       <RenderWhen condition={failure}>
-        <Alert
-          type="error"
-          showIcon
-          message="The instance did not answer"
-          description={failure ?? ''}
-        />
+        <Alert tone="error" title="The instance did not answer" description={failure} />
       </RenderWhen>
     </div>
   );
@@ -164,20 +155,16 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
   const run = useRunQuery(ref_);
   const schema = useSchema(ref_, database);
 
-  const columns = useMemo(
+  const columns: Column<Row>[] = useMemo(
     () =>
-      (run.data?.columns ?? []).map((column, index) => ({
-        title: column.name,
-        dataIndex: `c${index}`,
-        key: column.name,
-      })),
+      (run.data?.columns ?? []).map((column, index) => ({ key: `c${index}`, title: column.name })),
     [run.data],
   );
 
-  const rows = useMemo(() => {
+  const records: Row[] = useMemo(() => {
     const values: (string | null)[][] = run.data?.values ?? [];
     return values.map((row, index) => {
-      const record: Record<string, string | null> = { key: String(index) };
+      const record: Row = { key: String(index) };
       row.forEach((cell, column) => {
         record[`c${column}`] = cell;
       });
@@ -187,7 +174,7 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <Alert type="info" showIcon message="SELECT, EXPLAIN and SHOW only" />
+      <Alert tone="info" title="SELECT, EXPLAIN and SHOW only" />
       <SqlEditor value={sql} onChange={setSql} schema={schema.data ?? null} height={200} />
       <div className="flex gap-2">
         <AppButton
@@ -201,13 +188,13 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
       </div>
       <RenderWhen condition={run.error}>
         <Alert
-          type="error"
-          showIcon
-          message={run.error instanceof Error ? run.error.message : 'failed'}
+          tone="error"
+          title="That statement did not run"
+          description={run.error instanceof Error ? run.error.message : 'failed'}
         />
       </RenderWhen>
       <RenderWhen condition={run.data}>
-        <Result rows={run.data as Rows} columns={columns} records={rows} />
+        <Result rows={run.data as Rows} columns={columns} records={records} />
       </RenderWhen>
     </div>
   );
@@ -219,8 +206,8 @@ function Result({
   records,
 }: {
   rows: Rows;
-  columns: { title: string; dataIndex: string; key: string }[];
-  records: Record<string, string | null>[];
+  columns: Column<Row>[];
+  records: Row[];
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -228,14 +215,7 @@ function Result({
         {rows.row_count} row{rows.row_count === 1 ? '' : 's'}
         {rows.truncated ? ' · truncated by the limit the API applied' : ''}
       </Typography.Text>
-      <Table
-        size="small"
-        rowKey="key"
-        pagination={false}
-        scroll={{ x: 'max-content' }}
-        dataSource={records}
-        columns={columns}
-      />
+      <DataTable rows={records} columns={columns} rowKey={(row) => String(row.key)} compact />
     </div>
   );
 }
@@ -287,28 +267,26 @@ function Queue({ target, kind }: { target: string; kind?: 'dml' | 'ddl' }) {
         empty={visible.length === 0}
         emptyDescription="Nothing matches"
       >
-        <Table<Proposal>
-          size="small"
-          rowKey="ref"
-          pagination={false}
-          scroll={{ x: 'max-content' }}
-          dataSource={visible}
+        <DataTable<Proposal>
+          rows={visible}
+          rowKey={(row) => row.ref}
+          compact
           columns={[
             {
+              key: 'title',
               title: 'Title',
-              dataIndex: 'title',
-              render: (_: unknown, row) => (
+              render: (row) => (
                 <Link to={`/proposals/${row.ref}`} className="text-brand hover:underline">
                   {row.title}
                 </Link>
               ),
             },
             {
+              key: 'status',
               title: 'Status',
-              dataIndex: 'status',
-              render: (value: string) => <StatusTag status={value} />,
+              render: (row) => <StatusTag status={row.status} />,
             },
-            { title: 'By', dataIndex: 'proposed_by', responsive: ['md'] },
+            { key: 'proposed_by', title: 'Proposed by', showFrom: 'md' },
           ]}
         />
       </AsyncState>
