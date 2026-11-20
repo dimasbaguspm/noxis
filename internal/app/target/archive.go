@@ -3,6 +3,7 @@ package target
 import (
 	"context"
 	"fmt"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"time"
@@ -23,7 +24,10 @@ type ArchiveInput struct {
 
 // Run archives once. A second attempt is a conflict, not a no-op, because a caller that
 // believes it archived something twice has lost track of the state.
-func (a *Archive) Run(ctx context.Context, in ArchiveInput) (domain.Target, error) {
+func (a *Archive) Run(ctx context.Context, in ArchiveInput) (out0 domain.Target, err error) {
+	ctx, end := telemetry.Span(ctx, "target.Archive.Run")
+	defer func() { end(err) }()
+
 	ref, err := requireRef(in.Ref)
 	if err != nil {
 		return domain.Target{}, err

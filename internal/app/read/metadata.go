@@ -3,6 +3,7 @@ package read
 import (
 	"context"
 	"fmt"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 	"strings"
 )
@@ -14,7 +15,10 @@ type Databases struct{ Deps }
 func NewDatabases(d Deps) *Databases { return &Databases{Deps: d} }
 
 // Run reads the schema list.
-func (d *Databases) Run(ctx context.Context, ref string) ([]string, error) {
+func (d *Databases) Run(ctx context.Context, ref string) (out0 []string, err error) {
+	ctx, end := telemetry.Span(ctx, "read.Databases.Run")
+	defer func() { end(err) }()
+
 	target, password, err := d.connect(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -37,7 +41,10 @@ type TablesInput struct {
 }
 
 // Run reads the table list.
-func (t *Tables) Run(ctx context.Context, in TablesInput) ([]domain.Table, error) {
+func (t *Tables) Run(ctx context.Context, in TablesInput) (out0 []domain.Table, err error) {
+	ctx, end := telemetry.Span(ctx, "read.Tables.Run")
+	defer func() { end(err) }()
+
 	if strings.TrimSpace(in.Database) == "" {
 		return nil, fmt.Errorf("%w: a schema name is required", domain.ErrInvalid)
 	}
@@ -64,7 +71,10 @@ type TableInput struct {
 }
 
 // Run reads one table's definition.
-func (t *Table) Run(ctx context.Context, in TableInput) (domain.TableDetail, error) {
+func (t *Table) Run(ctx context.Context, in TableInput) (out0 domain.TableDetail, err error) {
+	ctx, end := telemetry.Span(ctx, "read.Table.Run")
+	defer func() { end(err) }()
+
 	if strings.TrimSpace(in.Database) == "" || strings.TrimSpace(in.Table) == "" {
 		return domain.TableDetail{}, fmt.Errorf("%w: a schema and a table name are required", domain.ErrInvalid)
 	}

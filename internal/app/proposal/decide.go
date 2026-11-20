@@ -3,6 +3,7 @@ package proposal
 import (
 	"context"
 	"fmt"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"time"
@@ -25,7 +26,10 @@ type DecideInput struct {
 }
 
 // Run refuses a decision that separation of duties, or the rehearsal, does not allow.
-func (d *Decide) Run(ctx context.Context, in DecideInput) (domain.Proposal, error) {
+func (d *Decide) Run(ctx context.Context, in DecideInput) (out0 domain.Proposal, err error) {
+	ctx, end := telemetry.Span(ctx, "proposal.Decide.Run")
+	defer func() { end(err) }()
+
 	ref, err := requireRef(in.Ref)
 	if err != nil {
 		return domain.Proposal{}, err

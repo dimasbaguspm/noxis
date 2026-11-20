@@ -3,6 +3,7 @@ package proposal
 import (
 	"context"
 	"fmt"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 )
 
@@ -21,7 +22,10 @@ type RehearseInput struct {
 
 // Run refuses to re-rehearse something a human already decided: evidence behind an approval that
 // has been given is not the same evidence the reviewer saw.
-func (r *Rehearse) Run(ctx context.Context, in RehearseInput) (domain.Proposal, domain.Rehearsal, error) {
+func (r *Rehearse) Run(ctx context.Context, in RehearseInput) (out0 domain.Proposal, out1 domain.Rehearsal, err error) {
+	ctx, end := telemetry.Span(ctx, "proposal.Rehearse.Run")
+	defer func() { end(err) }()
+
 	value, err := requireRef(in.Ref)
 	if err != nil {
 		return domain.Proposal{}, domain.Rehearsal{}, err

@@ -3,6 +3,7 @@ package target
 import (
 	"context"
 	"noxis/internal/common/ref"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"time"
@@ -31,7 +32,10 @@ type CreateInput struct {
 
 // Run validates, seals, stores and journals. The returned target never carries the
 // plaintext password.
-func (c *Create) Run(ctx context.Context, in CreateInput) (domain.Target, error) {
+func (c *Create) Run(ctx context.Context, in CreateInput) (out0 domain.Target, err error) {
+	ctx, end := telemetry.Span(ctx, "target.Create.Run")
+	defer func() { end(err) }()
+
 	now := time.Now().UTC()
 	target := domain.Target{
 		Ref:       ref.New(),

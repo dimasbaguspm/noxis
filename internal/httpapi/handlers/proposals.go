@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"noxis/internal/app/proposal"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"noxis/internal/httpapi/middlewares"
@@ -99,6 +100,10 @@ func toRehearsalWire(r domain.Rehearsal) rehearsalWire {
 // rehearsal that does not prove the change still answers 201 with the proposal: the artifact is the
 // point, and `failed` is a verdict, not a transport error.
 func (h *Handlers) CreateProposal(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.CreateProposal")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	var body struct {
 		Title    string `json:"title"`
 		Query    string `json:"query"`
@@ -139,6 +144,10 @@ func wireOf(rehearsal domain.Rehearsal) *rehearsalWire {
 
 // ListProposals answers one page of the queue. `mine` is the caller's own name, not a parameter.
 func (h *Handlers) ListProposals(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.ListProposals")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	query := r.URL.Query()
 	limit := 0
 	if raw := query.Get("limit"); raw != "" {
@@ -179,6 +188,10 @@ func mine(value, caller string) string {
 
 // GetProposal reads one proposal with the rehearsal that last judged it.
 func (h *Handlers) GetProposal(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.GetProposal")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	out, err := h.Proposals.Get.Run(r.Context(), r.PathValue("ref"))
 	if err != nil {
 		respond.Fail(w, h.Log, err)
@@ -196,6 +209,10 @@ func (h *Handlers) GetProposal(w http.ResponseWriter, r *http.Request) {
 
 // RehearseProposal re-runs the proof for a proposal that has not been decided.
 func (h *Handlers) RehearseProposal(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.RehearseProposal")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	var body struct {
 		Tier string `json:"tier,omitempty"`
 	}
@@ -223,11 +240,19 @@ func (h *Handlers) RehearseProposal(w http.ResponseWriter, r *http.Request) {
 // route asks for `approve`, and the use case refuses a token that also proposed it unless it is an
 // admin — in which case the exception is journalled.
 func (h *Handlers) ApproveProposal(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.ApproveProposal")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	h.decide(w, r, true)
 }
 
 // RejectProposal records a refusal. A rejection may be the proposer withdrawing their own idea.
 func (h *Handlers) RejectProposal(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.RejectProposal")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	h.decide(w, r, false)
 }
 
@@ -259,6 +284,10 @@ func (h *Handlers) decide(w http.ResponseWriter, r *http.Request, approve bool) 
 // ApplyProposal runs the approved statement. `confirm_destructive` is required when the rehearsal
 // said the change cannot be undone.
 func (h *Handlers) ApplyProposal(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.ApplyProposal")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	var body struct {
 		ConfirmDestructive bool `json:"confirm_destructive,omitempty"`
 	}
@@ -299,6 +328,10 @@ type journalWire struct {
 
 // ProposalEvents answers the history of one proposal, newest first.
 func (h *Handlers) ProposalEvents(w http.ResponseWriter, r *http.Request) {
+	ctx, end := telemetry.Span(r.Context(), "handlers.ProposalEvents")
+	defer end(nil)
+	r = r.WithContext(ctx)
+
 	entries, err := h.Proposals.Events.Run(r.Context(), r.PathValue("ref"))
 	if err != nil {
 		respond.Fail(w, h.Log, err)

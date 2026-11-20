@@ -3,6 +3,7 @@ package target
 import (
 	"context"
 	"fmt"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"time"
@@ -30,7 +31,10 @@ type ProbeOutput struct {
 
 // Run connects, asks the server who it is, writes the answer back and journals it. A failed
 // probe is stored and returned: the caller learns both.
-func (p *Probe) Run(ctx context.Context, in ProbeInput) (ProbeOutput, error) {
+func (p *Probe) Run(ctx context.Context, in ProbeInput) (out0 ProbeOutput, err error) {
+	ctx, end := telemetry.Span(ctx, "target.Probe.Run")
+	defer func() { end(err) }()
+
 	ref, err := requireRef(in.Ref)
 	if err != nil {
 		return ProbeOutput{}, err
