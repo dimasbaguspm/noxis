@@ -24,6 +24,9 @@ jobs:
       # A port that gained a method and a mock that did not is a lie the next test tells.
       - name: mocks are generated
         run: make mocks && git diff --exit-code
+      # The document is annotations plus a generator; a handler whose annotation moved must move it.
+      - name: spec is generated
+        run: make spec && git diff --exit-code
       - name: build
         run: make build
       - name: test

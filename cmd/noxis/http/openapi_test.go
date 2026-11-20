@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	apiserver "noxis/cmd/noxis/http"
-	"sort"
 	"strings"
 	"testing"
 
@@ -29,9 +28,9 @@ func load(t *testing.T) document {
 	return doc
 }
 
-// A route the document does not describe is a route nobody can call on purpose, and a scope that
-// disagrees with the route table is worse: the document would promise a permission the server does
-// not grant.
+// A route the document does not describe is a route nobody can call on purpose; an operation the
+// document describes and the server does not serve is worse, because a client writes code against a
+// 404. The annotations are the source, so this test is the only thing between them and a lie.
 func TestEveryRouteIsDocumented(t *testing.T) {
 	doc := load(t)
 	if !strings.HasPrefix(doc.OpenAPI, "3.1") {
@@ -41,6 +40,7 @@ func TestEveryRouteIsDocumented(t *testing.T) {
 		t.Fatal("info needs a title and a version")
 	}
 
+	served := make(map[string]bool, len(doc.Paths))
 	for _, route := range apiserver.Routes(apiserver.Deps{}) {
 		item, ok := doc.Paths[route.Path]
 		if !ok {
@@ -50,17 +50,23 @@ func TestEveryRouteIsDocumented(t *testing.T) {
 		if !ok {
 			t.Fatalf("%s %s is served but not documented", route.Method, route.Path)
 		}
+		served[strings.ToLower(route.Method)+" "+route.Path] = true
 
-		declared := scopeList(operation["x-scopes"])
-		want := append([]string(nil), route.Scopes...)
-		sort.Strings(declared)
-		sort.Strings(want)
-		if strings.Join(declared, ",") != strings.Join(want, ",") {
-			t.Fatalf("%s %s declares scopes %v, the route table says %v", route.Method, route.Path, declared, want)
+		// A public route must not inherit the document's default security; a route behind a token
+		// must name the scheme, or a client cannot know it needs one.
+		_, secured := operation["security"]
+		if route.Public && secured {
+			t.Fatalf("%s %s is public, so the operation cannot require a token", route.Method, route.Path)
 		}
-		if route.Public {
-			if _, ok := operation["security"]; !ok {
-				t.Fatalf("%s %s is public, so the operation has to say `security: []`", route.Method, route.Path)
+		if !route.Public && !secured {
+			t.Fatalf("%s %s needs a token, so the operation has to name the scheme", route.Method, route.Path)
+		}
+	}
+
+	for path, item := range doc.Paths {
+		for method := range item {
+			if !served[method+" "+path] {
+				t.Fatalf("the document describes %s %s, which the route table does not serve", method, path)
 			}
 		}
 	}
@@ -106,22 +112,6 @@ func TestOpenAPIRoutes(t *testing.T) {
 	}
 }
 
-func scopeList(value any) []string {
-	items, ok := value.([]any)
-	if !ok {
-		return nil
-	}
-	out := make([]string, 0, len(items))
-	for _, item := range items {
-		if text, ok := item.(string); ok {
-			out = append(out, text)
-		}
-	}
-	return out
-}
-
-// openAPIContract is the embedded document, reachable through the YAML route: the test reads what a
-// client reads, not a file path that only the test knows.
 func openAPIContract(t *testing.T) []byte {
 	t.Helper()
 	rec := httptest.NewRecorder()

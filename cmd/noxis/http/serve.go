@@ -21,6 +21,20 @@ import (
 // import because a transport that constructs a database is a transport nobody can test.
 type Builder func(ctx context.Context, cfg config.Config, statePath string, log *slog.Logger) (http.Handler, io.Closer, error)
 
+// The API's general information, read by `make spec`. Every operation is annotated where it is
+// handled; this block is the part that is about the API rather than about one route.
+//
+// @title noXis API
+// @version 2.0.0-dev
+// @description Reviewed access to MySQL and MariaDB. An agent reads through `read`, proposes through `propose`, and a human holding `approve` and `apply` decides. A proposal is rehearsed — the schema is rebuilt in a throwaway database and the rollback must restore it — so the reviewer sees evidence rather than a check mark.
+// @contact.name noXis
+// @license.name MIT
+// @host localhost:9000
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description `Bearer <token>`. The scopes a route needs are declared in the route table; a token without them is refused before the handler runs.
+//
 // NewHTTP is the server half of the binary: the process that owns the state file and answers the
 // API the CLI talks to. It is a command, not a second executable, so an image is one file.
 func NewHTTP(build Builder) *cobra.Command {

@@ -13,33 +13,39 @@ import (
 	"strings"
 )
 
-type envelope struct {
-	Data  any       `json:"data,omitempty"`
-	Meta  *meta     `json:"meta,omitempty"`
-	Error *apiError `json:"error,omitempty"`
+// Envelope is every answer this API gives, on a success and on a refusal alike. It is exported
+// because it is the document's shape as much as the client's: one type, one place a field can be
+// added, and the generated spec names it.
+type Envelope struct {
+	Data  any    `json:"data,omitempty"`
+	Meta  *Meta  `json:"meta,omitempty"`
+	Error *Error `json:"error,omitempty"`
 }
 
-type meta struct {
+// Meta is what a list carries beside its page.
+type Meta struct {
 	NextCursor string `json:"next_cursor,omitempty"`
 }
 
-type apiError struct {
+// Error is a refusal a client can act on: a stable code and a sentence written for the person
+// reading it.
+type Error struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
 // OK writes one resource.
-func OK(w http.ResponseWriter, data any) { write(w, http.StatusOK, envelope{Data: data}) }
+func OK(w http.ResponseWriter, data any) { write(w, http.StatusOK, Envelope{Data: data}) }
 
 // Created writes the resource a POST minted, at the status that says so.
-func Created(w http.ResponseWriter, data any) { write(w, http.StatusCreated, envelope{Data: data}) }
+func Created(w http.ResponseWriter, data any) { write(w, http.StatusCreated, Envelope{Data: data}) }
 
 // Accepted writes the work a POST started but did not finish, at the status that says "poll me".
-func Accepted(w http.ResponseWriter, data any) { write(w, http.StatusAccepted, envelope{Data: data}) }
+func Accepted(w http.ResponseWriter, data any) { write(w, http.StatusAccepted, Envelope{Data: data}) }
 
 // Page writes a list and names the cursor that follows it, if there is one.
 func Page(w http.ResponseWriter, data any, next string) {
-	write(w, http.StatusOK, envelope{Data: data, Meta: &meta{NextCursor: next}})
+	write(w, http.StatusOK, Envelope{Data: data, Meta: &Meta{NextCursor: next}})
 }
 
 // Fail maps a domain sentinel onto a status and a code. An error it does not recognise
@@ -83,10 +89,10 @@ func cause(err error) string {
 // Refuse writes a failure without an error value: the middlewares refuse before any use
 // case exists to return one.
 func Refuse(w http.ResponseWriter, status int, code, message string) {
-	write(w, status, envelope{Error: &apiError{Code: code, Message: message}})
+	write(w, status, Envelope{Error: &Error{Code: code, Message: message}})
 }
 
-func write(w http.ResponseWriter, status int, body envelope) {
+func write(w http.ResponseWriter, status int, body Envelope) {
 	buf, err := json.Marshal(body)
 	if err != nil {
 		// The envelope is ours and always marshals; this branch exists so a future

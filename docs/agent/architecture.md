@@ -38,18 +38,21 @@ Rules, enforced by `test/arch`:
 
 1. `middlewares.Chain` wraps the mux: `Recover → CORS → Access`. Access logs the
    status and the request id.
-2. `routes.go` is the single route table — `{Method, Path, Handler, Scopes, Public}`.
+2. `openapi.go` serves the document `make spec` generated from the annotations: a route's
+   `@Router` line and the route table are two descriptions of one API, and
+   `TestEveryRouteIsDocumented` compares them in both directions.
+3. `routes.go` is the single route table — `{Method, Path, Handler, Scopes, Public}`.
    A route that is not `Public` gets `Authenticator.Require(scopes)` attached here, so
    scope rules are reviewable in one screen.
-3. `Authenticator` resolves the bearer token against the env-declared set (constant
+4. `Authenticator` resolves the bearer token against the env-declared set (constant
    time, over digests), attaches `domain.Caller{Name, Scopes}` to the request context,
    and refuses before the handler runs.
-4. The handler reads the body and path params, calls one use case, and writes with
+5. The handler reads the body and path params, calls one use case, and writes with
    `respond` / `fail`.
-5. The use case calls the ports it holds as fields, built once in `cmd/noxis/wiring.go`,
+6. The use case calls the ports it holds as fields, built once in `cmd/noxis/wiring.go`,
    and returns a domain value or a sentinel error.
-6. `POST /proposals/{ref}/apply` answers **202** when the table is past `constants.ApplyBackgroundRows`: the claim happens in the request, the statement runs in a goroutine on `context.WithoutCancel`, and the caller polls `GET /proposals/{ref}` for `progress` and, at the end, the `algorithm` the engine chose. Below the threshold the answer waits and the receipt comes back with it.
-7. `fail` maps `ErrNotFound → 404`, `ErrForbidden → 403`, `ErrUnauthorized → 401`,
+7. `POST /proposals/{ref}/apply` answers **202** when the table is past `constants.ApplyBackgroundRows`: the claim happens in the request, the statement runs in a goroutine on `context.WithoutCancel`, and the caller polls `GET /proposals/{ref}` for `progress` and, at the end, the `algorithm` the engine chose. Below the threshold the answer waits and the receipt comes back with it.
+8. `fail` maps `ErrNotFound → 404`, `ErrForbidden → 403`, `ErrUnauthorized → 401`,
    `ErrConflict → 409`, `ErrUnsupported → 422`, `ErrInvalid → 400`; anything else is
    500 with a logged cause and a generic body.
 

@@ -78,22 +78,22 @@ func toWires(targets []domain.Target) []targetWire {
 
 // CreateTarget registers one target. It needs `admin`: a token that may read must not be
 // able to widen what the server points at.
+// @Summary Register a target
+// @Description Requires the admin scope. The password is sealed with SECRET_KEY and never returned.
+// @Tags targets
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param body body handlers.CreateTargetRequest true "the server to govern"
+// @Success 201 {object} respond.Envelope
+// @Failure 400 {object} respond.Envelope
+// @Router /v1/targets [post]
 func (h *Handlers) CreateTarget(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.CreateTarget")
 	defer end(nil)
 	r = r.WithContext(ctx)
 
-	var body struct {
-		Name     string            `json:"name"`
-		Driver   string            `json:"driver"`
-		Host     string            `json:"host"`
-		Port     int               `json:"port"`
-		Database string            `json:"database"`
-		Username string            `json:"username"`
-		Password string            `json:"password"`
-		TLSMode  string            `json:"tls_mode"`
-		Options  map[string]string `json:"options"`
-	}
+	var body CreateTargetRequest
 	if err := decode(w, r, &body); err != nil {
 		respond.Fail(w, h.Log, err)
 		return
@@ -118,6 +118,19 @@ func (h *Handlers) CreateTarget(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListTargets answers one page of targets, newest first.
+// @Summary List targets
+// @Description One page of governed servers, newest first. Paging is a keyset cursor, never an offset.
+// @Tags targets
+// @Produce json
+// @Security BearerAuth
+// @Param limit query int false "page size"
+// @Param cursor query string false "the last ref of the previous page"
+// @Param driver query string false "mysql or mariadb"
+// @Param q query string false "name filter"
+// @Param include_archived query bool false "include archived targets"
+// @Success 200 {object} respond.Envelope
+// @Failure 400 {object} respond.Envelope
+// @Router /v1/targets [get]
 func (h *Handlers) ListTargets(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.ListTargets")
 	defer end(nil)
@@ -144,6 +157,14 @@ func (h *Handlers) ListTargets(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetTarget reads one target by reference.
+// @Summary Read one target
+// @Tags targets
+// @Produce json
+// @Security BearerAuth
+// @Param ref path string true "target reference"
+// @Success 200 {object} respond.Envelope
+// @Failure 404 {object} respond.Envelope
+// @Router /v1/targets/{ref} [get]
 func (h *Handlers) GetTarget(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.GetTarget")
 	defer end(nil)
@@ -158,18 +179,23 @@ func (h *Handlers) GetTarget(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateTarget rotates a password, renames a target, or retunes its TLS mode and options.
+// @Summary Patch a target
+// @Description A field that is absent is a field nobody asked to change. Requires the admin scope.
+// @Tags targets
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param ref path string true "target reference"
+// @Param body body handlers.UpdateTargetRequest true "the fields to change"
+// @Success 200 {object} respond.Envelope
+// @Failure 400 {object} respond.Envelope
+// @Router /v1/targets/{ref} [patch]
 func (h *Handlers) UpdateTarget(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.UpdateTarget")
 	defer end(nil)
 	r = r.WithContext(ctx)
 
-	var body struct {
-		Name     *string            `json:"name"`
-		Username *string            `json:"username"`
-		Password *string            `json:"password"`
-		TLSMode  *string            `json:"tls_mode"`
-		Options  *map[string]string `json:"options"`
-	}
+	var body UpdateTargetRequest
 	if err := decode(w, r, &body); err != nil {
 		respond.Fail(w, h.Log, err)
 		return
@@ -193,6 +219,15 @@ func (h *Handlers) UpdateTarget(w http.ResponseWriter, r *http.Request) {
 }
 
 // ArchiveTarget puts a target away. Nothing is deleted.
+// @Summary Archive a target
+// @Description Nothing is deleted: the target is put away and the journal keeps the row.
+// @Tags targets
+// @Produce json
+// @Security BearerAuth
+// @Param ref path string true "target reference"
+// @Success 200 {object} respond.Envelope
+// @Failure 404 {object} respond.Envelope
+// @Router /v1/targets/{ref} [delete]
 func (h *Handlers) ArchiveTarget(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.ArchiveTarget")
 	defer end(nil)
@@ -241,6 +276,15 @@ func intParam(raw string) (int, error) {
 // ProbeTarget opens one connection, records what it measured on the target, and answers the
 // capabilities it derived. A probe that cannot connect is a 422 whose message is the driver's
 // own, and the target itself now says the attempt failed.
+// @Summary Probe a target
+// @Description Connects once, measures the engine and stores what it said.
+// @Tags targets
+// @Produce json
+// @Security BearerAuth
+// @Param ref path string true "target reference"
+// @Success 200 {object} respond.Envelope
+// @Failure 422 {object} respond.Envelope
+// @Router /v1/targets/{ref}/probe [post]
 func (h *Handlers) ProbeTarget(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.ProbeTarget")
 	defer end(nil)
@@ -263,6 +307,14 @@ func (h *Handlers) ProbeTarget(w http.ResponseWriter, r *http.Request) {
 // TargetCapabilities answers what this build may offer for the target's engine without opening
 // a connection: the set is derived from the declared driver and, once probed, from the measured
 // version.
+// @Summary What the engine can do
+// @Tags targets
+// @Produce json
+// @Security BearerAuth
+// @Param ref path string true "target reference"
+// @Success 200 {object} respond.Envelope
+// @Failure 404 {object} respond.Envelope
+// @Router /v1/targets/{ref}/capabilities [get]
 func (h *Handlers) TargetCapabilities(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.TargetCapabilities")
 	defer end(nil)
