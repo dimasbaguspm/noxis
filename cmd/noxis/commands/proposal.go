@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newPropose(opts *options) *cobra.Command {
+func NewPropose(s *Session) *cobra.Command {
 	var title, sqlText, from, rollback, rollbackFile, note, tier string
 	cmd := &cobra.Command{
 		Use:   "propose <target-ref>",
@@ -27,7 +27,7 @@ func newPropose(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -37,8 +37,8 @@ func newPropose(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, created)
+			if s.JSON {
+				return PrintJSON(cmd, created)
 			}
 			return printProposal(cmd, created)
 		},
@@ -55,7 +55,7 @@ func newPropose(opts *options) *cobra.Command {
 	return cmd
 }
 
-func newProposals(opts *options) *cobra.Command {
+func NewProposals(s *Session) *cobra.Command {
 	var limit int
 	var cursor, status, kind, target string
 	var onlyMine bool
@@ -64,7 +64,7 @@ func newProposals(opts *options) *cobra.Command {
 		Short: "List the proposal queue, newest first",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -72,8 +72,8 @@ func newProposals(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, page)
+			if s.JSON {
+				return PrintJSON(cmd, page)
 			}
 			rows := make([][]string, 0, len(page.Items))
 			for _, item := range page.Items {
@@ -102,13 +102,13 @@ func newProposals(opts *options) *cobra.Command {
 	return cmd
 }
 
-func newProposalShow(opts *options) *cobra.Command {
+func NewProposalShow(s *Session) *cobra.Command {
 	return &cobra.Command{
 		Use:   "show-proposal <ref>",
 		Short: "Show one proposal and the rehearsal that judged it",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -116,22 +116,22 @@ func newProposalShow(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, item)
+			if s.JSON {
+				return PrintJSON(cmd, item)
 			}
 			return printProposal(cmd, item)
 		},
 	}
 }
 
-func newRehearse(opts *options) *cobra.Command {
+func NewRehearse(s *Session) *cobra.Command {
 	var tier string
 	cmd := &cobra.Command{
 		Use:   "rehearse <proposal-ref>",
 		Short: "Re-run the proof for a proposal nobody has decided yet",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -139,8 +139,8 @@ func newRehearse(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, updated)
+			if s.JSON {
+				return PrintJSON(cmd, updated)
 			}
 			return printProposal(cmd, updated)
 		},
@@ -253,36 +253,36 @@ func content(inline, file string) (string, error) {
 	return string(raw), nil
 }
 
-func newApprove(opts *options) *cobra.Command {
+func NewApprove(s *Session) *cobra.Command {
 	var note string
 	cmd := &cobra.Command{
 		Use:   "approve <proposal-ref>",
 		Short: "Approve a rehearsed proposal",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return decide(cmd, opts, args[0], note, true)
+			return decide(cmd, s, args[0], note, true)
 		},
 	}
 	cmd.Flags().StringVar(&note, "note", "", "why, for the record")
 	return cmd
 }
 
-func newReject(opts *options) *cobra.Command {
+func NewReject(s *Session) *cobra.Command {
 	var note string
 	cmd := &cobra.Command{
 		Use:   "reject <proposal-ref>",
 		Short: "Reject a proposal",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return decide(cmd, opts, args[0], note, false)
+			return decide(cmd, s, args[0], note, false)
 		},
 	}
 	cmd.Flags().StringVar(&note, "note", "", "why, for the record")
 	return cmd
 }
 
-func decide(cmd *cobra.Command, opts *options, ref, note string, approve bool) error {
-	api, err := opts.api()
+func decide(cmd *cobra.Command, s *Session, ref, note string, approve bool) error {
+	api, err := s.Client()
 	if err != nil {
 		return err
 	}
@@ -295,21 +295,21 @@ func decide(cmd *cobra.Command, opts *options, ref, note string, approve bool) e
 	if err != nil {
 		return err
 	}
-	if opts.asJSON {
-		return printJSON(cmd, updated)
+	if s.JSON {
+		return PrintJSON(cmd, updated)
 	}
 	_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s  %s\n", short(updated.Ref), updated.Status)
 	return err
 }
 
-func newApplyProposal(opts *options) *cobra.Command {
+func NewApplyProposal(s *Session) *cobra.Command {
 	var confirm bool
 	cmd := &cobra.Command{
 		Use:   "apply <proposal-ref>",
 		Short: "Run an approved proposal against the target",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -317,8 +317,8 @@ func newApplyProposal(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, applied)
+			if s.JSON {
+				return PrintJSON(cmd, applied)
 			}
 			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s  %s by %s\n", short(applied.Ref), applied.Status, applied.AppliedBy)
 			return err
@@ -328,13 +328,13 @@ func newApplyProposal(opts *options) *cobra.Command {
 	return cmd
 }
 
-func newEvents(opts *options) *cobra.Command {
+func NewEvents(s *Session) *cobra.Command {
 	return &cobra.Command{
 		Use:   "events <proposal-ref>",
 		Short: "Show the append-only history of one proposal",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -342,8 +342,8 @@ func newEvents(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, events)
+			if s.JSON {
+				return PrintJSON(cmd, events)
 			}
 			rows := make([][]string, 0, len(events))
 			for _, event := range events {

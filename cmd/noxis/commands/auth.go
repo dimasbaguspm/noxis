@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"errors"
@@ -13,18 +13,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newAuth is the session: where a token is stored, what the server says about it, and how to get rid
+// NewAuth is the session: where a token is stored, what the server says about it, and how to get rid
 // of it again.
-func newAuth(opts *options) *cobra.Command {
+func NewAuth(s *Session) *cobra.Command {
 	auth := &cobra.Command{
 		Use:   "auth",
 		Short: "Sign in to a noxisd, read the session, or forget it",
 	}
-	auth.AddCommand(newSignin(opts), newStatus(opts), newSignout(opts))
+	auth.AddCommand(newSignin(s), newStatus(s), newSignout(s))
 	return auth
 }
 
-func newSignin(opts *options) *cobra.Command {
+func newSignin(s *Session) *cobra.Command {
 	var name string
 	cmd := &cobra.Command{
 		Use:   "signin <token>",
@@ -32,13 +32,13 @@ func newSignin(opts *options) *cobra.Command {
 		Long: "Stores the token in " + configPathHint() + " at 0600 and asks the server who it is. " +
 			"A token the server refuses is never stored.",
 		Args:        cobra.ExactArgs(1),
-		Annotations: map[string]string{annoNoToken: "true"},
+		Annotations: map[string]string{constants.AnnoNoToken: "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			token := strings.TrimSpace(args[0])
 			if token == "" {
 				return errors.New("signin needs a token: noxis auth signin <token> --api-url <url>")
 			}
-			apiURL := first(opts.apiURL, os.Getenv("API_URL"), constants.DefaultAPIURL)
+			apiURL := first(s.APIURL, os.Getenv("API_URL"), constants.DefaultAPIURL)
 			api, err := client.New(apiURL, token)
 			if err != nil {
 				return err
@@ -72,20 +72,20 @@ func newSignin(opts *options) *cobra.Command {
 	return cmd
 }
 
-func newStatus(opts *options) *cobra.Command {
+func newStatus(s *Session) *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "Print the server, the caller and the scopes of the stored token",
 		Args:  cobra.NoArgs,
 		Long: "Prints where the session points and what it is allowed to do, and never the token. " +
 			"The server is asked again, so a revoked token shows up here first.",
-		Annotations: map[string]string{annoNoToken: "true"},
+		Annotations: map[string]string{constants.AnnoNoToken: "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg, err := dotconfig.Load()
 			if err != nil {
 				return err
 			}
-			name := first(opts.profile, cfg.Current)
+			name := first(s.Profile, cfg.Current)
 			if name == "" {
 				return fmt.Errorf("not signed in: run `noxis auth signin <token> --api-url %s`", constants.DefaultAPIURL)
 			}
@@ -110,8 +110,8 @@ func newStatus(opts *options) *cobra.Command {
 				return err
 			}
 
-			if opts.asJSON {
-				return printJSON(cmd, struct {
+			if s.JSON {
+				return PrintJSON(cmd, struct {
 					Profile   string    `json:"profile"`
 					APIURL    string    `json:"api_url"`
 					Caller    string    `json:"caller"`
@@ -128,20 +128,20 @@ func newStatus(opts *options) *cobra.Command {
 	}
 }
 
-func newSignout(opts *options) *cobra.Command {
+func newSignout(s *Session) *cobra.Command {
 	var name string
 	cmd := &cobra.Command{
 		Use:         "signout",
 		Short:       "Remove the stored token",
 		Args:        cobra.NoArgs,
 		Long:        "Deletes the profile from the config file, token included. There is nothing left to read afterwards.",
-		Annotations: map[string]string{annoNoToken: "true"},
+		Annotations: map[string]string{constants.AnnoNoToken: "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg, err := dotconfig.Load()
 			if err != nil {
 				return err
 			}
-			target := first(name, opts.profile, cfg.Current)
+			target := first(name, s.Profile, cfg.Current)
 			if target == "" {
 				return errors.New("not signed in: there is no stored token to remove")
 			}

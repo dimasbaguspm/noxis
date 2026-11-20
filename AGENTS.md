@@ -11,8 +11,9 @@ Two binaries over one state file, for **MySQL and MariaDB only**:
 - `cmd/noxis` → one binary, three faces: `noxis http serve` is the REST API and the only writer
   of the state file, `noxis web serve` is the console, and every other word is a client of that
   API with no database access of its own.
-- `internal/httpapi` → the transport the `http serve` face is built from: route table, handlers,
-  middlewares.
+- `cmd/noxis/http` → the transport the `http serve` face is built from: route table, handlers,
+  middlewares. It is a command's package, not a library: nothing outside `cmd/` imports it.
+- `cmd/noxis/commands` → the CLI, one file per command group, over `internal/client`.
 - `web/` → the console, later, standalone and never embedded.
 
 The product bet: an **agent** reads through `read` scope, proposes DDL/DML through
@@ -54,8 +55,9 @@ make uat-slow # the same plus @slow: boots MySQL 8.4 + MariaDB 11.4   (~2m, dock
 
 | Path | Role |
 | --- | --- |
-| `cmd/noxis/` | `main`/`root`, `http` (`http serve`, `healthcheck`), `web`, `wiring` (composition root), one file per command group |
-| `internal/httpapi/` | `routes` (the route table), `handlers/`, `middlewares/`, `respond/` |
+| `cmd/noxis/` | `main`/`root`, `help`, `web` (the console face), `wiring` (composition root) — the bootstrap, and nothing else |
+| `cmd/noxis/commands/` | the CLI face: `auth`, `target`, `read`, `proposal`, `system`, and the shared `Session` |
+| `cmd/noxis/http/` | the API face: `routes` (the route table), `serve`, `handlers/`, `middlewares/`, `respond/` |
 | `internal/domain/` | entities, value objects, the state machine, sentinel errors — **stdlib only** |
 | `internal/ports/` | consumer-owned interfaces (`TargetStore`, `ProposalStore`, `Journal`, `Driver`, `Clock`) |
 | `internal/app/` | use cases: one file = one use case = one `Run`; imports `domain` + `ports` only |
@@ -83,7 +85,7 @@ seam next to the struct: `var _ ports.Driver = (*DB)(nil)`.
   SQL and a fake cursor would lie.
 - **One use case = one file = one `Run`.** No use case calls another; shared steps are
   package helpers.
-- **Handlers are transport, and they live in `internal/httpapi`.** They read the request,
+- **Handlers are transport, and they live in `cmd/noxis/http/handlers`.** They read the request,
   resolve a `ref`, call one use case, write the envelope. No SQL, no policy, no
   business rules there.
 - **Auth is env-declared.** `TOKENS` is inline JSON, `{"<name>": {"secret": "...",

@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"bytes"
@@ -12,23 +12,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newTarget(opts *options) *cobra.Command {
+func NewTarget(s *Session) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "target",
 		Short: "Manage the databases this noxis governs",
 	}
-	cmd.AddCommand(newTargetAdd(opts), newTargetList(opts), newTargetShow(opts), newTargetProbe(opts), newTargetArchive(opts))
+	cmd.AddCommand(newTargetAdd(s), newTargetList(s), newTargetShow(s), newTargetProbe(s), newTargetArchive(s))
 	return cmd
 }
 
-func newTargetAdd(opts *options) *cobra.Command {
+func newTargetAdd(s *Session) *cobra.Command {
 	in := client.CreateTargetInput{}
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Register a MySQL or MariaDB target",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -36,8 +36,8 @@ func newTargetAdd(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, created)
+			if s.JSON {
+				return PrintJSON(cmd, created)
 			}
 			_, err = fmt.Fprintln(cmd.OutOrStdout(), created.Ref)
 			return err
@@ -58,14 +58,14 @@ func newTargetAdd(opts *options) *cobra.Command {
 	return cmd
 }
 
-func newTargetList(opts *options) *cobra.Command {
+func newTargetList(s *Session) *cobra.Command {
 	in := client.ListTargetsInput{}
 	cmd := &cobra.Command{
 		Use:   "ls",
 		Short: "List targets, newest first",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -73,8 +73,8 @@ func newTargetList(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, page)
+			if s.JSON {
+				return PrintJSON(cmd, page)
 			}
 			rows := make([][]string, 0, len(page.Items))
 			for _, t := range page.Items {
@@ -101,13 +101,13 @@ func newTargetList(opts *options) *cobra.Command {
 	return cmd
 }
 
-func newTargetShow(opts *options) *cobra.Command {
+func newTargetShow(s *Session) *cobra.Command {
 	return &cobra.Command{
 		Use:   "show <ref>",
 		Short: "Show one target",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -115,8 +115,8 @@ func newTargetShow(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, target)
+			if s.JSON {
+				return PrintJSON(cmd, target)
 			}
 			rows := [][]string{
 				{"ref", target.Ref},
@@ -136,13 +136,13 @@ func newTargetShow(opts *options) *cobra.Command {
 	}
 }
 
-func newTargetArchive(opts *options) *cobra.Command {
+func newTargetArchive(s *Session) *cobra.Command {
 	return &cobra.Command{
 		Use:   "archive <ref>",
 		Short: "Archive a target. Nothing is deleted",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -150,8 +150,8 @@ func newTargetArchive(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, archived)
+			if s.JSON {
+				return PrintJSON(cmd, archived)
 			}
 			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s archived\n", archived.Name)
 			return err
@@ -185,13 +185,13 @@ func writeTable(w io.Writer, header []string, rows [][]string) error {
 	return err
 }
 
-func newTargetProbe(opts *options) *cobra.Command {
+func newTargetProbe(s *Session) *cobra.Command {
 	return &cobra.Command{
 		Use:   "probe <ref>",
 		Short: "Connect once and record what the engine actually is",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			api, err := opts.api()
+			api, err := s.Client()
 			if err != nil {
 				return err
 			}
@@ -199,8 +199,8 @@ func newTargetProbe(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.asJSON {
-				return printJSON(cmd, result)
+			if s.JSON {
+				return PrintJSON(cmd, result)
 			}
 			rows := [][]string{
 				{"engine", result.Capabilities.Flavor},

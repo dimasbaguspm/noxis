@@ -3,8 +3,10 @@
 ## Layers
 
 ```
-cmd/noxis ─┐                       one binary: http serve, web serve, the CLI
-internal/httpapi ─┤ (transport)
+cmd/noxis ─────────────┐           the bootstrap: main, the root command, the wiring
+cmd/noxis/commands ────┤ (client)  one file per command group, over the typed client
+cmd/noxis/http ────────┤ (transport) the API: route table, handlers, middlewares
+cmd/noxis ── web serve ┘           the console, embedded
           ▼
       internal/app                 use cases: the only place a workflow lives
           ▼
@@ -26,9 +28,11 @@ Rules, enforced by `test/arch`:
    one shared helper from a sibling package (`internal/app/password`, which opens a sealed
    credential for the use cases that connect). A use case never calls another use case's `Run`.
 4. `internal/adapters/*` import `domain`, `ports`, `internal/common`, and their driver.
-5. Only `cmd/*` names a concrete adapter.
-6. Nothing imports `noxis/cmd/...` — hence the transports are both `package main`
-   trees, and the CLI talks HTTP instead of linking a use case.
+5. Only `cmd/noxis` names a concrete adapter, and it does it in one file: `wiring.go`.
+   `cmd/noxis/http` takes the handler as a `Builder` function, so the transport never
+   imports an adapter and stays testable without a database.
+6. Nothing imports `noxis/cmd/...` — the transport and the CLI are not libraries. The
+   CLI reaches the product over HTTP, through `internal/client`.
 
 ## Request flow
 
@@ -99,5 +103,5 @@ not a v7 ref is a 400, not a lookup.
 3. `internal/app/<verb>/run.go` — one struct with its dependencies as fields, one
    `Run(ctx, in) (out, error)`.
 4. `internal/adapters/sqlite` — implement the port; assert it.
-5. `internal/httpapi/handlers` — the handler; `internal/httpapi/routes.go` — the route with its scopes.
+5. `cmd/noxis/http/handlers` — the handler; `cmd/noxis/http/routes.go` — the route with its scopes.
 6. `test/uat/features/` — one scenario that proves the user-facing sentence.

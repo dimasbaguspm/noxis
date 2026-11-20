@@ -1,9 +1,11 @@
-package main
+package http
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
 	"noxis/internal/client"
 	"noxis/internal/common/config"
@@ -14,27 +16,32 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// newHTTP is the server half of the binary: the process that owns the state file and answers the
+// Builder is how the transport gets an API without naming an adapter: the composition root in
+// package main builds the handler and this package only serves it. It is a parameter rather than an
+// import because a transport that constructs a database is a transport nobody can test.
+type Builder func(ctx context.Context, cfg config.Config, statePath string, log *slog.Logger) (http.Handler, io.Closer, error)
+
+// NewHTTP is the server half of the binary: the process that owns the state file and answers the
 // API the CLI talks to. It is a command, not a second executable, so an image is one file.
-func newHTTP() *cobra.Command {
+func NewHTTP(build Builder) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "http",
 		Short: "Run the noXis API",
 	}
-	cmd.AddCommand(newHTTPServe(), newHTTPHealthcheck())
+	cmd.AddCommand(NewServe(build), newHealthcheck())
 	return cmd
 }
 
-func newHTTPServe() *cobra.Command {
+func NewServe(build Builder) *cobra.Command {
 	var addr, statePath string
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: "Serve the REST API and own the state file",
 		Args:  cobra.NoArgs,
 		// The server is the thing that checks tokens; it cannot require one to start.
-		Annotations: map[string]string{annoNoToken: "true"},
+		Annotations: map[string]string{constants.AnnoNoToken: "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return serveAPI(cmd.Context(), addr, statePath)
+			return serveAPI(cmd.Context(), build, addr, statePath)
 		},
 	}
 	cmd.Flags().StringVar(&addr, "addr", constants.ListenAddr,
@@ -44,15 +51,15 @@ func newHTTPServe() *cobra.Command {
 	return cmd
 }
 
-// newHTTPHealthcheck is the image's HEALTHCHECK: the binary asks its own route, so the container
+// newHealthcheck is the image's HEALTHCHECK: the binary asks its own route, so the container
 // needs no curl and the probe measures exactly what a client would get.
-func newHTTPHealthcheck() *cobra.Command {
+func newHealthcheck() *cobra.Command {
 	var url string
 	cmd := &cobra.Command{
 		Use:         "healthcheck",
 		Short:       "Ask the API whether it is alive",
 		Args:        cobra.NoArgs,
-		Annotations: map[string]string{annoNoToken: "true"},
+		Annotations: map[string]string{constants.AnnoNoToken: "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			api, err := client.New(url, "")
 			if err != nil {
@@ -75,7 +82,7 @@ func newHTTPHealthcheck() *cobra.Command {
 // serveAPI reads the environment once, builds the transport once, and serves until the context is
 // cancelled. Everything it needs is a constant or a flag, so the container needs no entrypoint
 // script.
-func serveAPI(ctx context.Context, addr, statePath string) error {
+func serveAPI(ctx context.Context, build Builder, addr, statePath string) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
@@ -92,7 +99,7 @@ func serveAPI(ctx context.Context, addr, statePath string) error {
 		_ = stopTelemetry(flush)
 	}()
 
-	handler, closer, err := buildServer(ctx, cfg, statePath, log)
+	handler, closer, err := build(ctx, cfg, statePath, log)
 	if err != nil {
 		return err
 	}

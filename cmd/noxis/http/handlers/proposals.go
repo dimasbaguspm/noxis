@@ -2,12 +2,12 @@ package handlers
 
 import (
 	"net/http"
+	"noxis/cmd/noxis/http/middlewares"
+	"noxis/cmd/noxis/http/respond"
 	"noxis/internal/app/proposal"
 	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
-	"noxis/internal/httpapi/middlewares"
-	"noxis/internal/httpapi/respond"
 	"strconv"
 	"time"
 )

@@ -1,15 +1,15 @@
-// Package httpapi is the REST transport: the route table, the middlewares and the handlers. It
+// Package http is the REST transport: the route table, the middlewares and the handlers. It
 // names no adapter and no wiring — the composition root hands it a route table's worth of use cases
 // and it answers HTTP.
-package httpapi
+package http
 
 import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"noxis/cmd/noxis/http/handlers"
+	"noxis/cmd/noxis/http/middlewares"
 	"noxis/internal/constants"
-	"noxis/internal/httpapi/handlers"
-	"noxis/internal/httpapi/middlewares"
 )
 
 // Deps is what the transport is built from: the logger, the authenticator and one handler set.

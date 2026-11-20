@@ -31,11 +31,18 @@ var layers = []layer{
 	}},
 	{prefix: "noxis/internal/common", allowed: []string{"noxis/internal/constants", "noxis/internal/common"}},
 	{prefix: "noxis/internal/client", allowed: []string{"noxis/internal/common", "noxis/internal/constants"}},
-	// The transport may call use cases and read the wire vocabulary; it may not name an adapter —
-	// that is the composition root's job, and the root lives in cmd/noxis.
-	{prefix: "noxis/internal/httpapi", allowed: []string{
+	// The transport is a package under cmd/ now, not a library: it is the `http serve` face, and it
+	// composes nothing. It may call use cases and read the wire vocabulary; it may not name an
+	// adapter (that is the composition root, its own wiring.go) and it may not reach into the CLI.
+	{prefix: "noxis/cmd/noxis/http", allowed: []string{
 		"noxis/internal/domain", "noxis/internal/ports", "noxis/internal/app",
-		"noxis/internal/common", "noxis/internal/constants", "noxis/internal/httpapi",
+		"noxis/internal/common", "noxis/internal/constants", "noxis/internal/client",
+		"noxis/cmd/noxis/http",
+	}},
+	// The CLI talks HTTP through the typed client and knows nothing else. It may not import the
+	// server it calls, and it may not import the bootstrap that started it.
+	{prefix: "noxis/cmd/noxis/commands", allowed: []string{
+		"noxis/internal/client", "noxis/internal/common", "noxis/internal/constants",
 	}},
 }
 

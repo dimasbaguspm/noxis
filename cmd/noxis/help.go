@@ -77,7 +77,7 @@ func newHelp(root *cobra.Command) *cobra.Command {
 		Short:   "List every command, grouped by what you are trying to do",
 		Long:    "Lists every command grouped by task. `noxis help <command>` prints that command's usage.",
 		// Help is what a person reaches for when nothing works yet.
-		Annotations: map[string]string{annoNoToken: "true"},
+		Annotations: map[string]string{constants.AnnoNoToken: "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				found, rest, err := root.Find(args)

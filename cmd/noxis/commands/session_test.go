@@ -1,4 +1,4 @@
-package main
+package commands
 
 import (
 	"context"
@@ -50,8 +50,8 @@ func command() *cobra.Command {
 func TestNoTokenSaysHowToSignIn(t *testing.T) {
 	isolated(t)
 
-	opts := &options{}
-	err := opts.prepare(command())
+	s := &Session{}
+	err := s.Prepare(command())
 	if err == nil {
 		t.Fatal("prepare with no token returned no error")
 	}
@@ -69,15 +69,15 @@ func TestFreshProfileIsNotRechecked(t *testing.T) {
 		Scopes: []string{"read"}, CheckedAt: time.Now().UTC(),
 	})
 
-	opts := &options{}
-	if err := opts.prepare(command()); err != nil {
+	s := &Session{}
+	if err := s.Prepare(command()); err != nil {
 		t.Fatalf("prepare with a fresh profile: %v", err)
 	}
-	if opts.token != "stored" {
-		t.Fatalf("token = %q, want the stored one", opts.token)
+	if s.Token != "stored" {
+		t.Fatalf("token = %q, want the stored one", s.Token)
 	}
-	if opts.name != "agent" {
-		t.Fatalf("caller = %q, want the cached one", opts.name)
+	if s.Name != "agent" {
+		t.Fatalf("caller = %q, want the cached one", s.Name)
 	}
 }
 
@@ -95,8 +95,8 @@ func TestRevokedTokenSaysSignInAgain(t *testing.T) {
 		CheckedAt: time.Now().UTC().Add(-2 * time.Hour),
 	})
 
-	opts := &options{}
-	err := opts.prepare(command())
+	s := &Session{}
+	err := s.Prepare(command())
 	if err == nil {
 		t.Fatal("prepare with a revoked token returned no error")
 	}
@@ -118,12 +118,12 @@ func TestCheckedIdentityIsCached(t *testing.T) {
 	defer server.Close()
 	store(t, dotconfig.Profile{APIURL: server.URL, Token: "fresh", CheckedAt: time.Now().UTC().Add(-time.Hour)})
 
-	opts := &options{}
-	if err := opts.prepare(command()); err != nil {
+	s := &Session{}
+	if err := s.Prepare(command()); err != nil {
 		t.Fatalf("prepare: %v", err)
 	}
-	if opts.name != "reviewer" {
-		t.Fatalf("caller = %q, want reviewer", opts.name)
+	if s.Name != "reviewer" {
+		t.Fatalf("caller = %q, want reviewer", s.Name)
 	}
 
 	cfg, err := dotconfig.Load()
@@ -144,14 +144,14 @@ func TestFlagTokenWinsAndIsNotStored(t *testing.T) {
 	isolated(t)
 	store(t, dotconfig.Profile{APIURL: "http://stored", Token: "stored", CheckedAt: time.Now().UTC()})
 
-	opts := &options{apiURL: "http://flag", token: "from-flag"}
-	if err := opts.prepare(command()); err != nil {
+	s := &Session{APIURL: "http://flag", Token: "from-flag"}
+	if err := s.Prepare(command()); err != nil {
 		t.Fatalf("prepare: %v", err)
 	}
-	if opts.apiURL != "http://flag" || opts.token != "from-flag" {
-		t.Fatalf("resolved %q/%q, want the flag values", opts.apiURL, opts.token)
+	if s.APIURL != "http://flag" || s.Token != "from-flag" {
+		t.Fatalf("resolved %q/%q, want the flag values", s.APIURL, s.Token)
 	}
-	if opts.fromStore {
+	if s.FromStore {
 		t.Fatal("a flag token was treated as a stored one")
 	}
 }

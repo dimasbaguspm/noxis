@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"net/http"
+	"noxis/cmd/noxis/http/middlewares"
+	"noxis/cmd/noxis/http/respond"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
-	"noxis/internal/httpapi/middlewares"
-	"noxis/internal/httpapi/respond"
 )
 
 type health struct {
