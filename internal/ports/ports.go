@@ -55,4 +55,36 @@ type Driver interface {
 	// Table describes one table: its columns, its indexes and the DDL the engine would use to
 	// create it, which is the same statement a rehearsal will rebuild from.
 	Table(ctx context.Context, target domain.Target, password, database, table string) (domain.TableDetail, error)
+	// Rehearse proves a change in a throwaway database rebuilt from the engine's own DDL. It
+	// returns a verdict rather than an error for a change that does not survive: the caller stores
+	// the evidence either way.
+	Rehearse(ctx context.Context, target domain.Target, password string, change domain.Change) (domain.Rehearsal, error)
+}
+
+// Proposals is the store of proposed changes. A proposal is never deleted: a rejected one is a
+// decision someone may need to read again.
+type Proposals interface {
+	CreateProposal(ctx context.Context, proposal domain.Proposal) (domain.Proposal, error)
+	ProposalByRef(ctx context.Context, ref string) (domain.Proposal, error)
+	ListProposals(ctx context.Context, filter ProposalFilter) ([]domain.Proposal, error)
+	UpdateProposal(ctx context.Context, proposal domain.Proposal) (domain.Proposal, error)
+}
+
+// ProposalFilter is one page of the queue: a keyset cursor, a ceiling, and the filters a reviewer
+// types. It never carries an offset.
+type ProposalFilter struct {
+	Cursor string
+	Limit  int
+	Target string
+	Status string
+	Kind   string
+	Mine   string
+}
+
+// Rehearsals is the history of attempts to prove one proposal. Every run is stored, including the
+// ones that failed: "we tried and it did not prove" is a fact the reviewer needs.
+type Rehearsals interface {
+	CreateRehearsal(ctx context.Context, rehearsal domain.Rehearsal) (domain.Rehearsal, error)
+	RehearsalByRef(ctx context.Context, ref string) (domain.Rehearsal, error)
+	LatestRehearsal(ctx context.Context, proposalRef string) (domain.Rehearsal, error)
 }

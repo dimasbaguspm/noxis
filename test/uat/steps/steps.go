@@ -20,15 +20,17 @@ import (
 
 // world is one scenario's state.
 type world struct {
-	api      *client.Client
-	identity client.Identity
-	health   client.Health
-	target   client.Target
-	targets  []client.Target
-	rows     client.Rows
-	caps     client.Capabilities
-	cursor   string
-	err      error
+	api       *client.Client
+	identity  client.Identity
+	health    client.Health
+	target    client.Target
+	targets   []client.Target
+	rows      client.Rows
+	proposal  client.Proposal
+	proposals []client.Proposal
+	caps      client.Capabilities
+	cursor    string
+	err       error
 }
 
 // InitializeScenario registers every step against a fresh world.
@@ -38,6 +40,7 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 		w.identity, w.health = client.Identity{}, client.Health{}
 		w.target, w.targets, w.cursor, w.err = client.Target{}, nil, "", nil
 		w.rows = client.Rows{}
+		w.proposal, w.proposals = client.Proposal{}, nil
 		w.caps = client.Capabilities{}
 		w.api, w.err = client.New(os.Getenv("UAT_URL"), "")
 		return c, w.err
@@ -78,6 +81,19 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^I run the statement "([^"]*)"$`, w.runStatement)
 	ctx.Step(`^the refusal mentions "([^"]*)"$`, w.assertRefusalMentions)
 	ctx.Step(`^the result has (\d+) rows?$`, w.assertResultRows)
+
+	// proposals
+	ctx.Step(`^I propose "([^"]*)" titled "([^"]*)"$`, w.proposeWithoutRollback)
+	ctx.Step(`^I propose "([^"]*)" with rollback "([^"]*)" titled "([^"]*)"$`, w.proposeWithRollback)
+	ctx.Step(`^I propose "([^"]*)" titled "([^"]*)" at tier "([^"]*)"$`, w.proposeAtTier)
+	ctx.Step(`^I propose "([^"]*)" with rollback "([^"]*)" titled "([^"]*)" at tier "([^"]*)"$`, w.proposeWithRollbackAtTier)
+	ctx.Step(`^the proposal is "([^"]*)"$`, w.assertProposalStatus)
+	ctx.Step(`^the proposal is irreversible$`, w.assertIrreversible)
+	ctx.Step(`^the rehearsal schema diff mentions "([^"]*)"$`, w.assertSchemaDiffMentions)
+	ctx.Step(`^the rehearsal row diff mentions "([^"]*)"$`, w.assertRowDiffMentions)
+	ctx.Step(`^the rehearsal note mentions "([^"]*)"$`, w.assertRehearsalNoteMentions)
+	ctx.Step(`^I list my proposals$`, w.listMyProposals)
+	ctx.Step(`^the newest proposal is "([^"]*)"$`, w.assertNewestProposal)
 
 	// slow
 	ctx.Step(`^I register the "(mysql|mariadb)" container as "([^"]*)"$`, w.registerContainer)
@@ -435,6 +451,99 @@ func (w *world) assertResultRows(want int) error {
 	}
 	if w.rows.RowCount != want {
 		return fmt.Errorf("result has %d row(s), want %d", w.rows.RowCount, want)
+	}
+	return nil
+}
+
+// propose sends one proposal and remembers the verdict it came back with.
+func (w *world) propose(title, query, rollback, tier string) error {
+	w.proposal, w.err = w.api.CreateProposal(context.Background(), w.target.Ref, client.CreateProposalInput{
+		Title: title, Query: query, Rollback: rollback, Tier: tier,
+	})
+	return nil
+}
+
+func (w *world) proposeWithRollback(query, rollback, title string) error {
+	return w.propose(title, query, rollback, "")
+}
+
+func (w *world) proposeWithRollbackAtTier(query, rollback, title, tier string) error {
+	return w.propose(title, query, rollback, tier)
+}
+
+func (w *world) proposeAtTier(query, title, tier string) error {
+	return w.propose(title, query, "", tier)
+}
+
+func (w *world) proposeWithoutRollback(query, title string) error {
+	return w.propose(title, query, "", "")
+}
+
+func (w *world) assertProposalStatus(want string) error {
+	if w.err != nil {
+		return w.err
+	}
+	if w.proposal.Status != want {
+		return fmt.Errorf("proposal status = %q, want %q (failure: %s)", w.proposal.Status, want, w.proposal.Failure)
+	}
+	return nil
+}
+
+func (w *world) assertIrreversible() error {
+	if w.err != nil {
+		return w.err
+	}
+	if !w.proposal.Irreversible {
+		return errors.New("the proposal does not report itself irreversible")
+	}
+	return nil
+}
+
+func (w *world) assertSchemaDiffMentions(want string) error {
+	if w.proposal.Rehearsal == nil {
+		return errors.New("the proposal came back with no rehearsal")
+	}
+	if !strings.Contains(w.proposal.Rehearsal.SchemaDiff, want) {
+		return fmt.Errorf("schema diff does not mention %q:\n%s", want, w.proposal.Rehearsal.SchemaDiff)
+	}
+	return nil
+}
+
+func (w *world) assertRowDiffMentions(want string) error {
+	if w.proposal.Rehearsal == nil {
+		return errors.New("the proposal came back with no rehearsal")
+	}
+	if !strings.Contains(w.proposal.Rehearsal.RowDiff, want) {
+		return fmt.Errorf("row diff does not mention %q:\n%s", want, w.proposal.Rehearsal.RowDiff)
+	}
+	return nil
+}
+
+func (w *world) assertRehearsalNoteMentions(want string) error {
+	if w.proposal.Rehearsal == nil {
+		return errors.New("the proposal came back with no rehearsal")
+	}
+	if !strings.Contains(w.proposal.Rehearsal.Note, want) {
+		return fmt.Errorf("rehearsal note does not mention %q: %s", want, w.proposal.Rehearsal.Note)
+	}
+	return nil
+}
+
+func (w *world) listMyProposals() error {
+	page, err := w.api.ListProposals(context.Background(), 0, "", "", "", "", true)
+	w.proposals, w.err = page.Items, err
+	return nil
+}
+
+func (w *world) assertNewestProposal(want string) error {
+	if w.err != nil {
+		return w.err
+	}
+	if len(w.proposals) == 0 {
+		return errors.New("the queue is empty")
+	}
+	if newest := w.proposals[0].Status; newest != want {
+		return fmt.Errorf("newest proposal is %q, want %q", newest, want)
 	}
 	return nil
 }

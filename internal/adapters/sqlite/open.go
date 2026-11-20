@@ -21,8 +21,9 @@ import (
 // refused with a reset instruction, never migrated: a half-migrated journal is worse than a
 // refusal, and this file is an audit trail before it is a cache.
 //
-// v1: targets and journal. v2: targets carry what the last probe measured.
-const SchemaVersion = 2
+// v1: targets and journal. v2: targets carry what the last probe measured. v3: proposals and
+// their rehearsals.
+const SchemaVersion = 3
 
 // DB is the state file.
 type DB struct {
@@ -145,6 +146,45 @@ var schema = []string{
 		created_at   INTEGER NOT NULL
 	) STRICT`,
 	`CREATE INDEX journal_subject ON journal (subject_ref, ref)`,
+	`CREATE TABLE proposals (
+		ref           TEXT    PRIMARY KEY,
+		target_ref    TEXT    NOT NULL REFERENCES targets (ref),
+		title         TEXT    NOT NULL,
+		kind          TEXT    NOT NULL,
+		query         TEXT    NOT NULL,
+		rollback      TEXT    NOT NULL DEFAULT '',
+		note          TEXT    NOT NULL DEFAULT '',
+		status        TEXT    NOT NULL,
+		tier          TEXT    NOT NULL,
+		irreversible  INTEGER NOT NULL DEFAULT 0,
+		proposed_by   TEXT    NOT NULL,
+		rehearsal_ref TEXT    NOT NULL DEFAULT '',
+		decided_by    TEXT    NOT NULL DEFAULT '',
+		decided_at    INTEGER,
+		decided_note  TEXT    NOT NULL DEFAULT '',
+		applied_by    TEXT    NOT NULL DEFAULT '',
+		applied_at    INTEGER,
+		failure       TEXT    NOT NULL DEFAULT '',
+		created_at    INTEGER NOT NULL,
+		updated_at    INTEGER NOT NULL
+	) STRICT`,
+	`CREATE INDEX proposals_target ON proposals (target_ref, ref)`,
+	`CREATE INDEX proposals_status ON proposals (status, ref)`,
+	`CREATE TABLE rehearsals (
+		ref          TEXT    PRIMARY KEY,
+		proposal_ref TEXT    NOT NULL REFERENCES proposals (ref),
+		tier         TEXT    NOT NULL,
+		status       TEXT    NOT NULL,
+		schema_diff  TEXT    NOT NULL DEFAULT '',
+		row_diff     TEXT    NOT NULL DEFAULT '',
+		plan         TEXT    NOT NULL DEFAULT '',
+		irreversible INTEGER NOT NULL DEFAULT 0,
+		note         TEXT    NOT NULL DEFAULT '',
+		duration_ms  INTEGER NOT NULL DEFAULT 0,
+		error        TEXT    NOT NULL DEFAULT '',
+		created_at   INTEGER NOT NULL
+	) STRICT`,
+	`CREATE INDEX rehearsals_proposal ON rehearsals (proposal_ref, ref)`,
 }
 
 // millis is how every timestamp is stored: an integer, so ordering never depends on a

@@ -6,6 +6,7 @@ package sqltext
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -241,7 +242,9 @@ func tablesOf(scrubbed, upper string) []string {
 	var tables []string
 	for i := 0; i < len(uppers)-1; i++ {
 		switch uppers[i] {
-		case "FROM", "JOIN", "UPDATE", "INTO":
+		// TABLE covers ALTER/CREATE/DROP/TRUNCATE/RENAME, which name their object that way. It is
+		// also what a statement a rehearsal must scope is most likely to say.
+		case "FROM", "JOIN", "UPDATE", "INTO", "TABLE":
 		default:
 			continue
 		}
@@ -283,4 +286,72 @@ func tokenize(text string) []string {
 	}
 	flush(len(text))
 	return tokens
+}
+
+// Qualified is a table name split into schema and table. Database is empty when the statement did
+// not name one, which means "the connection's own schema".
+type Qualified struct {
+	Database string
+	Table    string
+}
+
+// ParseQualified splits a name after stripping the engine's quoting.
+func ParseQualified(name string) Qualified {
+	clean := strings.ReplaceAll(name, "`", "")
+	database, table, found := strings.Cut(clean, ".")
+	if !found {
+		return Qualified{Table: clean}
+	}
+	return Qualified{Database: database, Table: table}
+}
+
+// RewriteQualifier points every reference to one schema at another, outside string literals. It is
+// how a statement written against production is run against the throwaway database instead: the
+// rehearsal executes the same text, aimed somewhere harmless.
+func RewriteQualifier(sql, from, to string) string {
+	if from == "" || from == to || sql == "" {
+		return sql
+	}
+	pattern := regexp.MustCompile(`(?i)(^|[^\w` + "`" + `])` + regexp.QuoteMeta(from) + `\.`)
+	return rewriteOutsideLiterals(sql, func(chunk string) string {
+		return pattern.ReplaceAllString(chunk, "${1}"+to+".")
+	})
+}
+
+// rewriteOutsideLiterals applies fn to the parts of a statement that are not string literals, so a
+// rewrite cannot change what a literal says.
+func rewriteOutsideLiterals(sql string, fn func(string) string) string {
+	var out strings.Builder
+	start := 0
+	for i := 0; i < len(sql); i++ {
+		switch sql[i] {
+		case '\'', '"':
+			out.WriteString(fn(sql[start:i]))
+			quote := sql[i]
+			j := i + 1
+			for ; j < len(sql); j++ {
+				if sql[j] == '\\' {
+					j++
+					continue
+				}
+				if sql[j] == quote {
+					if j+1 < len(sql) && sql[j+1] == quote {
+						j++
+						continue
+					}
+					break
+				}
+			}
+			if j >= len(sql) {
+				// Unterminated literal: hand the rest back untouched rather than guess.
+				out.WriteString(sql[i:])
+				return out.String()
+			}
+			out.WriteString(sql[i : j+1])
+			i = j
+			start = j + 1
+		}
+	}
+	out.WriteString(fn(sql[start:]))
+	return out.String()
 }

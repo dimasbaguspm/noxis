@@ -14,3 +14,9 @@ const (
 	JournalArchived = "archived"
 	JournalProbed   = "probed"
 )
+
+// Journal kinds for the proposal lifecycle.
+const (
+	JournalProposed  = "proposed"
+	JournalRehearsed = "rehearsed"
+)

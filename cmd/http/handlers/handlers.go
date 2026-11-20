@@ -5,6 +5,7 @@ package handlers
 import (
 	"log/slog"
 
+	"noxis/internal/app/proposal"
 	"noxis/internal/app/read"
 	"noxis/internal/app/target"
 )
@@ -12,9 +13,18 @@ import (
 // Deps is what the handlers call. It is assembled once in the composition root and holds
 // use cases only — never a store, a driver or a database handle.
 type Deps struct {
-	Log     *slog.Logger
-	Targets TargetUseCases
-	Read    ReadUseCases
+	Log       *slog.Logger
+	Targets   TargetUseCases
+	Read      ReadUseCases
+	Proposals ProposalUseCases
+}
+
+// ProposalUseCases are the proposal use cases, one field per route.
+type ProposalUseCases struct {
+	Create   *proposal.Create
+	List     *proposal.List
+	Get      *proposal.Get
+	Rehearse *proposal.Rehearse
 }
 
 // ReadUseCases are the read-only use cases, one field per route.

@@ -43,7 +43,8 @@ func newRoot() *cobra.Command {
 	root.PersistentFlags().StringVar(&opts.token, "token", env("API_TOKEN", ""), "bearer token")
 	root.PersistentFlags().BoolVar(&opts.asJSON, "json", false, "print the response as json")
 	root.AddCommand(newWhoami(opts), newVersion(), newTarget(opts),
-		newQuery(opts), newDatabases(opts), newTables(opts), newTable(opts))
+		newQuery(opts), newDatabases(opts), newTables(opts), newTable(opts),
+		newPropose(opts), newProposals(opts), newProposalShow(opts), newRehearse(opts))
 	return root
 }
 
