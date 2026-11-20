@@ -60,6 +60,45 @@ type Change struct {
 	Tier     Tier
 }
 
+// Algorithm is how the engine ran a statement over a table, in the engine's own vocabulary. It is
+// what the receipt says, because "the change landed" and "the table was rewritten" are different
+// facts for whoever reads it next.
+type Algorithm string
+
+// The algorithms both engines name.
+const (
+	AlgorithmInstant Algorithm = "INSTANT"
+	AlgorithmInPlace Algorithm = "INPLACE"
+	AlgorithmCopy    Algorithm = "COPY"
+)
+
+// Locked reports whether the engine had to rebuild the table, which blocks writes while it runs.
+func (a Algorithm) Locked() bool { return a == AlgorithmCopy }
+
+// Progress is what the engine says about a statement that is still running. Percent is -1 when the
+// engine does not say: MariaDB reports it for a copy, MySQL 8 reports it per stage.
+type Progress struct {
+	Stage   string
+	Percent int
+}
+
+// UnknownProgress is progress with no stage and no percentage: the shape a caller gets when the
+// statement is either not running or not described.
+var UnknownProgress = Progress{Percent: -1}
+
+// Plan is what can be said about a change before it runs: how big the table is, and which algorithm
+// the engine is expected to choose.
+type Plan struct {
+	RowsEstimated int64
+	Algorithm     Algorithm
+}
+
+// Receipt is what the engine reports after the statement ran.
+type Receipt struct {
+	Algorithm    Algorithm
+	RowsAffected int64
+}
+
 // Proposal is one proposed change, rehearsed before a human sees it.
 type Proposal struct {
 	Ref          string
@@ -80,8 +119,14 @@ type Proposal struct {
 	AppliedBy    string
 	AppliedAt    *time.Time
 	Failure      string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	// What the engine said while it ran, and what it did when it finished.
+	StartedAt     *time.Time
+	Progress      Progress
+	Algorithm     Algorithm
+	RowsEstimated int64
+	RowsAffected  int64
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 // Validate refuses a proposal a reviewer could not act on. The statement itself is judged by the

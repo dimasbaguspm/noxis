@@ -247,27 +247,30 @@ func (c *Client) Table(ctx context.Context, ref, database, table string) (TableD
 
 // Proposal is one proposed change and the verdict of its last rehearsal.
 type Proposal struct {
-	Ref          string     `json:"ref"`
-	TargetRef    string     `json:"target_ref"`
-	Title        string     `json:"title"`
-	Kind         string     `json:"kind"`
-	Query        string     `json:"query"`
-	Rollback     string     `json:"rollback"`
-	Note         string     `json:"note"`
-	Status       string     `json:"status"`
-	Tier         string     `json:"tier"`
-	Irreversible bool       `json:"irreversible"`
-	ProposedBy   string     `json:"proposed_by"`
-	RehearsalRef string     `json:"rehearsal_ref,omitempty"`
-	DecidedBy    string     `json:"decided_by,omitempty"`
-	DecidedAt    *time.Time `json:"decided_at,omitempty"`
-	DecidedNote  string     `json:"decided_note,omitempty"`
-	AppliedBy    string     `json:"applied_by,omitempty"`
-	AppliedAt    *time.Time `json:"applied_at,omitempty"`
-	Failure      string     `json:"failure,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
-	Rehearsal    *Rehearsal `json:"rehearsal,omitempty"`
+	Ref           string     `json:"ref"`
+	TargetRef     string     `json:"target_ref"`
+	Title         string     `json:"title"`
+	Kind          string     `json:"kind"`
+	Query         string     `json:"query"`
+	Rollback      string     `json:"rollback"`
+	Note          string     `json:"note"`
+	Status        string     `json:"status"`
+	Tier          string     `json:"tier"`
+	Irreversible  bool       `json:"irreversible"`
+	ProposedBy    string     `json:"proposed_by"`
+	RehearsalRef  string     `json:"rehearsal_ref,omitempty"`
+	DecidedBy     string     `json:"decided_by,omitempty"`
+	DecidedAt     *time.Time `json:"decided_at,omitempty"`
+	DecidedNote   string     `json:"decided_note,omitempty"`
+	AppliedBy     string     `json:"applied_by,omitempty"`
+	Algorithm     string     `json:"algorithm,omitempty"`
+	RowsEstimated int64      `json:"rows_estimated,omitempty"`
+	RowsAffected  int64      `json:"rows_affected,omitempty"`
+	AppliedAt     *time.Time `json:"applied_at,omitempty"`
+	Failure       string     `json:"failure,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+	Rehearsal     *Rehearsal `json:"rehearsal,omitempty"`
 }
 
 // Rehearsal is the evidence behind a proposal.

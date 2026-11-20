@@ -23,7 +23,7 @@ a cache, which is why nothing here migrates one.
 `SchemaVersion` lives next to the schema in `internal/adapters/sqlite/open.go`. A ticket
 that changes the schema bumps it.
 
-## Tables (schema v3)
+## Tables (schema v4)
 
 An older file is refused rather than migrated, like any other version: the reset is the
 migration.
@@ -65,6 +65,17 @@ at read time. Timestamps are integers, so ordering never depends on a string for
 the state machine in `internal/domain`; `tier` records what was actually run, so a reviewer never
 assumes more proof than there is; `irreversible` is set from the rehearsal, not from the statement's
 wording.
+
+| column | type | note |
+| --- | --- | --- |
+| `started_at` | INTEGER | milliseconds, set when apply claimed the proposal |
+| `progress_stage`, `progress_percent` | TEXT, INTEGER | what the engine said while it ran; percent is `-1` when the engine does not say |
+| `algorithm` | TEXT | `INSTANT`, `INPLACE`, `COPY`, empty when the engine would not name one |
+| `rows_estimated`, `rows_affected` | INTEGER | the estimate that decided whether the answer waits, and what the statement actually touched |
+
+`progress_*` is written by `SetProgress`, which touches those two columns only: the watcher must
+never overwrite the receipt that ends the apply. A row still `applying` after a restart is
+indeterminate on purpose — nothing retries it.
 
 **rehearsals** — every attempt, including the failures. `schema_diff` and `row_diff` are the
 evidence a reviewer reads; `note` says exactly how far the claim goes (a shadow run with no rows

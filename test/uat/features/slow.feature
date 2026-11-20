@@ -95,3 +95,16 @@ Feature: Talking to a real engine
     Then the request succeeds with status 201
     And the proposal is "verified"
     And the rehearsal schema diff mentions "idx_users_note"
+
+  Scenario: applying to a table too large to wait for answers 202 and names the algorithm
+    Given I hold the ops token
+    And I register the "mysql" container as "uat-large-apply"
+    When I propose "ALTER TABLE bulk ADD COLUMN extra INT NULL" with rollback "ALTER TABLE bulk DROP COLUMN extra" titled "add extra"
+    Then the request succeeds with status 201
+    And the proposal is "verified"
+    And I approve the proposal
+    Then the request succeeds
+    And I apply the proposal
+    Then the request succeeds with status 202
+    And I poll the proposal until it is "applied"
+    And the receipt names the algorithm "INSTANT"

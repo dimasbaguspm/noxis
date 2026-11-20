@@ -35,6 +35,9 @@ func OK(w http.ResponseWriter, data any) { write(w, http.StatusOK, envelope{Data
 // Created writes the resource a POST minted, at the status that says so.
 func Created(w http.ResponseWriter, data any) { write(w, http.StatusCreated, envelope{Data: data}) }
 
+// Accepted writes the work a POST started but did not finish, at the status that says "poll me".
+func Accepted(w http.ResponseWriter, data any) { write(w, http.StatusAccepted, envelope{Data: data}) }
+
 // Page writes a list and names the cursor that follows it, if there is one.
 func Page(w http.ResponseWriter, data any, next string) {
 	write(w, http.StatusOK, envelope{Data: data, Meta: &meta{NextCursor: next}})

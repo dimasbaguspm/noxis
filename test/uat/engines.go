@@ -126,6 +126,11 @@ func seedOne(ctx context.Context, addr string) error {
 		)`,
 		"DELETE FROM users",
 		`INSERT INTO users (email, note) VALUES ('a@x', 'one'), ('b@x', NULL), ('c@x', 'three')`,
+		// bulk is the table big enough to matter: doubling it eighteen times leaves a quarter of a
+		// million rows, which is past the size where apply stops waiting for the answer.
+		`CREATE TABLE IF NOT EXISTS bulk (id INT PRIMARY KEY AUTO_INCREMENT, note VARCHAR(20) NULL)`,
+		"DELETE FROM bulk",
+		"INSERT INTO bulk (note) VALUES (NULL)",
 		// The rehearsal creates and drops its own throwaway database, so the account it connects as
 		// needs the privilege a real operator would give it.
 		fmt.Sprintf("GRANT ALL PRIVILEGES ON *.* TO '%s'@'%%'", dbUser),
@@ -133,6 +138,16 @@ func seedOne(ctx context.Context, addr string) error {
 		if _, err := pool.ExecContext(ctx, statement); err != nil {
 			return err
 		}
+	}
+
+	for range 18 {
+		if _, err := pool.ExecContext(ctx, "INSERT INTO bulk (note) SELECT note FROM bulk"); err != nil {
+			return err
+		}
+	}
+	// The estimate in information_schema is the number apply reads; ANALYZE is what makes it true.
+	if _, err := pool.ExecContext(ctx, "ANALYZE TABLE bulk"); err != nil {
+		return err
 	}
 	return nil
 }
