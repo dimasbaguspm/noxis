@@ -26,11 +26,8 @@ type Token struct {
 
 // Config is the resolved environment.
 type Config struct {
-	HTTPAddr          string
-	StatePath         string
 	LogLevel          string
 	LogFormat         string
-	CORSOrigins       []string
 	QueryTimeout      time.Duration
 	ProbeTimeout      time.Duration
 	SecretKey         []byte
@@ -46,11 +43,8 @@ func Load() (Config, error) { return LoadFrom(os.Getenv) }
 // LoadFrom is Load with the environment injected, so the parse rules are testable.
 func LoadFrom(get func(string) string) (Config, error) {
 	cfg := Config{
-		HTTPAddr:    or(get("HTTP_ADDR"), ":8080"),
-		StatePath:   or(get("STATE"), "./noxis.db"),
-		LogLevel:    or(get("LOG_LEVEL"), "info"),
-		LogFormat:   or(get("LOG_FORMAT"), "text"),
-		CORSOrigins: splitList(or(get("CORS_ORIGINS"), "http://localhost:5173")),
+		LogLevel:  or(get("LOG_LEVEL"), "info"),
+		LogFormat: or(get("LOG_FORMAT"), "text"),
 	}
 	var err error
 	if cfg.QueryTimeout, err = duration(or(get("QUERY_TIMEOUT"), "30s"), "QUERY_TIMEOUT"); err != nil {
@@ -153,17 +147,6 @@ func or(value, fallback string) string {
 		return v
 	}
 	return fallback
-}
-
-func splitList(s string) []string {
-	parts := strings.Split(s, ",")
-	out := make([]string, 0, len(parts))
-	for _, part := range parts {
-		if p := strings.TrimSpace(part); p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
 }
 
 func duration(s, name string) (time.Duration, error) {

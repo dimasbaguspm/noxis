@@ -60,13 +60,13 @@ func run(m *testing.M) (int, error) {
 		return 0, err
 	}
 
-	cmd := exec.Command(binary)
+	// The listen address and the state file are constants on purpose; the flags exist for this suite
+	// and for development, so a second instance never needs an environment variable.
+	cmd := exec.Command(binary, "-addr", addr, "-state", filepath.Join(dir, "state.db"))
 	cmd.Dir = dir
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
 	cmd.Env = append(os.Environ(),
-		"HTTP_ADDR="+addr,
-		"STATE="+filepath.Join(dir, "state.db"),
 		"SECRET_KEY="+hex.EncodeToString(key),
 		"LOG_LEVEL=warn",
 		"TOKENS="+fmt.Sprintf(

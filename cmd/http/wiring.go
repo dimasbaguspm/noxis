@@ -28,8 +28,8 @@ type deps struct {
 
 // build is the composition root: config → logger → adapters → use cases → transport. It
 // returns the closer for the state file so the caller can shut it down in order.
-func build(ctx context.Context, cfg config.Config, log *slog.Logger) (http.Handler, io.Closer, error) {
-	state, err := sqlite.Open(ctx, cfg.StatePath)
+func build(ctx context.Context, cfg config.Config, statePath string, log *slog.Logger) (http.Handler, io.Closer, error) {
+	state, err := sqlite.Open(ctx, statePath)
 	if err != nil {
 		return nil, nil, err
 	}

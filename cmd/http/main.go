@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,6 +15,7 @@ import (
 
 	"noxis/internal/common/config"
 	"noxis/internal/common/logging"
+	"noxis/internal/constants"
 )
 
 func main() {
@@ -26,13 +28,17 @@ func main() {
 }
 
 func run(ctx context.Context) error {
+	addr := flag.String("addr", constants.ListenAddr, "listen address (a constant by default; a flag for development and the acceptance suite)")
+	statePath := flag.String("state", constants.StatePath, "state file (a constant by default; a flag for development and the acceptance suite)")
+	flag.Parse()
+
 	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
 	log := logging.New(cfg.LogLevel, cfg.LogFormat)
 
-	handler, closer, err := build(ctx, cfg, log)
+	handler, closer, err := build(ctx, cfg, *statePath, log)
 	if err != nil {
 		return err
 	}
@@ -40,14 +46,14 @@ func run(ctx context.Context) error {
 	defer func() { _ = closer.Close() }()
 
 	server := &http.Server{
-		Addr:              cfg.HTTPAddr,
+		Addr:              *addr,
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	serveErr := make(chan error, 1)
 	go func() {
-		log.Info("noxisd listening", "addr", cfg.HTTPAddr, "state", cfg.StatePath)
+		log.Info("noxisd listening", "addr", *addr, "state", *statePath)
 		serveErr <- server.ListenAndServe()
 	}()
 
