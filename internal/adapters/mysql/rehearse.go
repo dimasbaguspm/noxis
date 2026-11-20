@@ -11,6 +11,7 @@ import (
 
 	"noxis/internal/common/ref"
 	"noxis/internal/common/sqltext"
+	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 )
 
@@ -26,8 +27,10 @@ const sampleRows = 200
 // implicitly, so a transaction proves nothing for a schema change: the only honest proof is to
 // rebuild the schema somewhere else, run the statement there, and check that the rollback puts it
 // back.
-func (d *DB) Rehearse(ctx context.Context, target domain.Target, password string, change domain.Change) (domain.Rehearsal, error) {
+func (d *DB) Rehearse(ctx context.Context, target domain.Target, password string, change domain.Change) (out domain.Rehearsal, err error) {
 	started := time.Now()
+	ctx, end := telemetry.Span(ctx, "mysql.DB.Rehearse")
+	defer func() { end(err) }()
 	tier := change.Tier
 	if tier == "" {
 		tier = domain.TierShadow

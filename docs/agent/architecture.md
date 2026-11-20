@@ -48,6 +48,25 @@ Rules, enforced by `test/arch`:
    `ErrConflict → 409`, `ErrUnsupported → 422`, `ErrInvalid → 400`; anything else is
    500 with a logged cause and a generic body.
 
+
+## Telemetry
+
+`internal/common/telemetry` is the only package that knows OTLP. `telemetry.New` returns
+the `*slog.Logger` every layer already takes and a `Closer` the process defers; with
+`OTEL_EXPORTER_OTLP_ENDPOINT` empty it returns a plain stdout logger and a no-op closer,
+so a laptop and CI need no collector.
+
+Spans are named `Package.Type.Method`, or the route that serves the call:
+
+1. `Access` opens `http request` and hangs the request id on it as `request.id`.
+2. `middlewares.Span` opens one span per route, `GET /targets/{ref}`.
+3. Adapters open their own: `mysql.DB.Probe`, `mysql.DB.Query`, `mysql.DB.Rehearse`,
+   `mysql.DB.Apply`.
+
+Metrics are coarse on purpose — a tier, a verdict, a driver, never a ref:
+`noxis.rehearsal.duration`, `noxis.rehearsal.verdict`, `noxis.apply.duration`,
+`noxis.apply.outcome`.
+
 ## Identity
 
 There is no user table. Callers are declared in `TOKENS`:

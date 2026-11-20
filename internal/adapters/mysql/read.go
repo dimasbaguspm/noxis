@@ -10,6 +10,7 @@ import (
 
 	mysqldriver "github.com/go-sql-driver/mysql"
 
+	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 )
 
@@ -29,8 +30,10 @@ func (d *DB) pool(target domain.Target, password string) (*sql.DB, error) {
 
 // Query runs one statement a read route has already classified. It reads at most limit rows and
 // says whether it stopped early; it never rewrites the statement.
-func (d *DB) Query(ctx context.Context, target domain.Target, password, statement string, limit int) (domain.Rows, error) {
+func (d *DB) Query(ctx context.Context, target domain.Target, password, statement string, limit int) (out domain.Rows, err error) {
 	started := time.Now()
+	ctx, end := telemetry.Span(ctx, "mysql.DB.Query")
+	defer func() { end(err) }()
 	pool, err := d.pool(target, password)
 	if err != nil {
 		return domain.Rows{}, err
