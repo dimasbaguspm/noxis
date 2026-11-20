@@ -31,6 +31,11 @@ func (f *fakeTargets) ByRef(_ context.Context, _ string) (domain.Target, error) 
 	return f.target, nil
 }
 
+// ByKey answers nothing: these tests name targets by ref, and a retried key is the store's subject.
+func (*fakeTargets) ByKey(_ context.Context, _ string) (domain.Target, error) {
+	return domain.Target{}, domain.ErrNotFound
+}
+
 func (*fakeTargets) List(_ context.Context, _ ports.TargetFilter) ([]domain.Target, error) {
 	return nil, nil
 }

@@ -2,6 +2,7 @@ package proposal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"noxis/internal/common/ref"
 	"noxis/internal/common/sqltext"
@@ -19,21 +20,25 @@ type Create struct{ Deps }
 // NewCreate builds the use case.
 func NewCreate(d Deps) *Create { return &Create{Deps: d} }
 
-// CreateInput is one proposal as the caller writes it.
+// CreateInput is one proposal as the caller writes it. IdempotencyKey is the caller's name for this
+// request, empty when the caller named none.
 type CreateInput struct {
-	TargetRef string
-	Title     string
-	Query     string
-	Rollback  string
-	Note      string
-	Tier      string
-	Actor     string
+	TargetRef      string
+	Title          string
+	Query          string
+	Rollback       string
+	Note           string
+	Tier           string
+	Actor          string
+	IdempotencyKey string
 }
 
-// CreateOutput is the proposal as it now stands and the evidence behind it.
+// CreateOutput is the proposal as it now stands, the evidence behind it, and whether an earlier call
+// with the same key is what made it. A replay rehearses nothing: the evidence already exists.
 type CreateOutput struct {
 	Proposal  domain.Proposal
 	Rehearsal domain.Rehearsal
+	Replayed  bool
 }
 
 // Run classifies, stores, rehearses and journals.
@@ -44,6 +49,19 @@ func (c *Create) Run(ctx context.Context, in CreateInput) (out0 CreateOutput, er
 	targetRef, err := requireRef(in.TargetRef)
 	if err != nil {
 		return CreateOutput{}, err
+	}
+	if in.IdempotencyKey != "" {
+		existing, lookupErr := c.Proposals.ProposalByKey(ctx, in.IdempotencyKey)
+		switch {
+		case lookupErr == nil:
+			rehearsal, err := c.Rehearsals.LatestRehearsal(ctx, existing.Ref)
+			if err != nil && !errors.Is(err, domain.ErrNotFound) {
+				return CreateOutput{Proposal: existing}, err
+			}
+			return CreateOutput{Proposal: existing, Rehearsal: rehearsal, Replayed: true}, nil
+		case !errors.Is(lookupErr, domain.ErrNotFound):
+			return CreateOutput{}, lookupErr
+		}
 	}
 	tier := domain.Tier(in.Tier)
 	if in.Tier == "" {
@@ -60,18 +78,19 @@ func (c *Create) Run(ctx context.Context, in CreateInput) (out0 CreateOutput, er
 
 	now := time.Now().UTC()
 	proposal := domain.Proposal{
-		Ref:        ref.New(),
-		TargetRef:  targetRef,
-		Title:      strings.TrimSpace(in.Title),
-		Kind:       kind,
-		Query:      strings.TrimSpace(in.Query),
-		Rollback:   strings.TrimSpace(in.Rollback),
-		Note:       strings.TrimSpace(in.Note),
-		Status:     domain.StatusDraft,
-		Tier:       tier,
-		ProposedBy: in.Actor,
-		CreatedAt:  now,
-		UpdatedAt:  now,
+		Ref:            ref.New(),
+		TargetRef:      targetRef,
+		Title:          strings.TrimSpace(in.Title),
+		Kind:           kind,
+		Query:          strings.TrimSpace(in.Query),
+		Rollback:       strings.TrimSpace(in.Rollback),
+		Note:           strings.TrimSpace(in.Note),
+		Status:         domain.StatusDraft,
+		Tier:           tier,
+		ProposedBy:     in.Actor,
+		IdempotencyKey: in.IdempotencyKey,
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}
 	if err := proposal.Validate(); err != nil {
 		return CreateOutput{}, err
@@ -80,6 +99,12 @@ func (c *Create) Run(ctx context.Context, in CreateInput) (out0 CreateOutput, er
 	stored, err := c.Proposals.CreateProposal(ctx, proposal)
 	if err != nil {
 		return CreateOutput{}, err
+	}
+	// Another call won the race with the same key: its proposal is the answer, and nothing is
+	// rehearsed or journaled twice.
+	if stored.Ref != proposal.Ref {
+		rehearsal, _ := c.Rehearsals.LatestRehearsal(ctx, stored.Ref)
+		return CreateOutput{Proposal: stored, Rehearsal: rehearsal, Replayed: true}, nil
 	}
 	if err := c.record(ctx, stored, constants.JournalProposed, map[string]string{
 		"title": stored.Title,

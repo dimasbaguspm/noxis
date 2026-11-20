@@ -337,3 +337,44 @@ func TestEventsRefusesAnUnknownProposal(t *testing.T) {
 		t.Fatalf("Events for an unknown proposal: %v, want ErrNotFound", err)
 	}
 }
+
+// A proposal retried under the key it named the first time is one change, with the evidence the first
+// call produced: nothing is rehearsed twice and nothing is journaled twice.
+func TestCreateWithTheSameKeyIsOneProposal(t *testing.T) {
+	f := newFixture(t, domain.StatusDraft)
+	f.driver.rehearsal = domain.Rehearsal{Status: domain.RehearsalVerified, SchemaDiff: "- a\\n+ b"}
+	f.rehearsal.latest = domain.Rehearsal{Status: domain.RehearsalVerified, SchemaDiff: "- a\\n+ b"}
+	in := CreateInput{
+		TargetRef: f.target.Ref, Title: "add a column", Query: "ALTER TABLE users ADD COLUMN note TEXT",
+		Tier: "shadow", Actor: "agent", IdempotencyKey: "retry-me",
+	}
+
+	first, err := NewCreate(f.deps).Run(context.Background(), in)
+	if err != nil {
+		t.Fatalf("first propose: %v", err)
+	}
+	second, err := NewCreate(f.deps).Run(context.Background(), in)
+	if err != nil {
+		t.Fatalf("retried propose: %v", err)
+	}
+
+	if second.Proposal.Ref != first.Proposal.Ref {
+		t.Fatalf("refs = %q and %q, want the same proposal", first.Proposal.Ref, second.Proposal.Ref)
+	}
+	if first.Replayed || !second.Replayed {
+		t.Fatalf("replayed = %v then %v, want false then true", first.Replayed, second.Replayed)
+	}
+	// The fixture seeds one proposal of its own, so the count that matters is the one carrying the key.
+	keyed := 0
+	for _, proposal := range f.proposals.stored {
+		if proposal.IdempotencyKey == in.IdempotencyKey {
+			keyed++
+		}
+	}
+	if keyed != 1 {
+		t.Fatalf("stored %d proposals under the key, want 1", keyed)
+	}
+	if second.Rehearsal.Status != domain.RehearsalVerified {
+		t.Fatalf("the replay answered with no evidence: %+v", second.Rehearsal)
+	}
+}

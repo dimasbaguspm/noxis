@@ -16,4 +16,8 @@ const (
 	// MaxPages bounds a walk through every page: a cursor that points at itself would otherwise loop
 	// forever, and a command that never returns is worse than one that says it stopped.
 	MaxPages = 1000
+
+	// MaxIdempotencyKeyLen bounds a caller's name for a request. A key is compared whole, so a key
+	// longer than this is refused rather than cut.
+	MaxIdempotencyKeyLen = 200
 )

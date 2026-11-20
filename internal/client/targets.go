@@ -42,6 +42,9 @@ type CreateTargetInput struct {
 	Password string            `json:"password,omitempty"`
 	TLSMode  string            `json:"tls_mode,omitempty"`
 	Options  map[string]string `json:"options,omitempty"`
+	// IdempotencyKey names this registration and never travels in the body: it is the header the
+	// server stores, so the same key twice is one instance.
+	IdempotencyKey string `json:"-"`
 }
 
 // ListTargetsInput is one page request: a limit, a cursor and the filters the API accepts.
@@ -80,10 +83,11 @@ func (c *Client) ListTargets(ctx context.Context, in ListTargetsInput) (Page[Tar
 	return Page[Target]{Items: items, NextCursor: next}, err
 }
 
-// CreateTarget registers a target. It needs a token holding `admin`.
+// CreateTarget registers a target. It needs a token holding `admin`. The key names the request, so a
+// create that is retried after a timeout answers the row the first call made.
 func (c *Client) CreateTarget(ctx context.Context, in CreateTargetInput) (Target, error) {
 	var out Target
-	_, err := c.do(ctx, http.MethodPost, pathTargets, in, &out)
+	_, err := c.doKey(ctx, http.MethodPost, pathTargets, in, &out, requestKey(in.IdempotencyKey))
 	return out, err
 }
 
@@ -308,19 +312,23 @@ type Rehearsal struct {
 	CreatedAt    time.Time `json:"created_at"`
 }
 
-// CreateProposalInput is one proposal as a caller writes it.
+// CreateProposalInput is one proposal as a caller writes it. IdempotencyKey names the request and
+// never travels in the body.
 type CreateProposalInput struct {
-	Title    string `json:"title"`
-	Query    string `json:"query"`
-	Rollback string `json:"rollback,omitempty"`
-	Note     string `json:"note,omitempty"`
-	Tier     string `json:"tier,omitempty"`
+	Title          string `json:"title"`
+	Query          string `json:"query"`
+	Rollback       string `json:"rollback,omitempty"`
+	Note           string `json:"note,omitempty"`
+	Tier           string `json:"tier,omitempty"`
+	IdempotencyKey string `json:"-"`
 }
 
-// CreateProposal stores and rehearses one change.
+// CreateProposal stores and rehearses one change. The key names the request, so a retry rehearses
+// nothing and answers the proposal the first call made.
 func (c *Client) CreateProposal(ctx context.Context, targetRef string, in CreateProposalInput) (Proposal, error) {
 	var out Proposal
-	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/proposals", targetPath(targetRef)), in, &out)
+	_, err := c.doKey(ctx, http.MethodPost, fmt.Sprintf("%s/proposals", targetPath(targetRef)), in, &out,
+		requestKey(in.IdempotencyKey))
 	return out, err
 }
 

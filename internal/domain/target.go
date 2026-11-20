@@ -30,6 +30,9 @@ type Target struct {
 	ArchivedAt      *time.Time
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	// IdempotencyKey is the caller's name for the request that made this row, empty when the caller
+	// named none. It is stored so a retried create answers the row the first one made.
+	IdempotencyKey string
 }
 
 var targetName = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{1,62}$`)

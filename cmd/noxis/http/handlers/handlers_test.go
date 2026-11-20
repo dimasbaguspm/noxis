@@ -372,3 +372,90 @@ func TestApplyIsTracedEndToEnd(t *testing.T) {
 		}
 	}
 }
+
+// requestKey is request with the idempotency header set: the retry tests are the only callers, and a
+// header is the whole subject.
+func requestKey(t *testing.T, handler http.HandlerFunc, method, path, body, key string,
+	caller domain.Caller,
+) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(method, path, strings.NewReader(body))
+	req = req.WithContext(middlewares.WithCaller(req.Context(), caller))
+	req.Header.Set(constants.HeaderIdempotencyKey, key)
+	if ref := lastSegment(path); ref != "" {
+		req.SetPathValue("ref", ref)
+	}
+	rec := httptest.NewRecorder()
+	handler(rec, req)
+	return rec
+}
+
+// A retry of a registration carrying the key it named the first time is 200 with the target that
+// exists, not 201 with a second one: the difference is what tells a caller it did not create a row.
+func TestCreateTargetWithTheSameKeyAnswersTheFirstRow(t *testing.T) {
+	state := newStore()
+	h := newHandlers(state)
+	body := `{"name":"staging","driver":"mysql","host":"db","database":"app","username":"noxis"}`
+
+	first := requestKey(t, h.CreateTarget, http.MethodPost, "/v1/targets", body, "retry-me", ops)
+	if first.Code != http.StatusCreated {
+		t.Fatalf("first status = %d: %s", first.Code, first.Body)
+	}
+	second := requestKey(t, h.CreateTarget, http.MethodPost, "/v1/targets", body, "retry-me", ops)
+	if second.Code != http.StatusOK {
+		t.Fatalf("retried status = %d, want 200: %s", second.Code, second.Body)
+	}
+
+	var one, two struct {
+		Ref string `json:"ref"`
+	}
+	decodeBody(t, first, &one)
+	decodeBody(t, second, &two)
+	if one.Ref != two.Ref {
+		t.Fatalf("refs = %q and %q, want the same target", one.Ref, two.Ref)
+	}
+	if len(state.targets) != 1 {
+		t.Fatalf("stored %d targets, want 1", len(state.targets))
+	}
+}
+
+// The same rule on the other create, because a duplicate proposal is a change somebody has to review.
+func TestCreateProposalWithTheSameKeyAnswersTheFirstOne(t *testing.T) {
+	state := newStore()
+	target := state.seedTarget("0192f0c0-0000-7000-8000-000000000001")
+	h := newHandlers(state)
+	body := `{"title":"add a column","query":"ALTER TABLE users ADD COLUMN note TEXT"}`
+	path := "/v1/targets/" + target.Ref + "/proposals"
+
+	first := requestKey(t, h.CreateProposal, http.MethodPost, path, body, "retry-me", ops)
+	if first.Code != http.StatusCreated {
+		t.Fatalf("first status = %d: %s", first.Code, first.Body)
+	}
+	second := requestKey(t, h.CreateProposal, http.MethodPost, path, body, "retry-me", ops)
+	if second.Code != http.StatusOK {
+		t.Fatalf("retried status = %d, want 200: %s", second.Code, second.Body)
+	}
+
+	var one, two struct {
+		Proposal struct {
+			Ref string `json:"ref"`
+		} `json:"proposal"`
+	}
+	decodeBody(t, first, &one)
+	decodeBody(t, second, &two)
+	if one.Proposal.Ref != two.Proposal.Ref {
+		t.Fatalf("refs = %q and %q, want the same proposal", one.Proposal.Ref, two.Proposal.Ref)
+	}
+}
+
+// A key longer than the limit is refused: two different keys cut to the same prefix would be one key,
+// and one create would vanish.
+func TestCreateRefusesAnOverlongKey(t *testing.T) {
+	h := newHandlers(newStore())
+	rec := requestKey(t, h.CreateTarget, http.MethodPost, "/v1/targets",
+		`{"name":"staging","driver":"mysql","host":"db","database":"app","username":"noxis"}`,
+		strings.Repeat("k", constants.MaxIdempotencyKeyLen+1), ops)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400: %s", rec.Code, rec.Body)
+	}
+}

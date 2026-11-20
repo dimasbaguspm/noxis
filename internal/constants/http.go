@@ -5,6 +5,8 @@ const (
 	HeaderAuthorization = "Authorization"
 	HeaderRequestID     = "X-Request-Id"
 	HeaderContentType   = "Content-Type"
+	// HeaderIdempotencyKey names a create so a retry answers the row the first call made.
+	HeaderIdempotencyKey = "Idempotency-Key"
 
 	MediaTypeJSON = "application/json; charset=utf-8"
 	MediaTypeYAML = "application/yaml"

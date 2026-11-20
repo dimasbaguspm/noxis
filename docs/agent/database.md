@@ -23,7 +23,7 @@ a cache, which is why nothing here migrates one.
 `SchemaVersion` lives next to the schema in `internal/adapters/sqlite/open.go`. A ticket
 that changes the schema bumps it.
 
-## Tables (schema v4)
+## Tables (schema v5)
 
 An older file is refused rather than migrated, like any other version: the reset is the
 migration.
@@ -46,6 +46,7 @@ migration.
 | `last_probe_at` | INTEGER | milliseconds of the last attempt, successful or not |
 | `last_probe_status` | TEXT | `ok` or `failed`, empty before the first attempt |
 | `created_at`, `updated_at` | INTEGER | milliseconds |
+| `idempotency_key` | TEXT | unique, NULL when the caller named none: a retried create reads the row this key made |
 
 **journal** — append-only. Nothing updates or deletes a row.
 
@@ -72,6 +73,7 @@ wording.
 | `progress_stage`, `progress_percent` | TEXT, INTEGER | what the engine said while it ran; percent is `-1` when the engine does not say |
 | `algorithm` | TEXT | `INSTANT`, `INPLACE`, `COPY`, empty when the engine would not name one |
 | `rows_estimated`, `rows_affected` | INTEGER | the estimate that decided whether the answer waits, and what the statement actually touched |
+| `idempotency_key` | TEXT | unique, NULL when the caller named none: a retried propose answers the proposal this key made, with the rehearsal it produced |
 
 `progress_*` is written by `SetProgress`, which touches those two columns only: the watcher must
 never overwrite the receipt that ends the apply. A row still `applying` after a restart is

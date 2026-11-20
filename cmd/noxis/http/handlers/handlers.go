@@ -3,10 +3,15 @@
 package handlers
 
 import (
+	"fmt"
 	"log/slog"
+	"net/http"
 	"noxis/internal/app/proposal"
 	"noxis/internal/app/read"
 	"noxis/internal/app/target"
+	"noxis/internal/constants"
+	"noxis/internal/domain"
+	"strings"
 )
 
 // Deps is what the handlers call. It is assembled once in the composition root and holds
@@ -54,3 +59,23 @@ type Handlers struct{ Deps }
 
 // New builds the handler set.
 func New(d Deps) *Handlers { return &Handlers{Deps: d} }
+
+// idempotencyKey reads the caller's name for this create, or "" when they named none. A key that is too
+// long or holds anything but printable ASCII is refused rather than trimmed: two different keys that
+// were cut to the same prefix would be one key, and one create would be silently lost.
+func idempotencyKey(r *http.Request) (string, error) {
+	key := strings.TrimSpace(r.Header.Get(constants.HeaderIdempotencyKey))
+	if key == "" {
+		return "", nil
+	}
+	if len(key) > constants.MaxIdempotencyKeyLen {
+		return "", fmt.Errorf("%w: %s is longer than %d characters",
+			domain.ErrInvalid, constants.HeaderIdempotencyKey, constants.MaxIdempotencyKeyLen)
+	}
+	for _, char := range key {
+		if char < 0x20 || char > 0x7e {
+			return "", fmt.Errorf("%w: %s may hold printable ASCII only", domain.ErrInvalid, constants.HeaderIdempotencyKey)
+		}
+	}
+	return key, nil
+}

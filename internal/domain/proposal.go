@@ -127,6 +127,9 @@ type Proposal struct {
 	RowsAffected  int64
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
+	// IdempotencyKey is the caller's name for the request that made this proposal, empty when the
+	// caller named none. A change proposed twice under one key is one change.
+	IdempotencyKey string
 }
 
 // Validate refuses a proposal a reviewer could not act on. The statement itself is judged by the

@@ -833,6 +833,16 @@
       },
       "post": {
         "description": "Requires the admin scope. The password is sealed with SECRET_KEY and never returned.",
+        "parameters": [
+          {
+            "description": "a name for this create; a retry with the same one answers the same row",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -847,6 +857,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/respond.Envelope"
+                }
+              }
+            },
+            "description": "the row a retried create already made"
+          },
           "201": {
             "content": {
               "application/json": {
@@ -1388,6 +1408,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "a name for this create; a retry with the same one answers the same proposal",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1404,6 +1432,16 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/respond.Envelope"
+                }
+              }
+            },
+            "description": "the proposal a retried create already made"
+          },
           "201": {
             "content": {
               "application/json": {

@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"noxis/internal/common/ref"
 	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"strings"
@@ -115,13 +116,19 @@ func (c *Client) Live(ctx context.Context) (Health, error) {
 // OpenAPI answers the document the server serves: the contract that deployment implements, not a copy
 // this binary happened to be built with.
 func (c *Client) OpenAPI(ctx context.Context) ([]byte, error) {
-	raw, _, err := c.send(ctx, http.MethodGet, pathOpenAPI, nil)
+	raw, _, err := c.send(ctx, http.MethodGet, pathOpenAPI, nil, "")
 	return raw, err
 }
 
 // do performs one call and returns the cursor of the page it answered, when it answered one.
 func (c *Client) do(ctx context.Context, method, path string, body, out any) (string, error) {
-	raw, status, err := c.send(ctx, method, path, body)
+	return c.doKey(ctx, method, path, body, out, "")
+}
+
+// doKey is do with a name for the request. A create that carries a key the server has already seen is
+// answered with the row the first call made, so a retry after a timeout costs nothing.
+func (c *Client) doKey(ctx context.Context, method, path string, body, out any, key string) (string, error) {
+	raw, status, err := c.send(ctx, method, path, body, key)
 	if err != nil {
 		return "", err
 	}
@@ -157,10 +164,10 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) (st
 	return "", nil
 }
 
-// send is the one place a request is built: the bearer, the content type, the body, and a bounded
-// read. It answers the body and the status, because a caller reading a document rather than an
-// envelope still needs the status to tell a refusal from an answer.
-func (c *Client) send(ctx context.Context, method, path string, body any) (raw []byte, status int, err error) {
+// send is the one place a request is built: the bearer, the content type, the body, the name a retry
+// carries, and a bounded read. It answers the body and the status, because a caller reading a document
+// rather than an envelope still needs the status to tell a refusal from an answer.
+func (c *Client) send(ctx context.Context, method, path string, body any, key string) (raw []byte, status int, err error) {
 	ctx, end := telemetry.Span(ctx, "client.Client.Do")
 	defer func() { end(err) }()
 
@@ -182,6 +189,9 @@ func (c *Client) send(ctx context.Context, method, path string, body any) (raw [
 	}
 	if c.token != "" {
 		req.Header.Set(constants.HeaderAuthorization, fmt.Sprintf("%s %s", constants.SchemeBearer, c.token))
+	}
+	if key != "" {
+		req.Header.Set(constants.HeaderIdempotencyKey, key)
 	}
 
 	res, err := c.http.Do(req)
@@ -205,4 +215,14 @@ func snippet(raw []byte) string {
 		return s[:limit] + "…"
 	}
 	return s
+}
+
+// requestKey names a create: the key the caller named, or a fresh one. A caller that sends the same key
+// twice gets one row back; a caller that names none is still protected from a double-send inside one
+// process, because the second call carries the key the first one made.
+func requestKey(key string) string {
+	if key != "" {
+		return key
+	}
+	return ref.New()
 }

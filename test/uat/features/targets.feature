@@ -40,3 +40,11 @@ Feature: Targets
     Then the request succeeds
     And I archive the target I registered
     Then the request fails with status 409
+
+  # A retried create is the create it already made. The second call carries a different name and the
+  # same key: if the server had made a second row the reference would differ, so equality is the proof.
+  Scenario: a retried registration is the instance it already made
+    Given I hold the ops token
+    When I register a target named "uat-retry" twice under the key "uat-key-1"
+    Then the retry answers with status 200
+    And the retry answers the target the first call made

@@ -11,11 +11,12 @@ import (
 )
 
 const targetColumns = `ref, name, driver, host, port, database, username, password_cipher, tls_mode, options,
-	created_by, archived_at, server_version, last_probe_at, last_probe_status, created_at, updated_at`
+	created_by, archived_at, server_version, last_probe_at, last_probe_status, created_at, updated_at, idempotency_key`
 
-const targetPlaceholders = `?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?`
+const targetPlaceholders = `?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?`
 
-// Create inserts one target. A name collision is a conflict, not an overwrite.
+// Create inserts one target. A name collision is a conflict, not an overwrite; a key collision is the
+// retry it was meant to catch, and answers the row the first call already made.
 func (d *DB) Create(ctx context.Context, target domain.Target) (out0 domain.Target, err error) {
 	ctx, end := telemetry.Span(ctx, "sqlite.DB.Create")
 	defer func() { end(err) }()
@@ -29,12 +30,32 @@ func (d *DB) Create(ctx context.Context, target domain.Target) (out0 domain.Targ
 		target.Username, target.Secret, target.TLSMode, options, target.CreatedBy,
 		nullableMillis(target.ArchivedAt), target.ServerVersion, nullableMillis(target.LastProbeAt),
 		target.LastProbeStatus, millis(target.CreatedAt), millis(target.UpdatedAt),
+		nullableKey(target.IdempotencyKey),
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
+			// Two creations racing on one key: the loser answers the winner's row instead of a 500.
+			if target.IdempotencyKey != "" {
+				if existing, lookupErr := d.ByKey(ctx, target.IdempotencyKey); lookupErr == nil {
+					return existing, nil
+				}
+			}
 			return domain.Target{}, fmt.Errorf("%w: a target named %q already exists", domain.ErrConflict, target.Name)
 		}
 		return domain.Target{}, fmt.Errorf("state: create target: %w", err)
+	}
+	return target, nil
+}
+
+// ByKey answers the target a retried create already made, or ErrNotFound.
+func (d *DB) ByKey(ctx context.Context, key string) (out0 domain.Target, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.ByKey")
+	defer func() { end(err) }()
+
+	row := d.db.QueryRowContext(ctx, `SELECT `+targetColumns+` FROM targets WHERE idempotency_key = ?`, key)
+	target, err := scanTarget(row)
+	if err != nil {
+		return domain.Target{}, notFound(err, "the idempotency key", key)
 	}
 	return target, nil
 }
@@ -148,17 +169,18 @@ type scanner interface {
 
 func scanTarget(row scanner) (domain.Target, error) {
 	var (
-		target      domain.Target
-		options     string
-		archivedAt  *int64
-		lastProbeAt *int64
-		createdAt   int64
-		updatedAt   int64
+		target         domain.Target
+		options        string
+		archivedAt     *int64
+		lastProbeAt    *int64
+		createdAt      int64
+		updatedAt      int64
+		idempotencyKey *string
 	)
 	err := row.Scan(&target.Ref, &target.Name, &target.Driver, &target.Host, &target.Port,
 		&target.Database, &target.Username, &target.Secret, &target.TLSMode, &options,
 		&target.CreatedBy, &archivedAt, &target.ServerVersion, &lastProbeAt,
-		&target.LastProbeStatus, &createdAt, &updatedAt)
+		&target.LastProbeStatus, &createdAt, &updatedAt, &idempotencyKey)
 	if err != nil {
 		return domain.Target{}, err
 	}
@@ -175,6 +197,9 @@ func scanTarget(row scanner) (domain.Target, error) {
 	}
 	target.CreatedAt = fromMillis(createdAt)
 	target.UpdatedAt = fromMillis(updatedAt)
+	if idempotencyKey != nil {
+		target.IdempotencyKey = *idempotencyKey
+	}
 	return target, nil
 }
 
@@ -203,4 +228,13 @@ func decodeOptions(raw string) (map[string]string, error) {
 // escapeLike keeps a typed % or _ literal instead of turning it into a wildcard.
 func escapeLike(s string) string {
 	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
+}
+
+// nullableKey stores an empty key as SQL NULL, so the unique index tolerates the many rows that were
+// created without one: two NULLs are not the same value, two empty strings would be.
+func nullableKey(key string) any {
+	if key == "" {
+		return nil
+	}
+	return key
 }

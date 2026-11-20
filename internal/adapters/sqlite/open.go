@@ -22,8 +22,9 @@ import (
 // refusal, and this file is an audit trail before it is a cache.
 //
 // v1: targets and journal. v2: targets carry what the last probe measured. v3: proposals and
-// their rehearsals. v4: a proposal carries the apply's progress and receipt.
-const SchemaVersion = 4
+// their rehearsals. v4: a proposal carries the apply's progress and receipt. v5: a create may carry an
+// idempotency key, which is what makes a retried create the same create.
+const SchemaVersion = 5
 
 // DB is the state file.
 type DB struct {
@@ -136,9 +137,11 @@ var schema = []string{
 		last_probe_at   INTEGER,
 		last_probe_status TEXT  NOT NULL DEFAULT '',
 		created_at      INTEGER NOT NULL,
-		updated_at      INTEGER NOT NULL
+		updated_at      INTEGER NOT NULL,
+		idempotency_key TEXT
 	) STRICT`,
 	`CREATE INDEX targets_driver ON targets (driver)`,
+	`CREATE UNIQUE INDEX targets_idempotency ON targets (idempotency_key)`,
 	`CREATE TABLE journal (
 		ref          TEXT    PRIMARY KEY,
 		subject_ref  TEXT    NOT NULL,
@@ -175,10 +178,12 @@ var schema = []string{
 		rows_estimated INTEGER NOT NULL DEFAULT 0,
 		rows_affected INTEGER NOT NULL DEFAULT 0,
 		created_at    INTEGER NOT NULL,
-		updated_at    INTEGER NOT NULL
+		updated_at    INTEGER NOT NULL,
+		idempotency_key TEXT
 	) STRICT`,
 	`CREATE INDEX proposals_target ON proposals (target_ref, ref)`,
 	`CREATE INDEX proposals_status ON proposals (status, ref)`,
+	`CREATE UNIQUE INDEX proposals_idempotency ON proposals (idempotency_key)`,
 	`CREATE TABLE rehearsals (
 		ref          TEXT    PRIMARY KEY,
 		proposal_ref TEXT    NOT NULL REFERENCES proposals (ref),

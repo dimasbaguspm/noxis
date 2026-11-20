@@ -13,7 +13,7 @@ import (
 const proposalColumns = `ref, target_ref, title, kind, query, rollback, note, status, tier, irreversible,
 	proposed_by, rehearsal_ref, decided_by, decided_at, decided_note, applied_by, applied_at, failure,
 	started_at, progress_stage, progress_percent, algorithm, rows_estimated, rows_affected,
-	created_at, updated_at`
+	created_at, updated_at, idempotency_key`
 
 // Create stores one proposal. Two proposals with the same title are allowed: a title describes a
 // change, and the same change may be proposed twice.
@@ -22,7 +22,7 @@ func (d *DB) CreateProposal(ctx context.Context, proposal domain.Proposal) (out0
 	defer func() { end(err) }()
 
 	_, err = d.db.ExecContext(ctx, `INSERT INTO proposals (`+proposalColumns+`)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		proposal.Ref, proposal.TargetRef, proposal.Title, string(proposal.Kind), proposal.Query,
 		proposal.Rollback, proposal.Note, string(proposal.Status), string(proposal.Tier),
 		boolInt(proposal.Irreversible), proposal.ProposedBy, proposal.RehearsalRef, proposal.DecidedBy,
@@ -30,10 +30,29 @@ func (d *DB) CreateProposal(ctx context.Context, proposal domain.Proposal) (out0
 		nullableMillis(proposal.AppliedAt), proposal.Failure, nullableMillis(proposal.StartedAt),
 		proposal.Progress.Stage, proposal.Progress.Percent, string(proposal.Algorithm),
 		proposal.RowsEstimated, proposal.RowsAffected, millis(proposal.CreatedAt),
-		millis(proposal.UpdatedAt),
+		millis(proposal.UpdatedAt), nullableKey(proposal.IdempotencyKey),
 	)
 	if err != nil {
+		if isUniqueViolation(err) && proposal.IdempotencyKey != "" {
+			// Two creations racing on one key: the loser answers the winner's row.
+			if existing, lookupErr := d.ProposalByKey(ctx, proposal.IdempotencyKey); lookupErr == nil {
+				return existing, nil
+			}
+		}
 		return domain.Proposal{}, fmt.Errorf("state: create proposal: %w", err)
+	}
+	return proposal, nil
+}
+
+// ProposalByKey answers the proposal a retried create already made, or ErrNotFound.
+func (d *DB) ProposalByKey(ctx context.Context, key string) (out0 domain.Proposal, err error) {
+	ctx, end := telemetry.Span(ctx, "sqlite.DB.ProposalByKey")
+	defer func() { end(err) }()
+
+	row := d.db.QueryRowContext(ctx, `SELECT `+proposalColumns+` FROM proposals WHERE idempotency_key = ?`, key)
+	proposal, err := scanProposal(row)
+	if err != nil {
+		return domain.Proposal{}, notFound(err, "the idempotency key", key)
 	}
 	return proposal, nil
 }
@@ -142,24 +161,25 @@ func (d *DB) UpdateProposal(ctx context.Context, proposal domain.Proposal) (out0
 
 func scanProposal(row scanner) (domain.Proposal, error) {
 	var (
-		proposal  domain.Proposal
-		kind      string
-		status    string
-		tier      string
-		irrev     int
-		decidedAt *int64
-		appliedAt *int64
-		startedAt *int64
-		algorithm string
-		createdAt int64
-		updatedAt int64
+		proposal       domain.Proposal
+		kind           string
+		status         string
+		tier           string
+		irrev          int
+		decidedAt      *int64
+		appliedAt      *int64
+		startedAt      *int64
+		algorithm      string
+		createdAt      int64
+		updatedAt      int64
+		idempotencyKey *string
 	)
 	err := row.Scan(&proposal.Ref, &proposal.TargetRef, &proposal.Title, &kind, &proposal.Query,
 		&proposal.Rollback, &proposal.Note, &status, &tier, &irrev, &proposal.ProposedBy,
 		&proposal.RehearsalRef, &proposal.DecidedBy, &decidedAt, &proposal.DecidedNote,
 		&proposal.AppliedBy, &appliedAt, &proposal.Failure, &startedAt, &proposal.Progress.Stage,
 		&proposal.Progress.Percent, &algorithm, &proposal.RowsEstimated, &proposal.RowsAffected,
-		&createdAt, &updatedAt)
+		&createdAt, &updatedAt, &idempotencyKey)
 	if err != nil {
 		return domain.Proposal{}, err
 	}
@@ -182,6 +202,9 @@ func scanProposal(row scanner) (domain.Proposal, error) {
 	proposal.Algorithm = domain.Algorithm(algorithm)
 	proposal.CreatedAt = fromMillis(createdAt)
 	proposal.UpdatedAt = fromMillis(updatedAt)
+	if idempotencyKey != nil {
+		proposal.IdempotencyKey = *idempotencyKey
+	}
 	return proposal, nil
 }
 

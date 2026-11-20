@@ -52,6 +52,17 @@ func (s *store) ByRef(_ context.Context, ref string) (domain.Target, error) {
 	return target, nil
 }
 
+// ByKey scans for a stored key: the fake keeps rows by ref, and this is the one lookup that does not
+// start from one. It is what makes the retry test over HTTP possible.
+func (s *store) ByKey(_ context.Context, key string) (domain.Target, error) {
+	for _, target := range s.targets {
+		if target.IdempotencyKey == key {
+			return target, nil
+		}
+	}
+	return domain.Target{}, domain.ErrNotFound
+}
+
 func (s *store) List(_ context.Context, filter ports.TargetFilter) ([]domain.Target, error) {
 	found := make([]domain.Target, 0, len(s.targets))
 	for _, target := range s.targets {
@@ -101,6 +112,16 @@ func (s *store) ProposalByRef(_ context.Context, ref string) (domain.Proposal, e
 		return domain.Proposal{}, domain.ErrNotFound
 	}
 	return proposal, nil
+}
+
+// ProposalByKey is the same scan for a proposal: a retried propose finds what the first one made.
+func (s *store) ProposalByKey(_ context.Context, key string) (domain.Proposal, error) {
+	for _, proposal := range s.proposals {
+		if proposal.IdempotencyKey == key {
+			return proposal, nil
+		}
+	}
+	return domain.Proposal{}, domain.ErrNotFound
 }
 
 func (s *store) ListProposals(_ context.Context, filter ports.ProposalFilter) ([]domain.Proposal, error) {

@@ -114,6 +114,8 @@ func toRehearsalWire(r domain.Rehearsal) Rehearsal {
 // @Security BearerAuth
 // @Param ref path string true "target reference"
 // @Param body body handlers.CreateProposalRequest true "the change and its rollback"
+// @Param Idempotency-Key header string false "a name for this create; a retry with the same one answers the same proposal"
+// @Success 200 {object} respond.Envelope "the proposal a retried create already made"
 // @Success 201 {object} respond.Envelope
 // @Failure 400 {object} respond.Envelope
 // @Router /v1/targets/{ref}/proposals [post]
@@ -127,20 +129,32 @@ func (h *Handlers) CreateProposal(w http.ResponseWriter, r *http.Request) {
 		respond.Fail(w, h.Log, err)
 		return
 	}
+	key, err := idempotencyKey(r)
+	if err != nil {
+		respond.Fail(w, h.Log, err)
+		return
+	}
 	out, err := h.Proposals.Create.Run(r.Context(), proposal.CreateInput{
-		TargetRef: r.PathValue("ref"),
-		Title:     body.Title,
-		Query:     body.Query,
-		Rollback:  body.Rollback,
-		Note:      body.Note,
-		Tier:      body.Tier,
-		Actor:     middlewares.Caller(r.Context()).Name,
+		TargetRef:      r.PathValue("ref"),
+		Title:          body.Title,
+		Query:          body.Query,
+		Rollback:       body.Rollback,
+		Note:           body.Note,
+		Tier:           body.Tier,
+		Actor:          middlewares.Caller(r.Context()).Name,
+		IdempotencyKey: key,
 	})
 	if err != nil {
 		respond.Fail(w, h.Log, err)
 		return
 	}
-	respond.Created(w, ProposalDetail{Proposal: toProposalWire(out.Proposal), Rehearsal: wireOf(out.Rehearsal)})
+	detail := ProposalDetail{Proposal: toProposalWire(out.Proposal), Rehearsal: wireOf(out.Rehearsal)}
+	// A retry answers the proposal the first call made, with the evidence that call produced.
+	if out.Replayed {
+		respond.OK(w, detail)
+		return
+	}
+	respond.Created(w, detail)
 }
 
 func wireOf(rehearsal domain.Rehearsal) *Rehearsal {
