@@ -300,3 +300,83 @@ func TestProbeFieldsRoundTrip(t *testing.T) {
 		t.Fatalf("last_probe_at = %v, want %v", found.LastProbeAt, at)
 	}
 }
+
+func newProposal(t *testing.T, targetRef, title string) domain.Proposal {
+	t.Helper()
+	now := time.Now().UTC().Truncate(time.Millisecond)
+	return domain.Proposal{
+		Ref: ref.New(), TargetRef: targetRef, Title: title, Kind: domain.KindDDL,
+		Query: "ALTER TABLE users ADD COLUMN x INT", Rollback: "ALTER TABLE users DROP COLUMN x",
+		Status: domain.StatusDraft, Tier: domain.TierShadow, ProposedBy: "ops",
+		CreatedAt: now, UpdatedAt: now,
+	}
+}
+
+func TestProposalAndRehearsalRoundTrip(t *testing.T) {
+	state := open(t)
+	ctx := context.Background()
+	target, err := state.Create(ctx, newTarget(t, "primary"))
+	if err != nil {
+		t.Fatalf("Create target: %v", err)
+	}
+	proposal := newProposal(t, target.Ref, "add x")
+	if _, err := state.CreateProposal(ctx, proposal); err != nil {
+		t.Fatalf("CreateProposal: %v", err)
+	}
+
+	rehearsal := domain.Rehearsal{
+		Ref: ref.New(), ProposalRef: proposal.Ref, Tier: domain.TierShadow,
+		Status: domain.RehearsalFailed, SchemaDiff: "- a\n+ b", RowDiff: "users: 0 -> 0",
+		Irreversible: true, Note: "the rollback left the schema different",
+		DurationMS: 12, CreatedAt: time.Now().UTC(),
+	}
+	if _, err := state.CreateRehearsal(ctx, rehearsal); err != nil {
+		t.Fatalf("CreateRehearsal: %v", err)
+	}
+
+	proposal.Status = domain.StatusFailed
+	proposal.RehearsalRef = rehearsal.Ref
+	proposal.Irreversible = true
+	proposal.Failure = "the rollback left the schema different"
+	proposal.UpdatedAt = time.Now().UTC()
+	if _, err := state.UpdateProposal(ctx, proposal); err != nil {
+		t.Fatalf("UpdateProposal: %v", err)
+	}
+
+	found, err := state.ProposalByRef(ctx, proposal.Ref)
+	if err != nil {
+		t.Fatalf("ProposalByRef: %v", err)
+	}
+	if found.Status != domain.StatusFailed || found.Kind != domain.KindDDL || !found.Irreversible {
+		t.Fatalf("proposal round trip lost a field: %+v", found)
+	}
+	if found.RehearsalRef != rehearsal.Ref {
+		t.Fatalf("rehearsal_ref = %q", found.RehearsalRef)
+	}
+
+	latest, err := state.LatestRehearsal(ctx, proposal.Ref)
+	if err != nil {
+		t.Fatalf("LatestRehearsal: %v", err)
+	}
+	if latest.SchemaDiff != "- a\n+ b" || !latest.Irreversible || latest.DurationMS != 12 {
+		t.Fatalf("rehearsal round trip lost a field: %+v", latest)
+	}
+
+	page, err := state.ListProposals(ctx, ports.ProposalFilter{Limit: 10, Status: "failed", Mine: "ops"})
+	if err != nil {
+		t.Fatalf("ListProposals: %v", err)
+	}
+	if len(page) != 1 || page[0].Ref != proposal.Ref {
+		t.Fatalf("list = %+v", page)
+	}
+	if empty, _ := state.ListProposals(ctx, ports.ProposalFilter{Limit: 10, Status: "verified"}); len(empty) != 0 {
+		t.Fatalf("status filter let through %d rows", len(empty))
+	}
+}
+
+func TestLatestRehearsalWithoutOne(t *testing.T) {
+	state := open(t)
+	if _, err := state.LatestRehearsal(context.Background(), ref.New()); !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("LatestRehearsal = %v, want ErrNotFound", err)
+	}
+}

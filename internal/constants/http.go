@@ -10,8 +10,9 @@ const (
 
 	SchemeBearer = "Bearer"
 
-	PathHealthz = "/healthz"
-	PathPrefix  = "/v1"
-	PathWhoami  = "/v1/whoami"
-	PathTargets = "/v1/targets"
+	PathHealthz   = "/healthz"
+	PathPrefix    = "/v1"
+	PathWhoami    = "/v1/whoami"
+	PathTargets   = "/v1/targets"
+	PathProposals = "/v1/proposals"
 )

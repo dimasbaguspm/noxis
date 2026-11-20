@@ -38,6 +38,8 @@ func routes(d deps) []route {
 	read := []string{constants.ScopeRead}
 	admin := []string{constants.ScopeAdmin}
 	one := constants.PathTargets + "/{ref}"
+	propose := []string{constants.ScopePropose}
+	proposalOne := constants.PathProposals + "/{ref}"
 	return []route{
 		{Method: http.MethodGet, Path: constants.PathHealthz, Handler: d.handlers.Healthz, Public: true},
 		{Method: http.MethodGet, Path: constants.PathWhoami, Handler: d.handlers.Whoami},
@@ -54,5 +56,10 @@ func routes(d deps) []route {
 		{Method: http.MethodGet, Path: constants.PathTargets + "/{ref}/databases", Handler: d.handlers.ListDatabases, Scopes: read},
 		{Method: http.MethodGet, Path: constants.PathTargets + "/{ref}/databases/{db}/tables", Handler: d.handlers.ListTables, Scopes: read},
 		{Method: http.MethodGet, Path: constants.PathTargets + "/{ref}/databases/{db}/tables/{table}", Handler: d.handlers.ShowTable, Scopes: read},
+
+		{Method: http.MethodPost, Path: constants.PathTargets + "/{ref}/proposals", Handler: d.handlers.CreateProposal, Scopes: propose},
+		{Method: http.MethodGet, Path: constants.PathProposals, Handler: d.handlers.ListProposals, Scopes: read},
+		{Method: http.MethodGet, Path: proposalOne, Handler: d.handlers.GetProposal, Scopes: read},
+		{Method: http.MethodPost, Path: proposalOne + "/rehearse", Handler: d.handlers.RehearseProposal, Scopes: propose},
 	}
 }

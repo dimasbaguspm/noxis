@@ -10,6 +10,8 @@ services:
       MYSQL_PASSWORD: noxispw
     ports:
       - "33306:3306"
+    volumes:
+      - ./seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-uroot", "-prootpw"]
       interval: 2s
@@ -25,6 +27,8 @@ services:
       MARIADB_PASSWORD: noxispw
     ports:
       - "33307:3306"
+    volumes:
+      - ./seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro
     healthcheck:
       test: ["CMD", "mariadb-admin", "ping", "-uroot", "-prootpw"]
       interval: 2s

@@ -244,3 +244,102 @@ func (c *Client) Table(ctx context.Context, ref, database, table string) (TableD
 		targetPath(ref)+"/databases/"+url.PathEscape(database)+"/tables/"+url.PathEscape(table), nil, &out)
 	return out, err
 }
+
+// Proposal is one proposed change and the verdict of its last rehearsal.
+type Proposal struct {
+	Ref          string     `json:"ref"`
+	TargetRef    string     `json:"target_ref"`
+	Title        string     `json:"title"`
+	Kind         string     `json:"kind"`
+	Query        string     `json:"query"`
+	Rollback     string     `json:"rollback"`
+	Note         string     `json:"note"`
+	Status       string     `json:"status"`
+	Tier         string     `json:"tier"`
+	Irreversible bool       `json:"irreversible"`
+	ProposedBy   string     `json:"proposed_by"`
+	RehearsalRef string     `json:"rehearsal_ref,omitempty"`
+	Failure      string     `json:"failure,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
+	Rehearsal    *Rehearsal `json:"rehearsal,omitempty"`
+}
+
+// Rehearsal is the evidence behind a proposal.
+type Rehearsal struct {
+	Ref          string    `json:"ref"`
+	ProposalRef  string    `json:"proposal_ref"`
+	Tier         string    `json:"tier"`
+	Status       string    `json:"status"`
+	SchemaDiff   string    `json:"schema_diff,omitempty"`
+	RowDiff      string    `json:"row_diff,omitempty"`
+	Plan         string    `json:"plan,omitempty"`
+	Irreversible bool      `json:"irreversible"`
+	Note         string    `json:"note"`
+	DurationMS   int64     `json:"duration_ms"`
+	Error        string    `json:"error,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// CreateProposalInput is one proposal as a caller writes it.
+type CreateProposalInput struct {
+	Title    string `json:"title"`
+	Query    string `json:"query"`
+	Rollback string `json:"rollback,omitempty"`
+	Note     string `json:"note,omitempty"`
+	Tier     string `json:"tier,omitempty"`
+}
+
+// CreateProposal stores and rehearses one change.
+func (c *Client) CreateProposal(ctx context.Context, targetRef string, in CreateProposalInput) (Proposal, error) {
+	var out Proposal
+	_, err := c.do(ctx, http.MethodPost, targetPath(targetRef)+"/proposals", in, &out)
+	return out, err
+}
+
+// ListProposals answers one page of the queue.
+func (c *Client) ListProposals(ctx context.Context, limit int, cursor, status, kind, target string, mine bool) (Page[Proposal], error) {
+	query := url.Values{}
+	if limit > 0 {
+		query.Set("limit", strconv.Itoa(limit))
+	}
+	if cursor != "" {
+		query.Set("cursor", cursor)
+	}
+	if status != "" {
+		query.Set("status", status)
+	}
+	if kind != "" {
+		query.Set("kind", kind)
+	}
+	if target != "" {
+		query.Set("target", target)
+	}
+	if mine {
+		query.Set("mine", "true")
+	}
+	path := constants.PathProposals
+	if encoded := query.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
+	var items []Proposal
+	next, err := c.do(ctx, http.MethodGet, path, nil, &items)
+	return Page[Proposal]{Items: items, NextCursor: next}, err
+}
+
+// GetProposal reads one proposal with its rehearsal.
+func (c *Client) GetProposal(ctx context.Context, ref string) (Proposal, error) {
+	var out Proposal
+	_, err := c.do(ctx, http.MethodGet, constants.PathProposals+"/"+url.PathEscape(ref), nil, &out)
+	return out, err
+}
+
+// RehearseProposal re-runs the proof, optionally at a different tier.
+func (c *Client) RehearseProposal(ctx context.Context, ref, tier string) (Proposal, error) {
+	var out Proposal
+	body := struct {
+		Tier string `json:"tier,omitempty"`
+	}{Tier: tier}
+	_, err := c.do(ctx, http.MethodPost, constants.PathProposals+"/"+url.PathEscape(ref)+"/rehearse", body, &out)
+	return out, err
+}

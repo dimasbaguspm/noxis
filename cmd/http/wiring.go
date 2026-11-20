@@ -10,6 +10,7 @@ import (
 	"noxis/cmd/http/middlewares"
 	"noxis/internal/adapters/mysql"
 	"noxis/internal/adapters/sqlite"
+	"noxis/internal/app/proposal"
 	appread "noxis/internal/app/read"
 	"noxis/internal/app/target"
 	"noxis/internal/common/config"
@@ -53,6 +54,15 @@ func build(ctx context.Context, cfg config.Config, log *slog.Logger) (http.Handl
 		Sealer:  sealer,
 		Driver:  driver,
 	}
+	proposals := proposal.Deps{
+		Proposals:  state,
+		Rehearsals: state,
+		Targets:    state,
+		Journal:    state,
+		Sealer:     sealer,
+		Driver:     driver,
+		Timeout:    cfg.QueryTimeout,
+	}
 	reads := appread.Deps{
 		Targets: state,
 		Sealer:  sealer,
@@ -74,6 +84,12 @@ func build(ctx context.Context, cfg config.Config, log *slog.Logger) (http.Handl
 			Databases: appread.NewDatabases(reads),
 			Tables:    appread.NewTables(reads),
 			Table:     appread.NewTable(reads),
+		},
+		Proposals: handlers.ProposalUseCases{
+			Create:   proposal.NewCreate(proposals),
+			List:     proposal.NewList(proposals),
+			Get:      proposal.NewGet(proposals),
+			Rehearse: proposal.NewRehearse(proposals),
 		},
 	})
 

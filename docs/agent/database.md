@@ -23,9 +23,9 @@ a cache, which is why nothing here migrates one.
 `SchemaVersion` lives next to the schema in `internal/adapters/sqlite/open.go`. A ticket
 that changes the schema bumps it.
 
-## Tables (schema v2)
+## Tables (schema v3)
 
-A v1 file is refused rather than migrated, like any other version: the reset is the
+An older file is refused rather than migrated, like any other version: the reset is the
 migration.
 
 **targets** — the servers this build governs.
@@ -60,6 +60,15 @@ migration.
 
 Both tables are `STRICT`, so a wrong type is an error at write time rather than a surprise
 at read time. Timestamps are integers, so ordering never depends on a string format.
+
+**proposals** — one proposed change, rehearsed before a human sees it. `status` is written only by
+the state machine in `internal/domain`; `tier` records what was actually run, so a reviewer never
+assumes more proof than there is; `irreversible` is set from the rehearsal, not from the statement's
+wording.
+
+**rehearsals** — every attempt, including the failures. `schema_diff` and `row_diff` are the
+evidence a reviewer reads; `note` says exactly how far the claim goes (a shadow run with no rows
+copied proves shape, not effect).
 
 ## Why a password is never in a payload
 
