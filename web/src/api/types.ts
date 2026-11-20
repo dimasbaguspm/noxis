@@ -43,6 +43,13 @@ export type Proposal = {
   status: string;
   tier: string;
   proposed_by: string;
+  decided_by?: string;
+  decided_at?: string;
+  decided_note?: string;
+  applied_by?: string;
+  applied_at?: string;
+  rows_estimated?: number;
+  failure?: string;
   irreversible?: boolean;
   algorithm?: string;
   rows_affected?: number;
@@ -65,6 +72,9 @@ export type Rehearsal = {
   row_diff?: string;
   algorithm?: string;
   rows_affected?: number;
+  duration_ms?: number;
+  plan?: string;
+  created_at?: string;
   finished_at?: string;
 };
 
