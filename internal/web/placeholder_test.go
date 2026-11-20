@@ -15,7 +15,7 @@ func TestPlaceholderRendersTheAPI(t *testing.T) {
 		"index.html": {Data: []byte(`<div id="root"></div><p>{{.API}}</p>`)},
 		"NOT_BUILT":  {Data: []byte("")},
 	}
-	console, err := newFrom(dist, "https://api.example.com")
+	console, err := newFrom(dist, Config{API: "https://api.example.com"})
 	if err != nil {
 		t.Fatalf("newFrom: %v", err)
 	}
@@ -36,7 +36,7 @@ func TestPlaceholderRendersTheAPI(t *testing.T) {
 // A dist without an index is not a console, and the caller has to hear about it here rather than in a
 // browser.
 func TestAConsoleWithoutIndexIsAnError(t *testing.T) {
-	if _, err := newFrom(fstest.MapFS{}, "http://api"); err == nil {
+	if _, err := newFrom(fstest.MapFS{}, Config{API: "http://api"}); err == nil {
 		t.Fatal("an empty dist built a console")
 	}
 }

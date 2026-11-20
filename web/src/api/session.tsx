@@ -45,6 +45,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const found = await loadConfig();
         if (!live) return;
         setConfig(found);
+        // A binary started from a signed-in CLI answers with the token that session already holds:
+        // the browser inherits it instead of asking for what the terminal knows.
+        if (found.token) writeToken(found.token);
         if (!readToken()) {
           setBoot('anonymous');
           return;

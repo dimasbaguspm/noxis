@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
+	"net"
 	"net/http"
 	"net/url"
 	"path"
@@ -29,21 +30,28 @@ type Console struct {
 	dist  fs.FS
 	index []byte
 	built bool
-	api   string
+	cfg   Config
 }
 
-// New reads the embedded build once. apiURL is what the placeholder tells the reader to call.
-func New(apiURL string) (*Console, error) {
+// Config is what the console is told about the deployment: the API the browser can reach, and — only
+// when this process was started from a signed-in CLI — the token that session already holds.
+type Config struct {
+	API   string
+	Token string
+}
+
+// New reads the embedded build once. cfg.API is what the placeholder tells the reader to call.
+func New(cfg Config) (*Console, error) {
 	dist, err := fs.Sub(assets, "dist")
 	if err != nil {
 		return nil, err
 	}
-	return newFrom(dist, apiURL)
+	return newFrom(dist, cfg)
 }
 
 // newFrom is New over any filesystem, so the placeholder branch — the one that renders an API address
 // into a page — stays testable after a real build replaces the committed placeholder.
-func newFrom(dist fs.FS, apiURL string) (*Console, error) {
+func newFrom(dist fs.FS, cfg Config) (*Console, error) {
 	index, err := fs.ReadFile(dist, "index.html")
 	if err != nil {
 		return nil, errors.New("web: the embedded console has no index.html")
@@ -59,13 +67,13 @@ func newFrom(dist fs.FS, apiURL string) (*Console, error) {
 			return nil, err
 		}
 		var out strings.Builder
-		if err := rendered.Execute(&out, map[string]string{"API": apiURL}); err != nil {
+		if err := rendered.Execute(&out, map[string]string{"API": cfg.API}); err != nil {
 			return nil, err
 		}
 		page = []byte(out.String())
 	}
 
-	return &Console{dist: dist, index: page, built: markerErr != nil, api: apiURL}, nil
+	return &Console{dist: dist, index: page, built: markerErr != nil, cfg: cfg}, nil
 }
 
 // ParseAPI reads the API's public URL. It must be absolute and http or https, because the browser
@@ -93,7 +101,10 @@ func ParseAPI(raw string) (string, error) {
 func (c *Console) Built() bool { return c.built }
 
 // API is the address the console was told to call.
-func (c *Console) API() string { return c.api }
+func (c *Console) API() string { return c.cfg.API }
+
+// SignedIn reports whether this process was handed a token, which is what the serve command logs.
+func (c *Console) SignedIn() bool { return c.cfg.Token != "" }
 
 // Handler answers files, then the single-page fallback, then nothing. `/config.json` is answered
 // first and always: it is how a build learns which API it belongs to, and a console that was served
@@ -107,7 +118,7 @@ func (c *Console) Handler() http.Handler {
 		}
 
 		if path.Clean(r.URL.Path) == "/config.json" {
-			c.serveConfig(w)
+			c.serveConfig(w, r)
 			return
 		}
 
@@ -134,8 +145,16 @@ func (c *Console) Handler() http.Handler {
 
 // serveConfig is the deployment's answer to "which API am I?". It is not cached: a console that
 // remembers the wrong server is a console that reports a network error nobody can explain.
-func (c *Console) serveConfig(w http.ResponseWriter) {
-	body, err := json.Marshal(map[string]string{"api": c.api})
+//
+// The token travels here only for a request that came from the machine the binary runs on: a console
+// on a VPS serves whoever can reach it, and a bearer token in a GET response is a token anybody can
+// copy. From anywhere else the console asks for one, exactly as it did before.
+func (c *Console) serveConfig(w http.ResponseWriter, r *http.Request) {
+	answer := map[string]string{"api": c.cfg.API}
+	if c.SignedIn() && loopback(r) {
+		answer["token"] = c.cfg.Token
+	}
+	body, err := json.Marshal(answer)
 	if err != nil {
 		http.Error(w, "the console has no API configured", http.StatusInternalServerError)
 		return
@@ -144,6 +163,17 @@ func (c *Console) serveConfig(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(body)
+}
+
+// loopback reports whether the request came from this machine: the token is the CLI's own, and this
+// is the one place it is handed to a browser.
+func loopback(r *http.Request) bool {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	ip := net.ParseIP(strings.Trim(host, "[]"))
+	return ip != nil && ip.IsLoopback()
 }
 
 func (c *Console) serveIndex(w http.ResponseWriter) {

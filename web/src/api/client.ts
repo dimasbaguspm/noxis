@@ -16,7 +16,9 @@ import type {
 
 const TOKEN_COOKIE = 'noxis_token';
 
-export type Config = { api: string; signed_in?: boolean };
+// api is always there. token is the CLI's own session, handed over only by a binary that was started
+// on this machine by someone who already signed in — see `noxis web serve`.
+export type Config = { api: string; token?: string };
 
 export class ApiError extends Error {
   readonly status: number;
@@ -50,15 +52,15 @@ export function clearToken(): void {
 let configPromise: Promise<Config> | null = null;
 
 export function loadConfig(): Promise<Config> {
+  // `npm run dev` serves no config.json: a developer's console calls the constant local API instead of
+  // failing to start, and the sign-in card appears because there is no session to inherit.
+  const fallback: Config = { api: import.meta.env.VITE_API_URL ?? 'http://localhost:9000' };
   configPromise ??= fetch('./config.json', { headers: { Accept: 'application/json' } })
     .then(async (response) => {
       if (!response.ok) throw new Error(`config.json answered ${response.status}`);
       return (await response.json()) as Config;
     })
-    .catch((error: unknown) => {
-      configPromise = null;
-      throw error;
-    });
+    .catch(() => fallback);
   return configPromise;
 }
 

@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"noxis/internal/web"
@@ -11,7 +12,7 @@ import (
 // A build is served from the binary, and the binary knows it is a build: `Built` is what the serve
 // command logs, and what told an operator the placeholder was a placeholder.
 func TestTheBuildIsServed(t *testing.T) {
-	console, err := web.New("http://localhost:9000")
+	console, err := web.New(web.Config{API: "http://localhost:9000"})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -37,7 +38,7 @@ func TestTheBuildIsServed(t *testing.T) {
 // A client-side route is the shell: the console decides what to render, so the server must not 404
 // on the first refresh of a deep link.
 func TestUnknownRouteFallsBackToTheShell(t *testing.T) {
-	console, err := web.New("http://api")
+	console, err := web.New(web.Config{API: "http://api"})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -53,7 +54,7 @@ func TestUnknownRouteFallsBackToTheShell(t *testing.T) {
 
 // The console is read-only, and it says so rather than pretending the write landed.
 func TestWritesAreRefused(t *testing.T) {
-	console, err := web.New("http://api")
+	console, err := web.New(web.Config{API: "http://api"})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -72,7 +73,7 @@ func TestWritesAreRefused(t *testing.T) {
 
 // A path that escapes the build is not served from outside it.
 func TestPathTraversalIsNotServed(t *testing.T) {
-	console, err := web.New("http://api")
+	console, err := web.New(web.Config{API: "http://api"})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -87,7 +88,7 @@ func TestPathTraversalIsNotServed(t *testing.T) {
 // A build cannot bake in the API it belongs to: the same binary is served from a laptop and from a
 // VPS, and the browser needs the address it can reach. /config.json is that answer, uncached.
 func TestConfigJSONNamesTheAPI(t *testing.T) {
-	console, err := web.New("https://api.example.com")
+	console, err := web.New(web.Config{API: "https://api.example.com"})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -129,5 +130,42 @@ func TestParseAPIRefusesWhatABrowserCannotUse(t *testing.T) {
 		if got != want {
 			t.Fatalf("ParseAPI(%q) = %q, want %q", raw, got, want)
 		}
+	}
+}
+
+// The token is the CLI's, and it reaches a browser only when that browser is on the machine the binary
+// runs on: a console on a VPS serves whoever can reach it.
+func TestTheTokenIsOnlyHandedToLoopback(t *testing.T) {
+	console, err := web.New(web.Config{API: "http://api", Token: "tok"})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	for _, tc := range []struct {
+		name      string
+		remote    string
+		wantToken bool
+	}{
+		{"loopback", "127.0.0.1:5555", true},
+		{"loopback v6", "[::1]:5555", true},
+		{"another machine", "203.0.113.7:5555", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodGet, "/config.json", nil)
+			request.RemoteAddr = tc.remote
+			rec := httptest.NewRecorder()
+			console.Handler().ServeHTTP(rec, request)
+
+			var answer map[string]string
+			if err := json.Unmarshal(rec.Body.Bytes(), &answer); err != nil {
+				t.Fatalf("config.json: %v", err)
+			}
+			if answer["api"] != "http://api" {
+				t.Fatalf("api = %q", answer["api"])
+			}
+			if _, ok := answer["token"]; ok != tc.wantToken {
+				t.Fatalf("token present = %v, want %v", ok, tc.wantToken)
+			}
+		})
 	}
 }
