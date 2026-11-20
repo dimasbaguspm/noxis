@@ -1,31 +1,45 @@
 import { ApiOutlined, PlayCircleOutlined } from '@ant-design/icons';
-import { App as AntApp, Card, Input, Segmented, Tabs, Tag, Typography } from 'antd';
-import { useMemo, useState } from 'react';
+import { App as AntApp, Input, Segmented, Select, Tabs, Tag } from 'antd';
+import { useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Breadcrumb } from '../components/breadcrumb';
+import { Card } from '../components/card';
 import { Link, useParams } from 'react-router-dom';
-import { useProbeTarget, useProposals, useRunQuery, useSchema, useTarget } from '../api/queries';
+import {
+  useProbeTarget,
+  useProposals,
+  useRunQuery,
+  useSchema,
+  useTables,
+  useTarget,
+} from '../api/queries';
 import { Alert } from '../components/alert';
 import { AppButton } from '../components/app-button';
 import { AsyncState } from '../components/async-state';
+import { CreateProposal } from '../components/create-proposal';
 import { DataTable } from '../components/data-table';
 import type { Column } from '../components/data-table';
 import { Panel, Tile, Tiles } from '../components/panel';
 import { RenderWhen } from '../components/render-when';
 import { StatusTag } from '../components/sql-block';
+import { Statistic } from '../components/statistic';
+import { Eyebrow, Heading, Text } from '../components/text';
 import { SqlEditor } from '../editor/sql-editor';
+import type { Schema } from '../editor/sql-editor';
 import type { Proposal, Rows, Target } from '../api/types';
 
 // The instance page: what this server is, and the three things an operator does with it. ERD is absent
 // on purpose — the API exposes columns and indexes, not foreign keys, and a diagram from half a graph
 // is a confident lie.
 
-type Tab = 'query' | 'dml' | 'ddl';
+type Tab = 'query' | 'changes';
 type Row = Record<string, string | null>;
 
 export function TargetPage() {
   const { ref = '' } = useParams();
   const [tab, setTab] = useState<Tab>('query');
   const target = useTarget(ref);
+  const tables = useTables(ref, target.data?.database ?? '');
 
   return (
     <section className="flex flex-col gap-5" aria-labelledby="target-title">
@@ -44,16 +58,39 @@ export function TargetPage() {
               <Card>
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-wrap items-center gap-2.5">
-                    <h1 id="target-title" className="m-0 text-xl font-semibold">
+                    <Heading level={1} id="target-title">
                       {target.data.name}
-                    </h1>
+                    </Heading>
                     <Tag>{target.data.driver}</Tag>
-                    <RenderWhen condition={target.data.server_version}>
-                      <Tag>{target.data.server_version}</Tag>
-                    </RenderWhen>
                     <RenderWhen condition={target.data.archived_at}>
                       <Tag>archived</Tag>
                     </RenderWhen>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <Statistic
+                      label="Version"
+                      value={target.data.server_version ?? '—'}
+                      hint={target.data.driver}
+                    />
+                    <Statistic
+                      label="Tables"
+                      value={tables.data ? tables.data.length : '—'}
+                      hint={target.data.database}
+                    />
+                    <Statistic label="Port" value={target.data.port} hint={target.data.tls_mode} />
+                    <Statistic
+                      label="Last answer"
+                      value={
+                        target.data.last_probe_at
+                          ? new Date(target.data.last_probe_at).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : '—'
+                      }
+                      hint={target.data.last_probe_status ?? 'never probed'}
+                    />
                   </div>
 
                   <Panel>
@@ -61,10 +98,9 @@ export function TargetPage() {
                       <Tile
                         label="Host"
                         mono
-                        value={`${target.data.username}@${target.data.host}:${target.data.port}`}
+                        value={`${target.data.username}@${target.data.host}`}
                       />
                       <Tile label="Database" mono value={target.data.database} />
-                      <Tile label="TLS" value={target.data.tls_mode} />
                       <Tile label="Registered by" value={target.data.created_by} />
                     </Tiles>
                   </Panel>
@@ -82,8 +118,13 @@ export function TargetPage() {
                     label: 'Query',
                     children: <QueryTab ref_={ref} database={target.data.database} />,
                   },
-                  { key: 'dml', label: 'DML', children: <Queue target={ref} kind="dml" /> },
-                  { key: 'ddl', label: 'DDL', children: <Queue target={ref} kind="ddl" /> },
+                  {
+                    key: 'changes',
+                    label: 'Changes',
+                    children: (
+                      <Changes target={ref} schema={schemaOf(target.data.database, tables.data)} />
+                    ),
+                  },
                 ]}
               />
             </>
@@ -92,6 +133,12 @@ export function TargetPage() {
       </AsyncState>
     </section>
   );
+}
+
+/** The completion list a proposal form gets: table names, without the column detail the editor loads. */
+function schemaOf(database: string, tables: { name: string }[] | undefined): Schema | null {
+  if (!tables) return null;
+  return { database, tables: tables.map((table) => ({ name: table.name, columns: [] })) };
 }
 
 // Connectivity is why an operator opens this page: one button, the engine's own answer, and the time
@@ -105,9 +152,7 @@ function Connectivity({ target }: { target: Target }) {
   return (
     <div className="flex flex-col gap-2 border-t border-line pt-3">
       <div className="flex flex-wrap items-center gap-2.5">
-        <span className="text-[11px] font-semibold tracking-[0.08em] text-muted uppercase">
-          Connectivity
-        </span>
+        <Eyebrow>Connectivity</Eyebrow>
         <RenderWhen condition={target.last_probe_status}>
           <Tag color={ok ? 'green' : 'red'} className="m-0">
             {ok ? 'reachable' : 'unreachable'}
@@ -116,12 +161,11 @@ function Connectivity({ target }: { target: Target }) {
         <RenderWhen condition={!target.last_probe_status}>
           <Tag className="m-0">never probed</Tag>
         </RenderWhen>
-        <span className="text-xs text-muted">
+        <Text size="xs" tone="muted">
           {target.last_probe_at
             ? `answered ${new Date(target.last_probe_at).toLocaleString()}`
             : 'not contacted yet'}
-          {target.server_version ? ` · ${target.server_version}` : ''}
-        </span>
+        </Text>
         <span className="flex-1" />
         <AppButton
           icon={<ApiOutlined />}
@@ -150,14 +194,33 @@ function Connectivity({ target }: { target: Target }) {
   );
 }
 
+const LIMITS = [50, 100, 200, 500, 1000];
+
 function QueryTab({ ref_, database }: { ref_: string; database: string }) {
   const [sql, setSql] = useState('SELECT 1 AS one;');
+  const [limit, setLimit] = useState(200);
+  const [took, setTook] = useState<number | null>(null);
+  const started = useRef(0);
   const run = useRunQuery(ref_);
   const schema = useSchema(ref_, database);
 
+  const kick = () => {
+    started.current = performance.now();
+    run.mutate({ sql, limit }, { onSuccess: () => setTook(performance.now() - started.current) });
+  };
+
   const columns: Column<Row>[] = useMemo(
     () =>
-      (run.data?.columns ?? []).map((column, index) => ({ key: `c${index}`, title: column.name })),
+      (run.data?.columns ?? []).map((column, index) => ({
+        key: `c${index}`,
+        title: column.name,
+        width: 200,
+        render: (row) => (
+          <Text mono size="sm">
+            {row[`c${index}`] ?? '·'}
+          </Text>
+        ),
+      })),
     [run.data],
   );
 
@@ -174,18 +237,52 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <Alert tone="info" title="SELECT, EXPLAIN and SHOW only" />
-      <SqlEditor value={sql} onChange={setSql} schema={schema.data ?? null} height={200} />
-      <div className="flex gap-2">
-        <AppButton
-          intent="primary"
-          icon={<PlayCircleOutlined />}
-          loading={run.isPending}
-          onClick={() => run.mutate({ sql, limit: 200 })}
-        >
-          Run
-        </AppButton>
-      </div>
+      <Card
+        title="Statement"
+        extra={
+          schema.data
+            ? `${schema.data.tables.length} tables · read only`
+            : schema.isLoading
+              ? 'loading the schema'
+              : 'read only'
+        }
+        footer={
+          <>
+            <AppButton
+              intent="primary"
+              icon={<PlayCircleOutlined />}
+              loading={run.isPending}
+              onClick={kick}
+            >
+              Run
+            </AppButton>
+            <Text size="xs" tone="muted">
+              ⌘ / Ctrl + ↵ · SELECT, EXPLAIN and SHOW only
+            </Text>
+            <span className="flex-1" />
+            <Text size="xs" tone="muted">
+              rows
+            </Text>
+            <Select
+              size="small"
+              value={limit}
+              onChange={setLimit}
+              options={LIMITS.map((value) => ({ value, label: String(value) }))}
+              aria-label="Row limit"
+              className="w-20"
+            />
+          </>
+        }
+      >
+        <SqlEditor
+          value={sql}
+          onChange={setSql}
+          onRun={kick}
+          schema={schema.data ?? null}
+          height={220}
+        />
+      </Card>
+
       <RenderWhen condition={run.error}>
         <Alert
           tone="error"
@@ -194,38 +291,60 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
         />
       </RenderWhen>
       <RenderWhen condition={run.data}>
-        <Result rows={run.data as Rows} columns={columns} records={records} />
+        <Result rows={run.data as Rows} columns={columns} records={records} took={took} />
       </RenderWhen>
     </div>
   );
 }
-
 function Result({
   rows,
   columns,
   records,
+  took,
 }: {
   rows: Rows;
   columns: Column<Row>[];
   records: Row[];
+  took: number | null;
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <Typography.Text type="secondary" className="text-xs">
-        {rows.row_count} row{rows.row_count === 1 ? '' : 's'}
-        {rows.truncated ? ' · truncated by the limit the API applied' : ''}
-      </Typography.Text>
-      <DataTable rows={records} columns={columns} rowKey={(row) => String(row.key)} compact />
+      <div className="flex flex-wrap items-center gap-2">
+        <Text size="xs" tone="muted">
+          {rows.row_count} row{rows.row_count === 1 ? '' : 's'}
+          {rows.truncated ? ' · truncated by the limit the API applied' : ''}
+        </Text>
+        {took ? (
+          <Text size="xs" tone="muted">
+            · {Math.round(took)} ms
+          </Text>
+        ) : null}
+      </div>
+      <DataTable
+        rows={records}
+        columns={columns}
+        rowKey={(row) => String(row.key)}
+        compact
+        sticky
+        minWidth={columns.length * 200}
+        empty={
+          <Text tone="muted" size="sm">
+            the statement returned no rows
+          </Text>
+        }
+      />
     </div>
   );
 }
 
-function Queue({ target, kind }: { target: string; kind?: 'dml' | 'ddl' }) {
+function Changes({ target, schema }: { target: string; schema: Schema | null }) {
+  const navigate = useNavigate();
+  const [kind, setKind] = useState<'all' | 'dml' | 'ddl'>('all');
   const [status, setStatus] = useState('all');
   const [term, setTerm] = useState('');
   const proposals = useProposals({
     target,
-    kind,
+    kind: kind === 'all' ? undefined : kind,
     status: status === 'all' ? undefined : status,
     limit: 50,
   });
@@ -239,6 +358,8 @@ function Queue({ target, kind }: { target: string; kind?: 'dml' | 'ddl' }) {
       )
     : items;
 
+  const open = (ref: string) => navigate(`/targets/${target}/proposals/${ref}`);
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -247,8 +368,17 @@ function Queue({ target, kind }: { target: string; kind?: 'dml' | 'ddl' }) {
           placeholder="Filter by title"
           value={term}
           onChange={(event) => setTerm(event.target.value)}
-          aria-label="Filter proposals by title"
-          className="max-w-[280px]"
+          aria-label="Filter changes by title"
+          className="max-w-[240px]"
+        />
+        <Segmented
+          value={kind}
+          onChange={(value) => setKind(value as 'all' | 'dml' | 'ddl')}
+          options={[
+            { value: 'all', label: 'All' },
+            { value: 'dml', label: 'DML' },
+            { value: 'ddl', label: 'DDL' },
+          ]}
         />
         <Segmented
           value={status}
@@ -256,9 +386,10 @@ function Queue({ target, kind }: { target: string; kind?: 'dml' | 'ddl' }) {
           options={['all', 'verified', 'approved', 'applied', 'failed']}
         />
         <span className="flex-1" />
-        <Typography.Text type="secondary" className="text-xs">
+        <Text size="xs" tone="muted">
           {visible.length} of {items.length}
-        </Typography.Text>
+        </Text>
+        <CreateProposal target={target} kind={kind === 'ddl' ? 'ddl' : 'dml'} schema={schema} />
       </div>
 
       <AsyncState
@@ -271,19 +402,42 @@ function Queue({ target, kind }: { target: string; kind?: 'dml' | 'ddl' }) {
           rows={visible}
           rowKey={(row) => row.ref}
           compact
+          onRow={(row) => ({
+            onClick: () => open(row.ref),
+            onKeyDown: (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                open(row.ref);
+              }
+            },
+            tabIndex: 0,
+            role: 'link',
+            'aria-label': `Open ${row.title}`,
+            className: 'cursor-pointer',
+          })}
           columns={[
             {
               key: 'title',
               title: 'Title',
               render: (row) => (
-                <Link to={`/proposals/${row.ref}`} className="text-brand hover:underline">
+                <Link
+                  to={`/targets/${target}/proposals/${row.ref}`}
+                  className="text-brand hover:underline"
+                >
                   {row.title}
                 </Link>
               ),
             },
             {
+              key: 'kind',
+              title: 'Kind',
+              width: 90,
+              render: (row) => <Tag className="m-0">{row.kind}</Tag>,
+            },
+            {
               key: 'status',
               title: 'Status',
+              width: 130,
               render: (row) => <StatusTag status={row.status} />,
             },
             { key: 'proposed_by', title: 'Proposed by', showFrom: 'md' },

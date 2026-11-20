@@ -42,4 +42,19 @@ export const tlsOptions = [
   { value: 'skip-verify', label: 'Skip verify' },
 ];
 
+export const proposalSchema = z.object({
+  title: z.string().trim().min(1, 'a title is required').max(120, '120 characters at most'),
+  query: z.string().trim().min(1, 'the statement is required'),
+  rollback: z.string().optional(),
+  note: z.string().optional(),
+});
+export type ProposalValues = z.infer<typeof proposalSchema>;
+
+export const proposalDefaults: ProposalValues = {
+  title: '',
+  query: '',
+  rollback: '',
+  note: '',
+};
+
 export const statuses = ['verified', 'approved', 'applied', 'failed'] as const;

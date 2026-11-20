@@ -21,14 +21,19 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
         Skip to content
       </a>
 
-      <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-line bg-white px-4">
+      <header className="sticky top-0 z-10 flex h-14 items-center gap-3 border-b border-line bg-white/95 px-4 backdrop-blur md:px-6">
         <Link
           to="/"
-          className="flex items-center gap-2.5 text-base font-bold tracking-tight"
+          className="flex items-center gap-2 text-base font-bold tracking-tight"
           aria-label="noXis, back to the instances"
           aria-current={home ? 'page' : undefined}
         >
-          <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-brand" />
+          <span
+            aria-hidden="true"
+            className="grid h-6 w-6 place-items-center rounded-md bg-brand-soft"
+          >
+            <span className="h-2 w-2 rounded-sm bg-brand" />
+          </span>
           noXis
         </Link>
 
@@ -36,7 +41,7 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
 
         {config ? (
           <Tooltip title="The API this console was told to call">
-            <span className="max-w-[40vw] truncate font-mono text-xs text-muted">
+            <span className="hidden max-w-[40vw] truncate rounded-md border border-line px-2 py-0.5 font-mono text-[11px] text-muted sm:inline">
               {config.api.replace(/^https?:\/\//, '')}
             </span>
           </Tooltip>
@@ -78,7 +83,7 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
         ) : null}
       </header>
 
-      <main id="content" className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-6">
+      <main id="content" className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-8 md:py-8">
         {children}
       </main>
     </div>

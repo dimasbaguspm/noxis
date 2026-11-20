@@ -30,7 +30,7 @@ var groups = []group{
 // that take a person from nothing to a rehearsed proposal. It reads the config file and never the
 // network, so it cannot hang and cannot fail on a server that is down.
 func welcome(out io.Writer) error {
-	_, err := fmt.Fprintf(out, `noxis %s — reviewed access to MySQL and MariaDB.
+	_, err := fmt.Fprintf(out, `noxis %s — data governance for the databases you run.
 
 One binary, three faces:
   noxis http serve      the API, and the only writer of the state file

@@ -170,6 +170,31 @@ export function useArchiveTarget() {
   });
 }
 
+/** useTables is the light list: names the API can answer without describing each table. */
+export function useTables(ref: string, database: string) {
+  const client = useClient();
+  return useQuery({
+    queryKey: ['table-list', ref, database],
+    enabled: Boolean(client && ref && database),
+    staleTime: 60_000,
+    queryFn: () =>
+      unwrap<Table[]>(
+        client!.get(`/v1/targets/${ref}/databases/${encodeURIComponent(database)}/tables`),
+      ),
+  });
+}
+
+/** useCreateProposal files one change against a target, at the tier the proposer chose. */
+export function useCreateProposal(ref: string) {
+  const client = useClient();
+  const cache = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { title: string; query: string; rollback?: string; note?: string }) =>
+      unwrap<Proposal>(client!.post(`/v1/targets/${ref}/proposals`, input)),
+    onSuccess: () => cache.invalidateQueries({ queryKey: ['proposals'] }),
+  });
+}
+
 export function useProbeTarget() {
   const client = useClient();
   const cache = useQueryClient();

@@ -1,5 +1,5 @@
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { App as AntApp, Card, Drawer, Input, Tag } from 'antd';
+import { App as AntApp, Drawer, Input, Tag } from 'antd';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateTarget, useTargets, useTestConnection } from '../api/queries';
@@ -8,15 +8,19 @@ import type { TargetValues } from '../forms/schemas';
 import { Alert } from '../components/alert';
 import { AppButton } from '../components/app-button';
 import { AsyncState } from '../components/async-state';
+import { DataTable } from '../components/data-table';
 import { Form } from '../components/form';
 import { NumberInput, SelectInput } from '../components/inputs';
 import { RenderWhen } from '../components/render-when';
+import { Heading, Text } from '../components/text';
 import { TextInput } from '../components/text-input';
 import type { Target } from '../api/types';
 
-// The landing screen: one card per instance and a search that asks the server. The list is a single
+// The landing screen: one row per instance and a search that asks the server. The list is a single
 // infinite query whose key holds the search term, so typing cannot race a second request into the
-// table — the bug the hand-rolled loader had.
+// table. The name column is pinned, so a narrow window scrolls the facts and keeps the identity.
+
+const FORM_ID = 'create-target';
 
 function useDebounced(value: string, delay: number): string {
   const [settled, setSettled] = useState(value);
@@ -39,9 +43,9 @@ export function TargetsPage() {
   return (
     <section className="flex flex-col gap-5" aria-labelledby="instances-title">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 id="instances-title" className="m-0 text-xl font-semibold tracking-tight">
+        <Heading level={1} id="instances-title">
           Instances
-        </h1>
+        </Heading>
         <Tag className="hidden sm:inline">MySQL · MariaDB</Tag>
         <span className="flex-1" />
         <Input
@@ -70,15 +74,111 @@ export function TargetsPage() {
         }
         onRetry={() => void targets.refetch()}
       >
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {items.map((target) => (
-            <TargetCard
-              key={target.ref}
-              target={target}
-              onOpen={() => navigate(`/targets/${target.ref}`)}
-            />
-          ))}
-        </div>
+        <DataTable<Target>
+          rows={items}
+          rowKey={(row) => row.ref}
+          minWidth={860}
+          sticky
+          onRow={(row) => ({
+            onClick: () => navigate(`/targets/${row.ref}`),
+            onKeyDown: (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                navigate(`/targets/${row.ref}`);
+              }
+            },
+            tabIndex: 0,
+            role: 'link',
+            'aria-label': `Open ${row.name}`,
+            className: 'cursor-pointer',
+          })}
+          columns={[
+            {
+              key: 'name',
+              title: 'Name',
+              fixed: 'left',
+              width: 220,
+              render: (row) => (
+                <span className="flex items-center gap-2">
+                  <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-sm bg-brand" />
+                  <span className="font-semibold text-ink">{row.name}</span>
+                  <RenderWhen condition={row.archived_at}>
+                    <Tag className="m-0">archived</Tag>
+                  </RenderWhen>
+                </span>
+              ),
+            },
+            {
+              key: 'driver',
+              title: 'Engine',
+              width: 100,
+              render: (row) => <Tag>{row.driver}</Tag>,
+            },
+            {
+              key: 'host',
+              title: 'Host',
+              width: 220,
+              render: (row) => (
+                <Text mono size="sm" tone="muted">
+                  {row.host}:{row.port}
+                </Text>
+              ),
+            },
+            {
+              key: 'database',
+              title: 'Database',
+              width: 150,
+              render: (row) => (
+                <Text mono size="sm">
+                  {row.database}
+                </Text>
+              ),
+            },
+            {
+              key: 'server_version',
+              title: 'Version',
+              width: 120,
+              render: (row) => (
+                <Text mono size="sm" tone="muted">
+                  {row.server_version ?? '—'}
+                </Text>
+              ),
+            },
+            {
+              key: 'last_probe_status',
+              title: 'Probe',
+              width: 120,
+              render: (row) =>
+                row.last_probe_status ? (
+                  <Tag color={row.last_probe_status === 'ok' ? 'green' : 'red'} className="m-0">
+                    {row.last_probe_status}
+                  </Tag>
+                ) : (
+                  <Text tone="muted" size="sm">
+                    never
+                  </Text>
+                ),
+            },
+            {
+              key: 'open',
+              title: '',
+              width: 90,
+              fixed: 'right',
+              align: 'right',
+              render: (row) => (
+                <AppButton
+                  size="small"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    navigate(`/targets/${row.ref}`);
+                  }}
+                >
+                  Open
+                </AppButton>
+              ),
+            },
+          ]}
+        />
         <RenderWhen condition={targets.hasNextPage}>
           <div className="mt-4 flex justify-center">
             <AppButton
@@ -97,6 +197,14 @@ export function TargetsPage() {
         onClose={() => setCreating(false)}
         width={Math.min(460, window.innerWidth)}
         destroyOnHidden
+        footer={
+          <div className="flex justify-end gap-2">
+            <AppButton onClick={() => setCreating(false)}>Cancel</AppButton>
+            <AppButton intent="primary" htmlType="submit" form={FORM_ID}>
+              Register
+            </AppButton>
+          </div>
+        }
       >
         <CreateTargetForm
           onCreated={(target) => {
@@ -107,57 +215,6 @@ export function TargetsPage() {
         />
       </Drawer>
     </section>
-  );
-}
-
-function TargetCard({ target, onOpen }: { target: Target; onOpen: () => void }) {
-  return (
-    <Card
-      hoverable
-      onClick={onOpen}
-      tabIndex={0}
-      role="link"
-      aria-label={`Open ${target.name}`}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onOpen();
-        }
-      }}
-      className="cursor-pointer border-line transition-transform hover:-translate-y-px hover:border-brand"
-    >
-      <div className="flex flex-col gap-3">
-        <div className="flex items-start gap-2">
-          <span aria-hidden="true" className="mt-1 h-2.5 w-2.5 shrink-0 rounded-sm bg-brand" />
-          <span className="text-[15px] leading-tight font-semibold">{target.name}</span>
-          <span className="flex-1" />
-          <Tag className="m-0">{target.driver}</Tag>
-        </div>
-        <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-          <dt className="text-muted">Host</dt>
-          <dd className="m-0 truncate font-mono">
-            {target.host}:{target.port}
-          </dd>
-          <dt className="text-muted">Database</dt>
-          <dd className="m-0 truncate font-mono">{target.database}</dd>
-          <dt className="text-muted">User</dt>
-          <dd className="m-0 truncate font-mono">{target.username}</dd>
-        </dl>
-        <div className="flex flex-wrap gap-1.5">
-          <RenderWhen condition={target.archived_at}>
-            <Tag>archived</Tag>
-          </RenderWhen>
-          <RenderWhen condition={target.server_version}>
-            <Tag>{target.server_version}</Tag>
-          </RenderWhen>
-          <RenderWhen condition={target.last_probe_status}>
-            <Tag color={target.last_probe_status === 'ok' ? 'green' : 'red'}>
-              probe: {target.last_probe_status}
-            </Tag>
-          </RenderWhen>
-        </div>
-      </div>
-    </Card>
   );
 }
 
@@ -189,6 +246,7 @@ function CreateTargetForm({ onCreated }: { onCreated: (target: Target) => void }
 
   return (
     <Form<TargetValues>
+      id={FORM_ID}
       schema={targetSchema}
       defaultValues={targetDefaults}
       onSubmit={async (values) => {
@@ -239,7 +297,6 @@ function CreateTargetForm({ onCreated }: { onCreated: (target: Target) => void }
           }
         />
       </RenderWhen>
-      <Form.Submit block>Register</Form.Submit>
     </Form>
   );
 }

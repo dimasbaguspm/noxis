@@ -1,6 +1,7 @@
 import Editor, { loader } from '@monaco-editor/react';
 import type { Monaco } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
+import { KeyCode, KeyMod } from 'monaco-editor';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import { useRef } from 'react';
 
@@ -70,28 +71,37 @@ function completion(monaco_: Monaco, schema: { current: Schema | null }) {
 export function SqlEditor({
   value,
   onChange,
+  onRun,
   schema,
   height = 220,
+  readOnly = false,
 }: {
   value: string;
   onChange?: (next: string) => void;
+  /** What Ctrl/Cmd+Enter does. A run button is a mouse gesture; the keyboard one is the habit. */
+  onRun?: () => void;
   schema?: Schema | null;
   height?: number;
+  /** A statement somebody is reading, not writing: no cursor, no completion, still selectable. */
+  readOnly?: boolean;
 }) {
   // The provider is registered once per mount and reads the schema through a ref, so reloading the
   // metadata never needs a second registration.
   const current = useRef<Schema | null>(schema ?? null);
   current.current = schema ?? null;
+  const run = useRef<(() => void) | undefined>(onRun);
+  run.current = onRun;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-line">
+    <div className="overflow-hidden">
       <Editor
         height={height}
         defaultLanguage="sql"
         value={value}
         onChange={(next) => onChange?.(next ?? '')}
-        onMount={(_, instance) => {
+        onMount={(editor, instance) => {
           completion(instance, current);
+          editor.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, () => run.current?.());
         }}
         options={{
           minimap: { enabled: false },
@@ -104,6 +114,7 @@ export function SqlEditor({
           renderLineHighlight: 'none',
           overviewRulerLanes: 0,
           wordWrap: 'on',
+          readOnly,
         }}
       />
     </div>

@@ -57,7 +57,7 @@ function Gate() {
         <Routes>
           <Route path="/" element={<TargetsPage />} />
           <Route path="/targets/:ref" element={<TargetPage />} />
-          <Route path="/proposals/:ref" element={<ProposalPage />} />
+          <Route path="/targets/:ref/proposals/:proposalRef" element={<ProposalPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

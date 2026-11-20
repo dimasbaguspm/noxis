@@ -111,3 +111,106 @@ body {
 .noxis-data-table .ant-table-tbody > tr:last-child > td {
   border-bottom: 0;
 }
+
+/* The sign-in ornament. A single flat orange panel reads as a screenshot; a slow aura behind the card
+   and a ring that takes half a minute to turn read as a live product. Both are decoration, both are
+   aria-hidden, and the reduced-motion rule above stops them for anyone who asked. */
+.noxis-aura {
+  position: absolute;
+  inset: -30% -30% auto auto;
+  width: 34rem;
+  height: 34rem;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgb(255 237 213 / 0.9),
+    rgb(249 115 22 / 0.35) 45%,
+    transparent 70%
+  );
+  filter: blur(24px);
+  animation: noxis-aura-drift 14s ease-in-out infinite alternate;
+}
+
+.noxis-ring {
+  position: absolute;
+  left: -18%;
+  bottom: -22%;
+  width: 30rem;
+  height: 30rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(255 255 255 / 0.28);
+  box-shadow:
+    0 0 0 40px rgb(255 255 255 / 0.06),
+    0 0 0 90px rgb(255 255 255 / 0.04);
+  animation: noxis-ring-turn 48s linear infinite;
+}
+
+@keyframes noxis-aura-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.85;
+  }
+  to {
+    transform: translate3d(-3rem, 2.5rem, 0) scale(1.12);
+    opacity: 1;
+  }
+}
+
+@keyframes noxis-ring-turn {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The row that opens an instance says so on hover, because a table row that navigates should look
+   like something you can click. */
+.noxis-data-table .ant-table-tbody > tr[role='link']:hover > td {
+  background: var(--color-brand-soft);
+}
+
+.noxis-data-table .ant-table-tbody > tr[role='link']:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: -2px;
+}
+
+/* A sticky header over a white body needs an edge, or the first row slides under nothing. */
+.noxis-data-table .ant-table-thead > tr > th.ant-table-cell-fix-left,
+.noxis-data-table .ant-table-thead > tr > th.ant-table-cell-fix-right {
+  background: #fafafa;
+}
+
+.noxis-data-table .ant-table-tbody > tr > td.ant-table-cell-fix-left,
+.noxis-data-table .ant-table-tbody > tr > td.ant-table-cell-fix-right {
+  background: #ffffff;
+}
+
+/* One card for the console: a head that reads as a label, a body with no padding of its own so an
+   editor or a table can reach the edge, and a footer where the actions sit. */
+.noxis-card.ant-card {
+  border-radius: 12px;
+  border-color: var(--color-line);
+}
+
+.noxis-card .ant-card-head {
+  min-height: 40px;
+  padding-inline: 14px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.noxis-card .ant-card-head-title {
+  padding-block: 8px;
+}
+
+.noxis-card .ant-card-extra {
+  font-size: 12px;
+}
+
+.noxis-card-footer {
+  border-top: 1px solid var(--color-line);
+  padding: 10px 14px;
+  background: #fcfcfd;
+  border-radius: 0 0 12px 12px;
+}
