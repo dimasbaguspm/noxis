@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"noxis/internal/common/dotconfig"
+	"noxis/internal/constants"
 	"strings"
 	"testing"
 	"time"
@@ -113,5 +114,23 @@ func TestBuiltSaysWhichConsole(t *testing.T) {
 	}
 	if !strings.Contains(built(false), "placeholder") {
 		t.Fatalf("built(false) = %q", built(false))
+	}
+}
+
+// A version is a fact about the binary, not about a session: a container that has not been signed
+// in still has to be able to ask what it is running.
+func TestVersionNeedsNoSession(t *testing.T) {
+	isolated(t)
+
+	root := newRoot()
+	var out bytes.Buffer
+	root.SetOut(&out)
+	root.SetErr(&out)
+	root.SetArgs([]string{"version"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("version without a session: %v", err)
+	}
+	if !strings.Contains(out.String(), constants.Version) {
+		t.Fatalf("version = %q", out.String())
 	}
 }
