@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>noXis console — not built</title>
+<style>
+  :root { color-scheme: light dark; --fg: #1a1a1a; --muted: #666; --line: #ddd; }
+  @media (prefers-color-scheme: dark) { :root { --fg: #f2f2f2; --muted: #a0a0a0; --line: #333; } }
+  body { margin: 0; font: 16px/1.6 ui-sans-serif, system-ui, sans-serif; color: var(--fg); display: grid; place-items: center; min-height: 100vh; }
+  main { max-width: 46rem; padding: 2rem; }
+  h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+  p, li { color: var(--fg); }
+  code { background: color-mix(in srgb, var(--fg) 8%, transparent); padding: .1rem .35rem; border-radius: .25rem; }
+  .muted { color: var(--muted); }
+  ol { padding-left: 1.25rem; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 1.5rem 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>The console was not built into this binary</h1>
+  <p class="muted">You are reading the placeholder that ships instead of a 404.</p>
+
+  <p>The API this binary was told to call is <code>{{.API}}</code>.</p>
+
+  <hr>
+
+  <p>To build the console into the binary:</p>
+  <ol>
+    <li><code>cd web &amp;&amp; npm install &amp;&amp; npm run build</code></li>
+    <li>copy the output over <code>internal/web/dist</code>, keeping <code>index.html</code></li>
+    <li><code>make build</code></li>
+  </ol>
+  <p class="muted">The API is already useful without a console: <code>curl {{.API}}/openapi.json</code> describes every route.</p>
+</main>
+</body>
+</html>
