@@ -110,9 +110,9 @@ func CapabilitiesFor(declared string, server Server) Capabilities {
 			"not probed yet: the version, and therefore EXPLAIN support, is unknown until the target is probed")
 	}
 	if server.Probed() && declared != "" && declared != server.Flavor {
-		caps.Notes = append(caps.Notes,
+		caps.Notes = append(caps.Notes, fmt.Sprintf(
 			"declared %s but the server reports %s: fix the target so a rehearsal is planned for the right engine",
-			declared, server.Flavor)
+			declared, server.Flavor))
 	}
 	return caps
 }
