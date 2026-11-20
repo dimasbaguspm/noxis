@@ -3,12 +3,16 @@
 #
 # What is still below its target, and therefore what the next slices of #770 are for:
 #   internal/domain   90   done: 96
-#   internal/app      90   every use case, with fakes for the ports
+#   internal/app      90   proposal 82, target 81, read 92
 #   adapters/mysql    70   the rest is proven by the @slow suite
 #   cmd/http, cmd/cli 50   handlers and commands
 #
 # Numbers measured on master; a package with no line here has no floor yet and the gate says so.
 noxis/internal/domain 96
+noxis/internal/app/password 100
+noxis/internal/app/proposal 82
+noxis/internal/app/read 92
+noxis/internal/app/target 81
 noxis/internal/adapters/mysql 4
 noxis/test/uat 0
 noxis/internal/adapters/sqlite 77
