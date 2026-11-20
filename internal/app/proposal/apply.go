@@ -63,7 +63,7 @@ func (a *Apply) Run(ctx context.Context, in ApplyInput) (ApplyOutput, error) {
 	if err != nil {
 		return ApplyOutput{Proposal: claimed}, err
 	}
-	plain, _, err := password.Open(a.Sealer, target)
+	plain, err := password.Open(a.Sealer, target)
 	if err != nil {
 		return ApplyOutput{Proposal: claimed}, err
 	}

@@ -38,7 +38,7 @@ func (d Deps) connect(ctx context.Context, value string) (domain.Target, string,
 	if target.Archived() {
 		return domain.Target{}, "", fmt.Errorf("%w: target %q is archived", domain.ErrConflict, target.Name)
 	}
-	plain, _, err := password.Open(d.Sealer, target)
+	plain, err := password.Open(d.Sealer, target)
 	if err != nil {
 		return domain.Target{}, "", err
 	}

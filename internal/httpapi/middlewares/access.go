@@ -7,10 +7,10 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 
-	"noxis/internal/httpapi/respond"
 	"noxis/internal/common/ref"
 	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
+	"noxis/internal/httpapi/respond"
 )
 
 // Chain wraps a handler with the given middlewares, outermost first.

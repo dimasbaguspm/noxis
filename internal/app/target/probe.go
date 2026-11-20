@@ -44,7 +44,7 @@ func (p *Probe) Run(ctx context.Context, in ProbeInput) (ProbeOutput, error) {
 		return ProbeOutput{}, fmt.Errorf("%w: target %q is archived", domain.ErrConflict, target.Name)
 	}
 
-	password, stale, err := p.openPassword(target)
+	password, err := p.openPassword(target)
 	if err != nil {
 		return ProbeOutput{}, err
 	}
@@ -54,13 +54,6 @@ func (p *Probe) Run(ctx context.Context, in ProbeInput) (ProbeOutput, error) {
 	now := time.Now().UTC()
 	target.LastProbeAt = &now
 	target.UpdatedAt = now
-	if stale && password != "" {
-		// A row sealed with the previous key re-seals the moment we hold the plaintext.
-		if sealed, err := p.Sealer.Seal(target.Ref, []byte(password)); err == nil {
-			target.Secret = sealed
-		}
-	}
-
 	if probeErr != nil {
 		target.LastProbeStatus = constants.ProbeFailed
 		stored, err := p.Targets.Update(ctx, target)

@@ -41,13 +41,15 @@ type fakeSealer struct{ openErr error }
 
 func (f *fakeSealer) Enabled() bool { return true }
 
-func (f *fakeSealer) Seal(_ string, plain []byte) (string, error) { return "sealed:" + string(plain), nil }
+func (f *fakeSealer) Seal(_ string, plain []byte) (string, error) {
+	return "sealed:" + string(plain), nil
+}
 
-func (f *fakeSealer) Open(_ string, sealed string) ([]byte, bool, error) {
+func (f *fakeSealer) Open(_ string, sealed string) ([]byte, error) {
 	if f.openErr != nil {
-		return nil, false, f.openErr
+		return nil, f.openErr
 	}
-	return []byte(strings.TrimPrefix(sealed, "sealed:")), false, nil
+	return []byte(strings.TrimPrefix(sealed, "sealed:")), nil
 }
 
 // fakeDriver records the password it was handed, which is how the tests prove the plaintext reaches

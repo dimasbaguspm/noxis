@@ -94,8 +94,8 @@ func (testSealer) Enabled() bool { return true }
 
 func (testSealer) Seal(_ string, plain []byte) (string, error) { return "sealed:" + string(plain), nil }
 
-func (testSealer) Open(_ string, sealed string) ([]byte, bool, error) {
-	return []byte(strings.TrimPrefix(sealed, "sealed:")), false, nil
+func (testSealer) Open(_ string, sealed string) ([]byte, error) {
+	return []byte(strings.TrimPrefix(sealed, "sealed:")), nil
 }
 
 // ---- driver ----

@@ -53,39 +53,35 @@ func ParseKey(s string) ([]byte, error) {
 	return nil, fmt.Errorf("secret: key is not %d bytes as hex or base64", KeyLength)
 }
 
-// Keyring seals with the current key and still opens rows sealed with the previous one,
-// which is what makes a rotation a config change instead of a migration.
+// Keyring seals with the one key the deployment was given. There is no previous key: a state file
+// sealed with another one refuses, and the refusal says to re-enter the password rather than
+// pretending a rotation is transparent.
 type Keyring struct {
-	keys [][]byte
+	key []byte
 }
 
-// New builds a keyring. Both keys are optional; an empty one is skipped. A key of the
-// wrong length is an error rather than a silent truncation.
-func New(current, previous []byte) (*Keyring, error) {
-	k := &Keyring{}
-	// Order is the API: Seal uses keys[0], so the current key is appended first and Open
-	// walks in that order to report a stale row.
-	for _, key := range [][]byte{current, previous} {
-		if len(key) == 0 {
-			continue
-		}
-		if len(key) != KeyLength {
-			return nil, fmt.Errorf("secret: key is %d bytes, want %d", len(key), KeyLength)
-		}
-		k.keys = append(k.keys, key)
+// New builds a keyring. An empty key is allowed — the server runs, and a target that carries a
+// password cannot be registered until a key is set. A key of the wrong length is an error rather
+// than a silent truncation.
+func New(key []byte) (*Keyring, error) {
+	if len(key) == 0 {
+		return &Keyring{}, nil
 	}
-	return k, nil
+	if len(key) != KeyLength {
+		return nil, fmt.Errorf("secret: key is %d bytes, want %d", len(key), KeyLength)
+	}
+	return &Keyring{key: key}, nil
 }
 
 // Enabled reports whether anything can be sealed.
-func (k *Keyring) Enabled() bool { return k != nil && len(k.keys) > 0 }
+func (k *Keyring) Enabled() bool { return k != nil && len(k.key) > 0 }
 
 // Seal encrypts plain with the current key, binding it to aad.
 func (k *Keyring) Seal(aad string, plain []byte) (string, error) {
 	if !k.Enabled() {
 		return "", ErrNoKey
 	}
-	gcm, err := newGCM(k.keys[0])
+	gcm, err := newGCM(k.key)
 	if err != nil {
 		return "", err
 	}
@@ -96,33 +92,31 @@ func (k *Keyring) Seal(aad string, plain []byte) (string, error) {
 	return prefix + base64.StdEncoding.EncodeToString(gcm.Seal(nonce, nonce, plain, []byte(aad))), nil
 }
 
-// Open decrypts a sealed value. stale is true when only a previous key could open it,
-// which tells the caller to write the row back re-sealed.
-func (k *Keyring) Open(aad, sealed string) (plain []byte, stale bool, err error) {
+// Open decrypts a sealed value with the key this process was given.
+func (k *Keyring) Open(aad, sealed string) ([]byte, error) {
 	if !k.Enabled() {
-		return nil, false, ErrNoKey
+		return nil, ErrNoKey
 	}
 	rest, ok := strings.CutPrefix(sealed, prefix)
 	if !ok {
-		return nil, false, fmt.Errorf("%w: unknown envelope", ErrOpen)
+		return nil, fmt.Errorf("%w: unknown envelope", ErrOpen)
 	}
 	raw, err := base64.StdEncoding.DecodeString(rest)
 	if err != nil {
-		return nil, false, fmt.Errorf("%w: %w", ErrOpen, err)
+		return nil, fmt.Errorf("%w: %w", ErrOpen, err)
 	}
-	for i, key := range k.keys {
-		gcm, err := newGCM(key)
-		if err != nil {
-			continue
-		}
-		if len(raw) < gcm.NonceSize() {
-			continue
-		}
-		if plain, err := gcm.Open(nil, raw[:gcm.NonceSize()], raw[gcm.NonceSize():], []byte(aad)); err == nil {
-			return plain, i > 0, nil
-		}
+	gcm, err := newGCM(k.key)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrOpen, err)
 	}
-	return nil, false, ErrOpen
+	if len(raw) < gcm.NonceSize() {
+		return nil, ErrOpen
+	}
+	plain, err := gcm.Open(nil, raw[:gcm.NonceSize()], raw[gcm.NonceSize():], []byte(aad))
+	if err != nil {
+		return nil, fmt.Errorf("%w: the sealed value was written with another key, so it cannot be opened — re-enter the target password", ErrOpen)
+	}
+	return plain, nil
 }
 
 func newGCM(key []byte) (cipher.AEAD, error) {

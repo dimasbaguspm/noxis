@@ -50,17 +50,12 @@ type Closer func(context.Context) error
 
 // New builds a logger and the providers. An empty endpoint returns a plain slog logger and a no-op
 // closer, which is the development and test path.
+//
+// The level and the format are constants: a log line is for a machine to ship and a human to grep,
+// and neither of those is a decision a deployment makes per environment. JSON at Info, always.
 func New(ctx context.Context, cfg config.Config) (*slog.Logger, Closer, error) {
-	level := slog.LevelVar{}
-	if err := level.UnmarshalText([]byte(cfg.LogLevel)); err != nil {
-		level.Set(slog.LevelInfo)
-	}
-	json := cfg.LogFormat == "json"
 	stdio := func() slog.Handler {
-		if json {
-			return slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: &level})
-		}
-		return slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: &level})
+		return slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})
 	}
 
 	if cfg.OTELEndpoint == "" {

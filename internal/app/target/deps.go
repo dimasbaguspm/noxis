@@ -49,18 +49,17 @@ func (d Deps) seal(targetRef, password string) (string, error) {
 }
 
 // openPassword opens the sealed blob for the one use case that connects. The plaintext never
-// leaves this package, is never logged, and is never part of a returned value. The second
-// return reports a row only a previous key could open, which the caller re-seals.
-func (d Deps) openPassword(target domain.Target) (string, bool, error) {
+// leaves this package, is never logged, and is never part of a returned value.
+func (d Deps) openPassword(target domain.Target) (string, error) {
 	if target.Secret == "" {
-		return "", false, nil
+		return "", nil
 	}
-	plain, stale, err := d.Sealer.Open(target.Ref, target.Secret)
+	plain, err := d.Sealer.Open(target.Ref, target.Secret)
 	if err != nil {
-		return "", false, fmt.Errorf("%w: the stored password cannot be opened, which usually means SECRET_KEY changed: %s",
+		return "", fmt.Errorf("%w: the stored password cannot be opened, which usually means SECRET_KEY changed: %s",
 			domain.ErrUnsupported, err)
 	}
-	return string(plain), stale, nil
+	return string(plain), nil
 }
 
 // requireRef rejects anything that is not a reference, so a path param is a 400 rather than a

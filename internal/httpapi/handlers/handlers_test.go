@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"noxis/internal/httpapi/middlewares"
 	"noxis/internal/app/proposal"
 	"noxis/internal/app/read"
 	"noxis/internal/app/target"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
+	"noxis/internal/httpapi/middlewares"
 )
 
 const (

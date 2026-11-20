@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -18,7 +19,7 @@ func newKey(t *testing.T) []byte {
 }
 
 func TestSealOpenRoundTrip(t *testing.T) {
-	k, err := New(newKey(t), nil)
+	k, err := New(newKey(t))
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -29,42 +30,31 @@ func TestSealOpenRoundTrip(t *testing.T) {
 	if sealed == "s3cret" {
 		t.Fatal("Seal returned the plaintext")
 	}
-	plain, stale, err := k.Open("ref-a", sealed)
-	if err != nil || stale || string(plain) != "s3cret" {
-		t.Fatalf("Open = %q, %v, %v", plain, stale, err)
+	plain, err := k.Open("ref-a", sealed)
+	if err != nil || string(plain) != "s3cret" {
+		t.Fatalf("Open = %q, %v", plain, err)
 	}
-	if _, _, err := k.Open("ref-b", sealed); !errors.Is(err, ErrOpen) {
+	if _, err := k.Open("ref-b", sealed); !errors.Is(err, ErrOpen) {
 		t.Fatalf("Open with a different aad = %v, want ErrOpen", err)
 	}
 }
 
-func TestRotationReportsStale(t *testing.T) {
-	old := newKey(t)
-	before, err := mustNew(t, old, nil).Seal("ref", []byte("pw"))
+// There is one key. A row sealed with another one refuses, and the refusal says what to do: this is
+// the honest cost of dropping SECRET_KEY_PREVIOUS.
+func TestAnotherKeyRefuses(t *testing.T) {
+	before, err := mustNew(t, newKey(t)).Seal("ref", []byte("pw"))
 	if err != nil {
 		t.Fatalf("Seal: %v", err)
 	}
-	fresh := newKey(t)
-	ring := mustNew(t, fresh, old)
-	plain, stale, err := ring.Open("ref", before)
-	if err != nil {
-		t.Fatalf("Open: %v", err)
-	}
-	if string(plain) != "pw" || !stale {
-		t.Fatalf("Open = %q, stale %v; want %q, true", plain, stale, "pw")
-	}
-	// The current key writes, so a re-sealed value is no longer stale.
-	sealed, err := ring.Seal("ref", plain)
-	if err != nil {
-		t.Fatalf("Seal: %v", err)
-	}
-	if _, stale, err := ring.Open("ref", sealed); err != nil || stale {
-		t.Fatalf("re-sealed Open = stale %v, %v; want false, nil", stale, err)
+	if _, err := mustNew(t, newKey(t)).Open("ref", before); !errors.Is(err, ErrOpen) {
+		t.Fatalf("Open with another key = %v, want ErrOpen", err)
+	} else if !strings.Contains(err.Error(), "re-enter the target password") {
+		t.Fatalf("refusal = %q, want the instruction", err)
 	}
 }
 
 func TestNoKey(t *testing.T) {
-	k, err := New(nil, nil)
+	k, err := New(nil)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -77,16 +67,16 @@ func TestNoKey(t *testing.T) {
 }
 
 func TestOpenRejectsGarbage(t *testing.T) {
-	k := mustNew(t, newKey(t), nil)
+	k := mustNew(t, newKey(t))
 	for _, sealed := range []string{"", "s3cret", "v2:AAAA", "v1:not-base64!!"} {
-		if _, _, err := k.Open("ref", sealed); err == nil {
+		if _, err := k.Open("ref", sealed); err == nil {
 			t.Fatalf("Open(%q) accepted garbage", sealed)
 		}
 	}
 }
 
 func TestNewRejectsWrongLength(t *testing.T) {
-	if _, err := New([]byte("short"), nil); err == nil {
+	if _, err := New([]byte("short")); err == nil {
 		t.Fatal("New accepted a key that is not 32 bytes")
 	}
 }
@@ -114,9 +104,9 @@ func TestParseKey(t *testing.T) {
 	}
 }
 
-func mustNew(t *testing.T, current, previous []byte) *Keyring {
+func mustNew(t *testing.T, key []byte) *Keyring {
 	t.Helper()
-	k, err := New(current, previous)
+	k, err := New(key)
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

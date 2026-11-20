@@ -10,16 +10,16 @@ import (
 	"noxis/internal/ports"
 )
 
-// Open returns the plaintext password for a target, and whether the row was sealed with a
-// previous key — in which case the caller re-seals it while it holds the plaintext.
-func Open(sealer ports.Sealer, target domain.Target) (string, bool, error) {
+// Open returns the plaintext password for a target. A row sealed with another key is a key
+// problem, and the refusal names it.
+func Open(sealer ports.Sealer, target domain.Target) (string, error) {
 	if target.Secret == "" {
-		return "", false, nil
+		return "", nil
 	}
-	plain, stale, err := sealer.Open(target.Ref, target.Secret)
+	plain, err := sealer.Open(target.Ref, target.Secret)
 	if err != nil {
-		return "", false, fmt.Errorf("%w: the stored password cannot be opened, which usually means SECRET_KEY changed: %s",
+		return "", fmt.Errorf("%w: the stored password cannot be opened, which usually means SECRET_KEY changed: %s",
 			domain.ErrUnsupported, err)
 	}
-	return string(plain), stale, nil
+	return string(plain), nil
 }

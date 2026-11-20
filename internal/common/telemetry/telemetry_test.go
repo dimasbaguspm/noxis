@@ -17,7 +17,7 @@ import (
 // A process with nowhere to send telemetry must still start, log and serve — that is the default
 // deployment, and a no-op provider that panics would make the collector mandatory.
 func TestNoEndpointIsANoop(t *testing.T) {
-	log, shutdown, err := telemetry.New(context.Background(), config.Config{LogLevel: "info", LogFormat: "json"})
+	log, shutdown, err := telemetry.New(context.Background(), config.Config{})
 	if err != nil {
 		t.Fatalf("New without an endpoint: %v", err)
 	}
@@ -56,7 +56,7 @@ func TestSpanReachesTheCollector(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", collector.URL)
 	t.Setenv("OTEL_EXPORTER_OTLP_INSECURE", "true")
 
-	cfg := config.Config{LogLevel: "info", OTELEndpoint: collector.URL, OTELServiceName: "noxis-test"}
+	cfg := config.Config{OTELEndpoint: collector.URL, OTELServiceName: "noxis-test"}
 	_, shutdown, err := telemetry.New(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("New with an endpoint: %v", err)
