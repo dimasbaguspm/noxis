@@ -24,6 +24,8 @@ RUN go mod download
 COPY . .
 # The console is embedded by the Go build, so it has to be in place before it runs.
 COPY --from=console /internal/web/dist ./internal/web/dist
+# The repository's placeholder carries the marker that says "not built"; the real build must not.
+RUN rm -f ./internal/web/dist/NOT_BUILT
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags "-s -w" -o /out/noxis ./cmd/noxis
 # /data belongs to the runtime user, so a named volume inherits an owner that can write to it.
 RUN mkdir -p /out/data && chown 65532:65532 /out/data
