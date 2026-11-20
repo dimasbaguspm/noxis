@@ -65,7 +65,7 @@ make uat-slow # the same plus @slow: boots MySQL 8.4 + MariaDB 11.4   (~2m, dock
 | `internal/constants/` | scopes, drivers, wire names, limits, error codes |
 | `internal/client/` | typed REST client — the CLI face and the UAT steps both use it |
 | `test/uat/` | godog: `features/`, `steps/`, a runner that boots the real binary |
-| `web/` | standalone console (own `package.json`, own CI job, CORS to the API) |
+| `web/` | the console sources; the build is embedded into `internal/web/dist` and served by `noxis web serve` |
 | `docs/agent/`, `docs/plan/` | agent docs, plan archive |
 
 Dependency direction, enforced by `test/arch`: `cmd/* → app → ports → domain`, and
@@ -121,8 +121,9 @@ seam next to the struct: `var _ ports.Driver = (*DB)(nil)`.
   nothing for DDL. Rehearsal is a rebuilt throwaway database + diff, always.
 - Requires `CREATE DATABASE` on the target server. Without it the rehearsal degrades
   to `static` (parse + `EXPLAIN` + row estimate) and says so by name.
-- `web/` is never embedded in the binary. If you find `go:embed` of a built console,
-  that is v1 residue.
+- The console is embedded, deliberately: `internal/web/dist` is inside the binary and
+  `noxis web serve` serves it. A build replaces the committed placeholder and removes
+  `NOT_BUILT`; without that file the binary says it is serving a placeholder.
 - Dropping the `NOXIS_` prefix was deliberate. If you find `NOXIS_*` env names, that
   is v1 residue.
 

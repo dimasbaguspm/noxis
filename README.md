@@ -34,7 +34,7 @@ agent ──read──────────────▶ rows
 | Binary | What it is |
 | --- | --- |
 | `noxis http serve` | the server: REST API over `/v1`, the only writer of the state file |
-| `noxis web serve` | the console, served from the same binary (see #789) |
+| `noxis web serve` | the console, served from the same binary on `:3000` (`--port`, `--api`) |
 | `noxis <command>` | a client of that API — `auth`, `target`, `query`, `propose`, `review` |
 | `web/*` | a standalone console, later; not embedded, talks to the same API |
 

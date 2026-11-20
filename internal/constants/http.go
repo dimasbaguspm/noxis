@@ -25,7 +25,10 @@ const (
 // -state flags for development and for the acceptance suite; the environment does not.
 const (
 	ListenAddr = ":9000"
-	StatePath  = "/data/noxis.db"
+	// ConsolePort is where `noxis web serve` listens. A constant, like the API's address: a console
+	// that moves by environment is a bookmark that stops working.
+	ConsolePort = 3000
+	StatePath   = "/data/noxis.db"
 )
 
 // ConsoleOrigins are the origins allowed to call the API from a browser. The console is standalone;

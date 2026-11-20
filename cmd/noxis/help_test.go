@@ -91,3 +91,27 @@ func TestHelpForOneCommand(t *testing.T) {
 		t.Fatalf("help target = %s", out.String())
 	}
 }
+
+// The console refuses a port it cannot bind before it starts listening, and says which number was
+// wrong rather than failing inside a goroutine.
+func TestConsoleRefusesAnImpossiblePort(t *testing.T) {
+	isolated(t)
+
+	root := newRoot()
+	root.SetOut(&bytes.Buffer{})
+	root.SetErr(&bytes.Buffer{})
+	root.SetArgs([]string{"web", "serve", "--port", "70000"})
+	if err := root.Execute(); err == nil {
+		t.Fatal("a port outside 1-65535 was accepted")
+	}
+}
+
+// The serve command is honest about what it is serving.
+func TestBuiltSaysWhichConsole(t *testing.T) {
+	if !strings.Contains(built(true), "built into this binary") {
+		t.Fatalf("built(true) = %q", built(true))
+	}
+	if !strings.Contains(built(false), "placeholder") {
+		t.Fatalf("built(false) = %q", built(false))
+	}
+}

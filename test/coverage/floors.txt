@@ -22,6 +22,7 @@ noxis/internal/common/dotconfig 66
 noxis/internal/httpapi/respond 93
 noxis/cmd/noxis 61
 noxis/internal/httpapi 54
+noxis/internal/web 75
 noxis/internal/httpapi/handlers 69
 noxis/internal/common/ref 94
 noxis/internal/common/secret 87
