@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
-	"time"
-
 	"noxis/internal/app/target"
 	"noxis/internal/domain"
 	"noxis/internal/httpapi/middlewares"
 	"noxis/internal/httpapi/respond"
+	"strconv"
+	"time"
 )
 
 // maxBody bounds a request body. A registration is a few hundred bytes; anything larger is
@@ -118,7 +117,7 @@ func (h *Handlers) ListTargets(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	limit, err := intParam(query.Get("limit"))
 	if err != nil {
-		respond.Fail(w, h.Log, fmt.Errorf("%w: limit: %s", domain.ErrInvalid, err))
+		respond.Fail(w, h.Log, fmt.Errorf("%w: limit: %w", domain.ErrInvalid, err))
 		return
 	}
 	page, err := h.Targets.List.Run(r.Context(), target.ListInput{
@@ -198,7 +197,7 @@ func decode(w http.ResponseWriter, r *http.Request, out any) error {
 		if errors.Is(err, io.EOF) {
 			return fmt.Errorf("%w: a json body is required", domain.ErrInvalid)
 		}
-		return fmt.Errorf("%w: %s", domain.ErrInvalid, err)
+		return fmt.Errorf("%w: %w", domain.ErrInvalid, err)
 	}
 	return nil
 }

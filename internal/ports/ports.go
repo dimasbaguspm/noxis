@@ -5,7 +5,6 @@ package ports
 
 import (
 	"context"
-
 	"noxis/internal/domain"
 )
 

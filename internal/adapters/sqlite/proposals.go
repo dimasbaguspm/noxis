@@ -3,11 +3,10 @@ package sqlite
 import (
 	"context"
 	"fmt"
-	"strings"
-	"time"
-
 	"noxis/internal/domain"
 	"noxis/internal/ports"
+	"strings"
+	"time"
 )
 
 const proposalColumns = `ref, target_ref, title, kind, query, rollback, note, status, tier, irreversible,
@@ -72,7 +71,7 @@ func (d *DB) ListProposals(ctx context.Context, filter ports.ProposalFilter) ([]
 		args = append(args, filter.Cursor)
 	}
 
-	query := `SELECT ` + proposalColumns + ` FROM proposals`
+	query := `SELECT ` + proposalColumns + ` FROM proposals` //nolint:gosec // constants and placeholders; values travel as arguments
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}

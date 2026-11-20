@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"noxis/test/uat/steps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,8 +18,6 @@ import (
 	"time"
 
 	"github.com/cucumber/godog"
-
-	"noxis/test/uat/steps"
 )
 
 const (

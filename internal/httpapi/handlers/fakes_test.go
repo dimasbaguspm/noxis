@@ -2,11 +2,10 @@ package handlers
 
 import (
 	"context"
-	"strings"
-	"time"
-
 	"noxis/internal/domain"
 	"noxis/internal/ports"
+	"strings"
+	"time"
 )
 
 // store is one double for every port the use cases hold. The handlers only ever see the four use
@@ -131,7 +130,8 @@ func (d testDriver) Plan(_ context.Context, _ domain.Target, _ string, _ domain.
 }
 
 func (d testDriver) Apply(_ context.Context, _ domain.Target, _ string, _ domain.Change,
-	_ func(domain.Progress)) (domain.Receipt, error) {
+	_ func(domain.Progress),
+) (domain.Receipt, error) {
 	return d.s.receipt, d.s.applyErr
 }
 
@@ -179,7 +179,7 @@ func (s *store) ClaimProposal(_ context.Context, ref string, from, to domain.Sta
 	return proposal, nil
 }
 
-func (s *store) SetProgress(_ context.Context, _ string, _ domain.Progress) error { return nil }
+func (*store) SetProgress(_ context.Context, _ string, _ domain.Progress) error { return nil }
 
 // ---- rehearsals ----
 

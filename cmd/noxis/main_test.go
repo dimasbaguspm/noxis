@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"noxis/internal/common/dotconfig"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,8 +13,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-
-	"noxis/internal/common/dotconfig"
 )
 
 // A fresh config directory per test: the CLI's file is the subject, not the developer's own session.
@@ -171,8 +170,10 @@ func TestSigninShapeLandsInTheFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load: %v", err)
 	}
-	cfg.Put("default", dotconfig.Profile{APIURL: server.URL, Token: "tok", Caller: "agent",
-		Scopes: []string{"read"}, CheckedAt: time.Now().UTC()})
+	cfg.Put("default", dotconfig.Profile{
+		APIURL: server.URL, Token: "tok", Caller: "agent",
+		Scopes: []string{"read"}, CheckedAt: time.Now().UTC(),
+	})
 	if err := cfg.Save(); err != nil {
 		t.Fatalf("save: %v", err)
 	}

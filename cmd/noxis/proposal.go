@@ -2,18 +2,15 @@ package main
 
 import (
 	"fmt"
+	"noxis/internal/client"
 	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
-
-	"noxis/internal/client"
 )
 
 func newPropose(opts *options) *cobra.Command {
-	var (
-		title, sqlText, from, rollback, rollbackFile, note, tier string
-	)
+	var title, sqlText, from, rollback, rollbackFile, note, tier string
 	cmd := &cobra.Command{
 		Use:   "propose <target-ref>",
 		Short: "Propose a change; it is rehearsed before you see it",
@@ -81,7 +78,7 @@ func newProposals(opts *options) *cobra.Command {
 			rows := make([][]string, 0, len(page.Items))
 			for _, item := range page.Items {
 				rows = append(rows, []string{
-					short(item.Ref), string(item.Kind), item.Status, item.Tier,
+					short(item.Ref), item.Kind, item.Status, item.Tier,
 					irreversibleMark(item.Irreversible), item.Title,
 				})
 			}

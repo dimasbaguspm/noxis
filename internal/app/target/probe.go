@@ -3,10 +3,9 @@ package target
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"noxis/internal/constants"
 	"noxis/internal/domain"
+	"time"
 )
 
 // Probe is the only use case that opens a connection to a target. It records what it found on

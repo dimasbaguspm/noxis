@@ -3,13 +3,12 @@ package main
 import (
 	"fmt"
 	"io"
+	"noxis/internal/common/dotconfig"
+	"noxis/internal/constants"
 	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
-
-	"noxis/internal/common/dotconfig"
-	"noxis/internal/constants"
 )
 
 // group is one section of the command list: the commands a person reaches for together.

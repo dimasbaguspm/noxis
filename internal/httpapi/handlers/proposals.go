@@ -2,14 +2,13 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
-	"time"
-
 	"noxis/internal/app/proposal"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"noxis/internal/httpapi/middlewares"
 	"noxis/internal/httpapi/respond"
+	"strconv"
+	"time"
 )
 
 // proposalWire is a proposal on the wire. It carries the statement and its rollback because a

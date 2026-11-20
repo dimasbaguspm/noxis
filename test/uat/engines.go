@@ -51,7 +51,7 @@ var engines = map[string]engine{
 // The returned function terminates them; it is safe to call twice.
 func enginesUp(ctx context.Context) (map[string]string, func(), error) {
 	started := make(map[string]testcontainers.Container, len(engines))
-	var addrs = make(map[string]string, len(engines))
+	addrs := make(map[string]string, len(engines))
 	cleanup := func() {
 		for name, container := range started {
 			if err := container.Terminate(context.WithoutCancel(ctx)); err != nil {

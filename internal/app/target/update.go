@@ -3,10 +3,9 @@ package target
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"noxis/internal/constants"
 	"noxis/internal/domain"
+	"time"
 )
 
 // Update changes what a target says about itself: its name, its user, its password, its

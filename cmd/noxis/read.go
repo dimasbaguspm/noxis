@@ -2,11 +2,10 @@ package main
 
 import (
 	"fmt"
+	"noxis/internal/client"
 	"os"
 
 	"github.com/spf13/cobra"
-
-	"noxis/internal/client"
 )
 
 // newQuery runs one statement. The server refuses anything that is not a read, so this command

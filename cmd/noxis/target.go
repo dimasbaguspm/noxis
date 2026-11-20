@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"noxis/internal/client"
+	"noxis/internal/constants"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-
-	"noxis/internal/client"
-	"noxis/internal/constants"
 )
 
 func newTarget(opts *options) *cobra.Command {

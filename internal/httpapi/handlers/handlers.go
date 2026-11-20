@@ -4,7 +4,6 @@ package handlers
 
 import (
 	"log/slog"
-
 	"noxis/internal/app/proposal"
 	"noxis/internal/app/read"
 	"noxis/internal/app/target"

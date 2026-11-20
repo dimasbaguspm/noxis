@@ -2,7 +2,6 @@ package proposal
 
 import (
 	"context"
-
 	"noxis/internal/domain"
 )
 

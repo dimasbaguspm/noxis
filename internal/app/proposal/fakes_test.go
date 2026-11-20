@@ -2,11 +2,10 @@ package proposal
 
 import (
 	"context"
-	"strings"
-	"time"
-
 	"noxis/internal/domain"
 	"noxis/internal/ports"
+	"strings"
+	"time"
 )
 
 // The doubles are handwritten and live with the tests that use them: a generated mock would hide
@@ -130,7 +129,7 @@ type fakeTargets struct {
 	err    error
 }
 
-func (f *fakeTargets) Create(_ context.Context, target domain.Target) (domain.Target, error) {
+func (*fakeTargets) Create(_ context.Context, target domain.Target) (domain.Target, error) {
 	return target, nil
 }
 
@@ -141,11 +140,11 @@ func (f *fakeTargets) ByRef(_ context.Context, _ string) (domain.Target, error) 
 	return f.target, nil
 }
 
-func (f *fakeTargets) List(_ context.Context, _ ports.TargetFilter) ([]domain.Target, error) {
+func (*fakeTargets) List(_ context.Context, _ ports.TargetFilter) ([]domain.Target, error) {
 	return nil, nil
 }
 
-func (f *fakeTargets) Update(_ context.Context, target domain.Target) (domain.Target, error) {
+func (*fakeTargets) Update(_ context.Context, target domain.Target) (domain.Target, error) {
 	return target, nil
 }
 
@@ -184,7 +183,7 @@ type fakeSealer struct {
 
 func (f *fakeSealer) Enabled() bool { return f.enabled }
 
-func (f *fakeSealer) Seal(_ string, plain []byte) (string, error) {
+func (*fakeSealer) Seal(_ string, plain []byte) (string, error) {
 	return "sealed:" + string(plain), nil
 }
 
@@ -243,7 +242,8 @@ func (f *fakeDriver) Plan(_ context.Context, _ domain.Target, _ string, _ domain
 }
 
 func (f *fakeDriver) Apply(_ context.Context, _ domain.Target, _ string, change domain.Change,
-	_ func(domain.Progress)) (domain.Receipt, error) {
+	_ func(domain.Progress),
+) (domain.Receipt, error) {
 	f.applied = append(f.applied, change)
 	return f.receipt, f.applyErr
 }

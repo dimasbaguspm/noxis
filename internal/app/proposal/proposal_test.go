@@ -3,10 +3,9 @@ package proposal
 import (
 	"context"
 	"errors"
+	"noxis/internal/domain"
 	"strings"
 	"testing"
-
-	"noxis/internal/domain"
 )
 
 func TestCreateRehearsesAndJournals(t *testing.T) {
@@ -52,10 +51,16 @@ func TestCreateRefusals(t *testing.T) {
 		in   CreateInput
 		want error
 	}{
-		{"bad reference", CreateInput{TargetRef: "not-a-ref", Title: "t", Query: "ALTER TABLE u ADD COLUMN a INT"},
-			domain.ErrInvalid},
-		{"bad tier", CreateInput{Title: "t", Query: "ALTER TABLE u ADD COLUMN a INT", Tier: "wishful"},
-			domain.ErrInvalid},
+		{
+			"bad reference",
+			CreateInput{TargetRef: "not-a-ref", Title: "t", Query: "ALTER TABLE u ADD COLUMN a INT"},
+			domain.ErrInvalid,
+		},
+		{
+			"bad tier",
+			CreateInput{Title: "t", Query: "ALTER TABLE u ADD COLUMN a INT", Tier: "wishful"},
+			domain.ErrInvalid,
+		},
 		{"a read is not a change", CreateInput{Title: "t", Query: "SELECT 1"}, domain.ErrInvalid},
 		{"no title", CreateInput{Query: "ALTER TABLE u ADD COLUMN a INT"}, domain.ErrInvalid},
 	} {

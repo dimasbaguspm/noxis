@@ -2,12 +2,11 @@ package dotconfig_test
 
 import (
 	"errors"
+	"noxis/internal/common/dotconfig"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
-
-	"noxis/internal/common/dotconfig"
 )
 
 // A file that holds a bearer token is only as private as its mode, and a directory that lists it is

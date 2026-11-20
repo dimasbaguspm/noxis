@@ -6,15 +6,14 @@ package proposal
 import (
 	"context"
 	"fmt"
-	"strings"
-	"time"
-
 	"noxis/internal/app/password"
 	"noxis/internal/common/ref"
 	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"noxis/internal/ports"
+	"strings"
+	"time"
 )
 
 // Deps is what every proposal use case is built from.

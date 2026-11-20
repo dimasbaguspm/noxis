@@ -3,10 +3,9 @@ package proposal
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"noxis/internal/constants"
 	"noxis/internal/domain"
+	"time"
 )
 
 // Decide approves or rejects a proposal. It is the one use case where a human's name matters more

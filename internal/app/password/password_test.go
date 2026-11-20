@@ -2,18 +2,17 @@ package password_test
 
 import (
 	"errors"
-	"strings"
-	"testing"
-
 	"noxis/internal/app/password"
 	"noxis/internal/domain"
+	"strings"
+	"testing"
 )
 
 type sealer struct{ err error }
 
-func (s sealer) Enabled() bool { return true }
+func (sealer) Enabled() bool { return true }
 
-func (s sealer) Seal(_ string, plain []byte) (string, error) { return "sealed:" + string(plain), nil }
+func (sealer) Seal(_ string, plain []byte) (string, error) { return "sealed:" + string(plain), nil }
 
 func (s sealer) Open(_ string, sealed string) ([]byte, error) {
 	if s.err != nil {

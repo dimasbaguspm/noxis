@@ -5,17 +5,17 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-
 	"noxis/internal/adapters/mysql"
 	"noxis/internal/adapters/sqlite"
 	"noxis/internal/app/proposal"
-	appread "noxis/internal/app/read"
 	"noxis/internal/app/target"
 	"noxis/internal/common/config"
 	"noxis/internal/common/secret"
 	"noxis/internal/httpapi"
 	"noxis/internal/httpapi/handlers"
 	"noxis/internal/httpapi/middlewares"
+
+	appread "noxis/internal/app/read"
 )
 
 // buildServer is the composition root: config → logger → adapters → use cases → transport. It is

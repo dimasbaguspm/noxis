@@ -4,10 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strings"
-
 	"noxis/internal/common/sqltext"
 	"noxis/internal/domain"
+	"strings"
 )
 
 // Plan sizes a change before it runs. The number is the engine's own estimate from

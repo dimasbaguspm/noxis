@@ -3,15 +3,14 @@ package main
 import (
 	"errors"
 	"fmt"
+	"noxis/internal/client"
+	"noxis/internal/common/dotconfig"
+	"noxis/internal/constants"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
-
-	"noxis/internal/client"
-	"noxis/internal/common/dotconfig"
-	"noxis/internal/constants"
 )
 
 // newAuth is the session: where a token is stored, what the server says about it, and how to get rid

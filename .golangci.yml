@@ -1,0 +1,76 @@
+version: "2"
+
+# The policy, not the tool's defaults. Every linter here catches a defect that reached review in
+# this tree or would have: an unchecked error, a body nobody closed, a context that came from
+# nowhere, an SQL row set that was never checked for its error.
+linters:
+  default: standard
+  enable:
+    - bodyclose      # a response body is a file descriptor
+    - copyloopvar    # Go 1.22 loop variables, but a copy that is now pointless is still noise
+    - errorlint      # errors.Is/As, not ==, on wrapped errors
+    - gocritic       # the diagnostic and style checks that catch real mistakes
+    - gosec          # a permission, a random source, an injected string
+    - misspell       # a typo in a comment is still a typo
+    - noctx          # a request without a context cannot be cancelled
+    - prealloc       # a slice grown in a loop of known length
+    - revive         # the exported-doc and early-return rules the tree already follows
+    - rowserrcheck   # an iterator whose Err() nobody read
+    - sqlclosecheck  # a rows/statement nobody closed
+    - unconvert      # a conversion that does nothing
+    - wastedassign   # an assignment nothing reads
+    - whitespace     # the stray blank line at the top of a block
+  settings:
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+      disabled-checks:
+        - ifElseChain        # a chain of two is often the clearest form
+        - singleCaseSwitch
+        - sloppyReassign
+        - unnamedResult     # a named result is a choice, not a rule: this tree names one when a
+                            # deferred span or a naked return reads better with it
+        - sqlQuery          # the client's Query returns rows on purpose; the leak check is wrong here
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: exported
+        - name: increment-decrement
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: errorf
+        - name: indent-error-flow
+        - name: superfluous-else
+        - name: unused-parameter
+        - name: unused-receiver
+    gosec:
+      excludes:
+        - G104 # an ignored error is errcheck's job, and it has a better message
+        - G202 # SQL built from constant fragments and `?` placeholders, never from a value:
+                # the tree has six of them and each one is a keyset query, not a concatenation
+                # of user input
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      # A test may ignore what a handler would not: a fixture write that fails fails the test
+      # somewhere else anyway, and the assertion is the point.
+      - path: _test\.go
+        linters: [errcheck, gosec, noctx, bodyclose, prealloc, gocritic]
+      # The acceptance harness is a test: it opens sockets it chose and files it just wrote.
+      - path: test/
+        linters: [gosec, noctx, bodyclose]
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports

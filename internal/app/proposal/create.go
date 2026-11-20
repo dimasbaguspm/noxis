@@ -3,13 +3,12 @@ package proposal
 import (
 	"context"
 	"fmt"
-	"strings"
-	"time"
-
 	"noxis/internal/common/ref"
 	"noxis/internal/common/sqltext"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
+	"strings"
+	"time"
 )
 
 // Create turns one statement and its rollback into a proposal, then rehearses it immediately: a
@@ -97,7 +96,7 @@ func (c *Create) Run(ctx context.Context, in CreateInput) (CreateOutput, error) 
 func kindOf(query string) (domain.Kind, error) {
 	statement, err := sqltext.Classify(query)
 	if err != nil {
-		return "", fmt.Errorf("%w: %s", domain.ErrInvalid, err)
+		return "", fmt.Errorf("%w: %w", domain.ErrInvalid, err)
 	}
 	switch statement.Kind {
 	case sqltext.DDL:

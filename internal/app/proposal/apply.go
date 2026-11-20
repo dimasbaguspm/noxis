@@ -3,11 +3,10 @@ package proposal
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"noxis/internal/app/password"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
+	"time"
 )
 
 // Apply runs an approved proposal for real. The claim happens before the statement does, so a crash
@@ -100,7 +99,8 @@ func (a *Apply) Run(ctx context.Context, in ApplyInput) (ApplyOutput, error) {
 // finish runs the statement, records what the engine said while it ran, and writes the receipt. It
 // is the same code whether the caller is still on the line or reading the proposal tomorrow.
 func (a *Apply) finish(ctx context.Context, proposal domain.Proposal, target domain.Target, plain string,
-	change domain.Change, actor string) (domain.Proposal, error) {
+	change domain.Change, actor string,
+) (domain.Proposal, error) {
 	bounded, cancel := context.WithTimeout(ctx, a.Timeout)
 	defer cancel()
 

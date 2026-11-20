@@ -9,25 +9,30 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"noxis/internal/client"
+	"noxis/internal/common/dotconfig"
+	"noxis/internal/constants"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
-
-	"noxis/internal/client"
-	"noxis/internal/common/dotconfig"
-	"noxis/internal/constants"
 )
 
 func main() {
+	// os.Exit skips every deferred call, so the signal context is released by run(), not here.
+	os.Exit(run())
+}
+
+func run() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := newRoot().ExecuteContext(ctx); err != nil {
 		fmt.Fprintln(os.Stderr, "error:", err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 // Command annotations. A command that starts a session cannot require one, and a command that asks

@@ -5,7 +5,6 @@ package password
 
 import (
 	"fmt"
-
 	"noxis/internal/domain"
 	"noxis/internal/ports"
 )
@@ -18,7 +17,7 @@ func Open(sealer ports.Sealer, target domain.Target) (string, error) {
 	}
 	plain, err := sealer.Open(target.Ref, target.Secret)
 	if err != nil {
-		return "", fmt.Errorf("%w: the stored password cannot be opened, which usually means SECRET_KEY changed: %s",
+		return "", fmt.Errorf("%w: the stored password cannot be opened, which usually means SECRET_KEY changed: %w",
 			domain.ErrUnsupported, err)
 	}
 	return string(plain), nil

@@ -2,11 +2,10 @@ package domain_test
 
 import (
 	"errors"
+	"noxis/internal/domain"
 	"strings"
 	"testing"
 	"time"
-
-	"noxis/internal/domain"
 )
 
 func fullTarget() domain.Target {

@@ -7,14 +7,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"noxis/internal/domain"
+	"noxis/internal/ports"
 	"os"
 	"path/filepath"
 	"time"
 
 	"modernc.org/sqlite" // registers the "sqlite" driver
-
-	"noxis/internal/domain"
-	"noxis/internal/ports"
 )
 
 // SchemaVersion is the schema this build knows how to read. A file with another version is

@@ -3,7 +3,6 @@ package proposal
 import (
 	"context"
 	"fmt"
-
 	"noxis/internal/domain"
 )
 

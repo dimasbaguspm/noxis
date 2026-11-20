@@ -5,12 +5,11 @@ package mysql
 
 import (
 	"net"
+	"noxis/internal/constants"
+	"noxis/internal/domain"
 	"strconv"
 
 	mysqldriver "github.com/go-sql-driver/mysql"
-
-	"noxis/internal/constants"
-	"noxis/internal/domain"
 )
 
 // tlsSetting maps a target's declared mode onto the driver's own option, one to one. Nothing

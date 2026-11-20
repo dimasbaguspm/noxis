@@ -3,10 +3,9 @@ package target
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"noxis/internal/constants"
 	"noxis/internal/domain"
+	"time"
 )
 
 // Archive puts a target away. A target is never deleted: the journal still points at it,

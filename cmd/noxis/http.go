@@ -5,25 +5,24 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
-
-	"github.com/spf13/cobra"
-
 	"noxis/internal/client"
 	"noxis/internal/common/config"
 	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
+	"time"
+
+	"github.com/spf13/cobra"
 )
 
 // newHTTP is the server half of the binary: the process that owns the state file and answers the
 // API the CLI talks to. It is a command, not a second executable, so an image is one file.
 func newHTTP() *cobra.Command {
-	http := &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "http",
 		Short: "Run the noXis API",
 	}
-	http.AddCommand(newHTTPServe(), newHTTPHealthcheck())
-	return http
+	cmd.AddCommand(newHTTPServe(), newHTTPHealthcheck())
+	return cmd
 }
 
 func newHTTPServe() *cobra.Command {

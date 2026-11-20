@@ -4,13 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
-	"time"
-
 	"noxis/internal/common/sqltext"
 	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
+	"strings"
+	"time"
 )
 
 // Apply runs an approved statement for real. A DML statement is wrapped in one transaction; a DDL
@@ -21,7 +20,8 @@ import (
 // thread that runs it, and the receipt carries what the engine actually did: which algorithm it
 // chose, and how many rows it touched.
 func (d *DB) Apply(ctx context.Context, target domain.Target, password string, change domain.Change,
-	report func(domain.Progress)) (out domain.Receipt, err error) {
+	report func(domain.Progress),
+) (out domain.Receipt, err error) {
 	ctx, end := telemetry.Span(ctx, "mysql.DB.Apply")
 	defer func() { end(err) }()
 	began := time.Now()
@@ -79,7 +79,7 @@ func (d *DB) Apply(ctx context.Context, target domain.Target, password string, c
 
 // rowVersions reads how many instant column changes a table has taken. It returns -1 when the
 // engine will not say, so a caller can tell "nothing changed" from "nobody answered".
-func (d *DB) rowVersions(ctx context.Context, conn *sql.Conn, target domain.Target, change domain.Change) int64 {
+func (*DB) rowVersions(ctx context.Context, conn *sql.Conn, target domain.Target, change domain.Change) int64 {
 	statement, err := sqltext.Classify(change.Query)
 	if err != nil || len(statement.Tables) == 0 {
 		return -1
@@ -102,8 +102,9 @@ func (d *DB) rowVersions(ctx context.Context, conn *sql.Conn, target domain.Targ
 // watch asks the server what the running statement is doing, every progress interval, and stops
 // when the returned function is called. It never fails the apply: progress is an observation, and an
 // observation that fails is a missing percentage, not a broken change.
-func (d *DB) watch(ctx context.Context, pool *sql.DB, conn *sql.Conn, change domain.Change,
-	report func(domain.Progress), receipt *domain.Receipt) func() {
+func (*DB) watch(ctx context.Context, pool *sql.DB, conn *sql.Conn, _ domain.Change,
+	report func(domain.Progress), receipt *domain.Receipt,
+) func() {
 	var threadID int64
 	if err := conn.QueryRowContext(ctx, "SELECT CONNECTION_ID()").Scan(&threadID); err != nil {
 		return func() {}

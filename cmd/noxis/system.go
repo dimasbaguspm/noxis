@@ -2,11 +2,10 @@ package main
 
 import (
 	"fmt"
+	"noxis/internal/constants"
 	"strings"
 
 	"github.com/spf13/cobra"
-
-	"noxis/internal/constants"
 )
 
 func newWhoami(opts *options) *cobra.Command {
