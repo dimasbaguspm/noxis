@@ -6,12 +6,11 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"noxis/internal/common/config"
+	"noxis/internal/common/telemetry"
 	"strings"
 	"testing"
 	"time"
-
-	"noxis/internal/common/config"
-	"noxis/internal/common/telemetry"
 )
 
 // A process with nowhere to send telemetry must still start, log and serve — that is the default

@@ -2,11 +2,10 @@ package main
 
 import (
 	"bytes"
+	"noxis/internal/common/dotconfig"
 	"strings"
 	"testing"
 	"time"
-
-	"noxis/internal/common/dotconfig"
 )
 
 // A bare `noxis` is the first thing a person types, so it has to say where it points and what to do

@@ -6,14 +6,13 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"noxis/internal/common/secret"
+	"noxis/internal/constants"
 	"os"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
-
-	"noxis/internal/common/secret"
-	"noxis/internal/constants"
 )
 
 // Token is one caller. Its name is the identity that lands in the journal, so it names

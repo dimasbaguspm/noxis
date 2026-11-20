@@ -6,12 +6,11 @@ package read
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"noxis/internal/app/password"
 	"noxis/internal/common/ref"
 	"noxis/internal/domain"
 	"noxis/internal/ports"
+	"time"
 )
 
 // Deps is what every read use case is built from.

@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"noxis/internal/constants"
 	"strconv"
 	"time"
-
-	"noxis/internal/constants"
 )
 
 // Target is one governed server as the API describes it. There is no password field: the

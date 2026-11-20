@@ -21,12 +21,12 @@ func New() string { return NewAt(time.Now()) }
 func NewAt(t time.Time) string {
 	var b [16]byte
 	ms := uint64(t.UnixMilli())
-	b[0] = byte(ms >> 40)
-	b[1] = byte(ms >> 32)
-	b[2] = byte(ms >> 24)
-	b[3] = byte(ms >> 16)
-	b[4] = byte(ms >> 8)
-	b[5] = byte(ms)
+	b[0] = byte((ms >> 40) & 0xff)
+	b[1] = byte((ms >> 32) & 0xff)
+	b[2] = byte((ms >> 24) & 0xff)
+	b[3] = byte((ms >> 16) & 0xff)
+	b[4] = byte((ms >> 8) & 0xff)
+	b[5] = byte(ms & 0xff)
 	// crypto/rand does not fail in practice; a failure here is unrecoverable, so the
 	// process stops instead of minting a duplicate reference.
 	if _, err := rand.Read(b[6:]); err != nil {

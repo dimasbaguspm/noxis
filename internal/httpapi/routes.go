@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-
 	"noxis/internal/constants"
 	"noxis/internal/httpapi/handlers"
 	"noxis/internal/httpapi/middlewares"

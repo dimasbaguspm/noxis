@@ -3,10 +3,9 @@ package sqlite
 import (
 	"context"
 	"errors"
+	"noxis/internal/domain"
 	"testing"
 	"time"
-
-	"noxis/internal/domain"
 )
 
 // storedProposal writes one proposal in the status the test needs, against a target that exists.

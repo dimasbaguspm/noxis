@@ -11,10 +11,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"noxis/internal/constants"
 	"strings"
 	"time"
-
-	"noxis/internal/constants"
 )
 
 // Error is a refusal from the API, carrying the status and the code it answered with so a

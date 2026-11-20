@@ -3,12 +3,11 @@ package read
 import (
 	"context"
 	"errors"
+	"noxis/internal/domain"
+	"noxis/internal/ports"
 	"strings"
 	"testing"
 	"time"
-
-	"noxis/internal/domain"
-	"noxis/internal/ports"
 )
 
 // ---- doubles (handwritten, in the package that uses them) ----
@@ -18,7 +17,7 @@ type fakeTargets struct {
 	err    error
 }
 
-func (f *fakeTargets) Create(_ context.Context, target domain.Target) (domain.Target, error) {
+func (*fakeTargets) Create(_ context.Context, target domain.Target) (domain.Target, error) {
 	return target, nil
 }
 
@@ -29,19 +28,19 @@ func (f *fakeTargets) ByRef(_ context.Context, _ string) (domain.Target, error) 
 	return f.target, nil
 }
 
-func (f *fakeTargets) List(_ context.Context, _ ports.TargetFilter) ([]domain.Target, error) {
+func (*fakeTargets) List(_ context.Context, _ ports.TargetFilter) ([]domain.Target, error) {
 	return nil, nil
 }
 
-func (f *fakeTargets) Update(_ context.Context, target domain.Target) (domain.Target, error) {
+func (*fakeTargets) Update(_ context.Context, target domain.Target) (domain.Target, error) {
 	return target, nil
 }
 
 type fakeSealer struct{ openErr error }
 
-func (f *fakeSealer) Enabled() bool { return true }
+func (*fakeSealer) Enabled() bool { return true }
 
-func (f *fakeSealer) Seal(_ string, plain []byte) (string, error) {
+func (*fakeSealer) Seal(_ string, plain []byte) (string, error) {
 	return "sealed:" + string(plain), nil
 }
 
@@ -65,7 +64,7 @@ type fakeDriver struct {
 	calls     int
 }
 
-func (f *fakeDriver) Probe(_ context.Context, _ domain.Target, _ string) (domain.Capabilities, error) {
+func (*fakeDriver) Probe(_ context.Context, _ domain.Target, _ string) (domain.Capabilities, error) {
 	return domain.Capabilities{}, nil
 }
 
@@ -93,16 +92,17 @@ func (f *fakeDriver) Table(_ context.Context, _ domain.Target, password, _, _ st
 	return f.table, f.err
 }
 
-func (f *fakeDriver) Rehearse(_ context.Context, _ domain.Target, _ string, _ domain.Change) (domain.Rehearsal, error) {
+func (*fakeDriver) Rehearse(_ context.Context, _ domain.Target, _ string, _ domain.Change) (domain.Rehearsal, error) {
 	return domain.Rehearsal{}, nil
 }
 
-func (f *fakeDriver) Plan(_ context.Context, _ domain.Target, _ string, _ domain.Change) (domain.Plan, error) {
+func (*fakeDriver) Plan(_ context.Context, _ domain.Target, _ string, _ domain.Change) (domain.Plan, error) {
 	return domain.Plan{}, nil
 }
 
-func (f *fakeDriver) Apply(_ context.Context, _ domain.Target, _ string, _ domain.Change,
-	_ func(domain.Progress)) (domain.Receipt, error) {
+func (*fakeDriver) Apply(_ context.Context, _ domain.Target, _ string, _ domain.Change,
+	_ func(domain.Progress),
+) (domain.Receipt, error) {
 	return domain.Receipt{}, nil
 }
 

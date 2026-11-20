@@ -8,10 +8,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
-
 	"noxis/internal/constants"
 	"noxis/internal/domain"
+	"strings"
 )
 
 type envelope struct {

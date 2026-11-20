@@ -2,11 +2,10 @@ package domain
 
 import (
 	"fmt"
+	"noxis/internal/constants"
 	"regexp"
 	"strings"
 	"time"
-
-	"noxis/internal/constants"
 )
 
 // Target is one MySQL or MariaDB server this build governs. The password appears only as

@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
-
 	"noxis/internal/domain"
 	"noxis/internal/ports"
+	"strings"
 )
 
 const targetColumns = `ref, name, driver, host, port, database, username, password_cipher, tls_mode, options,
@@ -69,7 +68,7 @@ func (d *DB) List(ctx context.Context, filter ports.TargetFilter) ([]domain.Targ
 		args = append(args, filter.Cursor)
 	}
 
-	query := `SELECT ` + targetColumns + ` FROM targets`
+	query := `SELECT ` + targetColumns + ` FROM targets` //nolint:gosec // constants and placeholders; values travel as arguments
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}

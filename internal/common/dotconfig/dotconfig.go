@@ -59,6 +59,7 @@ func Load() (Config, error) {
 	}
 	empty := Config{Profiles: map[string]Profile{}, path: path}
 
+	//nolint:gosec // the path is this tool's own config file, under the user's config directory
 	raw, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return empty, nil

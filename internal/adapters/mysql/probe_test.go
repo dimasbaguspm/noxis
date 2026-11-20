@@ -1,10 +1,9 @@
 package mysql
 
 import (
+	"noxis/internal/domain"
 	"strings"
 	"testing"
-
-	"noxis/internal/domain"
 )
 
 func TestDSNCarriesTheTarget(t *testing.T) {

@@ -1,10 +1,9 @@
 package mysql
 
 import (
-	"testing"
-
 	"noxis/internal/common/sqltext"
 	"noxis/internal/domain"
+	"testing"
 )
 
 // The stage name is the only place the server says which algorithm it chose, so the mapping is

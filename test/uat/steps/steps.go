@@ -8,16 +8,15 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"noxis/internal/client"
+	"noxis/internal/common/ref"
+	"noxis/internal/constants"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cucumber/godog"
-
-	"noxis/internal/client"
-	"noxis/internal/common/ref"
-	"noxis/internal/constants"
 )
 
 // world is one scenario's state.
@@ -232,7 +231,7 @@ func (w *world) assertNoPasswordOnWire() error {
 		return w.err
 	}
 	request, err := http.NewRequestWithContext(context.Background(), http.MethodGet,
-		os.Getenv("UAT_URL")+constants.PathTargets+"/"+w.target.Ref, nil)
+		os.Getenv("UAT_URL")+constants.PathTargets+"/"+w.target.Ref, http.NoBody)
 	if err != nil {
 		return err
 	}

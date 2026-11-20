@@ -6,16 +6,15 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"strings"
-	"testing"
-	"time"
-
 	"noxis/internal/app/proposal"
 	"noxis/internal/app/read"
 	"noxis/internal/app/target"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"noxis/internal/httpapi/middlewares"
+	"strings"
+	"testing"
+	"time"
 )
 
 const (
@@ -291,10 +290,14 @@ func TestEveryRouteAnswers(t *testing.T) {
 	}{
 		{"list targets", h.ListTargets, http.MethodGet, "/v1/targets", ""},
 		{"get target", h.GetTarget, http.MethodGet, "/v1/targets/" + target.Ref, ""},
-		{"update target", h.UpdateTarget, http.MethodPatch, "/v1/targets/" + target.Ref,
-			`{"host":"` + host + `"}`},
-		{"rotate password", h.UpdateTarget, http.MethodPatch, "/v1/targets/" + target.Ref,
-			`{"password":"` + password + `"}`},
+		{
+			"update target", h.UpdateTarget, http.MethodPatch, "/v1/targets/" + target.Ref,
+			`{"host":"` + host + `"}`,
+		},
+		{
+			"rotate password", h.UpdateTarget, http.MethodPatch, "/v1/targets/" + target.Ref,
+			`{"password":"` + password + `"}`,
+		},
 		{"probe target", h.ProbeTarget, http.MethodPost, "/v1/targets/" + target.Ref + "/probe", ""},
 		{"capabilities", h.TargetCapabilities, http.MethodGet, "/v1/targets/" + target.Ref + "/capabilities", ""},
 		{"query", h.RunQuery, http.MethodPost, "/v1/targets/" + target.Ref + "/query", `{"sql":"SELECT 1"}`},

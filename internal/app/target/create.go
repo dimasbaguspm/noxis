@@ -2,11 +2,10 @@ package target
 
 import (
 	"context"
-	"time"
-
 	"noxis/internal/common/ref"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
+	"time"
 )
 
 // Create registers one target. It is the only way a credential enters the state file.

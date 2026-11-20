@@ -7,12 +7,11 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"strings"
-	"testing"
-
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"noxis/internal/httpapi/respond"
+	"strings"
+	"testing"
 )
 
 // quiet is the logger Fail takes. The test asserts the body; the log line is the operator's copy.
@@ -44,18 +43,30 @@ func TestFailMapsEverySentinel(t *testing.T) {
 		code    string
 		message string
 	}{
-		{fmt.Errorf("%w: name is required", domain.ErrInvalid), http.StatusBadRequest,
-			constants.CodeInvalidRequest, "name is required"},
-		{fmt.Errorf("%w: no token", domain.ErrUnauthorized), http.StatusUnauthorized,
-			constants.CodeUnauthorized, "no token"},
-		{fmt.Errorf("%w: scope missing", domain.ErrForbidden), http.StatusForbidden,
-			constants.CodeForbidden, "scope missing"},
-		{fmt.Errorf("%w: proposal abc", domain.ErrNotFound), http.StatusNotFound,
-			constants.CodeNotFound, "proposal abc"},
-		{fmt.Errorf("%w: proposal is applied", domain.ErrConflict), http.StatusConflict,
-			constants.CodeConflict, "proposal is applied"},
-		{fmt.Errorf("%w: the engine cannot do that", domain.ErrUnsupported), http.StatusUnprocessableEntity,
-			constants.CodeUnsupported, "the engine cannot do that"},
+		{
+			fmt.Errorf("%w: name is required", domain.ErrInvalid), http.StatusBadRequest,
+			constants.CodeInvalidRequest, "name is required",
+		},
+		{
+			fmt.Errorf("%w: no token", domain.ErrUnauthorized), http.StatusUnauthorized,
+			constants.CodeUnauthorized, "no token",
+		},
+		{
+			fmt.Errorf("%w: scope missing", domain.ErrForbidden), http.StatusForbidden,
+			constants.CodeForbidden, "scope missing",
+		},
+		{
+			fmt.Errorf("%w: proposal abc", domain.ErrNotFound), http.StatusNotFound,
+			constants.CodeNotFound, "proposal abc",
+		},
+		{
+			fmt.Errorf("%w: proposal is applied", domain.ErrConflict), http.StatusConflict,
+			constants.CodeConflict, "proposal is applied",
+		},
+		{
+			fmt.Errorf("%w: the engine cannot do that", domain.ErrUnsupported), http.StatusUnprocessableEntity,
+			constants.CodeUnsupported, "the engine cannot do that",
+		},
 	} {
 		rec := httptest.NewRecorder()
 		respond.Fail(rec, quiet(), tc.err)

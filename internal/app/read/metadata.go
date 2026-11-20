@@ -3,9 +3,8 @@ package read
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"noxis/internal/domain"
+	"strings"
 )
 
 // Databases lists the schemas one target can see.

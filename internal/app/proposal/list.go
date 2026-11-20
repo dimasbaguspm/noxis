@@ -3,7 +3,6 @@ package proposal
 import (
 	"context"
 	"fmt"
-
 	"noxis/internal/common/cursor"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
@@ -37,7 +36,7 @@ type ListOutput struct {
 func (l *List) Run(ctx context.Context, in ListInput) (ListOutput, error) {
 	after, err := cursor.Ref(in.Cursor)
 	if err != nil {
-		return ListOutput{}, fmt.Errorf("%w: %s", domain.ErrInvalid, err)
+		return ListOutput{}, fmt.Errorf("%w: %w", domain.ErrInvalid, err)
 	}
 	if in.Status != "" && !knownStatus(in.Status) {
 		return ListOutput{}, fmt.Errorf("%w: status %q is not one this build knows", domain.ErrInvalid, in.Status)

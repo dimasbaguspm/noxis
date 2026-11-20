@@ -5,12 +5,11 @@ package target
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"noxis/internal/common/ref"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"noxis/internal/ports"
+	"time"
 )
 
 // Deps is what every target use case is built from, set once in the composition root.
@@ -56,7 +55,7 @@ func (d Deps) openPassword(target domain.Target) (string, error) {
 	}
 	plain, err := d.Sealer.Open(target.Ref, target.Secret)
 	if err != nil {
-		return "", fmt.Errorf("%w: the stored password cannot be opened, which usually means SECRET_KEY changed: %s",
+		return "", fmt.Errorf("%w: the stored password cannot be opened, which usually means SECRET_KEY changed: %w",
 			domain.ErrUnsupported, err)
 	}
 	return string(plain), nil

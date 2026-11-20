@@ -2,7 +2,6 @@ package target
 
 import (
 	"context"
-
 	"noxis/internal/domain"
 )
 

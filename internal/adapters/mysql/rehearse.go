@@ -4,15 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
-
 	"noxis/internal/common/ref"
 	"noxis/internal/common/sqltext"
 	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // scratchPrefix names the throwaway database a shadow rehearsal runs in. The suffix is random, so
@@ -67,7 +66,7 @@ func (d *DB) Rehearse(ctx context.Context, target domain.Target, password string
 func rehearsalScope(change domain.Change, database string) ([]string, error) {
 	statement, err := sqltext.Classify(change.Query)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", domain.ErrInvalid, err)
+		return nil, fmt.Errorf("%w: %w", domain.ErrInvalid, err)
 	}
 	names := append([]string(nil), statement.Tables...)
 	if strings.TrimSpace(change.Rollback) != "" {
@@ -95,8 +94,9 @@ func rehearsalScope(change domain.Change, database string) ([]string, error) {
 
 // rehearseStatic parses, plans and estimates without touching anything. It can never claim more
 // than `partial`: nothing was executed, so nothing was proven.
-func (d *DB) rehearseStatic(ctx context.Context, pool *sql.DB, target domain.Target, password string,
-	change domain.Change, scope []string, rehearsal *domain.Rehearsal) {
+func (*DB) rehearseStatic(ctx context.Context, pool *sql.DB, target domain.Target, password string,
+	change domain.Change, scope []string, rehearsal *domain.Rehearsal,
+) {
 	rehearsal.Status = domain.RehearsalPartial
 	rehearsal.Irreversible = irreversible(change)
 	rehearsal.Note = "static: the statement was parsed and planned, nothing was executed, so the reversal is unproven"
@@ -122,8 +122,9 @@ func (d *DB) rehearseStatic(ctx context.Context, pool *sql.DB, target domain.Tar
 
 // rehearseInScratch rebuilds the schema in a throwaway database, runs the change, and requires the
 // rollback to put the schema back exactly as it was.
-func (d *DB) rehearseInScratch(ctx context.Context, pool *sql.DB, database string,
-	change domain.Change, scope []string, rehearsal *domain.Rehearsal) {
+func (*DB) rehearseInScratch(ctx context.Context, pool *sql.DB, database string,
+	change domain.Change, scope []string, rehearsal *domain.Rehearsal,
+) {
 	scratch := scratchPrefix + strings.ReplaceAll(ref.New(), "-", "")[:12]
 
 	conn, err := pool.Conn(ctx)
@@ -258,7 +259,7 @@ func tableEstimates(ctx context.Context, pool *sql.DB, database string, scope []
 func createScratch(ctx context.Context, conn *sql.Conn, scratch string) error {
 	_, err := conn.ExecContext(ctx, "CREATE DATABASE "+quote(scratch))
 	if err != nil {
-		return fmt.Errorf("%w: %s", domain.ErrUnsupported, err)
+		return fmt.Errorf("%w: %w", domain.ErrUnsupported, err)
 	}
 	return nil
 }
@@ -278,10 +279,10 @@ func mirrorTables(ctx context.Context, conn *sql.Conn, database, scratch string,
 		err := conn.QueryRowContext(ctx,
 			fmt.Sprintf("SHOW CREATE TABLE %s.%s", quote(database), quote(table))).Scan(new(string), &ddl)
 		if err != nil {
-			return fmt.Errorf("%w: table %s: %s", domain.ErrNotFound, table, err)
+			return fmt.Errorf("%w: table %s: %w", domain.ErrNotFound, table, err)
 		}
 		if _, err := conn.ExecContext(ctx, ddl); err != nil {
-			return fmt.Errorf("%w: rebuilding %s: %s", domain.ErrUnsupported, table, err)
+			return fmt.Errorf("%w: rebuilding %s: %w", domain.ErrUnsupported, table, err)
 		}
 	}
 	return nil
@@ -294,10 +295,11 @@ func copyRows(ctx context.Context, conn *sql.Conn, database, scratch string, sco
 		return err
 	}
 	for _, table := range scope {
+		//nolint:gosec // every identifier is quoted by quote(); nothing here comes from a client
 		statement := "INSERT INTO " + quote(table) + " SELECT * FROM " + quote(database) + "." + quote(table) +
 			" LIMIT " + strconv.Itoa(sampleRows)
 		if _, err := conn.ExecContext(ctx, statement); err != nil {
-			return fmt.Errorf("%w: sampling %s: %s", domain.ErrUnsupported, table, err)
+			return fmt.Errorf("%w: sampling %s: %w", domain.ErrUnsupported, table, err)
 		}
 	}
 	return nil
@@ -311,20 +313,18 @@ func snapshotSchema(ctx context.Context, conn *sql.Conn, schema string) (map[str
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = rows.Close() }()
 	var names []string
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			_ = rows.Close()
 			return nil, err
 		}
 		names = append(names, name)
 	}
 	if err := rows.Err(); err != nil {
-		_ = rows.Close()
 		return nil, err
 	}
-	_ = rows.Close()
 
 	snapshot := make(map[string]string, len(names))
 	for _, name := range names {
@@ -345,16 +345,18 @@ func tableCounts(ctx context.Context, conn *sql.Conn, schema string) (map[string
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = rows.Close() }()
 	var names []string
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			_ = rows.Close()
 			return nil, err
 		}
 		names = append(names, name)
 	}
-	_ = rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	counts := make(map[string]int64, len(names))
 	for _, name := range names {

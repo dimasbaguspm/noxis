@@ -2,10 +2,9 @@ package domain_test
 
 import (
 	"errors"
+	"noxis/internal/domain"
 	"strings"
 	"testing"
-
-	"noxis/internal/domain"
 )
 
 // A proposal a reviewer cannot act on is refused before it is stored, and every refusal says why.

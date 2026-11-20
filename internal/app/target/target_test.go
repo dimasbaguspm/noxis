@@ -3,12 +3,11 @@ package target
 import (
 	"context"
 	"errors"
+	"noxis/internal/domain"
+	"noxis/internal/ports"
 	"strings"
 	"testing"
 	"time"
-
-	"noxis/internal/domain"
-	"noxis/internal/ports"
 )
 
 // ---- doubles (handwritten, in the package that uses them) ----
@@ -101,32 +100,33 @@ func (f *fakeDriver) Probe(_ context.Context, _ domain.Target, _ string) (domain
 	return f.caps, f.probeErr
 }
 
-func (f *fakeDriver) Query(_ context.Context, _ domain.Target, _, _ string, _ int) (domain.Rows, error) {
+func (*fakeDriver) Query(_ context.Context, _ domain.Target, _, _ string, _ int) (domain.Rows, error) {
 	return domain.Rows{}, nil
 }
 
-func (f *fakeDriver) Databases(_ context.Context, _ domain.Target, _ string) ([]string, error) {
+func (*fakeDriver) Databases(_ context.Context, _ domain.Target, _ string) ([]string, error) {
 	return nil, nil
 }
 
-func (f *fakeDriver) Tables(_ context.Context, _ domain.Target, _, _ string) ([]domain.Table, error) {
+func (*fakeDriver) Tables(_ context.Context, _ domain.Target, _, _ string) ([]domain.Table, error) {
 	return nil, nil
 }
 
-func (f *fakeDriver) Table(_ context.Context, _ domain.Target, _, _, _ string) (domain.TableDetail, error) {
+func (*fakeDriver) Table(_ context.Context, _ domain.Target, _, _, _ string) (domain.TableDetail, error) {
 	return domain.TableDetail{}, nil
 }
 
-func (f *fakeDriver) Rehearse(_ context.Context, _ domain.Target, _ string, _ domain.Change) (domain.Rehearsal, error) {
+func (*fakeDriver) Rehearse(_ context.Context, _ domain.Target, _ string, _ domain.Change) (domain.Rehearsal, error) {
 	return domain.Rehearsal{}, nil
 }
 
-func (f *fakeDriver) Plan(_ context.Context, _ domain.Target, _ string, _ domain.Change) (domain.Plan, error) {
+func (*fakeDriver) Plan(_ context.Context, _ domain.Target, _ string, _ domain.Change) (domain.Plan, error) {
 	return domain.Plan{}, nil
 }
 
-func (f *fakeDriver) Apply(_ context.Context, _ domain.Target, _ string, _ domain.Change,
-	_ func(domain.Progress)) (domain.Receipt, error) {
+func (*fakeDriver) Apply(_ context.Context, _ domain.Target, _ string, _ domain.Change,
+	_ func(domain.Progress),
+) (domain.Receipt, error) {
 	return domain.Receipt{}, nil
 }
 

@@ -5,13 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"noxis/internal/common/telemetry"
+	"noxis/internal/domain"
 	"strings"
 	"time"
 
 	mysqldriver "github.com/go-sql-driver/mysql"
-
-	"noxis/internal/common/telemetry"
-	"noxis/internal/domain"
 )
 
 // systemSchemas are left out of the listing: they are the server's own bookkeeping, and a reader
@@ -19,7 +18,7 @@ import (
 var systemSchemas = []string{"information_schema", "mysql", "performance_schema", "sys"}
 
 // pool opens one connection pool for one call and hands it to fn, so no caller can leak a pool.
-func (d *DB) pool(target domain.Target, password string) (*sql.DB, error) {
+func (*DB) pool(target domain.Target, password string) (*sql.DB, error) {
 	pool, err := sql.Open(driverName, dsnOf(target, password))
 	if err != nil {
 		return nil, statementError(err, password)
@@ -99,6 +98,7 @@ func (d *DB) Databases(ctx context.Context, target domain.Target, password strin
 	for i, name := range systemSchemas {
 		args[i] = name
 	}
+	//nolint:gosec // placeholders is a run of "?" built here; the names travel as arguments
 	rows, err := pool.QueryContext(ctx,
 		"SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ("+placeholders+
 			") ORDER BY schema_name", args...)
@@ -183,7 +183,7 @@ func (d *DB) Table(ctx context.Context, target domain.Target, password, database
 	return detail, nil
 }
 
-func (d *DB) columns(ctx context.Context, pool *sql.DB, password, database, table string) ([]domain.ColumnInfo, error) {
+func (*DB) columns(ctx context.Context, pool *sql.DB, password, database, table string) ([]domain.ColumnInfo, error) {
 	rows, err := pool.QueryContext(ctx, `SELECT column_name, column_type, is_nullable, column_key, extra, column_default
 		FROM information_schema.columns WHERE table_schema = ? AND table_name = ? ORDER BY ordinal_position`,
 		database, table)
@@ -209,7 +209,7 @@ func (d *DB) columns(ctx context.Context, pool *sql.DB, password, database, tabl
 	return columns, statementError(rows.Err(), password)
 }
 
-func (d *DB) indexes(ctx context.Context, pool *sql.DB, password, database, table string) ([]domain.IndexInfo, error) {
+func (*DB) indexes(ctx context.Context, pool *sql.DB, password, database, table string) ([]domain.IndexInfo, error) {
 	rows, err := pool.QueryContext(ctx, `SELECT index_name, non_unique, column_name
 		FROM information_schema.statistics WHERE table_schema = ? AND table_name = ?
 		ORDER BY index_name, seq_in_index`, database, table)

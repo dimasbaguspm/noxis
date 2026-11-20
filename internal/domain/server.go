@@ -2,11 +2,10 @@ package domain
 
 import (
 	"fmt"
+	"noxis/internal/constants"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"noxis/internal/constants"
 )
 
 // Server is what a probe learned about the engine behind a target. Flavor is measured, not

@@ -5,7 +5,6 @@ package cursor
 
 import (
 	"fmt"
-
 	"noxis/internal/common/ref"
 )
 

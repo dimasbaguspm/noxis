@@ -3,7 +3,6 @@ package read
 import (
 	"context"
 	"fmt"
-
 	"noxis/internal/common/cursor"
 	"noxis/internal/common/sqltext"
 	"noxis/internal/constants"
@@ -29,7 +28,7 @@ type QueryInput struct {
 func (q *Query) Run(ctx context.Context, in QueryInput) (domain.Rows, error) {
 	statement, err := sqltext.Classify(in.SQL)
 	if err != nil {
-		return domain.Rows{}, fmt.Errorf("%w: %s", domain.ErrInvalid, err)
+		return domain.Rows{}, fmt.Errorf("%w: %w", domain.ErrInvalid, err)
 	}
 	if !statement.Read() {
 		return domain.Rows{}, fmt.Errorf("%w: a read runs SELECT, EXPLAIN or SHOW; %q is %s",

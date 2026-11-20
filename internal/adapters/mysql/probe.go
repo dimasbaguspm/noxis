@@ -4,11 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
-
 	"noxis/internal/common/telemetry"
 	"noxis/internal/domain"
 	"noxis/internal/ports"
+	"time"
 )
 
 // driverName is the Go driver's registration name, not an engine name: one driver serves

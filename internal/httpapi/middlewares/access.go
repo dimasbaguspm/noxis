@@ -3,14 +3,13 @@ package middlewares
 import (
 	"log/slog"
 	"net/http"
-	"time"
-
-	"go.opentelemetry.io/otel/attribute"
-
 	"noxis/internal/common/ref"
 	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/httpapi/respond"
+	"time"
+
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // Chain wraps a handler with the given middlewares, outermost first.

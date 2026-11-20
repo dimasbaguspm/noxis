@@ -2,10 +2,9 @@ package middlewares
 
 import (
 	"net/http"
+	"noxis/internal/constants"
 	"slices"
 	"strings"
-
-	"noxis/internal/constants"
 )
 
 // CORS lets the standalone console, which is served from its own origin, call the API.
