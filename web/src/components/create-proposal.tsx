@@ -53,7 +53,6 @@ export function CreateProposal({
               title: values.title,
               query: values.query,
               rollback: values.rollback || undefined,
-              note: values.note || undefined,
             });
             void message.success(`${filed.title} filed`);
             setOpen(false);
@@ -65,19 +64,13 @@ export function CreateProposal({
             autoFocus
             placeholder="add a column for the audit flag"
           />
-          <SqlField
-            name="query"
-            label={kind === 'ddl' ? 'The DDL' : 'The DML'}
-            schema={schema}
-            height={170}
-          />
+          <SqlField name="query" label="Query" schema={schema} height={170} />
           <SqlField
             name="rollback"
             label="Rollback"
             height={110}
             hint="Leave it empty only if this cannot be undone: an apply then has to acknowledge that by name."
           />
-          <TextInput name="note" label="Note" placeholder="why, for the reviewer" />
           <Form.Submit block>File the proposal</Form.Submit>
         </Form>
       </Modal>

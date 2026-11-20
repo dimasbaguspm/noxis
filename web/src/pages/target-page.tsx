@@ -1,5 +1,5 @@
-import { ApiOutlined, PlayCircleOutlined } from '@ant-design/icons';
-import { App as AntApp, Input, Segmented, Select, Tabs, Tag } from 'antd';
+import { ApiOutlined, DownloadOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import { App as AntApp, Input, Segmented, Tabs, Tag } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumb } from '../components/breadcrumb';
@@ -194,11 +194,8 @@ function Connectivity({ target }: { target: Target }) {
   );
 }
 
-const LIMITS = [50, 100, 200, 500, 1000];
-
 function QueryTab({ ref_, database }: { ref_: string; database: string }) {
   const [sql, setSql] = useState('SELECT 1 AS one;');
-  const [limit, setLimit] = useState(200);
   const [took, setTook] = useState<number | null>(null);
   const started = useRef(0);
   const run = useRunQuery(ref_);
@@ -206,7 +203,7 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
 
   const kick = () => {
     started.current = performance.now();
-    run.mutate({ sql, limit }, { onSuccess: () => setTook(performance.now() - started.current) });
+    run.mutate({ sql }, { onSuccess: () => setTook(performance.now() - started.current) });
   };
 
   const columns: Column<Row>[] = useMemo(
@@ -259,18 +256,6 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
             <Text size="xs" tone="muted">
               ⌘ / Ctrl + ↵ · SELECT, EXPLAIN and SHOW only
             </Text>
-            <span className="flex-1" />
-            <Text size="xs" tone="muted">
-              rows
-            </Text>
-            <Select
-              size="small"
-              value={limit}
-              onChange={setLimit}
-              options={LIMITS.map((value) => ({ value, label: String(value) }))}
-              aria-label="Row limit"
-              className="w-20"
-            />
           </>
         }
       >
@@ -291,7 +276,13 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
         />
       </RenderWhen>
       <RenderWhen condition={run.data}>
-        <Result rows={run.data as Rows} columns={columns} records={records} took={took} />
+        <Result
+          rows={run.data as Rows}
+          columns={columns}
+          records={records}
+          took={took}
+          name={`${database}-${new Date().toISOString().slice(0, 19).replaceAll(':', '')}.csv`}
+        />
       </RenderWhen>
     </div>
   );
@@ -301,24 +292,32 @@ function Result({
   columns,
   records,
   took,
+  name,
 }: {
   rows: Rows;
   columns: Column<Row>[];
   records: Row[];
   took: number | null;
+  /** The file name this result is downloaded as. */
+  name: string;
 }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <Text size="xs" tone="muted">
           {rows.row_count} row{rows.row_count === 1 ? '' : 's'}
-          {rows.truncated ? ' · truncated by the limit the API applied' : ''}
+          {rows.truncated ? " · cut off at the API's row ceiling" : ''}
+          {took ? ` · ${Math.round(took)} ms` : ''}
         </Text>
-        {took ? (
-          <Text size="xs" tone="muted">
-            · {Math.round(took)} ms
-          </Text>
-        ) : null}
+        <span className="flex-1" />
+        <AppButton
+          size="small"
+          icon={<DownloadOutlined />}
+          disabled={records.length === 0}
+          onClick={() => downloadCsv(name, rows.columns, rows.values)}
+        >
+          Download CSV
+        </AppButton>
       </div>
       <DataTable
         rows={records}
@@ -446,4 +445,31 @@ function Changes({ target, schema }: { target: string; schema: Schema | null }) 
       </AsyncState>
     </div>
   );
+}
+
+// A result is a file somebody will ask for: the rows are already here, so the export is the browser's
+// job and not a second request. A null is an empty cell, and a value with a comma, a quote or a
+// newline is quoted the way RFC 4180 says, because a spreadsheet is the next reader.
+
+function csvCell(value: string | null): string {
+  if (value === null) return '';
+  return /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+}
+
+function toCsv(columns: { name: string }[], values: (string | null)[][]): string {
+  const header = columns.map((column) => csvCell(column.name)).join(',');
+  const lines = values.map((row) => row.map(csvCell).join(','));
+  return [header, ...lines].join('\r\n');
+}
+
+function downloadCsv(name: string, columns: { name: string }[], values: (string | null)[][]) {
+  const blob = new Blob([toCsv(columns, values)], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = name;
+  anchor.click();
+  // Revoking on the same tick can cancel the download the click just started: the browser reads the
+  // blob after the handler returns.
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
