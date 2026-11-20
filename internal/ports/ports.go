@@ -59,6 +59,8 @@ type Driver interface {
 	// returns a verdict rather than an error for a change that does not survive: the caller stores
 	// the evidence either way.
 	Rehearse(ctx context.Context, target domain.Target, password string, change domain.Change) (domain.Rehearsal, error)
+	// Apply runs the approved statement for real, in one transaction where the engine has one.
+	Apply(ctx context.Context, target domain.Target, password string, change domain.Change) error
 }
 
 // Proposals is the store of proposed changes. A proposal is never deleted: a rejected one is a
@@ -68,6 +70,9 @@ type Proposals interface {
 	ProposalByRef(ctx context.Context, ref string) (domain.Proposal, error)
 	ListProposals(ctx context.Context, filter ProposalFilter) ([]domain.Proposal, error)
 	UpdateProposal(ctx context.Context, proposal domain.Proposal) (domain.Proposal, error)
+	// ClaimProposal moves a proposal from one status to another only while it is still in `from`.
+	// Apply uses it before touching a database, so two operators cannot both believe they won.
+	ClaimProposal(ctx context.Context, ref string, from, to domain.Status) (domain.Proposal, error)
 }
 
 // ProposalFilter is one page of the queue: a keyset cursor, a ceiling, and the filters a reviewer

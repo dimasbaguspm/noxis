@@ -22,4 +22,5 @@ history of a decision. This index starts at the v2 rebuild.
 - [[api]: probe a target and declare what its engine can do](751-probe-a-target-and-what-its-engine-can-do.md) — plan issue #751, PR #756, merged 2026-11-20
 - [[api]: read through a target](752-read-through-a-target.md) — plan issue #752, PR #757, merged 2026-11-20
 - [[chore]: wire the @slow acceptance harness](753-rehearsal-harness.md) — PR #758, merged 2026-11-20
-- [[api]: rehearse a proposal](753-rehearse-a-proposal.md) — plan issue #753, in review
+- [[api]: rehearse a proposal](753-rehearse-a-proposal.md) — plan issue #753, PR #759, merged 2026-11-20
+- [[api]: approve and apply a proposal](754-approve-and-apply.md) — plan issue #754, in review

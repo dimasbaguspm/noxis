@@ -90,6 +90,9 @@ func build(ctx context.Context, cfg config.Config, log *slog.Logger) (http.Handl
 			List:     proposal.NewList(proposals),
 			Get:      proposal.NewGet(proposals),
 			Rehearse: proposal.NewRehearse(proposals),
+			Decide:   proposal.NewDecide(proposals),
+			Apply:    proposal.NewApply(proposals),
+			Events:   proposal.NewEvents(proposals),
 		},
 	})
 

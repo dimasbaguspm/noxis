@@ -61,5 +61,9 @@ func routes(d deps) []route {
 		{Method: http.MethodGet, Path: constants.PathProposals, Handler: d.handlers.ListProposals, Scopes: read},
 		{Method: http.MethodGet, Path: proposalOne, Handler: d.handlers.GetProposal, Scopes: read},
 		{Method: http.MethodPost, Path: proposalOne + "/rehearse", Handler: d.handlers.RehearseProposal, Scopes: propose},
+		{Method: http.MethodPost, Path: proposalOne + "/approve", Handler: d.handlers.ApproveProposal, Scopes: []string{constants.ScopeApprove}},
+		{Method: http.MethodPost, Path: proposalOne + "/reject", Handler: d.handlers.RejectProposal, Scopes: []string{constants.ScopeApprove}},
+		{Method: http.MethodPost, Path: proposalOne + "/apply", Handler: d.handlers.ApplyProposal, Scopes: []string{constants.ScopeApply}},
+		{Method: http.MethodGet, Path: proposalOne + "/events", Handler: d.handlers.ProposalEvents, Scopes: read},
 	}
 }

@@ -23,6 +23,7 @@ import (
 const (
 	agentSecret = "sk_uat_agent_0123456789abcdef0123456789"
 	opsSecret   = "sk_uat_ops_0123456789abcdef0123456789aa"
+	revSecret   = "sk_uat_rev_0123456789abcdef0123456789rev"
 )
 
 // TestMain builds noxisd, starts it on a free port and hands the address to the steps
@@ -69,8 +70,8 @@ func run(m *testing.M) (int, error) {
 		"SECRET_KEY="+hex.EncodeToString(key),
 		"LOG_LEVEL=warn",
 		"TOKENS="+fmt.Sprintf(
-			`{"agent":{"secret":%q,"scopes":["read","propose"]},"ops":{"secret":%q,"scopes":["read","propose","approve","apply","admin"]}}`,
-			agentSecret, opsSecret),
+			`{"agent":{"secret":%q,"scopes":["read","propose"]},"rev":{"secret":%q,"scopes":["read","propose","approve"]},"ops":{"secret":%q,"scopes":["read","propose","approve","apply","admin"]}}`,
+			agentSecret, revSecret, opsSecret),
 	)
 	if err := cmd.Start(); err != nil {
 		return 0, err
@@ -88,6 +89,7 @@ func run(m *testing.M) (int, error) {
 		"UAT_URL":          base,
 		"UAT_AGENT_SECRET": agentSecret,
 		"UAT_OPS_SECRET":   opsSecret,
+		"UAT_REV_SECRET":   revSecret,
 	} {
 		if err := os.Setenv(name, value); err != nil {
 			return 0, err
@@ -133,14 +135,54 @@ func slow() bool { return os.Getenv("UAT_SLOW") == "1" }
 
 const composeFile = "compose.yml"
 
-// enginesUp boots the engines the @slow scenarios name and waits for them to answer.
+// enginesUp boots the engines the @slow scenarios name and waits for them to answer. It removes any
+// leftovers first: a container from an interrupted run holds the port and answers with a connection
+// that dies mid-query, which reads like a product bug and is not one.
 func enginesUp() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
+	if out, err := exec.CommandContext(ctx, "docker", "compose", "-f", composeFile, "down", "-v", "--remove-orphans").
+		CombinedOutput(); err != nil {
+		fmt.Fprintf(os.Stderr, "uat: docker compose down (pre-run): %v\n%s\n", err, out)
+	}
 	cmd := exec.CommandContext(ctx, "docker", "compose", "-f", composeFile, "up", "-d", "--wait")
 	cmd.Dir = "."
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("docker compose up: %w\n%s", err, out)
+	}
+	// A healthy healthcheck means the server answers ping; it does not mean the account the steps
+	// use can authenticate yet, and MySQL stays busy finishing its boot for a few seconds.
+	return waitForLogin(ctx)
+}
+
+// waitForLogin logs in as the account the scenarios use, on both engines, until it works. Anything
+// less than this let the first scenario fail with a connection the driver called invalid.
+func waitForLogin(ctx context.Context) error {
+	deadline := time.Now().Add(45 * time.Second)
+	for {
+		if err := loginAs("mysql", "mysql"); err != nil {
+			if time.Now().After(deadline) {
+				return err
+			}
+			time.Sleep(time.Second)
+			continue
+		}
+		if err := loginAs("mariadb", "mariadb"); err != nil {
+			if time.Now().After(deadline) {
+				return err
+			}
+			time.Sleep(time.Second)
+			continue
+		}
+		return nil
+	}
+}
+
+func loginAs(service, client string) error {
+	cmd := exec.Command("docker", "compose", "-f", composeFile, "exec", "-T", service,
+		client, "-h127.0.0.1", "-unoxis", "-pnoxispw", "app", "-e", "SELECT 1")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("%s is not ready for the steps' account: %w\n%s", service, err, out)
 	}
 	return nil
 }

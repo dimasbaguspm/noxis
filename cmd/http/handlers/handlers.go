@@ -25,6 +25,9 @@ type ProposalUseCases struct {
 	List     *proposal.List
 	Get      *proposal.Get
 	Rehearse *proposal.Rehearse
+	Decide   *proposal.Decide
+	Apply    *proposal.Apply
+	Events   *proposal.Events
 }
 
 // ReadUseCases are the read-only use cases, one field per route.

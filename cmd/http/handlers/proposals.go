@@ -8,6 +8,7 @@ import (
 	"noxis/cmd/http/middlewares"
 	"noxis/cmd/http/respond"
 	"noxis/internal/app/proposal"
+	"noxis/internal/constants"
 	"noxis/internal/domain"
 )
 
@@ -194,4 +195,93 @@ func (h *Handlers) RehearseProposal(w http.ResponseWriter, r *http.Request) {
 		proposalWire
 		Rehearsal *rehearsalWire `json:"rehearsal,omitempty"`
 	}{proposalWire: toProposalWire(updated), Rehearsal: wireOf(rehearsal)})
+}
+
+// ApproveProposal records a human's approval. The caller's own token decides whether it may: the
+// route asks for `approve`, and the use case refuses a token that also proposed it unless it is an
+// admin — in which case the exception is journalled.
+func (h *Handlers) ApproveProposal(w http.ResponseWriter, r *http.Request) {
+	h.decide(w, r, true)
+}
+
+// RejectProposal records a refusal. A rejection may be the proposer withdrawing their own idea.
+func (h *Handlers) RejectProposal(w http.ResponseWriter, r *http.Request) {
+	h.decide(w, r, false)
+}
+
+func (h *Handlers) decide(w http.ResponseWriter, r *http.Request, approve bool) {
+	var body struct {
+		Note string `json:"note,omitempty"`
+	}
+	if r.ContentLength > 0 {
+		if err := decode(w, r, &body); err != nil {
+			respond.Fail(w, h.Log, err)
+			return
+		}
+	}
+	caller := middlewares.Caller(r.Context())
+	decided, err := h.Proposals.Decide.Run(r.Context(), proposal.DecideInput{
+		Ref:          r.PathValue("ref"),
+		Approve:      approve,
+		Note:         body.Note,
+		Actor:        caller.Name,
+		ActorIsAdmin: caller.Has(constants.ScopeAdmin),
+	})
+	if err != nil {
+		respond.Fail(w, h.Log, err)
+		return
+	}
+	respond.OK(w, toProposalWire(decided))
+}
+
+// ApplyProposal runs the approved statement. `confirm_destructive` is required when the rehearsal
+// said the change cannot be undone.
+func (h *Handlers) ApplyProposal(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		ConfirmDestructive bool `json:"confirm_destructive,omitempty"`
+	}
+	if r.ContentLength > 0 {
+		if err := decode(w, r, &body); err != nil {
+			respond.Fail(w, h.Log, err)
+			return
+		}
+	}
+	applied, err := h.Proposals.Apply.Run(r.Context(), proposal.ApplyInput{
+		Ref:                r.PathValue("ref"),
+		Actor:              middlewares.Caller(r.Context()).Name,
+		ConfirmDestructive: body.ConfirmDestructive,
+	})
+	if err != nil {
+		respond.Fail(w, h.Log, err)
+		return
+	}
+	respond.OK(w, toProposalWire(applied))
+}
+
+// journalWire is one line of the append-only history, on the wire.
+type journalWire struct {
+	Ref         string            `json:"ref"`
+	SubjectRef  string            `json:"subject_ref"`
+	SubjectKind string            `json:"subject_kind"`
+	Kind        string            `json:"kind"`
+	Actor       string            `json:"actor"`
+	Detail      map[string]string `json:"detail"`
+	CreatedAt   time.Time         `json:"created_at"`
+}
+
+// ProposalEvents answers the history of one proposal, newest first.
+func (h *Handlers) ProposalEvents(w http.ResponseWriter, r *http.Request) {
+	entries, err := h.Proposals.Events.Run(r.Context(), r.PathValue("ref"))
+	if err != nil {
+		respond.Fail(w, h.Log, err)
+		return
+	}
+	wires := make([]journalWire, 0, len(entries))
+	for _, entry := range entries {
+		wires = append(wires, journalWire{
+			Ref: entry.Ref, SubjectRef: entry.SubjectRef, SubjectKind: entry.SubjectKind,
+			Kind: entry.Kind, Actor: entry.Actor, Detail: entry.Detail, CreatedAt: entry.CreatedAt,
+		})
+	}
+	respond.OK(w, wires)
 }

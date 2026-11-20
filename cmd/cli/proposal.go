@@ -255,3 +255,104 @@ func content(inline, file string) (string, error) {
 	}
 	return string(raw), nil
 }
+
+func newApprove(opts *options) *cobra.Command {
+	var note string
+	cmd := &cobra.Command{
+		Use:   "approve <proposal-ref>",
+		Short: "Approve a rehearsed proposal",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return decide(cmd, opts, args[0], note, true)
+		},
+	}
+	cmd.Flags().StringVar(&note, "note", "", "why, for the record")
+	return cmd
+}
+
+func newReject(opts *options) *cobra.Command {
+	var note string
+	cmd := &cobra.Command{
+		Use:   "reject <proposal-ref>",
+		Short: "Reject a proposal",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return decide(cmd, opts, args[0], note, false)
+		},
+	}
+	cmd.Flags().StringVar(&note, "note", "", "why, for the record")
+	return cmd
+}
+
+func decide(cmd *cobra.Command, opts *options, ref, note string, approve bool) error {
+	api, err := opts.api()
+	if err != nil {
+		return err
+	}
+	var updated client.Proposal
+	if approve {
+		updated, err = api.ApproveProposal(cmd.Context(), ref, note)
+	} else {
+		updated, err = api.RejectProposal(cmd.Context(), ref, note)
+	}
+	if err != nil {
+		return err
+	}
+	if opts.asJSON {
+		return printJSON(cmd, updated)
+	}
+	_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s  %s\n", short(updated.Ref), updated.Status)
+	return err
+}
+
+func newApplyProposal(opts *options) *cobra.Command {
+	var confirm bool
+	cmd := &cobra.Command{
+		Use:   "apply <proposal-ref>",
+		Short: "Run an approved proposal against the target",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			api, err := opts.api()
+			if err != nil {
+				return err
+			}
+			applied, err := api.ApplyProposal(cmd.Context(), args[0], confirm)
+			if err != nil {
+				return err
+			}
+			if opts.asJSON {
+				return printJSON(cmd, applied)
+			}
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s  %s by %s\n", short(applied.Ref), applied.Status, applied.AppliedBy)
+			return err
+		},
+	}
+	cmd.Flags().BoolVar(&confirm, "confirm-destructive", false, "acknowledge that the change cannot be undone")
+	return cmd
+}
+
+func newEvents(opts *options) *cobra.Command {
+	return &cobra.Command{
+		Use:   "events <proposal-ref>",
+		Short: "Show the append-only history of one proposal",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			api, err := opts.api()
+			if err != nil {
+				return err
+			}
+			events, err := api.ProposalEvents(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			if opts.asJSON {
+				return printJSON(cmd, events)
+			}
+			rows := make([][]string, 0, len(events))
+			for _, event := range events {
+				rows = append(rows, []string{event.CreatedAt.Format("15:04:05"), event.Kind, event.Actor})
+			}
+			return writeTable(cmd.OutOrStdout(), []string{"AT", "KIND", "ACTOR"}, rows)
+		},
+	}
+}
