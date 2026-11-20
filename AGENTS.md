@@ -57,7 +57,7 @@ make uat-slow # the same plus @slow: boots MySQL 8.4 + MariaDB 11.4   (~2m, dock
 | `internal/app/` | use cases: one file = one use case = one `Run`; imports `domain` + `ports` only |
 | `internal/adapters/sqlite/` | implements the stores; the single state file |
 | `internal/adapters/mysql/` | implements `Driver`; registered twice (`mysql`, `mariadb`) with a version probe |
-| `internal/common/` | `config`, `telemetry`, `secret`, `ref`, `cursor`, `sqltext` |
+| `internal/common/` | `config`, `telemetry`, `dotconfig` (the CLI's 0600 profile file), `secret`, `ref`, `cursor`, `sqltext` |
 | `internal/constants/` | scopes, drivers, wire names, limits, error codes |
 | `internal/client/` | typed REST client — `cmd/cli` and the UAT steps both use it |
 | `test/uat/` | godog: `features/`, `steps/`, a runner that boots the real binary |
