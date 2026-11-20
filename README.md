@@ -47,8 +47,16 @@ curl -s -H "Authorization: Bearer <secret>" localhost:9000/v1/whoami
 ```
 
 ```bash
-make build && API_TOKEN=<secret> ./bin/noxis whoami
+make build
+./bin/noxis auth signin <secret> --api-url http://localhost:9000   # once; stored at 0600
+./bin/noxis target ls
 ```
+
+`auth signin` proves the token against the server before storing it, `auth status` prints
+the server, caller and scopes (never the token), and `auth signout` deletes it. Every command
+re-checks `whoami` on boot, cached for a minute; a token the server no longer accepts says
+`auth signin` instead of failing halfway through a rehearsal. For CI, `--token` and
+`API_TOKEN` still work, and say once that they are the less private path.
 
 Supported engines: **MySQL 8** and **MariaDB 11**, both through one module registered
 under two driver names.

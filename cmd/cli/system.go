@@ -14,6 +14,8 @@ func newWhoami(opts *options) *cobra.Command {
 		Use:   "whoami",
 		Short: "Ask the API which caller this token is",
 		Args:  cobra.NoArgs,
+		// The command is the check: running the boot check first would ask the same question twice.
+		Annotations: map[string]string{annoNoVerify: "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			api, err := opts.api()
 			if err != nil {
