@@ -27,6 +27,8 @@ jobs:
         run: make test
       - name: uat
         run: make uat
+      - name: coverage floors
+        run: make cover
       - uses: actions/upload-artifact@v4
         with:
           name: noxisd

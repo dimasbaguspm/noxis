@@ -23,6 +23,9 @@ run: ## run the server on HTTP_ADDR
 test: ## unit + architecture tests
 	$(GO) test ./...
 
+cover: ## per-package coverage against the committed floors
+	$(GO) test ./... -cover | $(GO) run ./test/coverage
+
 lint: ## golangci-lint
 	golangci-lint run ./...
 

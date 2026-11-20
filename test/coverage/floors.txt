@@ -1,0 +1,23 @@
+# Coverage floors, one `package percentage` line each. A floor is a ratchet: it only goes up, and it
+# goes up in the pull request that adds the tests, never on its own.
+#
+# What is still below its target, and therefore what the next slices of #770 are for:
+#   internal/domain   90   done: 96
+#   internal/app      90   every use case, with fakes for the ports
+#   adapters/mysql    70   the rest is proven by the @slow suite
+#   cmd/http, cmd/cli 50   handlers and commands
+#
+# Numbers measured on master; a package with no line here has no floor yet and the gate says so.
+noxis/internal/domain 96
+noxis/internal/adapters/mysql 4
+noxis/test/uat 0
+noxis/internal/adapters/sqlite 77
+noxis/internal/common/config 78
+noxis/internal/common/cursor 100
+noxis/internal/common/dotconfig 66
+noxis/cmd/http/respond 93
+noxis/cmd/cli 8
+noxis/internal/common/ref 94
+noxis/internal/common/secret 87
+noxis/internal/common/sqltext 73
+noxis/internal/common/telemetry 67
