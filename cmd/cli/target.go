@@ -1,0 +1,185 @@
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strings"
+	"text/tabwriter"
+
+	"github.com/spf13/cobra"
+
+	"noxis/internal/client"
+	"noxis/internal/constants"
+)
+
+func newTarget(opts *options) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "target",
+		Short: "Manage the databases this noxis governs",
+	}
+	cmd.AddCommand(newTargetAdd(opts), newTargetList(opts), newTargetShow(opts), newTargetArchive(opts))
+	return cmd
+}
+
+func newTargetAdd(opts *options) *cobra.Command {
+	in := client.CreateTargetInput{}
+	cmd := &cobra.Command{
+		Use:   "add",
+		Short: "Register a MySQL or MariaDB target",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			api, err := opts.api()
+			if err != nil {
+				return err
+			}
+			created, err := api.CreateTarget(cmd.Context(), in)
+			if err != nil {
+				return err
+			}
+			if opts.asJSON {
+				return printJSON(cmd, created)
+			}
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), created.Ref)
+			return err
+		},
+	}
+	flags := cmd.Flags()
+	flags.StringVar(&in.Name, "name", "", "how this target is named in noxis")
+	flags.StringVar(&in.Driver, "driver", constants.DriverMySQL, "mysql or mariadb")
+	flags.StringVar(&in.Host, "host", "", "host to connect to")
+	flags.IntVar(&in.Port, "port", 0, "port, default 3306")
+	flags.StringVar(&in.Database, "database", "", "database to govern")
+	flags.StringVar(&in.Username, "username", "", "user to connect as")
+	flags.StringVar(&in.Password, "password", "", "password, which lands in the shell history: prefer the API with a secret store")
+	flags.StringVar(&in.TLSMode, "tls-mode", constants.TLSPreferred, "preferred, skip-verify or verify")
+	for _, required := range []string{"name", "host", "database", "username"} {
+		_ = cmd.MarkFlagRequired(required)
+	}
+	return cmd
+}
+
+func newTargetList(opts *options) *cobra.Command {
+	in := client.ListTargetsInput{}
+	cmd := &cobra.Command{
+		Use:   "ls",
+		Short: "List targets, newest first",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			api, err := opts.api()
+			if err != nil {
+				return err
+			}
+			page, err := api.ListTargets(cmd.Context(), in)
+			if err != nil {
+				return err
+			}
+			if opts.asJSON {
+				return printJSON(cmd, page)
+			}
+			rows := make([][]string, 0, len(page.Items))
+			for _, t := range page.Items {
+				rows = append(rows, []string{
+					t.Name, t.Driver, fmt.Sprintf("%s:%d", t.Host, t.Port), t.Database, t.Ref,
+				})
+			}
+			if err := writeTable(cmd.OutOrStdout(),
+				[]string{"NAME", "DRIVER", "ADDRESS", "DATABASE", "REF"}, rows); err != nil {
+				return err
+			}
+			if page.NextCursor != "" {
+				_, err = fmt.Fprintf(cmd.OutOrStdout(), "\nnext: --cursor %s\n", page.NextCursor)
+			}
+			return err
+		},
+	}
+	flags := cmd.Flags()
+	flags.IntVar(&in.Limit, "limit", 0, "page size, default 50")
+	flags.StringVar(&in.Cursor, "cursor", "", "cursor from the previous page")
+	flags.StringVar(&in.Driver, "driver", "", "only this driver")
+	flags.StringVar(&in.Query, "q", "", "filter by name")
+	flags.BoolVar(&in.IncludeArchived, "all", false, "include archived targets")
+	return cmd
+}
+
+func newTargetShow(opts *options) *cobra.Command {
+	return &cobra.Command{
+		Use:   "show <ref>",
+		Short: "Show one target",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			api, err := opts.api()
+			if err != nil {
+				return err
+			}
+			target, err := api.GetTarget(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			if opts.asJSON {
+				return printJSON(cmd, target)
+			}
+			rows := [][]string{
+				{"ref", target.Ref},
+				{"name", target.Name},
+				{"driver", target.Driver},
+				{"address", fmt.Sprintf("%s:%d", target.Host, target.Port)},
+				{"database", target.Database},
+				{"username", target.Username},
+				{"tls", target.TLSMode},
+				{"password", passwordState(target.HasPassword)},
+				{"created", fmt.Sprintf("%s by %s", target.CreatedAt.Format("2006-01-02 15:04"), target.CreatedBy)},
+			}
+			return writeTable(cmd.OutOrStdout(), nil, rows)
+		},
+	}
+}
+
+func newTargetArchive(opts *options) *cobra.Command {
+	return &cobra.Command{
+		Use:   "archive <ref>",
+		Short: "Archive a target. Nothing is deleted",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			api, err := opts.api()
+			if err != nil {
+				return err
+			}
+			archived, err := api.ArchiveTarget(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			if opts.asJSON {
+				return printJSON(cmd, archived)
+			}
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s archived\n", archived.Name)
+			return err
+		},
+	}
+}
+
+func passwordState(has bool) string {
+	if has {
+		return "set"
+	}
+	return "none"
+}
+
+// writeTable renders rows into a buffer and writes the result once, so a broken pipe is
+// reported rather than swallowed by a dozen unchecked prints. Writes into the buffer
+// cannot fail, which is why only the single output write is checked.
+func writeTable(w io.Writer, header []string, rows [][]string) error {
+	var buf bytes.Buffer
+	table := tabwriter.NewWriter(&buf, 0, 0, 2, ' ', 0)
+	if len(header) > 0 {
+		_, _ = fmt.Fprintln(table, strings.Join(header, "\t"))
+	}
+	for _, row := range rows {
+		_, _ = fmt.Fprintln(table, strings.Join(row, "\t"))
+	}
+	if err := table.Flush(); err != nil {
+		return err
+	}
+	_, err := w.Write(buf.Bytes())
+	return err
+}

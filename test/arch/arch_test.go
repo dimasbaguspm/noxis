@@ -18,7 +18,7 @@ type layer struct {
 
 var layers = []layer{
 	// domain is the centre: it names no other package in this module.
-	{prefix: "noxis/internal/domain"},
+	{prefix: "noxis/internal/domain", allowed: []string{"noxis/internal/constants"}},
 	{prefix: "noxis/internal/ports", allowed: []string{"noxis/internal/domain"}},
 	{prefix: "noxis/internal/app", allowed: []string{
 		"noxis/internal/domain", "noxis/internal/ports", "noxis/internal/common", "noxis/internal/constants",

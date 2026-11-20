@@ -1,16 +1,21 @@
 package main
 
 import (
+	"context"
+	"io"
 	"log/slog"
 	"net/http"
 
 	"noxis/cmd/http/handlers"
 	"noxis/cmd/http/middlewares"
+	"noxis/internal/adapters/sqlite"
+	"noxis/internal/app/target"
 	"noxis/internal/common/config"
+	"noxis/internal/common/secret"
 )
 
-// deps is what the transport is built from. Adapters and use cases join it as they gain
-// a route; this struct is the only place they are named.
+// deps is what the transport is built from. This struct and build() are the only places a
+// concrete adapter is named: nothing below the transport knows the state file exists.
 type deps struct {
 	cfg      config.Config
 	log      *slog.Logger
@@ -18,14 +23,39 @@ type deps struct {
 	handlers *handlers.Handlers
 }
 
-// build is the composition root: config → logger → adapters → use cases → transport.
-func build(cfg config.Config, log *slog.Logger) (http.Handler, error) {
+// build is the composition root: config → logger → adapters → use cases → transport. It
+// returns the closer for the state file so the caller can shut it down in order.
+func build(ctx context.Context, cfg config.Config, log *slog.Logger) (http.Handler, io.Closer, error) {
+	state, err := sqlite.Open(ctx, cfg.StatePath)
+	if err != nil {
+		return nil, nil, err
+	}
+	sealer, err := secret.New(cfg.SecretKey, cfg.SecretKeyPrevious)
+	if err != nil {
+		_ = state.Close()
+		return nil, nil, err
+	}
 	auth, err := middlewares.NewAuthenticator(cfg.Tokens, log)
 	if err != nil {
-		return nil, err
+		_ = state.Close()
+		return nil, nil, err
 	}
-	if len(cfg.SecretKey) == 0 {
-		log.Warn("SECRET_KEY is unset: a target that has a password cannot be created until it is")
+	if !sealer.Enabled() {
+		log.Warn("SECRET_KEY is unset: a target that carries a password cannot be registered until it is")
 	}
-	return newMux(deps{cfg: cfg, log: log, auth: auth, handlers: handlers.New(log)}), nil
+
+	useCases := target.Deps{Targets: state, Journal: state, Sealer: sealer}
+	handlers_ := handlers.New(handlers.Deps{
+		Log: log,
+		Targets: handlers.TargetUseCases{
+			Create:  target.NewCreate(useCases),
+			List:    target.NewList(useCases),
+			Get:     target.NewGet(useCases),
+			Update:  target.NewUpdate(useCases),
+			Archive: target.NewArchive(useCases),
+		},
+	})
+
+	handler := newMux(deps{cfg: cfg, log: log, auth: auth, handlers: handlers_})
+	return handler, state, nil
 }

@@ -20,7 +20,7 @@ Feature: Caller identity
     When I ask who I am
     Then the request succeeds
     And my name is "ops"
-    And my scopes are "read, propose, approve, apply"
+    And my scopes are "read, propose, approve, apply, admin"
 
   Scenario: a request without a token is refused
     When I ask who I am without a token

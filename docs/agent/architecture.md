@@ -18,7 +18,8 @@ internal/adapters/mysql  ──▶ ports   implements Driver (registered as mysq
 
 Rules, enforced by `test/arch`:
 
-1. `internal/domain` imports nothing but the standard library.
+1. `internal/domain` imports `internal/constants` (values only) and the standard library —
+   no I/O, no context plumbing, no adapter.
 2. `internal/ports` imports `domain` and the standard library.
 3. `internal/app` imports `domain`, `ports`, and pure helpers from `internal/common`.
 4. `internal/adapters/*` import `domain`, `ports`, `internal/common`, and their driver.

@@ -1,0 +1,121 @@
+package client
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"net/url"
+	"strconv"
+	"time"
+
+	"noxis/internal/constants"
+)
+
+// Target is one governed server as the API describes it. There is no password field: the
+// API answers `has_password` and never the sealed value.
+type Target struct {
+	Ref         string            `json:"ref"`
+	Name        string            `json:"name"`
+	Driver      string            `json:"driver"`
+	Host        string            `json:"host"`
+	Port        int               `json:"port"`
+	Database    string            `json:"database"`
+	Username    string            `json:"username"`
+	TLSMode     string            `json:"tls_mode"`
+	Options     map[string]string `json:"options"`
+	HasPassword bool              `json:"has_password"`
+	CreatedBy   string            `json:"created_by"`
+	ArchivedAt  *time.Time        `json:"archived_at,omitempty"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+}
+
+// CreateTargetInput is a registration. Password is plaintext in transit and over TLS only.
+type CreateTargetInput struct {
+	Name     string            `json:"name"`
+	Driver   string            `json:"driver"`
+	Host     string            `json:"host"`
+	Port     int               `json:"port,omitempty"`
+	Database string            `json:"database"`
+	Username string            `json:"username"`
+	Password string            `json:"password,omitempty"`
+	TLSMode  string            `json:"tls_mode,omitempty"`
+	Options  map[string]string `json:"options,omitempty"`
+}
+
+// ListTargetsInput is one page request: a limit, a cursor and the filters the API accepts.
+type ListTargetsInput struct {
+	Limit           int
+	Cursor          string
+	Driver          string
+	Query           string
+	IncludeArchived bool
+}
+
+// ListTargets answers one page of targets, newest first.
+func (c *Client) ListTargets(ctx context.Context, in ListTargetsInput) (Page[Target], error) {
+	query := url.Values{}
+	if in.Limit > 0 {
+		query.Set("limit", strconv.Itoa(in.Limit))
+	}
+	if in.Cursor != "" {
+		query.Set("cursor", in.Cursor)
+	}
+	if in.Driver != "" {
+		query.Set("driver", in.Driver)
+	}
+	if in.Query != "" {
+		query.Set("q", in.Query)
+	}
+	if in.IncludeArchived {
+		query.Set("include_archived", "true")
+	}
+	path := constants.PathTargets
+	if encoded := query.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
+	var items []Target
+	next, err := c.do(ctx, http.MethodGet, path, nil, &items)
+	return Page[Target]{Items: items, NextCursor: next}, err
+}
+
+// CreateTarget registers a target. It needs a token holding `admin`.
+func (c *Client) CreateTarget(ctx context.Context, in CreateTargetInput) (Target, error) {
+	var out Target
+	_, err := c.do(ctx, http.MethodPost, constants.PathTargets, in, &out)
+	return out, err
+}
+
+// GetTarget reads one target by reference.
+func (c *Client) GetTarget(ctx context.Context, ref string) (Target, error) {
+	var out Target
+	_, err := c.do(ctx, http.MethodGet, targetPath(ref), nil, &out)
+	return out, err
+}
+
+// UpdateTargetInput carries only the fields a caller wants to change.
+type UpdateTargetInput struct {
+	Name     *string            `json:"name,omitempty"`
+	Username *string            `json:"username,omitempty"`
+	Password *string            `json:"password,omitempty"`
+	TLSMode  *string            `json:"tls_mode,omitempty"`
+	Options  *map[string]string `json:"options,omitempty"`
+}
+
+// UpdateTarget renames, rotates or retunes a target.
+func (c *Client) UpdateTarget(ctx context.Context, ref string, in UpdateTargetInput) (Target, error) {
+	var out Target
+	_, err := c.do(ctx, http.MethodPatch, targetPath(ref), in, &out)
+	return out, err
+}
+
+// ArchiveTarget puts a target away. It is not deleted.
+func (c *Client) ArchiveTarget(ctx context.Context, ref string) (Target, error) {
+	var out Target
+	_, err := c.do(ctx, http.MethodDelete, targetPath(ref), nil, &out)
+	return out, err
+}
+
+func targetPath(ref string) string {
+	return fmt.Sprintf("%s/%s", constants.PathTargets, url.PathEscape(ref))
+}

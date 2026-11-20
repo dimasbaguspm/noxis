@@ -13,4 +13,5 @@ const (
 	PathHealthz = "/healthz"
 	PathPrefix  = "/v1"
 	PathWhoami  = "/v1/whoami"
+	PathTargets = "/v1/targets"
 )

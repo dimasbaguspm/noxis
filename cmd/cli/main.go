@@ -42,7 +42,7 @@ func newRoot() *cobra.Command {
 	root.PersistentFlags().StringVar(&opts.apiURL, "api-url", env("API_URL", "http://localhost:8080"), "the noxisd to call")
 	root.PersistentFlags().StringVar(&opts.token, "token", env("API_TOKEN", ""), "bearer token")
 	root.PersistentFlags().BoolVar(&opts.asJSON, "json", false, "print the response as json")
-	root.AddCommand(newWhoami(opts), newVersion())
+	root.AddCommand(newWhoami(opts), newVersion(), newTarget(opts))
 	return root
 }
 

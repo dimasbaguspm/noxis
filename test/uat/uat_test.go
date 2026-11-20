@@ -68,7 +68,7 @@ func run(m *testing.M) (int, error) {
 		"SECRET_KEY="+hex.EncodeToString(key),
 		"LOG_LEVEL=warn",
 		"TOKENS="+fmt.Sprintf(
-			`{"agent":{"secret":%q,"scopes":["read","propose"]},"ops":{"secret":%q,"scopes":["read","propose","approve","apply"]}}`,
+			`{"agent":{"secret":%q,"scopes":["read","propose"]},"ops":{"secret":%q,"scopes":["read","propose","approve","apply","admin"]}}`,
 			agentSecret, opsSecret),
 	)
 	if err := cmd.Start(); err != nil {
