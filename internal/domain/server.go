@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -25,7 +26,7 @@ var versionNumber = regexp.MustCompile(`(\d+)\.(\d+)\.(\d+)`)
 // string; MySQL does not, which is why the comment is read as well.
 func ParseServerVersion(version, comment string) Server {
 	server := Server{Version: strings.TrimSpace(version), Flavor: constants.DriverMySQL}
-	if strings.Contains(strings.ToLower(server.Version+" "+comment), "mariadb") {
+	if strings.Contains(strings.ToLower(fmt.Sprintf("%s %s", server.Version, comment)), "mariadb") {
 		server.Flavor = constants.DriverMariaDB
 	}
 	if match := versionNumber.FindStringSubmatch(server.Version); match != nil {
@@ -109,8 +110,9 @@ func CapabilitiesFor(declared string, server Server) Capabilities {
 			"not probed yet: the version, and therefore EXPLAIN support, is unknown until the target is probed")
 	}
 	if server.Probed() && declared != "" && declared != server.Flavor {
-		caps.Notes = append(caps.Notes,
-			"declared "+declared+" but the server reports "+server.Flavor+": fix the target so a rehearsal is planned for the right engine")
+		caps.Notes = append(caps.Notes, fmt.Sprintf(
+			"declared %s but the server reports %s: fix the target so a rehearsal is planned for the right engine",
+			declared, server.Flavor))
 	}
 	return caps
 }

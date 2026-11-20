@@ -62,7 +62,7 @@ func (d *DB) List(ctx context.Context, filter ports.TargetFilter) ([]domain.Targ
 	}
 	if filter.Query != "" {
 		where = append(where, `name LIKE ? ESCAPE '\'`)
-		args = append(args, "%"+escapeLike(filter.Query)+"%")
+		args = append(args, fmt.Sprintf("%%%s%%", escapeLike(filter.Query)))
 	}
 	if filter.Cursor != "" {
 		where = append(where, "ref < ?")

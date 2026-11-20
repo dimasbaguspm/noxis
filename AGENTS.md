@@ -102,6 +102,9 @@ seam next to the struct: `var _ ports.Driver = (*DB)(nil)`.
 - **State file:** schema is versioned with `PRAGMA user_version`; no runtime
   migration. A mismatched version fails with a reset instruction rather than
   silently dropping a journal.
+- **Build a string with `fmt.Sprintf`, not `+`.** A chain of literals and values reads worse than the
+  template it already is. The exception is a single separator with nothing else around it, and a SQL
+  fragment that is entirely constant stays a constant.
 - **No new dependency for a few lines.** No abstraction or option nobody asked for.
 - **Test doubles:** handwritten fakes in the test package that uses them; generated
   mocks only when an interface has more than three call sites (then

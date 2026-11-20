@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"noxis/cmd/http/middlewares"
@@ -25,7 +26,7 @@ func newMux(d deps) http.Handler {
 		if !rt.Public {
 			handler = d.auth.Require(rt.Scopes, handler)
 		}
-		mux.HandleFunc(rt.Method+" "+rt.Path, handler)
+		mux.HandleFunc(fmt.Sprintf("%s %s", rt.Method, rt.Path), handler)
 	}
 	return middlewares.Chain(mux,
 		middlewares.Recover(d.log),

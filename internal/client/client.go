@@ -109,7 +109,7 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) (st
 		req.Header.Set(constants.HeaderContentType, constants.MediaTypeJSON)
 	}
 	if c.token != "" {
-		req.Header.Set(constants.HeaderAuthorization, constants.SchemeBearer+" "+c.token)
+		req.Header.Set(constants.HeaderAuthorization, fmt.Sprintf("%s %s", constants.SchemeBearer, c.token))
 	}
 
 	res, err := c.http.Do(req)

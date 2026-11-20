@@ -273,7 +273,7 @@ func mirrorTables(ctx context.Context, conn *sql.Conn, database, scratch string,
 	for _, table := range scope {
 		var ddl string
 		err := conn.QueryRowContext(ctx,
-			"SHOW CREATE TABLE "+quote(database)+"."+quote(table)).Scan(new(string), &ddl)
+			fmt.Sprintf("SHOW CREATE TABLE %s.%s", quote(database), quote(table))).Scan(new(string), &ddl)
 		if err != nil {
 			return fmt.Errorf("%w: table %s: %s", domain.ErrNotFound, table, err)
 		}
@@ -327,7 +327,7 @@ func snapshotSchema(ctx context.Context, conn *sql.Conn, schema string) (map[str
 	for _, name := range names {
 		var ddl string
 		if err := conn.QueryRowContext(ctx,
-			"SHOW CREATE TABLE "+quote(schema)+"."+quote(name)).Scan(new(string), &ddl); err != nil {
+			fmt.Sprintf("SHOW CREATE TABLE %s.%s", quote(schema), quote(name))).Scan(new(string), &ddl); err != nil {
 			return nil, err
 		}
 		snapshot[name] = normaliseDDL(ddl)
@@ -356,7 +356,7 @@ func tableCounts(ctx context.Context, conn *sql.Conn, schema string) (map[string
 	counts := make(map[string]int64, len(names))
 	for _, name := range names {
 		var count int64
-		if err := conn.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+quote(schema)+"."+quote(name)).Scan(&count); err != nil {
+		if err := conn.QueryRowContext(ctx, fmt.Sprintf("SELECT COUNT(*) FROM %s.%s", quote(schema), quote(name))).Scan(&count); err != nil {
 			return nil, err
 		}
 		counts[name] = count

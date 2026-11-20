@@ -338,7 +338,7 @@ func RewriteQualifier(sql, from, to string) string {
 	}
 	pattern := regexp.MustCompile(`(?i)(^|[^\w` + "`" + `])` + regexp.QuoteMeta(from) + `\.`)
 	return rewriteOutsideLiterals(sql, func(chunk string) string {
-		return pattern.ReplaceAllString(chunk, "${1}"+to+".")
+		return pattern.ReplaceAllString(chunk, fmt.Sprintf("%s%s.", "${1}", to))
 	})
 }
 
