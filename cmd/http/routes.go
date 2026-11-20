@@ -47,5 +47,7 @@ func routes(d deps) []route {
 		{Method: http.MethodGet, Path: one, Handler: d.handlers.GetTarget, Scopes: read},
 		{Method: http.MethodPatch, Path: one, Handler: d.handlers.UpdateTarget, Scopes: admin},
 		{Method: http.MethodDelete, Path: one, Handler: d.handlers.ArchiveTarget, Scopes: admin},
+		{Method: http.MethodPost, Path: one + "/probe", Handler: d.handlers.ProbeTarget, Scopes: read},
+		{Method: http.MethodGet, Path: one + "/capabilities", Handler: d.handlers.TargetCapabilities, Scopes: read},
 	}
 }

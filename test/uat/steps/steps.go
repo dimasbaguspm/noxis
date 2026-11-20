@@ -25,6 +25,7 @@ type world struct {
 	health   client.Health
 	target   client.Target
 	targets  []client.Target
+	caps     client.Capabilities
 	cursor   string
 	err      error
 }
@@ -35,6 +36,7 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Before(func(c context.Context, _ *godog.Scenario) (context.Context, error) {
 		w.identity, w.health = client.Identity{}, client.Health{}
 		w.target, w.targets, w.cursor, w.err = client.Target{}, nil, "", nil
+		w.caps = client.Capabilities{}
 		w.api, w.err = client.New(os.Getenv("UAT_URL"), "")
 		return c, w.err
 	})
@@ -61,6 +63,14 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^there is no next cursor$`, w.assertNoCursor)
 	ctx.Step(`^I read the target "([^"]*)"$`, w.readTarget)
 	ctx.Step(`^I archive the target I registered$`, w.archiveTarget)
+
+	// probe
+	ctx.Step(`^I register a target named "([^"]*)" on port (\d+)$`, w.registerTargetOnPort)
+	ctx.Step(`^I ask for the capabilities of the target I registered$`, w.askCapabilities)
+	ctx.Step(`^I probe the target I registered$`, w.probeTarget)
+	ctx.Step(`^the capabilities name the "([^"]*)" engine$`, w.assertFlavor)
+	ctx.Step(`^the capabilities say it has not been probed$`, w.assertNotProbed)
+	ctx.Step(`^the target reports probe status "([^"]*)"$`, w.assertProbeStatus)
 
 	// shared assertions
 	ctx.Step(`^the request succeeds$`, w.assertSuccess)
@@ -288,6 +298,72 @@ func (w *world) assertStatus(want int) error {
 	}
 	if apiErr.Status != want {
 		return fmt.Errorf("status = %d, want %d", apiErr.Status, want)
+	}
+	return nil
+}
+
+// registerTargetOnPort registers a target on a chosen port, so a probe can be pointed at a
+// socket nothing is listening on and fail in a way the test controls.
+func (w *world) registerTargetOnPort(name string, port int) error {
+	w.target, w.err = w.api.CreateTarget(context.Background(), client.CreateTargetInput{
+		Name:     name,
+		Driver:   constants.DriverMySQL,
+		Host:     "127.0.0.1",
+		Port:     port,
+		Database: "uat",
+		Username: "uat",
+		Password: "uat-password",
+		TLSMode:  constants.TLSPreferred,
+	})
+	return nil
+}
+
+func (w *world) askCapabilities() error {
+	w.caps, w.err = w.api.TargetCapabilities(context.Background(), w.target.Ref)
+	return nil
+}
+
+func (w *world) probeTarget() error {
+	result, err := w.api.ProbeTarget(context.Background(), w.target.Ref)
+	w.caps, w.err = result.Capabilities, err
+	return nil
+}
+
+func (w *world) assertFlavor(want string) error {
+	if w.err != nil {
+		return w.err
+	}
+	if w.caps.Flavor != want {
+		return fmt.Errorf("flavor = %q, want %q (notes: %v)", w.caps.Flavor, want, w.caps.Notes)
+	}
+	return nil
+}
+
+func (w *world) assertNotProbed() error {
+	if w.err != nil {
+		return w.err
+	}
+	if w.caps.Version != "" {
+		return fmt.Errorf("capabilities report version %q for an unprobed target", w.caps.Version)
+	}
+	for _, note := range w.caps.Notes {
+		if strings.Contains(note, "not probed yet") {
+			return nil
+		}
+	}
+	return fmt.Errorf("capabilities do not say the target has not been probed: %v", w.caps.Notes)
+}
+
+func (w *world) assertProbeStatus(want string) error {
+	stored, err := w.api.GetTarget(context.Background(), w.target.Ref)
+	if err != nil {
+		return err
+	}
+	if stored.LastProbeStatus != want {
+		return fmt.Errorf("probe status = %q, want %q", stored.LastProbeStatus, want)
+	}
+	if stored.LastProbeAt == nil {
+		return errors.New("a probe that ran left no timestamp")
 	}
 	return nil
 }

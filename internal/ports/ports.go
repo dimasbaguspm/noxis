@@ -40,3 +40,9 @@ type Sealer interface {
 	Seal(aad string, plain []byte) (string, error)
 	Open(aad, sealed string) ([]byte, bool, error)
 }
+
+// Driver is one engine this build speaks. It answers only what an engine can answer: it
+// never stores, never decides policy, and never sees a sealed password.
+type Driver interface {
+	Probe(ctx context.Context, target domain.Target, password string) (domain.Capabilities, error)
+}

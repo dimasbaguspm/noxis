@@ -18,7 +18,7 @@ func newTarget(opts *options) *cobra.Command {
 		Use:   "target",
 		Short: "Manage the databases this noxis governs",
 	}
-	cmd.AddCommand(newTargetAdd(opts), newTargetList(opts), newTargetShow(opts), newTargetArchive(opts))
+	cmd.AddCommand(newTargetAdd(opts), newTargetList(opts), newTargetShow(opts), newTargetProbe(opts), newTargetArchive(opts))
 	return cmd
 }
 
@@ -128,6 +128,8 @@ func newTargetShow(opts *options) *cobra.Command {
 				{"username", target.Username},
 				{"tls", target.TLSMode},
 				{"password", passwordState(target.HasPassword)},
+				{"engine", engineLine(target)},
+				{"probe", probeLine(target)},
 				{"created", fmt.Sprintf("%s by %s", target.CreatedAt.Format("2006-01-02 15:04"), target.CreatedBy)},
 			}
 			return writeTable(cmd.OutOrStdout(), nil, rows)
@@ -182,4 +184,60 @@ func writeTable(w io.Writer, header []string, rows [][]string) error {
 	}
 	_, err := w.Write(buf.Bytes())
 	return err
+}
+
+func newTargetProbe(opts *options) *cobra.Command {
+	return &cobra.Command{
+		Use:   "probe <ref>",
+		Short: "Connect once and record what the engine actually is",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			api, err := opts.api()
+			if err != nil {
+				return err
+			}
+			result, err := api.ProbeTarget(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			if opts.asJSON {
+				return printJSON(cmd, result)
+			}
+			rows := [][]string{
+				{"engine", result.Capabilities.Flavor},
+				{"version", result.Capabilities.Version},
+				{"explain json", yesNo(result.Capabilities.ExplainJSON)},
+				{"shadow ddl rehearsal", yesNo(result.Capabilities.ShadowDDLRehearsal)},
+				{"row image rehearsal", yesNo(result.Capabilities.RowImageRehearsal)},
+			}
+			for _, note := range result.Capabilities.Notes {
+				rows = append(rows, []string{"note", note})
+			}
+			return writeTable(cmd.OutOrStdout(), nil, rows)
+		},
+	}
+}
+
+func engineLine(target client.Target) string {
+	if target.ServerVersion == "" {
+		return target.Driver + " (declared, not probed)"
+	}
+	return target.Driver + " · " + target.ServerVersion
+}
+
+func probeLine(target client.Target) string {
+	if target.LastProbeStatus == "" {
+		return "never"
+	}
+	if target.LastProbeAt == nil {
+		return target.LastProbeStatus
+	}
+	return target.LastProbeStatus + " at " + target.LastProbeAt.Format("2006-01-02 15:04")
+}
+
+func yesNo(value bool) string {
+	if value {
+		return "yes"
+	}
+	return "no"
 }

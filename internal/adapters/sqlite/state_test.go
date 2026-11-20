@@ -268,3 +268,35 @@ func TestJournalIsAppendOnly(t *testing.T) {
 		t.Fatalf("journal grew to %d lines without an append", len(after))
 	}
 }
+
+func TestProbeFieldsRoundTrip(t *testing.T) {
+	state := open(t)
+	ctx := context.Background()
+	target := newTarget(t, "probed")
+	created, err := state.Create(ctx, target)
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if created.LastProbeStatus != "" || created.LastProbeAt != nil {
+		t.Fatalf("a fresh target reports a probe: %+v", created)
+	}
+
+	at := time.Now().UTC().Truncate(time.Millisecond)
+	created.LastProbeAt = &at
+	created.LastProbeStatus = "ok"
+	created.ServerVersion = "11.4.2-MariaDB"
+	if _, err := state.Update(ctx, created); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+
+	found, err := state.ByRef(ctx, created.Ref)
+	if err != nil {
+		t.Fatalf("ByRef: %v", err)
+	}
+	if found.ServerVersion != "11.4.2-MariaDB" || found.LastProbeStatus != "ok" {
+		t.Fatalf("probe fields = %+v", found)
+	}
+	if found.LastProbeAt == nil || !found.LastProbeAt.Equal(at) {
+		t.Fatalf("last_probe_at = %v, want %v", found.LastProbeAt, at)
+	}
+}

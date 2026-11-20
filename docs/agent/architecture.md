@@ -13,7 +13,8 @@ cmd/cli  ─┤ (via internal/client)
       internal/domain              entities, state machine, sentinel errors — stdlib only
 
 internal/adapters/sqlite ──▶ ports   implements the stores
-internal/adapters/mysql  ──▶ ports   implements Driver (registered as mysql + mariadb)
+internal/adapters/mysql  ──▶ ports   implements Driver for mysql and mariadb — one package,
+                                     one DSN builder, the engine measured at probe time
 ```
 
 Rules, enforced by `test/arch`:

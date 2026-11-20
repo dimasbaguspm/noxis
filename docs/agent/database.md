@@ -23,7 +23,10 @@ a cache, which is why nothing here migrates one.
 `SchemaVersion` lives next to the schema in `internal/adapters/sqlite/open.go`. A ticket
 that changes the schema bumps it.
 
-## Tables (schema v1)
+## Tables (schema v2)
+
+A v1 file is refused rather than migrated, like any other version: the reset is the
+migration.
 
 **targets** — the servers this build governs.
 
@@ -39,6 +42,9 @@ that changes the schema bumps it.
 | `options` | TEXT | JSON object of driver options |
 | `created_by` | TEXT | the token name that registered it |
 | `archived_at` | INTEGER | milliseconds, NULL while live |
+| `server_version` | TEXT | what the last successful probe measured, empty until then |
+| `last_probe_at` | INTEGER | milliseconds of the last attempt, successful or not |
+| `last_probe_status` | TEXT | `ok` or `failed`, empty before the first attempt |
 | `created_at`, `updated_at` | INTEGER | milliseconds |
 
 **journal** — append-only. Nothing updates or deletes a row.
@@ -47,7 +53,7 @@ that changes the schema bumps it.
 | --- | --- | --- |
 | `ref` | TEXT | primary key, UUIDv7 |
 | `subject_ref`, `subject_kind` | TEXT | `target` today, `proposal` later |
-| `kind` | TEXT | `created`, `updated`, `archived` |
+| `kind` | TEXT | `created`, `updated`, `archived`, `probed` |
 | `actor` | TEXT | the token name |
 | `detail` | TEXT | JSON object; never a secret |
 | `created_at` | INTEGER | milliseconds |

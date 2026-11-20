@@ -10,7 +10,10 @@ import (
 	"noxis/internal/ports"
 )
 
-const targetColumns = `ref, name, driver, host, port, database, username, password_cipher, tls_mode, options, created_by, archived_at, created_at, updated_at`
+const targetColumns = `ref, name, driver, host, port, database, username, password_cipher, tls_mode, options,
+	created_by, archived_at, server_version, last_probe_at, last_probe_status, created_at, updated_at`
+
+const targetPlaceholders = `?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?`
 
 // Create inserts one target. A name collision is a conflict, not an overwrite.
 func (d *DB) Create(ctx context.Context, target domain.Target) (domain.Target, error) {
@@ -18,10 +21,11 @@ func (d *DB) Create(ctx context.Context, target domain.Target) (domain.Target, e
 	if err != nil {
 		return domain.Target{}, err
 	}
-	_, err = d.db.ExecContext(ctx, `INSERT INTO targets (`+targetColumns+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+	_, err = d.db.ExecContext(ctx, `INSERT INTO targets (`+targetColumns+`) VALUES (`+targetPlaceholders+`)`,
 		target.Ref, target.Name, target.Driver, target.Host, target.Port, target.Database,
 		target.Username, target.Secret, target.TLSMode, options, target.CreatedBy,
-		nullableMillis(target.ArchivedAt), millis(target.CreatedAt), millis(target.UpdatedAt),
+		nullableMillis(target.ArchivedAt), target.ServerVersion, nullableMillis(target.LastProbeAt),
+		target.LastProbeStatus, millis(target.CreatedAt), millis(target.UpdatedAt),
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -101,10 +105,12 @@ func (d *DB) Update(ctx context.Context, target domain.Target) (domain.Target, e
 	}
 	res, err := d.db.ExecContext(ctx, `UPDATE targets SET
 			name = ?, host = ?, port = ?, database = ?, username = ?, password_cipher = ?,
-			tls_mode = ?, options = ?, archived_at = ?, updated_at = ?
+			tls_mode = ?, options = ?, archived_at = ?, server_version = ?, last_probe_at = ?,
+			last_probe_status = ?, updated_at = ?
 		WHERE ref = ?`,
 		target.Name, target.Host, target.Port, target.Database, target.Username, target.Secret,
-		target.TLSMode, options, nullableMillis(target.ArchivedAt), millis(target.UpdatedAt),
+		target.TLSMode, options, nullableMillis(target.ArchivedAt), target.ServerVersion,
+		nullableMillis(target.LastProbeAt), target.LastProbeStatus, millis(target.UpdatedAt),
 		target.Ref,
 	)
 	if err != nil {
@@ -130,15 +136,17 @@ type scanner interface {
 
 func scanTarget(row scanner) (domain.Target, error) {
 	var (
-		target     domain.Target
-		options    string
-		archivedAt *int64
-		createdAt  int64
-		updatedAt  int64
+		target      domain.Target
+		options     string
+		archivedAt  *int64
+		lastProbeAt *int64
+		createdAt   int64
+		updatedAt   int64
 	)
 	err := row.Scan(&target.Ref, &target.Name, &target.Driver, &target.Host, &target.Port,
 		&target.Database, &target.Username, &target.Secret, &target.TLSMode, &options,
-		&target.CreatedBy, &archivedAt, &createdAt, &updatedAt)
+		&target.CreatedBy, &archivedAt, &target.ServerVersion, &lastProbeAt,
+		&target.LastProbeStatus, &createdAt, &updatedAt)
 	if err != nil {
 		return domain.Target{}, err
 	}
@@ -148,6 +156,10 @@ func scanTarget(row scanner) (domain.Target, error) {
 	if archivedAt != nil {
 		at := fromMillis(*archivedAt)
 		target.ArchivedAt = &at
+	}
+	if lastProbeAt != nil {
+		at := fromMillis(*lastProbeAt)
+		target.LastProbeAt = &at
 	}
 	target.CreatedAt = fromMillis(createdAt)
 	target.UpdatedAt = fromMillis(updatedAt)

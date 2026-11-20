@@ -14,20 +14,23 @@ import (
 // Target is one governed server as the API describes it. There is no password field: the
 // API answers `has_password` and never the sealed value.
 type Target struct {
-	Ref         string            `json:"ref"`
-	Name        string            `json:"name"`
-	Driver      string            `json:"driver"`
-	Host        string            `json:"host"`
-	Port        int               `json:"port"`
-	Database    string            `json:"database"`
-	Username    string            `json:"username"`
-	TLSMode     string            `json:"tls_mode"`
-	Options     map[string]string `json:"options"`
-	HasPassword bool              `json:"has_password"`
-	CreatedBy   string            `json:"created_by"`
-	ArchivedAt  *time.Time        `json:"archived_at,omitempty"`
-	CreatedAt   time.Time         `json:"created_at"`
-	UpdatedAt   time.Time         `json:"updated_at"`
+	Ref             string            `json:"ref"`
+	Name            string            `json:"name"`
+	Driver          string            `json:"driver"`
+	Host            string            `json:"host"`
+	Port            int               `json:"port"`
+	Database        string            `json:"database"`
+	Username        string            `json:"username"`
+	TLSMode         string            `json:"tls_mode"`
+	Options         map[string]string `json:"options"`
+	HasPassword     bool              `json:"has_password"`
+	CreatedBy       string            `json:"created_by"`
+	ServerVersion   string            `json:"server_version,omitempty"`
+	LastProbeAt     *time.Time        `json:"last_probe_at,omitempty"`
+	LastProbeStatus string            `json:"last_probe_status,omitempty"`
+	ArchivedAt      *time.Time        `json:"archived_at,omitempty"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
 }
 
 // CreateTargetInput is a registration. Password is plaintext in transit and over TLS only.
@@ -118,4 +121,44 @@ func (c *Client) ArchiveTarget(ctx context.Context, ref string) (Target, error) 
 
 func targetPath(ref string) string {
 	return fmt.Sprintf("%s/%s", constants.PathTargets, url.PathEscape(ref))
+}
+
+// Capabilities is what the API says this build may offer for one target's engine. It is the
+// same shape the rehearsal will consult, so nothing is offered that the engine cannot do.
+type Capabilities struct {
+	Driver             string   `json:"driver"`
+	Flavor             string   `json:"flavor"`
+	Version            string   `json:"version"`
+	Major              int      `json:"major"`
+	Minor              int      `json:"minor"`
+	Patch              int      `json:"patch"`
+	TransactionalDML   bool     `json:"transactional_dml"`
+	ShadowDDLRehearsal bool     `json:"shadow_ddl_rehearsal"`
+	RowImageRehearsal  bool     `json:"row_image_rehearsal"`
+	IndexMetadata      bool     `json:"index_metadata"`
+	ForeignKeyMetadata bool     `json:"foreign_key_metadata"`
+	ExplainJSON        bool     `json:"explain_json"`
+	Notes              []string `json:"notes"`
+}
+
+// TargetCapabilities answers what the API may offer for the target's engine, without opening
+// a connection.
+func (c *Client) TargetCapabilities(ctx context.Context, ref string) (Capabilities, error) {
+	var out Capabilities
+	_, err := c.do(ctx, http.MethodGet, targetPath(ref)+"/capabilities", nil, &out)
+	return out, err
+}
+
+// ProbeResult is what a probe measured and the target as it now stands.
+type ProbeResult struct {
+	Target       Target       `json:"target"`
+	Capabilities Capabilities `json:"capabilities"`
+}
+
+// ProbeTarget asks the API to connect once and record what the server says it is. A refusal is
+// a 422 whose message comes from the driver, and the target records the failed attempt.
+func (c *Client) ProbeTarget(ctx context.Context, ref string) (ProbeResult, error) {
+	var out ProbeResult
+	_, err := c.do(ctx, http.MethodPost, targetPath(ref)+"/probe", nil, &out)
+	return out, err
 }

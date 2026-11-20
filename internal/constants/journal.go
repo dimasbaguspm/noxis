@@ -12,4 +12,5 @@ const (
 	JournalCreated  = "created"
 	JournalUpdated  = "updated"
 	JournalArchived = "archived"
+	JournalProbed   = "probed"
 )

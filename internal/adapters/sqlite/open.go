@@ -20,7 +20,9 @@ import (
 // SchemaVersion is the schema this build knows how to read. A file with another version is
 // refused with a reset instruction, never migrated: a half-migrated journal is worse than a
 // refusal, and this file is an audit trail before it is a cache.
-const SchemaVersion = 1
+//
+// v1: targets and journal. v2: targets carry what the last probe measured.
+const SchemaVersion = 2
 
 // DB is the state file.
 type DB struct {
@@ -126,6 +128,9 @@ var schema = []string{
 		options         TEXT    NOT NULL DEFAULT '{}',
 		created_by      TEXT    NOT NULL,
 		archived_at     INTEGER,
+		server_version  TEXT    NOT NULL DEFAULT '',
+		last_probe_at   INTEGER,
+		last_probe_status TEXT  NOT NULL DEFAULT '',
 		created_at      INTEGER NOT NULL,
 		updated_at      INTEGER NOT NULL
 	) STRICT`,
