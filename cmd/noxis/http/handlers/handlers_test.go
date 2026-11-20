@@ -26,17 +26,22 @@ const (
 	proposalRef = "0192f0c0-0000-7000-8000-000000000002"
 )
 
-// newHandlers builds the transport over the memory store: the handlers only ever see use cases, so
-// the wiring is the same shape as cmd/http/wiring.go.
+// newHandlers builds the transport over the memory store and the generated mocks: the handlers only
+// ever see use cases, so the wiring is the same shape as cmd/noxis/wiring.go.
+//
+// The sealer and the engine are mocks because a test asserts what the handlers made of their answer;
+// the store is a fake because a test drives several dependent calls through it, and a mock there
+// would write this implementation's call order into the test.
 func newHandlers(s *store) *Handlers {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	driver := testDriver{s: s}
-	targetDeps := target.Deps{Targets: s, Journal: s, Sealer: testSealer{}, Driver: driver}
+	sealer := newSealer()
+	driver := newDriver(s)
+	targetDeps := target.Deps{Targets: s, Journal: s, Sealer: sealer, Driver: driver}
 	proposalDeps := proposal.Deps{
-		Proposals: s, Rehearsals: s, Targets: s, Journal: s, Sealer: testSealer{},
+		Proposals: s, Rehearsals: s, Targets: s, Journal: s, Sealer: sealer,
 		Driver: driver, Timeout: time.Second,
 	}
-	readDeps := read.Deps{Targets: s, Sealer: testSealer{}, Driver: driver, Timeout: time.Second}
+	readDeps := read.Deps{Targets: s, Sealer: sealer, Driver: driver, Timeout: time.Second}
 
 	return New(Deps{
 		Log: log,

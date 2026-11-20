@@ -8,7 +8,7 @@ include .env
 export
 endif
 
-.PHONY: help build run test lint fmt tidy uat uat-slow clean
+.PHONY: help build run test lint fmt tidy mocks uat uat-slow clean
 
 help: ## list the targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2}'
@@ -30,6 +30,9 @@ lint: ## golangci-lint
 
 fmt: ## gofmt the tree
 	$(GO) fmt ./...
+
+mocks: ## regenerate the testify mocks for every port (committed; CI fails on drift)
+	$(GO) tool mockery --config .mockery.yml
 
 tidy: ## settle go.mod
 	$(GO) mod tidy

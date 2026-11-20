@@ -4,13 +4,16 @@ import (
 	"context"
 	"errors"
 	"noxis/internal/domain"
+	"noxis/internal/mocks"
 	"noxis/internal/ports"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/mock"
 )
 
-// ---- doubles (handwritten, in the package that uses them) ----
+// ---- doubles: a generated mock for the sealer, in-memory fakes for the store and the engine ----
 
 type fakeTargets struct {
 	target domain.Target
@@ -36,19 +39,23 @@ func (*fakeTargets) Update(_ context.Context, target domain.Target) (domain.Targ
 	return target, nil
 }
 
-type fakeSealer struct{ openErr error }
-
-func (*fakeSealer) Enabled() bool { return true }
-
-func (*fakeSealer) Seal(_ string, plain []byte) (string, error) {
-	return "sealed:" + string(plain), nil
-}
-
-func (f *fakeSealer) Open(_ string, sealed string) ([]byte, error) {
-	if f.openErr != nil {
-		return nil, f.openErr
-	}
-	return []byte(strings.TrimPrefix(sealed, "sealed:")), nil
+// newSealer is the generated mock: the sealer is a collaborator a read test only has to answer, and
+// the answer is read from the pointer so a test can make it fail after the fixture was built.
+func newSealer(openErr *error) *mocks.MockSealer {
+	sealer := &mocks.MockSealer{}
+	sealer.EXPECT().Enabled().Return(true)
+	sealer.EXPECT().Seal(mock.Anything, mock.Anything).
+		RunAndReturn(func(_ string, plain []byte) (string, error) {
+			return "sealed:" + string(plain), nil
+		})
+	sealer.EXPECT().Open(mock.Anything, mock.Anything).
+		RunAndReturn(func(_, sealed string) ([]byte, error) {
+			if *openErr != nil {
+				return nil, *openErr
+			}
+			return []byte(strings.TrimPrefix(sealed, "sealed:")), nil
+		})
+	return sealer
 }
 
 // fakeDriver records the password it was handed, which is how the tests prove the plaintext reaches
@@ -110,8 +117,9 @@ type fixture struct {
 	deps    Deps
 	target  domain.Target
 	targets *fakeTargets
-	sealer  *fakeSealer
+	sealer  *mocks.MockSealer
 	driver  *fakeDriver
+	openErr error
 }
 
 func newFixture() *fixture {
@@ -123,9 +131,9 @@ func newFixture() *fixture {
 	f := &fixture{
 		target:  target,
 		targets: &fakeTargets{target: target},
-		sealer:  &fakeSealer{},
 		driver:  &fakeDriver{},
 	}
+	f.sealer = newSealer(&f.openErr)
 	f.deps = Deps{Targets: f.targets, Sealer: f.sealer, Driver: f.driver, Timeout: time.Second}
 	return f
 }
@@ -195,7 +203,7 @@ func TestConnectRefusals(t *testing.T) {
 
 	// A password that cannot be opened is a key problem, and saying so is the whole message.
 	f = newFixture()
-	f.sealer.openErr = errors.New("cipher: message authentication failed")
+	f.openErr = errors.New("cipher: message authentication failed")
 	if _, err := NewQuery(f.deps).Run(context.Background(), QueryInput{
 		Ref: f.target.Ref, SQL: "SELECT 1",
 	}); !errors.Is(err, domain.ErrUnsupported) {
