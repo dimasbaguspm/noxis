@@ -55,3 +55,35 @@ Feature: Talking to a real engine
     When I propose "DROP TABLE users" titled "drop users"
     Then the request succeeds with status 201
     And the proposal is irreversible
+
+  Scenario: a proposal is approved by one token and applied by another
+    Given I hold the ops token
+    And I register the "mysql" container as "uat-decide-full"
+    When I hold the reviewer token
+    And I propose "ALTER TABLE users ADD COLUMN reviewed_by INT NULL" with rollback "ALTER TABLE users DROP COLUMN reviewed_by" titled "add reviewed_by"
+    Then the request succeeds with status 201
+    And the proposal is "verified"
+    And I hold the ops token
+    And I approve the proposal
+    Then the request succeeds
+    And the proposal is "approved"
+    And I apply the proposal
+    Then the request succeeds
+    And the proposal is "applied"
+    And the events mention "approved"
+    And the events mention "applied"
+    And the engine has column "reviewed_by" on table "users"
+
+  Scenario: applying an irreversible change needs an explicit acknowledgement
+    Given I hold the ops token
+    And I register the "mariadb" container as "uat-decide-destructive"
+    When I propose "TRUNCATE TABLE users" titled "empty users"
+    Then the request succeeds with status 201
+    And the proposal is irreversible
+    And I approve the proposal
+    Then the request succeeds
+    And I apply the proposal
+    Then the request fails with status 400
+    And I apply the proposal confirming destruction
+    Then the request succeeds
+    And the proposal is "applied"

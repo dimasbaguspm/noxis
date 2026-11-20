@@ -47,7 +47,7 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	})
 
 	// identity
-	ctx.Step(`^I hold the (agent|ops) token$`, w.holdToken)
+	ctx.Step(`^I hold the (agent|reviewer|ops) token$`, w.holdToken)
 	ctx.Step(`^I ask who I am$`, w.askWhoami)
 	ctx.Step(`^I ask who I am without a token$`, w.askWhoamiWithoutToken)
 	ctx.Step(`^I ask for the health of the server without a token$`, w.askHealth)
@@ -94,6 +94,12 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the rehearsal note mentions "([^"]*)"$`, w.assertRehearsalNoteMentions)
 	ctx.Step(`^I list my proposals$`, w.listMyProposals)
 	ctx.Step(`^the newest proposal is "([^"]*)"$`, w.assertNewestProposal)
+	ctx.Step(`^I approve the proposal$`, w.approveProposal)
+	ctx.Step(`^I reject the proposal$`, w.rejectProposal)
+	ctx.Step(`^I apply the proposal$`, func() error { return w.applyProposal(false) })
+	ctx.Step(`^I apply the proposal confirming destruction$`, w.applyConfirming)
+	ctx.Step(`^the events mention "([^"]*)"$`, w.assertEventsMention)
+	ctx.Step(`^the engine has column "([^"]*)" on table "([^"]*)"$`, w.assertEngineColumn)
 
 	// slow
 	ctx.Step(`^I register the "(mysql|mariadb)" container as "([^"]*)"$`, w.registerContainer)
@@ -107,8 +113,9 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 
 func (w *world) holdToken(name string) error {
 	secret := map[string]string{
-		"agent": os.Getenv("UAT_AGENT_SECRET"),
-		"ops":   os.Getenv("UAT_OPS_SECRET"),
+		"agent":    os.Getenv("UAT_AGENT_SECRET"),
+		"reviewer": os.Getenv("UAT_REV_SECRET"),
+		"ops":      os.Getenv("UAT_OPS_SECRET"),
 	}[name]
 	if secret == "" {
 		return fmt.Errorf("no %s secret in the environment", name)
@@ -544,6 +551,68 @@ func (w *world) assertNewestProposal(want string) error {
 	}
 	if newest := w.proposals[0].Status; newest != want {
 		return fmt.Errorf("newest proposal is %q, want %q", newest, want)
+	}
+	return nil
+}
+
+// decide records one decision on the proposal the world holds.
+// A refused decision must not overwrite the proposal the world holds: the next step needs the ref,
+// and a zero value would send it to a different URL. Only a success replaces the artifact.
+func (w *world) approveProposal() error {
+	decided, err := w.api.ApproveProposal(context.Background(), w.proposal.Ref, "looks right")
+	w.err = err
+	if err == nil {
+		w.proposal = decided
+	}
+	return nil
+}
+
+func (w *world) rejectProposal() error {
+	decided, err := w.api.RejectProposal(context.Background(), w.proposal.Ref, "not now")
+	w.err = err
+	if err == nil {
+		w.proposal = decided
+	}
+	return nil
+}
+
+func (w *world) applyProposal(confirm bool) error {
+	applied, err := w.api.ApplyProposal(context.Background(), w.proposal.Ref, confirm)
+	w.err = err
+	if err == nil {
+		w.proposal = applied
+	}
+	return nil
+}
+
+func (w *world) applyConfirming() error { return w.applyProposal(true) }
+
+func (w *world) assertEventsMention(kind string) error {
+	events, err := w.api.ProposalEvents(context.Background(), w.proposal.Ref)
+	if err != nil {
+		return err
+	}
+	for _, event := range events {
+		if event.Kind == kind {
+			return nil
+		}
+	}
+	return fmt.Errorf("no %q event among %d", kind, len(events))
+}
+
+// assertEngineColumn asks the engine directly, through the read route, whether the change landed.
+func (w *world) assertEngineColumn(column, table string) error {
+	rows, err := w.api.Query(context.Background(), w.target.Ref,
+		"SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = '"+table+
+			"' AND column_name = '"+column+"'", 0)
+	if err != nil {
+		return err
+	}
+	if rows.RowCount != 1 || len(rows.Values[0]) != 1 || rows.Values[0][0] == nil {
+		return fmt.Errorf("unexpected answer: %+v", rows)
+	}
+	if *rows.Values[0][0] != "1" {
+		return fmt.Errorf("the engine reports %s.%s does not exist", table, column)
 	}
 	return nil
 }

@@ -259,6 +259,11 @@ type Proposal struct {
 	Irreversible bool       `json:"irreversible"`
 	ProposedBy   string     `json:"proposed_by"`
 	RehearsalRef string     `json:"rehearsal_ref,omitempty"`
+	DecidedBy    string     `json:"decided_by,omitempty"`
+	DecidedAt    *time.Time `json:"decided_at,omitempty"`
+	DecidedNote  string     `json:"decided_note,omitempty"`
+	AppliedBy    string     `json:"applied_by,omitempty"`
+	AppliedAt    *time.Time `json:"applied_at,omitempty"`
 	Failure      string     `json:"failure,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
@@ -341,5 +346,54 @@ func (c *Client) RehearseProposal(ctx context.Context, ref, tier string) (Propos
 		Tier string `json:"tier,omitempty"`
 	}{Tier: tier}
 	_, err := c.do(ctx, http.MethodPost, constants.PathProposals+"/"+url.PathEscape(ref)+"/rehearse", body, &out)
+	return out, err
+}
+
+// Event is one line of a proposal's append-only history.
+type Event struct {
+	Ref         string            `json:"ref"`
+	SubjectRef  string            `json:"subject_ref"`
+	SubjectKind string            `json:"subject_kind"`
+	Kind        string            `json:"kind"`
+	Actor       string            `json:"actor"`
+	Detail      map[string]string `json:"detail"`
+	CreatedAt   time.Time         `json:"created_at"`
+}
+
+// ApproveProposal records approval. The server refuses a token approving its own proposal unless it
+// is an admin, and journals that exception.
+func (c *Client) ApproveProposal(ctx context.Context, ref, note string) (Proposal, error) {
+	return c.decide(ctx, ref, "approve", note)
+}
+
+// RejectProposal records a refusal, which may be the proposer withdrawing.
+func (c *Client) RejectProposal(ctx context.Context, ref, note string) (Proposal, error) {
+	return c.decide(ctx, ref, "reject", note)
+}
+
+func (c *Client) decide(ctx context.Context, ref, decision, note string) (Proposal, error) {
+	var out Proposal
+	body := struct {
+		Note string `json:"note,omitempty"`
+	}{Note: note}
+	_, err := c.do(ctx, http.MethodPost, constants.PathProposals+"/"+url.PathEscape(ref)+"/"+decision, body, &out)
+	return out, err
+}
+
+// ApplyProposal runs the approved statement. confirm must be true for a change the rehearsal marked
+// irreversible.
+func (c *Client) ApplyProposal(ctx context.Context, ref string, confirm bool) (Proposal, error) {
+	var out Proposal
+	body := struct {
+		ConfirmDestructive bool `json:"confirm_destructive,omitempty"`
+	}{ConfirmDestructive: confirm}
+	_, err := c.do(ctx, http.MethodPost, constants.PathProposals+"/"+url.PathEscape(ref)+"/apply", body, &out)
+	return out, err
+}
+
+// ProposalEvents answers the history of one proposal, newest first.
+func (c *Client) ProposalEvents(ctx context.Context, ref string) ([]Event, error) {
+	var out []Event
+	_, err := c.do(ctx, http.MethodGet, constants.PathProposals+"/"+url.PathEscape(ref)+"/events", nil, &out)
 	return out, err
 }

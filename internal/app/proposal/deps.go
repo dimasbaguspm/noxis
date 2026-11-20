@@ -74,7 +74,7 @@ func (d Deps) rehearse(ctx context.Context, proposal domain.Proposal) (domain.Pr
 	proposal.Irreversible = rehearsal.Irreversible
 	proposal.UpdatedAt = time.Now().UTC()
 	proposal.Failure = ""
-	if rehearsal.Conclusive() {
+	if rehearsal.Usable() {
 		proposal.Status = domain.StatusVerified
 	} else {
 		proposal.Status = domain.StatusFailed

@@ -20,3 +20,13 @@ const (
 	JournalProposed  = "proposed"
 	JournalRehearsed = "rehearsed"
 )
+
+// Journal kinds for a decision and an application. An override is its own kind so a reviewer can
+// see when separation of duties was set aside, and by whom.
+const (
+	JournalApproved    = "approved"
+	JournalRejected    = "rejected"
+	JournalApplied     = "applied"
+	JournalApplyFailed = "apply_failed"
+	JournalOverride    = "override"
+)

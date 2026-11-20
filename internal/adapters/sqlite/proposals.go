@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"noxis/internal/domain"
 	"noxis/internal/ports"
@@ -232,3 +233,26 @@ var (
 	_ ports.Proposals  = (*DB)(nil)
 	_ ports.Rehearsals = (*DB)(nil)
 )
+
+// ClaimProposal moves a proposal from one status to another only while it is still there. The
+// conditional update is the lock: whoever's update reports a row won the claim, everyone else learns
+// the proposal is no longer theirs to run.
+func (d *DB) ClaimProposal(ctx context.Context, ref string, from, to domain.Status) (domain.Proposal, error) {
+	res, err := d.db.ExecContext(ctx, `UPDATE proposals SET status = ?, updated_at = ?
+		WHERE ref = ? AND status = ?`, string(to), millis(time.Now().UTC()), ref, string(from))
+	if err != nil {
+		return domain.Proposal{}, fmt.Errorf("state: claim proposal: %w", err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return domain.Proposal{}, fmt.Errorf("state: claim proposal: %w", err)
+	}
+	if affected == 0 {
+		current, err := d.ProposalByRef(ctx, ref)
+		if err != nil {
+			return domain.Proposal{}, err
+		}
+		return current, fmt.Errorf("%w: proposal is %s, not %s", domain.ErrConflict, current.Status, from)
+	}
+	return d.ProposalByRef(ctx, ref)
+}
