@@ -1,0 +1,124 @@
+# AGENTS.md — noxis v2 harness brief
+
+Read this first in every session. It is the map; `docs/agent/` is the detail.
+`README.md` is the authoritative current feature spec. The v1 tree lives on the
+`v1` branch and the `v1.0.0` tag — reference it, never copy its layout.
+
+## What this repo is
+
+Two binaries over one state file, for **MySQL and MariaDB only**:
+
+- `cmd/http` → `noxisd`, the REST API. The only writer of the state file.
+- `cmd/cli` → `noxis`, a client of that API. No database access of its own.
+- `web/` → the console, later, standalone and never embedded.
+
+The product bet: an **agent** reads through `read` scope, proposes DDL/DML through
+`propose` scope, and a **human** holding `approve`+`apply` decides. A proposal is
+rehearsed (schema rebuilt in a throwaway database, diffed, rolled back) so the
+reviewer sees evidence rather than a check mark.
+
+## Workflow (epic → tickets → one MR per ticket)
+
+Every change lands through the tracker, never as an uncommitted blob on `master`:
+
+1. **Epic** — one plan issue per initiative, body in the repo template order
+   (`.github/ISSUE_TEMPLATE/ticket.md`): `What problem does this solve? → What is
+   the user facing? → How will I solve it? → Done when → Risks & notes`. One line
+   per paragraph; never hard-wrap.
+2. **Tickets** — one vertical slice each: cuts every layer, demoable alone,
+   finishable in a session. Show the draft list before creating issues.
+3. **Branch + MR per ticket** — one branch, one PR, never two tickets in one PR.
+   Title `[ai:y][#<issue>] <type>(<scope>): <subject>`, body closes the issue.
+4. **Review before merge** — the human reviews against the ticket's `Done when`.
+   `make lint`, `make test`, `make uat` green in CI first.
+5. **Record** — snapshot the finished plan into `docs/plan/<id>-<slug>.md` and add
+   it to that directory's index.
+
+Do not start implementation until the epic and its tickets exist.
+
+## Next action (verify the tree before touching it)
+
+```bash
+make test    # go test ./... — unit + the layering test            (~5s)
+make lint    # golangci-lint v2                                    (~30s)
+make build   # bin/noxisd + bin/noxis
+make uat     # godog over a real noxisd process                    (~20s)
+```
+
+## Repo map
+
+| Path | Role |
+| --- | --- |
+| `cmd/http/` | `main`, `wiring` (composition root), `routes` (the route table), `respond`, `handlers/`, `middlewares/` |
+| `cmd/cli/` | `main`, `root`, one file per command group, `output/` |
+| `internal/domain/` | entities, value objects, the state machine, sentinel errors — **stdlib only** |
+| `internal/ports/` | consumer-owned interfaces (`TargetStore`, `ProposalStore`, `Journal`, `Driver`, `Clock`) |
+| `internal/app/` | use cases: one file = one use case = one `Run`; imports `domain` + `ports` only |
+| `internal/adapters/sqlite/` | implements the stores; the single state file |
+| `internal/adapters/mysql/` | implements `Driver`; registered twice (`mysql`, `mariadb`) with a version probe |
+| `internal/common/` | `config`, `logging`, `secret`, `ref`, `cursor`, `sqltext` |
+| `internal/constants/` | scopes, drivers, wire names, limits, error codes |
+| `internal/client/` | typed REST client — `cmd/cli` and the UAT steps both use it |
+| `test/uat/` | godog: `features/`, `steps/`, a runner that boots the real binary |
+| `web/` | standalone console (own `package.json`, own CI job, CORS to the API) |
+| `docs/agent/`, `docs/plan/` | agent docs, plan archive |
+
+Dependency direction, enforced by `test/arch`: `cmd/* → app → ports → domain`, and
+`adapters/* → ports → domain`. Nothing imports `noxis/cmd/...`. Adapters assert their
+seam next to the struct: `var _ ports.Driver = (*DB)(nil)`.
+
+## Conventions
+
+- **Clients see `ref`, never an integer id.** Every row is keyed by a UUIDv7 `ref`
+  (`internal/common/ref`) — time-sortable, opaque, the only identifier on the wire,
+  in path params and in filters. No `rowid`, no autoincrement anywhere.
+- **Lists use cursors, never offsets.** `?limit=` + `?cursor=<ref>`, `ORDER BY ref
+  DESC`, `meta.next_cursor` absent on the last page. Raw `SELECT` results are the one
+  exception: `limit` + `truncated`, because a keyset cannot be inferred from arbitrary
+  SQL and a fake cursor would lie.
+- **One use case = one file = one `Run`.** No use case calls another; shared steps are
+  package helpers.
+- **Handlers are transport, and they live in `cmd/http`.** They read the request,
+  resolve a `ref`, call one use case, write the envelope. No SQL, no policy, no
+  business rules there.
+- **Auth is env-declared.** `TOKENS` is inline JSON, `{"<name>": {"secret": "...",
+  "scopes": [...]}}`; the name is the identity that lands in the journal. A scope a
+  route needs is declared in the route table, not in the handler. Request path:
+  resolve caller → per-route scope → handler.
+- **Secrets:** `SECRET_KEY` (32 bytes, hex or base64) seals target passwords with
+  AES-256-GCM, AAD = the target `ref`, envelope `v1:<b64>`. `SECRET_KEY_PREVIOUS`
+  opens old rows, which re-seal on write. A password never appears on a response.
+- **No env reads outside `internal/common/config`.** Add a field to `Config` and a
+  default there.
+- **No hardcoded scopes/drivers/statuses/headers/limits.** They live in
+  `internal/constants`, in the file named after the thing.
+- **Errors:** sentinels in `domain` (`ErrNotFound`, `ErrForbidden`, `ErrUnsupported`,
+  `ErrConflict`, `ErrInvalid`), wrapped with `%w`, compared with `errors.Is`; one
+  `fail` at the transport maps them to status + `code`.
+- **Artifacts are permanent.** A proposal is never deleted; a target is archived
+  (`archived_at`), never removed; the journal is append-only. A failed rehearsal is
+  stored as `failed` and can be re-run.
+- **State file:** schema is versioned with `PRAGMA user_version`; no runtime
+  migration. A mismatched version fails with a reset instruction rather than
+  silently dropping a journal.
+- **No new dependency for a few lines.** No abstraction or option nobody asked for.
+- **Test doubles:** handwritten fakes in the test package that uses them; generated
+  mocks only when an interface has more than three call sites (then
+  `go.uber.org/mock`, regenerated and committed).
+
+## Notes that bite
+
+- MySQL and MariaDB commit DDL implicitly, so a dry run in a transaction proves
+  nothing for DDL. Rehearsal is a rebuilt throwaway database + diff, always.
+- Requires `CREATE DATABASE` on the target server. Without it the rehearsal degrades
+  to `static` (parse + `EXPLAIN` + row estimate) and says so by name.
+- `web/` is never embedded in the binary. If you find `go:embed` of a built console,
+  that is v1 residue.
+- Dropping the `NOXIS_` prefix was deliberate. If you find `NOXIS_*` env names, that
+  is v1 residue.
+
+## Docs index
+
+- `docs/agent/architecture.md` — layers, seams, request flow, how to add a use case.
+- `docs/agent/review.md` — review checklist and invariants.
+- `docs/plan/` — one snapshot per completed plan with an index.

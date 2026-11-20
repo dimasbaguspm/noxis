@@ -1,0 +1,9 @@
+bin/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+.env
+
+web/node_modules/
+web/dist/
