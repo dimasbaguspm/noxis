@@ -5,6 +5,7 @@ package respond
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -70,7 +71,7 @@ func Fail(w http.ResponseWriter, log *slog.Logger, err error) {
 func cause(err error) string {
 	text := err.Error()
 	for _, name := range []string{"invalid", "not found", "forbidden", "unauthorized", "conflict", "unsupported"} {
-		if rest, found := strings.CutPrefix(text, name+": "); found {
+		if rest, found := strings.CutPrefix(text, fmt.Sprintf("%s: ", name)); found {
 			return rest
 		}
 	}

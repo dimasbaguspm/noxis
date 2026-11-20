@@ -171,7 +171,7 @@ func (d *DB) Table(ctx context.Context, target domain.Target, password, database
 	}
 
 	var create string
-	createErr := pool.QueryRowContext(ctx, "SHOW CREATE TABLE "+quote(database)+"."+quote(table)).
+	createErr := pool.QueryRowContext(ctx, fmt.Sprintf("SHOW CREATE TABLE %s.%s", quote(database), quote(table))).
 		Scan(new(string), &create)
 	if createErr != nil {
 		return domain.TableDetail{}, statementError(createErr, password)

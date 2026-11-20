@@ -145,7 +145,7 @@ type Capabilities struct {
 // a connection.
 func (c *Client) TargetCapabilities(ctx context.Context, ref string) (Capabilities, error) {
 	var out Capabilities
-	_, err := c.do(ctx, http.MethodGet, targetPath(ref)+"/capabilities", nil, &out)
+	_, err := c.do(ctx, http.MethodGet, fmt.Sprintf("%s/capabilities", targetPath(ref)), nil, &out)
 	return out, err
 }
 
@@ -159,7 +159,7 @@ type ProbeResult struct {
 // a 422 whose message comes from the driver, and the target records the failed attempt.
 func (c *Client) ProbeTarget(ctx context.Context, ref string) (ProbeResult, error) {
 	var out ProbeResult
-	_, err := c.do(ctx, http.MethodPost, targetPath(ref)+"/probe", nil, &out)
+	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/probe", targetPath(ref)), nil, &out)
 	return out, err
 }
 
@@ -219,21 +219,21 @@ func (c *Client) Query(ctx context.Context, ref, sql string, limit int) (Rows, e
 		SQL   string `json:"sql"`
 		Limit int    `json:"limit,omitempty"`
 	}{SQL: sql, Limit: limit}
-	_, err := c.do(ctx, http.MethodPost, targetPath(ref)+"/query", body, &out)
+	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/query", targetPath(ref)), body, &out)
 	return out, err
 }
 
 // Databases lists the schemas behind one target.
 func (c *Client) Databases(ctx context.Context, ref string) ([]string, error) {
 	var out []string
-	_, err := c.do(ctx, http.MethodGet, targetPath(ref)+"/databases", nil, &out)
+	_, err := c.do(ctx, http.MethodGet, fmt.Sprintf("%s/databases", targetPath(ref)), nil, &out)
 	return out, err
 }
 
 // Tables lists the tables in one schema.
 func (c *Client) Tables(ctx context.Context, ref, database string) ([]Table, error) {
 	var out []Table
-	_, err := c.do(ctx, http.MethodGet, targetPath(ref)+"/databases/"+url.PathEscape(database)+"/tables", nil, &out)
+	_, err := c.do(ctx, http.MethodGet, fmt.Sprintf("%s/databases/%s/tables", targetPath(ref), url.PathEscape(database)), nil, &out)
 	return out, err
 }
 
@@ -241,7 +241,7 @@ func (c *Client) Tables(ctx context.Context, ref, database string) ([]Table, err
 func (c *Client) Table(ctx context.Context, ref, database, table string) (TableDetail, error) {
 	var out TableDetail
 	_, err := c.do(ctx, http.MethodGet,
-		targetPath(ref)+"/databases/"+url.PathEscape(database)+"/tables/"+url.PathEscape(table), nil, &out)
+		fmt.Sprintf("%s/databases/%s/tables/%s", targetPath(ref), url.PathEscape(database), url.PathEscape(table)), nil, &out)
 	return out, err
 }
 
@@ -298,7 +298,7 @@ type CreateProposalInput struct {
 // CreateProposal stores and rehearses one change.
 func (c *Client) CreateProposal(ctx context.Context, targetRef string, in CreateProposalInput) (Proposal, error) {
 	var out Proposal
-	_, err := c.do(ctx, http.MethodPost, targetPath(targetRef)+"/proposals", in, &out)
+	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/proposals", targetPath(targetRef)), in, &out)
 	return out, err
 }
 
@@ -335,7 +335,7 @@ func (c *Client) ListProposals(ctx context.Context, limit int, cursor, status, k
 // GetProposal reads one proposal with its rehearsal.
 func (c *Client) GetProposal(ctx context.Context, ref string) (Proposal, error) {
 	var out Proposal
-	_, err := c.do(ctx, http.MethodGet, constants.PathProposals+"/"+url.PathEscape(ref), nil, &out)
+	_, err := c.do(ctx, http.MethodGet, fmt.Sprintf("%s/%s", constants.PathProposals, url.PathEscape(ref)), nil, &out)
 	return out, err
 }
 
@@ -345,7 +345,7 @@ func (c *Client) RehearseProposal(ctx context.Context, ref, tier string) (Propos
 	body := struct {
 		Tier string `json:"tier,omitempty"`
 	}{Tier: tier}
-	_, err := c.do(ctx, http.MethodPost, constants.PathProposals+"/"+url.PathEscape(ref)+"/rehearse", body, &out)
+	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/%s/rehearse", constants.PathProposals, url.PathEscape(ref)), body, &out)
 	return out, err
 }
 
@@ -376,7 +376,7 @@ func (c *Client) decide(ctx context.Context, ref, decision, note string) (Propos
 	body := struct {
 		Note string `json:"note,omitempty"`
 	}{Note: note}
-	_, err := c.do(ctx, http.MethodPost, constants.PathProposals+"/"+url.PathEscape(ref)+"/"+decision, body, &out)
+	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/%s/%s", constants.PathProposals, url.PathEscape(ref), decision), body, &out)
 	return out, err
 }
 
@@ -387,13 +387,13 @@ func (c *Client) ApplyProposal(ctx context.Context, ref string, confirm bool) (P
 	body := struct {
 		ConfirmDestructive bool `json:"confirm_destructive,omitempty"`
 	}{ConfirmDestructive: confirm}
-	_, err := c.do(ctx, http.MethodPost, constants.PathProposals+"/"+url.PathEscape(ref)+"/apply", body, &out)
+	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/%s/apply", constants.PathProposals, url.PathEscape(ref)), body, &out)
 	return out, err
 }
 
 // ProposalEvents answers the history of one proposal, newest first.
 func (c *Client) ProposalEvents(ctx context.Context, ref string) ([]Event, error) {
 	var out []Event
-	_, err := c.do(ctx, http.MethodGet, constants.PathProposals+"/"+url.PathEscape(ref)+"/events", nil, &out)
+	_, err := c.do(ctx, http.MethodGet, fmt.Sprintf("%s/%s/events", constants.PathProposals, url.PathEscape(ref)), nil, &out)
 	return out, err
 }
