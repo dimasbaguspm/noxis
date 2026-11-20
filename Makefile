@@ -8,7 +8,7 @@ include .env
 export
 endif
 
-.PHONY: help build run test lint fmt tidy mocks uat uat-slow clean
+.PHONY: help build run test lint fmt tidy mocks spec uat uat-slow clean
 
 help: ## list the targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2}'
@@ -33,6 +33,10 @@ fmt: ## gofmt the tree
 
 mocks: ## regenerate the testify mocks for every port (committed; CI fails on drift)
 	$(GO) tool mockery --config .mockery.yml
+
+spec: ## regenerate the OpenAPI document from the handler annotations (committed; CI fails on drift)
+	$(GO) tool swag init --v3.1 --parseInternal --parseDependency \
+		--outputTypes json,yaml -g serve.go -d ./cmd/noxis/http -o ./cmd/noxis/http/docs
 
 tidy: ## settle go.mod
 	$(GO) mod tidy

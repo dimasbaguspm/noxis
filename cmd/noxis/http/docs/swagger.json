@@ -1,0 +1,1385 @@
+{
+    "components": {
+        "schemas": {
+            "handlers.ApplyRequest": {
+                "properties": {
+                    "confirm_destructive": {
+                        "type": "boolean"
+                    }
+                },
+                "type": "object"
+            },
+            "handlers.CreateProposalRequest": {
+                "properties": {
+                    "note": {
+                        "type": "string"
+                    },
+                    "query": {
+                        "example": "ALTER TABLE users ADD COLUMN note TEXT",
+                        "type": "string"
+                    },
+                    "rollback": {
+                        "example": "ALTER TABLE users DROP COLUMN note",
+                        "type": "string"
+                    },
+                    "tier": {
+                        "enum": [
+                            "static",
+                            "shadow",
+                            "rehearsal"
+                        ],
+                        "type": "string"
+                    },
+                    "title": {
+                        "example": "add a column",
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "handlers.CreateTargetRequest": {
+                "properties": {
+                    "database": {
+                        "example": "app",
+                        "type": "string"
+                    },
+                    "driver": {
+                        "enum": [
+                            "mysql",
+                            "mariadb"
+                        ],
+                        "example": "mysql",
+                        "type": "string"
+                    },
+                    "host": {
+                        "example": "db.internal",
+                        "type": "string"
+                    },
+                    "name": {
+                        "example": "prod",
+                        "type": "string"
+                    },
+                    "options": {
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "type": "object"
+                    },
+                    "password": {
+                        "example": "not-on-the-wire-back",
+                        "type": "string"
+                    },
+                    "port": {
+                        "example": 3306,
+                        "type": "integer"
+                    },
+                    "tls_mode": {
+                        "example": "preferred",
+                        "type": "string"
+                    },
+                    "username": {
+                        "example": "noxis",
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "handlers.DecisionRequest": {
+                "properties": {
+                    "note": {
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "handlers.QueryRequest": {
+                "properties": {
+                    "limit": {
+                        "example": 100,
+                        "type": "integer"
+                    },
+                    "sql": {
+                        "example": "SELECT id FROM users",
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "handlers.RehearseRequest": {
+                "properties": {
+                    "tier": {
+                        "enum": [
+                            "static",
+                            "shadow",
+                            "rehearsal"
+                        ],
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "handlers.UpdateTargetRequest": {
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "options": {
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "type": "object"
+                    },
+                    "password": {
+                        "type": "string"
+                    },
+                    "tls_mode": {
+                        "type": "string"
+                    },
+                    "username": {
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "respond.Envelope": {
+                "properties": {
+                    "data": {},
+                    "error": {
+                        "$ref": "#/components/schemas/respond.Error"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/respond.Meta"
+                    }
+                },
+                "type": "object"
+            },
+            "respond.Error": {
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            },
+            "respond.Meta": {
+                "properties": {
+                    "next_cursor": {
+                        "type": "string"
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "BearerAuth": {
+                "description": "`Bearer \u003ctoken\u003e`. The scopes a route needs are declared in the route table; a token without them is refused before the handler runs.",
+                "in": "header",
+                "name": "Authorization",
+                "type": "apiKey"
+            }
+        }
+    },
+    "info": {
+        "contact": {
+            "name": "noXis"
+        },
+        "description": "Reviewed access to MySQL and MariaDB. An agent reads through `read`, proposes through `propose`, and a human holding `approve` and `apply` decides. A proposal is rehearsed — the schema is rebuilt in a throwaway database and the rollback must restore it — so the reviewer sees evidence rather than a check mark.",
+        "license": {
+            "name": "MIT"
+        },
+        "title": "noXis API",
+        "version": "2.0.0-dev"
+    },
+    "externalDocs": {
+        "description": "",
+        "url": ""
+    },
+    "paths": {
+        "/healthz": {
+            "get": {
+                "description": "Answers without a token: the process is up and this is the version answering.",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    }
+                },
+                "summary": "Liveness",
+                "tags": [
+                    "system"
+                ]
+            }
+        },
+        "/openapi.json": {
+            "get": {
+                "description": "The OpenAPI document this binary serves, derived from the YAML source at first read.",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    }
+                },
+                "summary": "The contract, as JSON",
+                "tags": [
+                    "system"
+                ]
+            }
+        },
+        "/openapi.yaml": {
+            "get": {
+                "description": "The generated source, exactly as committed.",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/yaml": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "description": "the document"
+                    }
+                },
+                "summary": "The contract, as YAML",
+                "tags": [
+                    "system"
+                ]
+            }
+        },
+        "/v1/proposals": {
+            "get": {
+                "description": "Newest first, keyset-paged.",
+                "parameters": [
+                    {
+                        "description": "page size",
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "the last ref of the previous page",
+                        "in": "query",
+                        "name": "cursor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "filter by target reference",
+                        "in": "query",
+                        "name": "target",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "filter by status",
+                        "in": "query",
+                        "name": "status",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "ddl or dml",
+                        "in": "query",
+                        "name": "kind",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "only the caller's proposals",
+                        "in": "query",
+                        "name": "mine",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Bad Request"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "The proposal queue",
+                "tags": [
+                    "proposals"
+                ]
+            }
+        },
+        "/v1/proposals/{ref}": {
+            "get": {
+                "parameters": [
+                    {
+                        "description": "proposal reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Not Found"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "One proposal and its evidence",
+                "tags": [
+                    "proposals"
+                ]
+            }
+        },
+        "/v1/proposals/{ref}/apply": {
+            "post": {
+                "description": "Requires the apply scope. DML runs in one transaction; DDL runs as one statement, because a receipt for an impossible rollback is a lie. A change the rehearsal called irreversible needs confirm_destructive. A table past the background threshold answers 202 and the progress is read from the proposal.",
+                "parameters": [
+                    {
+                        "description": "proposal reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/handlers.ApplyRequest",
+                                "summary": "body",
+                                "description": "acknowledge a destructive change"
+                            }
+                        }
+                    },
+                    "description": "acknowledge a destructive change"
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "202": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Accepted"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Conflict"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Apply an approved proposal",
+                "tags": [
+                    "proposals"
+                ]
+            }
+        },
+        "/v1/proposals/{ref}/approve": {
+            "post": {
+                "description": "Requires the approve scope. A token that also proposed the change is refused unless it holds admin, and the exception is journalled as its own line.",
+                "parameters": [
+                    {
+                        "description": "proposal reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/handlers.DecisionRequest",
+                                "summary": "body",
+                                "description": "an optional note"
+                            }
+                        }
+                    },
+                    "description": "an optional note"
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Approve a proposal",
+                "tags": [
+                    "proposals"
+                ]
+            }
+        },
+        "/v1/proposals/{ref}/events": {
+            "get": {
+                "description": "The append-only history: proposed, rehearsed, approved, applied, refused.",
+                "parameters": [
+                    {
+                        "description": "proposal reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Not Found"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "The journal of one proposal",
+                "tags": [
+                    "proposals"
+                ]
+            }
+        },
+        "/v1/proposals/{ref}/rehearse": {
+            "post": {
+                "description": "Only for a proposal nobody has decided yet. Every run is stored, including the ones that failed.",
+                "parameters": [
+                    {
+                        "description": "proposal reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/handlers.RehearseRequest",
+                                "summary": "body",
+                                "description": "an optional tier"
+                            }
+                        }
+                    },
+                    "description": "an optional tier"
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Conflict"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Re-run the proof",
+                "tags": [
+                    "proposals"
+                ]
+            }
+        },
+        "/v1/proposals/{ref}/reject": {
+            "post": {
+                "description": "Requires the approve scope. A rejection may be the proposer withdrawing their own idea.",
+                "parameters": [
+                    {
+                        "description": "proposal reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/handlers.DecisionRequest",
+                                "summary": "body",
+                                "description": "an optional note"
+                            }
+                        }
+                    },
+                    "description": "an optional note"
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Conflict"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Reject a proposal",
+                "tags": [
+                    "proposals"
+                ]
+            }
+        },
+        "/v1/targets": {
+            "get": {
+                "description": "One page of governed servers, newest first. Paging is a keyset cursor, never an offset.",
+                "parameters": [
+                    {
+                        "description": "page size",
+                        "in": "query",
+                        "name": "limit",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "the last ref of the previous page",
+                        "in": "query",
+                        "name": "cursor",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "mysql or mariadb",
+                        "in": "query",
+                        "name": "driver",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "name filter",
+                        "in": "query",
+                        "name": "q",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "include archived targets",
+                        "in": "query",
+                        "name": "include_archived",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Bad Request"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "List targets",
+                "tags": [
+                    "targets"
+                ]
+            },
+            "post": {
+                "description": "Requires the admin scope. The password is sealed with SECRET_KEY and never returned.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/handlers.CreateTargetRequest",
+                                "summary": "body",
+                                "description": "the server to govern"
+                            }
+                        }
+                    },
+                    "description": "the server to govern",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Created"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Bad Request"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Register a target",
+                "tags": [
+                    "targets"
+                ]
+            }
+        },
+        "/v1/targets/{ref}": {
+            "delete": {
+                "description": "Nothing is deleted: the target is put away and the journal keeps the row.",
+                "parameters": [
+                    {
+                        "description": "target reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Not Found"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Archive a target",
+                "tags": [
+                    "targets"
+                ]
+            },
+            "get": {
+                "parameters": [
+                    {
+                        "description": "target reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Not Found"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Read one target",
+                "tags": [
+                    "targets"
+                ]
+            },
+            "patch": {
+                "description": "A field that is absent is a field nobody asked to change. Requires the admin scope.",
+                "parameters": [
+                    {
+                        "description": "target reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/handlers.UpdateTargetRequest",
+                                "summary": "body",
+                                "description": "the fields to change"
+                            }
+                        }
+                    },
+                    "description": "the fields to change",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Bad Request"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Patch a target",
+                "tags": [
+                    "targets"
+                ]
+            }
+        },
+        "/v1/targets/{ref}/capabilities": {
+            "get": {
+                "parameters": [
+                    {
+                        "description": "target reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Not Found"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "What the engine can do",
+                "tags": [
+                    "targets"
+                ]
+            }
+        },
+        "/v1/targets/{ref}/databases": {
+            "get": {
+                "parameters": [
+                    {
+                        "description": "target reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Not Found"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "List schemas",
+                "tags": [
+                    "reading"
+                ]
+            }
+        },
+        "/v1/targets/{ref}/databases/{db}/tables": {
+            "get": {
+                "parameters": [
+                    {
+                        "description": "target reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "schema name",
+                        "in": "path",
+                        "name": "db",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Not Found"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "List tables in a schema",
+                "tags": [
+                    "reading"
+                ]
+            }
+        },
+        "/v1/targets/{ref}/databases/{db}/tables/{table}": {
+            "get": {
+                "description": "Columns, indexes and the DDL the engine would use to create it — the statement a rehearsal rebuilds from.",
+                "parameters": [
+                    {
+                        "description": "target reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "schema name",
+                        "in": "path",
+                        "name": "db",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "table name",
+                        "in": "path",
+                        "name": "table",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Not Found"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Describe one table",
+                "tags": [
+                    "reading"
+                ]
+            }
+        },
+        "/v1/targets/{ref}/probe": {
+            "post": {
+                "description": "Connects once, measures the engine and stores what it said.",
+                "parameters": [
+                    {
+                        "description": "target reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "422": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Unprocessable Entity"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Probe a target",
+                "tags": [
+                    "targets"
+                ]
+            }
+        },
+        "/v1/targets/{ref}/proposals": {
+            "post": {
+                "description": "Requires the propose scope. The proposal is rehearsed immediately: the schema is rebuilt in a throwaway database, the change is run there and the rollback must restore it.",
+                "parameters": [
+                    {
+                        "description": "target reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/handlers.CreateProposalRequest",
+                                "summary": "body",
+                                "description": "the change and its rollback"
+                            }
+                        }
+                    },
+                    "description": "the change and its rollback",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Created"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Bad Request"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Propose a change",
+                "tags": [
+                    "proposals"
+                ]
+            }
+        },
+        "/v1/targets/{ref}/query": {
+            "post": {
+                "description": "One SELECT, EXPLAIN or SHOW. A write, a locking read or a compound statement is refused before it reaches the engine.",
+                "parameters": [
+                    {
+                        "description": "target reference",
+                        "in": "path",
+                        "name": "ref",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/handlers.QueryRequest",
+                                "summary": "body",
+                                "description": "the statement and a row ceiling"
+                            }
+                        }
+                    },
+                    "description": "the statement and a row ceiling",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Bad Request"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Run a read",
+                "tags": [
+                    "reading"
+                ]
+            }
+        },
+        "/v1/whoami": {
+            "get": {
+                "description": "The identity and the scopes the API resolved for the bearer token.",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "OK"
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/respond.Envelope"
+                                }
+                            }
+                        },
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "summary": "Who this token is",
+                "tags": [
+                    "session"
+                ]
+            }
+        }
+    },
+    "openapi": "3.1.0",
+    "servers": [
+        {
+            "url": "localhost:9000"
+        }
+    ]
+}

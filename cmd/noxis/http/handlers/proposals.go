@@ -99,18 +99,23 @@ func toRehearsalWire(r domain.Rehearsal) rehearsalWire {
 // CreateProposal takes a statement and its rollback, stores the proposal and rehearses it. A
 // rehearsal that does not prove the change still answers 201 with the proposal: the artifact is the
 // point, and `failed` is a verdict, not a transport error.
+// @Summary Propose a change
+// @Description Requires the propose scope. The proposal is rehearsed immediately: the schema is rebuilt in a throwaway database, the change is run there and the rollback must restore it.
+// @Tags proposals
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param ref path string true "target reference"
+// @Param body body handlers.CreateProposalRequest true "the change and its rollback"
+// @Success 201 {object} respond.Envelope
+// @Failure 400 {object} respond.Envelope
+// @Router /v1/targets/{ref}/proposals [post]
 func (h *Handlers) CreateProposal(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.CreateProposal")
 	defer end(nil)
 	r = r.WithContext(ctx)
 
-	var body struct {
-		Title    string `json:"title"`
-		Query    string `json:"query"`
-		Rollback string `json:"rollback"`
-		Note     string `json:"note"`
-		Tier     string `json:"tier"`
-	}
+	var body CreateProposalRequest
 	if err := decode(w, r, &body); err != nil {
 		respond.Fail(w, h.Log, err)
 		return
@@ -143,6 +148,20 @@ func wireOf(rehearsal domain.Rehearsal) *rehearsalWire {
 }
 
 // ListProposals answers one page of the queue. `mine` is the caller's own name, not a parameter.
+// @Summary The proposal queue
+// @Description Newest first, keyset-paged.
+// @Tags proposals
+// @Produce json
+// @Security BearerAuth
+// @Param limit query int false "page size"
+// @Param cursor query string false "the last ref of the previous page"
+// @Param target query string false "filter by target reference"
+// @Param status query string false "filter by status"
+// @Param kind query string false "ddl or dml"
+// @Param mine query string false "only the caller's proposals"
+// @Success 200 {object} respond.Envelope
+// @Failure 400 {object} respond.Envelope
+// @Router /v1/proposals [get]
 func (h *Handlers) ListProposals(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.ListProposals")
 	defer end(nil)
@@ -187,6 +206,14 @@ func mine(value, caller string) string {
 }
 
 // GetProposal reads one proposal with the rehearsal that last judged it.
+// @Summary One proposal and its evidence
+// @Tags proposals
+// @Produce json
+// @Security BearerAuth
+// @Param ref path string true "proposal reference"
+// @Success 200 {object} respond.Envelope
+// @Failure 404 {object} respond.Envelope
+// @Router /v1/proposals/{ref} [get]
 func (h *Handlers) GetProposal(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.GetProposal")
 	defer end(nil)
@@ -208,14 +235,23 @@ func (h *Handlers) GetProposal(w http.ResponseWriter, r *http.Request) {
 }
 
 // RehearseProposal re-runs the proof for a proposal that has not been decided.
+// @Summary Re-run the proof
+// @Description Only for a proposal nobody has decided yet. Every run is stored, including the ones that failed.
+// @Tags proposals
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param ref path string true "proposal reference"
+// @Param body body handlers.RehearseRequest false "an optional tier"
+// @Success 200 {object} respond.Envelope
+// @Failure 409 {object} respond.Envelope
+// @Router /v1/proposals/{ref}/rehearse [post]
 func (h *Handlers) RehearseProposal(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.RehearseProposal")
 	defer end(nil)
 	r = r.WithContext(ctx)
 
-	var body struct {
-		Tier string `json:"tier,omitempty"`
-	}
+	var body RehearseRequest
 	if r.ContentLength > 0 {
 		if err := decode(w, r, &body); err != nil {
 			respond.Fail(w, h.Log, err)
@@ -239,6 +275,17 @@ func (h *Handlers) RehearseProposal(w http.ResponseWriter, r *http.Request) {
 // ApproveProposal records a human's approval. The caller's own token decides whether it may: the
 // route asks for `approve`, and the use case refuses a token that also proposed it unless it is an
 // admin — in which case the exception is journalled.
+// @Summary Approve a proposal
+// @Description Requires the approve scope. A token that also proposed the change is refused unless it holds admin, and the exception is journalled as its own line.
+// @Tags proposals
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param ref path string true "proposal reference"
+// @Param body body handlers.DecisionRequest false "an optional note"
+// @Success 200 {object} respond.Envelope
+// @Failure 403 {object} respond.Envelope
+// @Router /v1/proposals/{ref}/approve [post]
 func (h *Handlers) ApproveProposal(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.ApproveProposal")
 	defer end(nil)
@@ -248,6 +295,17 @@ func (h *Handlers) ApproveProposal(w http.ResponseWriter, r *http.Request) {
 }
 
 // RejectProposal records a refusal. A rejection may be the proposer withdrawing their own idea.
+// @Summary Reject a proposal
+// @Description Requires the approve scope. A rejection may be the proposer withdrawing their own idea.
+// @Tags proposals
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param ref path string true "proposal reference"
+// @Param body body handlers.DecisionRequest false "an optional note"
+// @Success 200 {object} respond.Envelope
+// @Failure 409 {object} respond.Envelope
+// @Router /v1/proposals/{ref}/reject [post]
 func (h *Handlers) RejectProposal(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.RejectProposal")
 	defer end(nil)
@@ -257,9 +315,7 @@ func (h *Handlers) RejectProposal(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) decide(w http.ResponseWriter, r *http.Request, approve bool) {
-	var body struct {
-		Note string `json:"note,omitempty"`
-	}
+	var body DecisionRequest
 	if r.ContentLength > 0 {
 		if err := decode(w, r, &body); err != nil {
 			respond.Fail(w, h.Log, err)
@@ -283,14 +339,24 @@ func (h *Handlers) decide(w http.ResponseWriter, r *http.Request, approve bool) 
 
 // ApplyProposal runs the approved statement. `confirm_destructive` is required when the rehearsal
 // said the change cannot be undone.
+// @Summary Apply an approved proposal
+// @Description Requires the apply scope. DML runs in one transaction; DDL runs as one statement, because a receipt for an impossible rollback is a lie. A change the rehearsal called irreversible needs confirm_destructive. A table past the background threshold answers 202 and the progress is read from the proposal.
+// @Tags proposals
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param ref path string true "proposal reference"
+// @Param body body handlers.ApplyRequest false "acknowledge a destructive change"
+// @Success 200 {object} respond.Envelope
+// @Success 202 {object} respond.Envelope
+// @Failure 409 {object} respond.Envelope
+// @Router /v1/proposals/{ref}/apply [post]
 func (h *Handlers) ApplyProposal(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.ApplyProposal")
 	defer end(nil)
 	r = r.WithContext(ctx)
 
-	var body struct {
-		ConfirmDestructive bool `json:"confirm_destructive,omitempty"`
-	}
+	var body ApplyRequest
 	if r.ContentLength > 0 {
 		if err := decode(w, r, &body); err != nil {
 			respond.Fail(w, h.Log, err)
@@ -327,6 +393,15 @@ type journalWire struct {
 }
 
 // ProposalEvents answers the history of one proposal, newest first.
+// @Summary The journal of one proposal
+// @Description The append-only history: proposed, rehearsed, approved, applied, refused.
+// @Tags proposals
+// @Produce json
+// @Security BearerAuth
+// @Param ref path string true "proposal reference"
+// @Success 200 {object} respond.Envelope
+// @Failure 404 {object} respond.Envelope
+// @Router /v1/proposals/{ref}/events [get]
 func (h *Handlers) ProposalEvents(w http.ResponseWriter, r *http.Request) {
 	ctx, end := telemetry.Span(r.Context(), "handlers.ProposalEvents")
 	defer end(nil)

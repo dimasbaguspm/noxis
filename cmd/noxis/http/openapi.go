@@ -11,11 +11,11 @@ import (
 	"go.yaml.in/yaml/v3"
 )
 
-// openapiYAML is the contract, and the only copy of it. The JSON answer is derived at first read so
-// the two can never disagree, and a test walks the route table against this file so the document
-// cannot drift from the routes either.
+// openapiYAML is what `make spec` produces from the annotations on the handlers, and the only copy of
+// the contract. The JSON answer is derived from it at first read so the two can never disagree, and
+// a test walks the route table against it so the document cannot drift from the routes either.
 //
-//go:embed openapi.yaml
+//go:embed docs/swagger.yaml
 var openapiYAML []byte
 
 var (
@@ -25,6 +25,13 @@ var (
 )
 
 // OpenAPIJSON answers the document as JSON.
+//
+// @Summary The contract, as JSON
+// @Description The OpenAPI document this binary serves, derived from the YAML source at first read.
+// @Tags system
+// @Produce json
+// @Success 200 {object} respond.Envelope
+// @Router /openapi.json [get]
 func OpenAPIJSON(w http.ResponseWriter, _ *http.Request) {
 	body, err := openAPIJSON()
 	if err != nil {
@@ -39,6 +46,13 @@ func OpenAPIJSON(w http.ResponseWriter, _ *http.Request) {
 
 // OpenAPIYAML answers the source, byte for byte: a client that wants to diff the contract gets the
 // file the binary was built from.
+//
+// @Summary The contract, as YAML
+// @Description The generated source, exactly as committed.
+// @Tags system
+// @Produce application/yaml
+// @Success 200 {string} string "the document"
+// @Router /openapi.yaml [get]
 func OpenAPIYAML(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set(constants.HeaderContentType, constants.MediaTypeYAML)
 	if _, err := w.Write(openapiYAML); err != nil {
