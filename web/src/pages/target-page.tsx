@@ -13,6 +13,7 @@ import { Card } from '../components/card';
 import { Link, useParams } from 'react-router-dom';
 import {
   useArchiveTarget,
+  useDatabases,
   useProbeTarget,
   useProposals,
   useRunQuery,
@@ -231,6 +232,7 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
   const started = useRef(0);
   const run = useRunQuery(ref_);
   const schema = useSchema(ref_, database);
+  const databases = useDatabases(ref_);
 
   const kick = () => {
     started.current = performance.now();
@@ -298,6 +300,7 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
           }}
           onRun={kick}
           schema={schema.data ?? null}
+          schemas={databases.data ?? []}
           height={220}
         />
       </Card>

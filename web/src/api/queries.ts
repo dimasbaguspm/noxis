@@ -24,6 +24,7 @@ export const keys = {
   target: (ref: string) => ['target', ref] as const,
   capabilities: (ref: string) => ['capabilities', ref] as const,
   tables: (ref: string, db: string) => ['tables', ref, db] as const,
+  databases: (ref: string) => ['databases', ref] as const,
   table: (ref: string, db: string, table: string) => ['table', ref, db, table] as const,
   proposals: (filter: Record<string, string | number | undefined>) =>
     ['proposals', filter] as const,
@@ -181,6 +182,18 @@ export function useTables(ref: string, database: string) {
       unwrap<Table[]>(
         client!.get(`/v1/targets/${ref}/databases/${encodeURIComponent(database)}/tables`),
       ),
+  });
+}
+
+/** useDatabases is every schema the server has. MySQL and MariaDB call a schema a database, and a target
+ * only registers one of them, so the pickers ask instead of assuming. */
+export function useDatabases(ref: string) {
+  const client = useClient();
+  return useQuery({
+    queryKey: keys.databases(ref),
+    enabled: Boolean(client && ref),
+    staleTime: 60_000,
+    queryFn: () => unwrap<string[]>(client!.get(`/v1/targets/${ref}/databases`)),
   });
 }
 
