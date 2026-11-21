@@ -24,12 +24,13 @@ services:
     <<: *noxis
     command: ["http", "serve", "--addr", ":9000", "--state", "/data/noxis.db"]
     environment:
-      # Two callers: an agent that proposes, and an operator that decides. A secret is at least 32
-      # characters; the pair below is a development default and nothing else.
-      TOKENS: >-
-        ${TOKENS:-{"agent":{"secret":"dev_agent_0123456789abcdef0123456789","scopes":["read","propose"]},"ops":{"secret":"dev_ops_0123456789abcdef0123456789aa","scopes":["read","propose","approve","apply","admin"]}}}
-      # 32 bytes, hex. Seals target passwords; a different key refuses the rows it did not write.
-      SECRET_KEY: ${SECRET_KEY:-9f2c1e7a4b6d8035caf17e2b9d4a6f8c1e3b5d7092a4c6e8f0b1d3a5c7e9f2b4}
+      # Two callers: an agent that proposes, and an operator that decides. Both come from your `.env`,
+      # never from this file: a default secret is a published credential, and this one approves and
+      # applies. `cp .env.example .env` and put a generated secret in each.
+      TOKENS: ${TOKENS:?set TOKENS in .env — cp .env.example .env, and see the README}
+      # 32 bytes, hex. Seals target passwords; a key that ships in a repository seals nothing.
+      # `openssl rand -hex 32`.
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env — cp .env.example .env, and see the README}
       # The browser origin the console is served from, so a browser may call :9000 from :3000.
       CONSOLE_ORIGINS: ${CONSOLE_ORIGINS:-http://localhost:3000}
       QUERY_TIMEOUT: ${QUERY_TIMEOUT:-30s}
