@@ -32,6 +32,9 @@ export type Capabilities = {
   explain: boolean;
 };
 
+/** What dialling a configuration answered: the engine it reached, and the schemas it can see. */
+export type TestAnswer = { capabilities: Capabilities; databases: string[] };
+
 export type Proposal = {
   ref: string;
   target_ref: string;
