@@ -1,14 +1,18 @@
 # The console
 
 React + TypeScript + Ant Design, built by Vite straight into `internal/web/dist`, which the binary
-embeds and serves with `noxis web serve`. One command builds the console the image carries:
+embeds and `http serve` mounts at `/`. One command builds the console the image carries, and one
+process serves it:
 
 ```bash
 pnpm -C web install     # once; the lockfile is committed and never rewritten by CI
 make web                # or: pnpm -C web run build
 make build              # the binary now carries it
-noxis web serve --api https://api.example.com
+./bin/noxis http serve  # open http://127.0.0.1:9000 — the page and the API share an origin
 ```
+
+`pnpm dev` is the exception: Vite serves the page on `:5173` and the API is somewhere else, so that
+deployment is the one that names `CONSOLE_ORIGINS`. A same-origin console needs nothing.
 
 **pnpm, and pinned versions.** `web/package.json` names an exact version of every dependency and of
 pnpm itself (`packageManager`), and `web/.npmrc` sets `save-exact`, so `pnpm add x` writes `1.2.3` and

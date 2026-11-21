@@ -66,7 +66,7 @@ noxis auth use default              # switch what every command uses
 noxis target ls --profile staging   # or only for this command
 ```
 
-`--profile` is a global flag: it works on every command, `noxis web serve --profile staging` included.
+`--profile` is a global flag: it works on every command, `noxis target ls --profile staging` included.
 `auth status` prints the profile a bare command would use, marked `(current)` — "which server did that?"
 is never a guess.
 

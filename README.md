@@ -11,7 +11,7 @@ schema rebuilt in a throwaway database, the diff, the rows touched, the locks ta
 `approve`/`apply` decides. Then it runs, and the receipt is kept.
 
 ```bash
-docker compose up -d --build && open http://localhost:3000   # api :9000 · console :3000 · mysql :3307
+docker compose up -d --build && open http://localhost:9000   # api + console :9000 · mysql :3307
 ```
 
 ---
@@ -57,9 +57,9 @@ flowchart LR
 flowchart TD
   C[agent · CI] -->|HTTP| API
   CLI[noxis CLI] -->|the same REST API| API
-  WEB[web serve · console] -->|the same REST API| API
+  BROWSER[the console, in a browser] -->|the page, then the same API| API
 
-  API["http serve · API<br/>the only writer of the state file"]
+  API["http serve · API + console<br/>the only writer of the state file"]
   API --> APP["internal/app → ports<br/>one file = one Run"]
   APP --> SQLITE[("adapters/sqlite<br/>state file · journal")]
   APP --> MYSQL[("adapters/mysql<br/>read · probe · plan · rehearse · apply")]
@@ -78,7 +78,7 @@ cp .env.example .env
 # one secret per caller, and a key that seals target passwords:
 openssl rand -hex 16   # paste into TOKENS, once per caller
 openssl rand -hex 32   # paste into SECRET_KEY
-docker compose up -d --build          # api :9000 · console :3000 · mysql :3307
+docker compose up -d --build          # api + console :9000 · mysql :3307
 ```
 
 Nothing in this repository is a working credential: there is no default token, and the API refuses to
@@ -104,7 +104,6 @@ All environment, nothing else. `.env.example` is the full list.
 | `SECRET_KEY` | 32 bytes hex/base64; seals target passwords (AES-256-GCM, AAD = target ref) |
 | `SECRET_KEY_OLD` | comma-separated keys that no longer seal but may still open — the rotation window |
 | `CONSOLE_ORIGINS` | browser origins allowed to call the API |
-| `CONSOLE_HOST` / `CONSOLE_TOKEN` | API the browser should reach, and the token it gets (proved at boot) |
 | `QUERY_TIMEOUT` / `PROBE_TIMEOUT` | `30s` / `5s` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | telemetry, optional — unset means nothing is exported |
 | `VERSION` / `COMMIT` | stamped at build time; a plain build says `dev` with no commit |
@@ -114,15 +113,16 @@ All environment, nothing else. `.env.example` is the full list.
 ```bash
 docker run -d --name noxis --read-only -p 9000:9000 \
   -e TOKENS='{"agent":{"secret":"…","scopes":["read","propose"]}}' \
-  -e SECRET_KEY=$(openssl rand -hex 32) -e CONSOLE_ORIGINS=https://console.example.com \
+  -e SECRET_KEY=$(openssl rand -hex 32) \
   -v noxisdata:/data ghcr.io/dimasbaguspm/noxis:nightly
 ```
 
 - State file: `/data/noxis.db` — **back it up like a database**, it is the journal.
 - Image tags on `ghcr.io/dimasbaguspm/noxis`: `nightly` and `nightly-<sha>` follow master, `v2.0.0` is
   a release, `latest` follows the newest tag (never a nightly). Both amd64 and arm64.
-- The console binds **`127.0.0.1`** on purpose: it hands its token to a loopback browser. A container or
-  a proxy passes `--listen 0.0.0.0`, and the token is never handed to a forwarded request.
+- The console is served by the same process at **`/`**, so there is one URL to publish, one port and one
+  healthcheck. The browser signs in with a token a person pastes: nothing inherits the CLI's session, and
+  no response ever carries a token.
 - Upgrades migrate it: the schema is versioned and each bump is a step that runs once, in a transaction.
   A file from a *newer* build is refused rather than guessed at.
 - Rotating `SECRET_KEY`: set the old key as `SECRET_KEY_OLD`, restart, re-save each password

@@ -8,12 +8,9 @@ import (
 	"embed"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"html/template"
 	"io/fs"
-	"net"
 	"net/http"
-	"net/url"
 	"path"
 	"strings"
 )
@@ -33,11 +30,10 @@ type Console struct {
 	cfg   Config
 }
 
-// Config is what the console is told about the deployment: the API the browser can reach, and — only
-// when this process was started from a signed-in CLI — the token that session already holds.
+// Config is what the console is told about the deployment: the API a browser on this origin calls.
+// Same origin means there is nothing else to know — no address to discover, no token to hand over.
 type Config struct {
-	API   string
-	Token string
+	API string
 }
 
 // New reads the embedded build once. cfg.API is what the placeholder tells the reader to call.
@@ -76,35 +72,11 @@ func newFrom(dist fs.FS, cfg Config) (*Console, error) {
 	return &Console{dist: dist, index: page, built: markerErr != nil, cfg: cfg}, nil
 }
 
-// ParseAPI reads the API's public URL. It must be absolute and http or https, because the browser
-// resolves it from the page's own origin: a bare host would be read as a path, and a trailing slash
-// would produce a double slash on every call.
-func ParseAPI(raw string) (string, error) {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return "", errors.New("web: the console needs the API's public URL: pass --api https://api.example.com")
-	}
-	parsed, err := url.Parse(raw)
-	if err != nil {
-		return "", fmt.Errorf("web: --api %q is not a URL: %w", raw, err)
-	}
-	if parsed.Scheme != "http" && parsed.Scheme != "https" {
-		return "", fmt.Errorf("web: --api %q is not http or https", raw)
-	}
-	if parsed.Host == "" {
-		return "", fmt.Errorf("web: --api %q has no host", raw)
-	}
-	return parsed.Scheme + "://" + parsed.Host + strings.TrimSuffix(parsed.Path, "/"), nil
-}
-
 // Built reports whether a real console was compiled in, which is what the serve command logs.
 func (c *Console) Built() bool { return c.built }
 
 // API is the address the console was told to call.
 func (c *Console) API() string { return c.cfg.API }
-
-// SignedIn reports whether this process was handed a token, which is what the serve command logs.
-func (c *Console) SignedIn() bool { return c.cfg.Token != "" }
 
 // Handler answers files, then the single-page fallback, then nothing. `/config.json` is answered
 // first and always: it is how a build learns which API it belongs to, and a console that was served
@@ -118,7 +90,7 @@ func (c *Console) Handler() http.Handler {
 		}
 
 		if path.Clean(r.URL.Path) == "/config.json" {
-			c.serveConfig(w, r)
+			c.serveConfig(w)
 			return
 		}
 
@@ -146,14 +118,10 @@ func (c *Console) Handler() http.Handler {
 // serveConfig is the deployment's answer to "which API am I?". It is not cached: a console that
 // remembers the wrong server is a console that reports a network error nobody can explain.
 //
-// The token travels here only for a request that came from the machine the binary runs on: a console
-// on a VPS serves whoever can reach it, and a bearer token in a GET response is a token anybody can
-// copy. From anywhere else the console asks for one, exactly as it did before.
-func (c *Console) serveConfig(w http.ResponseWriter, r *http.Request) {
+// Nothing secret travels here. The page and the API share an origin, so `/v1` is all it has to be told,
+// and a bearer token in a GET response would be a token anybody who can load the page can copy.
+func (c *Console) serveConfig(w http.ResponseWriter) {
 	answer := map[string]string{"api": c.cfg.API}
-	if c.SignedIn() && loopback(r) {
-		answer["token"] = c.cfg.Token
-	}
 	body, err := json.Marshal(answer)
 	if err != nil {
 		http.Error(w, "the console has no API configured", http.StatusInternalServerError)
@@ -163,24 +131,6 @@ func (c *Console) serveConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(body)
-}
-
-// loopback reports whether the request came from a browser on this machine: the token is the CLI's own, and
-// this is the one place it is handed out. A forwarded request is not: every proxy in front of the console —
-// a reverse proxy, Docker's userland proxy — connects from a loopback address, so the remote address alone
-// cannot tell a browser on this laptop from one across the network.
-func loopback(r *http.Request) bool {
-	for _, header := range []string{"Forwarded", "X-Forwarded-For", "X-Real-Ip"} {
-		if r.Header.Get(header) != "" {
-			return false
-		}
-	}
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		host = r.RemoteAddr
-	}
-	ip := net.ParseIP(strings.Trim(host, "[]"))
-	return ip != nil && ip.IsLoopback()
 }
 
 func (c *Console) serveIndex(w http.ResponseWriter) {
