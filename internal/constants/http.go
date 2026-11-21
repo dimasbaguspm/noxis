@@ -21,7 +21,3 @@ const (
 	ListenAddr = ":9000"
 	StatePath  = "/data/noxis.db"
 )
-
-// DefaultConsoleOrigins are the browser origins a development console is served from: the Vite dev
-// server and the same thing addressed by address. A deployment names its own in CONSOLE_ORIGINS.
-const DefaultConsoleOrigins = "http://localhost:5173,http://127.0.0.1:5173"

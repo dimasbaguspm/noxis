@@ -41,6 +41,29 @@ func TestCORSAnswersOnlyTheConfiguredOrigin(t *testing.T) {
 	}
 }
 
+// The normal deployment: the console is served by the API, so nothing is cross-origin and the API was
+// told about no browser. A lookalike host is refused here for the same reason it is refused when the
+// list is not empty — the comparison is the whole origin, never a prefix.
+func TestCORSAllowsNothingWhenItWasToldNothing(t *testing.T) {
+	handler := middlewares.CORS(nil)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	for _, origin := range []string{"https://console.example.com", "http://localhost:5173.evil.example"} {
+		req := httptest.NewRequest(http.MethodGet, "/v1/targets", nil)
+		req.Header.Set("Origin", origin)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "" {
+			t.Fatalf("origin %q: allow-origin = %q, want none", origin, got)
+		}
+		if rec.Code != http.StatusOK {
+			t.Fatalf("origin %q: the request did not reach the API", origin)
+		}
+	}
+}
+
 // A preflight is answered without reaching a handler: the browser asks about the method and the
 // headers, and the route it names may not accept either of them directly.
 func TestCORSPreflightStopsAtTheMiddleware(t *testing.T) {
