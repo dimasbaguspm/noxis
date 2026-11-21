@@ -35,6 +35,7 @@ import { Eyebrow, Heading, Text } from '../components/text';
 import { SqlEditor } from '../editor/sql-editor';
 import type { Schema } from '../editor/sql-editor';
 import { formatWhen } from '../lib/when';
+import { readDraft, writeDraft } from '../lib/draft';
 import type { Proposal, Rows, Target } from '../api/types';
 
 // The instance page: what this server is, and the three things an operator does with it. ERD is absent
@@ -223,7 +224,9 @@ function Connectivity({ target }: { target: Target }) {
 }
 
 function QueryTab({ ref_, database }: { ref_: string; database: string }) {
-  const [sql, setSql] = useState('SELECT 1 AS one;');
+  // The last statement this instance was asked is a draft, kept in the browser: a reload should not
+  // cost a query somebody was halfway through.
+  const [sql, setSql] = useState(() => readDraft(ref_) ?? 'SELECT 1 AS one;');
   const [took, setTook] = useState<number | null>(null);
   const started = useRef(0);
   const run = useRunQuery(ref_);
@@ -289,7 +292,10 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
       >
         <SqlEditor
           value={sql}
-          onChange={setSql}
+          onChange={(next) => {
+            setSql(next);
+            writeDraft(ref_, next);
+          }}
           onRun={kick}
           schema={schema.data ?? null}
           height={220}
