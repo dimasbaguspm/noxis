@@ -6,7 +6,7 @@
 
 # The console: built here, never committed. `internal/web/dist` holds only a placeholder in the
 # repository, so the image is the one place a production build exists.
-FROM node:22-alpine AS console
+FROM --platform=$BUILDPLATFORM node:22-alpine AS console
 RUN corepack enable
 WORKDIR /web
 # The lockfile names the graph that was tested, and .npmrc names how it is installed.
@@ -16,7 +16,7 @@ COPY web/ ./
 # vite writes to ../internal/web/dist, which is /internal/web/dist from here.
 RUN pnpm run build
 
-FROM golang:1.26 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26 AS build
 WORKDIR /src
 
 # What this image is. `docker build --build-arg VERSION=v2.0.0 --build-arg COMMIT=$(git rev-parse --short=7 HEAD)`
@@ -24,6 +24,12 @@ WORKDIR /src
 ARG VERSION=dev
 ARG COMMIT=unknown
 
+
+# Both architectures, from one build: the compile happens on the build platform and crosses over, so a
+# multi-arch push costs a second compile rather than an emulated toolchain. `docker compose build` and
+# `docker buildx build` set these; a plain `docker build` falls back to linux/amd64.
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
 # Dependencies first: a source change does not re-download the module graph.
 COPY go.mod go.sum ./
 RUN go mod download
@@ -33,7 +39,7 @@ COPY . .
 COPY --from=console /internal/web/dist ./internal/web/dist
 # The repository's placeholder carries the marker that says "not built"; the real build must not.
 RUN rm -f ./internal/web/dist/NOT_BUILT
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath \
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath \
       -ldflags "-s -w -X noxis/internal/constants.Version=${VERSION} -X noxis/internal/constants.Commit=${COMMIT}" \
       -o /out/noxis ./cmd/noxis
 # /data belongs to the runtime user, so a named volume inherits an owner that can write to it.

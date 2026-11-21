@@ -111,10 +111,12 @@ All environment, nothing else. `.env.example` is the full list.
 docker run -d --name noxis --read-only -p 9000:9000 \
   -e TOKENS='{"agent":{"secret":"…","scopes":["read","propose"]}}' \
   -e SECRET_KEY=$(openssl rand -hex 32) -e CONSOLE_ORIGINS=https://console.example.com \
-  -v noxisdata:/data noxis:latest
+  -v noxisdata:/data ghcr.io/dimasbaguspm/noxis:nightly
 ```
 
 - State file: `/data/noxis.db` — **back it up like a database**, it is the journal.
+- Image tags on `ghcr.io/dimasbaguspm/noxis`: `nightly` and `nightly-<sha>` follow master, `v2.0.0` is
+  a release, `latest` follows the newest tag (never a nightly). Both amd64 and arm64.
 - Upgrades migrate it: the schema is versioned and each bump is a step that runs once, in a transaction.
   A file from a *newer* build is refused rather than guessed at.
 - Rotating `SECRET_KEY`: set the old key as `SECRET_KEY_OLD`, restart, re-save each password
@@ -168,14 +170,16 @@ The version a build reports is the release line plus **7 characters of its commi
 
 - CI `publish` runs after `go` + `web` pass on master: two binaries + `version.json` + `SHA256SUMS`
   are published to the moving **`nightly`** release.
+- CI `image` builds that same commit for **amd64 + arm64** and pushes
+  `ghcr.io/dimasbaguspm/noxis:nightly` and `:nightly-<sha>`; a `v*` tag pushes `:<tag>` and `:latest`.
 - The **server** fetches `…/releases/download/nightly/version.json` at most once an hour;
   `GET /v1/version` answers `{version, commit, release_url, latest, newer}`.
 - The check runs on boot: one line on stderr for the CLI, and in the console a chip in the top bar naming
   this build with an **Upgrade to latest** button beside it when there is somewhere to move to. Nothing
   installs itself — every notice points at **https://github.com/dimasbaguspm/noxis/releases**.
 
-Cut a release: tag → `make build VERSION=v2.0.0` → publish the same three assets from that tag as a
-non-prerelease. Nightly keeps moving; a tag never does.
+Cut a release: tag `v2.0.0` → CI publishes the image as `v2.0.0` and moves `latest`, and you publish the
+same three assets from that tag as a non-prerelease. Nightly keeps moving; a tag never does.
 
 ## Develop
 
