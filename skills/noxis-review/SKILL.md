@@ -9,6 +9,18 @@ A proposal is decided by a **different token holder** than the one that proposed
 `approve`/`apply` and also wrote the proposal, you are reviewing yourself — the one thing this product
 exists to prevent.
 
+
+```mermaid
+flowchart TD
+  Q[proposal waiting] --> T{which tier}
+  T -->|shadow · rehearsal| E[it ran somewhere real — read the diff]
+  T -->|static| S[nothing ran — say that out loud]
+  E --> D{approve?}
+  S --> D
+  D -->|no| R[reject, with the reason]
+  D -->|yes| A[apply]
+  A --> W[watch: applied or failed]
+```
 ## 1. Read the queue
 
 ```bash

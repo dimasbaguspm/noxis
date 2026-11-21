@@ -8,6 +8,20 @@ description: Propose a DDL or DML change to a governed MySQL/MariaDB instance th
 A proposal is a **pair**: the statement, and the statement that undoes it. `propose` scope can create
 proposals and re-run rehearsals. It cannot approve or apply anything — that is the point.
 
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant A as agent
+  participant N as noXis
+  participant T as throwaway database
+  A->>N: propose (statement + rollback + idempotency-key)
+  N->>T: rebuild the named tables from SHOW CREATE TABLE
+  N->>T: run the statement, then the rollback
+  T-->>N: schema before / after
+  N-->>A: tier · schema_diff · row_diff · estimate
+  Note over N: no CREATE DATABASE grant? tier=static, and the note says why
+```
 ## 1. Read first
 
 ```bash

@@ -39,30 +39,32 @@ noXis does what a reviewer does: it **executes the change somewhere else first**
 - **Artifacts are permanent.** Proposals are never deleted, targets are archived, the journal is
   append-only. State file schema is versioned; a mismatch refuses to open.
 
-```
-agent ──read─────────▶ rows
-      └─propose─▶ proposal ─▶ rehearsal ─▶ decision ─▶ apply ─▶ journal
-                                 │                       │
-                    schema diff · row diff      claim before statement
+```mermaid
+flowchart LR
+  A[agent · read] --> R[(rows)]
+  A -->|propose| P["proposal<br/>statement + rollback"]
+  P --> H{"rehearsal<br/>throwaway database"}
+  H -->|"schema diff · row diff"| D{decision}
+  H -->|failed| P
+  D -->|approve| X[apply]
+  D -->|reject| P
+  X --> J[(journal)]
 ```
 
 ## Architecture
 
-```
-        agent / CI / browser
-                 │  HTTP
-   ┌─────────────▼──────────────┐   one binary, three faces
-   │ cmd/noxis/http             │   http serve  · API, only writer of state
-   │ cmd/noxis                  │   CLI         · query/propose/approve/apply
-   │ cmd/noxis/web              │   web serve   · console (React, embedded)
-   └─────────────┬──────────────┘
-                 │
-   ┌─────────────▼──────────────┐
-   │ internal/app  → ports      │   use cases, one file = one Run
-   └───┬────────────────────┬───┘
-       │                    │
- internal/adapters/sqlite  internal/adapters/mysql  → MySQL 8 / MariaDB 11
- state file (journal)      read · probe · plan · rehearse · apply
+```mermaid
+flowchart TD
+  C[agent · CI] -->|HTTP| API
+  CLI[noxis CLI] -->|the same REST API| API
+  WEB[web serve · console] -->|the same REST API| API
+
+  API["http serve · API<br/>the only writer of the state file"]
+  API --> APP["internal/app → ports<br/>one file = one Run"]
+  APP --> SQLITE[("adapters/sqlite<br/>state file · journal")]
+  APP --> MYSQL[("adapters/mysql<br/>read · probe · plan · rehearse · apply")]
+
+  MYSQL -.->|MySQL 8 · MariaDB 11| DB[(your databases)]
 ```
 
 Dependency rule, enforced by `test/arch`: `cmd/* → app → ports → domain`,
