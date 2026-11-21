@@ -14,7 +14,7 @@ import { RenderWhen } from '../components/render-when';
 import { StatusTag } from '../components/sql-block';
 import { Eyebrow, Heading, Text } from '../components/text';
 import { Verdict, verdictOf } from '../components/verdict';
-import { SchemaDiff } from '../editor/diff-editor';
+import { TextDiff } from '../editor/diff-editor';
 import { SqlEditor } from '../editor/sql-editor';
 import { formatWhen } from '../lib/when';
 
@@ -184,19 +184,13 @@ export function ProposalPage() {
                         <RenderWhen condition={found.rehearsal.schema_diff}>
                           <div>
                             <Eyebrow className="mb-1.5 block">schema diff</Eyebrow>
-                            <SchemaDiff diff={found.rehearsal.schema_diff ?? ''} />
+                            <TextDiff diff={found.rehearsal.schema_diff ?? ''} />
                           </div>
                         </RenderWhen>
                         <RenderWhen condition={found.rehearsal.row_diff}>
                           <div>
                             <Eyebrow className="mb-1.5 block">row diff</Eyebrow>
-                            <div className="overflow-hidden rounded-lg border border-line">
-                              <SqlEditor
-                                value={found.rehearsal.row_diff ?? ''}
-                                height={140}
-                                readOnly
-                              />
-                            </div>
+                            <TextDiff diff={found.rehearsal.row_diff ?? ''} />
                           </div>
                         </RenderWhen>
                       </Card>
