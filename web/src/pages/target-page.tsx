@@ -416,6 +416,16 @@ function Changes({ target, schema }: { target: string; schema: Schema | null }) 
               ),
             },
             {
+              key: 'kind',
+              title: 'Kind',
+              width: 90,
+              render: (row) => (
+                <Text size="xs" tone="muted" className="font-semibold uppercase">
+                  {row.kind}
+                </Text>
+              ),
+            },
+            {
               key: 'status',
               title: 'Status',
               width: 130,

@@ -1,6 +1,7 @@
 import { PlusOutlined } from '@ant-design/icons';
 import { App as AntApp, Modal } from 'antd';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Can } from '../api/permissions';
 import { useCreateProposal } from '../api/queries';
 import { AppButton } from './app-button';
@@ -21,6 +22,7 @@ export function CreateProposal({ target, schema }: { target: string; schema: Sch
   const { message } = AntApp.useApp();
   const [open, setOpen] = useState(false);
   const create = useCreateProposal(target);
+  const navigate = useNavigate();
 
   return (
     <>
@@ -31,8 +33,8 @@ export function CreateProposal({ target, schema }: { target: string; schema: Sch
       </Can>
 
       <Modal
+        title="New change"
         open={open}
-        title="A data change"
         onCancel={() => setOpen(false)}
         footer={null}
         width="min(920px, 94vw)"
@@ -58,6 +60,9 @@ export function CreateProposal({ target, schema }: { target: string; schema: Sch
               void message.success(`${filed.title} filed`);
             }
             setOpen(false);
+            // The proposal exists now: land on it, where the statement, the rollback, the kind and the
+            // rehearsal are already on screen. A toast that disappears is not a place to read evidence.
+            navigate(`/targets/${target}/proposals/${filed.ref}`);
           }}
         >
           <TextInput

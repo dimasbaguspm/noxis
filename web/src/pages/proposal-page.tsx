@@ -106,6 +106,7 @@ export function ProposalPage() {
                   {found.title}
                 </Heading>
                 <StatusTag status={found.status} />
+                <Tag className="m-0 uppercase">{found.kind}</Tag>
                 <RenderWhen condition={found.irreversible}>
                   <Tag color="red" className="m-0">
                     irreversible

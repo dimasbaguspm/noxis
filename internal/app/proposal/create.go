@@ -76,7 +76,7 @@ func (c *Create) Run(ctx context.Context, in CreateInput) (out0 CreateOutput, er
 		return CreateOutput{}, fmt.Errorf("%w: tier %q is not one of static, shadow, rehearsal", domain.ErrInvalid, in.Tier)
 	}
 
-	kind, err := kindOf(in.Query)
+	kind, err := kindOf(in.Query, in.Rollback)
 	if err != nil {
 		return CreateOutput{}, err
 	}
@@ -125,20 +125,42 @@ func (c *Create) Run(ctx context.Context, in CreateInput) (out0 CreateOutput, er
 	return CreateOutput{Proposal: rehearsed, Rehearsal: rehearsal}, nil
 }
 
-// kindOf maps a statement onto what it changes, and refuses anything that changes nothing: a read
-// is not a proposal, it is a read.
-func kindOf(query string) (domain.Kind, error) {
-	statement, err := sqltext.Classify(query)
+// kindOf maps the pair onto what it changes. The rollback is classified too, because a schema change
+// undone by a data change cannot restore what it changed: that is not a proposal a reviewer could
+// approve, so it is refused before it is stored rather than reported as a failed rollback later.
+func kindOf(query, rollback string) (domain.Kind, error) {
+	kind, err := kindOfStatement(query)
+	if err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(rollback) == "" {
+		return kind, nil
+	}
+	undo, err := kindOfStatement(rollback)
+	if err != nil {
+		return "", err
+	}
+	if undo != kind {
+		return "", fmt.Errorf("%w: the change is %s and the rollback is %s, and only a %s statement undoes a %s one",
+			domain.ErrInvalid, kind, undo, kind, kind)
+	}
+	return kind, nil
+}
+
+// kindOfStatement is one statement's kind, and refuses anything that changes nothing: a read is not a
+// proposal, it is a read.
+func kindOfStatement(statement string) (domain.Kind, error) {
+	classified, err := sqltext.Classify(statement)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", domain.ErrInvalid, err)
 	}
-	switch statement.Kind {
+	switch classified.Kind {
 	case sqltext.DDL:
 		return domain.KindDDL, nil
 	case sqltext.Insert, sqltext.Update, sqltext.Delete:
 		return domain.KindDML, nil
 	case sqltext.Select, sqltext.Explain, sqltext.Show:
-		return "", fmt.Errorf("%w: a %s changes nothing, so there is nothing to approve", domain.ErrInvalid, statement.Kind)
+		return "", fmt.Errorf("%w: a %s changes nothing, so there is nothing to approve", domain.ErrInvalid, classified.Kind)
 	}
-	return "", fmt.Errorf("%w: %q is not a change this build knows how to rehearse", domain.ErrInvalid, statement.Kind)
+	return "", fmt.Errorf("%w: %q is not a change this build knows how to rehearse", domain.ErrInvalid, classified.Kind)
 }
