@@ -172,3 +172,34 @@ func TestTheTokenIsOnlyHandedToLoopback(t *testing.T) {
 		})
 	}
 }
+
+// The console is the other face of the same image, and a container that serves it gets the same
+// HEALTHCHECK: /healthz is what the probe falls back to, in the API's own envelope so one client reads
+// both. It says nothing about the API — that is the API's route — only that this page is being served.
+func TestTheConsoleAnswersHealth(t *testing.T) {
+	console, err := web.New(web.Config{API: "http://api"})
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+
+	rec := httptest.NewRecorder()
+	console.Handler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if got := rec.Header().Get("Content-Type"); !strings.HasPrefix(got, "application/json") {
+		t.Fatalf("content type = %q", got)
+	}
+	var answer struct {
+		Data struct {
+			Status string `json:"status"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &answer); err != nil {
+		t.Fatalf("healthz: %v", err)
+	}
+	if answer.Data.Status != "ok" {
+		t.Fatalf("status = %q, want ok in the API's envelope", answer.Data.Status)
+	}
+}

@@ -66,31 +66,52 @@ func NewServe(build Builder) *cobra.Command {
 }
 
 // newHealthcheck is the image's HEALTHCHECK: the binary asks its own route, so the container
-// needs no curl and the probe measures exactly what a client would get.
+// needs no curl and the probe measures exactly what a client would get. One image serves two faces — the
+// API on constants.ListenAddr, the console on constants.ConsolePort — and the image cannot know which one
+// a container runs, so the default asks the API and then the console. Health means "the face this
+// container runs answers", not "the port I assumed answers".
 func newHealthcheck() *cobra.Command {
 	var url string
 	cmd := &cobra.Command{
 		Use:         "healthcheck",
-		Short:       "Ask the API whether it is alive",
+		Short:       "Ask the process in this container whether it is alive",
 		Args:        cobra.NoArgs,
 		Annotations: map[string]string{constants.AnnoNoToken: "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			api, err := client.New(url, "")
-			if err != nil {
-				return err
+			targets := []string{url}
+			if !cmd.Flags().Changed("url") {
+				targets = append(targets, fmt.Sprintf("http://127.0.0.1:%d", constants.ConsolePort))
 			}
-			health, err := api.Live(cmd.Context())
-			if err != nil {
-				return fmt.Errorf("not healthy: %w", err)
+			var last error
+			for _, target := range targets {
+				if err := alive(cmd.Context(), target); err != nil {
+					last = err
+					continue
+				}
+				return nil
 			}
-			if health.Status != "ok" {
-				return fmt.Errorf("not healthy: status %q", health.Status)
-			}
-			return nil
+			return last
 		},
 	}
-	cmd.Flags().StringVar(&url, "url", "http://127.0.0.1"+constants.ListenAddr, "the API to ask")
+	cmd.Flags().StringVar(&url, "url", "http://127.0.0.1"+constants.ListenAddr,
+		"the address to ask (default: the API, then the console)")
 	return cmd
+}
+
+// alive asks one address for its own /healthz and insists on the status both faces answer with.
+func alive(ctx context.Context, target string) error {
+	api, err := client.New(target, "")
+	if err != nil {
+		return err
+	}
+	health, err := api.Live(ctx)
+	if err != nil {
+		return fmt.Errorf("not healthy: %w", err)
+	}
+	if health.Status != "ok" {
+		return fmt.Errorf("not healthy: status %q", health.Status)
+	}
+	return nil
 }
 
 // serveAPI reads the environment once, builds the transport once, and serves until the context is
