@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"noxis/internal/client"
+	"noxis/internal/common/config"
 	"noxis/internal/common/dotconfig"
 	"noxis/internal/constants"
 	"noxis/internal/web"
@@ -56,9 +58,9 @@ func serveConsole(ctx context.Context, cmd *cobra.Command, port int, apiURL, pro
 	if port < 1 || port > 65535 {
 		return fmt.Errorf("port %d is outside 1-65535", port)
 	}
-	// A signed-in CLI already knows which API it talks to and which token it uses: the console is the
-	// same operator, in a browser, so it starts from the same session instead of asking again.
-	session, err := cliSession(profile, profile != "")
+	// The environment first, because a container has no CLI session; the stored profile after it, because
+	// a laptop has one. Either way the console signs the browser in as the operator it was given.
+	session, err := consoleSession(config.Console(), profile, profile != "")
 	if err != nil {
 		return err
 	}
@@ -70,6 +72,13 @@ func serveConsole(ctx context.Context, cmd *cobra.Command, port int, apiURL, pro
 	api, err := web.ParseAPI(apiURL)
 	if err != nil {
 		return err
+	}
+	// A token the API refuses must stop the console from listening. A page that serves a sign-in screen
+	// reads as "the console is up" to every health check that only asks for a port.
+	if session.Token != "" {
+		if err := prove(ctx, apiURL, session.Token); err != nil {
+			return err
+		}
 	}
 	console, err := web.New(web.Config{API: api, Token: session.Token})
 	if err != nil {
@@ -143,4 +152,32 @@ func built(compiled bool) string {
 		return "a console was built into this binary"
 	}
 	return "placeholder: run `npm run build` in web/ and copy it to internal/web/dist"
+}
+
+// consoleSession decides who the browser signs in as: the environment wins, because a container has no
+// CLI session, and the stored profile is the fallback, because a laptop has one.
+func consoleSession(env config.ConsoleEnv, name string, explicit bool) (dotconfig.Profile, error) {
+	if env.Token != "" || env.Host != "" {
+		return dotconfig.Profile{APIURL: env.Host, Token: env.Token}, nil
+	}
+	return cliSession(name, explicit)
+}
+
+// prove asks the API who this token is before the console listens. Only a refusal stops the start: a
+// name this process cannot resolve is not evidence that the token is wrong, and the browser may reach an
+// address the container cannot. The message names the API and the code, never the token.
+func prove(ctx context.Context, apiURL, token string) error {
+	api, err := client.New(apiURL, token)
+	if err != nil {
+		return err
+	}
+	if _, err := api.Whoami(ctx); err != nil {
+		var refused *client.Error
+		if errors.As(err, &refused) &&
+			(refused.Status == http.StatusUnauthorized || refused.Status == http.StatusForbidden) {
+			return fmt.Errorf("console: %s refused the token from the environment (%s): give it a token that caller holds, or start with none at all",
+				apiURL, refused.Code)
+		}
+	}
+	return nil
 }
