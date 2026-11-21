@@ -16,9 +16,17 @@ var (
 // ReleaseURL is where every update notice points: the releases page, never a raw asset.
 const ReleaseURL = "https://github.com/dimasbaguspm/noxis/releases"
 
-// VersionAsset is the artifact the publish job uploads beside the binaries, and the one file an update
-// check reads: a signed-out fetch of a release asset costs no API rate limit and cannot be scraped wrong.
-const VersionAsset = "https://github.com/dimasbaguspm/noxis/releases/download/nightly/version.json"
+// ReleaseBase is where the publish job puts every artifact of that one tag: the two binaries, the
+// checksums beside them, and version.json.
+const ReleaseBase = "https://github.com/dimasbaguspm/noxis/releases/download/nightly"
+
+// VersionAsset is the artifact an update check reads: a signed-out fetch of a release asset costs no API
+// rate limit and cannot be scraped wrong.
+const VersionAsset = ReleaseBase + "/version.json"
+
+// ChecksumsAsset lists the SHA-256 of both binaries. An upgrade that does not check it is a download that
+// trusts whatever answered.
+const ChecksumsAsset = ReleaseBase + "/SHA256SUMS"
 
 // Build is the one string a person reads: `nightly+db92d5a`, `v2.0.0+db92d5a`, or `dev`.
 func Build() string {

@@ -191,8 +191,14 @@ The version a build reports is the release line plus **7 characters of its commi
 - The **server** fetches `…/releases/download/nightly/version.json` at most once an hour;
   `GET /v1/version` answers `{version, commit, release_url, latest, newer}`.
 - The check runs on boot: one line on stderr for the CLI, and in the console a chip in the top bar naming
-  this build with an **Upgrade to latest** button beside it when there is somewhere to move to. Nothing
-  installs itself — every notice points at **https://github.com/dimasbaguspm/noxis/releases**.
+  this build with an **Upgrade to latest** button beside it when there is somewhere to move to.
+- `noxis upgrade --check` says whether this binary is behind; `noxis upgrade` replaces **the binary it is
+  running** with the published one, after verifying it against `SHA256SUMS`, and keeps the previous file as
+  `noxis.old`. Restart the process to use it. Inside a container it refuses and names the image instead,
+  because there the image is the upgrade.
+- There is deliberately **no route that upgrades a server**: a process cannot know whether systemd, compose
+  or a person started it, and an endpoint that rewrites its own binary is remote execution with a
+  changelog. `noxis auth status` names both builds when a CLI and the server it is signed in to differ.
 
 Cut a release: tag `v2.0.0` → CI publishes the image as `v2.0.0` and moves `latest`, and you publish the
 same three assets from that tag as a non-prerelease. Nightly keeps moving; a tag never does.
