@@ -3,10 +3,11 @@ import * as monaco from 'monaco-editor';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import { useEffect, useState } from 'react';
 
-// The schema diff is the evidence a reviewer decides from, and it was rendered in a plain read-only
-// editor: one column, no gutter, no sense of what was added to what. Monaco ships a diff editor and the
-// console already bundles Monaco, so the same rule applies — in the bundle, never a CDN, imported
-// lazily so a page with no diff never downloads it.
+// A diff is the evidence a reviewer decides from, and both of them — the schema the rehearsal rebuilt
+// and the rows it changed — are unified diffs the engine recorded. They used to be read-only editors:
+// one column, no gutter, no sense of what was added to what. Monaco ships a diff editor and the console
+// already bundles Monaco, so the same rule applies — in the bundle, never a CDN, imported lazily so a
+// page with no diff never downloads it.
 self.MonacoEnvironment = { getWorker: () => new editorWorker() };
 loader.config({ monaco });
 
@@ -47,7 +48,7 @@ function useWideLayout(): boolean {
   return wide;
 }
 
-export function SchemaDiff({ diff, height }: { diff: string; height?: number }) {
+export function TextDiff({ diff, height }: { diff: string; height?: number }) {
   const wide = useWideLayout();
   const { original, modified } = splitUnified(diff);
   // A four-line diff in a 240px box is mostly empty space: the box is as tall as the diff, up to a cap.
