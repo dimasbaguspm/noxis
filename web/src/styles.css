@@ -238,6 +238,19 @@ body {
   border-color: var(--color-line);
 }
 
+/* A card that reaches the bottom of its cell: the head keeps its height, the body takes the rest, so
+   a pair of cards in one grid row end on the same line instead of the shorter one stopping early. */
+.noxis-card.ant-card-stretch {
+  display: flex;
+  flex-direction: column;
+}
+
+.noxis-card.ant-card-stretch > .ant-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
 .noxis-card .ant-card-head {
   min-height: 40px;
   padding-inline: 14px;

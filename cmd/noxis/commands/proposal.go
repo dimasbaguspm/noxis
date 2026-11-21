@@ -208,12 +208,13 @@ func consoleOrigin(ctx context.Context, api *client.Client) string {
 	return version.ConsoleURL
 }
 
-// linkFor is the route the console already serves, `web/src/app/app.tsx`'s deepest one.
+// linkFor is the route the console already serves, `web/src/app/app.tsx`'s deepest one: an instance,
+// its changes tab, and one change.
 func linkFor(origin string, proposal client.Proposal) string {
 	if origin == "" || proposal.TargetRef == "" || proposal.Ref == "" {
 		return ""
 	}
-	return fmt.Sprintf("%s/targets/%s/proposals/%s", origin, proposal.TargetRef, proposal.Ref)
+	return fmt.Sprintf("%s/targets/%s/changes/%s", origin, proposal.TargetRef, proposal.Ref)
 }
 
 // printProposal prints the change, its verdict and the evidence. A reviewer decides from this, so

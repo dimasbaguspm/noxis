@@ -22,6 +22,10 @@ export type Column<T> = {
   showFrom?: Breakpoint;
   /** Pins the column while the rest scrolls. Needs a width to have something to pin. */
   fixed?: 'left' | 'right';
+  /** Values the header can be narrowed to. The filter matches the row's own field, named by `key`. */
+  filters?: { text: string; value: string }[];
+  /** For a column whose filter is not a straight comparison — a missing value read as "never". */
+  onFilter?: (value: string, row: T) => boolean;
 };
 
 const BREAKPOINTS: Breakpoint[] = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'];
@@ -70,6 +74,16 @@ export function DataTable<T>({
           align: column.align,
           width: column.width,
           fixed: column.fixed,
+          filters: column.filters,
+          // A filtered column has to be able to answer for itself: the value Ant Design passes back
+          // is compared with the row's own field, so a screen names the column once and never a
+          // second `onFilter` that repeats what `key` already says.
+          onFilter: column.onFilter
+            ? (value, row) => column.onFilter!(String(value), row)
+            : column.filters
+              ? (value, row) =>
+                  String((row as Record<string, unknown>)[column.key]) === String(value)
+              : undefined,
           responsive: column.showFrom
             ? BREAKPOINTS.slice(BREAKPOINTS.indexOf(column.showFrom))
             : undefined,

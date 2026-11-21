@@ -1,8 +1,16 @@
-import { ApiOutlined, DeleteOutlined, PlayCircleOutlined } from '@ant-design/icons';
-import { App as AntApp, Input, Segmented, Tabs, Tag } from 'antd';
+import {
+  ApiOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  MoreOutlined,
+  PlayCircleOutlined,
+} from '@ant-design/icons';
+import { App as AntApp, Dropdown, Input, Tabs, Tag } from 'antd';
+import type { MenuProps } from 'antd';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Can } from '../api/permissions';
+import { usePermissions } from '../api/permissions';
 import { Breadcrumb } from '../components/breadcrumb';
 import { Card } from '../components/card';
 import { Link, useParams } from 'react-router-dom';
@@ -23,11 +31,9 @@ import { CreateProposal } from '../components/create-proposal';
 import { DataTable } from '../components/data-table';
 import { EngineMark } from '../components/engine-mark';
 import { EditConnection } from '../components/edit-connection';
-import { Panel, Tile, Tiles } from '../components/panel';
 import { RenderWhen } from '../components/render-when';
 import { ResultSet } from '../components/result-set';
 import { StatusTag } from '../components/sql-block';
-import { Statistic } from '../components/statistic';
 import { Eyebrow, Heading, Text } from '../components/text';
 import { SqlEditor } from '../editor/sql-editor';
 import { TablesTab } from './tables-tab';
@@ -40,11 +46,16 @@ import { readDraft, writeDraft } from '../lib/draft';
 // — the API exposes columns and indexes, not foreign keys, and a diagram from half a graph is a
 // confident lie.
 
-type Tab = 'query' | 'tables' | 'changes';
+type Tab = 'details' | 'query' | 'tables' | 'changes';
+
+// The record comes first, the work after it, and each tab is a route of its own —
+// /targets/:ref/changes — so a tab can be linked, bookmarked, and survives a reload. The bare
+// `/targets/:ref` opens the first tab.
+const TABS: Tab[] = ['details', 'query', 'tables', 'changes'];
 
 export function TargetPage() {
-  const { ref = '' } = useParams();
-  const [tab, setTab] = useState<Tab>('query');
+  const { ref = '', tab: asked } = useParams();
+  const tab: Tab = TABS.includes(asked as Tab) ? (asked as Tab) : TABS[0];
   const target = useTarget(ref);
   const tables = useTables(ref, target.data?.database ?? '');
   const { modal, message } = AntApp.useApp();
@@ -82,66 +93,17 @@ export function TargetPage() {
         <RenderWhen condition={target.data}>
           {target.data ? (
             <>
-              <Card>
-                <div className="flex flex-col gap-4">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <Heading level={1} id="target-title">
-                      {target.data.name}
-                    </Heading>
-                    <EngineMark engine={target.data.driver} size={16} />
-                    <RenderWhen condition={target.data.archived_at}>
-                      <Tag>archived</Tag>
-                    </RenderWhen>
-                    <span className="flex-1" />
-                    <Can do="update:target">
-                      <EditConnection target={target.data} />
-                    </Can>
-                    <Can do="delete:target">
-                      <RenderWhen condition={!target.data.archived_at}>
-                        <AppButton intent="quiet" icon={<DeleteOutlined />} onClick={archiveIt}>
-                          Archive
-                        </AppButton>
-                      </RenderWhen>
-                    </Can>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <Statistic label="Version" value={target.data.server_version ?? '—'} />
-                    <Statistic
-                      label="Tables"
-                      value={tables.data ? tables.data.length : '—'}
-                      hint={target.data.database}
-                    />
-                    <Statistic label="Port" value={target.data.port} hint={target.data.tls_mode} />
-                    <Statistic
-                      label="Last answer"
-                      value={
-                        target.data.last_probe_at ? formatWhen(target.data.last_probe_at) : '—'
-                      }
-                      hint={target.data.last_probe_status ?? 'never probed'}
-                    />
-                  </div>
-
-                  <Panel>
-                    <Tiles>
-                      <Tile
-                        label="Host"
-                        mono
-                        value={`${target.data.username}@${target.data.host}`}
-                      />
-                      <Tile label="Database" mono value={target.data.database} />
-                      <Tile label="Registered by" value={target.data.created_by} />
-                    </Tiles>
-                  </Panel>
-
-                  <Connectivity target={target.data} />
-                </div>
-              </Card>
+              <InstanceHeader target={target.data} onArchive={archiveIt} />
 
               <Tabs
                 activeKey={tab}
-                onChange={(key) => setTab(key as Tab)}
+                onChange={(key) => navigate(`/targets/${ref}/${key}`)}
                 items={[
+                  {
+                    key: 'details',
+                    label: 'Details',
+                    children: <DetailsTab target={target.data} tableCount={tables.data?.length} />,
+                  },
                   {
                     key: 'query',
                     label: 'Query',
@@ -175,56 +137,142 @@ function schemaOf(database: string, tables: { name: string }[] | undefined): Sch
   return { database, tables: tables.map((table) => ({ name: table.name, columns: [] })) };
 }
 
-// Connectivity is why an operator opens this page: one button, the engine's own answer, and the time
-// it arrived. A failed probe is stored on the target, so a refresh does not forget it.
-function Connectivity({ target }: { target: Target }) {
+// The Details tab is the whole record in the shape that reads as a record: a definition list under an
+// "Overview" head, because the tab already says which tab it is. The header used to shout these as
+// numbers; the page above stays a name and a connectivity check.
+function DetailsTab({ target, tableCount }: { target: Target; tableCount?: number }) {
+  return (
+    <Card title="Overview">
+      <dl className="m-0 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Fact label="Version" value={target.server_version ?? 'not probed'} mono />
+        <Fact label="Host" value={`${target.username}@${target.host}`} mono />
+        <Fact label="Schema" value={target.database} mono />
+        <Fact label="Port" value={target.port} mono />
+        <Fact label="TLS" value={target.tls_mode} />
+        <Fact label="Tables" value={tableCount ?? 'counting'} />
+        <Fact
+          label="Last answer"
+          value={
+            target.last_probe_at
+              ? `${target.last_probe_status ?? 'answered'} · ${formatWhen(target.last_probe_at)}`
+              : 'never probed'
+          }
+        />
+        <Fact label="Registered by" value={target.created_by} />
+        <Fact label="Registered" value={formatWhen(target.created_at)} />
+        <Fact label="Password" value={target.has_password ? 'stored, sealed' : 'none'} />
+        <Fact label="Ref" value={target.ref} mono />
+      </dl>
+    </Card>
+  );
+}
+
+/** One row of the definition list: label above, value under it, monospaced when it is an identifier. */
+function Fact({ label, value, mono = false }: { label: string; value: ReactNode; mono?: boolean }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <dt>
+        <Eyebrow>{label}</Eyebrow>
+      </dt>
+      <dd className="m-0 flex min-w-0">
+        <Text size="sm" mono={mono} className="truncate">
+          {value}
+        </Text>
+      </dd>
+    </div>
+  );
+}
+
+// The header carries the two facts an operator reads before touching anything — which server answered
+// and whether it still does — and one menu for everything that can be done to the instance. The rest
+// of the record is the Details tab; a header that repeats it is a header nobody finishes reading.
+function InstanceHeader({ target, onArchive }: { target: Target; onArchive: () => void }) {
   const { message } = AntApp.useApp();
   const probe = useProbeTarget();
+  const { allows } = usePermissions();
+  const [editing, setEditing] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const ok = target.last_probe_status === 'ok';
 
+  // Archive is the destructive one and says so with red, inside the menu rather than beside Edit where
+  // a mis-aimed click used to be one pixel away from "the instance leaves the list".
+  const items: MenuProps['items'] = [
+    ...(allows('update:target')
+      ? [{ key: 'edit', icon: <EditOutlined />, label: 'Edit connection' }]
+      : []),
+    ...(allows('delete:target') && !target.archived_at
+      ? [{ key: 'archive', icon: <DeleteOutlined />, label: 'Archive', danger: true }]
+      : []),
+  ];
+
   return (
-    <div className="flex flex-col gap-2 border-t border-line pt-3">
-      <div className="flex flex-wrap items-center gap-2.5">
-        <Eyebrow>Connectivity</Eyebrow>
-        <RenderWhen condition={target.last_probe_status}>
-          <Tag color={ok ? 'green' : 'red'} className="m-0">
-            {ok ? 'reachable' : 'unreachable'}
-          </Tag>
-        </RenderWhen>
-        <RenderWhen condition={!target.last_probe_status}>
-          <Tag className="m-0">never probed</Tag>
-        </RenderWhen>
-        <Text size="xs" tone="muted">
-          {target.last_probe_at
-            ? `answered ${formatWhen(target.last_probe_at)}`
-            : 'not contacted yet'}
-        </Text>
-        <span className="flex-1" />
-        <AppButton
-          icon={<ApiOutlined />}
-          loading={probe.isPending}
-          onClick={() => {
-            setFailure(null);
-            probe.mutate(target.ref, {
-              onSuccess: (data) => {
-                void message.success({
-                  key: 'probe',
-                  content: `Answered as ${data.capabilities.version || data.capabilities.driver}`,
+    <>
+      <Card>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Heading level={1} size={2} id="target-title">
+              {target.name}
+            </Heading>
+            <EngineMark engine={target.driver} size={16} />
+            <RenderWhen condition={target.archived_at}>
+              <Tag className="m-0">archived</Tag>
+            </RenderWhen>
+            <Text size="sm" tone="muted" mono className="truncate">
+              {target.server_version ?? 'version unknown'}
+            </Text>
+            <div className="flex items-center gap-1.5">
+              <RenderWhen condition={target.last_probe_status}>
+                <Tag color={ok ? 'green' : 'red'} className="m-0">
+                  {ok ? 'reachable' : 'unreachable'}
+                </Tag>
+              </RenderWhen>
+              <RenderWhen condition={!target.last_probe_status}>
+                <Tag className="m-0">never probed</Tag>
+              </RenderWhen>
+              <Text size="xs" tone="muted">
+                {target.last_probe_at ? formatWhen(target.last_probe_at) : 'not contacted yet'}
+              </Text>
+            </div>
+            <span className="flex-1" />
+            <AppButton
+              icon={<ApiOutlined />}
+              loading={probe.isPending}
+              onClick={() => {
+                setFailure(null);
+                probe.mutate(target.ref, {
+                  onSuccess: (data) => {
+                    void message.success({
+                      key: 'probe',
+                      content: `Answered as ${data.capabilities.version || data.capabilities.driver}`,
+                    });
+                  },
+                  onError: (error) =>
+                    setFailure(error instanceof Error ? error.message : String(error)),
                 });
-              },
-              onError: (error) =>
-                setFailure(error instanceof Error ? error.message : String(error)),
-            });
-          }}
-        >
-          Test connection
-        </AppButton>
-      </div>
-      <RenderWhen condition={failure}>
-        <Alert tone="error" title="The instance did not answer" description={failure} />
-      </RenderWhen>
-    </div>
+              }}
+            >
+              Test connection
+            </AppButton>
+            <RenderWhen condition={items.length > 0}>
+              <Dropdown
+                trigger={['click']}
+                placement="bottomRight"
+                menu={{
+                  items,
+                  onClick: ({ key }) => (key === 'edit' ? setEditing(true) : onArchive()),
+                }}
+              >
+                <AppButton icon={<MoreOutlined />} aria-label="Instance actions" />
+              </Dropdown>
+            </RenderWhen>
+          </div>
+          <RenderWhen condition={failure}>
+            <Alert tone="error" title="The instance did not answer" description={failure} />
+          </RenderWhen>
+        </div>
+      </Card>
+      <EditConnection target={target} open={editing} onClose={() => setEditing(false)} />
+    </>
   );
 }
 
@@ -287,25 +335,37 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
       </RenderWhen>
       <RenderWhen condition={run.data}>
         {run.data ? (
-          <ResultSet
-            rows={run.data}
-            name={`${database}-${new Date().toISOString().slice(0, 19).replaceAll(':', '')}.csv`}
-          />
+          // The rows are a result, so they get a result card: the answer in its own frame, on the same
+          // DataTable as every other table in the console, instead of floating under the editor.
+          <Card title="Result">
+            <ResultSet
+              rows={run.data}
+              name={`${database}-${new Date().toISOString().slice(0, 19).replaceAll(':', '')}.csv`}
+            />
+          </Card>
         ) : null}
       </RenderWhen>
     </div>
   );
 }
 
+/** The states a proposal moves through, in order: what the status column can be narrowed to. */
+const PROPOSAL_STATUSES = [
+  'draft',
+  'verified',
+  'approved',
+  'applying',
+  'applied',
+  'failed',
+  'rejected',
+];
+
 function Changes({ target, schema }: { target: string; schema: Schema | null }) {
   const navigate = useNavigate();
-  const [status, setStatus] = useState('all');
   const [term, setTerm] = useState('');
-  const proposals = useProposals({
-    target,
-    status: status === 'all' ? undefined : status,
-    limit: 50,
-  });
+  // Kind and status are filtered in the table's own header — a column that can be narrowed says so
+  // where the operator is already reading. The title search stays above, where free text belongs.
+  const proposals = useProposals({ target, limit: 50 });
   const items = proposals.data?.items ?? [];
   const needle = term.trim().toLowerCase();
   const visible = needle
@@ -316,7 +376,7 @@ function Changes({ target, schema }: { target: string; schema: Schema | null }) 
       )
     : items;
 
-  const open = (ref: string) => navigate(`/targets/${target}/proposals/${ref}`);
+  const open = (ref: string) => navigate(`/targets/${target}/changes/${ref}`);
 
   return (
     <div className="flex flex-col gap-3">
@@ -329,76 +389,83 @@ function Changes({ target, schema }: { target: string; schema: Schema | null }) 
           aria-label="Filter changes by title"
           className="max-w-[240px]"
         />
-        <div className="max-w-full overflow-x-auto">
-          <Segmented
-            value={status}
-            onChange={(value) => setStatus(String(value))}
-            options={['all', 'verified', 'approved', 'applied', 'failed']}
-          />
-        </div>
         <span className="flex-1" />
-        <Text size="xs" tone="muted">
-          {visible.length} of {items.length}
-        </Text>
         <CreateProposal target={target} schema={schema} />
       </div>
 
-      <AsyncState
-        loading={proposals.isLoading}
-        error={proposals.error}
-        empty={visible.length === 0}
-        emptyDescription="Nothing matches"
-      >
-        <DataTable<Proposal>
-          rows={visible}
-          rowKey={(row) => row.ref}
-          compact
-          onRow={(row) => ({
-            onClick: () => open(row.ref),
-            onKeyDown: (event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                open(row.ref);
-              }
-            },
-            tabIndex: 0,
-            role: 'link',
-            'aria-label': `Open ${row.title}`,
-            className: 'cursor-pointer',
-          })}
-          columns={[
-            {
-              key: 'title',
-              title: 'Title',
-              render: (row) => (
-                <Link
-                  to={`/targets/${target}/proposals/${row.ref}`}
-                  className="text-brand-ink hover:underline"
-                >
-                  {row.title}
-                </Link>
-              ),
-            },
-            {
-              key: 'kind',
-              title: 'Kind',
-              width: 90,
-              render: (row) => (
-                <Text size="xs" tone="muted" className="font-semibold uppercase">
-                  {row.kind}
-                </Text>
-              ),
-            },
-            {
-              key: 'status',
-              title: 'Status',
-              width: 130,
-              render: (row) => <StatusTag status={row.status} />,
-            },
-            { key: 'proposed_by', title: 'Proposed by', showFrom: 'md' },
-          ]}
-        />
-      </AsyncState>
+      <Card title="All changes" extra={`${visible.length} of ${items.length}`} bodyClassName="p-2">
+        <AsyncState
+          loading={proposals.isLoading}
+          error={proposals.error}
+          empty={visible.length === 0}
+          emptyDescription={needle ? 'Nothing matches that title' : 'No changes yet'}
+        >
+          <DataTable<Proposal>
+            rows={visible}
+            rowKey={(row) => row.ref}
+            compact
+            onRow={(row) => ({
+              onClick: () => open(row.ref),
+              onKeyDown: (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  open(row.ref);
+                }
+              },
+              tabIndex: 0,
+              role: 'link',
+              'aria-label': `Open ${row.title}`,
+              className: 'cursor-pointer',
+            })}
+            columns={[
+              {
+                key: 'title',
+                title: 'Title',
+                render: (row) => (
+                  <Link
+                    to={`/targets/${target}/changes/${row.ref}`}
+                    className="text-brand-ink hover:underline"
+                  >
+                    {row.title}
+                  </Link>
+                ),
+              },
+              {
+                key: 'kind',
+                title: 'Kind',
+                width: 120,
+                filters: [
+                  { text: 'DDL', value: 'ddl' },
+                  { text: 'DML', value: 'dml' },
+                ],
+                render: (row) => (
+                  <Text size="xs" tone="muted" className="font-semibold uppercase">
+                    {row.kind}
+                  </Text>
+                ),
+              },
+              {
+                key: 'status',
+                title: 'Status',
+                width: 170,
+                filters: PROPOSAL_STATUSES.map((status) => ({ text: status, value: status })),
+                render: (row) => <StatusTag status={row.status} />,
+              },
+              {
+                key: 'updated_at',
+                title: 'Last update',
+                width: 140,
+                render: (row) => (
+                  <Text size="xs" tone="muted">
+                    {formatWhen(row.updated_at)}
+                  </Text>
+                ),
+              },
+              { key: 'proposed_by', title: 'Proposed by', showFrom: 'md' },
+            ]}
+          />
+        </AsyncState>
+      </Card>
     </div>
   );
 }

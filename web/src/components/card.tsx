@@ -16,6 +16,7 @@ export function Card({
   className,
   bodyClassName,
   loading = false,
+  stretch = false,
 }: {
   title?: ReactNode;
   extra?: ReactNode;
@@ -24,10 +25,12 @@ export function Card({
   className?: string;
   bodyClassName?: string;
   loading?: boolean;
+  /** Reaches the bottom of its cell, body included: for cards that sit beside a taller one. */
+  stretch?: boolean;
 }) {
   return (
     <AntCard
-      className={clsx('noxis-card', className)}
+      className={clsx('noxis-card', stretch && 'noxis-card-stretch', className)}
       loading={loading}
       title={title ? <Text className="font-semibold">{title}</Text> : undefined}
       extra={
@@ -39,7 +42,9 @@ export function Card({
       }
       styles={{ body: { padding: 0 } }}
     >
-      <div className={bodyClassName ?? 'p-4'}>{children}</div>
+      <div className={clsx(stretch && 'flex flex-1 flex-col', bodyClassName ?? 'p-4')}>
+        {children}
+      </div>
       {footer ? (
         <div className="noxis-card-footer flex flex-wrap items-center gap-2">{footer}</div>
       ) : null}

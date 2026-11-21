@@ -74,7 +74,7 @@ export function TablesTab({ ref_, registered }: { ref_: string; registered: stri
               emptyDescription="The schema has no tables"
               onRetry={() => void catalog.refetch()}
             >
-              <ul className="m-0 flex max-h-[26rem] list-none flex-col gap-0.5 overflow-y-auto p-0">
+              <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
                 {catalog.data?.map((entry) => (
                   <li key={entry.name}>
                     <button
@@ -106,16 +106,24 @@ export function TablesTab({ ref_, registered }: { ref_: string; registered: stri
         title={table ?? 'Rows'}
         extra={rows.data ? `${rows.data.row_count} rows` : undefined}
         bodyClassName="p-4"
+        stretch
       >
+        {/* Nothing to read is a sentence, not a grid with no cells in it: the empty state fills the
+            card so the two halves of the tab stay the same height. */}
         <RenderWhen
-          condition={table}
+          condition={table && !(rows.data && rows.data.row_count === 0)}
           fallback={
-            <EmptyState
-              compact
-              description={
-                catalog.isLoading ? 'Loading the schema' : 'This schema has no table to read'
-              }
-            />
+            <div className="flex flex-1 items-center justify-center">
+              <EmptyState
+                description={
+                  !table
+                    ? catalog.isLoading
+                      ? 'Loading the schema'
+                      : 'This schema has no table to read'
+                    : `${table} has no rows`
+                }
+              />
+            </div>
           }
         >
           <AsyncState

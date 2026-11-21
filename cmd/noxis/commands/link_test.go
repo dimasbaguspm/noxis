@@ -13,13 +13,13 @@ func TestLinkForIsTheConsolesOwnRoute(t *testing.T) {
 		TargetRef: "01a1fe92-1111-7222-8333-444455556666",
 	}
 	got := linkFor("https://noxis.example.com", proposal)
-	want := "https://noxis.example.com/targets/01a1fe92-1111-7222-8333-444455556666/proposals/01a1fe7d-9de3-7016-9a4b-3c2d1e0f9a8b"
+	want := "https://noxis.example.com/targets/01a1fe92-1111-7222-8333-444455556666/changes/01a1fe7d-9de3-7016-9a4b-3c2d1e0f9a8b"
 	if got != want {
 		t.Fatalf("linkFor = %q, want %q", got, want)
 	}
 	// A deployment mounted under a path keeps it: PUBLIC_URL is an origin plus a prefix, and the route is
 	// appended to whatever it said.
-	if got := linkFor("https://example.com/noxis", proposal); got != "https://example.com/noxis/targets/01a1fe92-1111-7222-8333-444455556666/proposals/01a1fe7d-9de3-7016-9a4b-3c2d1e0f9a8b" {
+	if got := linkFor("https://example.com/noxis", proposal); got != "https://example.com/noxis/targets/01a1fe92-1111-7222-8333-444455556666/changes/01a1fe7d-9de3-7016-9a4b-3c2d1e0f9a8b" {
 		t.Fatalf("prefixed linkFor = %q", got)
 	}
 }

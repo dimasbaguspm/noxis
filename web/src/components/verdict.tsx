@@ -147,24 +147,20 @@ const TONE_CLASS: Record<VerdictTone, string> = {
 /**
  * Verdict is the first thing a reviewer reads: one sentence that says what was proven, and the facts
  * that sentence rests on. It is not an Alert — nothing is wrong — so it is a band with a tone, not a
- * banner with an icon.
+ * banner with an icon. Two lines at most: the proof itself is the card below, and a banner that grows
+ * into a second card pushes the statement off the first screen.
  */
 export function Verdict({ verdict }: { verdict: Verdict }) {
   return (
-    <div className={`flex flex-col gap-3 rounded-xl border p-4 ${TONE_CLASS[verdict.tone]}`}>
-      <Text as="p" size="sm" className="font-medium">
+    <div
+      className={`flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-xl border px-3.5 py-2 ${TONE_CLASS[verdict.tone]}`}
+    >
+      <Text as="p" size="sm" className="line-clamp-2 min-w-0 flex-1 font-medium">
         {verdict.sentence}
       </Text>
-      <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-2">
-        {verdict.facts.map((fact) => (
-          <div key={fact.label} className="flex min-w-0 flex-col gap-0.5">
-            <dt className="text-[11px] font-semibold tracking-[0.08em] uppercase opacity-60">
-              {fact.label}
-            </dt>
-            <dd className="m-0 text-[13px] leading-snug">{fact.value}</dd>
-          </div>
-        ))}
-      </dl>
+      <Text size="xs" className="max-w-full truncate opacity-70">
+        {verdict.facts.map((fact) => `${fact.label} ${fact.value}`).join(' · ')}
+      </Text>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import type { TargetValues } from '../forms/schemas';
 import { Alert } from '../components/alert';
 import { AppButton } from '../components/app-button';
 import { AsyncState } from '../components/async-state';
+import { Card } from '../components/card';
 import { DataTable } from '../components/data-table';
 import { EngineMark } from '../components/engine-mark';
 import { AutoCompleteInput } from '../components/auto-complete-input';
@@ -42,6 +43,11 @@ export function TargetsPage() {
   const search = useDebounced(term, 250);
   const targets = useTargets(search);
   const items = targets.data?.pages.flatMap((page) => page.items) ?? [];
+  // A version filter can only offer what the loaded pages answered: the list pages by cursor, and the
+  // server does not report its distinct versions. Filtering is client-side over what is on screen.
+  const versions = [
+    ...new Set(items.map((item) => item.server_version).filter((v): v is string => Boolean(v))),
+  ];
 
   return (
     <section className="flex flex-col gap-5" aria-labelledby="instances-title">
@@ -68,130 +74,148 @@ export function TargetsPage() {
         </AppButton>
       </div>
 
-      <AsyncState
-        loading={targets.isLoading}
-        error={targets.error}
-        empty={items.length === 0}
-        emptyDescription={search ? `Nothing matches “${search}”` : 'No instance yet'}
-        emptyAction={
-          <AppButton intent="primary" onClick={() => setCreating(true)}>
-            Register the first one
-          </AppButton>
-        }
-        onRetry={() => void targets.refetch()}
+      <Card
+        title="All instances"
+        extra={targets.hasNextPage ? `${items.length} loaded` : `${items.length} instances`}
+        bodyClassName="p-2"
       >
-        <DataTable<Target>
-          rows={items}
-          rowKey={(row) => row.ref}
-          minWidth={720}
-          sticky
-          onRow={(row) => ({
-            onClick: () => navigate(`/targets/${row.ref}`),
-            onKeyDown: (event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                navigate(`/targets/${row.ref}`);
-              }
-            },
-            tabIndex: 0,
-            role: 'link',
-            'aria-label': `Open ${row.name}`,
-            className: 'cursor-pointer',
-          })}
-          columns={[
-            {
-              key: 'name',
-              title: 'Name',
-              width: 170,
-              render: (row) => (
-                <span className="flex items-center gap-2">
-                  <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-sm bg-brand" />
-                  <Text className="font-semibold">{row.name}</Text>
-                  <RenderWhen condition={row.archived_at}>
-                    <Tag className="m-0">archived</Tag>
-                  </RenderWhen>
-                </span>
-              ),
-            },
-            {
-              key: 'driver',
-              title: 'Engine',
-              width: 100,
-              render: (row) => <EngineMark engine={row.driver} />,
-            },
-            {
-              key: 'host',
-              title: 'Host',
-              width: 150,
-              render: (row) => (
-                <Text mono size="sm" tone="muted">
-                  {row.host}:{row.port}
-                </Text>
-              ),
-            },
-            {
-              key: 'server_version',
-              title: 'Version',
-              width: 100,
-              render: (row) => (
-                <Text mono size="sm" tone="muted">
-                  {row.server_version ?? '—'}
-                </Text>
-              ),
-            },
-            {
-              key: 'last_probe_status',
-              title: 'Probe',
-              width: 120,
-              render: (row) => (
-                <div className="flex flex-col items-start gap-1">
-                  {row.last_probe_status ? (
-                    <Tag color={row.last_probe_status === 'ok' ? 'green' : 'red'} className="m-0">
-                      {row.last_probe_status}
-                    </Tag>
-                  ) : (
-                    <Text tone="muted" size="sm">
-                      never
-                    </Text>
-                  )}
-                  <RenderWhen condition={row.last_probe_at}>
-                    <Text size="xs" tone="muted">
-                      {formatWhen(row.last_probe_at)}
-                    </Text>
-                  </RenderWhen>
-                </div>
-              ),
-            },
-            {
-              key: 'open',
-              title: '',
-              width: 78,
-              align: 'right',
-              render: (row) => (
-                <AppButton
-                  size="small"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    navigate(`/targets/${row.ref}`);
-                  }}
-                >
-                  Open
-                </AppButton>
-              ),
-            },
-          ]}
-        />
-        <RenderWhen condition={targets.hasNextPage}>
-          <div className="mt-4 flex justify-center">
-            <AppButton
-              onClick={() => void targets.fetchNextPage()}
-              loading={targets.isFetchingNextPage}
-            >
-              Load more
+        <AsyncState
+          loading={targets.isLoading}
+          error={targets.error}
+          empty={items.length === 0}
+          emptyDescription={search ? `Nothing matches “${search}”` : 'No instance yet'}
+          emptyAction={
+            <AppButton intent="primary" onClick={() => setCreating(true)}>
+              Register the first one
             </AppButton>
-          </div>
-        </RenderWhen>
-      </AsyncState>
+          }
+          onRetry={() => void targets.refetch()}
+        >
+          <DataTable<Target>
+            rows={items}
+            rowKey={(row) => row.ref}
+            minWidth={720}
+            sticky
+            onRow={(row) => ({
+              onClick: () => navigate(`/targets/${row.ref}`),
+              onKeyDown: (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  navigate(`/targets/${row.ref}`);
+                }
+              },
+              tabIndex: 0,
+              role: 'link',
+              'aria-label': `Open ${row.name}`,
+              className: 'cursor-pointer',
+            })}
+            columns={[
+              {
+                key: 'name',
+                title: 'Name',
+                width: 170,
+                render: (row) => (
+                  <span className="flex items-center gap-2">
+                    <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-sm bg-brand" />
+                    <Text className="font-semibold">{row.name}</Text>
+                    <RenderWhen condition={row.archived_at}>
+                      <Tag className="m-0">archived</Tag>
+                    </RenderWhen>
+                  </span>
+                ),
+              },
+              {
+                key: 'driver',
+                title: 'Engine',
+                width: 120,
+                filters: [
+                  { text: 'MySQL', value: 'mysql' },
+                  { text: 'MariaDB', value: 'mariadb' },
+                ],
+                render: (row) => <EngineMark engine={row.driver} />,
+              },
+              {
+                key: 'host',
+                title: 'Host',
+                width: 150,
+                render: (row) => (
+                  <Text mono size="sm" tone="muted">
+                    {row.host}:{row.port}
+                  </Text>
+                ),
+              },
+              {
+                key: 'server_version',
+                title: 'Version',
+                width: 150,
+                filters: versions.map((version) => ({ text: version, value: version })),
+                render: (row) => (
+                  <Text mono size="sm" tone="muted">
+                    {row.server_version ?? '—'}
+                  </Text>
+                ),
+              },
+              {
+                key: 'last_probe_status',
+                title: 'Probe',
+                width: 140,
+                filters: [
+                  { text: 'ok', value: 'ok' },
+                  { text: 'failed', value: 'failed' },
+                  { text: 'never', value: 'never' },
+                ],
+                // A target nobody probed has no status at all, and "never" is the word the column shows.
+                onFilter: (value, row) => (row.last_probe_status ?? 'never') === value,
+                render: (row) => (
+                  <div className="flex flex-col items-start gap-1">
+                    {row.last_probe_status ? (
+                      <Tag color={row.last_probe_status === 'ok' ? 'green' : 'red'} className="m-0">
+                        {row.last_probe_status}
+                      </Tag>
+                    ) : (
+                      <Text tone="muted" size="sm">
+                        never
+                      </Text>
+                    )}
+                    <RenderWhen condition={row.last_probe_at}>
+                      <Text size="xs" tone="muted">
+                        {formatWhen(row.last_probe_at)}
+                      </Text>
+                    </RenderWhen>
+                  </div>
+                ),
+              },
+              {
+                key: 'open',
+                title: '',
+                width: 78,
+                align: 'right',
+                render: (row) => (
+                  <AppButton
+                    size="small"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(`/targets/${row.ref}`);
+                    }}
+                  >
+                    Open
+                  </AppButton>
+                ),
+              },
+            ]}
+          />
+          <RenderWhen condition={targets.hasNextPage}>
+            <div className="mt-4 flex justify-center">
+              <AppButton
+                onClick={() => void targets.fetchNextPage()}
+                loading={targets.isFetchingNextPage}
+              >
+                Load more
+              </AppButton>
+            </div>
+          </RenderWhen>
+        </AsyncState>
+      </Card>
 
       <Drawer
         title="New instance"

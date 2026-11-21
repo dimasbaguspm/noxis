@@ -28,7 +28,7 @@ export function CreateProposal({ target, schema }: { target: string; schema: Sch
     <>
       <Can do="propose">
         <AppButton intent="primary" icon={<PlusOutlined />} onClick={() => setOpen(true)}>
-          New change
+          New
         </AppButton>
       </Can>
 
@@ -62,7 +62,7 @@ export function CreateProposal({ target, schema }: { target: string; schema: Sch
             setOpen(false);
             // The proposal exists now: land on it, where the statement, the rollback, the kind and the
             // rehearsal are already on screen. A toast that disappears is not a place to read evidence.
-            navigate(`/targets/${target}/proposals/${filed.ref}`);
+            navigate(`/targets/${target}/changes/${filed.ref}`);
           }}
         >
           <TextInput

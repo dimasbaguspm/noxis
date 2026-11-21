@@ -56,13 +56,16 @@ export function SqlBlock({
 }
 
 // A status is a tag, and the colour is decided here so two screens cannot colour "failed" differently.
+// The ladder reads left to right: not yet decided, rehearsed, approved, landing, landed — and red is
+// the one colour that means somebody has to look.
 const COLOURS: Record<string, string> = {
-  verified: 'green',
+  draft: 'default',
+  verified: 'cyan',
   partial: 'gold',
   failed: 'red',
   approved: 'blue',
   applied: 'green',
-  applying: 'processing',
+  applying: 'purple',
   rejected: 'default',
   archived: 'default',
 };
