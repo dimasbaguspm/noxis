@@ -55,6 +55,21 @@ noxis target test --host db.internal --port 3306 --driver mysql \
 The answer includes the **schemas those credentials can see**. TLS: `preferred` (default), `verify`,
 `skip-verify` (self-signed — development only).
 
+### More than one deployment
+
+A laptop holds several sessions, and the one a command uses is the one you name:
+
+```bash
+noxis auth signin <token> --api-url https://staging.example --profile staging
+noxis auth ls                       # the * marks the profile in use
+noxis auth use default              # switch what every command uses
+noxis target ls --profile staging   # or only for this command
+```
+
+`--profile` is a global flag: it works on every command, `noxis web serve --profile staging` included.
+`auth status` prints the profile a bare command would use, marked `(current)` — "which server did that?"
+is never a guess.
+
 ## 4. Register
 
 ```bash

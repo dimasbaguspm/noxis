@@ -146,3 +146,34 @@ func contains(haystack, needle string) bool {
 	}
 	return false
 }
+
+// Switching between two stored sessions is a decision about the next command, not a re-signin: both tokens
+// are already on disk, and the one that was left behind has to still be there afterwards.
+func TestUseSwitchesTheCurrentProfile(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	cfg, err := dotconfig.Load()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	cfg.Put("default", dotconfig.Profile{APIURL: "https://one.example", Token: "t1"})
+	cfg.Put("staging", dotconfig.Profile{APIURL: "https://two.example", Token: "t2"})
+	if err := cfg.Save(); err != nil {
+		t.Fatalf("save: %v", err)
+	}
+
+	if err := cfg.Use("staging"); err != nil {
+		t.Fatalf("use staging: %v", err)
+	}
+	if cfg.Current != "staging" {
+		t.Fatalf("current = %q, want staging", cfg.Current)
+	}
+	if err := cfg.Use("nope"); !errors.Is(err, dotconfig.ErrNoProfile) {
+		t.Fatalf("use nope = %v, want ErrNoProfile", err)
+	}
+	if cfg.Current != "staging" {
+		t.Fatalf("a refused switch changed the current profile to %q", cfg.Current)
+	}
+	if names := cfg.Names(); len(names) != 2 || names[0] != "default" || names[1] != "staging" {
+		t.Fatalf("names = %v, want both profiles in order", names)
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 )
 
@@ -143,3 +144,24 @@ func (c *Config) Forget(name string) error {
 
 // Path reports where this config came from, or would be written.
 func (c Config) FilePath() string { return c.path }
+
+// Use makes an existing profile the current one. Switching is a separate act from signing in: a person
+// with a production profile and a staging profile already holds both tokens, and wants to say which one
+// the next command is about.
+func (c *Config) Use(name string) error {
+	if _, ok := c.Profiles[name]; !ok {
+		return fmt.Errorf("%w: %q", ErrNoProfile, name)
+	}
+	c.Current = name
+	return nil
+}
+
+// Names lists the stored profiles in order, so a command that names them all says the same thing twice.
+func (c Config) Names() []string {
+	names := make([]string, 0, len(c.Profiles))
+	for name := range c.Profiles {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}

@@ -20,7 +20,7 @@ func NewAuth(s *Session) *cobra.Command {
 		Use:   "auth",
 		Short: "Sign in to a noxisd, read the session, or forget it",
 	}
-	auth.AddCommand(newSignin(s), newStatus(s), newSignout(s))
+	auth.AddCommand(newSignin(s), newStatus(s), newSignout(s), newUse(), newLs())
 	return auth
 }
 
@@ -38,6 +38,9 @@ func newSignin(s *Session) *cobra.Command {
 			if token == "" {
 				return errors.New("signin needs a token: noxis auth signin <token> --api-url <url>")
 			}
+			// --profile is the one switch every command shares, so it names the profile here too: signing
+			// in to a second server should not mean learning a second flag.
+			name := first(name, s.Profile, "default")
 			apiURL := first(s.APIURL, os.Getenv("API_URL"), constants.DefaultAPIURL)
 			api, err := client.New(apiURL, token)
 			if err != nil {
@@ -63,12 +66,12 @@ func newSignin(s *Session) *cobra.Command {
 			if err := cfg.Save(); err != nil {
 				return err
 			}
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "signed in to %s as %s (%s), stored in %s\n",
-				apiURL, identity.Name, strings.Join(identity.Scopes, ","), cfg.FilePath())
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "signed in to %s as %s (%s) as profile %q, stored in %s\n",
+				apiURL, identity.Name, strings.Join(identity.Scopes, ","), name, cfg.FilePath())
 			return err
 		},
 	}
-	cmd.Flags().StringVar(&name, "name", "default", "the profile name to store the token under")
+	cmd.Flags().StringVar(&name, "name", "", "the profile to store the token under (the same as --profile; --profile wins)")
 	return cmd
 }
 
@@ -88,6 +91,12 @@ func newStatus(s *Session) *cobra.Command {
 			name := first(s.Profile, cfg.Current)
 			if name == "" {
 				return fmt.Errorf("not signed in: run `noxis auth signin <token> --api-url %s`", constants.DefaultAPIURL)
+			}
+			// Which profile this is, and whether it is the one a bare command would use: a machine can
+			// hold several sessions, and "which one am I talking to" has to be answerable.
+			mark := ""
+			if name == cfg.Current {
+				mark = " (current)"
 			}
 			stored, err := cfg.Profile(name)
 			if err != nil {
@@ -121,8 +130,8 @@ func newStatus(s *Session) *cobra.Command {
 				}{name, stored.APIURL, identity.Name, identity.Scopes, stored.CheckedAt, cfg.FilePath()})
 			}
 			_, err = fmt.Fprintf(cmd.OutOrStdout(),
-				"profile:\t%s\nserver:\t%s\ncaller:\t%s\nscopes:\t%s\nchecked:\tjust now\nfile:\t%s\n",
-				name, stored.APIURL, identity.Name, strings.Join(identity.Scopes, ","), cfg.FilePath())
+				"profile:\t%s%s\nserver:\t%s\ncaller:\t%s\nscopes:\t%s\nchecked:\tjust now\nfile:\t%s\n",
+				name, mark, stored.APIURL, identity.Name, strings.Join(identity.Scopes, ","), cfg.FilePath())
 			return err
 		},
 	}
@@ -157,6 +166,70 @@ func newSignout(s *Session) *cobra.Command {
 	}
 	cmd.Flags().StringVar(&name, "name", "", "which profile to remove (default the current one)")
 	return cmd
+}
+
+// newUse switches which stored profile the next command is about, without signing in again: both tokens
+// are already on disk, and a person moving between a staging and a production server should not have to
+// paste one of them back in.
+func newUse() *cobra.Command {
+	return &cobra.Command{
+		Use:         "use <profile>",
+		Short:       "Make a stored profile the one every command uses",
+		Args:        cobra.ExactArgs(1),
+		Annotations: map[string]string{constants.AnnoNoToken: "true"},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := dotconfig.Load()
+			if err != nil {
+				return err
+			}
+			if err := cfg.Use(args[0]); err != nil {
+				return fmt.Errorf("%w — stored profiles: %s", err, strings.Join(cfg.Names(), ", "))
+			}
+			if err := cfg.Save(); err != nil {
+				return err
+			}
+			stored, err := cfg.Profile(args[0])
+			if err != nil {
+				return err
+			}
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "profile:\t%s\nserver:\t%s\ncaller:\t%s\n",
+				args[0], stored.APIURL, stored.Caller)
+			return err
+		},
+	}
+}
+
+// newLs answers "which sessions does this machine hold, and which one is in use": the name a command takes
+// as --profile, where it points, and who it is signed in as.
+func newLs() *cobra.Command {
+	return &cobra.Command{
+		Use:         "ls",
+		Aliases:     []string{"list", "profiles"},
+		Short:       "List the stored profiles, marking the one in use",
+		Args:        cobra.NoArgs,
+		Annotations: map[string]string{constants.AnnoNoToken: "true"},
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cfg, err := dotconfig.Load()
+			if err != nil {
+				return err
+			}
+			if len(cfg.Profiles) == 0 {
+				return fmt.Errorf("not signed in: run `noxis auth signin <token> --api-url %s`", constants.DefaultAPIURL)
+			}
+			for _, name := range cfg.Names() {
+				stored := cfg.Profiles[name]
+				mark := " "
+				if name == cfg.Current {
+					mark = "*"
+				}
+				if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s %-10s %-34s %s (%s)\n",
+					mark, name, stored.APIURL, stored.Caller, strings.Join(stored.Scopes, ",")); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	}
 }
 
 // configPathHint names the file without failing when the home directory cannot be found: a message
