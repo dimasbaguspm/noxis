@@ -1471,7 +1471,7 @@ paths:
                 - read
     /v1/targets/test:
         post:
-            description: Opens one connection with the credentials as typed and answers what the engine said. Requires the read scope.
+            description: 'Opens one connection with the credentials as typed and answers what the engine said. Requires the admin scope: the caller chooses the address, so this is the one route that can be aimed at the deployment''s own network.'
             requestBody:
                 content:
                     application/json:
@@ -1513,7 +1513,7 @@ paths:
             tags:
                 - targets
             x-scopes:
-                - read
+                - admin
     /v1/version:
         get:
             description: The version answering, the release page, and the newest published build when it could be read.

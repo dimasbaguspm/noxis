@@ -149,7 +149,7 @@ func (h *Handlers) CreateTarget(w http.ResponseWriter, r *http.Request) {
 // before it becomes a row. Nothing is written and nothing is journaled: a test that leaves a
 // trace is a probe, and a probe is what a stored target gets.
 // @Summary Test a configuration
-// @Description Opens one connection with the credentials as typed and answers what the engine said. Requires the read scope.
+// @Description Opens one connection with the credentials as typed and answers what the engine said. Requires the admin scope: the caller chooses the address, so this is the one route that can be aimed at the deployment's own network.
 // @Tags targets
 // @Accept json
 // @Produce json

@@ -1618,7 +1618,7 @@
     },
     "/v1/targets/test": {
       "post": {
-        "description": "Opens one connection with the credentials as typed and answers what the engine said. Requires the read scope.",
+        "description": "Opens one connection with the credentials as typed and answers what the engine said. Requires the admin scope: the caller chooses the address, so this is the one route that can be aimed at the deployment's own network.",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1685,7 +1685,7 @@
           "targets"
         ],
         "x-scopes": [
-          "read"
+          "admin"
         ]
       }
     },
