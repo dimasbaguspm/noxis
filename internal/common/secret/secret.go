@@ -53,35 +53,43 @@ func ParseKey(s string) ([]byte, error) {
 	return nil, fmt.Errorf("secret: key is not %d bytes as hex or base64", KeyLength)
 }
 
-// Keyring seals with the one key the deployment was given. There is no previous key: a state file
-// sealed with another one refuses, and the refusal says to re-enter the password rather than
-// pretending a rotation is transparent.
+// Keyring seals with the current key and opens with the current key or any previous one. Rotation is a
+// deployment decision — add the old key with SECRET_KEY_OLD, re-save the passwords, then drop it — so a
+// row sealed before a rotation still opens while the operator works through the targets, and every value
+// written after it is sealed by the key they intend to keep.
 type Keyring struct {
-	key []byte
+	// keys[0] seals; all of them open, current first.
+	keys [][]byte
 }
 
-// New builds a keyring. An empty key is allowed — the server runs, and a target that carries a
-// password cannot be registered until a key is set. A key of the wrong length is an error rather
-// than a silent truncation.
-func New(key []byte) (*Keyring, error) {
-	if len(key) == 0 {
-		return &Keyring{}, nil
+// New builds a keyring with one key. An empty key is allowed — the server runs, and a target that
+// carries a password cannot be registered until a key is set.
+func New(key []byte) (*Keyring, error) { return NewWithPrevious(key) }
+
+// NewWithPrevious builds a keyring that seals with current and also opens what previous sealed.
+func NewWithPrevious(current []byte, previous ...[]byte) (*Keyring, error) {
+	keys := make([][]byte, 0, 1+len(previous))
+	for _, key := range append([][]byte{current}, previous...) {
+		if len(key) == 0 {
+			continue
+		}
+		if len(key) != KeyLength {
+			return nil, fmt.Errorf("secret: key is %d bytes, want %d", len(key), KeyLength)
+		}
+		keys = append(keys, key)
 	}
-	if len(key) != KeyLength {
-		return nil, fmt.Errorf("secret: key is %d bytes, want %d", len(key), KeyLength)
-	}
-	return &Keyring{key: key}, nil
+	return &Keyring{keys: keys}, nil
 }
 
 // Enabled reports whether anything can be sealed.
-func (k *Keyring) Enabled() bool { return k != nil && len(k.key) > 0 }
+func (k *Keyring) Enabled() bool { return k != nil && len(k.keys) > 0 }
 
 // Seal encrypts plain with the current key, binding it to aad.
 func (k *Keyring) Seal(aad string, plain []byte) (string, error) {
 	if !k.Enabled() {
 		return "", ErrNoKey
 	}
-	gcm, err := newGCM(k.key)
+	gcm, err := newGCM(k.keys[0])
 	if err != nil {
 		return "", err
 	}
@@ -92,7 +100,7 @@ func (k *Keyring) Seal(aad string, plain []byte) (string, error) {
 	return prefix + base64.StdEncoding.EncodeToString(gcm.Seal(nonce, nonce, plain, []byte(aad))), nil
 }
 
-// Open decrypts a sealed value with the key this process was given.
+// Open decrypts a sealed value with the current key, then with every previous one.
 func (k *Keyring) Open(aad, sealed string) ([]byte, error) {
 	if !k.Enabled() {
 		return nil, ErrNoKey
@@ -105,18 +113,20 @@ func (k *Keyring) Open(aad, sealed string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrOpen, err)
 	}
-	gcm, err := newGCM(k.key)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrOpen, err)
+	for _, key := range k.keys {
+		gcm, err := newGCM(key)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %w", ErrOpen, err)
+		}
+		if len(raw) < gcm.NonceSize() {
+			return nil, ErrOpen
+		}
+		plain, err := gcm.Open(nil, raw[:gcm.NonceSize()], raw[gcm.NonceSize():], []byte(aad))
+		if err == nil {
+			return plain, nil
+		}
 	}
-	if len(raw) < gcm.NonceSize() {
-		return nil, ErrOpen
-	}
-	plain, err := gcm.Open(nil, raw[:gcm.NonceSize()], raw[gcm.NonceSize():], []byte(aad))
-	if err != nil {
-		return nil, fmt.Errorf("%w: the sealed value was written with another key, so it cannot be opened — re-enter the target password", ErrOpen)
-	}
-	return plain, nil
+	return nil, fmt.Errorf("%w: the sealed value was written with a key this deployment does not hold — set SECRET_KEY_OLD to the key that wrote it, or re-enter the target password", ErrOpen)
 }
 
 func newGCM(key []byte) (cipher.AEAD, error) {

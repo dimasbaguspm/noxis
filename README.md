@@ -98,6 +98,7 @@ All environment, nothing else. `.env.example` is the full list.
 | --- | --- |
 | `TOKENS` / `TOKENS_FILE` | `{"<name>":{"secret":"…","scopes":[…]}}` — the *name* is what the journal records |
 | `SECRET_KEY` | 32 bytes hex/base64; seals target passwords (AES-256-GCM, AAD = target ref) |
+| `SECRET_KEY_OLD` | comma-separated keys that no longer seal but may still open — the rotation window |
 | `CONSOLE_ORIGINS` | browser origins allowed to call the API |
 | `CONSOLE_HOST` / `CONSOLE_TOKEN` | API the browser should reach, and the token it gets (proved at boot) |
 | `QUERY_TIMEOUT` / `PROBE_TIMEOUT` | `30s` / `5s` |
@@ -114,6 +115,12 @@ docker run -d --name noxis --read-only -p 9000:9000 \
 ```
 
 - State file: `/data/noxis.db` — **back it up like a database**, it is the journal.
+- Upgrades migrate it: the schema is versioned and each bump is a step that runs once, in a transaction.
+  A file from a *newer* build is refused rather than guessed at.
+- Rotating `SECRET_KEY`: set the old key as `SECRET_KEY_OLD`, restart, re-save each password
+  (`noxis instance set <ref> --password … --probe`), then drop the old key.
+- One apply per instance at a time: applies take an in-process lock on the target, so two reviewers
+  clicking apply queue instead of racing the DDL.
 - Image: distroless, uid **65532**, read-only rootfs, its own healthcheck.
 - Rehearsal grants (optional; without them the rehearsal is static):
 
@@ -189,5 +196,4 @@ Layout: `cmd/noxis/{http,commands,web}` · `internal/{domain,ports,app,adapters,
 
 ## License
 
-Not declared yet — a `LICENSE` file is the one thing standing between this repo and a stranger
-self-hosting it. Until then: source-available, ask first.
+MIT — see [LICENSE](LICENSE).

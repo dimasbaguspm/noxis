@@ -118,9 +118,10 @@ seam next to the struct: `var _ ports.Driver = (*DB)(nil)`.
 - **Artifacts are permanent.** A proposal is never deleted; a target is archived
   (`archived_at`), never removed; the journal is append-only. A failed rehearsal is
   stored as `failed` and can be re-run.
-- **State file:** schema is versioned with `PRAGMA user_version`; no runtime
-  migration. A mismatched version fails with a reset instruction rather than
-  silently dropping a journal.
+- **State file:** schema is versioned with `PRAGMA user_version`, and a bump is a **step** in
+  `migrations` (`internal/adapters/sqlite/open.go`): statements plus the stamp commit in one
+  transaction. The history only grows; a file from a newer build is refused. A ticket that changes the
+  schema appends a step, never edits one.
 - **Build a string with `fmt.Sprintf`, not `+`.** A chain of literals and values reads worse than the
   template it already is. The exception is a single separator with nothing else around it, and a SQL
   fragment that is entirely constant stays a constant.

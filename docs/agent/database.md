@@ -12,21 +12,21 @@ a cache, which is why nothing here migrates one.
 2. Opens the file with `journal_mode(WAL)`, `busy_timeout(5000)`, `foreign_keys(1)`,
    `synchronous(NORMAL)`, and **one** connection: SQLite serialises writes anyway, and a
    single writer is what makes a claim-then-act pattern behind `apply` honest.
-3. Reads `PRAGMA user_version`:
+3. Reads `PRAGMA user_version` and migrates forward:
    - equal to `SchemaVersion` → ready;
-   - zero and the file holds no tables → create the schema and stamp the version;
+   - zero and the file holds no tables → the whole history runs, oldest first;
    - zero but the file holds tables → refuse: it is not a state file this build wrote;
-   - anything else → refuse with the version it found and the one this build speaks.
-4. A refusal names the path and says to start with a fresh file. There is no downgrade
-   path and no migration, because silently dropping a journal is worse than a failed boot.
+   - lower than `SchemaVersion` → every step the file has not seen runs, in order;
+   - higher than `SchemaVersion` → refuse: a build that knows more than this one wrote it.
+4. Each step is one transaction: its statements and its `PRAGMA user_version` commit together, so an
+   interrupted migration leaves the file exactly where it was. There is no downgrade path.
 
-`SchemaVersion` lives next to the schema in `internal/adapters/sqlite/open.go`. A ticket
-that changes the schema bumps it.
+`SchemaVersion` and the `migrations` list live next to the schema in
+`internal/adapters/sqlite/open.go`. A ticket that changes the schema **appends a step** and bumps
+`SchemaVersion`; the history only ever grows. It started over at v1 when this runner arrived — before
+that, a version bump was a reset.
 
-## Tables (schema v5)
-
-An older file is refused rather than migrated, like any other version: the reset is the
-migration.
+## Tables (schema v1)
 
 **targets** — the servers this build governs.
 

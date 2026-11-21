@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"noxis/internal/app/password"
+	"noxis/internal/common/keyed"
 	"noxis/internal/common/ref"
 	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
@@ -30,6 +31,9 @@ type Deps struct {
 	// ProbeTimeout bounds the probe that follows a successful apply, from PROBE_TIMEOUT: it is a
 	// connection, and a connection that hangs is one nobody bounded.
 	ProbeTimeout time.Duration
+	// Locks serialises applies against one target. One process, one writer: this is the referee the engine
+	// would otherwise be, and it turns a lost DDL race into a queue.
+	Locks *keyed.Group
 }
 
 // rehearse proves one proposal and stores the evidence. Every attempt is stored, including the

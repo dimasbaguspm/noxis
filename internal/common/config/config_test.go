@@ -1,10 +1,16 @@
 package config
 
 import (
+	"noxis/internal/common/secret"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
+
+// testTokens is the one caller every LoadFrom test needs: an environment with no token is refused before
+// anything else is read.
+const testTokens = `{"ops":{"secret":"sk_ops_0123456789abcdef0123456789aa","scopes":["read"]}}`
 
 func env(values map[string]string) func(string) string {
 	return func(key string) string { return values[key] }
@@ -104,5 +110,41 @@ func TestConsoleOriginsRefuseAPath(t *testing.T) {
 	}
 	if _, err := ParseOrigins(" , "); err == nil {
 		t.Fatal("ParseOrigins accepted an empty list")
+	}
+}
+
+// A rotation is declared, not inferred: SECRET_KEY seals, SECRET_KEY_OLD may still open. The keys are
+// A rotation is declared, not inferred: SECRET_KEY seals, SECRET_KEY_OLD may still open. Both are parsed
+// here so a typo in either fails at boot instead of on the one target that mattered.
+func TestLoadReadsTheRotationWindow(t *testing.T) {
+	cfg, err := LoadFrom(env(map[string]string{
+		"TOKENS":         testTokens,
+		"SECRET_KEY":     strings.Repeat("a", 64),
+		"SECRET_KEY_OLD": strings.Repeat("b", 64) + " , " + strings.Repeat("c", 64),
+	}))
+	if err != nil {
+		t.Fatalf("LoadFrom: %v", err)
+	}
+	if len(cfg.SecretKey) != secret.KeyLength {
+		t.Fatalf("current key is %d bytes, want %d", len(cfg.SecretKey), secret.KeyLength)
+	}
+	if len(cfg.SecretKeyOld) != 2 {
+		t.Fatalf("old keys = %d, want 2 (a comma-separated list, whitespace trimmed)", len(cfg.SecretKeyOld))
+	}
+}
+
+// A previous key of the wrong length is an error at boot, because a keyring that silently drops it would
+// refuse every row that key sealed.
+func TestLoadRefusesAnOldKeyOfTheWrongLength(t *testing.T) {
+	_, err := LoadFrom(env(map[string]string{
+		"TOKENS":         testTokens,
+		"SECRET_KEY":     strings.Repeat("a", 64),
+		"SECRET_KEY_OLD": "too-short",
+	}))
+	if err == nil {
+		t.Fatal("a short old key was accepted")
+	}
+	if !strings.Contains(err.Error(), "SECRET_KEY_OLD") {
+		t.Fatalf("error = %q, want it to name SECRET_KEY_OLD", err)
 	}
 }

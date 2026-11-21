@@ -56,6 +56,8 @@ Rules, enforced by `test/arch`:
    `ErrConflict → 409`, `ErrUnsupported → 422`, `ErrInvalid → 400`; anything else is
    500 with a logged cause and a generic body.
 
+9. `apply` takes `keyed.Group.Lock(proposal.TargetRef)` **before** it claims the row: `internal/common/keyed` is an in-process mutex per name, built once in `cmd/noxis/wiring.go`, so a second apply on the same target waits its turn instead of racing the DDL, and another target proceeds. It is a single-process guarantee, which is all one binary writing one state file ever promised.
+
 
 ## Telemetry
 

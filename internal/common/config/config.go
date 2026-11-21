@@ -32,7 +32,10 @@ type Config struct {
 	OTELEndpoint    string
 	OTELServiceName string
 	SecretKey       []byte
-	Tokens          []Token
+	// SecretKeyOld are keys that no longer seal but may still open: a rotation is "add the old key here,
+	// re-save the passwords that matter, then drop it", never a silent re-encryption of the file.
+	SecretKeyOld [][]byte
+	Tokens       []Token
 	// ConsoleOrigins are the browser origins allowed to call the API. They are deployment, not
 	// code: the console may be served from another host than the API, and only the deployment knows
 	// which one.
@@ -60,6 +63,17 @@ func LoadFrom(get func(string) string) (Config, error) {
 		if cfg.SecretKey, err = secret.ParseKey(raw); err != nil {
 			return Config{}, fmt.Errorf("config: SECRET_KEY: %w", err)
 		}
+	}
+	for _, raw := range strings.Split(get("SECRET_KEY_OLD"), ",") {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			continue
+		}
+		key, err := secret.ParseKey(raw)
+		if err != nil {
+			return Config{}, fmt.Errorf("config: SECRET_KEY_OLD: %w", err)
+		}
+		cfg.SecretKeyOld = append(cfg.SecretKeyOld, key)
 	}
 	raw, err := tokensRaw(get)
 	if err != nil {

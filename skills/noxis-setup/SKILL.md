@@ -42,7 +42,8 @@ TOKENS='{
 ```
 
 `SECRET_KEY` (32 bytes hex/base64) seals target passwords; without it a target with a password cannot be
-created. A row sealed with another key refuses to open and says to re-enter the password.
+created. A row sealed with a key this deployment does not hold refuses to open and says to re-enter the
+password — during a rotation the previous key sits in `SECRET_KEY_OLD`, so what it sealed still opens.
 
 ## 3. Prove the connection before it becomes a row
 
