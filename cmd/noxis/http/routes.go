@@ -70,7 +70,10 @@ func Routes(d Deps) []Route {
 
 		{Method: http.MethodGet, Path: "/v1/targets", Handler: d.Handlers.ListTargets, Scopes: read},
 		{Method: http.MethodPost, Path: "/v1/targets", Handler: d.Handlers.CreateTarget, Scopes: admin},
-		{Method: http.MethodPost, Path: "/v1/targets/test", Handler: d.Handlers.TestTarget, Scopes: read},
+		// Dialling a host the caller chose is not a read: an agent with `read` could map the deployment's
+		// private network one refused port at a time. Registering a target is admin work, and this is the
+		// rehearsal of it.
+		{Method: http.MethodPost, Path: "/v1/targets/test", Handler: d.Handlers.TestTarget, Scopes: admin},
 		{Method: http.MethodGet, Path: target, Handler: d.Handlers.GetTarget, Scopes: read},
 		{Method: http.MethodPatch, Path: target, Handler: d.Handlers.UpdateTarget, Scopes: admin},
 		{Method: http.MethodDelete, Path: target, Handler: d.Handlers.ArchiveTarget, Scopes: admin},
