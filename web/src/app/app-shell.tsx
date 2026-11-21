@@ -1,14 +1,14 @@
-import { Avatar, Dropdown, Tag, Tooltip } from 'antd';
+import { Avatar, Dropdown, Tag } from 'antd';
 import { DownOutlined, LogoutOutlined } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSession } from '../api/session-context';
 import { Logo } from '../components/logo';
 import { Text } from '../components/text';
-import { UpdateNotice, VersionChip } from '../components/update-notice';
+import { BuildBadge, UpgradeButton } from '../components/build-badge';
 
-// A topbar and a content region, and nothing else. At 360px the host hides and the identity reduces to
-// an avatar; the two facts that survive are which server, and who you are.
+// A topbar and a content region, and nothing else. At 360px the build hides and the identity reduces to an
+// avatar; the two facts that survive are the build, and who you are.
 
 export function AppShell({ children, anonymous }: { children: ReactNode; anonymous?: boolean }) {
   const { config, identity, signOut } = useSession();
@@ -36,20 +36,9 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
 
         <span className="flex-1" />
 
-        {config ? (
-          <Tooltip title="The API this console was told to call">
-            <Text
-              mono
-              size="xs"
-              tone="muted"
-              className="hidden max-w-[40vw] truncate rounded-md border border-line px-2 py-0.5 sm:inline"
-            >
-              {config.api.replace(/^https?:\/\//, '')}
-            </Text>
-          </Tooltip>
-        ) : null}
+        <UpgradeButton />
 
-        <VersionChip />
+        <BuildBadge />
 
         {identity ? (
           <Dropdown
@@ -105,7 +94,6 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
       </header>
 
       <main id="content" className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-8 md:py-8">
-        <UpdateNotice />
         {children}
       </main>
     </div>

@@ -170,7 +170,8 @@ The version a build reports is the release line plus **7 characters of its commi
   are published to the moving **`nightly`** release.
 - The **server** fetches `…/releases/download/nightly/version.json` at most once an hour;
   `GET /v1/version` answers `{version, commit, release_url, latest, newer}`.
-- The check runs on boot: one line on stderr for the CLI, a dismissible banner in the console. Nothing
+- The check runs on boot: one line on stderr for the CLI, and in the console a chip in the top bar naming
+  this build with an **Upgrade to latest** button beside it when there is somewhere to move to. Nothing
   installs itself — every notice points at **https://github.com/dimasbaguspm/noxis/releases**.
 
 Cut a release: tag → `make build VERSION=v2.0.0` → publish the same three assets from that tag as a
