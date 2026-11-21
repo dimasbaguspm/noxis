@@ -143,25 +143,26 @@ Capability → scope → command:
 
 | Capability | Scope | Command |
 | --- | --- | --- |
-| What this token may call | any | `noxis describe`, `noxis auth whoami`, `GET /openapi.json` |
+| What this token may call | any | `noxis api describe`, `noxis auth whoami`, `GET /openapi.json` |
 | Instances | `read` | `target ls` · `target show <ref>` |
-| Schemas, tables, one table | `read` | `databases <ref>` · `tables <ref> app` · `table <ref> app users` |
+| Schemas, tables, one table | `read` | `table <ref>` · `table <ref> app` · `table <ref> app users` |
 | Query rows | `read` | `query <ref> --sql "SELECT …"` |
 | Propose DML/DDL | `propose` | `propose <ref> --title … --sql … --rollback …` |
-| Re-run the proof | `propose` | `rehearse <ref>` |
-| Look up changes | `read` | `proposals --target <ref>` · `show-proposal <pr>` · `events <pr>` |
-| Wait for a decision | `read` | `watch <pr> --until applied,failed` |
-| Decide | `approve` | `approve <pr> --note …` · `reject <pr>` |
-| Apply | `apply` | `apply <pr> --wait` |
-| Edit a connection | `admin` | `instance set <ref> --password … --probe` |
-| Register / archive | `admin` | `instance add …` · `instance archive <ref>` |
+| Re-run the proof | `propose` | `proposal rehearse <ref>` |
+| Look up changes | `read` | `proposal ls --target <ref>` · `proposal show <pr>` · `proposal events <pr>` |
+| Wait for a decision | `read` | `proposal watch <pr> --until applied,failed` |
+| Decide | `approve` | `proposal approve <pr> --note …` · `proposal reject <pr>` |
+| Apply | `apply` | `proposal apply <pr> --wait` |
+| Edit a connection | `admin` | `target set <ref> --password … --probe` |
+| Register / archive | `admin` | `target add …` · `target archive <ref>` |
+| A route the CLI has no verb for | the token's | `api get /v1/…` · `api post /v1/… --yes` |
 
 **First install — ask, don't assume.** The agent asks the operator before it writes a token:
 which server and **schema** (MySQL calls it a database; one target = one schema), which of the five
 capabilities it may hold, who holds `approve`+`apply`, and whether it may register instances at all.
 One named token per caller.
 
-Loop: `describe → whoami → target ls → query → propose → watch → report`.
+Loop: `api describe → auth whoami → target ls → table → query → propose → proposal watch → report`.
 `--json` on everything; failures are `{"error":{"code","message","status"}}` on stderr, non-zero exit.
 `code: "client"` = the request never left the machine.
 

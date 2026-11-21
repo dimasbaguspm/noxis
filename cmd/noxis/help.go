@@ -31,7 +31,7 @@ var groups = []group{
 	{"targets", []string{"target"}},
 	{"reading", []string{"query", "table"}},
 	{"proposals", []string{"propose", "proposal"}},
-	{"the API itself", []string{"describe"}},
+	{"the API itself", []string{"api"}},
 }
 
 // welcome is what a bare `noxis` says: which build this is, which sessions this machine holds, where the

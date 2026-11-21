@@ -103,7 +103,7 @@ func newRoot() *cobra.Command {
 		printGroups(c.OutOrStdout(), root)
 	})
 	root.AddCommand(help, http.NewHTTP(buildServer), newWeb(),
-		commands.NewDescribe(session), commands.NewVersion(), newSkills(session),
+		commands.NewAPI(session), commands.NewVersion(), newSkills(session),
 		commands.NewAuth(session), commands.NewTarget(session),
 		commands.NewQuery(session), commands.NewTable(session),
 		// The two older depths of the same question, kept for the scripts that named them.
@@ -120,6 +120,7 @@ func newRoot() *cobra.Command {
 		commands.Deprecated(commands.NewApplyProposal(session), "apply <ref>", "proposal apply"),
 		commands.Deprecated(commands.NewWatch(session), "watch <ref>", "proposal watch"),
 		commands.Deprecated(commands.NewEvents(session), "events <ref>", "proposal events"),
-		commands.Deprecated(commands.NewWhoami(session), "whoami", "auth whoami"))
+		commands.Deprecated(commands.NewWhoami(session), "whoami", "auth whoami"),
+		commands.Deprecated(commands.NewDescribe(session), "describe", "api describe"))
 	return root
 }
