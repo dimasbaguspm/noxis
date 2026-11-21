@@ -39,7 +39,10 @@ noxis propose <ref> \
   proposal, not a limit of the tool.
 - **The same `--idempotency-key` makes a retry the same proposal.** Always pass one when a network failure
   could make you unsure whether the first call landed.
-- `--tier static|shadow|rehearsal` (default `shadow`). Leave it alone unless the operator asked.
+- `--tier static|shadow|rehearsal` (default `shadow`). Leave it alone unless the operator asked — with one
+  exception. A change that **creates** its subject (`CREATE TABLE`, or an index on a table this change
+  makes) has no table to rebuild, so the rehearsal fails with `Table … doesn't exist`. Propose a bootstrap
+  with `--tier static` and say why in the note: there is nothing to rehearse until the table exists.
 - `--file` / `--rollback-file` for long statements.
 
 ## 3. Read the rehearsal, do not skim it

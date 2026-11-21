@@ -139,6 +139,9 @@ seam next to the struct: `var _ ports.Driver = (*DB)(nil)`.
   nothing for DDL. Rehearsal is a rebuilt throwaway database + diff, always.
 - Requires `CREATE DATABASE` on the target server. Without it the rehearsal degrades
   to `static` (parse + `EXPLAIN` + row estimate) and says so by name.
+- A change that creates its own subject — `CREATE TABLE` — cannot be rehearsed: the throwaway database is
+  rebuilt from the DDL of the tables the change **names**, and a table that does not exist yet has none.
+  `--tier static` is the honest tier for a bootstrap, and the failure note says so.
 - The console is embedded, deliberately: `internal/web/dist` is inside the binary and
   `noxis web serve` serves it. A build replaces the committed placeholder and removes
   `NOT_BUILT`; without that file the binary says it is serving a placeholder.
