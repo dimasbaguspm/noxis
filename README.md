@@ -150,6 +150,10 @@ Loop: `describe → whoami → target ls → query → propose → watch → rep
 `--json` on everything; failures are `{"error":{"code","message","status"}}` on stderr, non-zero exit.
 `code: "client"` = the request never left the machine.
 
+**Ready-to-copy skills** live in [`skills/`](skills/): `noxis-setup`, `noxis-read`, `noxis-propose`,
+`noxis-review` — one `SKILL.md` each, in the format pi, Claude Code and Cursor load. Copy the folder into
+your agent's skills directory and it knows how to operate this deployment.
+
 ## Updates
 
 The version a build reports is the release line plus **7 characters of its commit**: `nightly+db92d5a`
