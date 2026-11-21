@@ -5,7 +5,6 @@ package proposal
 
 import (
 	"context"
-	"fmt"
 	"noxis/internal/app/password"
 	"noxis/internal/common/keyed"
 	"noxis/internal/common/ref"
@@ -158,7 +157,7 @@ func truncate(message string) string {
 // requireRef rejects anything that is not a reference before it becomes a lookup.
 func requireRef(value string) (string, error) {
 	if !ref.Valid(value) {
-		return "", fmt.Errorf("%w: %q is not a reference", domain.ErrInvalid, value)
+		return "", domain.NotAReference(value)
 	}
 	return value, nil
 }

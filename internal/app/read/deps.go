@@ -28,7 +28,7 @@ type Deps struct {
 // believes is put away.
 func (d Deps) connect(ctx context.Context, value string) (domain.Target, string, error) {
 	if !ref.Valid(value) {
-		return domain.Target{}, "", fmt.Errorf("%w: %q is not a reference", domain.ErrInvalid, value)
+		return domain.Target{}, "", domain.NotAReference(value)
 	}
 	target, err := d.Targets.ByRef(ctx, value)
 	if err != nil {
