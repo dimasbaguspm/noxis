@@ -99,6 +99,17 @@ type Health struct {
 	Version string `json:"version"`
 }
 
+// Raw sends one request and answers the envelope exactly as the server wrote it. It is the escape hatch
+// `noxis api` uses: a route this CLI does not model yet is still a route, and a person holding the right
+// token should be able to read or (with --yes) write it without waiting for a release.
+func (c *Client) Raw(ctx context.Context, method, path string, body any) (json.RawMessage, error) {
+	raw, _, err := c.send(ctx, method, path, body, "")
+	if err != nil {
+		return nil, err
+	}
+	return json.RawMessage(raw), nil
+}
+
 // Whoami asks the API which caller this token is.
 func (c *Client) Whoami(ctx context.Context) (Identity, error) {
 	var out Identity

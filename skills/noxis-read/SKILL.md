@@ -11,7 +11,7 @@ side door for a write. Only `SELECT`, `EXPLAIN` and `SHOW` run.
 ## Start here
 
 ```bash
-noxis describe                                 # the API this server serves, and which of it your token may call
+noxis api describe                                 # the API this server serves, and which of it your token may call
 noxis auth whoami                                   # name and scopes
 noxis target ls --json                         # the instances you govern
 ```
