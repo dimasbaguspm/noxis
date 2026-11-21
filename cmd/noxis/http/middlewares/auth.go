@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -34,7 +35,7 @@ type Authenticator struct {
 // NewAuthenticator builds the matcher from the env-declared tokens.
 func NewAuthenticator(tokens []config.Token, log *slog.Logger) (*Authenticator, error) {
 	if len(tokens) == 0 {
-		return nil, fmt.Errorf("auth: no token declared")
+		return nil, errors.New("auth: no token declared")
 	}
 	a := &Authenticator{identities: make([]identity, 0, len(tokens)), log: log}
 	for _, token := range tokens {

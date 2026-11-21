@@ -99,7 +99,7 @@ func (d *DB) List(ctx context.Context, filter ports.TargetFilter) (out0 []domain
 		args = append(args, filter.Cursor)
 	}
 
-	query := `SELECT ` + targetColumns + ` FROM targets` //nolint:gosec // constants and placeholders; values travel as arguments
+	query := `SELECT ` + targetColumns + ` FROM targets`
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}
@@ -216,7 +216,7 @@ func encodeOptions(options map[string]string) (string, error) {
 
 func decodeOptions(raw string) (map[string]string, error) {
 	if raw == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // an absent column is "no options", which the caller reads from a nil map
 	}
 	var options map[string]string
 	if err := json.Unmarshal([]byte(raw), &options); err != nil {

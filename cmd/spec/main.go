@@ -8,12 +8,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	apiserver "noxis/cmd/noxis/http"
 	"os"
 	"path/filepath"
 	"strings"
-
-	apiserver "noxis/cmd/noxis/http"
 
 	"go.yaml.in/yaml/v3"
 )
@@ -60,7 +60,7 @@ func read(path string) (map[string]any, error) {
 func scopes(document map[string]any) error {
 	paths, ok := document["paths"].(map[string]any)
 	if !ok {
-		return fmt.Errorf("the document has no paths")
+		return errors.New("the document has no paths")
 	}
 	for _, route := range apiserver.Routes(apiserver.Deps{}) {
 		item, ok := paths[route.Path].(map[string]any)
@@ -105,7 +105,7 @@ func write(dir string, document map[string]any) error {
 func payloadSchemas(document map[string]any) error {
 	paths, ok := document["paths"].(map[string]any)
 	if !ok {
-		return fmt.Errorf("the document has no paths")
+		return errors.New("the document has no paths")
 	}
 	for _, rawPath := range paths {
 		item, ok := rawPath.(map[string]any)

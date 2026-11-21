@@ -7,6 +7,7 @@ import (
 	"noxis/internal/common/telemetry"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
+	"strconv"
 	"time"
 )
 
@@ -151,7 +152,7 @@ func (a *Apply) finish(ctx context.Context, proposal domain.Proposal, target dom
 	if err != nil {
 		return proposal, err
 	}
-	detail := map[string]string{"by": actor, "rows_affected": fmt.Sprintf("%d", receipt.RowsAffected)}
+	detail := map[string]string{"by": actor, "rows_affected": strconv.FormatInt(receipt.RowsAffected, 10)}
 	if proposal.Algorithm != "" {
 		detail["algorithm"] = string(proposal.Algorithm)
 	}
