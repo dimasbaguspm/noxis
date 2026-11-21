@@ -26,18 +26,18 @@ without pnpm still answers something a human can read. **A local build is never 
 
 ## Shape
 
-| Path                          | What it is                                                                 |
-| ----------------------------- | -------------------------------------------------------------------------- |
-| `src/api/http.ts`             | the axios instance, the envelope, the error a screen can show              |
-| `src/api/queries.ts`          | one react-query hook per read and per action                               |
-| `src/api/session-context.tsx` | the API it found, the identity `/v1/whoami` confirmed, sign in and out     |
-| `src/api/permissions.tsx`     | scopes as values: `usePermissions`, `<Can do="approve">`                   |
-| `src/app/`                    | the shell (`app-shell.tsx`) and the split sign-in screen                   |
-| `src/components/`             | Ant Design, wrapped once: `alert`, `data-table`, `panel`, `form`, `inputs` |
-| `src/editor/sql-editor.tsx`   | Monaco, bundled (never a CDN), completing from the target's own schema     |
-| `src/pages/targets-page.tsx`  | the list, the search, the create drawer                                    |
-| `src/pages/target-page.tsx`   | the tiles, connectivity, Query / DML / DDL                                 |
-| `src/pages/proposal-page.tsx` | the statement, the rollback, the rehearsal, review and apply               |
+| Path                          | What it is                                                             |
+| ----------------------------- | ---------------------------------------------------------------------- |
+| `src/api/http.ts`             | the axios instance, the envelope, the error a screen can show          |
+| `src/api/queries.ts`          | one react-query hook per read and per action                           |
+| `src/api/session-context.tsx` | the API it found, the identity `/v1/whoami` confirmed, sign in and out |
+| `src/api/permissions.tsx`     | scopes as values: `usePermissions`, `<Can do="approve">`               |
+| `src/app/`                    | the shell (`app-shell.tsx`) and the split sign-in screen               |
+| `src/components/`             | Ant Design, wrapped once: `alert`, `data-table`, `form`, `inputs`      |
+| `src/editor/sql-editor.tsx`   | Monaco, bundled (never a CDN), completing from the target's own schema |
+| `src/pages/targets-page.tsx`  | the list, the search, the create drawer                                |
+| `src/pages/target-page.tsx`   | the name, connectivity, and the Query/Tables/Changes/Details routes    |
+| `src/pages/proposal-page.tsx` | the statement, the rollback, the rehearsal, review and apply           |
 
 ## Theme
 

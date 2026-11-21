@@ -27,11 +27,15 @@ const HEADING_WEIGHT: Record<HeadingLevel, string> = {
 
 export function Heading({
   level = 2,
+  size = level,
   children,
   className,
   id,
 }: {
   level?: HeadingLevel;
+  /** The outline level and the size are separate on purpose: an instance's name is the page's `h1`
+   * and still a title, not a billboard. */
+  size?: HeadingLevel;
   children: ReactNode;
   className?: string;
   id?: string;
@@ -40,7 +44,7 @@ export function Heading({
   return (
     <Tag
       id={id}
-      className={clsx('m-0 text-ink', HEADING_SIZE[level], HEADING_WEIGHT[level], className)}
+      className={clsx('m-0 text-ink', HEADING_SIZE[size], HEADING_WEIGHT[level], className)}
     >
       {children}
     </Tag>

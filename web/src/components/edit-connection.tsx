@@ -1,4 +1,3 @@
-import { EditOutlined } from '@ant-design/icons';
 import { App as AntApp, Drawer } from 'antd';
 import { useState } from 'react';
 import { useProbeTarget, useTestConnection, useUpdateTarget } from '../api/queries';
@@ -19,32 +18,34 @@ import type { Target } from '../api/types';
 
 const FORM_ID = 'edit-connection';
 
-export function EditConnection({ target }: { target: Target }) {
-  const [open, setOpen] = useState(false);
-
+export function EditConnection({
+  target,
+  open,
+  onClose,
+}: {
+  target: Target;
+  /** The drawer is controlled from the header's menu: one trigger for every action on the instance. */
+  open: boolean;
+  onClose: () => void;
+}) {
   return (
-    <>
-      <AppButton intent="quiet" icon={<EditOutlined />} onClick={() => setOpen(true)}>
-        Edit
-      </AppButton>
-      <Drawer
-        title="Edit connection"
-        open={open}
-        onClose={() => setOpen(false)}
-        width={Math.min(460, window.innerWidth)}
-        destroyOnHidden
-        footer={
-          <div className="flex justify-end gap-2">
-            <AppButton onClick={() => setOpen(false)}>Cancel</AppButton>
-            <AppButton intent="primary" htmlType="submit" form={FORM_ID}>
-              Save
-            </AppButton>
-          </div>
-        }
-      >
-        <ConnectionForm target={target} onSaved={() => setOpen(false)} />
-      </Drawer>
-    </>
+    <Drawer
+      title="Edit connection"
+      open={open}
+      onClose={onClose}
+      width={Math.min(460, window.innerWidth)}
+      destroyOnHidden
+      footer={
+        <div className="flex justify-end gap-2">
+          <AppButton onClick={onClose}>Cancel</AppButton>
+          <AppButton intent="primary" htmlType="submit" form={FORM_ID}>
+            Save
+          </AppButton>
+        </div>
+      }
+    >
+      <ConnectionForm target={target} onSaved={onClose} />
+    </Drawer>
   );
 }
 
