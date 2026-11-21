@@ -21,6 +21,8 @@ type Fields = {
   getValues: () => FieldValues;
   /** The one it may fill in, when the server answered a name the operator would have typed. */
   setValue: (name: string, value: string) => void;
+  /** One field's value, live: a button that must know whether another field is filled subscribes here. */
+  watch: (name: string) => unknown;
 };
 
 const FormContext = createContext<Fields | null>(null);
@@ -82,6 +84,7 @@ export function Form<T extends FieldValues>({
         submitting: methods.formState.isSubmitting,
         getValues: () => methods.getValues() as FieldValues,
         setValue: methods.setValue as unknown as (name: string, value: string) => void,
+        watch: methods.watch as unknown as (name: string) => unknown,
       }}
     >
       <form
