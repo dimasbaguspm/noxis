@@ -27,6 +27,9 @@ type Deps struct {
 	// Timeout bounds one rehearsal. It comes from QUERY_TIMEOUT: a rehearsal is a query, and a
 	// query that hangs is a query that was never bounded.
 	Timeout time.Duration
+	// ProbeTimeout bounds the probe that follows a successful apply, from PROBE_TIMEOUT: it is a
+	// connection, and a connection that hangs is one nobody bounded.
+	ProbeTimeout time.Duration
 }
 
 // rehearse proves one proposal and stores the evidence. Every attempt is stored, including the
@@ -154,4 +157,42 @@ func requireRef(value string) (string, error) {
 		return "", fmt.Errorf("%w: %q is not a reference", domain.ErrInvalid, value)
 	}
 	return value, nil
+}
+
+// reprobe records what the engine is now that a change landed. It runs after the apply is committed, so
+// it is deliberately best-effort: a probe that fails is a fact about the connection, not about the
+// change, and it is stored as a failed probe rather than raised as a failed apply.
+func (d Deps) reprobe(ctx context.Context, target domain.Target, plain, actor string) error {
+	// A caller that configured no probe timeout means "the caller's context bounds it", not "expire now".
+	bounded, cancel := ctx, context.CancelFunc(func() {})
+	if d.ProbeTimeout > 0 {
+		bounded, cancel = context.WithTimeout(ctx, d.ProbeTimeout)
+	}
+	defer cancel()
+
+	caps, probeErr := d.Driver.Probe(bounded, target, plain)
+	now := time.Now().UTC()
+	target.LastProbeAt = &now
+	target.UpdatedAt = now
+	detail := map[string]string{"status": constants.ProbeOK, "flavor": caps.Flavor, "version": caps.Version}
+	if probeErr != nil {
+		target.LastProbeStatus = constants.ProbeFailed
+		detail = map[string]string{"status": constants.ProbeFailed, "error": truncate(probeErr.Error())}
+	} else {
+		target.LastProbeStatus = constants.ProbeOK
+		target.ServerVersion = caps.Version
+	}
+	stored, err := d.Targets.Update(bounded, target)
+	if err != nil {
+		return err
+	}
+	return d.Journal.Append(bounded, domain.JournalEntry{
+		Ref:         ref.New(),
+		SubjectRef:  stored.Ref,
+		SubjectKind: constants.SubjectTarget,
+		Kind:        constants.JournalProbed,
+		Actor:       actor,
+		Detail:      detail,
+		CreatedAt:   now,
+	})
 }

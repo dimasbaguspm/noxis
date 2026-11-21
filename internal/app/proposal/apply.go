@@ -152,5 +152,9 @@ func (a *Apply) finish(ctx context.Context, proposal domain.Proposal, target dom
 	if err := a.record(bounded, stored, constants.JournalApplied, detail); err != nil {
 		return stored, err
 	}
+	// The change landed. Ask the engine what it is now, so the instance page describes the server the
+	// change actually ran against rather than the one the last probe happened to meet. A probe that
+	// fails is recorded on the target and never fails the apply: the statement is already committed.
+	_ = a.reprobe(ctx, target, plain, actor)
 	return stored, nil
 }

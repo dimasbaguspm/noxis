@@ -48,13 +48,14 @@ func buildServer(ctx context.Context, cfg config.Config, statePath string, log *
 		Driver:  driver,
 	}
 	proposals := proposal.Deps{
-		Proposals:  state,
-		Rehearsals: state,
-		Targets:    state,
-		Journal:    state,
-		Sealer:     sealer,
-		Driver:     driver,
-		Timeout:    cfg.QueryTimeout,
+		Proposals:    state,
+		Rehearsals:   state,
+		Targets:      state,
+		Journal:      state,
+		Sealer:       sealer,
+		Driver:       driver,
+		Timeout:      cfg.QueryTimeout,
+		ProbeTimeout: cfg.ProbeTimeout,
 	}
 	reads := appread.Deps{
 		Targets: state,

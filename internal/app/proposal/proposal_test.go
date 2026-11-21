@@ -257,8 +257,14 @@ func TestApplyRecordsTheReceipt(t *testing.T) {
 	if len(f.driver.applied) != 1 {
 		t.Fatalf("the statement ran %d times, want 1", len(f.driver.applied))
 	}
-	if len(f.journal.entries) != 1 || f.journal.entries[0].Detail["algorithm"] != "INSTANT" {
-		t.Fatalf("journal = %+v, want the algorithm on the line", f.journal.entries)
+	applied := journalEntry(f.journal.entries, "applied")
+	if applied == nil || applied.Detail["algorithm"] != "INSTANT" {
+		t.Fatalf("journal = %+v, want the algorithm on the applied line", f.journal.entries)
+	}
+	// The change landed, so the engine is asked again: the instance page describes the server the change
+	// ran against, not the one the registration happened to meet.
+	if probed := journalEntry(f.journal.entries, "probed"); probed == nil {
+		t.Fatalf("journal = %+v, want the target probed after the change", f.journal.entries)
 	}
 }
 
@@ -506,5 +512,35 @@ func TestCreateAcceptsADataChangeUndoneByData(t *testing.T) {
 	}
 	if out.Proposal.Kind != domain.KindDML {
 		t.Fatalf("kind = %q, want dml", out.Proposal.Kind)
+	}
+}
+
+// journalEntry finds one line of the history by its kind, or nil: an apply writes two kinds of line now.
+func journalEntry(entries []domain.JournalEntry, kind string) *domain.JournalEntry {
+	for i := range entries {
+		if entries[i].Kind == kind {
+			return &entries[i]
+		}
+	}
+	return nil
+}
+
+// A probe that fails after a successful apply is stored as a failed probe and never as a failed apply:
+// the statement is committed, and what the connection thinks of the server is a different fact.
+func TestApplyRecordsAFailedProbeWithoutFailingTheApply(t *testing.T) {
+	f := newFixture(t, domain.StatusApproved)
+	f.driver.receipt = domain.Receipt{Algorithm: domain.AlgorithmInstant, RowsAffected: 1}
+	f.driver.probeErr = errors.New("dial tcp: connection refused")
+
+	out, err := NewApply(f.deps).Run(context.Background(), ApplyInput{Ref: f.proposal.Ref, Actor: "ops"})
+	if err != nil {
+		t.Fatalf("Apply: %v", err)
+	}
+	if out.Proposal.Status != domain.StatusApplied {
+		t.Fatalf("status = %q, want applied", out.Proposal.Status)
+	}
+	probed := journalEntry(f.journal.entries, "probed")
+	if probed == nil || probed.Detail["status"] != "failed" {
+		t.Fatalf("journal = %+v, want a failed probe line", f.journal.entries)
 	}
 }
