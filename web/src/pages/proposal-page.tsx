@@ -14,7 +14,9 @@ import { RenderWhen } from '../components/render-when';
 import { StatusTag } from '../components/sql-block';
 import { Eyebrow, Heading, Text } from '../components/text';
 import { Verdict, verdictOf } from '../components/verdict';
+import { SchemaDiff } from '../editor/diff-editor';
 import { SqlEditor } from '../editor/sql-editor';
+import { formatWhen } from '../lib/when';
 
 // One proposal, with its evidence, under the instance it belongs to. The console decides nothing: it
 // sends the same requests the CLI does and shows what the server answered.
@@ -123,8 +125,8 @@ export function ProposalPage() {
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
                 <div className="flex min-w-0 flex-col gap-4">
                   <Card
-                    title="The change"
-                    extra={`proposed by ${found.proposed_by} · ${found.created_at}`}
+                    title="Change"
+                    extra={`proposed by ${found.proposed_by} · ${formatWhen(found.created_at)}`}
                     bodyClassName="flex flex-col gap-3 p-4"
                   >
                     <div>
@@ -141,7 +143,7 @@ export function ProposalPage() {
                     </RenderWhen>
                   </Card>
 
-                  <Card title="The rollback" bodyClassName="p-4">
+                  <Card title="Rollback" bodyClassName="p-4">
                     {found.rollback ? (
                       <div className="overflow-hidden rounded-lg border border-line">
                         <SqlEditor value={found.rollback} height={120} readOnly />
@@ -154,8 +156,8 @@ export function ProposalPage() {
                   <RenderWhen condition={found.rehearsal}>
                     {found.rehearsal ? (
                       <Card
-                        title="The evidence"
-                        extra={found.rehearsal.created_at ?? undefined}
+                        title="Evidence"
+                        extra={formatWhen(found.rehearsal.created_at)}
                         bodyClassName="flex flex-col gap-3 p-4"
                       >
                         <div className="flex flex-wrap items-center gap-2">
@@ -182,13 +184,7 @@ export function ProposalPage() {
                         <RenderWhen condition={found.rehearsal.schema_diff}>
                           <div>
                             <Eyebrow className="mb-1.5 block">schema diff</Eyebrow>
-                            <div className="overflow-hidden rounded-lg border border-line">
-                              <SqlEditor
-                                value={found.rehearsal.schema_diff ?? ''}
-                                height={180}
-                                readOnly
-                              />
-                            </div>
+                            <SchemaDiff diff={found.rehearsal.schema_diff ?? ''} />
                           </div>
                         </RenderWhen>
                         <RenderWhen condition={found.rehearsal.row_diff}>
@@ -206,50 +202,11 @@ export function ProposalPage() {
                       </Card>
                     ) : null}
                   </RenderWhen>
-
-                  <Card
-                    title="History"
-                    loading={events.isLoading}
-                    bodyClassName="p-4"
-                    extra={`${(events.data ?? []).length} entries`}
-                  >
-                    <RenderWhen
-                      condition={(events.data ?? []).length > 0}
-                      fallback={
-                        <Text size="sm" tone="muted">
-                          Nothing recorded yet.
-                        </Text>
-                      }
-                    >
-                      <Timeline
-                        items={(events.data ?? []).map((entry) => ({
-                          color: 'var(--color-brand)',
-                          children: (
-                            <div className="flex flex-col gap-0.5">
-                              <Text size="sm" className="font-medium capitalize">
-                                {entry.kind}
-                              </Text>
-                              <Text size="xs" tone="muted">
-                                {entry.actor} · {entry.created_at}
-                              </Text>
-                              {Object.keys(entry.detail ?? {}).length > 0 ? (
-                                <Text size="xs" tone="muted" mono>
-                                  {Object.entries(entry.detail)
-                                    .map(([key, value]) => `${key}=${value}`)
-                                    .join('  ')}
-                                </Text>
-                              ) : null}
-                            </div>
-                          ),
-                        }))}
-                      />
-                    </RenderWhen>
-                  </Card>
                 </div>
 
                 <aside className="flex flex-col gap-4 lg:sticky lg:top-6">
                   <Card
-                    title="The decision"
+                    title="Decision"
                     loading={actions.decide.isPending}
                     bodyClassName="flex flex-col gap-2 p-4"
                     footer={
@@ -335,7 +292,7 @@ export function ProposalPage() {
                       <div className="flex flex-col gap-0.5">
                         <Eyebrow>decided</Eyebrow>
                         <Text size="sm">
-                          {found.decided_by} · {found.decided_at}
+                          {found.decided_by} · {formatWhen(found.decided_at)}
                         </Text>
                         <RenderWhen condition={found.decided_note}>
                           <Text as="p" size="xs" tone="muted">
@@ -349,7 +306,7 @@ export function ProposalPage() {
                       <div className="flex flex-col gap-0.5">
                         <Eyebrow>applied</Eyebrow>
                         <Text size="sm">
-                          {found.applied_by} · {found.applied_at}
+                          {found.applied_by} · {formatWhen(found.applied_at)}
                         </Text>
                       </div>
                     </RenderWhen>
@@ -378,6 +335,45 @@ export function ProposalPage() {
                         approve and reject are journaled against your token
                       </Text>
                     </Can>
+                  </Card>
+
+                  <Card
+                    title="History"
+                    loading={events.isLoading}
+                    bodyClassName="p-4"
+                    extra={`${(events.data ?? []).length} entries`}
+                  >
+                    <RenderWhen
+                      condition={(events.data ?? []).length > 0}
+                      fallback={
+                        <Text size="sm" tone="muted">
+                          Nothing recorded yet.
+                        </Text>
+                      }
+                    >
+                      <Timeline
+                        items={(events.data ?? []).map((entry) => ({
+                          color: 'var(--color-brand)',
+                          children: (
+                            <div className="flex flex-col gap-0.5">
+                              <Text size="sm" className="font-medium capitalize">
+                                {entry.kind}
+                              </Text>
+                              <Text size="xs" tone="muted">
+                                {entry.actor} · {formatWhen(entry.created_at)}
+                              </Text>
+                              {Object.keys(entry.detail ?? {}).length > 0 ? (
+                                <Text size="xs" tone="muted" mono>
+                                  {Object.entries(entry.detail)
+                                    .map(([key, value]) => `${key}=${value}`)
+                                    .join('  ')}
+                                </Text>
+                              ) : null}
+                            </div>
+                          ),
+                        }))}
+                      />
+                    </RenderWhen>
                   </Card>
                 </aside>
               </div>

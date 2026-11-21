@@ -27,6 +27,7 @@ import { Statistic } from '../components/statistic';
 import { Eyebrow, Heading, Text } from '../components/text';
 import { SqlEditor } from '../editor/sql-editor';
 import type { Schema } from '../editor/sql-editor';
+import { formatWhen } from '../lib/when';
 import type { Proposal, Rows, Target } from '../api/types';
 
 // The instance page: what this server is, and the three things an operator does with it. ERD is absent
@@ -79,12 +80,7 @@ export function TargetPage() {
                     <Statistic
                       label="Last answer"
                       value={
-                        target.data.last_probe_at
-                          ? new Date(target.data.last_probe_at).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })
-                          : '—'
+                        target.data.last_probe_at ? formatWhen(target.data.last_probe_at) : '—'
                       }
                       hint={target.data.last_probe_status ?? 'never probed'}
                     />
@@ -160,7 +156,7 @@ function Connectivity({ target }: { target: Target }) {
         </RenderWhen>
         <Text size="xs" tone="muted">
           {target.last_probe_at
-            ? `answered ${new Date(target.last_probe_at).toLocaleString()}`
+            ? `answered ${formatWhen(target.last_probe_at)}`
             : 'not contacted yet'}
         </Text>
         <span className="flex-1" />
