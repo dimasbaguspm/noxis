@@ -25,7 +25,7 @@ export const keys = {
   capabilities: (ref: string) => ['capabilities', ref] as const,
   tables: (ref: string, db: string) => ['tables', ref, db] as const,
   databases: (ref: string) => ['databases', ref] as const,
-  table: (ref: string, db: string, table: string) => ['table', ref, db, table] as const,
+  rows: (ref: string, db: string, table: string) => ['rows', ref, db, table] as const,
   proposals: (filter: Record<string, string | number | undefined>) =>
     ['proposals', filter] as const,
   proposal: (ref: string) => ['proposal', ref] as const,
@@ -257,4 +257,28 @@ export function useProposalActions(ref: string) {
       onSuccess: refresh,
     }),
   };
+}
+
+/** The read route's ceiling, named once: a big table answers instead of hanging, and the count says so. */
+const ROW_LIMIT = 200;
+
+/** A name is quoted because `order` and `my-table` are legal names and a bare one is not SQL. */
+function qualified(database: string, table: string): string {
+  return `\`${database.replaceAll('`', '``')}\`.\`${table.replaceAll('`', '``')}\``;
+}
+
+/** useRows is the first page of one table, read through the route the query tab uses: one path to the
+ * engine, and the same ceiling and the same truncation answer. */
+export function useRows(ref: string, database: string, table: string) {
+  const client = useClient();
+  return useQuery({
+    queryKey: keys.rows(ref, database, table),
+    enabled: Boolean(client && ref && database && table),
+    queryFn: () =>
+      unwrap<Rows>(
+        client!.post(`/v1/targets/${ref}/query`, {
+          sql: `SELECT * FROM ${qualified(database, table)} LIMIT ${ROW_LIMIT}`,
+        }),
+      ),
+  });
 }

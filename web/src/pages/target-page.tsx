@@ -1,11 +1,6 @@
-import {
-  ApiOutlined,
-  DeleteOutlined,
-  DownloadOutlined,
-  PlayCircleOutlined,
-} from '@ant-design/icons';
+import { ApiOutlined, DeleteOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import { App as AntApp, Input, Segmented, Tabs, Tag } from 'antd';
-import { useMemo, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Can } from '../api/permissions';
 import { Breadcrumb } from '../components/breadcrumb';
@@ -27,24 +22,24 @@ import { AsyncState } from '../components/async-state';
 import { CreateProposal } from '../components/create-proposal';
 import { DataTable } from '../components/data-table';
 import { EngineMark } from '../components/engine-mark';
-import type { Column } from '../components/data-table';
 import { Panel, Tile, Tiles } from '../components/panel';
 import { RenderWhen } from '../components/render-when';
+import { ResultSet } from '../components/result-set';
 import { StatusTag } from '../components/sql-block';
 import { Statistic } from '../components/statistic';
 import { Eyebrow, Heading, Text } from '../components/text';
 import { SqlEditor } from '../editor/sql-editor';
+import { TablesTab } from './tables-tab';
+import type { Proposal, Target } from '../api/types';
 import type { Schema } from '../editor/sql-editor';
 import { formatWhen } from '../lib/when';
 import { readDraft, writeDraft } from '../lib/draft';
-import type { Proposal, Rows, Target } from '../api/types';
 
-// The instance page: what this server is, and the three things an operator does with it. ERD is absent
-// on purpose — the API exposes columns and indexes, not foreign keys, and a diagram from half a graph
-// is a confident lie.
+// The instance page: what this server is, and the tabs an operator works in. ERD is absent on purpose
+// — the API exposes columns and indexes, not foreign keys, and a diagram from half a graph is a
+// confident lie.
 
-type Tab = 'query' | 'changes';
-type Row = Record<string, string | null>;
+type Tab = 'query' | 'tables' | 'changes';
 
 export function TargetPage() {
   const { ref = '' } = useParams();
@@ -149,6 +144,11 @@ export function TargetPage() {
                     children: <QueryTab ref_={ref} database={target.data.database} />,
                   },
                   {
+                    key: 'tables',
+                    label: 'Tables',
+                    children: <TablesTab ref_={ref} registered={target.data.database} />,
+                  },
+                  {
                     key: 'changes',
                     label: 'Changes',
                     children: (
@@ -228,42 +228,11 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
   // The last statement this instance was asked is a draft, kept in the browser: a reload should not
   // cost a query somebody was halfway through.
   const [sql, setSql] = useState(() => readDraft(ref_) ?? 'SELECT 1 AS one;');
-  const [took, setTook] = useState<number | null>(null);
-  const started = useRef(0);
   const run = useRunQuery(ref_);
   const schema = useSchema(ref_, database);
   const databases = useDatabases(ref_);
 
-  const kick = () => {
-    started.current = performance.now();
-    run.mutate({ sql }, { onSuccess: () => setTook(performance.now() - started.current) });
-  };
-
-  const columns: Column<Row>[] = useMemo(
-    () =>
-      (run.data?.columns ?? []).map((column, index) => ({
-        key: `c${index}`,
-        title: column.name,
-        width: 200,
-        render: (row) => (
-          <Text mono size="sm">
-            {row[`c${index}`] ?? '·'}
-          </Text>
-        ),
-      })),
-    [run.data],
-  );
-
-  const records: Row[] = useMemo(() => {
-    const values: (string | null)[][] = run.data?.values ?? [];
-    return values.map((row, index) => {
-      const record: Row = { key: String(index) };
-      row.forEach((cell, column) => {
-        record[`c${column}`] = cell;
-      });
-      return record;
-    });
-  }, [run.data]);
+  const kick = () => run.mutate({ sql });
 
   return (
     <div className="flex flex-col gap-3">
@@ -313,62 +282,13 @@ function QueryTab({ ref_, database }: { ref_: string; database: string }) {
         />
       </RenderWhen>
       <RenderWhen condition={run.data}>
-        <Result
-          rows={run.data as Rows}
-          columns={columns}
-          records={records}
-          took={took}
-          name={`${database}-${new Date().toISOString().slice(0, 19).replaceAll(':', '')}.csv`}
-        />
+        {run.data ? (
+          <ResultSet
+            rows={run.data}
+            name={`${database}-${new Date().toISOString().slice(0, 19).replaceAll(':', '')}.csv`}
+          />
+        ) : null}
       </RenderWhen>
-    </div>
-  );
-}
-function Result({
-  rows,
-  columns,
-  records,
-  took,
-  name,
-}: {
-  rows: Rows;
-  columns: Column<Row>[];
-  records: Row[];
-  took: number | null;
-  /** The file name this result is downloaded as. */
-  name: string;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <Text size="xs" tone="muted">
-          {rows.row_count} row{rows.row_count === 1 ? '' : 's'}
-          {rows.truncated ? " · cut off at the API's row ceiling" : ''}
-          {took ? ` · ${Math.round(took)} ms` : ''}
-        </Text>
-        <span className="flex-1" />
-        <AppButton
-          size="small"
-          icon={<DownloadOutlined />}
-          disabled={records.length === 0}
-          onClick={() => downloadCsv(name, rows.columns, rows.values)}
-        >
-          Download CSV
-        </AppButton>
-      </div>
-      <DataTable
-        rows={records}
-        columns={columns}
-        rowKey={(row) => String(row.key)}
-        compact
-        sticky
-        minWidth={columns.length * 200}
-        empty={
-          <Text tone="muted" size="sm">
-            the statement returned no rows
-          </Text>
-        }
-      />
     </div>
   );
 }
@@ -477,31 +397,4 @@ function Changes({ target, schema }: { target: string; schema: Schema | null }) 
       </AsyncState>
     </div>
   );
-}
-
-// A result is a file somebody will ask for: the rows are already here, so the export is the browser's
-// job and not a second request. A null is an empty cell, and a value with a comma, a quote or a
-// newline is quoted the way RFC 4180 says, because a spreadsheet is the next reader.
-
-function csvCell(value: string | null): string {
-  if (value === null) return '';
-  return /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
-}
-
-function toCsv(columns: { name: string }[], values: (string | null)[][]): string {
-  const header = columns.map((column) => csvCell(column.name)).join(',');
-  const lines = values.map((row) => row.map(csvCell).join(','));
-  return [header, ...lines].join('\r\n');
-}
-
-function downloadCsv(name: string, columns: { name: string }[], values: (string | null)[][]) {
-  const blob = new Blob([toCsv(columns, values)], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = name;
-  anchor.click();
-  // Revoking on the same tick can cancel the download the click just started: the browser reads the
-  // blob after the handler returns.
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

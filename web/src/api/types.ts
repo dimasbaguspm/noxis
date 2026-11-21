@@ -91,19 +91,19 @@ export type JournalEntry = {
 };
 
 export type Rows = {
-  columns: { name: string }[];
+  columns: { name: string; type?: string }[];
   values: (string | null)[][];
   row_count: number;
   truncated: boolean;
+  duration_ms?: number;
 };
 
-export type Table = { name: string; rows_estimated?: number };
+export type Table = { name: string; engine: string; rows: number; size_bytes: number };
 
-export type TableDetail = {
-  name: string;
-  columns: { name: string; type: string; nullable?: boolean; key?: string }[];
+export type TableDetail = Table & {
+  columns: { name: string; type: string; nullable?: boolean; key?: string; extra?: string }[];
   indexes?: { name: string; columns: string[]; unique?: boolean }[];
-  ddl?: string;
+  create_sql?: string;
 };
 
 export type Identity = { name: string; scopes: string[] };
