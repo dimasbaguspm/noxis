@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"noxis/internal/common/release"
 	"strings"
 	"testing"
+	"time"
 )
 
 // A checksum that is not in the published list is a refusal, not a warning: an upgrade that cannot verify
@@ -77,5 +80,48 @@ func TestAssetURLNamesThePublishedBinary(t *testing.T) {
 	published := release.Info{Version: "nightly", Commit: "9f3c2e8"}
 	if got := publishedString(&published); got != "nightly+9f3c2e8" {
 		t.Fatalf("publishedString = %q", got)
+	}
+}
+
+// A transfer that stops sending bytes is refused, and says so: a bare "context deadline exceeded" after five
+// minutes told the operator nothing about which step gave up.
+func TestAStalledDownloadIsRefused(t *testing.T) {
+	reader, writer := io.Pipe()
+	defer func() { _ = writer.Close() }()
+
+	body := newGuardedBody(reader, 20*time.Millisecond)
+	defer func() { _ = body.Close() }()
+
+	_, err := io.Copy(io.Discard, body)
+	if !errors.Is(err, errStalled) {
+		t.Fatalf("err = %v, want errStalled", err)
+	}
+	if !strings.Contains(err.Error(), "nothing for") {
+		t.Fatalf("err = %q, want it to name the idle window", err)
+	}
+}
+
+// A slow transfer is not a stalled one: the deadline moves with the bytes, so a link that dribbles finishes
+// however long it takes. Twenty reads with a pause between them outlast the idle window and still arrive.
+func TestASlowDownloadIsNotInterrupted(t *testing.T) {
+	const chunks = 20
+	reader, writer := io.Pipe()
+	body := newGuardedBody(reader, 40*time.Millisecond)
+	defer func() { _ = body.Close() }()
+
+	go func() {
+		for range chunks {
+			time.Sleep(10 * time.Millisecond)
+			_, _ = writer.Write([]byte("x"))
+		}
+		_ = writer.Close()
+	}()
+
+	written, err := io.Copy(io.Discard, body)
+	if err != nil {
+		t.Fatalf("a slow transfer was refused: %v", err)
+	}
+	if written != chunks {
+		t.Fatalf("read %d bytes, want %d", written, chunks)
 	}
 }
