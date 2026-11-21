@@ -17,6 +17,7 @@ import (
 	"noxis/internal/common/release"
 	"noxis/internal/common/secret"
 	"noxis/internal/constants"
+	"noxis/internal/web"
 	"time"
 
 	appread "noxis/internal/app/read"
@@ -98,11 +99,24 @@ func buildServer(ctx context.Context, cfg config.Config, statePath string, log *
 		},
 	})
 
+	// The console is not a second deployment any more: it is this origin's front page, so the browser
+	// calls the API it was served from and no CORS decision is involved. `/v1` is the prefix the route
+	// table writes; the page needs it only to know where the calls go.
+	console, err := web.New(web.Config{API: "/v1"})
+	if err != nil {
+		_ = state.Close()
+		return nil, nil, err
+	}
+	// One line says where the page is and which of the two it is serving: a 404 on the first thing an
+	// operator opens is a bug report about the wrong thing.
+	log.Info("console", "path", "/", "built", console.Built())
+
 	handler := apiserver.NewMux(apiserver.Deps{
 		Log:      log,
 		Auth:     auth,
 		Handlers: handlers_,
 		Origins:  cfg.ConsoleOrigins,
+		Console:  console.Handler(),
 	})
 	return handler, state, nil
 }

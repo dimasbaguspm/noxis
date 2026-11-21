@@ -17,9 +17,12 @@ type Deps struct {
 	Log      *slog.Logger
 	Auth     *middlewares.Authenticator
 	Handlers *handlers.Handlers
-	// Origins are the browser origins the API answers. The console may live on another host than
-	// the API, so the deployment names them and this package only echoes one back.
+	// Origins are the browser origins the API answers. The console is served from this origin by
+	// default, so this list is for a deployment that deliberately split it out.
 	Origins []string
+	// Console is the browser page this process serves at `/`: the embedded build, its files and its
+	// single-page fallback. Nil means this binary carries no console to serve.
+	Console http.Handler
 }
 
 // Route is one line of the API. A route that is not Public names the scopes it needs, so the whole
@@ -42,6 +45,12 @@ func NewMux(d Deps) http.Handler {
 		}
 		listed := fmt.Sprintf("%s %s", rt.Method, rt.Path)
 		mux.Handle(listed, middlewares.Span(listed)(handler))
+	}
+	// The console is the last thing on the mux, so every route above stays specific: `GET /` matches
+	// what none of them claimed. `console()` is what keeps the API's own namespace honest underneath it.
+	if d.Console != nil {
+		listed := "GET /"
+		mux.Handle(listed, middlewares.Span(listed)(console(d.Console)))
 	}
 	return middlewares.Chain(mux,
 		middlewares.Recover(d.Log),
