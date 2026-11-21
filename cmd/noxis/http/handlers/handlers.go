@@ -3,12 +3,14 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"noxis/internal/app/proposal"
 	"noxis/internal/app/read"
 	"noxis/internal/app/target"
+	"noxis/internal/common/release"
 	"noxis/internal/constants"
 	"noxis/internal/domain"
 	"strings"
@@ -21,6 +23,14 @@ type Deps struct {
 	Targets   TargetUseCases
 	Read      ReadUseCases
 	Proposals ProposalUseCases
+	// Release answers what the publish job last uploaded, for the version route. It is the only thing
+	// the API asks a third party, and a failure there is a missing notice rather than an error.
+	Release ReleaseChecker
+}
+
+// ReleaseChecker is the one question the version route asks.
+type ReleaseChecker interface {
+	Latest(ctx context.Context) (*release.Info, error)
 }
 
 // ProposalUseCases are the proposal use cases, one field per route.

@@ -707,6 +707,26 @@
         },
         "type": "object"
       },
+      "handlers.VersionInfo": {
+        "properties": {
+          "commit": {
+            "type": "string"
+          },
+          "latest": {
+            "$ref": "#/components/schemas/release.Info"
+          },
+          "newer": {
+            "type": "boolean"
+          },
+          "release_url": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "handlers.Whoami": {
         "properties": {
           "name": {
@@ -718,6 +738,21 @@
             },
             "type": "array",
             "uniqueItems": false
+          }
+        },
+        "type": "object"
+      },
+      "release.Info": {
+        "properties": {
+          "built_at": {
+            "description": "BuiltAt is the commit timestamp, in RFC 3339, of the build this asset belongs to.",
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
           }
         },
         "type": "object"
@@ -2354,6 +2389,38 @@
         ],
         "x-scopes": [
           "read"
+        ]
+      }
+    },
+    "/v1/version": {
+      "get": {
+        "description": "The version answering, the release page, and the newest published build when it could be read.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/handlers.VersionInfo"
+                    },
+                    "error": {
+                      "$ref": "#/components/schemas/respond.Error"
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/respond.Meta"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "summary": "What this build is, and whether there is a newer one",
+        "tags": [
+          "system"
         ]
       }
     },

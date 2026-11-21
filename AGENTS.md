@@ -95,6 +95,11 @@ seam next to the struct: `var _ ports.Driver = (*DB)(nil)`.
   `respond.Envelope`'s `data`. The output in `cmd/noxis/http/docs` is committed and CI fails on
   drift: `TestEveryRouteIsDocumented` compares paths, scopes and security, and
   `TestEveryPayloadIsDocumented` compares each operation's payload type against a table.
+- **Every build says which build it is.** `Version` and `Commit` in `internal/constants` are stamped at
+  link time (`make build`, the `Dockerfile`, and the CI publish job), and the version a person reads is
+  `nightly+db92d5a`. The CI `publish` job moves the `nightly` release to every green commit on master and
+  uploads `version.json` beside the binaries; `/v1/version` is how a client learns it is behind, and it
+  points at the releases page, never at an asset.
 - **Auth is env-declared.** `TOKENS` is inline JSON, `{"<name>": {"secret": "...",
   "scopes": [...]}}`; the name is the identity that lands in the journal. A scope a
   route needs is declared in the route table, not in the handler. Request path:

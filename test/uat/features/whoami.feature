@@ -6,7 +6,7 @@ Feature: Caller identity
   Scenario: the process answers anyone who asks whether it is up
     When I ask for the health of the server without a token
     Then the request succeeds
-    And the reported version is "2.0.0-dev"
+    And the reported version names the build
 
   Scenario: a token holder learns its own identity
     Given I hold the agent token

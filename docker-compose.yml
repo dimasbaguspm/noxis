@@ -9,7 +9,13 @@
 name: noxis
 
 x-noxis: &noxis
-  build: .
+  build:
+    context: .
+    args:
+      # What this build is. `COMMIT=$(git rev-parse --short=7 HEAD) docker compose up -d --build` stamps it;
+      # without it the binary says `dev` and claims no commit, which is the honest answer.
+      VERSION: ${VERSION:-dev}
+      COMMIT: ${COMMIT:-unknown}
   image: noxis:local
   restart: unless-stopped
 

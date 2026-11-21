@@ -7,6 +7,7 @@ package client
 const (
 	pathHealthz   = "/healthz"
 	pathWhoami    = "/v1/whoami"
+	pathVersion   = "/v1/version"
 	pathTargets   = "/v1/targets"
 	pathOpenAPI   = "/openapi.json"
 	pathProposals = "/v1/proposals"

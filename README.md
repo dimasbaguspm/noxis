@@ -317,6 +317,50 @@ CDN), orange on white.
 Keyboard: rows are links (`Enter`/`Space`), drawers close on `Esc` and return focus, and every control
 has a visible focus ring. No horizontal scrolling at 360px.
 
+## Releases and updates
+
+Every green commit on `master` is published. The publish job runs after `go` and `web` pass, builds the
+binary for `linux/amd64` and `linux/arm64` with the console embedded, and moves one moving release —
+the tag **`nightly`** — to that commit:
+
+| Asset | What it is |
+| --- | --- |
+| `noxis-linux-amd64`, `noxis-linux-arm64` | the binary, stamped `Version=nightly`, `Commit=<first 7 of the commit>` |
+| `version.json` | `{"version":"nightly","commit":"db92d5a","built_at":"…"}` — the artifact clients read |
+| `SHA256SUMS` | the checksums of both binaries |
+
+The version a build reports is the release line plus the seven characters of its commit:
+`nightly+db92d5a`. `noxis version` prints it, the console shows it in the topbar, and `/healthz` and
+`/v1/version` answer with it. A build nobody stamped says `dev` and makes no claim.
+
+**The update check runs on boot.** The CLI asks its server after every command and the console asks on
+every page load; the *server* is what talks to GitHub, at most once an hour, and remembers the answer.
+
+```
+client ── GET /v1/version ──▶ this deployment: {version, commit, release_url, latest, newer}
+                                     │
+                                     └─ checks (1h cache) ──▶ …/releases/download/nightly/version.json
+```
+
+A newer build is reported as a line on stderr (`a newer build is out: nightly+abc1234`) and a
+dismissible banner in the console. Nothing installs itself: every notice links to
+**https://github.com/dimasbaguspm/noxis/releases**, and updating is a download and a restart. A
+deployment with no outbound network says `latest: null` and behaves exactly as before.
+
+### Cutting a release
+
+1. Everything intended for it is merged; CI is green on `master`.
+2. Tag it: `git tag -a v2.0.0 -m "v2.0.0" && git push origin v2.0.0`.
+3. Build the release build with the tag as the release line:
+   `make build VERSION=v2.0.0` (the commit is stamped automatically).
+4. Create the release from that tag, attach the same three kinds of asset as the nightly, and publish
+   it (not as a pre-release). The nightly keeps moving; a tagged release never does.
+5. The next `/v1/version` a client reads names the newer commit, so every deployment with an admin
+   watching the console learns it exists.
+
+The image is built per deployment (`docker build -t noxis .`) and carries the same stamp:
+`--build-arg VERSION=v2.0.0 --build-arg COMMIT=$(git rev-parse --short=7 HEAD)`.
+
 ## Contributing
 
 Read `AGENTS.md` first: it is the map, and `docs/agent/` is the detail.

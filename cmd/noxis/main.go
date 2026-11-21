@@ -74,6 +74,11 @@ func newRoot() *cobra.Command {
 		}
 		return session.Prepare(cmd)
 	}
+	// The update check runs whenever a client is bootstrapped: after whatever the person actually asked
+	// for, one line on stderr, and never a failure of the command that ran.
+	root.PersistentPostRun = func(cmd *cobra.Command, _ []string) {
+		commands.Notice(cmd, session)
+	}
 	root.AddCommand(newHelp(root), http.NewHTTP(buildServer), newWeb(),
 		commands.NewWhoami(session), commands.NewDescribe(session), commands.NewVersion(),
 		commands.NewAuth(session), commands.NewTarget(session),

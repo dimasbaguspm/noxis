@@ -25,6 +25,7 @@ noxis/cmd/noxis/http 74
 noxis/internal/web 77
 noxis/cmd/noxis/http/handlers 69
 noxis/internal/common/ref 94
+noxis/internal/common/release 84
 noxis/internal/common/secret 87
 noxis/internal/common/sqltext 74
 noxis/internal/common/telemetry 67

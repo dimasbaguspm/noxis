@@ -13,6 +13,7 @@ var wants = map[string]string{
 	"GET /openapi.json":        "string",
 	"GET /openapi.yaml":        "string",
 	"GET /v1/whoami":           "handlers.Whoami",
+	"GET /v1/version":          "handlers.VersionInfo",
 	"GET /v1/targets":          "[]handlers.Target",
 	"POST /v1/targets":         "handlers.Target",
 	"POST /v1/targets/test":    "handlers.TestResult",

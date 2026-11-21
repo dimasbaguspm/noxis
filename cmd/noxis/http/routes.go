@@ -66,6 +66,7 @@ func Routes(d Deps) []Route {
 		{Method: http.MethodGet, Path: "/openapi.json", Handler: OpenAPIJSON, Public: true},
 		{Method: http.MethodGet, Path: "/openapi.yaml", Handler: OpenAPIYAML, Public: true},
 		{Method: http.MethodGet, Path: "/v1/whoami", Handler: d.Handlers.Whoami},
+		{Method: http.MethodGet, Path: "/v1/version", Handler: d.Handlers.Version, Public: true},
 
 		{Method: http.MethodGet, Path: "/v1/targets", Handler: d.Handlers.ListTargets, Scopes: read},
 		{Method: http.MethodPost, Path: "/v1/targets", Handler: d.Handlers.CreateTarget, Scopes: admin},

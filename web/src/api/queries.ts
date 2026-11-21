@@ -14,6 +14,7 @@ import type {
   TableDetail,
   Target,
   TestAnswer,
+  VersionInfo,
 } from './types';
 
 // Every read and write the console makes, as a hook. A screen says which data it needs and which
@@ -21,6 +22,7 @@ import type {
 
 export const keys = {
   session: ['whoami'] as const,
+  version: () => ['version'] as const,
   targets: (filter: ListTargets) => ['targets', filter] as const,
   target: (ref: string) => ['target', ref] as const,
   capabilities: (ref: string) => ['capabilities', ref] as const,
@@ -284,6 +286,18 @@ export function useRows(ref: string, database: string, table: string) {
   });
 }
 
+/** useVersion asks the deployment what it is. The server answers in milliseconds and caches its own
+ * upstream check for an hour, so this is safe to run whenever the console boots. */
+export function useVersion() {
+  const client = useClient();
+  return useQuery({
+    queryKey: keys.version(),
+    enabled: Boolean(client),
+    staleTime: 60_000,
+    retry: false,
+    queryFn: () => unwrap<VersionInfo>(client!.get('/v1/version')),
+  });
+}
 /** useUpdateTarget is a PATCH: a field that is absent is a field nobody asked to change, which is what
  * lets an empty password leave the stored one alone. */
 export function useUpdateTarget(ref: string) {
