@@ -20,7 +20,7 @@ import type { TokenValues } from '../forms/schemas';
 // screenshot, and this is the page where somebody decides whether to trust the thing.
 
 export function SignIn() {
-  const { signIn, config } = useSession();
+  const { signIn } = useSession();
   const [refused, setRefused] = useState<string | null>(null);
 
   const submit = async (values: TokenValues) => {
@@ -103,13 +103,7 @@ export function SignIn() {
 
           <Heading level={2}>Sign in</Heading>
           <Text as="p" size="sm" tone="muted" className="mt-1 mb-5">
-            {config ? (
-              <>
-                to <code>{config.api.replace(/^https?:\/\//, '')}</code>
-              </>
-            ) : (
-              'with the token your CLI holds'
-            )}
+            to <code>{location.host}</code> with a token from whoever runs this server
           </Text>
 
           {refused ? (
@@ -134,8 +128,13 @@ export function SignIn() {
           </Form>
 
           <Text as="p" size="xs" tone="muted" className="mt-4 leading-relaxed">
-            This console and the API it calls are the same origin: nothing is handed to the browser
-            for you. Paste the token a person gave you, and this browser keeps it.
+            The token is kept in this browser and never sent anywhere but this server. The server
+            decides what it can do: a token carrying <code>approve</code> and <code>apply</code> can
+            decide a change, and the journal records the name it carries — not yours.
+          </Text>
+          <Text as="p" size="xs" tone="muted" className="mt-2 leading-relaxed">
+            A link to a proposal is shareable. A token is not: whoever opens this page pastes their
+            own.
           </Text>
         </div>
       </aside>

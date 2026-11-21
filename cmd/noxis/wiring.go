@@ -100,9 +100,8 @@ func buildServer(ctx context.Context, cfg config.Config, statePath string, log *
 	})
 
 	// The console is not a second deployment any more: it is this origin's front page, so the browser
-	// calls the API it was served from and no CORS decision is involved. `/v1` is the prefix the route
-	// table writes; the page needs it only to know where the calls go.
-	console, err := web.New(web.Config{API: "/v1"})
+	// calls the API it was served from and no CORS decision is involved.
+	console, err := web.New()
 	if err != nil {
 		_ = state.Close()
 		return nil, nil, err
