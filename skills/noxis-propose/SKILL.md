@@ -75,7 +75,10 @@ change is destructive, say so to the reviewer instead of presenting it as proven
 ## 4. Report
 
 Quote, in your answer to the reviewer: the tier, the schema diff (or "no schema change"), the rows the
-diff touches, and the estimate. Then hand it over — the decision is not yours.
+diff touches, the estimate — and the **link** `noxis proposal show` prints on its `console` line. That
+link opens the proposal for whoever holds a token, so the person deciding does not have to paste a ref
+together. When there is no `console` line the deployment did not set `PUBLIC_URL`: give the ref and never
+invent a URL. Then hand it over — the decision is not yours.
 
 ```bash
 noxis proposal show <pr> --json                # everything the reviewer will read

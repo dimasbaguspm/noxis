@@ -34,13 +34,16 @@ type VersionInfo struct {
 	ReleaseURL string        `json:"release_url"`
 	Latest     *release.Info `json:"latest"`
 	Newer      bool          `json:"newer"`
+	// ConsoleURL is the origin a browser reaches this deployment on, absent when it did not say. A client
+	// appends the route it has in hand, so a proposal can be quoted as a link rather than as a ref.
+	ConsoleURL string `json:"console_url,omitempty"`
 }
 
 // Version is public: the version of the binary answering, the page every update notice points at, and the
 // newest build the publish job uploaded when this deployment could read it (checked at most hourly).
 //
 // @Summary What this build is, and whether there is a newer one
-// @Description The version answering, the release page, and the newest published build when it could be read.
+// @Description The version answering, the release page, the newest published build when it could be read, and the origin a browser reaches this deployment on when it was configured.
 // @Tags system
 // @Produce json
 // @Success 200 {object} VersionInfo
@@ -61,6 +64,7 @@ func (h *Handlers) Version(w http.ResponseWriter, r *http.Request) {
 		ReleaseURL: constants.ReleaseURL,
 		Latest:     published,
 		Newer:      release.Newer(published, constants.Commit),
+		ConsoleURL: h.PublicURL,
 	})
 }
 

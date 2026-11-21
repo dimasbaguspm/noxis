@@ -71,8 +71,9 @@ func buildServer(ctx context.Context, cfg config.Config, statePath string, log *
 		Timeout: cfg.QueryTimeout,
 	}
 	handlers_ := handlers.New(handlers.Deps{
-		Log:     log,
-		Release: release.NewChecker(constants.VersionAsset, time.Hour),
+		Log:       log,
+		Release:   release.NewChecker(constants.VersionAsset, time.Hour),
+		PublicURL: cfg.PublicURL,
 		Targets: handlers.TargetUseCases{
 			Create:  target.NewCreate(useCases),
 			List:    target.NewList(useCases),

@@ -138,6 +138,9 @@ type VersionInfo struct {
 	ReleaseURL string       `json:"release_url"`
 	Latest     *ReleaseInfo `json:"latest"`
 	Newer      bool         `json:"newer"`
+	// ConsoleURL is the origin a browser reaches this deployment on, empty when it did not say. A link is
+	// built from this and never from the URL this client dialled: a proxy makes those two different.
+	ConsoleURL string `json:"console_url"`
 }
 
 // Version asks the server what it is. It is public: a client that has not signed in can still learn

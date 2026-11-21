@@ -150,3 +150,31 @@ func TestLoadRefusesAnOldKeyOfTheWrongLength(t *testing.T) {
 		t.Fatalf("error = %q, want it to name SECRET_KEY_OLD", err)
 	}
 }
+
+// PUBLIC_URL is the origin a browser reaches this deployment on. A trailing slash would double on every
+// link, and a path is kept because a proxy may mount noxis under one.
+func TestParsePublicURL(t *testing.T) {
+	for raw, want := range map[string]string{
+		"":                            "",
+		"https://noxis.example.com":   "https://noxis.example.com",
+		"https://noxis.example.com/":  "https://noxis.example.com",
+		" https://example.com/noxis/": "https://example.com/noxis",
+		"http://192.168.1.10:9000":    "http://192.168.1.10:9000",
+	} {
+		got, err := ParsePublicURL(raw)
+		if err != nil {
+			t.Fatalf("ParsePublicURL(%q): %v", raw, err)
+		}
+		if got != want {
+			t.Fatalf("ParsePublicURL(%q) = %q, want %q", raw, got, want)
+		}
+	}
+	for _, raw := range []string{
+		"noxis.example.com", "ftp://noxis.example.com", "https:///x",
+		"https://noxis.example.com/?a=1", "https://noxis.example.com/#top",
+	} {
+		if _, err := ParsePublicURL(raw); err == nil {
+			t.Fatalf("ParsePublicURL(%q) accepted it", raw)
+		}
+	}
+}
