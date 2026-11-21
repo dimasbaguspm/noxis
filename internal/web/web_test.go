@@ -147,15 +147,22 @@ func TestTheTokenIsOnlyHandedToLoopback(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
 		remote    string
+		forwarded bool
 		wantToken bool
 	}{
-		{"loopback", "127.0.0.1:5555", true},
-		{"loopback v6", "[::1]:5555", true},
-		{"another machine", "203.0.113.7:5555", false},
+		{"loopback", "127.0.0.1:5555", false, true},
+		{"loopback v6", "[::1]:5555", false, true},
+		{"another machine", "203.0.113.7:5555", false, false},
+		// A reverse proxy, Docker's userland proxy: they all connect from a loopback address, so a request
+		// that arrives forwarded is not the browser on this machine however local it looks.
+		{"forwarded by a proxy", "127.0.0.1:5555", true, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, "/config.json", nil)
 			request.RemoteAddr = tc.remote
+			if tc.forwarded {
+				request.Header.Set("X-Forwarded-For", "203.0.113.7")
+			}
 			rec := httptest.NewRecorder()
 			console.Handler().ServeHTTP(rec, request)
 

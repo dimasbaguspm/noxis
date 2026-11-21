@@ -177,9 +177,16 @@ func (c *Console) serveConfig(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(body)
 }
 
-// loopback reports whether the request came from this machine: the token is the CLI's own, and this
-// is the one place it is handed to a browser.
+// loopback reports whether the request came from a browser on this machine: the token is the CLI's own, and
+// this is the one place it is handed out. A forwarded request is not: every proxy in front of the console —
+// a reverse proxy, Docker's userland proxy — connects from a loopback address, so the remote address alone
+// cannot tell a browser on this laptop from one across the network.
 func loopback(r *http.Request) bool {
+	for _, header := range []string{"Forwarded", "X-Forwarded-For", "X-Real-Ip"} {
+		if r.Header.Get(header) != "" {
+			return false
+		}
+	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		host = r.RemoteAddr

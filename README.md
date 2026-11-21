@@ -117,6 +117,8 @@ docker run -d --name noxis --read-only -p 9000:9000 \
 - State file: `/data/noxis.db` — **back it up like a database**, it is the journal.
 - Image tags on `ghcr.io/dimasbaguspm/noxis`: `nightly` and `nightly-<sha>` follow master, `v2.0.0` is
   a release, `latest` follows the newest tag (never a nightly). Both amd64 and arm64.
+- The console binds **`127.0.0.1`** on purpose: it hands its token to a loopback browser. A container or
+  a proxy passes `--listen 0.0.0.0`, and the token is never handed to a forwarded request.
 - Upgrades migrate it: the schema is versioned and each bump is a step that runs once, in a transaction.
   A file from a *newer* build is refused rather than guessed at.
 - Rotating `SECRET_KEY`: set the old key as `SECRET_KEY_OLD`, restart, re-save each password

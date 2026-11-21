@@ -49,17 +49,15 @@ services:
   console:
     <<: *noxis
     # --api is the address the *browser* reaches the API on, which is why it is not the service name.
+    # --listen is 0.0.0.0 because a published port arrives on the container's own interface; a bare
+    # `noxis web serve` keeps the loopback default, which is what a laptop wants.
     command:
-      ["web", "serve", "--api", "${API_PUBLIC_URL:-http://localhost:9000}", "--port", "3000"]
+      ["web", "serve", "--api", "${API_PUBLIC_URL:-http://localhost:9000}", "--port", "3000", "--listen", "0.0.0.0"]
     ports:
       - "${CONSOLE_PORT:-3000}:3000"
     # The console never touches the state file; a tmpfs keeps the image's /data out of the way.
     tmpfs:
       - /data
-    healthcheck:
-      # The image's own probe asks the API on :9000, which this container does not run; a probe that
-      # can never pass is worse than none.
-      disable: true
     depends_on:
       api:
         condition: service_healthy
