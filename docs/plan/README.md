@@ -38,3 +38,7 @@ history of a decision. This index starts at the v2 rebuild.
 ### One binary (v2, third pass)
 
 - **[plan: one binary, a contract, and a console that ships with it](783-one-binary.md)** — plan issue #783, PRs #791–#797, closed 2026-11-21
+
+### The agent's seat (v2, fifth pass)
+
+- **[plan: the agent's seat — what it can learn, wait for, and retry](833-agent-surface.md)** — plan issue #833, PRs #838–#842, closed 2026-11-21. Fix: [#842](https://github.com/dimasbaguspm/noxis/pull/842) registers `watch`, which the #838 merge left out.
