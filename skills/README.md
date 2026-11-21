@@ -3,6 +3,10 @@
 Ready-to-copy skills for agents that operate noXis. They are versioned with the code, so a skill and the
 CLI it describes never drift apart.
 
+They are also **inside the binary**: `noxis skills` lists them and `noxis skills <name>` prints one, so the
+copy an agent loads is the copy this build was tested with. A skill from a newer release describes flags an
+older CLI does not have, and nothing in the skill can notice that.
+
 Each directory holds one `SKILL.md` in the [Agent Skills](https://code.claude.com/docs/en/skills) format: YAML
 frontmatter (`name`, `description`) and a markdown body. That format is read by pi, Claude Code, Cursor and
 anything else that loads a skills directory — copy the folder, not the file, and the skill travels.
