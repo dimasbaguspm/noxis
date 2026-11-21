@@ -1,11 +1,18 @@
-import { ApiOutlined, DownloadOutlined, PlayCircleOutlined } from '@ant-design/icons';
+import {
+  ApiOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  PlayCircleOutlined,
+} from '@ant-design/icons';
 import { App as AntApp, Input, Segmented, Tabs, Tag } from 'antd';
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Can } from '../api/permissions';
 import { Breadcrumb } from '../components/breadcrumb';
 import { Card } from '../components/card';
 import { Link, useParams } from 'react-router-dom';
 import {
+  useArchiveTarget,
   useProbeTarget,
   useProposals,
   useRunQuery,
@@ -42,6 +49,26 @@ export function TargetPage() {
   const [tab, setTab] = useState<Tab>('query');
   const target = useTarget(ref);
   const tables = useTables(ref, target.data?.database ?? '');
+  const { modal, message } = AntApp.useApp();
+  const navigate = useNavigate();
+  const archive = useArchiveTarget();
+
+  // Archiving is this product's delete: nothing is removed and the journal keeps it. The confirmation
+  // says so instead of implying a second click brings it back.
+  const archiveIt = () => {
+    modal.confirm({
+      title: `Archive ${target.data?.name ?? 'this instance'}?`,
+      content:
+        'It leaves the list. Its proposals and journal stay, and the name can be registered again. There is no un-archive yet.',
+      okText: 'Archive',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        await archive.mutateAsync(ref);
+        void message.success('archived');
+        navigate('/');
+      },
+    });
+  };
 
   return (
     <section className="flex flex-col gap-5" aria-labelledby="target-title">
@@ -67,6 +94,14 @@ export function TargetPage() {
                     <RenderWhen condition={target.data.archived_at}>
                       <Tag>archived</Tag>
                     </RenderWhen>
+                    <span className="flex-1" />
+                    <Can do="delete:target">
+                      <RenderWhen condition={!target.data.archived_at}>
+                        <AppButton intent="quiet" icon={<DeleteOutlined />} onClick={archiveIt}>
+                          Archive
+                        </AppButton>
+                      </RenderWhen>
+                    </Can>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
