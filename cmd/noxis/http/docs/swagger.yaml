@@ -478,6 +478,11 @@ components:
             properties:
                 commit:
                     type: string
+                console_url:
+                    description: |-
+                        ConsoleURL is the origin a browser reaches this deployment on, absent when it did not say. A client
+                        appends the route it has in hand, so a proposal can be quoted as a link rather than as a ref.
+                    type: string
                 latest:
                     $ref: '#/components/schemas/release.Info'
                 newer:
@@ -1516,7 +1521,7 @@ paths:
                 - admin
     /v1/version:
         get:
-            description: The version answering, the release page, and the newest published build when it could be read.
+            description: The version answering, the release page, the newest published build when it could be read, and the origin a browser reaches this deployment on when it was configured.
             responses:
                 "200":
                     content:

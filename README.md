@@ -103,6 +103,7 @@ All environment, nothing else. `.env.example` is the full list.
 | `TOKENS` / `TOKENS_FILE` | `{"<name>":{"secret":"…","scopes":[…]}}` — the *name* is what the journal records |
 | `SECRET_KEY` | 32 bytes hex/base64; seals target passwords (AES-256-GCM, AAD = target ref) |
 | `SECRET_KEY_OLD` | comma-separated keys that no longer seal but may still open — the rotation window |
+| `PUBLIC_URL` | the origin a browser reaches this deployment on; a client builds a proposal link from it, and unset means no link is printed |
 | `CONSOLE_ORIGINS` | browser origins allowed to call the API from somewhere other than the API itself; unset means same-origin only |
 | `QUERY_TIMEOUT` / `PROBE_TIMEOUT` | `30s` / `5s` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | telemetry, optional — unset means nothing is exported |

@@ -36,6 +36,9 @@ type Config struct {
 	// re-save the passwords that matter, then drop it", never a silent re-encryption of the file.
 	SecretKeyOld [][]byte
 	Tokens       []Token
+	// PublicURL is the origin a browser reaches this deployment on, when it is not the address this
+	// process listens on. A client builds a link from it, so a deployment behind a proxy names it once.
+	PublicURL string
 	// ConsoleOrigins are the browser origins allowed to call the API. They are deployment, not
 	// code: the console may be served from another host than the API, and only the deployment knows
 	// which one.
@@ -85,6 +88,9 @@ func LoadFrom(get func(string) string) (Config, error) {
 	// Silent by default: the API serves the console from its own origin, so a browser calling it
 	// across origins is a deployment that has to say which one it is. Naming nothing allows nothing,
 	// which is what same-origin already is.
+	if cfg.PublicURL, err = ParsePublicURL(get("PUBLIC_URL")); err != nil {
+		return Config{}, err
+	}
 	if raw := strings.TrimSpace(get("CONSOLE_ORIGINS")); raw != "" {
 		if cfg.ConsoleOrigins, err = ParseOrigins(raw); err != nil {
 			return Config{}, err
@@ -119,6 +125,31 @@ func ParseOrigins(raw string) ([]string, error) {
 		return nil, errors.New("config: CONSOLE_ORIGINS names no origin")
 	}
 	return out, nil
+}
+
+// ParsePublicURL reads PUBLIC_URL: the origin a browser reaches this deployment on. Empty means the
+// deployment did not say, and a client then prints no link rather than a wrong one. A path is allowed
+// because a proxy may mount noxis under one; a query and a fragment are not, because they belong to a
+// route and not to the deployment.
+func ParsePublicURL(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "", nil
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return "", fmt.Errorf("config: PUBLIC_URL: %q is not a URL: %w", raw, err)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", fmt.Errorf("config: PUBLIC_URL: %q is not http or https", raw)
+	}
+	if parsed.Host == "" {
+		return "", fmt.Errorf("config: PUBLIC_URL: %q has no host", raw)
+	}
+	if parsed.RawQuery != "" || parsed.Fragment != "" {
+		return "", fmt.Errorf("config: PUBLIC_URL: %q carries a query or a fragment", raw)
+	}
+	return parsed.Scheme + "://" + parsed.Host + strings.TrimSuffix(parsed.Path, "/"), nil
 }
 
 // ParseTokens reads the inline token JSON: {"<name>": {"secret": "...", "scopes": [...]}}.

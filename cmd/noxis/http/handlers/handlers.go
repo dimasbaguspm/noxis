@@ -26,6 +26,9 @@ type Deps struct {
 	// Release answers what the publish job last uploaded, for the version route. It is the only thing
 	// the API asks a third party, and a failure there is a missing notice rather than an error.
 	Release ReleaseChecker
+	// PublicURL is the origin a browser reaches this deployment on, when the deployment named one. It is
+	// how a CLI can hand a person a link: behind a proxy the address this process dials is not that one.
+	PublicURL string
 }
 
 // ReleaseChecker is the one question the version route asks.

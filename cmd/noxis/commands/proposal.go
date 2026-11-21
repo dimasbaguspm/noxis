@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"noxis/internal/client"
@@ -50,7 +51,7 @@ func NewPropose(s *Session) *cobra.Command {
 			if s.JSON {
 				return PrintJSON(cmd, created)
 			}
-			return printProposal(cmd, created)
+			return printProposal(cmd, created, proposalLink(cmd.Context(), api, created))
 		},
 	}
 	flags := cmd.Flags()
@@ -107,6 +108,16 @@ func NewProposals(s *Session) *cobra.Command {
 				[]string{"REF", "KIND", "STATUS", "TIER", "", "TITLE"}, rows); err != nil {
 				return err
 			}
+			if origin := consoleOrigin(cmd.Context(), api); origin != "" && len(page.Items) > 0 {
+				if _, err := fmt.Fprintf(cmd.OutOrStdout(), "\nconsole:\n"); err != nil {
+					return err
+				}
+				for _, item := range page.Items {
+					if _, err := fmt.Fprintf(cmd.OutOrStdout(), "  %s  %s\n", short(item.Ref), linkFor(origin, item)); err != nil {
+						return err
+					}
+				}
+			}
 			if page.NextCursor != "" {
 				_, err = fmt.Fprintf(cmd.OutOrStdout(), "\nnext: --cursor %s\n", page.NextCursor)
 			}
@@ -146,7 +157,7 @@ func NewProposalShow(s *Session) *cobra.Command {
 			if s.JSON {
 				return PrintJSON(cmd, item)
 			}
-			return printProposal(cmd, item)
+			return printProposal(cmd, item, proposalLink(cmd.Context(), api, item))
 		},
 	}
 }
@@ -173,22 +184,57 @@ func NewRehearse(s *Session) *cobra.Command {
 			if s.JSON {
 				return PrintJSON(cmd, updated)
 			}
-			return printProposal(cmd, updated)
+			return printProposal(cmd, updated, proposalLink(cmd.Context(), api, updated))
 		},
 	}
 	cmd.Flags().StringVar(&tier, "tier", "", "static, shadow or rehearsal")
 	return cmd
 }
 
+// proposalLink is the URL that opens a proposal in a browser. It is built from the origin the server
+// says a person reaches it on, never from the address this CLI dialled: behind a proxy those differ, and a
+// link that opens the wrong deployment is worse than no link.
+func proposalLink(ctx context.Context, api *client.Client, proposal client.Proposal) string {
+	return linkFor(consoleOrigin(ctx, api), proposal)
+}
+
+// consoleOrigin asks the deployment where it lives as a browser sees it. Empty means it did not say.
+func consoleOrigin(ctx context.Context, api *client.Client) string {
+	version, err := api.Version(ctx)
+	if err != nil {
+		// A link is a courtesy: a deployment that cannot answer this is still a deployment.
+		return ""
+	}
+	return version.ConsoleURL
+}
+
+// linkFor is the route the console already serves, `web/src/app/app.tsx`'s deepest one.
+func linkFor(origin string, proposal client.Proposal) string {
+	if origin == "" || proposal.TargetRef == "" || proposal.Ref == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/targets/%s/proposals/%s", origin, proposal.TargetRef, proposal.Ref)
+}
+
 // printProposal prints the change, its verdict and the evidence. A reviewer decides from this, so
 // the diffs are printed whole and never summarised.
-func printProposal(cmd *cobra.Command, proposal client.Proposal) error {
+func printProposal(cmd *cobra.Command, proposal client.Proposal, link string) error {
 	out := cmd.OutOrStdout()
 	if _, err := fmt.Fprintf(out, "%s  %s\n%s\n\n", short(proposal.Ref), proposal.Status, proposal.Title); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(out, "kind %s · tier %s · proposed by %s%s\n\n",
+	if _, err := fmt.Fprintf(out, "kind %s · tier %s · proposed by %s%s\n",
 		proposal.Kind, proposal.Tier, proposal.ProposedBy, irreversibleNote(proposal.Irreversible)); err != nil {
+		return err
+	}
+	// The line an agent quotes to the person who has to decide. Absent when the deployment did not say
+	// what origin a browser reaches it on: a guessed link is worse than none.
+	if link != "" {
+		if _, err := fmt.Fprintf(out, "console %s\n", link); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintln(out); err != nil {
 		return err
 	}
 	if err := printSQL(out, "change", proposal.Query); err != nil {
