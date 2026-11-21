@@ -7,6 +7,7 @@ import (
 	"noxis/internal/common/dotconfig"
 	"noxis/internal/constants"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,17 +33,18 @@ func newSignin(s *Session) *cobra.Command {
 		Short: "Store a token for a server, and prove the server accepts it",
 		Long: "Stores the token in " + configPathHint() + " at 0600 and asks the server who it is. " +
 			"A token the server refuses is never stored.",
-		Args:        cobra.ExactArgs(1),
+		Args:        signinArgs,
 		Annotations: map[string]string{constants.AnnoNoToken: "true"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			token := strings.TrimSpace(args[0])
-			if token == "" {
-				return errors.New("signin needs a token: noxis auth signin <token> --api-url <url>")
-			}
 			// --profile is the one switch every command shares, so it names the profile here too: signing
 			// in to a second server should not mean learning a second flag.
 			name := first(name, s.Profile, "default")
-			apiURL := first(s.APIURL, os.Getenv("API_URL"), constants.DefaultAPIURL)
+			cfg, err := dotconfig.Load()
+			if err != nil {
+				return err
+			}
+			apiURL, source := signinURL(s.APIURL, cfg, os.Getenv("API_URL"), name)
 			api, err := client.New(apiURL, token)
 			if err != nil {
 				return err
@@ -53,10 +55,6 @@ func newSignin(s *Session) *cobra.Command {
 				return fmt.Errorf("the server at %s did not accept that token: %w", apiURL, err)
 			}
 
-			cfg, err := dotconfig.Load()
-			if err != nil {
-				return err
-			}
 			cfg.Put(name, dotconfig.Profile{
 				APIURL:    apiURL,
 				Token:     token,
@@ -67,13 +65,55 @@ func newSignin(s *Session) *cobra.Command {
 			if err := cfg.Save(); err != nil {
 				return err
 			}
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "signed in to %s as %s (%s) as profile %q, stored in %s\n",
-				apiURL, identity.Name, strings.Join(identity.Scopes, ","), name, cfg.FilePath())
+			// Which server it reached, and why that one: the destination is never a guess.
+			from := ""
+			if source != "" {
+				from = " (server from " + source + ")"
+			}
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "signed in to %s%s as %s (%s) as profile %q, stored in %s\n",
+				apiURL, from, identity.Name, strings.Join(identity.Scopes, ","), name, cfg.FilePath())
 			return err
 		},
 	}
 	cmd.Flags().StringVar(&name, "name", "", "the profile to store the token under (the same as --profile; --profile wins)")
 	return cmd
+}
+
+// signinArgs refuses a second positional argument by naming the flag that takes a host: the shape a person
+// reaches for first is `signin <token> <host>`, and a bare "accepts 1 arg(s)" teaches nothing.
+func signinArgs(_ *cobra.Command, args []string) error {
+	signedIn := "`noxis auth signin <token> --api-url " + constants.DefaultAPIURL + "`"
+	switch len(args) {
+	case 0:
+		return errors.New("signin needs a token: " + signedIn)
+	case 1:
+		if strings.TrimSpace(args[0]) == "" {
+			return errors.New("signin needs a token: " + signedIn)
+		}
+		return nil
+	default:
+		return errors.New("signin takes one token: the server is a flag — `noxis auth signin <token> --api-url https://api.example.com`")
+	}
+}
+
+// signinURL decides which server this sign-in reaches, and answers where the decision came from. A profile
+// that already exists wins over the environment, because signing in to a second server must not depend on
+// remembering a flag; `$API_URL` wins over the current profile, because CI sets it deliberately. The flag
+// wins over all of it.
+func signinURL(flagURL string, cfg dotconfig.Config, envURL, name string) (string, string) {
+	if flagURL != "" {
+		return flagURL, ""
+	}
+	if profile, err := cfg.Profile(name); err == nil && profile.APIURL != "" {
+		return profile.APIURL, "profile " + strconv.Quote(name)
+	}
+	if envURL != "" {
+		return envURL, "$API_URL"
+	}
+	if profile, err := cfg.Profile(cfg.Current); err == nil && profile.APIURL != "" {
+		return profile.APIURL, "the current profile " + strconv.Quote(cfg.Current)
+	}
+	return constants.DefaultAPIURL, "the local default"
 }
 
 func newStatus(s *Session) *cobra.Command {
