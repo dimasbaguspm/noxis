@@ -103,7 +103,7 @@ func newRoot() *cobra.Command {
 		printGroups(c.OutOrStdout(), root)
 	})
 	root.AddCommand(help, http.NewHTTP(buildServer),
-		commands.NewAPI(session), commands.NewVersion(), newSkills(session),
+		commands.NewAPI(session), commands.NewVersion(), commands.NewUpgrade(session), newSkills(session),
 		commands.NewAuth(session), commands.NewTarget(session),
 		commands.NewQuery(session), commands.NewTable(session),
 		// The two older depths of the same question, kept for the scripts that named them.

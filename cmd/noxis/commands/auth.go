@@ -120,6 +120,14 @@ func newStatus(s *Session) *cobra.Command {
 				return err
 			}
 
+			// Two builds drift the moment one of them is upgraded: the journal and the CLI should not be
+			// the only thing that says so.
+			drift := ""
+			if version, versionErr := api.Version(cmd.Context()); versionErr == nil &&
+				version.Commit != "" && version.Commit != constants.Commit {
+				drift = fmt.Sprintf("\nbuild:\t%s (this CLI is %s)", version.Version+"+"+version.Commit, constants.Build())
+			}
+
 			if s.JSON {
 				return PrintJSON(cmd, struct {
 					Profile   string    `json:"profile"`
@@ -131,8 +139,8 @@ func newStatus(s *Session) *cobra.Command {
 				}{name, stored.APIURL, identity.Name, identity.Scopes, stored.CheckedAt, cfg.FilePath()})
 			}
 			_, err = fmt.Fprintf(cmd.OutOrStdout(),
-				"profile:\t%s%s\nserver:\t%s\ncaller:\t%s\nscopes:\t%s\nchecked:\tjust now\nfile:\t%s\n",
-				name, mark, stored.APIURL, identity.Name, strings.Join(identity.Scopes, ","), cfg.FilePath())
+				"profile:\t%s%s\nserver:\t%s\ncaller:\t%s\nscopes:\t%s\nchecked:\tjust now\nfile:\t%s%s\n",
+				name, mark, stored.APIURL, identity.Name, strings.Join(identity.Scopes, ","), cfg.FilePath(), drift)
 			return err
 		},
 	}
