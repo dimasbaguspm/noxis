@@ -459,3 +459,19 @@ func TestCreateRefusesAnOverlongKey(t *testing.T) {
 		t.Fatalf("status = %d, want 400: %s", rec.Code, rec.Body)
 	}
 }
+
+// A reference the state file does not hold is a 404 the caller can act on, not the store's foreign key
+// reported as a 500: an agent that reads `code: internal` has no reason to correct the reference.
+func TestCreateProposalAnswers404ForAnUnknownTarget(t *testing.T) {
+	state := newStore()
+	h := newHandlers(state)
+	rec := request(t, h.CreateProposal, http.MethodPost,
+		"/v1/targets/0192f0c0-0000-7000-8000-0000000000ff/proposals",
+		`{"title":"add a column","query":"ALTER TABLE users ADD COLUMN note TEXT"}`, ops)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404: %s", rec.Code, rec.Body)
+	}
+	if len(state.proposals) != 0 {
+		t.Fatalf("stored %d proposals for a target that is not there", len(state.proposals))
+	}
+}
