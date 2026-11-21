@@ -85,7 +85,7 @@ func newRoot() *cobra.Command {
 		commands.Notice(cmd, session)
 	}
 	root.AddCommand(newHelp(root), http.NewHTTP(buildServer), newWeb(),
-		commands.NewWhoami(session), commands.NewDescribe(session), commands.NewVersion(),
+		commands.NewWhoami(session), commands.NewDescribe(session), commands.NewVersion(), newSkills(session),
 		commands.NewAuth(session), commands.NewTarget(session),
 		commands.NewQuery(session), commands.NewDatabases(session),
 		commands.NewTables(session), commands.NewTable(session),

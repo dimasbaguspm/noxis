@@ -163,9 +163,17 @@ Loop: `describe → whoami → target ls → query → propose → watch → rep
 `--json` on everything; failures are `{"error":{"code","message","status"}}` on stderr, non-zero exit.
 `code: "client"` = the request never left the machine.
 
-**Ready-to-copy skills** live in [`skills/`](skills/): `noxis-setup`, `noxis-read`, `noxis-propose`,
-`noxis-review` — one `SKILL.md` each, in the format pi, Claude Code and Cursor load. Copy the folder into
-your agent's skills directory and it knows how to operate this deployment.
+**Ready-to-copy skills** are embedded in the binary — `noxis-setup`, `noxis-read`, `noxis-propose`,
+`noxis-review` — one `SKILL.md` each, in the format pi, Claude Code and Cursor load:
+
+```bash
+noxis skills                                                   # what this build carries
+noxis skills noxis-read > ~/.claude/skills/noxis-read/SKILL.md # install one
+```
+
+They ship inside the binary so the skill an agent follows and the CLI that answers it are the **same
+version**: a skill from a newer release describes flags this build does not have, and an agent has no way
+to notice. The same four live in [`skills/`](skills/) for browsing.
 
 ## Updates
 
