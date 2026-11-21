@@ -20,7 +20,8 @@ func NewAuth(s *Session) *cobra.Command {
 		Use:   "auth",
 		Short: "Sign in to a noxisd, read the session, or forget it",
 	}
-	auth.AddCommand(newSignin(s), newStatus(s), newSignout(s), newUse(), newLs())
+	auth.AddCommand(newSignin(s), newStatus(s), newSignout(s), newUse(), newLs(),
+		renamed(NewWhoami(s), "whoami", "Ask the API which caller this token is"))
 	return auth
 }
 

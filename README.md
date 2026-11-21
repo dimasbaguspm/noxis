@@ -143,7 +143,7 @@ Capability → scope → command:
 
 | Capability | Scope | Command |
 | --- | --- | --- |
-| What this token may call | any | `noxis describe`, `noxis whoami`, `GET /openapi.json` |
+| What this token may call | any | `noxis describe`, `noxis auth whoami`, `GET /openapi.json` |
 | Instances | `read` | `target ls` · `target show <ref>` |
 | Schemas, tables, one table | `read` | `databases <ref>` · `tables <ref> app` · `table <ref> app users` |
 | Query rows | `read` | `query <ref> --sql "SELECT …"` |
