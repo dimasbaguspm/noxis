@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"noxis/internal/client"
 	"noxis/internal/common/ref"
-	"noxis/internal/domain"
 	"strings"
 )
 
@@ -61,7 +60,7 @@ func ProposalRef(ctx context.Context, api *client.Client, typed string) (string,
 // is an error that lists them, because a command that guesses is a command that changed the wrong schema.
 func match(kind, typed string, all []candidate) (string, error) {
 	if typed == "" {
-		return "", fmt.Errorf("%w: name a %s, or leave the argument out", domain.ErrInvalid, kind)
+		return "", fmt.Errorf("name a %s, or leave the argument out", kind)
 	}
 	byName := make([]candidate, 0, 1)
 	byPrefix := make([]candidate, 0, 1)
@@ -82,15 +81,15 @@ func match(kind, typed string, all []candidate) (string, error) {
 	case 1:
 		return found[0].ref, nil
 	case 0:
-		return "", fmt.Errorf("%w: no %s answers to %q; `noxis %s%s --json` lists what does",
-			domain.ErrNotFound, kind, typed, kind, plural(kind))
+		return "", fmt.Errorf("no %s answers to %q; `noxis %s%s --json` lists what does",
+			kind, typed, kind, plural(kind))
 	default:
 		names := make([]string, 0, len(found))
 		for _, c := range found {
 			names = append(names, c.name+" ("+c.ref[:8]+")")
 		}
-		return "", fmt.Errorf("%w: %q matches %d %ss — %s; type more of the reference",
-			domain.ErrInvalid, typed, len(found), kind, strings.Join(names, ", "))
+		return "", fmt.Errorf("%q matches %d %ss — %s; type more of the reference",
+			typed, len(found), kind, strings.Join(names, ", "))
 	}
 }
 

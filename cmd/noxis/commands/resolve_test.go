@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"errors"
-	"noxis/internal/domain"
 	"strings"
 	"testing"
 )
@@ -20,21 +18,21 @@ func TestATypedValueResolves(t *testing.T) {
 		name  string
 		typed string
 		want  string
-		errs  error
+		fails bool
 		says  string
 	}{
-		{"the name as printed", "snaptojson-test", "01a1fd59-6d1e-7e0d-8784-de451d9156c7", nil, ""},
-		{"a name typed in caps", "LOLOLO", "01b2fd59-6d1e-7e0d-8784-de451d9156c7", nil, ""},
-		{"a unique prefix", "01b2", "01b2fd59-6d1e-7e0d-8784-de451d9156c7", nil, ""},
-		{"a longer unique prefix", "01b2fd59-6d1e", "01b2fd59-6d1e-7e0d-8784-de451d9156c7", nil, ""},
+		{"the name as printed", "snaptojson-test", "01a1fd59-6d1e-7e0d-8784-de451d9156c7", false, ""},
+		{"a name typed in caps", "LOLOLO", "01b2fd59-6d1e-7e0d-8784-de451d9156c7", false, ""},
+		{"a unique prefix", "01b2", "01b2fd59-6d1e-7e0d-8784-de451d9156c7", false, ""},
+		{"a longer unique prefix", "01b2fd59-6d1e", "01b2fd59-6d1e-7e0d-8784-de451d9156c7", false, ""},
 		// Two targets share it: the error has to say which, not pick one.
-		{"an ambiguous prefix", "01a1", "", domain.ErrInvalid, "matches 2 targets"},
-		{"nothing at all", "nope", "", domain.ErrNotFound, "no target answers to"},
-		{"empty", "", "", domain.ErrInvalid, "name a target"},
+		{"an ambiguous prefix", "01a1", "", true, "matches 2 targets"},
+		{"nothing at all", "nope", "", true, "no target answers to"},
+		{"empty", "", "", true, "name a target"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, err := match("target", tc.typed, all)
-			if tc.errs == nil {
+			if !tc.fails {
 				if err != nil {
 					t.Fatalf("match(%q): %v", tc.typed, err)
 				}
@@ -43,8 +41,8 @@ func TestATypedValueResolves(t *testing.T) {
 				}
 				return
 			}
-			if !errors.Is(err, tc.errs) {
-				t.Fatalf("match(%q) = %v, want a %v", tc.typed, err, tc.errs)
+			if err == nil {
+				t.Fatalf("match(%q) resolved to %q, want a refusal", tc.typed, got)
 			}
 			if !strings.Contains(err.Error(), tc.says) {
 				t.Fatalf("error = %q, want it to say %q", err, tc.says)
@@ -69,7 +67,8 @@ func TestAnAmbiguousPrefixNamesItsCandidates(t *testing.T) {
 	}
 }
 
-// A proposal has no name, so its title is what a person matches on, and a prefix of the reference otherwise.
+// A proposal has no name of its own, so its title is what a person matches on, and a prefix of the
+// reference otherwise.
 func TestAProposalPrefixResolves(t *testing.T) {
 	all := []candidate{
 		{ref: "01a2aa59-6d1e-7e0d-8784-de451d9156c7", name: "drop the legacy index"},
@@ -80,5 +79,16 @@ func TestAProposalPrefixResolves(t *testing.T) {
 	}
 	if got, err := match("proposal", "add email to users", all); err != nil || got != all[1].ref {
 		t.Fatalf("title: %q, %v", got, err)
+	}
+}
+
+// A name wins over a prefix: a target called "prod" is not ambiguous because "prod-old" also exists.
+func TestANameBeatsAPrefix(t *testing.T) {
+	all := []candidate{
+		{ref: "01b2aa59-6d1e-7e0d-8784-de451d9156c7", name: "prod"},
+		{ref: "01b2bb59-6d1e-7e0d-8784-de451d9156c7", name: "prod-old"},
+	}
+	if got, err := match("target", "prod", all); err != nil || got != all[0].ref {
+		t.Fatalf("match = %q, %v; want the target actually called prod", got, err)
 	}
 }
