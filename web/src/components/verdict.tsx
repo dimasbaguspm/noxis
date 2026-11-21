@@ -128,7 +128,7 @@ export function verdictOf(proposal: ProposalDetail): Verdict {
 
 function tierClaim(tier: string): string {
   const claim = TIER_CLAIM[tier];
-  return claim ? `${tier} — ${claim}` : tier;
+  return claim ? `${tier} · ${claim}` : tier;
 }
 
 function rollbackClaim(rollback: string | undefined, rehearsalStatus: string | undefined): string {
