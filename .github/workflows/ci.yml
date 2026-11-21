@@ -3,6 +3,8 @@ name: ci
 on:
   push:
     branches: [master]
+    # A tag is a release: the image a deployment pins, published beside the assets.
+    tags: ['v*']
   pull_request:
 
 permissions:
@@ -140,3 +142,57 @@ jobs:
             sleep $((attempt * 15))
           done
           exit 1
+
+  # The artifact an operator actually runs: one image, both architectures, stamped with the commit the
+  # assets were. A compose file names this instead of a git clone and a Go toolchain. A pull request builds
+  # it without pushing, so the Dockerfile cannot rot unnoticed between releases.
+  image:
+    needs: [go, web]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: log in to the registry the image lives in
+        if: github.event_name == 'push'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "${GITHUB_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+      # The tags say which build it is. `nightly` moves with master; a `v*` tag does not; `latest` follows
+      # the newest tag and never a nightly. GHCR wants a lowercase path, so the repository is lowered.
+      - name: work out what to call it
+        id: what
+        run: |
+          set -euo pipefail
+          commit=$(git rev-parse --short=7 HEAD)
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            version="${GITHUB_REF_NAME}"
+            tags=$(printf '%s\n%s' "${image}:${version}" "${image}:latest")
+          else
+            version=nightly
+            tags=$(printf '%s\n%s' "${image}:nightly" "${image}:nightly-${commit}")
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "commit=${commit}" >> "$GITHUB_OUTPUT"
+          { echo 'tags<<EOF'; echo "${tags}"; echo 'EOF'; } >> "$GITHUB_OUTPUT"
+          echo "built as ${version} (${commit}), tagged: ${tags//$'\n'/ }"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' }}
+          platforms: ${{ github.event_name == 'push' && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
+          build-args: |
+            VERSION=${{ steps.what.outputs.version }}
+            COMMIT=${{ steps.what.outputs.commit }}
+          tags: ${{ steps.what.outputs.tags }}
+          labels: |
+            org.opencontainers.image.title=noXis
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.what.outputs.version }}
+            org.opencontainers.image.licenses=MIT
+          cache-from: type=gha,scope=image
+          cache-to: type=gha,mode=max,scope=image
