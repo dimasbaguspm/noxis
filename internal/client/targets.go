@@ -164,10 +164,17 @@ type TestTargetInput struct {
 	Options  map[string]string `json:"options,omitempty"`
 }
 
+// TestTargetResult is what a dialled configuration answered: the engine it reached, and the schemas
+// those credentials can see. An empty list is still a successful test.
+type TestTargetResult struct {
+	Capabilities Capabilities `json:"capabilities"`
+	Databases    []string     `json:"databases"`
+}
+
 // TestTarget dials the credentials as typed and answers what the engine said. Nothing is written: the
 // console calls this before it registers an instance, and the CLI calls it for the same reason.
-func (c *Client) TestTarget(ctx context.Context, in TestTargetInput) (Capabilities, error) {
-	var out Capabilities
+func (c *Client) TestTarget(ctx context.Context, in TestTargetInput) (TestTargetResult, error) {
+	var out TestTargetResult
 	_, err := c.do(ctx, http.MethodPost, pathTargets+"/test", in, &out)
 	return out, err
 }

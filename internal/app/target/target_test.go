@@ -104,6 +104,9 @@ func (f *fakeSealer) Open(_ string, sealed string) ([]byte, error) {
 type fakeDriver struct {
 	caps     domain.Capabilities
 	probeErr error
+	// databases is what the fake server says it holds, and databasesErr what it says instead.
+	databases    []string
+	databasesErr error
 	// dialled is the draft the driver was asked to reach: the test use case's only observable.
 	dialled domain.Target
 }
@@ -117,8 +120,8 @@ func (*fakeDriver) Query(_ context.Context, _ domain.Target, _, _ string, _ int)
 	return domain.Rows{}, nil
 }
 
-func (*fakeDriver) Databases(_ context.Context, _ domain.Target, _ string) ([]string, error) {
-	return nil, nil
+func (f *fakeDriver) Databases(_ context.Context, _ domain.Target, _ string) ([]string, error) {
+	return f.databases, f.databasesErr
 }
 
 func (*fakeDriver) Tables(_ context.Context, _ domain.Target, _, _ string) ([]domain.Table, error) {
@@ -404,15 +407,15 @@ func TestTestDialsWithoutStoring(t *testing.T) {
 	f := newFixture()
 	f.driver.caps = domain.Capabilities{Version: "8.4.2"}
 
-	caps, err := NewTest(f.deps).Run(context.Background(), TestInput{
+	result, err := NewTest(f.deps).Run(context.Background(), TestInput{
 		Driver: "mysql", Host: "db.internal", Port: 3306, Database: "app",
 		Username: "noxis", Password: "typed", TLSMode: "preferred",
 	})
 	if err != nil {
 		t.Fatalf("Test: %v", err)
 	}
-	if caps.Version != "8.4.2" {
-		t.Fatalf("version = %q, want 8.4.2", caps.Version)
+	if result.Capabilities.Version != "8.4.2" {
+		t.Fatalf("version = %q, want 8.4.2", result.Capabilities.Version)
 	}
 	if len(f.targets.stored) != 0 {
 		t.Fatalf("a test stored %d targets, want none", len(f.targets.stored))
@@ -503,5 +506,65 @@ func TestCreateWithoutAKeyStoresAgain(t *testing.T) {
 	}
 	if len(f.targets.stored) != 2 {
 		t.Fatalf("stored %d targets, want 2: a key names a request, and nobody named one", len(f.targets.stored))
+	}
+}
+
+// ---- what a test tells the form ----
+
+// A test answers which schemas those credentials can see: the form that registers the instance asks
+// the server what it governs instead of asking the operator to remember a name.
+func TestTestListsTheSchemasItCanSee(t *testing.T) {
+	f := newFixture()
+	f.driver.caps = domain.Capabilities{Version: "8.4.2"}
+	f.driver.databases = []string{"app", "audit"}
+
+	result, err := NewTest(f.deps).Run(context.Background(), TestInput{
+		Driver: "mysql", Host: "db.internal", Database: "app", Username: "noxis", Password: "typed",
+	})
+	if err != nil {
+		t.Fatalf("Test: %v", err)
+	}
+	if len(result.Databases) != 2 || result.Databases[0] != "app" {
+		t.Fatalf("databases = %v, want the two the fake server answered", result.Databases)
+	}
+}
+
+// The schema is optional here and nowhere else: a call whose job is to say which schemas exist cannot
+// demand one before it has looked.
+func TestTestDialsWithoutASchema(t *testing.T) {
+	f := newFixture()
+
+	result, err := NewTest(f.deps).Run(context.Background(), TestInput{
+		Driver: "mysql", Host: "db.internal", Username: "noxis", Password: "typed",
+	})
+	if err != nil {
+		t.Fatalf("Test with no schema: %v", err)
+	}
+	if f.driver.dialled.Database != "" {
+		t.Fatalf("dialled schema = %q, want none: the form asked before it knew one", f.driver.dialled.Database)
+	}
+	if result.Capabilities.Version != f.driver.caps.Version {
+		t.Fatalf("version = %q, want what the fake server answered", result.Capabilities.Version)
+	}
+}
+
+// A server that answered but will not enumerate its schemas is still reachable, which is what the
+// test is for: the list is the courtesy, not the verdict.
+func TestTestSurvivesAServerThatWillNotEnumerate(t *testing.T) {
+	f := newFixture()
+	f.driver.caps = domain.Capabilities{Version: "11.4.2"}
+	f.driver.databasesErr = errors.New("SHOW DATABASES is not allowed")
+
+	result, err := NewTest(f.deps).Run(context.Background(), TestInput{
+		Driver: "mariadb", Host: "db.internal", Database: "app", Username: "noxis", Password: "typed",
+	})
+	if err != nil {
+		t.Fatalf("Test: %v", err)
+	}
+	if result.Capabilities.Version != "11.4.2" {
+		t.Fatalf("version = %q, want the engine that answered", result.Capabilities.Version)
+	}
+	if len(result.Databases) != 0 {
+		t.Fatalf("databases = %v, want none", result.Databases)
 	}
 }
