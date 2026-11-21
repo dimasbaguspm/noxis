@@ -38,7 +38,11 @@ func NewWatch(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			proposal, err := waitFor(cmd.Context(), api, args[0], until, interval, timeout)
+			ref, err := ProposalRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
+			proposal, err := waitFor(cmd.Context(), api, ref, until, interval, timeout)
 			if err != nil {
 				return err
 			}

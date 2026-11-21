@@ -17,7 +17,7 @@ func NewQuery(s *Session) *cobra.Command {
 		limit   int
 	)
 	cmd := &cobra.Command{
-		Use:   "query <ref>",
+		Use:   "query <ref|name>",
 		Short: "Run a SELECT, EXPLAIN or SHOW against a target",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -36,7 +36,11 @@ func NewQuery(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			rows, err := api.Query(cmd.Context(), args[0], statement, limit)
+			ref, err := TargetRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
+			rows, err := api.Query(cmd.Context(), ref, statement, limit)
 			if err != nil {
 				return err
 			}
@@ -82,7 +86,7 @@ func printRows(cmd *cobra.Command, rows client.Rows) error {
 
 func NewDatabases(s *Session) *cobra.Command {
 	return &cobra.Command{
-		Use:   "databases <ref>",
+		Use:   "databases <ref|name>",
 		Short: "List the schemas behind a target",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -90,7 +94,11 @@ func NewDatabases(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			databases, err := api.Databases(cmd.Context(), args[0])
+			ref, err := TargetRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
+			databases, err := api.Databases(cmd.Context(), ref)
 			if err != nil {
 				return err
 			}
@@ -109,7 +117,7 @@ func NewDatabases(s *Session) *cobra.Command {
 
 func NewTables(s *Session) *cobra.Command {
 	return &cobra.Command{
-		Use:   "tables <ref> <schema>",
+		Use:   "tables <ref|name> <schema>",
 		Short: "List the tables in a schema",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -117,7 +125,11 @@ func NewTables(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			tables, err := api.Tables(cmd.Context(), args[0], args[1])
+			ref, err := TargetRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
+			tables, err := api.Tables(cmd.Context(), ref, args[1])
 			if err != nil {
 				return err
 			}
@@ -137,7 +149,7 @@ func NewTables(s *Session) *cobra.Command {
 
 func NewTable(s *Session) *cobra.Command {
 	return &cobra.Command{
-		Use:   "table <ref> <schema> <table>",
+		Use:   "table <ref|name> <schema> <table>",
 		Short: "Show one table: columns, indexes and its DDL",
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -145,7 +157,11 @@ func NewTable(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			detail, err := api.Table(cmd.Context(), args[0], args[1], args[2])
+			ref, err := TargetRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
+			detail, err := api.Table(cmd.Context(), ref, args[1], args[2])
 			if err != nil {
 				return err
 			}

@@ -34,8 +34,8 @@ Two things worth knowing:
 - `tables` reports an estimate from `information_schema`, not a count. A count costs what a reviewer is
   trying to avoid.
 
-Every `<ref>` above is the **full UUID** `target ls --json` prints, not the `NAME` in the column beside it.
-A name is not a reference, and the API says so instead of guessing which row you meant.
+Every `<ref>` here is forgiving: the **name** `target ls` prints, a unique **prefix** of the reference, or
+the whole thing. An ambiguous prefix is refused and lists what it matched — nothing is guessed.
 
 ## Query
 

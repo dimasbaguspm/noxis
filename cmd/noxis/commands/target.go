@@ -121,7 +121,7 @@ func newTargetList(s *Session) *cobra.Command {
 
 func newTargetShow(s *Session) *cobra.Command {
 	return &cobra.Command{
-		Use:     "show <ref>",
+		Use:     "show <ref|name>",
 		Aliases: []string{"get"},
 		Short:   "Show one instance",
 		Args:    cobra.ExactArgs(1),
@@ -130,7 +130,11 @@ func newTargetShow(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			target, err := api.GetTarget(cmd.Context(), args[0])
+			ref, err := TargetRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
+			target, err := api.GetTarget(cmd.Context(), ref)
 			if err != nil {
 				return err
 			}
@@ -157,7 +161,7 @@ func newTargetShow(s *Session) *cobra.Command {
 
 func newTargetArchive(s *Session) *cobra.Command {
 	return &cobra.Command{
-		Use:   "archive <ref>",
+		Use:   "archive <ref|name>",
 		Short: "Archive a target. Nothing is deleted",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -165,7 +169,11 @@ func newTargetArchive(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			archived, err := api.ArchiveTarget(cmd.Context(), args[0])
+			ref, err := TargetRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
+			archived, err := api.ArchiveTarget(cmd.Context(), ref)
 			if err != nil {
 				return err
 			}
@@ -206,7 +214,7 @@ func writeTable(w io.Writer, header []string, rows [][]string) error {
 
 func newTargetProbe(s *Session) *cobra.Command {
 	return &cobra.Command{
-		Use:   "probe <ref>",
+		Use:   "probe <ref|name>",
 		Short: "Connect once and record what the engine actually is",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -214,7 +222,11 @@ func newTargetProbe(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			result, err := api.ProbeTarget(cmd.Context(), args[0])
+			ref, err := TargetRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
+			result, err := api.ProbeTarget(cmd.Context(), ref)
 			if err != nil {
 				return err
 			}
@@ -315,7 +327,7 @@ func newTargetSet(s *Session) *cobra.Command {
 	var name, username, password, tlsMode string
 	var probe bool
 	cmd := &cobra.Command{
-		Use:     "set <ref>",
+		Use:     "set <ref|name>",
 		Aliases: []string{"edit", "update"},
 		Short:   "Change a connection, and prove the new credentials before saving them",
 		Long: "Changes the fields you name and leaves the rest alone. --probe dials the new credentials\n" +
@@ -345,11 +357,17 @@ func newTargetSet(s *Session) *cobra.Command {
 			if in.Name == nil && in.Username == nil && in.Password == nil && in.TLSMode == nil {
 				return fmt.Errorf("name a field to change: --name, --username, --password or --tls-mode")
 			}
+			// The flags are checked before the network: a command that cannot work should say so without
+			// asking the API anything.
+			if probe && password == "" {
+				return fmt.Errorf("--probe needs --password: the stored one is never read back")
+			}
+			ref, err := TargetRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
 			if probe {
-				if password == "" {
-					return fmt.Errorf("--probe needs --password: the stored one is never read back")
-				}
-				current, err := api.GetTarget(cmd.Context(), args[0])
+				current, err := api.GetTarget(cmd.Context(), ref)
 				if err != nil {
 					return err
 				}
@@ -372,7 +390,7 @@ func newTargetSet(s *Session) *cobra.Command {
 					}
 				}
 			}
-			updated, err := api.UpdateTarget(cmd.Context(), args[0], in)
+			updated, err := api.UpdateTarget(cmd.Context(), ref, in)
 			if err != nil {
 				return err
 			}
