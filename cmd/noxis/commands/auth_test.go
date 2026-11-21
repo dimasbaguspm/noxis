@@ -3,6 +3,7 @@ package commands
 import (
 	"bytes"
 	"noxis/internal/common/dotconfig"
+	"noxis/internal/constants"
 	"strings"
 	"testing"
 )
@@ -92,5 +93,60 @@ func TestAuthLsMarksTheCurrentProfile(t *testing.T) {
 	}
 	if !strings.HasPrefix(lines[1], "  staging") {
 		t.Fatalf("second line = %q, want staging unmarked and in name order", lines[1])
+	}
+}
+
+// Where a sign-in points, and why. A named profile that already exists wins over the environment, so
+// signing in to a second server does not depend on remembering a flag; the flag still wins over all of it.
+func TestSigninURLPrecedence(t *testing.T) {
+	cfg := dotconfig.Config{
+		Current: "staging",
+		Profiles: map[string]dotconfig.Profile{
+			"staging": {APIURL: "https://staging.example"},
+			"prod":    {APIURL: "https://prod.example"},
+		},
+	}
+	for _, tc := range []struct {
+		name     string
+		flag     string
+		env      string
+		profile  string
+		want     string
+		wantFrom string
+	}{
+		{"the flag wins", "https://flag.example", "https://env.example", "prod", "https://flag.example", ""},
+		{"a named profile", "", "https://env.example", "prod", "https://prod.example", `profile "prod"`},
+		{"the environment", "", "https://env.example", "unknown", "https://env.example", "$API_URL"},
+		{"the current profile", "", "", "unknown", "https://staging.example", `the current profile "staging"`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, from := signinURL(tc.flag, cfg, tc.env, tc.profile)
+			if got != tc.want || from != tc.wantFrom {
+				t.Fatalf("signinURL = (%q, %q), want (%q, %q)", got, from, tc.want, tc.wantFrom)
+			}
+		})
+	}
+
+	empty := dotconfig.Config{Profiles: map[string]dotconfig.Profile{}}
+	got, from := signinURL("", empty, "", "prod")
+	if got != constants.DefaultAPIURL || from != "the local default" {
+		t.Fatalf("signinURL with nothing stored = (%q, %q)", got, from)
+	}
+}
+
+// The shape a person reaches for first is `signin <token> <host>`. A bare "accepts 1 arg(s)" teaches
+// nothing, so the message names the flag that takes a host.
+func TestSigninArgsNamesTheFlag(t *testing.T) {
+	if err := signinArgs(nil, []string{"tok"}); err != nil {
+		t.Fatalf("one token was refused: %v", err)
+	}
+	for _, args := range [][]string{{}, {""}} {
+		if err := signinArgs(nil, args); err == nil || !strings.Contains(err.Error(), "--api-url") {
+			t.Fatalf("args %q: err = %v, want it to name --api-url", args, err)
+		}
+	}
+	err := signinArgs(nil, []string{"tok", "https://api.example.com"})
+	if err == nil || !strings.Contains(err.Error(), "--api-url") {
+		t.Fatalf("two args: err = %v, want it to name --api-url", err)
 	}
 }
