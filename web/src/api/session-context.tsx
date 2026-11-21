@@ -31,9 +31,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const found = await loadConfig();
       if (!live) return;
       setConfig(found);
-      // A binary started from a signed-in CLI answers with that session's token; the browser inherits
-      // it instead of asking for what the terminal already knows.
-      if (found.token) writeToken(found.token);
+      // Nothing is handed to the browser any more: no session is inherited, so a token in the cookie is
+      // one somebody pasted, and a page with none shows the sign-in screen.
       if (!readToken()) {
         setBoot('anonymous');
         return;

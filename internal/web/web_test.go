@@ -12,7 +12,7 @@ import (
 // The repository carries a placeholder, not a build: the image compiles the console (see the Dockerfile)
 // and a clone that runs `go test` has never seen npm. `Built` is what tells the two apart.
 func TestTheCommittedConsoleIsAPlaceholder(t *testing.T) {
-	console, err := web.New(web.Config{API: "http://localhost:9000"})
+	console, err := web.New()
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -33,15 +33,15 @@ func TestTheCommittedConsoleIsAPlaceholder(t *testing.T) {
 	if !strings.Contains(body, "not built") {
 		t.Fatalf("the placeholder does not say it is one:\n%s", body)
 	}
-	if !strings.Contains(body, "http://localhost:9000") {
-		t.Fatal("the placeholder does not name the API it was told to call")
+	if !strings.Contains(body, "<code>/v1</code>") {
+		t.Fatal("the placeholder does not say where the API is")
 	}
 }
 
 // A client-side route is the shell: the console decides what to render, so the server must not 404
 // on the first refresh of a deep link.
 func TestUnknownRouteFallsBackToTheShell(t *testing.T) {
-	console, err := web.New(web.Config{API: "http://api"})
+	console, err := web.New()
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -57,7 +57,7 @@ func TestUnknownRouteFallsBackToTheShell(t *testing.T) {
 
 // The console is read-only, and it says so rather than pretending the write landed.
 func TestWritesAreRefused(t *testing.T) {
-	console, err := web.New(web.Config{API: "http://api"})
+	console, err := web.New()
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestWritesAreRefused(t *testing.T) {
 
 // A path that escapes the build is not served from outside it.
 func TestPathTraversalIsNotServed(t *testing.T) {
-	console, err := web.New(web.Config{API: "http://api"})
+	console, err := web.New()
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestPathTraversalIsNotServed(t *testing.T) {
 // A build cannot bake in the API it belongs to: the same binary is served from a laptop and from a
 // VPS, and the browser needs the address it can reach. /config.json is that answer, uncached.
 func TestConfigJSONNamesTheAPI(t *testing.T) {
-	console, err := web.New(web.Config{API: "https://api.example.com"})
+	console, err := web.New()
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -107,15 +107,17 @@ func TestConfigJSONNamesTheAPI(t *testing.T) {
 	if got := rec.Header().Get("Cache-Control"); got != "no-store" {
 		t.Fatalf("cache-control = %q, want no-store", got)
 	}
-	if !strings.Contains(rec.Body.String(), `"api":"https://api.example.com"`) {
-		t.Fatalf("body = %s", rec.Body)
+	// Empty is the answer a same-origin deployment gives: the origin the page came from is the API, so
+	// there is no address to name. A build must not be told a URL it would then have to trust.
+	if got := rec.Body.String(); got != `{"api":""}` {
+		t.Fatalf("body = %s, want an empty api", got)
 	}
 }
 
 // Nothing secret is in this answer. The console used to be handed a CLI's token here when the request
 // looked local; it now signs in with a pasted one, so the answer is the API prefix and nothing else.
 func TestConfigJSONCarriesNoToken(t *testing.T) {
-	console, err := web.New(web.Config{API: "/v1"})
+	console, err := web.New()
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
@@ -132,7 +134,7 @@ func TestConfigJSONCarriesNoToken(t *testing.T) {
 	if _, ok := answer["token"]; ok {
 		t.Fatalf("config.json = %s, want no token field", rec.Body)
 	}
-	if answer["api"] != "/v1" {
-		t.Fatalf("api = %q, want /v1", answer["api"])
+	if answer["api"] != "" {
+		t.Fatalf("api = %q, want an empty origin", answer["api"])
 	}
 }

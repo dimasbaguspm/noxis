@@ -6,9 +6,7 @@ package web
 import (
 	"bytes"
 	"embed"
-	"encoding/json"
 	"errors"
-	"html/template"
 	"io/fs"
 	"net/http"
 	"path"
@@ -27,27 +25,21 @@ type Console struct {
 	dist  fs.FS
 	index []byte
 	built bool
-	cfg   Config
 }
 
-// Config is what the console is told about the deployment: the API a browser on this origin calls.
-// Same origin means there is nothing else to know — no address to discover, no token to hand over.
-type Config struct {
-	API string
-}
-
-// New reads the embedded build once. cfg.API is what the placeholder tells the reader to call.
-func New(cfg Config) (*Console, error) {
+// New reads the embedded build once. There is no configuration: the API serves the page, so the page
+// already knows where its API is.
+func New() (*Console, error) {
 	dist, err := fs.Sub(assets, "dist")
 	if err != nil {
 		return nil, err
 	}
-	return newFrom(dist, cfg)
+	return newFrom(dist)
 }
 
-// newFrom is New over any filesystem, so the placeholder branch — the one that renders an API address
-// into a page — stays testable after a real build replaces the committed placeholder.
-func newFrom(dist fs.FS, cfg Config) (*Console, error) {
+// newFrom is New over any filesystem, so both branches — the committed placeholder and a real build —
+// stay testable.
+func newFrom(dist fs.FS) (*Console, error) {
 	index, err := fs.ReadFile(dist, "index.html")
 	if err != nil {
 		return nil, errors.New("web: the embedded console has no index.html")
@@ -55,28 +47,11 @@ func newFrom(dist fs.FS, cfg Config) (*Console, error) {
 	// NOT_BUILT is the only signal that separates a committed placeholder from a real build.
 	_, markerErr := fs.Stat(dist, "NOT_BUILT")
 
-	page := index
-	if markerErr == nil {
-		// The placeholder names the API it was served for, so the page is useful on any host.
-		rendered, err := template.New("index").Parse(string(index))
-		if err != nil {
-			return nil, err
-		}
-		var out strings.Builder
-		if err := rendered.Execute(&out, map[string]string{"API": cfg.API}); err != nil {
-			return nil, err
-		}
-		page = []byte(out.String())
-	}
-
-	return &Console{dist: dist, index: page, built: markerErr != nil, cfg: cfg}, nil
+	return &Console{dist: dist, index: index, built: markerErr != nil}, nil
 }
 
 // Built reports whether a real console was compiled in, which is what the serve command logs.
 func (c *Console) Built() bool { return c.built }
-
-// API is the address the console was told to call.
-func (c *Console) API() string { return c.cfg.API }
 
 // Handler answers files, then the single-page fallback, then nothing. `/config.json` is answered
 // first and always: it is how a build learns which API it belongs to, and a console that was served
@@ -118,15 +93,11 @@ func (c *Console) Handler() http.Handler {
 // serveConfig is the deployment's answer to "which API am I?". It is not cached: a console that
 // remembers the wrong server is a console that reports a network error nobody can explain.
 //
-// Nothing secret travels here. The page and the API share an origin, so `/v1` is all it has to be told,
-// and a bearer token in a GET response would be a token anybody who can load the page can copy.
-func (c *Console) serveConfig(w http.ResponseWriter) {
-	answer := map[string]string{"api": c.cfg.API}
-	body, err := json.Marshal(answer)
-	if err != nil {
-		http.Error(w, "the console has no API configured", http.StatusInternalServerError)
-		return
-	}
+// `api` is the origin the browser should call, and an empty one means "the origin you loaded this page
+// from", which is the deployment this binary is. Nothing secret travels here: a bearer token in a GET
+// response would be a token anybody who can load the page can copy.
+func (*Console) serveConfig(w http.ResponseWriter) {
+	body := []byte(`{"api":""}`)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(http.StatusOK)

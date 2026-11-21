@@ -41,21 +41,33 @@ export function clearToken(): void {
   document.cookie = `${TOKEN_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 
-// config.json is served by the binary that carried this build: it knows the API the browser reaches,
-// and — when it was started from a signed-in CLI — the token that session already holds.
-export type Config = { api: string; token?: string };
+// config.json is served by the binary that carried this build, and it answers with the **origin** the
+// browser should call: an empty one means "the origin you loaded this page from", which is what serving
+// the console from the API makes true. Not a path — the paths carry `/v1` themselves, and a base of `/v1`
+// would ask for `/v1/v1/whoami`. Nothing secret is in it: a token in a GET response is a token anybody
+// who can load the page can copy.
+export type Config = { api: string };
 
 let configPromise: Promise<Config> | null = null;
 
+// configFrom is the shape check, kept apart from the request so it can be tested without a server: a
+// wrong answer falls back instead of becoming a config with no API in it.
+export function configFrom(answer: unknown, fallback: Config): Config {
+  const api = (answer as { api?: unknown } | null)?.api;
+  return typeof api === 'string' ? { api } : fallback;
+}
+
 export function loadConfig(): Promise<Config> {
-  const fallback: Config = { api: import.meta.env.VITE_API_URL ?? 'http://localhost:9000' };
+  // Same origin by default — the empty origin — which is where the API serves this build.
+  // `VITE_API_URL` is the dev server talking to an API on another port.
+  const fallback: Config = { api: import.meta.env.VITE_API_URL ?? '' };
   // An absolute path, not `./config.json`: the console owns deep links of its own, and on `/targets/:ref`
   // a relative fetch asks the server for `/targets/config.json`, which the SPA fallback answers with the
   // shell as HTML. The shape is checked too, so a wrong answer falls back instead of becoming a config
   // with no API in it.
   configPromise ??= axios
     .get<Config>('/config.json', { headers: { Accept: 'application/json' } })
-    .then((response) => (typeof response.data?.api === 'string' ? response.data : fallback))
+    .then((response) => configFrom(response.data, fallback))
     .catch(() => fallback);
   return configPromise;
 }
