@@ -45,8 +45,8 @@ export function SqlBlock({
       </div>
       <pre
         className={clsx(
-          'max-h-72 overflow-auto rounded-lg bg-[#0f172a] px-3.5 py-3 font-mono text-[12.5px]',
-          'leading-relaxed whitespace-pre-wrap break-words text-[#e2e8f0]',
+          'max-h-72 overflow-auto rounded-lg bg-code px-3.5 py-3 font-mono text-[12.5px]',
+          'leading-relaxed whitespace-pre-wrap break-words text-code-ink',
         )}
       >
         {sql}

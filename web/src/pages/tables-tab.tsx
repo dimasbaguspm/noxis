@@ -84,7 +84,7 @@ export function TablesTab({ ref_, registered }: { ref_: string; registered: stri
                       className={clsx(
                         'flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors',
                         entry.name === table
-                          ? 'bg-brand-soft font-medium text-brand'
+                          ? 'bg-brand-soft font-medium text-brand-ink'
                           : 'text-ink hover:bg-surface',
                       )}
                     >

@@ -60,7 +60,7 @@ const TEXT_SIZE: Record<Size, string> = {
 const TEXT_TONE: Record<Tone, string> = {
   default: 'text-ink',
   muted: 'text-muted',
-  brand: 'text-brand',
+  brand: 'text-brand-ink',
   danger: 'text-red-600',
   success: 'text-green-700',
 };

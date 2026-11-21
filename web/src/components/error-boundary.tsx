@@ -43,7 +43,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
           action={
             <button
               type="button"
-              className="text-sm font-semibold text-brand underline"
+              className="text-sm font-semibold text-brand-ink underline"
               onClick={() => window.location.reload()}
             >
               Reload

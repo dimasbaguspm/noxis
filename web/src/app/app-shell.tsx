@@ -89,7 +89,7 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
               className="flex items-center gap-2 rounded-full border border-line py-0.5 pr-2.5 pl-0.5 transition-colors hover:border-brand hover:bg-brand-soft"
               aria-label={`signed in as ${identity.name}, open the session menu`}
             >
-              <Avatar size={26} className="!bg-brand !text-[11px] !font-semibold">
+              <Avatar size={26} className="!bg-brand-ink !text-[11px] !font-semibold">
                 {initials(identity.name)}
               </Avatar>
               <Text className="hidden font-semibold sm:inline">{identity.name}</Text>

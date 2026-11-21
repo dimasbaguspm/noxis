@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
@@ -29,5 +29,12 @@ export default defineConfig({
   server: {
     // `npm run dev` talks to the API on the constant port; the origin is in CONSOLE_ORIGINS.
     port: 5173,
+  },
+  // The unit tests are the console's pure parts: formatting a timestamp, keeping a draft, splitting a
+  // diff, and the schemas a form runs on. jsdom is enough for the two that touch localStorage, and the
+  // screens are checked by hand and by the browser pass in the ticket.
+  test: {
+    environment: 'jsdom',
+    include: ['src/**/*.test.ts'],
   },
 });
