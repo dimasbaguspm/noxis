@@ -74,8 +74,7 @@ func (s *Session) Prepare(cmd *cobra.Command) error {
 	if !s.FromStore {
 		// A token in a shell variable is in the shell's history and in every child process. Say so
 		// once, without ever printing the token itself.
-		_, _ = fmt.Fprintln(cmd.ErrOrStderr(),
-			"noxis: using a token from --token or $API_TOKEN; `noxis auth signin` keeps it out of both")
+		s.note(cmd, "using a token from --token or $API_TOKEN; `noxis auth signin` keeps it out of both")
 		return nil
 	}
 	if cmd.Annotations[constants.AnnoNoVerify] == "true" {
@@ -110,20 +109,32 @@ func (s *Session) verify(cmd *cobra.Command) error {
 		}
 		return err
 	}
-
 	stored.Caller, stored.Scopes, stored.CheckedAt = identity.Name, identity.Scopes, time.Now().UTC()
 	s.Cfg.Put(s.StoredName, stored)
 	s.Name, s.Scopes = identity.Name, identity.Scopes
 	// The cache is a courtesy: a config file that cannot be written must not fail the command the
 	// human actually asked for.
 	if err := s.Cfg.Save(); err != nil {
-		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "noxis: the identity could not be cached: %v\n", err)
+		s.note(cmd, "the identity could not be cached: %v", err)
 	}
 	return nil
 }
 
 // Client builds the client a command works through.
 func (s *Session) Client() (*client.Client, error) { return client.New(s.APIURL, s.Token) }
+
+// note writes a courtesy to stderr: the advice a person gets and a machine must not have to skip.
+// With --json it is a JSON line, so a reader of stderr gets documents end to end.
+func (s *Session) note(cmd *cobra.Command, format string, args ...any) {
+	message := fmt.Sprintf(format, args...)
+	if !s.JSON {
+		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "noxis: "+message)
+		return
+	}
+	if buf, err := json.Marshal(map[string]string{"warning": message}); err == nil {
+		_, _ = fmt.Fprintln(cmd.ErrOrStderr(), string(buf))
+	}
+}
 
 // PrintJSON is the machine shape: the same fields the API answered with.
 func PrintJSON(cmd *cobra.Command, v any) error {
