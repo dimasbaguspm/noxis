@@ -19,7 +19,7 @@ func NewTarget(s *Session) *cobra.Command {
 		Short:   "Manage the instances this noxis governs",
 	}
 	cmd.AddCommand(newTargetAdd(s), newTargetList(s), newTargetShow(s), newTargetProbe(s),
-		newTargetTest(s), newTargetArchive(s))
+		newTargetTest(s), newTargetSet(s), newTargetArchive(s))
 	return cmd
 }
 
@@ -299,5 +299,88 @@ func newTargetTest(s *Session) *cobra.Command {
 	flags.StringVar(&in.Username, "username", "", "user to connect as")
 	flags.StringVar(&in.Password, "password", "", "password, which lands in the shell history: prefer the API with a secret store")
 	flags.StringVar(&in.TLSMode, "tls-mode", constants.TLSPreferred, "preferred, skip-verify or verify")
+	return cmd
+}
+
+// newTargetSet corrects a connection. With --probe it dials the new credentials first, the same dial a
+// registration makes: a correction nobody proved is a proposal that fails its rehearsal an hour later.
+func newTargetSet(s *Session) *cobra.Command {
+	var name, username, password, tlsMode string
+	var probe bool
+	cmd := &cobra.Command{
+		Use:     "set <ref>",
+		Aliases: []string{"edit", "update"},
+		Short:   "Change a connection, and prove the new credentials before saving them",
+		Long: "Changes the fields you name and leaves the rest alone. --probe dials the new credentials\n" +
+			"without storing anything, so a wrong password is a failed dial rather than a failed rehearsal.\n" +
+			"A probe needs --password: the stored one is sealed and never read back to be typed again.",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			api, err := s.Client()
+			if err != nil {
+				return err
+			}
+			in := client.UpdateTargetInput{}
+			// Only the fields the caller named travel: an unset flag is "leave it as it is", which is what
+			// a pointer field in the update input means.
+			if name != "" {
+				in.Name = &name
+			}
+			if username != "" {
+				in.Username = &username
+			}
+			if password != "" {
+				in.Password = &password
+			}
+			if tlsMode != "" {
+				in.TLSMode = &tlsMode
+			}
+			if in.Name == nil && in.Username == nil && in.Password == nil && in.TLSMode == nil {
+				return fmt.Errorf("name a field to change: --name, --username, --password or --tls-mode")
+			}
+			if probe {
+				if password == "" {
+					return fmt.Errorf("--probe needs --password: the stored one is never read back")
+				}
+				current, err := api.GetTarget(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				caps, err := api.TestTarget(cmd.Context(), client.TestTargetInput{
+					Driver:   current.Driver,
+					Host:     current.Host,
+					Port:     current.Port,
+					Database: current.Database,
+					Username: first(username, current.Username),
+					Password: password,
+					TLSMode:  first(tlsMode, current.TLSMode),
+					Options:  current.Options,
+				})
+				if err != nil {
+					return fmt.Errorf("the new credentials were not proved, so nothing was saved: %w", err)
+				}
+				if !s.JSON {
+					if err := printCapabilities(cmd, caps); err != nil {
+						return err
+					}
+				}
+			}
+			updated, err := api.UpdateTarget(cmd.Context(), args[0], in)
+			if err != nil {
+				return err
+			}
+			if s.JSON {
+				return PrintJSON(cmd, updated)
+			}
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s  %s saved\n", updated.Ref, updated.Name)
+			return err
+		},
+	}
+	flags := cmd.Flags()
+	flags.StringVar(&name, "name", "", "the new name; leave it unset to keep the old one")
+	flags.StringVar(&username, "username", "", "the new user; leave it unset to keep the old one")
+	flags.StringVar(&password, "password", "", "the new password, which lands in the shell history")
+	flags.StringVar(&tlsMode, "tls-mode", "", "preferred, skip-verify or verify")
+	flags.BoolVar(&probe, "probe", false, "dial the new credentials before saving them")
 	return cmd
 }

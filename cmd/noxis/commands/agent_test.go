@@ -156,3 +156,26 @@ func TestWalkAllRefusesARunawayCursor(t *testing.T) {
 		t.Fatalf("error = %q, want the page ceiling", err)
 	}
 }
+
+// A probe needs the password it is probing: the stored one is sealed and never read back, so a probe
+// without one would report a failure about the tool rather than about the credential.
+func TestTargetSetProbeNeedsAPassword(t *testing.T) {
+	cmd := newTargetSet(&Session{APIURL: "http://127.0.0.1:1", Token: "token"})
+	cmd.SetArgs([]string{"01j0abcdefghjkmnpqrstvwxyz", "--username", "other", "--probe"})
+
+	err := cmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "--probe needs --password") {
+		t.Fatalf("error = %v, want the password requirement", err)
+	}
+}
+
+// Naming no field is not an empty update: it is a command that cannot know what was asked for.
+func TestTargetSetNeedsAField(t *testing.T) {
+	cmd := newTargetSet(&Session{APIURL: "http://127.0.0.1:1", Token: "token"})
+	cmd.SetArgs([]string{"01j0abcdefghjkmnpqrstvwxyz"})
+
+	err := cmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "name a field to change") {
+		t.Fatalf("error = %v, want the field requirement", err)
+	}
+}
