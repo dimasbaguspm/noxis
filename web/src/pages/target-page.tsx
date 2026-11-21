@@ -22,6 +22,7 @@ import { AsyncState } from '../components/async-state';
 import { CreateProposal } from '../components/create-proposal';
 import { DataTable } from '../components/data-table';
 import { EngineMark } from '../components/engine-mark';
+import { EditConnection } from '../components/edit-connection';
 import { Panel, Tile, Tiles } from '../components/panel';
 import { RenderWhen } from '../components/render-when';
 import { ResultSet } from '../components/result-set';
@@ -92,6 +93,9 @@ export function TargetPage() {
                       <Tag>archived</Tag>
                     </RenderWhen>
                     <span className="flex-1" />
+                    <Can do="update:target">
+                      <EditConnection target={target.data} />
+                    </Can>
                     <Can do="delete:target">
                       <RenderWhen condition={!target.data.archived_at}>
                         <AppButton intent="quiet" icon={<DeleteOutlined />} onClick={archiveIt}>

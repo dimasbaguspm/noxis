@@ -283,3 +283,18 @@ export function useRows(ref: string, database: string, table: string) {
       ),
   });
 }
+
+/** useUpdateTarget is a PATCH: a field that is absent is a field nobody asked to change, which is what
+ * lets an empty password leave the stored one alone. */
+export function useUpdateTarget(ref: string) {
+  const client = useClient();
+  const cache = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Record<string, unknown>) =>
+      unwrap<Target>(client!.patch(`/v1/targets/${ref}`, input)),
+    onSuccess: () => {
+      void cache.invalidateQueries({ queryKey: keys.target(ref) });
+      void cache.invalidateQueries({ queryKey: ['targets'] });
+    },
+  });
+}

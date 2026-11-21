@@ -56,3 +56,26 @@ export const proposalDefaults: ProposalValues = {
 };
 
 export const statuses = ['verified', 'approved', 'applied', 'failed'] as const;
+
+// Editing a connection changes what a stored row says, not where it points: host, port and schema are
+// the instance's identity, and a moved server is a new instance with its own proposals.
+export const connectionSchema = z.object({
+  name: z.string().trim().min(1, 'a name is required').max(64, '64 characters at most'),
+  username: z.string().trim().min(1, 'a username is required'),
+  password: z.string(),
+  tls_mode: z.enum(['preferred', 'skip-verify', 'verify']),
+});
+export type ConnectionValues = z.infer<typeof connectionSchema>;
+
+/** Seeded from the instance. The password is empty because the server never reads it back. */
+export function connectionDefaults(target: {
+  name: string;
+  username: string;
+  tls_mode: string;
+}): ConnectionValues {
+  const tlsMode =
+    target.tls_mode === 'verify' || target.tls_mode === 'skip-verify'
+      ? target.tls_mode
+      : 'preferred';
+  return { name: target.name, username: target.username, password: '', tls_mode: tlsMode };
+}
