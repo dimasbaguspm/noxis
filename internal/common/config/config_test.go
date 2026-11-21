@@ -88,15 +88,17 @@ func TestConsoleOriginsAreTheDeployments(t *testing.T) {
 	}
 }
 
-func TestConsoleOriginsDefaultToTheDevConsole(t *testing.T) {
+// Same origin is the default deployment, and a browser never asks about CORS for one. So an unset
+// variable names nothing, and naming nothing allows nothing.
+func TestConsoleOriginsAreSilentWhenUnset(t *testing.T) {
 	cfg, err := LoadFrom(env(map[string]string{
 		"TOKENS": `{"ops":{"secret":"sk_ops_0123456789abcdef0123456789aa","scopes":["read"]}}`,
 	}))
 	if err != nil {
 		t.Fatalf("LoadFrom: %v", err)
 	}
-	if len(cfg.ConsoleOrigins) != 2 {
-		t.Fatalf("origins = %v, want the two development origins", cfg.ConsoleOrigins)
+	if len(cfg.ConsoleOrigins) != 0 {
+		t.Fatalf("origins = %v, want none", cfg.ConsoleOrigins)
 	}
 }
 

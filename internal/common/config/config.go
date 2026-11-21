@@ -82,8 +82,13 @@ func LoadFrom(get func(string) string) (Config, error) {
 	if cfg.Tokens, err = ParseTokens(raw); err != nil {
 		return Config{}, err
 	}
-	if cfg.ConsoleOrigins, err = ParseOrigins(or(get("CONSOLE_ORIGINS"), constants.DefaultConsoleOrigins)); err != nil {
-		return Config{}, err
+	// Silent by default: the API serves the console from its own origin, so a browser calling it
+	// across origins is a deployment that has to say which one it is. Naming nothing allows nothing,
+	// which is what same-origin already is.
+	if raw := strings.TrimSpace(get("CONSOLE_ORIGINS")); raw != "" {
+		if cfg.ConsoleOrigins, err = ParseOrigins(raw); err != nil {
+			return Config{}, err
+		}
 	}
 	return cfg, nil
 }
