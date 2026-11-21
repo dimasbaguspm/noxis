@@ -90,9 +90,11 @@ seam next to the struct: `var _ ports.Driver = (*DB)(nil)`.
   resolve a `ref`, call one use case, write the envelope. No SQL, no policy, no
   business rules there.
 - **The OpenAPI document is generated.** `make spec` runs `swag` over the annotations on the
-  handlers and the request types in `cmd/noxis/http/handlers/requests.go`; the output in
-  `cmd/noxis/http/docs` is committed and CI fails on drift. The route table's scopes are not in
-  the document yet: that is #814.
+  handlers and the request types in `cmd/noxis/http/handlers/requests.go`, then `cmd/spec` copies
+  each route's scopes from the route table into `x-scopes` and wraps every documented 2xx payload in
+  `respond.Envelope`'s `data`. The output in `cmd/noxis/http/docs` is committed and CI fails on
+  drift: `TestEveryRouteIsDocumented` compares paths, scopes and security, and
+  `TestEveryPayloadIsDocumented` compares each operation's payload type against a table.
 - **Auth is env-declared.** `TOKENS` is inline JSON, `{"<name>": {"secret": "...",
   "scopes": [...]}}`; the name is the identity that lands in the journal. A scope a
   route needs is declared in the route table, not in the handler. Request path:

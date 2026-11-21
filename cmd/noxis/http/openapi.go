@@ -30,7 +30,7 @@ var (
 // @Description The OpenAPI document this binary serves, derived from the YAML source at first read.
 // @Tags system
 // @Produce json
-// @Success 200 {object} respond.Envelope
+// @Success 200 {string} string "the document, not an envelope: this route answers the contract itself"
 // @Router /openapi.json [get]
 func OpenAPIJSON(w http.ResponseWriter, _ *http.Request) {
 	body, err := openAPIJSON()

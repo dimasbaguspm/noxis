@@ -100,8 +100,8 @@ func toWires(targets []domain.Target) []Target {
 // @Security BearerAuth
 // @Param body body handlers.CreateTargetRequest true "the server to govern"
 // @Param Idempotency-Key header string false "a name for this create; a retry with the same one answers the same row"
-// @Success 200 {object} respond.Envelope "the row a retried create already made"
-// @Success 201 {object} respond.Envelope
+// @Success 200 {object} Target "the row a retried create already made"
+// @Success 201 {object} Target
 // @Failure 400 {object} respond.Envelope
 // @Router /v1/targets [post]
 func (h *Handlers) CreateTarget(w http.ResponseWriter, r *http.Request) {
@@ -155,7 +155,7 @@ func (h *Handlers) CreateTarget(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security BearerAuth
 // @Param body body handlers.TestTargetRequest true "the configuration to dial"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} TestResult
 // @Failure 400 {object} respond.Envelope
 // @Failure 422 {object} respond.Envelope
 // @Router /v1/targets/test [post]
@@ -201,7 +201,7 @@ func (h *Handlers) TestTarget(w http.ResponseWriter, r *http.Request) {
 // @Param driver query string false "mysql or mariadb"
 // @Param q query string false "name filter"
 // @Param include_archived query bool false "include archived targets"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} []Target
 // @Failure 400 {object} respond.Envelope
 // @Router /v1/targets [get]
 func (h *Handlers) ListTargets(w http.ResponseWriter, r *http.Request) {
@@ -235,7 +235,7 @@ func (h *Handlers) ListTargets(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security BearerAuth
 // @Param ref path string true "target reference"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} Target
 // @Failure 404 {object} respond.Envelope
 // @Router /v1/targets/{ref} [get]
 func (h *Handlers) GetTarget(w http.ResponseWriter, r *http.Request) {
@@ -260,7 +260,7 @@ func (h *Handlers) GetTarget(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Param ref path string true "target reference"
 // @Param body body handlers.UpdateTargetRequest true "the fields to change"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} Target
 // @Failure 400 {object} respond.Envelope
 // @Router /v1/targets/{ref} [patch]
 func (h *Handlers) UpdateTarget(w http.ResponseWriter, r *http.Request) {
@@ -298,7 +298,7 @@ func (h *Handlers) UpdateTarget(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security BearerAuth
 // @Param ref path string true "target reference"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} Target
 // @Failure 404 {object} respond.Envelope
 // @Router /v1/targets/{ref} [delete]
 func (h *Handlers) ArchiveTarget(w http.ResponseWriter, r *http.Request) {
@@ -355,7 +355,7 @@ func intParam(raw string) (int, error) {
 // @Produce json
 // @Security BearerAuth
 // @Param ref path string true "target reference"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} ProbeResult
 // @Failure 422 {object} respond.Envelope
 // @Router /v1/targets/{ref}/probe [post]
 func (h *Handlers) ProbeTarget(w http.ResponseWriter, r *http.Request) {
@@ -382,7 +382,7 @@ func (h *Handlers) ProbeTarget(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security BearerAuth
 // @Param ref path string true "target reference"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} domain.Capabilities
 // @Failure 404 {object} respond.Envelope
 // @Router /v1/targets/{ref}/capabilities [get]
 func (h *Handlers) TargetCapabilities(w http.ResponseWriter, r *http.Request) {
