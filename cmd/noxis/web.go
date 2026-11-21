@@ -30,6 +30,7 @@ func newWeb() *cobra.Command {
 
 func newWebServe() *cobra.Command {
 	var (
+		listen  string
 		port    int
 		apiURL  string
 		profile string
@@ -41,9 +42,11 @@ func newWebServe() *cobra.Command {
 		// The console is a page: it needs no token, and it never touches the state file.
 		Annotations: map[string]string{constants.AnnoNoToken: "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			return serveConsole(cmd.Context(), cmd, port, apiURL, profile)
+			return serveConsole(cmd.Context(), cmd, listen, port, apiURL, profile)
 		},
 	}
+	cmd.Flags().StringVar(&listen, "listen", constants.ConsoleListen,
+		"the interface to bind; the default is the loopback, because a console hands a browser the operator's token")
 	cmd.Flags().IntVar(&port, "port", constants.ConsolePort, "the port the console listens on")
 	cmd.Flags().StringVar(&apiURL, "api", "",
 		"the API's public URL, as the browser reaches it (default: the API the CLI is signed in to)")
@@ -54,7 +57,7 @@ func newWebServe() *cobra.Command {
 
 // serveConsole serves one embedded build until the context is cancelled. It has no CORS and no API
 // of its own: the console is a page, and the API is the process next to it.
-func serveConsole(ctx context.Context, cmd *cobra.Command, port int, apiURL, profile string) error {
+func serveConsole(ctx context.Context, cmd *cobra.Command, listen string, port int, apiURL, profile string) error {
 	if port < 1 || port > 65535 {
 		return fmt.Errorf("port %d is outside 1-65535", port)
 	}
@@ -85,18 +88,21 @@ func serveConsole(ctx context.Context, cmd *cobra.Command, port int, apiURL, pro
 		return err
 	}
 
-	listen := net.ListenConfig{}
-	listener, err := listen.Listen(ctx, "tcp", ":"+strconv.Itoa(port))
+	// A console carries the operator's token, so where it listens is a decision: the loopback by default,
+	// and anything else on purpose.
+	address := net.JoinHostPort(listen, strconv.Itoa(port))
+	listenConfig := net.ListenConfig{}
+	listener, err := listenConfig.Listen(ctx, "tcp", address)
 	if err != nil {
-		return fmt.Errorf("console: listen on port %d: %w", port, err)
+		return fmt.Errorf("console: listen on %s: %w", address, err)
 	}
 
 	server := &http.Server{
 		Handler:           console.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
-	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "console on :%d, calling %s (%s, %s)\n",
-		port, console.API(), built(console.Built()), signedIn(console.SignedIn()))
+	_, _ = fmt.Fprintf(cmd.OutOrStdout(), "console on %s, calling %s (%s, %s)%s\n",
+		address, console.API(), built(console.Built()), signedIn(console.SignedIn()), exposure(listen))
 
 	serveErr := make(chan error, 1)
 	go func() { serveErr <- server.Serve(listener) }()
@@ -180,4 +186,16 @@ func prove(ctx context.Context, apiURL, token string) error {
 		}
 	}
 	return nil
+}
+
+// exposure says out loud what a non-loopback bind means: the console hands a loopback browser the token
+// this process holds, and every other interface is one more machine that can ask the page who it is.
+func exposure(host string) string {
+	if host == "localhost" {
+		return ""
+	}
+	if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+		return ""
+	}
+	return fmt.Sprintf(" — bound to %s, so it is reachable from off this machine", host)
 }

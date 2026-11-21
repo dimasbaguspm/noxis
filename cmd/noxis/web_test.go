@@ -118,3 +118,32 @@ func TestConsoleRefusesATokenTheAPIRejects(t *testing.T) {
 		t.Fatalf("an unreachable API stopped the console: %v", err)
 	}
 }
+
+// A console bound to anything but the loopback is exposed: it hands the operator's token to a browser, so
+// the line it prints at startup has to say what the bind means rather than leave the reader to work it out.
+func TestTheConsoleSaysWhatItIsBoundTo(t *testing.T) {
+	for _, tc := range []struct {
+		host     string
+		exposed  bool
+		wantHost string
+	}{
+		{"127.0.0.1", false, ""},
+		{"::1", false, ""},
+		{"localhost", false, ""},
+		{"0.0.0.0", true, "0.0.0.0"},
+		{"10.0.0.5", true, "10.0.0.5"},
+	} {
+		t.Run(tc.host, func(t *testing.T) {
+			line := exposure(tc.host)
+			if !tc.exposed {
+				if line != "" {
+					t.Fatalf("exposure(%q) = %q, want nothing", tc.host, line)
+				}
+				return
+			}
+			if !strings.Contains(line, tc.wantHost) || !strings.Contains(line, "reachable from off this machine") {
+				t.Fatalf("exposure(%q) = %q, want it to name the interface and the exposure", tc.host, line)
+			}
+		})
+	}
+}
