@@ -16,6 +16,7 @@ import { NumberInput, SelectInput } from '../components/inputs';
 import { RenderWhen } from '../components/render-when';
 import { Heading, Text } from '../components/text';
 import { TextInput } from '../components/text-input';
+import { formatWhen } from '../lib/when';
 import type { Target } from '../api/types';
 
 // The landing screen: one row per instance and a search that asks the server. The list is a single
@@ -82,7 +83,7 @@ export function TargetsPage() {
         <DataTable<Target>
           rows={items}
           rowKey={(row) => row.ref}
-          minWidth={860}
+          minWidth={720}
           sticky
           onRow={(row) => ({
             onClick: () => navigate(`/targets/${row.ref}`),
@@ -101,8 +102,7 @@ export function TargetsPage() {
             {
               key: 'name',
               title: 'Name',
-              fixed: 'left',
-              width: 220,
+              width: 170,
               render: (row) => (
                 <span className="flex items-center gap-2">
                   <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-sm bg-brand" />
@@ -122,7 +122,7 @@ export function TargetsPage() {
             {
               key: 'host',
               title: 'Host',
-              width: 220,
+              width: 150,
               render: (row) => (
                 <Text mono size="sm" tone="muted">
                   {row.host}:{row.port}
@@ -130,19 +130,9 @@ export function TargetsPage() {
               ),
             },
             {
-              key: 'database',
-              title: 'Database',
-              width: 150,
-              render: (row) => (
-                <Text mono size="sm">
-                  {row.database}
-                </Text>
-              ),
-            },
-            {
               key: 'server_version',
               title: 'Version',
-              width: 120,
+              width: 100,
               render: (row) => (
                 <Text mono size="sm" tone="muted">
                   {row.server_version ?? '—'}
@@ -153,22 +143,29 @@ export function TargetsPage() {
               key: 'last_probe_status',
               title: 'Probe',
               width: 120,
-              render: (row) =>
-                row.last_probe_status ? (
-                  <Tag color={row.last_probe_status === 'ok' ? 'green' : 'red'} className="m-0">
-                    {row.last_probe_status}
-                  </Tag>
-                ) : (
-                  <Text tone="muted" size="sm">
-                    never
-                  </Text>
-                ),
+              render: (row) => (
+                <div className="flex flex-col items-start gap-1">
+                  {row.last_probe_status ? (
+                    <Tag color={row.last_probe_status === 'ok' ? 'green' : 'red'} className="m-0">
+                      {row.last_probe_status}
+                    </Tag>
+                  ) : (
+                    <Text tone="muted" size="sm">
+                      never
+                    </Text>
+                  )}
+                  <RenderWhen condition={row.last_probe_at}>
+                    <Text size="xs" tone="muted">
+                      {formatWhen(row.last_probe_at)}
+                    </Text>
+                  </RenderWhen>
+                </div>
+              ),
             },
             {
               key: 'open',
               title: '',
-              width: 90,
-              fixed: 'right',
+              width: 78,
               align: 'right',
               render: (row) => (
                 <AppButton
