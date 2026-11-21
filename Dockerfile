@@ -19,6 +19,11 @@ RUN pnpm run build
 FROM golang:1.26 AS build
 WORKDIR /src
 
+# What this image is. `docker build --build-arg VERSION=v2.0.0 --build-arg COMMIT=$(git rev-parse --short=7 HEAD)`
+# stamps it; a plain build says `dev` and claims no commit, which is the honest answer.
+ARG VERSION=dev
+ARG COMMIT=unknown
+
 # Dependencies first: a source change does not re-download the module graph.
 COPY go.mod go.sum ./
 RUN go mod download
@@ -28,7 +33,9 @@ COPY . .
 COPY --from=console /internal/web/dist ./internal/web/dist
 # The repository's placeholder carries the marker that says "not built"; the real build must not.
 RUN rm -f ./internal/web/dist/NOT_BUILT
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags "-s -w" -o /out/noxis ./cmd/noxis
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath \
+      -ldflags "-s -w -X noxis/internal/constants.Version=${VERSION} -X noxis/internal/constants.Commit=${COMMIT}" \
+      -o /out/noxis ./cmd/noxis
 # /data belongs to the runtime user, so a named volume inherits an owner that can write to it.
 RUN mkdir -p /out/data && chown 65532:65532 /out/data
 

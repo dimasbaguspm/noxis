@@ -13,7 +13,10 @@ import (
 	"noxis/internal/app/proposal"
 	"noxis/internal/app/target"
 	"noxis/internal/common/config"
+	"noxis/internal/common/release"
 	"noxis/internal/common/secret"
+	"noxis/internal/constants"
+	"time"
 
 	appread "noxis/internal/app/read"
 )
@@ -64,7 +67,8 @@ func buildServer(ctx context.Context, cfg config.Config, statePath string, log *
 		Timeout: cfg.QueryTimeout,
 	}
 	handlers_ := handlers.New(handlers.Deps{
-		Log: log,
+		Log:     log,
+		Release: release.NewChecker(constants.VersionAsset, time.Hour),
 		Targets: handlers.TargetUseCases{
 			Create:  target.NewCreate(useCases),
 			List:    target.NewList(useCases),

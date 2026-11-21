@@ -13,8 +13,14 @@ endif
 help: ## list the targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-8s\033[0m %s\n", $$1, $$2}'
 
+# What this build is: the release line and the seven characters of the commit it came from. The publish
+# job passes the same two values to `go build -ldflags`, so a binary says which build it is wherever it runs.
+VERSION ?= dev
+COMMIT ?= $(shell git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)
+LDFLAGS := -s -w -X noxis/internal/constants.Version=$(VERSION) -X noxis/internal/constants.Commit=$(COMMIT)
+
 build: ## compile the one binary: bin/noxis (http serve, web serve, cli)
-	$(GO) build -trimpath -ldflags "-s -w" -o $(BIN)/noxis ./cmd/noxis
+	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN)/noxis ./cmd/noxis
 
 web: ## build the console into internal/web/dist (pnpm, pinned; `pnpm -C web install` once)
 	pnpm -C web install --frozen-lockfile

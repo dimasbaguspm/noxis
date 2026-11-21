@@ -35,6 +35,18 @@ export type Capabilities = {
 /** What dialling a configuration answered: the engine it reached, and the schemas it can see. */
 export type TestAnswer = { capabilities: Capabilities; databases: string[] };
 
+/** A published build: the release line and the seven characters of its commit. */
+export type ReleaseInfo = { version: string; commit: string; built_at?: string };
+
+/** What the deployment is, and whether a newer build was published. */
+export type VersionInfo = {
+  version: string;
+  commit: string;
+  release_url: string;
+  latest: ReleaseInfo | null;
+  newer: boolean;
+};
+
 export type Proposal = {
   ref: string;
   target_ref: string;

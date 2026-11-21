@@ -12,6 +12,7 @@ import (
 	"noxis/internal/common/ref"
 	"noxis/internal/constants"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -57,7 +58,7 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^I ask for the health of the server without a token$`, w.askHealth)
 	ctx.Step(`^my name is "([^"]*)"$`, w.assertName)
 	ctx.Step(`^my scopes are "([^"]*)"$`, w.assertScopes)
-	ctx.Step(`^the reported version is "([^"]*)"$`, w.assertVersion)
+	ctx.Step(`^the reported version names the build$`, w.assertVersionNamesTheBuild)
 
 	// targets
 	ctx.Step(`^I register a target named "([^"]*)"$`, w.registerTarget)
@@ -173,12 +174,15 @@ func (w *world) assertScopes(want string) error {
 	return nil
 }
 
-func (w *world) assertVersion(want string) error {
+// assertVersionNamesTheBuild checks the shape, not a literal: the version is stamped at link time, so a
+// test that pins it to one string fails on every build that is not that build.
+func (w *world) assertVersionNamesTheBuild() error {
 	if w.err != nil {
 		return w.err
 	}
-	if w.health.Version != want {
-		return fmt.Errorf("version = %q, want %q", w.health.Version, want)
+	build := regexp.MustCompile(`^(dev|nightly|v\d+\.\d+\.\d+)(\+[0-9a-f]{7,40})?$`)
+	if !build.MatchString(w.health.Version) {
+		return fmt.Errorf("version = %q, want a release line and a commit", w.health.Version)
 	}
 	return nil
 }

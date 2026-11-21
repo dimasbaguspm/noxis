@@ -5,6 +5,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useSession } from '../api/session-context';
 import { Logo } from '../components/logo';
 import { Text } from '../components/text';
+import { UpdateNotice, VersionChip } from '../components/update-notice';
 
 // A topbar and a content region, and nothing else. At 360px the host hides and the identity reduces to
 // an avatar; the two facts that survive are which server, and who you are.
@@ -47,6 +48,8 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
             </Text>
           </Tooltip>
         ) : null}
+
+        <VersionChip />
 
         {identity ? (
           <Dropdown
@@ -102,6 +105,7 @@ export function AppShell({ children, anonymous }: { children: ReactNode; anonymo
       </header>
 
       <main id="content" className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-8 md:py-8">
+        <UpdateNotice />
         {children}
       </main>
     </div>

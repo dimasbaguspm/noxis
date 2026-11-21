@@ -66,3 +66,59 @@ jobs:
         run: pnpm test
       - name: build the console the binary embeds
         run: pnpm run build
+
+  # Publishing is what makes an update check possible. It runs only for a green commit on master, and it
+  # publishes one moving release: the tag `nightly`, whose assets always describe the newest green commit.
+  # `version.json` is the artifact every client reads: it names the release line and the seven characters
+  # of the commit, so a build can answer "am I older than what was published?" without scraping HTML.
+  publish:
+    needs: [go, web]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: the console the binaries embed
+        run: make web
+      - name: build both architectures, and the artifact they publish
+        run: |
+          set -euo pipefail
+          COMMIT=$(git rev-parse --short=7 HEAD)
+          VERSION=nightly
+          mkdir -p dist
+          for ARCH in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=linux GOARCH=$ARCH go build -trimpath \
+              -ldflags "-s -w -X noxis/internal/constants.Version=$VERSION -X noxis/internal/constants.Commit=$COMMIT" \
+              -o "dist/noxis-linux-$ARCH" ./cmd/noxis
+          done
+          printf '{"version":"%s","commit":"%s","built_at":"%s"}\n' \
+            "$VERSION" "$COMMIT" "$(git log -1 --format=%cI)" > dist/version.json
+          (cd dist && sha256sum noxis-linux-amd64 noxis-linux-arm64 > SHA256SUMS)
+          cat dist/version.json
+      - name: publish the nightly release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          # One release, moved to this commit: delete and recreate rather than upload into a stale one, so
+          # the tag, the assets and the notes always describe the same build.
+          gh release delete nightly --yes --cleanup-tag || true
+          gh release create nightly \
+            --target "$COMMIT" \
+            --title "nightly" \
+            --prerelease \
+            --notes "Built from https://github.com/${GITHUB_REPOSITORY}/commit/${COMMIT} by CI. Every green commit on master lands here; versions are the first seven characters of the commit." \
+            dist/*

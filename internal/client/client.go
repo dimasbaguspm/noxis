@@ -113,6 +113,30 @@ func (c *Client) Live(ctx context.Context) (Health, error) {
 	return out, err
 }
 
+// ReleaseInfo is a published build: the release line and the seven characters of its commit.
+type ReleaseInfo struct {
+	Version string `json:"version"`
+	Commit  string `json:"commit"`
+	BuiltAt string `json:"built_at,omitempty"`
+}
+
+// VersionInfo is what the server is, and whether a newer build was published.
+type VersionInfo struct {
+	Version    string       `json:"version"`
+	Commit     string       `json:"commit"`
+	ReleaseURL string       `json:"release_url"`
+	Latest     *ReleaseInfo `json:"latest"`
+	Newer      bool         `json:"newer"`
+}
+
+// Version asks the server what it is. It is public: a client that has not signed in can still learn
+// whether the deployment it was pointed at is the one it was built for.
+func (c *Client) Version(ctx context.Context) (VersionInfo, error) {
+	var out VersionInfo
+	_, err := c.do(ctx, http.MethodGet, pathVersion, nil, &out)
+	return out, err
+}
+
 // OpenAPI answers the document the server serves: the contract that deployment implements, not a copy
 // this binary happened to be built with.
 func (c *Client) OpenAPI(ctx context.Context) ([]byte, error) {
