@@ -34,7 +34,11 @@ func NewPropose(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			created, err := api.CreateProposal(cmd.Context(), args[0], client.CreateProposalInput{
+			resolved, err := TargetRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
+			created, err := api.CreateProposal(cmd.Context(), resolved, client.CreateProposalInput{
 				Title: title, Query: statement, Rollback: undo, Note: note, Tier: tier,
 				IdempotencyKey: key,
 			})
@@ -129,7 +133,11 @@ func NewProposalShow(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			item, err := api.GetProposal(cmd.Context(), args[0])
+			ref, err := ProposalRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
+			item, err := api.GetProposal(cmd.Context(), ref)
 			if err != nil {
 				return err
 			}
@@ -152,7 +160,11 @@ func NewRehearse(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			updated, err := api.RehearseProposal(cmd.Context(), args[0], tier)
+			ref, err := ProposalRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
+			updated, err := api.RehearseProposal(cmd.Context(), ref, tier)
 			if err != nil {
 				return err
 			}
@@ -303,6 +315,10 @@ func decide(cmd *cobra.Command, s *Session, ref, note string, approve bool) erro
 	if err != nil {
 		return err
 	}
+	ref, err = ProposalRef(cmd.Context(), api, ref)
+	if err != nil {
+		return err
+	}
 	var updated client.Proposal
 	if approve {
 		updated, err = api.ApproveProposal(cmd.Context(), ref, note)
@@ -335,12 +351,16 @@ func NewApplyProposal(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			applied, err := api.ApplyProposal(cmd.Context(), args[0], confirm)
+			ref, err := ProposalRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
+			applied, err := api.ApplyProposal(cmd.Context(), ref, confirm)
 			if err != nil {
 				return err
 			}
 			if wait && applied.Status == applying {
-				applied, err = waitFor(cmd.Context(), api, args[0], settledStatuses, constants.WatchInterval, timeout)
+				applied, err = waitFor(cmd.Context(), api, ref, settledStatuses, constants.WatchInterval, timeout)
 				if err != nil {
 					return err
 				}
@@ -369,7 +389,11 @@ func NewEvents(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			events, err := api.ProposalEvents(cmd.Context(), args[0])
+			ref, err := ProposalRef(cmd.Context(), api, args[0])
+			if err != nil {
+				return err
+			}
+			events, err := api.ProposalEvents(cmd.Context(), ref)
 			if err != nil {
 				return err
 			}
