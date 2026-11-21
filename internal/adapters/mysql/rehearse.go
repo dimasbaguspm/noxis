@@ -168,7 +168,9 @@ func (*DB) rehearseInScratch(ctx context.Context, pool *sql.DB, database string,
 	if err := mirrorTables(ctx, conn, database, scratch, scope); err != nil {
 		rehearsal.Status = domain.RehearsalFailed
 		rehearsal.Error = err.Error()
-		rehearsal.Note = "the throwaway database could not be built from the tables this change names"
+		// The one thing a reader needs next: a change whose subject does not exist yet has nothing to
+		// rebuild, and proposing it as static is the answer rather than a workaround.
+		rehearsal.Note = "the throwaway database could not be built from the tables this change names: a change that creates its own subject cannot be rehearsed, so propose it with --tier static and say why"
 		return
 	}
 	if change.Tier == domain.TierRehearsal {
