@@ -154,3 +154,25 @@ func TestEveryGroupedCommandIsRegistered(t *testing.T) {
 		}
 	}
 }
+
+// Every other Go CLI answers `--version`, and a version probe reaches for it before it reads a help page.
+// It prints the same two lines `noxis version` does, and needs no session to do it.
+func TestVersionFlagAnswers(t *testing.T) {
+	isolated(t)
+
+	root := newRoot()
+	var out, errOut bytes.Buffer
+	root.SetOut(&out)
+	root.SetErr(&errOut)
+	root.SetArgs([]string{"--version"})
+	if err := root.Execute(); err != nil {
+		t.Fatalf("--version: %v (stderr %s)", err, errOut.String())
+	}
+
+	got := out.String()
+	for _, want := range []string{constants.Build(), constants.ReleaseURL} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("--version printed %q, want it to mention %q", got, want)
+		}
+	}
+}

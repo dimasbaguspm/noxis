@@ -9,6 +9,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"noxis/cmd/noxis/commands"
 	"noxis/cmd/noxis/http"
 	"noxis/internal/constants"
@@ -60,6 +61,10 @@ func newRoot() *cobra.Command {
 			return welcome(cmd.OutOrStdout())
 		},
 	}
+	// Every other Go CLI answers `--version`, and a version probe reaches for it before it reads a help
+	// page. It prints the same two lines `noxis version` does, and it needs no session to do it.
+	root.Version = constants.Build()
+	root.SetVersionTemplate(fmt.Sprintf("{{.Name}} {{.Version}}\nreleases %s\n", constants.ReleaseURL))
 	root.PersistentFlags().StringVar(&session.APIURL, "api-url", "",
 		"the noxisd to call (default $API_URL, then the signed-in profile)")
 	root.PersistentFlags().StringVar(&session.Token, "token", "",

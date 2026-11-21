@@ -65,7 +65,7 @@ func (d Deps) openPassword(target domain.Target) (string, error) {
 // lookup that cannot match.
 func requireRef(value string) (string, error) {
 	if !ref.Valid(value) {
-		return "", fmt.Errorf("%w: %q is not a reference", domain.ErrInvalid, value)
+		return "", domain.NotAReference(value)
 	}
 	return value, nil
 }
