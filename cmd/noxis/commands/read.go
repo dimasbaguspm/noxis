@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"noxis/internal/client"
 	"os"
-	"strconv"
 
 	"github.com/spf13/cobra"
 )
@@ -86,6 +85,8 @@ func printRows(cmd *cobra.Command, rows client.Rows) error {
 	return err
 }
 
+// NewDatabases is the old spelling of `noxis table <target>`: one depth of one question, kept at the root
+// so a script runs, deprecated so nobody new learns it.
 func NewDatabases(s *Session) *cobra.Command {
 	return &cobra.Command{
 		Use:   "databases <ref|name>",
@@ -100,23 +101,12 @@ func NewDatabases(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			databases, err := api.Databases(cmd.Context(), ref)
-			if err != nil {
-				return err
-			}
-			if s.JSON {
-				return PrintJSON(cmd, databases)
-			}
-			for _, name := range databases {
-				if _, err := fmt.Fprintln(cmd.OutOrStdout(), name); err != nil {
-					return err
-				}
-			}
-			return nil
+			return printDatabases(cmd, s, api, ref)
 		},
 	}
 }
 
+// NewTables is the old spelling of `noxis table <target> <schema>`.
 func NewTables(s *Session) *cobra.Command {
 	return &cobra.Command{
 		Use:   "tables <ref|name> <schema>",
@@ -131,67 +121,7 @@ func NewTables(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			tables, err := api.Tables(cmd.Context(), ref, args[1])
-			if err != nil {
-				return err
-			}
-			if s.JSON {
-				return PrintJSON(cmd, tables)
-			}
-			rows := make([][]string, 0, len(tables))
-			for _, table := range tables {
-				rows = append(rows, []string{
-					table.Name, table.Engine, strconv.FormatInt(table.Rows, 10), strconv.FormatInt(table.SizeBytes, 10),
-				})
-			}
-			return writeTable(cmd.OutOrStdout(), []string{"NAME", "ENGINE", "ROWS", "BYTES"}, rows)
-		},
-	}
-}
-
-func NewTable(s *Session) *cobra.Command {
-	return &cobra.Command{
-		Use:   "table <ref|name> <schema> <table>",
-		Short: "Show one table: columns, indexes and its DDL",
-		Args:  cobra.ExactArgs(3),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			api, err := s.Client()
-			if err != nil {
-				return err
-			}
-			ref, err := TargetRef(cmd.Context(), api, args[0])
-			if err != nil {
-				return err
-			}
-			detail, err := api.Table(cmd.Context(), ref, args[1], args[2])
-			if err != nil {
-				return err
-			}
-			if s.JSON {
-				return PrintJSON(cmd, detail)
-			}
-			rows := make([][]string, 0, len(detail.Columns))
-			for _, column := range detail.Columns {
-				nullable := "not null"
-				if column.Nullable {
-					nullable = "null"
-				}
-				rows = append(rows, []string{column.Name, column.Type, nullable, column.Key, column.Extra})
-			}
-			if err := writeTable(cmd.OutOrStdout(), []string{"COLUMN", "TYPE", "NULL", "KEY", "EXTRA"}, rows); err != nil {
-				return err
-			}
-			for _, index := range detail.Indexes {
-				unique := ""
-				if index.Unique {
-					unique = " unique"
-				}
-				if _, err := fmt.Fprintf(cmd.OutOrStdout(), "index %s%s (%v)\n", index.Name, unique, index.Columns); err != nil {
-					return err
-				}
-			}
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "\n%s\n", detail.CreateSQL)
-			return err
+			return printTables(cmd, s, api, ref, args[1])
 		},
 	}
 }
