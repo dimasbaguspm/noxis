@@ -32,10 +32,10 @@ const (
 // The sealer and the engine are mocks because a test asserts what the handlers made of their answer;
 // the store is a fake because a test drives several dependent calls through it, and a mock there
 // would write this implementation's call order into the test.
-func newHandlers(s *store) *Handlers {
+func newHandlers(t *testing.T, s *store) *Handlers {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	sealer := newSealer()
-	driver := newDriver(s)
+	sealer := newSealer(t)
+	driver := newDriver(t, s)
 	targetDeps := target.Deps{Targets: s, Journal: s, Sealer: sealer, Driver: driver}
 	proposalDeps := proposal.Deps{
 		Proposals: s, Rehearsals: s, Targets: s, Journal: s, Sealer: sealer,
@@ -116,7 +116,7 @@ func decodeBody(t *testing.T, rec *httptest.ResponseRecorder, out any) {
 
 // The health route is public and says one thing: the process is up.
 func TestHealthz(t *testing.T) {
-	h := newHandlers(newStore())
+	h := newHandlers(t, newStore())
 	rec := request(t, h.Healthz, http.MethodGet, "/healthz", "", domain.Anonymous)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d", rec.Code)
@@ -133,7 +133,7 @@ func TestHealthz(t *testing.T) {
 
 // Whoami answers the caller from the context, and never an empty array when it holds no scopes.
 func TestWhoami(t *testing.T) {
-	h := newHandlers(newStore())
+	h := newHandlers(t, newStore())
 	rec := request(t, h.Whoami, http.MethodGet, "/v1/whoami", "", domain.Caller{Name: "agent"})
 	var body struct {
 		Name   string   `json:"name"`
@@ -148,7 +148,7 @@ func TestWhoami(t *testing.T) {
 // A registration answers 201 with the target on the wire and no password anywhere in the body: the
 // sealed value is not a field, so it cannot be leaked by a later refactor.
 func TestCreateTargetNeverEchoesThePassword(t *testing.T) {
-	h := newHandlers(newStore())
+	h := newHandlers(t, newStore())
 	rec := request(t, h.CreateTarget, http.MethodPost, "/v1/targets",
 		`{"name":"staging","driver":"mysql","host":"db","database":"app","username":"noxis","password":"hunter2"}`,
 		ops)
@@ -171,7 +171,7 @@ func TestCreateTargetNeverEchoesThePassword(t *testing.T) {
 // A body that is not JSON, or that carries a field nobody declared, is a 400 with the code the
 // client branches on.
 func TestCreateTargetRejectsABadBody(t *testing.T) {
-	h := newHandlers(newStore())
+	h := newHandlers(t, newStore())
 	for _, body := range []string{"", "{", `{"name":"x","password":"y","bogus":1}`} {
 		rec := request(t, h.CreateTarget, http.MethodPost, "/v1/targets", body, ops)
 		if rec.Code != http.StatusBadRequest {
@@ -181,7 +181,7 @@ func TestCreateTargetRejectsABadBody(t *testing.T) {
 }
 
 func TestTargetNotFoundAndBadReference(t *testing.T) {
-	h := newHandlers(newStore())
+	h := newHandlers(t, newStore())
 
 	rec := request(t, h.GetTarget, http.MethodGet, "/v1/targets/0192f0c0-0000-7000-8000-0000000000ff", "", ops)
 	if rec.Code != http.StatusNotFound {
@@ -199,7 +199,7 @@ func TestListTargets(t *testing.T) {
 	s.seedTarget(targetRef)
 	s.seedTarget("0192f0c0-0000-7000-8000-000000000003")
 
-	rec := request(t, newHandlers(s).ListTargets, http.MethodGet, "/v1/targets", "", ops)
+	rec := request(t, newHandlers(t, s).ListTargets, http.MethodGet, "/v1/targets", "", ops)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d", rec.Code)
 	}
@@ -220,7 +220,7 @@ func TestApplyAnswers202ForALargeTable(t *testing.T) {
 	s.seedProposal(proposalRef, targetRef, domain.StatusApproved)
 	s.plan = domain.Plan{RowsEstimated: 2_000_000}
 
-	rec := request(t, newHandlers(s).ApplyProposal, http.MethodPost, "/v1/proposals/"+proposalRef+"/apply", "", ops)
+	rec := request(t, newHandlers(t, s).ApplyProposal, http.MethodPost, "/v1/proposals/"+proposalRef+"/apply", "", ops)
 	if rec.Code != http.StatusAccepted {
 		t.Fatalf("status = %d, want 202: %s", rec.Code, rec.Body)
 	}
@@ -240,7 +240,7 @@ func TestApplyRefusesAnUnapprovedProposal(t *testing.T) {
 	s.seedTarget(targetRef)
 	s.seedProposal(proposalRef, targetRef, domain.StatusVerified)
 
-	rec := request(t, newHandlers(s).ApplyProposal, http.MethodPost, "/v1/proposals/"+proposalRef+"/apply", "", ops)
+	rec := request(t, newHandlers(t, s).ApplyProposal, http.MethodPost, "/v1/proposals/"+proposalRef+"/apply", "", ops)
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("status = %d, want 409: %s", rec.Code, rec.Body)
 	}
@@ -252,7 +252,7 @@ func TestCreateProposal(t *testing.T) {
 	s.seedTarget(targetRef)
 	s.rehearsal = domain.Rehearsal{Status: domain.RehearsalVerified, Note: "shadow"}
 
-	rec := request(t, newHandlers(s).CreateProposal, http.MethodPost, "/v1/targets/"+targetRef+"/proposals",
+	rec := request(t, newHandlers(t, s).CreateProposal, http.MethodPost, "/v1/targets/"+targetRef+"/proposals",
 		`{"title":"add a column","query":"ALTER TABLE users ADD COLUMN note TEXT"}`, ops)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("status = %d, want 201: %s", rec.Code, rec.Body)
@@ -272,7 +272,7 @@ func TestRunQueryRefusesAWrite(t *testing.T) {
 	s := newStore()
 	s.seedTarget(targetRef)
 
-	rec := request(t, newHandlers(s).RunQuery, http.MethodPost, "/v1/targets/"+targetRef+"/query",
+	rec := request(t, newHandlers(t, s).RunQuery, http.MethodPost, "/v1/targets/"+targetRef+"/query",
 		`{"sql":"DELETE FROM users"}`, ops)
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400: %s", rec.Code, rec.Body)
@@ -287,7 +287,7 @@ func TestEveryRouteAnswers(t *testing.T) {
 	s.seedProposal(proposalRef, targetRef, domain.StatusVerified)
 	s.rehearsal = domain.Rehearsal{Status: domain.RehearsalVerified}
 	s.driverCaps = domain.Capabilities{Version: "8.4.2"}
-	h := newHandlers(s)
+	h := newHandlers(t, s)
 
 	host := "db2"
 	password := "rotated"
@@ -357,7 +357,7 @@ func TestApplyIsTracedEndToEnd(t *testing.T) {
 	s.seedTarget(targetRef)
 	s.seedProposal(proposalRef, targetRef, domain.StatusApproved)
 
-	rec := request(t, newHandlers(s).ApplyProposal, http.MethodPost, "/v1/proposals/"+proposalRef+"/apply", "", ops)
+	rec := request(t, newHandlers(t, s).ApplyProposal, http.MethodPost, "/v1/proposals/"+proposalRef+"/apply", "", ops)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d: %s", rec.Code, rec.Body)
 	}
@@ -394,7 +394,7 @@ func requestKey(t *testing.T, handler http.HandlerFunc, method, path, body, key 
 // exists, not 201 with a second one: the difference is what tells a caller it did not create a row.
 func TestCreateTargetWithTheSameKeyAnswersTheFirstRow(t *testing.T) {
 	state := newStore()
-	h := newHandlers(state)
+	h := newHandlers(t, state)
 	body := `{"name":"staging","driver":"mysql","host":"db","database":"app","username":"noxis"}`
 
 	first := requestKey(t, h.CreateTarget, http.MethodPost, "/v1/targets", body, "retry-me", ops)
@@ -423,7 +423,7 @@ func TestCreateTargetWithTheSameKeyAnswersTheFirstRow(t *testing.T) {
 func TestCreateProposalWithTheSameKeyAnswersTheFirstOne(t *testing.T) {
 	state := newStore()
 	target := state.seedTarget("0192f0c0-0000-7000-8000-000000000001")
-	h := newHandlers(state)
+	h := newHandlers(t, state)
 	body := `{"title":"add a column","query":"ALTER TABLE users ADD COLUMN note TEXT"}`
 	path := "/v1/targets/" + target.Ref + "/proposals"
 
@@ -451,7 +451,7 @@ func TestCreateProposalWithTheSameKeyAnswersTheFirstOne(t *testing.T) {
 // A key longer than the limit is refused: two different keys cut to the same prefix would be one key,
 // and one create would vanish.
 func TestCreateRefusesAnOverlongKey(t *testing.T) {
-	h := newHandlers(newStore())
+	h := newHandlers(t, newStore())
 	rec := requestKey(t, h.CreateTarget, http.MethodPost, "/v1/targets",
 		`{"name":"staging","driver":"mysql","host":"db","database":"app","username":"noxis"}`,
 		strings.Repeat("k", constants.MaxIdempotencyKeyLen+1), ops)
@@ -464,7 +464,7 @@ func TestCreateRefusesAnOverlongKey(t *testing.T) {
 // reported as a 500: an agent that reads `code: internal` has no reason to correct the reference.
 func TestCreateProposalAnswers404ForAnUnknownTarget(t *testing.T) {
 	state := newStore()
-	h := newHandlers(state)
+	h := newHandlers(t, state)
 	rec := request(t, h.CreateProposal, http.MethodPost,
 		"/v1/targets/0192f0c0-0000-7000-8000-0000000000ff/proposals",
 		`{"title":"add a column","query":"ALTER TABLE users ADD COLUMN note TEXT"}`, ops)

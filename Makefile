@@ -35,8 +35,8 @@ lint: ## golangci-lint
 fmt: ## gofmt the tree
 	$(GO) fmt ./...
 
-mocks: ## regenerate the testify mocks for every port (committed; CI fails on drift)
-	$(GO) tool mockery --config .mockery.yml
+mocks: ## regenerate the gomock mocks for every port (committed; CI fails on drift)
+	$(GO) tool mockgen -source=internal/ports/ports.go -destination=internal/mocks/ports.go -package=mocks
 
 spec: ## regenerate the OpenAPI document from the handler annotations (committed; CI fails on drift)
 	$(GO) tool swag init --v3.1 --parseInternal --parseDependency \

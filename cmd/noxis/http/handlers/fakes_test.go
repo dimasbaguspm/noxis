@@ -6,9 +6,10 @@ import (
 	"noxis/internal/mocks"
 	"noxis/internal/ports"
 	"strings"
+	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
+	"go.uber.org/mock/gomock"
 )
 
 // store is one double for every port the use cases hold. The handlers only ever see the four use
@@ -205,55 +206,55 @@ func (s *store) seedProposal(ref, targetRef string, status domain.Status) domain
 
 // newSealer is the generated mock, wired to the fake's own rules: a password is "sealed" by prefix,
 // which is enough to prove nothing a handler returns carries it.
-func newSealer() *mocks.MockSealer {
-	sealer := &mocks.MockSealer{}
-	sealer.EXPECT().Enabled().Return(true)
-	sealer.EXPECT().Seal(mock.Anything, mock.Anything).
-		RunAndReturn(func(_ string, plain []byte) (string, error) {
+func newSealer(t *testing.T) *mocks.MockSealer {
+	sealer := mocks.NewMockSealer(gomock.NewController(t))
+	sealer.EXPECT().Enabled().Return(true).AnyTimes()
+	sealer.EXPECT().Seal(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ string, plain []byte) (string, error) {
 			return "sealed:" + string(plain), nil
-		})
-	sealer.EXPECT().Open(mock.Anything, mock.Anything).
-		RunAndReturn(func(_, sealed string) ([]byte, error) {
+		}).AnyTimes()
+	sealer.EXPECT().Open(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_, sealed string) ([]byte, error) {
 			return []byte(strings.TrimPrefix(sealed, "sealed:")), nil
-		})
+		}).AnyTimes()
 	return sealer
 }
 
 // newDriver answers every engine call from the fake's fields, read at call time, so a test can still
 // set what the engine says after the handlers were built.
-func newDriver(s *store) *mocks.MockDriver {
-	driver := &mocks.MockDriver{}
-	driver.EXPECT().Probe(mock.Anything, mock.Anything, mock.Anything).
-		RunAndReturn(func(context.Context, domain.Target, string) (domain.Capabilities, error) {
+func newDriver(t *testing.T, s *store) *mocks.MockDriver {
+	driver := mocks.NewMockDriver(gomock.NewController(t))
+	driver.EXPECT().Probe(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(context.Context, domain.Target, string) (domain.Capabilities, error) {
 			return s.driverCaps, s.driverErr
-		})
-	driver.EXPECT().Query(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		RunAndReturn(func(context.Context, domain.Target, string, string, int) (domain.Rows, error) {
+		}).AnyTimes()
+	driver.EXPECT().Query(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(context.Context, domain.Target, string, string, int) (domain.Rows, error) {
 			return s.driverRows, s.driverErr
-		})
-	driver.EXPECT().Databases(mock.Anything, mock.Anything, mock.Anything).
-		RunAndReturn(func(context.Context, domain.Target, string) ([]string, error) {
+		}).AnyTimes()
+	driver.EXPECT().Databases(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(context.Context, domain.Target, string) ([]string, error) {
 			return nil, s.driverErr
-		})
-	driver.EXPECT().Tables(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		RunAndReturn(func(context.Context, domain.Target, string, string) ([]domain.Table, error) {
+		}).AnyTimes()
+	driver.EXPECT().Tables(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(context.Context, domain.Target, string, string) ([]domain.Table, error) {
 			return nil, s.driverErr
-		})
-	driver.EXPECT().Table(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		RunAndReturn(func(context.Context, domain.Target, string, string, string) (domain.TableDetail, error) {
+		}).AnyTimes()
+	driver.EXPECT().Table(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(context.Context, domain.Target, string, string, string) (domain.TableDetail, error) {
 			return domain.TableDetail{}, s.driverErr
-		})
-	driver.EXPECT().Rehearse(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		RunAndReturn(func(context.Context, domain.Target, string, domain.Change) (domain.Rehearsal, error) {
+		}).AnyTimes()
+	driver.EXPECT().Rehearse(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(context.Context, domain.Target, string, domain.Change) (domain.Rehearsal, error) {
 			return s.rehearsal, s.rehearseErr
-		})
-	driver.EXPECT().Plan(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		RunAndReturn(func(context.Context, domain.Target, string, domain.Change) (domain.Plan, error) {
+		}).AnyTimes()
+	driver.EXPECT().Plan(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(context.Context, domain.Target, string, domain.Change) (domain.Plan, error) {
 			return s.plan, nil
-		})
-	driver.EXPECT().Apply(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-		RunAndReturn(func(context.Context, domain.Target, string, domain.Change, func(domain.Progress)) (domain.Receipt, error) {
+		}).AnyTimes()
+	driver.EXPECT().Apply(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(context.Context, domain.Target, string, domain.Change, func(domain.Progress)) (domain.Receipt, error) {
 			return s.receipt, s.applyErr
-		})
+		}).AnyTimes()
 	return driver
 }
