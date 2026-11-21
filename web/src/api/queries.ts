@@ -2,7 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 import { useMemo } from 'react';
 import { createClient, params, unwrap, unwrapPage } from './http';
 import { useSession } from './session-context';
-import type { ListTargets } from './http';
+import type { Config, ListTargets } from './http';
 import type { Page } from './http';
 import type {
   Capabilities,
@@ -35,9 +35,16 @@ export const keys = {
   events: (ref: string) => ['events', ref] as const,
 };
 
+// clientFor answers the client a screen works through, or nothing when the console was told no API at
+// all. Readiness is `config` being present, never the address being truthy: a same-origin deployment is
+// told the empty origin, which means "the origin you loaded this page from" and is falsy.
+export function clientFor(config: Config | null) {
+  return config ? createClient(config.api) : null;
+}
+
 function useClient() {
-  const { api } = useSession();
-  return useMemo(() => (api ? createClient(api) : null), [api]);
+  const { config } = useSession();
+  return useMemo(() => clientFor(config), [config]);
 }
 
 /** useTargets is the bug that made this file: one infinite query, one search term, no double fetch. */
