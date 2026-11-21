@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/spf13/cobra"
 )
 
 // A bare `noxis` is the first thing a person types, so it has to say where it points and what to do
@@ -174,5 +176,43 @@ func TestVersionFlagAnswers(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Fatalf("--version printed %q, want it to mention %q", got, want)
 		}
+	}
+}
+
+// Two commands answering to the same name — or one command whose alias steals another's name — is a list
+// nobody can read: the same word appears twice and one of the two is unreachable. Cobra quietly adds its
+// own `help` unless it is told which one to use, which is exactly how this happened once.
+func TestNoTwoCommandsAnswerToTheSameName(t *testing.T) {
+	isolated(t)
+	root := newRoot()
+	// The defaults are what a real run adds, so the test asks for them too: a rule checked before cobra
+	// has added its own commands is a rule that misses the case it was written for.
+	root.InitDefaultHelpCmd()
+	root.InitDefaultCompletionCmd()
+
+	var walk func(parent *cobra.Command)
+	walk = func(parent *cobra.Command) {
+		seen := map[string]string{}
+		for _, child := range parent.Commands() {
+			for _, name := range append([]string{child.Name()}, child.Aliases...) {
+				if other, taken := seen[name]; taken && other != child.Name() {
+					t.Errorf("`%s`: %q is answered by both %q and %q",
+						parent.CommandPath(), name, other, child.Name())
+				}
+				seen[name] = child.Name()
+			}
+			walk(child)
+		}
+	}
+	walk(root)
+
+	help := 0
+	for _, child := range root.Commands() {
+		if child.Name() == "help" {
+			help++
+		}
+	}
+	if help != 1 {
+		t.Fatalf("%d commands are called `help`; the tree must have exactly one", help)
 	}
 }

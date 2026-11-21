@@ -84,7 +84,11 @@ func newRoot() *cobra.Command {
 	root.PersistentPostRun = func(cmd *cobra.Command, _ []string) {
 		commands.Notice(cmd, session)
 	}
-	root.AddCommand(newHelp(root), http.NewHTTP(buildServer), newWeb(),
+	// One `help`, and it is ours: cobra adds its own unless it is told which command to use, and two rows
+	// called `help` in the same list is the accident this pair of lines exists to prevent.
+	help := newHelp(root)
+	root.SetHelpCommand(help)
+	root.AddCommand(help, http.NewHTTP(buildServer), newWeb(),
 		commands.NewWhoami(session), commands.NewDescribe(session), commands.NewVersion(), newSkills(session),
 		commands.NewAuth(session), commands.NewTarget(session),
 		commands.NewQuery(session), commands.NewDatabases(session),
