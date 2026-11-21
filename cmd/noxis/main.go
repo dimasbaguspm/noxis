@@ -88,6 +88,20 @@ func newRoot() *cobra.Command {
 	// called `help` in the same list is the accident this pair of lines exists to prevent.
 	help := newHelp(root)
 	root.SetHelpCommand(help)
+	// `--help` on the root answers the same question `noxis` does — which build, which sessions, which
+	// server — and then the map. A subcommand keeps cobra's own page.
+	defaultHelp := root.HelpFunc()
+	root.SetHelpFunc(func(c *cobra.Command, args []string) {
+		if c != root {
+			defaultHelp(c, args)
+			return
+		}
+		if err := welcome(c.OutOrStdout()); err != nil {
+			return
+		}
+		_, _ = fmt.Fprintln(c.OutOrStdout())
+		printGroups(c.OutOrStdout(), root)
+	})
 	root.AddCommand(help, http.NewHTTP(buildServer), newWeb(),
 		commands.NewWhoami(session), commands.NewDescribe(session), commands.NewVersion(), newSkills(session),
 		commands.NewAuth(session), commands.NewTarget(session),
