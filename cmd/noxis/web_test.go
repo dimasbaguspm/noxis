@@ -11,6 +11,9 @@ import (
 // be a default: a page that asks the reader's own machine for the API is a page that fails on every
 // deployment but the developer's.
 func TestWebServeNeedsTheAPI(t *testing.T) {
+	// A machine whose CLI signs in has an API to inherit, so this test has to be the machine that
+	// never signed in — otherwise `web serve` finds a session and listens until the test times out.
+	isolated(t)
 	cmd := newWeb()
 	var out, errOut bytes.Buffer
 	cmd.SetOut(&out)

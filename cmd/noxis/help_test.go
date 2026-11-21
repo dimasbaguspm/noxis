@@ -134,3 +134,23 @@ func TestVersionNeedsNoSession(t *testing.T) {
 		t.Fatalf("version = %q", out.String())
 	}
 }
+
+// A command that is built but never registered is a command nobody can run: `watch` shipped that way
+// once, compiled and tested and unreachable. The grouping is the list of commands a person is meant to
+// reach, so it is also the list every registration is checked against.
+func TestEveryGroupedCommandIsRegistered(t *testing.T) {
+	known := map[string]bool{}
+	for _, command := range newRoot().Commands() {
+		known[command.Name()] = true
+		for _, alias := range command.Aliases {
+			known[alias] = true
+		}
+	}
+	for _, group := range groups {
+		for _, name := range group.commands {
+			if !known[name] {
+				t.Errorf("%q is grouped under %q but nothing registers it", name, group.title)
+			}
+		}
+	}
+}

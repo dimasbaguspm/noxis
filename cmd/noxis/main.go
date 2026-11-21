@@ -82,6 +82,6 @@ func newRoot() *cobra.Command {
 		commands.NewPropose(session), commands.NewProposals(session),
 		commands.NewProposalShow(session), commands.NewRehearse(session),
 		commands.NewApprove(session), commands.NewReject(session),
-		commands.NewApplyProposal(session), commands.NewEvents(session))
+		commands.NewApplyProposal(session), commands.NewWatch(session), commands.NewEvents(session))
 	return root
 }
