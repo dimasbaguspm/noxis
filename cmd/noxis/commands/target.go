@@ -281,14 +281,21 @@ func newTargetTest(s *Session) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			caps, err := api.TestTarget(cmd.Context(), in)
+			result, err := api.TestTarget(cmd.Context(), in)
 			if err != nil {
 				return err
 			}
 			if s.JSON {
-				return PrintJSON(cmd, caps)
+				return PrintJSON(cmd, result)
 			}
-			return printCapabilities(cmd, caps)
+			if err := printCapabilities(cmd, result.Capabilities); err != nil {
+				return err
+			}
+			if len(result.Databases) == 0 {
+				return nil
+			}
+			return writeTable(cmd.OutOrStdout(), nil,
+				[][]string{{"schemas", strings.Join(result.Databases, ", ")}})
 		},
 	}
 	flags := cmd.Flags()
@@ -346,7 +353,7 @@ func newTargetSet(s *Session) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				caps, err := api.TestTarget(cmd.Context(), client.TestTargetInput{
+				proved, err := api.TestTarget(cmd.Context(), client.TestTargetInput{
 					Driver:   current.Driver,
 					Host:     current.Host,
 					Port:     current.Port,
@@ -360,7 +367,7 @@ func newTargetSet(s *Session) *cobra.Command {
 					return fmt.Errorf("the new credentials were not proved, so nothing was saved: %w", err)
 				}
 				if !s.JSON {
-					if err := printCapabilities(cmd, caps); err != nil {
+					if err := printCapabilities(cmd, proved.Capabilities); err != nil {
 						return err
 					}
 				}

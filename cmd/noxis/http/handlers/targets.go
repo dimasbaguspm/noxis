@@ -48,6 +48,14 @@ type ProbeResult struct {
 	Capabilities domain.Capabilities `json:"capabilities"`
 }
 
+// TestResult is what dialling a configuration answers: the engine it reached, and the schemas those
+// credentials can see. An empty list is still a successful test: the server answered, it just would
+// not enumerate.
+type TestResult struct {
+	Capabilities domain.Capabilities `json:"capabilities"`
+	Databases    []string            `json:"databases"`
+}
+
 func toWire(t domain.Target) Target {
 	options := t.Options
 	if options == nil {
@@ -161,7 +169,7 @@ func (h *Handlers) TestTarget(w http.ResponseWriter, r *http.Request) {
 		respond.Fail(w, h.Log, err)
 		return
 	}
-	caps, err := h.Targets.Test.Run(r.Context(), target.TestInput{
+	result, err := h.Targets.Test.Run(r.Context(), target.TestInput{
 		Driver:   body.Driver,
 		Host:     body.Host,
 		Port:     body.Port,
@@ -175,7 +183,11 @@ func (h *Handlers) TestTarget(w http.ResponseWriter, r *http.Request) {
 		respond.Fail(w, h.Log, err)
 		return
 	}
-	respond.OK(w, caps)
+	databases := result.Databases
+	if databases == nil {
+		databases = []string{}
+	}
+	respond.OK(w, TestResult{Capabilities: result.Capabilities, Databases: databases})
 }
 
 // ListTargets answers one page of targets, newest first.
