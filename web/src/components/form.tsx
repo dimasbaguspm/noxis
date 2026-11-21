@@ -17,6 +17,10 @@ type Fields = {
   control: Control<FieldValues>;
   errors: FieldErrors<FieldValues>;
   submitting: boolean;
+  /** Every value as it stands: a button inside the form that dials with them reads this. */
+  getValues: () => FieldValues;
+  /** The one it may fill in, when the server answered a name the operator would have typed. */
+  setValue: (name: string, value: string) => void;
 };
 
 const FormContext = createContext<Fields | null>(null);
@@ -76,6 +80,8 @@ export function Form<T extends FieldValues>({
         control: methods.control as unknown as Control<FieldValues>,
         errors: methods.formState.errors as unknown as FieldErrors<FieldValues>,
         submitting: methods.formState.isSubmitting,
+        getValues: () => methods.getValues() as FieldValues,
+        setValue: methods.setValue as unknown as (name: string, value: string) => void,
       }}
     >
       <form

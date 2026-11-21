@@ -13,6 +13,7 @@ import type {
   Table,
   TableDetail,
   Target,
+  TestAnswer,
 } from './types';
 
 // Every read and write the console makes, as a hook. A screen says which data it needs and which
@@ -122,7 +123,7 @@ export function useTestConnection() {
   const client = useClient();
   return useMutation({
     mutationFn: (input: Record<string, unknown>) =>
-      unwrap<Capabilities>(client!.post('/v1/targets/test', input)),
+      unwrap<TestAnswer>(client!.post('/v1/targets/test', input)),
   });
 }
 

@@ -10,7 +10,8 @@ import { AppButton } from '../components/app-button';
 import { AsyncState } from '../components/async-state';
 import { DataTable } from '../components/data-table';
 import { EngineMark } from '../components/engine-mark';
-import { Form } from '../components/form';
+import { AutoCompleteInput } from '../components/auto-complete-input';
+import { Form, useFormFields } from '../components/form';
 import { NumberInput, SelectInput } from '../components/inputs';
 import { RenderWhen } from '../components/render-when';
 import { Heading, Text } from '../components/text';
@@ -243,7 +244,8 @@ function CreateTargetForm({ onCreated }: { onCreated: (target: Target) => void }
   // A refused test keeps the values that failed: "register anyway" is the operator's decision, not a
   // second submit that would dial the same dead host again.
   const [blocked, setBlocked] = useState<{ values: TargetValues; message: string } | null>(null);
-
+  // The schemas the last test answered. Empty until a test runs, which leaves the field a text box.
+  const [schemas, setSchemas] = useState<string[]>([]);
   const send = async (values: TargetValues) => {
     onCreated(await create.mutateAsync({ ...values, options: {} }));
   };
@@ -281,9 +283,16 @@ function CreateTargetForm({ onCreated }: { onCreated: (target: Target) => void }
           <NumberInput name="port" label="Port" min={1} max={65535} />
         </div>
       </div>
-      <TextInput name="database" label="Database" placeholder="app" />
       <TextInput name="username" label="Username" placeholder="noxis" autoComplete="off" />
       <TextInput name="password" label="Password" password autoComplete="new-password" />
+      <ProbeConnection onSchemas={setSchemas} />
+      <AutoCompleteInput
+        name="database"
+        label="Schema"
+        hint="MySQL and MariaDB call it a database. Test the connection to list them."
+        options={schemas}
+        placeholder="app"
+      />
       <RenderWhen condition={blocked}>
         <Alert
           tone="warning"
@@ -302,5 +311,53 @@ function CreateTargetForm({ onCreated }: { onCreated: (target: Target) => void }
         />
       </RenderWhen>
     </Form>
+  );
+}
+
+// A connection test inside the form, where the values are: it dials what has been typed — the schema
+// included, which may be empty — and says which schemas exist. Nothing is stored and no submit runs.
+function ProbeConnection({ onSchemas }: { onSchemas: (schemas: string[]) => void }) {
+  const { getValues, setValue } = useFormFields();
+  const test = useTestConnection();
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+
+  const probe = async () => {
+    setAnswer(null);
+    setFailure(null);
+    try {
+      const result = await test.mutateAsync(connectionOf(getValues() as unknown as TargetValues));
+      const { databases, capabilities } = result;
+      onSchemas(databases);
+      setAnswer(
+        `Answered as ${capabilities.version || capabilities.driver} · ${databases.length} ${
+          databases.length === 1 ? 'schema' : 'schemas'
+        }`,
+      );
+      // One schema is the common case and the operator was about to type it: fill an empty field.
+      const typed = String(getValues().database ?? '').trim();
+      if (!typed && databases.length === 1) setValue('database', databases[0]);
+    } catch (error) {
+      onSchemas([]);
+      setFailure(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  return (
+    <div className="mb-4 flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <AppButton htmlType="button" onClick={() => void probe()} loading={test.isPending}>
+          Test connection
+        </AppButton>
+        <RenderWhen condition={answer}>
+          <Text size="xs" tone="muted">
+            {answer}
+          </Text>
+        </RenderWhen>
+      </div>
+      <RenderWhen condition={failure}>
+        <Alert tone="error" title="The credentials did not answer" description={failure} />
+      </RenderWhen>
+    </div>
   );
 }
