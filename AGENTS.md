@@ -150,3 +150,6 @@ seam next to the struct: `var _ ports.Driver = (*DB)(nil)`.
 - `docs/agent/database.md` — the state file: schema versions, tables, sealing, paging.
 - `docs/agent/review.md` — review checklist and invariants.
 - `docs/plan/` — one snapshot per completed plan with an index.
+- `skills/` — the ready-to-copy skills an agent operates this product with: `noxis-setup`, `noxis-read`,
+  `noxis-propose`, `noxis-review`. One `SKILL.md` each (frontmatter + body), versioned with the CLI they
+  describe. A new capability gets a skill in the same PR that ships it.
