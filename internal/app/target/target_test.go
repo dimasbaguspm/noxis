@@ -34,6 +34,16 @@ func (f *fakeTargets) ByRef(_ context.Context, _ string) (domain.Target, error) 
 	return f.target, nil
 }
 
+// ByKey scans what this fake created, which is how the retry test finds the row the first call made.
+func (f *fakeTargets) ByKey(_ context.Context, key string) (domain.Target, error) {
+	for _, target := range f.stored {
+		if target.IdempotencyKey == key {
+			return target, nil
+		}
+	}
+	return domain.Target{}, domain.ErrNotFound
+}
+
 func (f *fakeTargets) List(_ context.Context, filter ports.TargetFilter) ([]domain.Target, error) {
 	if f.err != nil {
 		return nil, f.err
@@ -175,11 +185,11 @@ func TestCreateSealsThePassword(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Create: %v", err)
 	}
-	if created.Secret != "sealed:hunter2" {
-		t.Fatalf("secret = %q, want the sealed envelope", created.Secret)
+	if created.Target.Secret != "sealed:hunter2" {
+		t.Fatalf("secret = %q, want the sealed envelope", created.Target.Secret)
 	}
-	if created.Port != 3306 || created.TLSMode != "preferred" {
-		t.Fatalf("defaults = %d/%s", created.Port, created.TLSMode)
+	if created.Target.Port != 3306 || created.Target.TLSMode != "preferred" {
+		t.Fatalf("defaults = %d/%s", created.Target.Port, created.Target.TLSMode)
 	}
 	if len(f.journal.entries) != 1 || f.journal.entries[0].Kind != "created" {
 		t.Fatalf("journal = %+v, want one `created` line", f.journal.entries)
@@ -438,5 +448,60 @@ func TestTestDefaultsThePort(t *testing.T) {
 	}
 	if f.driver.dialled.Port != 3306 {
 		t.Fatalf("port = %d, want 3306", f.driver.dialled.Port)
+	}
+}
+
+// A create that is retried with the key it named the first time is the same target: same ref, nothing
+// new journaled, and the second answer says it was a replay.
+func TestCreateWithTheSameKeyIsOneTarget(t *testing.T) {
+	f := newFixture()
+	in := CreateInput{
+		Name: "staging", Driver: "mysql", Host: "db", Database: "app", Username: "noxis",
+		Password: "hunter2", Actor: "ops", IdempotencyKey: "retry-me",
+	}
+
+	first, err := NewCreate(f.deps).Run(context.Background(), in)
+	if err != nil {
+		t.Fatalf("first create: %v", err)
+	}
+	second, err := NewCreate(f.deps).Run(context.Background(), in)
+	if err != nil {
+		t.Fatalf("retried create: %v", err)
+	}
+
+	if second.Target.Ref != first.Target.Ref {
+		t.Fatalf("refs = %q and %q, want the same target", first.Target.Ref, second.Target.Ref)
+	}
+	if first.Replayed || !second.Replayed {
+		t.Fatalf("replayed = %v then %v, want false then true", first.Replayed, second.Replayed)
+	}
+	if len(f.targets.stored) != 1 {
+		t.Fatalf("stored %d targets, want 1", len(f.targets.stored))
+	}
+	if len(f.journal.entries) != 1 {
+		t.Fatalf("journal = %+v, want one `created` line", f.journal.entries)
+	}
+}
+
+// No key at all is the old behaviour: two identical registrations are two targets, and the second one
+// fails on the name the way it always did.
+func TestCreateWithoutAKeyStoresAgain(t *testing.T) {
+	f := newFixture()
+	in := CreateInput{
+		Name: "staging", Driver: "mysql", Host: "db", Database: "app", Username: "noxis", Actor: "ops",
+	}
+
+	if _, err := NewCreate(f.deps).Run(context.Background(), in); err != nil {
+		t.Fatalf("first create: %v", err)
+	}
+	second, err := NewCreate(f.deps).Run(context.Background(), in)
+	if err != nil {
+		t.Fatalf("second create: %v", err)
+	}
+	if second.Replayed {
+		t.Fatal("a create with no key was treated as a replay")
+	}
+	if len(f.targets.stored) != 2 {
+		t.Fatalf("stored %d targets, want 2: a key names a request, and nobody named one", len(f.targets.stored))
 	}
 }

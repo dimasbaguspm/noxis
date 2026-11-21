@@ -12,7 +12,7 @@ import (
 )
 
 func NewPropose(s *Session) *cobra.Command {
-	var title, sqlText, from, rollback, rollbackFile, note, tier string
+	var title, sqlText, from, rollback, rollbackFile, note, tier, key string
 	cmd := &cobra.Command{
 		Use:     "propose <instance-ref>",
 		Aliases: []string{"change"},
@@ -36,6 +36,7 @@ func NewPropose(s *Session) *cobra.Command {
 			}
 			created, err := api.CreateProposal(cmd.Context(), args[0], client.CreateProposalInput{
 				Title: title, Query: statement, Rollback: undo, Note: note, Tier: tier,
+				IdempotencyKey: key,
 			})
 			if err != nil {
 				return err
@@ -54,6 +55,8 @@ func NewPropose(s *Session) *cobra.Command {
 	flags.StringVar(&rollbackFile, "rollback-file", "", "read the rollback from this file")
 	flags.StringVar(&note, "note", "", "why, for the reviewer")
 	flags.StringVar(&tier, "tier", "", "static, shadow (default) or rehearsal")
+	flags.StringVar(&key, "idempotency-key", "",
+		"a name for this proposal; a retry with the same one answers the same change")
 	_ = cmd.MarkFlagRequired("title")
 	return cmd
 }

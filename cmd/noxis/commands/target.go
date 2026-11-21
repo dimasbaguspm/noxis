@@ -55,6 +55,8 @@ func newTargetAdd(s *Session) *cobra.Command {
 	flags.StringVar(&in.Username, "username", "", "user to connect as")
 	flags.StringVar(&in.Password, "password", "", "password, which lands in the shell history: prefer the API with a secret store")
 	flags.StringVar(&in.TLSMode, "tls-mode", constants.TLSPreferred, "preferred, skip-verify or verify")
+	flags.StringVar(&in.IdempotencyKey, "idempotency-key", "",
+		"a name for this registration; a retry with the same one answers the same instance")
 	for _, required := range []string{"name", "host", "database", "username"} {
 		_ = cmd.MarkFlagRequired(required)
 	}

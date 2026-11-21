@@ -91,6 +91,8 @@ func toWires(targets []domain.Target) []Target {
 // @Produce json
 // @Security BearerAuth
 // @Param body body handlers.CreateTargetRequest true "the server to govern"
+// @Param Idempotency-Key header string false "a name for this create; a retry with the same one answers the same row"
+// @Success 200 {object} respond.Envelope "the row a retried create already made"
 // @Success 201 {object} respond.Envelope
 // @Failure 400 {object} respond.Envelope
 // @Router /v1/targets [post]
@@ -104,23 +106,35 @@ func (h *Handlers) CreateTarget(w http.ResponseWriter, r *http.Request) {
 		respond.Fail(w, h.Log, err)
 		return
 	}
-	created, err := h.Targets.Create.Run(r.Context(), target.CreateInput{
-		Name:     body.Name,
-		Driver:   body.Driver,
-		Host:     body.Host,
-		Port:     body.Port,
-		Database: body.Database,
-		Username: body.Username,
-		Password: body.Password,
-		TLSMode:  body.TLSMode,
-		Options:  body.Options,
-		Actor:    middlewares.Caller(r.Context()).Name,
+	key, err := idempotencyKey(r)
+	if err != nil {
+		respond.Fail(w, h.Log, err)
+		return
+	}
+	out, err := h.Targets.Create.Run(r.Context(), target.CreateInput{
+		Name:           body.Name,
+		Driver:         body.Driver,
+		Host:           body.Host,
+		Port:           body.Port,
+		Database:       body.Database,
+		Username:       body.Username,
+		Password:       body.Password,
+		TLSMode:        body.TLSMode,
+		Options:        body.Options,
+		Actor:          middlewares.Caller(r.Context()).Name,
+		IdempotencyKey: key,
 	})
 	if err != nil {
 		respond.Fail(w, h.Log, err)
 		return
 	}
-	respond.Created(w, toWire(created))
+	// A retry answers the row the first call made, and says so with 200: 201 would claim a row this
+	// request never created.
+	if out.Replayed {
+		respond.OK(w, toWire(out.Target))
+		return
+	}
+	respond.Created(w, toWire(out.Target))
 }
 
 // TestTarget dials a configuration that is not stored yet, so the console can refuse a typo

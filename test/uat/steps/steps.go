@@ -31,7 +31,10 @@ type world struct {
 	proposals []client.Proposal
 	caps      client.Capabilities
 	cursor    string
-	err       error
+	// The retry scenario keeps what the first call made, so the second answer has something to equal.
+	firstRef    string
+	retryStatus int
+	err         error
 }
 
 // InitializeScenario registers every step against a fresh world.
@@ -59,6 +62,9 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	// targets
 	ctx.Step(`^I register a target named "([^"]*)"$`, w.registerTarget)
 	ctx.Step(`^I register three targets$`, w.registerThree)
+	ctx.Step(`^I register a target named "([^"]*)" twice under the key "([^"]*)"$`, w.registerTwice)
+	ctx.Step(`^the retry answers the target the first call made$`, w.assertRetryAnsweredTheFirst)
+	ctx.Step(`^the retry answers with status (\d+)$`, w.assertRetryStatus)
 	ctx.Step(`^the target reference is a reference$`, w.assertTargetRef)
 	ctx.Step(`^the password is stored$`, w.assertPasswordStored)
 	ctx.Step(`^the response carries no password$`, w.assertNoPasswordOnWire)
@@ -648,6 +654,64 @@ func (w *world) assertEngineColumn(column, table string) error {
 	}
 	if *rows.Values[0][0] != "1" {
 		return fmt.Errorf("the engine reports %s.%s does not exist", table, column)
+	}
+	return nil
+}
+
+// registerTwice sends one registration and then the same key under a different name: if the server had
+// made a second row the refs would differ, so equality is the proof that a retry is one row.
+func (w *world) registerTwice(name, key string) error {
+	first, err := w.api.CreateTarget(context.Background(), client.CreateTargetInput{
+		Name:           name,
+		Driver:         constants.DriverMySQL,
+		Host:           "127.0.0.1",
+		Port:           constants.DefaultMySQLPort,
+		Database:       "uat",
+		Username:       "uat",
+		Password:       "uat-password",
+		TLSMode:        constants.TLSPreferred,
+		IdempotencyKey: key,
+	})
+	if err != nil {
+		w.err = err
+		return nil
+	}
+	w.firstRef = first.Ref
+	w.target, w.err = w.api.CreateTarget(context.Background(), client.CreateTargetInput{
+		Name:           name + "-again",
+		Driver:         constants.DriverMySQL,
+		Host:           "127.0.0.1",
+		Port:           constants.DefaultMySQLPort,
+		Database:       "uat",
+		Username:       "uat",
+		Password:       "uat-password",
+		TLSMode:        constants.TLSPreferred,
+		IdempotencyKey: key,
+	})
+	w.retryStatus = w.api.LastStatus()
+	return nil
+}
+
+func (w *world) assertRetryAnsweredTheFirst() error {
+	if w.err != nil {
+		return w.err
+	}
+	if w.target.Ref != w.firstRef {
+		return fmt.Errorf("the retry answered %q, want the first target %q", w.target.Ref, w.firstRef)
+	}
+	return nil
+}
+
+func (w *world) assertRetryStatus(want string) error {
+	status, err := strconv.Atoi(want)
+	if err != nil {
+		return err
+	}
+	if w.err != nil {
+		return w.err
+	}
+	if w.retryStatus != status {
+		return fmt.Errorf("the retry answered %d, want %d", w.retryStatus, status)
 	}
 	return nil
 }

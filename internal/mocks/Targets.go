@@ -39,6 +39,72 @@ func (_m *MockTargets) EXPECT() *MockTargets_Expecter {
 	return &MockTargets_Expecter{mock: &_m.Mock}
 }
 
+// ByKey provides a mock function for the type MockTargets
+func (_mock *MockTargets) ByKey(ctx context.Context, key string) (domain.Target, error) {
+	ret := _mock.Called(ctx, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ByKey")
+	}
+
+	var r0 domain.Target
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (domain.Target, error)); ok {
+		return returnFunc(ctx, key)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) domain.Target); ok {
+		r0 = returnFunc(ctx, key)
+	} else {
+		r0 = ret.Get(0).(domain.Target)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockTargets_ByKey_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ByKey'
+type MockTargets_ByKey_Call struct {
+	*mock.Call
+}
+
+// ByKey is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key string
+func (_e *MockTargets_Expecter) ByKey(ctx interface{}, key interface{}) *MockTargets_ByKey_Call {
+	return &MockTargets_ByKey_Call{Call: _e.mock.On("ByKey", ctx, key)}
+}
+
+func (_c *MockTargets_ByKey_Call) Run(run func(ctx context.Context, key string)) *MockTargets_ByKey_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockTargets_ByKey_Call) Return(target domain.Target, err error) *MockTargets_ByKey_Call {
+	_c.Call.Return(target, err)
+	return _c
+}
+
+func (_c *MockTargets_ByKey_Call) RunAndReturn(run func(ctx context.Context, key string) (domain.Target, error)) *MockTargets_ByKey_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ByRef provides a mock function for the type MockTargets
 func (_mock *MockTargets) ByRef(ctx context.Context, ref string) (domain.Target, error) {
 	ret := _mock.Called(ctx, ref)

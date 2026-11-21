@@ -51,6 +51,19 @@ func (f *fakeProposals) ProposalByRef(_ context.Context, ref string) (domain.Pro
 	return proposal, nil
 }
 
+// ProposalByKey scans what this fake stored: the retry test finds the proposal the first call made.
+func (f *fakeProposals) ProposalByKey(_ context.Context, key string) (domain.Proposal, error) {
+	if f.readErr != nil {
+		return domain.Proposal{}, f.readErr
+	}
+	for _, proposal := range f.stored {
+		if proposal.IdempotencyKey == key {
+			return proposal, nil
+		}
+	}
+	return domain.Proposal{}, domain.ErrNotFound
+}
+
 func (f *fakeProposals) ListProposals(_ context.Context, filter ports.ProposalFilter) ([]domain.Proposal, error) {
 	if f.listErr != nil {
 		return nil, f.listErr
@@ -138,6 +151,14 @@ func (f *fakeTargets) ByRef(_ context.Context, _ string) (domain.Target, error) 
 		return domain.Target{}, f.err
 	}
 	return f.target, nil
+}
+
+// ByKey answers nothing: a proposal test names its target by ref.
+func (f *fakeTargets) ByKey(_ context.Context, _ string) (domain.Target, error) {
+	if f.err != nil {
+		return domain.Target{}, f.err
+	}
+	return domain.Target{}, domain.ErrNotFound
 }
 
 func (*fakeTargets) List(_ context.Context, _ ports.TargetFilter) ([]domain.Target, error) {

@@ -12,6 +12,9 @@ import (
 type Targets interface {
 	Create(ctx context.Context, target domain.Target) (domain.Target, error)
 	ByRef(ctx context.Context, ref string) (domain.Target, error)
+	// ByKey answers the target a retried create already made, or ErrNotFound: the key is what makes a
+	// second call the same call.
+	ByKey(ctx context.Context, key string) (domain.Target, error)
 	List(ctx context.Context, filter TargetFilter) ([]domain.Target, error)
 	Update(ctx context.Context, target domain.Target) (domain.Target, error)
 }
@@ -72,6 +75,8 @@ type Driver interface {
 type Proposals interface {
 	CreateProposal(ctx context.Context, proposal domain.Proposal) (domain.Proposal, error)
 	ProposalByRef(ctx context.Context, ref string) (domain.Proposal, error)
+	// ProposalByKey answers the proposal a retried create already made, or ErrNotFound.
+	ProposalByKey(ctx context.Context, key string) (domain.Proposal, error)
 	ListProposals(ctx context.Context, filter ProposalFilter) ([]domain.Proposal, error)
 	UpdateProposal(ctx context.Context, proposal domain.Proposal) (domain.Proposal, error)
 	// ClaimProposal moves a proposal from one status to another only while it is still in `from`.

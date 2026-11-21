@@ -251,6 +251,72 @@ func (_c *MockProposals_ListProposals_Call) RunAndReturn(run func(ctx context.Co
 	return _c
 }
 
+// ProposalByKey provides a mock function for the type MockProposals
+func (_mock *MockProposals) ProposalByKey(ctx context.Context, key string) (domain.Proposal, error) {
+	ret := _mock.Called(ctx, key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ProposalByKey")
+	}
+
+	var r0 domain.Proposal
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (domain.Proposal, error)); ok {
+		return returnFunc(ctx, key)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) domain.Proposal); ok {
+		r0 = returnFunc(ctx, key)
+	} else {
+		r0 = ret.Get(0).(domain.Proposal)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, key)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockProposals_ProposalByKey_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ProposalByKey'
+type MockProposals_ProposalByKey_Call struct {
+	*mock.Call
+}
+
+// ProposalByKey is a helper method to define mock.On call
+//   - ctx context.Context
+//   - key string
+func (_e *MockProposals_Expecter) ProposalByKey(ctx interface{}, key interface{}) *MockProposals_ProposalByKey_Call {
+	return &MockProposals_ProposalByKey_Call{Call: _e.mock.On("ProposalByKey", ctx, key)}
+}
+
+func (_c *MockProposals_ProposalByKey_Call) Run(run func(ctx context.Context, key string)) *MockProposals_ProposalByKey_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockProposals_ProposalByKey_Call) Return(proposal domain.Proposal, err error) *MockProposals_ProposalByKey_Call {
+	_c.Call.Return(proposal, err)
+	return _c
+}
+
+func (_c *MockProposals_ProposalByKey_Call) RunAndReturn(run func(ctx context.Context, key string) (domain.Proposal, error)) *MockProposals_ProposalByKey_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ProposalByRef provides a mock function for the type MockProposals
 func (_mock *MockProposals) ProposalByRef(ctx context.Context, ref string) (domain.Proposal, error) {
 	ret := _mock.Called(ctx, ref)
