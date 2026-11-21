@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"noxis/internal/common/ref"
 	"noxis/internal/common/sqltext"
@@ -12,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	mysqldriver "github.com/go-sql-driver/mysql"
 )
 
 // scratchPrefix names the throwaway database a shadow rehearsal runs in. The suffix is random, so
@@ -56,7 +59,14 @@ func (d *DB) Rehearse(ctx context.Context, target domain.Target, password string
 		rehearsal.DurationMS = time.Since(started).Milliseconds()
 		return rehearsal, nil
 	}
-	d.rehearseInScratch(ctx, pool, target.Database, change, scope, &rehearsal)
+	if degraded := d.rehearseInScratch(ctx, pool, target.Database, change, scope, &rehearsal); degraded {
+		// A server that will not let the target create a database can still be checked: parse, plan and
+		// estimate, and say by name that the proof is the weaker one.
+		reason := rehearsal.Error
+		rehearsal = domain.Rehearsal{Tier: domain.TierStatic, CreatedAt: rehearsal.CreatedAt}
+		d.rehearseStatic(ctx, pool, target, password, change, scope, &rehearsal)
+		rehearsal.Note += "; " + staticInsteadNote(reason)
+	}
 	rehearsal.DurationMS = time.Since(started).Milliseconds()
 	return rehearsal, nil
 }
@@ -124,7 +134,7 @@ func (*DB) rehearseStatic(ctx context.Context, pool *sql.DB, target domain.Targe
 // rollback to put the schema back exactly as it was.
 func (*DB) rehearseInScratch(ctx context.Context, pool *sql.DB, database string,
 	change domain.Change, scope []string, rehearsal *domain.Rehearsal,
-) {
+) (degraded bool) {
 	scratch := scratchPrefix + strings.ReplaceAll(ref.New(), "-", "")[:12]
 
 	conn, err := pool.Conn(ctx)
@@ -136,8 +146,13 @@ func (*DB) rehearseInScratch(ctx context.Context, pool *sql.DB, database string,
 	defer func() { _ = conn.Close() }()
 
 	if err := createScratch(ctx, conn, scratch); err != nil {
-		rehearsal.Status = domain.RehearsalUnsupported
 		rehearsal.Error = err.Error()
+		if errors.Is(err, errNoPrivilege) {
+			// The caller degrades to a static check: the reason travels in Error, and this function
+			// leaves the status for that caller to set.
+			return true
+		}
+		rehearsal.Status = domain.RehearsalUnsupported
 		rehearsal.Note = "the rehearsal needs CREATE DATABASE on the target server; without it only tier=static can run"
 		return
 	}
@@ -221,6 +236,7 @@ func (*DB) rehearseInScratch(ctx context.Context, pool *sql.DB, database string,
 		rehearsal.Note += "; no rows were copied, so a DML result here proves shape, not effect, " +
 			"and an index is proven to build, not to hold on your data"
 	}
+	return false
 }
 
 // staticPlan asks the engine how it would run the statement. DDL has no plan, which is not a
@@ -257,8 +273,10 @@ func tableEstimates(ctx context.Context, pool *sql.DB, database string, scope []
 }
 
 func createScratch(ctx context.Context, conn *sql.Conn, scratch string) error {
-	_, err := conn.ExecContext(ctx, "CREATE DATABASE "+quote(scratch))
-	if err != nil {
+	if _, err := conn.ExecContext(ctx, "CREATE DATABASE "+quote(scratch)); err != nil {
+		if refusedForPrivilege(err) {
+			return fmt.Errorf("%w: %w", errNoPrivilege, err)
+		}
 		return fmt.Errorf("%w: %w", domain.ErrUnsupported, err)
 	}
 	return nil
@@ -507,4 +525,29 @@ func irreversible(change domain.Change) bool {
 		return true
 	}
 	return false
+}
+
+// errNoPrivilege marks the one shadow failure a static check survives: the server refused to create
+// the throwaway database, so nothing ran there and nothing could have. Its text is short because it is
+// always read inside a sentence that already says what could not be created.
+var errNoPrivilege = errors.New("no privilege")
+
+// refusedForPrivilege reports whether the server refused the database itself, rather than the
+// connection or the statement. A wrong password is 1045 and is deliberately not one of these:
+// nothing connected, so nothing can be claimed about the change.
+func refusedForPrivilege(err error) bool {
+	var driverErr *mysqldriver.MySQLError
+	if !errors.As(err, &driverErr) {
+		return false
+	}
+	return driverErr.Number == 1044 || driverErr.Number == 1142
+}
+
+// staticInsteadNotePattern is the sentence a degraded rehearsal says about itself: the engine's own
+const staticInsteadNotePattern = "the throwaway database could not be created (%s), so this is only a static " +
+	"check; grant CREATE DATABASE to the target's user for the shadow rehearsal"
+
+// staticInsteadNote fills the reason in.
+func staticInsteadNote(reason string) string {
+	return strings.Replace(staticInsteadNotePattern, "%s", reason, 1)
 }

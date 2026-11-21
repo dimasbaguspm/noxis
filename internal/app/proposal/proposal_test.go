@@ -378,3 +378,73 @@ func TestCreateWithTheSameKeyIsOneProposal(t *testing.T) {
 		t.Fatalf("the replay answered with no evidence: %+v", second.Rehearsal)
 	}
 }
+
+// A rehearsal can prove less than it was asked to: a server that will not give the target a throwaway
+// database answers a static check instead. The proposal records the tier that ran, so neither the
+// queue nor the page can claim a shadow run that never happened.
+func TestRehearseRecordsTheTierThatRan(t *testing.T) {
+	f := newFixture(t, domain.StatusVerified)
+	f.driver.rehearsal = domain.Rehearsal{
+		Status: domain.RehearsalPartial,
+		Tier:   domain.TierStatic,
+		Note:   "static: the statement was parsed and planned",
+	}
+
+	out, rehearsal, err := NewRehearse(f.deps).Run(context.Background(), RehearseInput{Ref: f.proposal.Ref})
+	if err != nil {
+		t.Fatalf("Rehearse: %v", err)
+	}
+	if rehearsal.Tier != domain.TierStatic {
+		t.Fatalf("rehearsal tier = %q, want static", rehearsal.Tier)
+	}
+	if out.Tier != domain.TierStatic {
+		t.Fatalf("proposal tier = %q, want the tier that ran", out.Tier)
+	}
+	if out.Status != domain.StatusVerified {
+		t.Fatalf("status = %q, want a partial rehearsal to stay reviewable", out.Status)
+	}
+}
+
+// A rehearsal that proves nothing marks the proposal failed and names why — whether the engine
+// explained itself or only left a note. The reviewer's next move is to fix the cause and re-run.
+func TestRehearseMarksAProposalFailedWhenItProvesNothing(t *testing.T) {
+	cases := []struct {
+		name      string
+		rehearsal domain.Rehearsal
+		want      string
+	}{
+		{
+			name: "the engine said why",
+			rehearsal: domain.Rehearsal{
+				Status: domain.RehearsalFailed, Tier: domain.TierShadow,
+				Error: "the rollback left the schema different from where it started",
+			},
+			want: "rollback",
+		},
+		{
+			name: "only a note",
+			rehearsal: domain.Rehearsal{
+				Status: domain.RehearsalUnsupported, Tier: domain.TierShadow,
+				Note: "the statement could not be scoped to this target",
+			},
+			want: "unsupported",
+		},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			f := newFixture(t, domain.StatusDraft)
+			f.driver.rehearsal = test.rehearsal
+
+			out, _, err := NewRehearse(f.deps).Run(context.Background(), RehearseInput{Ref: f.proposal.Ref})
+			if err != nil {
+				t.Fatalf("Rehearse: %v", err)
+			}
+			if out.Status != domain.StatusFailed {
+				t.Fatalf("status = %q, want failed", out.Status)
+			}
+			if !strings.Contains(out.Failure, test.want) {
+				t.Fatalf("failure = %q, want it to mention %q", out.Failure, test.want)
+			}
+		})
+	}
+}

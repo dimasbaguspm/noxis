@@ -83,6 +83,11 @@ func (d Deps) rehearse(ctx context.Context, proposal domain.Proposal) (domain.Pr
 
 	proposal.RehearsalRef = rehearsal.Ref
 	proposal.Irreversible = rehearsal.Irreversible
+	// The proposal records the tier that actually ran, not the one that was asked for: a rehearsal can
+	// degrade to a static check, and this is the field a reviewer reads to know what was proven.
+	if rehearsal.Tier != "" {
+		proposal.Tier = rehearsal.Tier
+	}
 	proposal.UpdatedAt = time.Now().UTC()
 	proposal.Failure = ""
 	if rehearsal.Usable() {
