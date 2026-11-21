@@ -26,7 +26,7 @@ func TestBareNoxisGreets(t *testing.T) {
 	}
 
 	greeting := out.String()
-	for _, want := range []string{"http serve", "web serve", "auth signin", "noxis help", "--json", "Not signed in"} {
+	for _, want := range []string{"http serve", "web serve", "auth signin", "noxis help", "--json", "profiles: none", constants.Build()} {
 		if !strings.Contains(greeting, want) {
 			t.Fatalf("welcome does not mention %q:\n%s", want, greeting)
 		}
@@ -36,8 +36,9 @@ func TestBareNoxisGreets(t *testing.T) {
 // A signed-in profile is named in the greeting, and the token is not.
 func TestWelcomeNamesTheSession(t *testing.T) {
 	isolated(t)
+	// A closed port: the server line has to give up in milliseconds, not wait out its timeout.
 	store(t, dotconfig.Profile{
-		APIURL: "http://staging", Token: "hunter2", Caller: "reviewer",
+		APIURL: "http://127.0.0.1:1", Token: "hunter2", Caller: "reviewer",
 		Scopes: []string{"read", "approve"}, CheckedAt: time.Now().UTC(),
 	})
 
@@ -48,10 +49,13 @@ func TestWelcomeNamesTheSession(t *testing.T) {
 	if err := root.Execute(); err != nil {
 		t.Fatalf("bare noxis: %v", err)
 	}
-	if !strings.Contains(out.String(), "Signed in to http://staging as reviewer") {
-		t.Fatalf("welcome = %s", out.String())
+	greeting := out.String()
+	for _, want := range []string{"profiles:", "* default", "http://127.0.0.1:1", "reviewer", "did not answer"} {
+		if !strings.Contains(greeting, want) {
+			t.Fatalf("welcome does not mention %q:\n%s", want, greeting)
+		}
 	}
-	if strings.Contains(out.String(), "hunter2") {
+	if strings.Contains(greeting, "hunter2") {
 		t.Fatal("the welcome printed the token")
 	}
 }

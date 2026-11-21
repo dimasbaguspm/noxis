@@ -1,15 +1,22 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"noxis/internal/client"
 	"noxis/internal/common/dotconfig"
 	"noxis/internal/constants"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
+
+// serverProbeTimeout is how long a greeting waits for a server that may be down: long enough for a slow
+// laptop network, short enough that nobody rebinds the key.
+const serverProbeTimeout = 2 * time.Second
 
 // group is one section of the command list: the commands a person reaches for together.
 type group struct {
@@ -27,46 +34,82 @@ var groups = []group{
 	{"the API itself", []string{"describe"}},
 }
 
-// welcome is what a bare `noxis` says: what this binary is, where it points, and the four commands
-// that take a person from nothing to a rehearsed proposal. It reads the config file and never the
-// network, so it cannot hang and cannot fail on a server that is down.
+// welcome is what a bare `noxis` says: which build this is, which sessions this machine holds, where the
+// current one points, and what that server answers when asked. The sessions come from the config file; the
+// server line is a short request that is allowed to fail, because a greeting must not hang on a server that
+// is down.
 func welcome(out io.Writer) error {
 	_, err := fmt.Fprintf(out, `noxis %s — data governance for the databases you run.
+
+%s
+%s
 
 One binary, three faces:
   noxis http serve      the API, and the only writer of the state file
   noxis web serve       the console, served from this binary
   noxis <command>       the client for that API
 
-%s
-
 Next steps:
-  noxis auth signin <token> --api-url %s
-  noxis instance add --name prod --host db --database app --username noxis
-  noxis propose <instance-ref> --title "add a column" --sql "ALTER TABLE users ADD COLUMN note TEXT"
+  noxis auth signin <token> --api-url %s      # stores a session under "default"
+  noxis target add --name prod --host db --database app --username noxis
+  noxis propose <target> --title "add a column" --sql "ALTER TABLE users ADD COLUMN note TEXT"
 
   noxis help            every command, grouped           noxis ?        the same
   --json on any command for an agent to read
-`, constants.Version, sessionLine(), constants.DefaultAPIURL)
+`, constants.Build(), profileLines(), serverLine(), constants.DefaultAPIURL)
 	return err
 }
 
-// sessionLine says where the CLI points and who it thinks it is, and never prints the token. A
-// config file that cannot be read is "not signed in", not an error on a greeting.
-func sessionLine() string {
+// profileLines lists the sessions this machine holds, marking the one a bare command uses. A machine with
+// none says so and names the command that fixes it, because that is the next thing to type.
+func profileLines() string {
 	cfg, err := dotconfig.Load()
-	if err != nil || cfg.Current == "" {
-		return "Not signed in: every command that calls the API will ask you to run `auth signin`."
+	if err != nil || len(cfg.Profiles) == 0 {
+		return "profiles: none — `noxis auth signin <token> --api-url <url>` stores one"
+	}
+	lines := make([]string, 0, len(cfg.Profiles)+1)
+	lines = append(lines, "profiles:")
+	for _, name := range cfg.Names() {
+		stored := cfg.Profiles[name]
+		mark := " "
+		if name == cfg.Current {
+			mark = "*"
+		}
+		who := stored.Caller
+		if who == "" {
+			who = "unconfirmed"
+		}
+		lines = append(lines, fmt.Sprintf("  %s %-9s %-30s %s", mark, name, stored.APIURL, who))
+	}
+	return strings.Join(lines, "\n")
+}
+
+// serverLine asks the current session's server which build it is. It is best effort: the answer is useful,
+// and its absence is not an error on a greeting.
+func serverLine() string {
+	cfg, err := dotconfig.Load()
+	if err != nil {
+		return ""
 	}
 	profile, err := cfg.Profile(cfg.Current)
+	if err != nil || profile.APIURL == "" {
+		return ""
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), serverProbeTimeout)
+	defer cancel()
+	api, err := client.New(profile.APIURL, profile.Token)
 	if err != nil {
-		return "Not signed in: every command that calls the API will ask you to run `auth signin`."
+		return fmt.Sprintf("server: %s — %v", profile.APIURL, err)
 	}
-	who := profile.Caller
-	if who == "" {
-		who = "a token the server has not confirmed yet"
+	info, err := api.Version(ctx)
+	if err != nil {
+		return fmt.Sprintf("server: %s did not answer; the CLI works offline", profile.APIURL)
 	}
-	return fmt.Sprintf("Signed in to %s as %s (%s).", profile.APIURL, who, strings.Join(profile.Scopes, ","))
+	newer := ""
+	if info.Newer && info.Latest != nil {
+		newer = fmt.Sprintf(" — newer published: %s+%s", info.Latest.Version, info.Latest.Commit)
+	}
+	return fmt.Sprintf("server: %s answers %s%s", profile.APIURL, info.Version, newer)
 }
 
 // newHelp is the grouped list, and the reason `noxis ?` exists: an agent types `--help`, a person
@@ -89,6 +132,10 @@ func newHelp(root *cobra.Command) *cobra.Command {
 				found.HelpFunc()(found, rest)
 				return nil
 			}
+			if err := welcome(cmd.OutOrStdout()); err != nil {
+				return err
+			}
+			_, _ = fmt.Fprintln(cmd.OutOrStdout())
 			printGroups(cmd.OutOrStdout(), root)
 			return nil
 		},
