@@ -24,10 +24,10 @@ flowchart TD
 ## 1. Read the queue
 
 ```bash
-noxis proposals --status verified --json          # rehearsed, waiting for you
-noxis proposals --target <ref> --limit 50 --json
-noxis show-proposal <pr> --json                   # the change, the rollback, the rehearsal
-noxis events <pr> --json                          # who proposed it, when, and every step since
+noxis proposal ls --status verified --json     # rehearsed, waiting for you
+noxis proposal ls --target <ref> --limit 50 --json
+noxis proposal show <pr> --json                # the change, the rollback, the rehearsal
+noxis proposal events <pr> --json              # who proposed it, when, and every step since
 ```
 
 ## 2. Judge the evidence, not the prose
@@ -47,8 +47,8 @@ should be said out loud.
 ## 3. Decide
 
 ```bash
-noxis approve <pr> --note "diff matches the plan; rollout after 22:00 UTC"
-noxis reject  <pr> --note "needs a backfill in the same change"
+noxis proposal approve <pr> --note "diff matches the plan; rollout after 22:00 UTC"
+noxis proposal reject  <pr> --note "needs a backfill in the same change"
 ```
 
 - The note is the record. Write the reason a person in an incident review would want to read.
@@ -58,8 +58,8 @@ noxis reject  <pr> --note "needs a backfill in the same change"
 ## 4. Apply
 
 ```bash
-noxis apply <pr> --wait --json
-noxis apply <pr> --confirm-destructive --wait     # a change with no rollback, explicitly acknowledged
+noxis proposal apply <pr> --wait --json
+noxis proposal apply <pr> --confirm-destructive --wait # a change with no rollback, explicitly acknowledged
 ```
 
 - Apply runs the statement against the target. A claim is made **before** the statement, so a crash leaves
@@ -74,8 +74,8 @@ noxis apply <pr> --confirm-destructive --wait     # a change with no rollback, e
 Quote: what changed, the tier it was proven at, the rows affected, the duration, and the reference. Then:
 
 ```bash
-noxis show-proposal <pr> --json    # status applied, with the receipt
-noxis events <pr> --json           # the whole story, in order
+noxis proposal show <pr> --json                # status applied, with the receipt
+noxis proposal events <pr> --json              # the whole story, in order
 ```
 
 ## Failure

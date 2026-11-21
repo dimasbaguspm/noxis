@@ -30,7 +30,7 @@ var groups = []group{
 	{"this binary", []string{"http", "web"}},
 	{"targets", []string{"target"}},
 	{"reading", []string{"query", "databases", "tables", "table"}},
-	{"proposals", []string{"propose", "proposals", "show-proposal", "watch", "rehearse", "approve", "reject", "apply", "events"}},
+	{"proposals", []string{"propose", "proposal"}},
 	{"the API itself", []string{"describe"}},
 }
 
@@ -171,7 +171,8 @@ func printGroups(out io.Writer, root *cobra.Command) {
 	// A command nobody grouped is still a command: print it rather than hide it.
 	var rest []string
 	for name, command := range known {
-		if listed[name] || name == "completion" {
+		// A deprecated spelling still runs; it is not something to teach.
+		if listed[name] || name == "completion" || command.Deprecated != "" {
 			continue
 		}
 		rest = append(rest, fmt.Sprintf("  %-14s %s", command.Name(), command.Short))
