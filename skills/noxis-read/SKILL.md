@@ -12,7 +12,7 @@ side door for a write. Only `SELECT`, `EXPLAIN` and `SHOW` run.
 
 ```bash
 noxis describe                                 # the API this server serves, and which of it your token may call
-noxis whoami                                   # name and scopes
+noxis auth whoami                                   # name and scopes
 noxis target ls --json                         # the instances you govern
 ```
 

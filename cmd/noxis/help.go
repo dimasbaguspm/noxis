@@ -26,7 +26,7 @@ type group struct {
 
 // groups is the order a newcomer needs, not the alphabetical order cobra prints.
 var groups = []group{
-	{"session", []string{"auth", "whoami", "version"}},
+	{"session", []string{"auth", "version"}},
 	{"this binary", []string{"http", "web"}},
 	{"targets", []string{"target"}},
 	{"reading", []string{"query", "table"}},
