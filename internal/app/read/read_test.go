@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
+	"go.uber.org/mock/gomock"
 )
 
 // ---- doubles: a generated mock for the sealer, in-memory fakes for the store and the engine ----
@@ -46,20 +46,20 @@ func (*fakeTargets) Update(_ context.Context, target domain.Target) (domain.Targ
 
 // newSealer is the generated mock: the sealer is a collaborator a read test only has to answer, and
 // the answer is read from the pointer so a test can make it fail after the fixture was built.
-func newSealer(openErr *error) *mocks.MockSealer {
-	sealer := &mocks.MockSealer{}
-	sealer.EXPECT().Enabled().Return(true)
-	sealer.EXPECT().Seal(mock.Anything, mock.Anything).
-		RunAndReturn(func(_ string, plain []byte) (string, error) {
+func newSealer(t *testing.T, openErr *error) *mocks.MockSealer {
+	sealer := mocks.NewMockSealer(gomock.NewController(t))
+	sealer.EXPECT().Enabled().Return(true).AnyTimes()
+	sealer.EXPECT().Seal(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ string, plain []byte) (string, error) {
 			return "sealed:" + string(plain), nil
-		})
-	sealer.EXPECT().Open(mock.Anything, mock.Anything).
-		RunAndReturn(func(_, sealed string) ([]byte, error) {
+		}).AnyTimes()
+	sealer.EXPECT().Open(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_, sealed string) ([]byte, error) {
 			if *openErr != nil {
 				return nil, *openErr
 			}
 			return []byte(strings.TrimPrefix(sealed, "sealed:")), nil
-		})
+		}).AnyTimes()
 	return sealer
 }
 
@@ -127,7 +127,7 @@ type fixture struct {
 	openErr error
 }
 
-func newFixture() *fixture {
+func newFixture(t *testing.T) *fixture {
 	target := domain.Target{
 		Ref: "0192f0c0-0000-7000-8000-000000000001", Name: "prod", Driver: "mysql",
 		Host: "db", Port: 3306, Database: "app", Username: "noxis", Secret: "sealed:pw",
@@ -138,7 +138,7 @@ func newFixture() *fixture {
 		targets: &fakeTargets{target: target},
 		driver:  &fakeDriver{},
 	}
-	f.sealer = newSealer(&f.openErr)
+	f.sealer = newSealer(t, &f.openErr)
 	f.deps = Deps{Targets: f.targets, Sealer: f.sealer, Driver: f.driver, Timeout: time.Second}
 	return f
 }
@@ -148,7 +148,7 @@ func newFixture() *fixture {
 // The refusal happens before a connection is opened: a write never reaches an engine, even one that
 // would have accepted it.
 func TestQueryRefusesAWriteBeforeConnecting(t *testing.T) {
-	f := newFixture()
+	f := newFixture(t)
 
 	for _, sql := range []string{"DELETE FROM users", "UPDATE users SET note = 'x'", "SELECT 1; DROP TABLE users"} {
 		if _, err := NewQuery(f.deps).Run(context.Background(), QueryInput{Ref: f.target.Ref, SQL: sql}); !errors.Is(err, domain.ErrInvalid) {
@@ -162,7 +162,7 @@ func TestQueryRefusesAWriteBeforeConnecting(t *testing.T) {
 
 // A read that takes locks is refused too: the route is called read for a reason.
 func TestQueryRefusesALockingRead(t *testing.T) {
-	f := newFixture()
+	f := newFixture(t)
 	if _, err := NewQuery(f.deps).Run(context.Background(), QueryInput{
 		Ref: f.target.Ref, SQL: "SELECT * FROM users FOR UPDATE",
 	}); !errors.Is(err, domain.ErrInvalid) {
@@ -174,7 +174,7 @@ func TestQueryRefusesALockingRead(t *testing.T) {
 }
 
 func TestQueryReadsThroughTheTargetPassword(t *testing.T) {
-	f := newFixture()
+	f := newFixture(t)
 	f.driver.rows = domain.Rows{Columns: []domain.Column{{Name: "id"}}}
 
 	rows, err := NewQuery(f.deps).Run(context.Background(), QueryInput{Ref: f.target.Ref, SQL: "SELECT id FROM users"})
@@ -193,7 +193,7 @@ func TestQueryReadsThroughTheTargetPassword(t *testing.T) {
 }
 
 func TestConnectRefusals(t *testing.T) {
-	f := newFixture()
+	f := newFixture(t)
 	if _, err := NewQuery(f.deps).Run(context.Background(), QueryInput{Ref: "prod", SQL: "SELECT 1"}); !errors.Is(err, domain.ErrInvalid) {
 		t.Fatalf("bad reference: %v, want ErrInvalid", err)
 	}
@@ -207,7 +207,7 @@ func TestConnectRefusals(t *testing.T) {
 	}
 
 	// A password that cannot be opened is a key problem, and saying so is the whole message.
-	f = newFixture()
+	f = newFixture(t)
 	f.openErr = errors.New("cipher: message authentication failed")
 	if _, err := NewQuery(f.deps).Run(context.Background(), QueryInput{
 		Ref: f.target.Ref, SQL: "SELECT 1",
@@ -216,7 +216,7 @@ func TestConnectRefusals(t *testing.T) {
 	}
 
 	// A target with no password at all connects with an empty one.
-	f = newFixture()
+	f = newFixture(t)
 	f.targets.target.Secret = ""
 	if _, err := NewQuery(f.deps).Run(context.Background(), QueryInput{
 		Ref: f.target.Ref, SQL: "SELECT 1",
@@ -228,7 +228,7 @@ func TestConnectRefusals(t *testing.T) {
 // ---- metadata ----
 
 func TestMetadata(t *testing.T) {
-	f := newFixture()
+	f := newFixture(t)
 	f.driver.databases = []string{"app", "mysql"}
 	f.driver.tables = []domain.Table{{Name: "users"}}
 	f.driver.table = domain.TableDetail{Table: domain.Table{Name: "users"}}
