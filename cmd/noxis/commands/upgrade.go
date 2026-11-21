@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -25,9 +26,14 @@ import (
 // stands for the same build.
 const releaseTag = "nightly"
 
-// downloadTimeout bounds one asset. The binary is around 30 MB, so this is generous on purpose: a slow link
-// is not a reason to leave an operator with half an upgrade.
-const downloadTimeout = 5 * time.Minute
+// idleTimeout is how long one transfer may go without a byte before it is refused. It is deliberately not a
+// total budget: 28 MB at 100 KB/s is four and a half minutes of perfectly healthy work, and a wall clock
+// cannot tell that apart from a connection that died.
+const idleTimeout = 30 * time.Second
+
+// errStalled is the refusal a transfer gets when it stops moving. It is a sentence, not a context deadline,
+// because "context deadline exceeded" after five minutes says nothing about which step gave up.
+var errStalled = errors.New("the transfer stopped sending bytes")
 
 // NewUpgrade moves the binary you are running to the published build. It is the CLI's own binary only:
 // there is deliberately no route on the API that upgrades a server, because a process cannot know whether
@@ -176,37 +182,58 @@ func download(ctx context.Context, assetURL string, into io.Writer) (int64, stri
 	return written, hex.EncodeToString(hash.Sum(nil)), nil
 }
 
+// fetch starts one transfer. The caller's context still cancels it; what this adds is a refusal to stall.
 func fetch(ctx context.Context, url string) (io.ReadCloser, error) {
-	ctx, cancel := context.WithTimeout(ctx, downloadTimeout)
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
-		cancel()
 		return nil, err
 	}
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
-		cancel()
 		return nil, err
 	}
 	if response.StatusCode != http.StatusOK {
 		_ = response.Body.Close()
-		cancel()
 		return nil, fmt.Errorf("%s answered %s", url, response.Status)
 	}
-	// The caller closes the body; cancelling the timeout with it is what keeps a slow download from
-	// outliving the command.
-	return &cancelOnClose{ReadCloser: response.Body, cancel: cancel}, nil
+	return newGuardedBody(response.Body, idleTimeout), nil
 }
 
-type cancelOnClose struct {
+// guardedBody is one transfer with a stall detector: every read that returns bytes pushes the deadline
+// forward, so a slow link finishes and a dead one is refused. A read that returns nothing when the timer
+// fired is answered with errStalled instead of the transport's generic error.
+type guardedBody struct {
 	io.ReadCloser
-	cancel context.CancelFunc
+	idle    time.Duration
+	timer   *time.Timer
+	stalled atomic.Bool
 }
 
-func (c *cancelOnClose) Close() error {
-	err := c.ReadCloser.Close()
-	c.cancel()
-	return err
+func newGuardedBody(body io.ReadCloser, idle time.Duration) *guardedBody {
+	b := &guardedBody{ReadCloser: body, idle: idle}
+	b.timer = time.AfterFunc(idle, func() {
+		b.stalled.Store(true)
+		// Closing the body is what unblocks the read that is waiting on it.
+		_ = body.Close()
+	})
+	return b
+}
+
+func (b *guardedBody) Read(p []byte) (int, error) {
+	n, err := b.ReadCloser.Read(p)
+	if n > 0 {
+		b.timer.Reset(b.idle)
+		return n, nil
+	}
+	if b.stalled.Load() {
+		return n, fmt.Errorf("%w: nothing for %s", errStalled, b.idle)
+	}
+	return n, err
+}
+
+func (b *guardedBody) Close() error {
+	b.timer.Stop()
+	return b.ReadCloser.Close()
 }
 
 // publishedInfo reads the artifact the publish job uploads. It is not the API's update notice: that one is
