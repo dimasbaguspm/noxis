@@ -50,6 +50,11 @@ func (c *Create) Run(ctx context.Context, in CreateInput) (out0 CreateOutput, er
 	if err != nil {
 		return CreateOutput{}, err
 	}
+	// The target has to exist before anything else is decided: the store's foreign key would answer a
+	// missing row as a server error, and "the target you named is not here" is a 404 a caller can act on.
+	if _, err := c.Targets.ByRef(ctx, targetRef); err != nil {
+		return CreateOutput{}, err
+	}
 	if in.IdempotencyKey != "" {
 		existing, lookupErr := c.Proposals.ProposalByKey(ctx, in.IdempotencyKey)
 		switch {

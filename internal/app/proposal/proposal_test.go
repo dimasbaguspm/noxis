@@ -448,3 +448,22 @@ func TestRehearseMarksAProposalFailedWhenItProvesNothing(t *testing.T) {
 		})
 	}
 }
+
+// A reference that is not in the state file is a not-found, not the store's foreign key reported as a
+// server error: a caller can correct a wrong reference and cannot correct an internal one.
+func TestCreateRefusesATargetThatIsNotThere(t *testing.T) {
+	f := newFixture(t, domain.StatusDraft)
+	f.targets.err = domain.ErrNotFound
+	seeded := len(f.proposals.stored)
+
+	_, err := NewCreate(f.deps).Run(context.Background(), CreateInput{
+		TargetRef: f.target.Ref, Title: "add a column",
+		Query: "ALTER TABLE users ADD COLUMN note TEXT", Actor: "agent",
+	})
+	if !errors.Is(err, domain.ErrNotFound) {
+		t.Fatalf("Create for a missing target: %v, want ErrNotFound", err)
+	}
+	if len(f.proposals.stored) != seeded {
+		t.Fatalf("stored %d proposals, want the %d the fixture started with", len(f.proposals.stored), seeded)
+	}
+}
