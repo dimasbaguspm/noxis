@@ -7,6 +7,7 @@ package release
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -48,7 +49,7 @@ func NewChecker(url string, ttl time.Duration) *Checker {
 // returned for logging and for the tests; a caller that only wants the notice may ignore it.
 func (c *Checker) Latest(ctx context.Context) (*Info, error) {
 	if c == nil || c.url == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // no endpoint means no check, and the caller only wants the notice
 	}
 
 	c.mu.Lock()
@@ -84,7 +85,7 @@ func (c *Checker) fetch(ctx context.Context) (*Info, error) {
 		return nil, fmt.Errorf("the published build is not readable: %w", err)
 	}
 	if info.Commit == "" {
-		return nil, fmt.Errorf("the published build names no commit")
+		return nil, errors.New("the published build names no commit")
 	}
 	return &info, nil
 }

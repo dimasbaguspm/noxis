@@ -134,7 +134,7 @@ func freeAddr() (string, error) {
 func waitForServer(base string, within time.Duration) error {
 	deadline := time.Now().Add(within)
 	for time.Now().Before(deadline) {
-		res, err := http.Get(base + "/healthz") //nolint:noctx // a boot probe outlives no request
+		res, err := http.Get(base + "/healthz")
 		if err == nil {
 			_ = res.Body.Close()
 			if res.StatusCode == http.StatusOK {

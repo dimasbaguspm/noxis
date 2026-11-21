@@ -127,7 +127,7 @@ func ParseTokens(raw string) ([]Token, error) {
 		return nil, fmt.Errorf("config: TOKENS is not valid JSON: %w", err)
 	}
 	if len(declared) == 0 {
-		return nil, fmt.Errorf("config: TOKENS declares no caller")
+		return nil, errors.New("config: TOKENS declares no caller")
 	}
 	names := make([]string, 0, len(declared))
 	for name := range declared {
@@ -182,7 +182,7 @@ func tokensRaw(get func(string) string) (string, error) {
 	if raw := strings.TrimSpace(get("TOKENS")); raw != "" {
 		return raw, nil
 	}
-	return "", fmt.Errorf(`config: TOKENS is required: declare at least one caller, for example {"agent":{"secret":"...","scopes":["read","propose"]}}`)
+	return "", errors.New(`config: TOKENS is required: declare at least one caller, for example {"agent":{"secret":"...","scopes":["read","propose"]}}`)
 }
 
 func or(value, fallback string) string {

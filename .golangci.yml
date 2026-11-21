@@ -13,9 +13,20 @@ linters:
     - rowserrcheck   # an iterator whose Err() nobody read
     - sqlclosecheck  # a rows/statement nobody closed
     - wastedassign   # an assignment nothing reads
+    - asasalint      # append(s, x...) where x is not the same slice type
+    - containedctx   # a context stored in a struct outlives the request it belongs to
+    - durationcheck  # time.Duration * time.Duration is not a duration
+    - errchkjson     # json.Marshal whose error nobody read
+    - forcetypeassert # an unchecked type assertion panics on a value nobody expected
+    - makezero       # append into a slice that already has a length
+    - musttag        # a struct marshalled as JSON without tags puts field names on the wire
+    - nilerr         # `if err != nil { return nil }`, which swallows the failure
+    - nilnil         # (nil, nil): a caller cannot tell "absent" from "broken"
+    - usestdlibvars  # "GET" where http.MethodGet exists, and the rest
 
     # --- security: what a remote caller or a filesystem gets to decide -----------------------
     - gosec          # a permission, a random source, an injected string
+    - bidichk        # a bidirectional override that reorders what the code looks like
 
     # --- style: readable, not merely correct -------------------------------------------------
     - copyloopvar    # Go 1.22 loop variables, but a copy that is now pointless is still noise
@@ -24,9 +35,17 @@ linters:
     - revive         # the exported-doc and early-return rules the tree already follows
     - unconvert      # a conversion that does nothing
     - whitespace     # the stray blank line at the top of a block
+    - dupword        # a doubled word in a comment
+    - errname        # ErrFoo for a value, FooError for a type
+    - gocheckcompilerdirectives # a //go: directive the compiler will ignore
+    - intrange       # `for i := 0; i < n; i++` where `for range n` says it
+    - mirror         # []byte(s) where a String is cheaper, and the reverse
+    - nolintlint     # a //nolint that names no linter, or one it does not need
+    - unparam        # a parameter every caller passes the same value
 
     # --- performance: the cost nobody asked for ----------------------------------------------
     - prealloc       # a slice grown in a loop of known length
+    - perfsprint     # fmt.Sprintf where a string concatenation is free
 
   settings:
     gocritic:
@@ -73,7 +92,11 @@ linters:
       # A test may ignore what a handler would not: a fixture write that fails fails the test
       # somewhere else anyway, and the assertion is the point.
       - path: _test\.go
-        linters: [errcheck, gosec, noctx, bodyclose, prealloc, gocritic]
+        linters: [errcheck, gosec, noctx, bodyclose, prealloc, gocritic, unparam, dupword]
+      # swag's own grammar repeats a word: `@Param body body handlers.X true "..."` names the parameter
+      # and then its location. The annotations are the swagger document, not prose.
+      - path: cmd/noxis/http/handlers/
+        linters: [dupword]
       # The acceptance harness is a test: it opens sockets it chose and files it just wrote.
       - path: test/
         linters: [gosec, noctx, bodyclose]

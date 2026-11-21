@@ -147,7 +147,7 @@ type Capabilities struct {
 // a connection.
 func (c *Client) TargetCapabilities(ctx context.Context, ref string) (Capabilities, error) {
 	var out Capabilities
-	_, err := c.do(ctx, http.MethodGet, fmt.Sprintf("%s/capabilities", targetPath(ref)), nil, &out)
+	_, err := c.do(ctx, http.MethodGet, targetPath(ref)+"/capabilities", nil, &out)
 	return out, err
 }
 
@@ -189,7 +189,7 @@ type ProbeResult struct {
 // a 422 whose message comes from the driver, and the target records the failed attempt.
 func (c *Client) ProbeTarget(ctx context.Context, ref string) (ProbeResult, error) {
 	var out ProbeResult
-	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/probe", targetPath(ref)), nil, &out)
+	_, err := c.do(ctx, http.MethodPost, targetPath(ref)+"/probe", nil, &out)
 	return out, err
 }
 
@@ -249,14 +249,14 @@ func (c *Client) Query(ctx context.Context, ref, sql string, limit int) (Rows, e
 		SQL   string `json:"sql"`
 		Limit int    `json:"limit,omitempty"`
 	}{SQL: sql, Limit: limit}
-	_, err := c.do(ctx, http.MethodPost, fmt.Sprintf("%s/query", targetPath(ref)), body, &out)
+	_, err := c.do(ctx, http.MethodPost, targetPath(ref)+"/query", body, &out)
 	return out, err
 }
 
 // Databases lists the schemas behind one target.
 func (c *Client) Databases(ctx context.Context, ref string) ([]string, error) {
 	var out []string
-	_, err := c.do(ctx, http.MethodGet, fmt.Sprintf("%s/databases", targetPath(ref)), nil, &out)
+	_, err := c.do(ctx, http.MethodGet, targetPath(ref)+"/databases", nil, &out)
 	return out, err
 }
 
@@ -334,7 +334,7 @@ type CreateProposalInput struct {
 // nothing and answers the proposal the first call made.
 func (c *Client) CreateProposal(ctx context.Context, targetRef string, in CreateProposalInput) (Proposal, error) {
 	var out Proposal
-	_, err := c.doKey(ctx, http.MethodPost, fmt.Sprintf("%s/proposals", targetPath(targetRef)), in, &out,
+	_, err := c.doKey(ctx, http.MethodPost, targetPath(targetRef)+"/proposals", in, &out,
 		requestKey(in.IdempotencyKey))
 	return out, err
 }

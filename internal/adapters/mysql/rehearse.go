@@ -245,7 +245,7 @@ func (*DB) rehearseInScratch(ctx context.Context, pool *sql.DB, database string,
 // failure: it is a fact about DDL.
 func staticPlan(ctx context.Context, pool *sql.DB, statement string) (string, error) {
 	if classified, err := sqltext.Classify(statement); err != nil || classified.Kind == sqltext.DDL {
-		return "", nil
+		return "", nil //nolint:nilerr // DDL has no plan, and a statement nobody could classify has none either
 	}
 	var plan string
 	if err := pool.QueryRowContext(ctx, "EXPLAIN FORMAT=JSON "+statement).Scan(&plan); err != nil {
@@ -315,7 +315,6 @@ func copyRows(ctx context.Context, conn *sql.Conn, database, scratch string, sco
 		return err
 	}
 	for _, table := range scope {
-		//nolint:gosec // every identifier is quoted by quote(); nothing here comes from a client
 		statement := "INSERT INTO " + quote(table) + " SELECT * FROM " + quote(database) + "." + quote(table) +
 			" LIMIT " + strconv.Itoa(sampleRows)
 		if _, err := conn.ExecContext(ctx, statement); err != nil {

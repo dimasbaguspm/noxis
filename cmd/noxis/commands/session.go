@@ -89,7 +89,9 @@ func (s *Session) Prepare(cmd *cobra.Command) error {
 func (s *Session) verify(cmd *cobra.Command) error {
 	stored, err := s.Cfg.Profile(s.StoredName)
 	if err != nil {
-		return nil
+		// No stored profile is not a failed verification: there is nothing to verify, and the command
+		// that needed a session says so itself.
+		return nil //nolint:nilerr // see above
 	}
 	if stored.Caller != "" && time.Since(stored.CheckedAt) < constants.AuthCheckWindow {
 		s.Name, s.Scopes = stored.Caller, stored.Scopes

@@ -43,7 +43,7 @@ func Valid(s string) bool {
 	if len(s) != Length {
 		return false
 	}
-	for i := 0; i < Length; i++ {
+	for i := range Length {
 		switch i {
 		case 8, 13, 18, 23:
 			if s[i] != '-' {

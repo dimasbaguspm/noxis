@@ -678,7 +678,7 @@ func (w *world) registerTwice(name, key string) error {
 	})
 	if err != nil {
 		w.err = err
-		return nil
+		return nil //nolint:nilerr // the harness keeps the failure in w.err for the step to read
 	}
 	w.firstRef = first.Ref
 	w.target, w.err = w.api.CreateTarget(context.Background(), client.CreateTargetInput{

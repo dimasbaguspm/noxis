@@ -131,7 +131,7 @@ func block(tokens []string) (start, end int, ok bool) {
 		return 0, 0, false
 	}
 	depth := 0
-	for i := 0; i < len(tokens); i++ {
+	for i := range tokens {
 		switch tokens[i] {
 		case "BEGIN", "CASE":
 			depth++
@@ -163,7 +163,7 @@ func scrub(sql string) (scrubbed, upper string, err error) {
 		case sql[i] == '/' && i+1 < len(sql) && sql[i+1] == '*':
 			end := strings.Index(sql[i+2:], "*/")
 			if end < 0 {
-				return "", "", fmt.Errorf("sqltext: an unterminated comment")
+				return "", "", errors.New("sqltext: an unterminated comment")
 			}
 			for j := i; j < i+2+end+2; j++ {
 				blank(out, j)
@@ -304,7 +304,7 @@ func tablesOf(scrubbed, upper string) []string {
 		return nil
 	}
 	var tables []string
-	for i := 0; i < len(uppers)-1; i++ {
+	for i := range len(uppers) - 1 {
 		switch uppers[i] {
 		// INDEX names its table after ON (`CREATE INDEX x ON t (...)`), which is a different shape
 		// from every other statement that matters here.

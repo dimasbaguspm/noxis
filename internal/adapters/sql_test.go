@@ -176,7 +176,7 @@ func (p *auditPackage) appendsSafe(name string, value ast.Expr) bool {
 // It is deliberately small: it proves the shape of an assembled statement, not the intent of the
 // author. A name that mixes a literal and a request field stays unsafe, which is the point.
 func (p *auditPackage) collectSafe() {
-	for pass := 0; pass < 5; pass++ {
+	for range 5 {
 		changed := false
 		for _, file := range p.files {
 			ast.Inspect(file, func(node ast.Node) bool {
@@ -284,7 +284,11 @@ func parsePackage(t *testing.T, dir string) *auditPackage {
 				continue
 			}
 			for _, spec := range gen.Specs {
-				for _, name := range spec.(*ast.ValueSpec).Names {
+				value, ok := spec.(*ast.ValueSpec)
+				if !ok {
+					continue
+				}
+				for _, name := range value.Names {
 					pkg.consts[name.Name] = true
 				}
 			}

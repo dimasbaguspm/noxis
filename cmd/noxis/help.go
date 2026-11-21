@@ -39,6 +39,7 @@ var groups = []group{
 // server line is a short request that is allowed to fail, because a greeting must not hang on a server that
 // is down.
 func welcome(out io.Writer) error {
+	//nolint:dupword // the product name opens the banner and appears again in the command list below
 	_, err := fmt.Fprintf(out, `noxis %s — data governance for the databases you run.
 
 %s

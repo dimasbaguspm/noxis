@@ -341,7 +341,7 @@ func intParam(raw string) (int, error) {
 		return 0, err
 	}
 	if value < 0 {
-		return 0, fmt.Errorf("must not be negative")
+		return 0, errors.New("must not be negative")
 	}
 	return value, nil
 }

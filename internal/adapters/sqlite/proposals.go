@@ -100,7 +100,7 @@ func (d *DB) ListProposals(ctx context.Context, filter ports.ProposalFilter) (ou
 		args = append(args, filter.Cursor)
 	}
 
-	query := `SELECT ` + proposalColumns + ` FROM proposals` //nolint:gosec // constants and placeholders; values travel as arguments
+	query := `SELECT ` + proposalColumns + ` FROM proposals`
 	if len(where) > 0 {
 		query += " WHERE " + strings.Join(where, " AND ")
 	}

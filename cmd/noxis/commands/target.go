@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"noxis/internal/client"
@@ -355,12 +356,12 @@ func newTargetSet(s *Session) *cobra.Command {
 				in.TLSMode = &tlsMode
 			}
 			if in.Name == nil && in.Username == nil && in.Password == nil && in.TLSMode == nil {
-				return fmt.Errorf("name a field to change: --name, --username, --password or --tls-mode")
+				return errors.New("name a field to change: --name, --username, --password or --tls-mode")
 			}
 			// The flags are checked before the network: a command that cannot work should say so without
 			// asking the API anything.
 			if probe && password == "" {
-				return fmt.Errorf("--probe needs --password: the stored one is never read back")
+				return errors.New("--probe needs --password: the stored one is never read back")
 			}
 			ref, err := TargetRef(cmd.Context(), api, args[0])
 			if err != nil {

@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"noxis/internal/client"
 	"os"
+	"strconv"
 
 	"github.com/spf13/cobra"
 )
@@ -30,7 +32,7 @@ func NewQuery(s *Session) *cobra.Command {
 				statement = string(content)
 			}
 			if statement == "" {
-				return fmt.Errorf("give the statement with --sql or --file")
+				return errors.New("give the statement with --sql or --file")
 			}
 			api, err := s.Client()
 			if err != nil {
@@ -139,7 +141,7 @@ func NewTables(s *Session) *cobra.Command {
 			rows := make([][]string, 0, len(tables))
 			for _, table := range tables {
 				rows = append(rows, []string{
-					table.Name, table.Engine, fmt.Sprint(table.Rows), fmt.Sprint(table.SizeBytes),
+					table.Name, table.Engine, strconv.FormatInt(table.Rows, 10), strconv.FormatInt(table.SizeBytes, 10),
 				})
 			}
 			return writeTable(cmd.OutOrStdout(), []string{"NAME", "ENGINE", "ROWS", "BYTES"}, rows)

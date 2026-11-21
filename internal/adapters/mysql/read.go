@@ -98,7 +98,6 @@ func (d *DB) Databases(ctx context.Context, target domain.Target, password strin
 	for i, name := range systemSchemas {
 		args[i] = name
 	}
-	//nolint:gosec // placeholders is a run of "?" built here; the names travel as arguments
 	rows, err := pool.QueryContext(ctx,
 		"SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ("+placeholders+
 			") ORDER BY schema_name", args...)

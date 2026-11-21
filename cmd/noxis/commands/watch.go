@@ -2,9 +2,11 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"noxis/internal/client"
 	"noxis/internal/constants"
+	"strconv"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -26,13 +28,13 @@ func NewWatch(s *Session) *cobra.Command {
 		Use:   "watch <proposal-ref>",
 		Short: "Wait until a proposal settles, and print what it settled as",
 		Long: "Asks the API what a proposal is doing until it reaches a status it does not leave.\n\n" +
-			"A change applied above " + fmt.Sprint(constants.ApplyBackgroundRows) + " rows is answered with a running\n" +
+			"A change applied above " + strconv.Itoa(constants.ApplyBackgroundRows) + " rows is answered with a running\n" +
 			"status and finishes later; this is how a caller waits for the ending instead of polling by\n" +
 			"hand. The exit code is zero only when one of the named statuses arrived.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(until) == 0 {
-				return fmt.Errorf("--until needs at least one status, for example applied")
+				return errors.New("--until needs at least one status, for example applied")
 			}
 			api, err := s.Client()
 			if err != nil {

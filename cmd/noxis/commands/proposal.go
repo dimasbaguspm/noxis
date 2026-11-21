@@ -1,10 +1,12 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"noxis/internal/client"
 	"noxis/internal/constants"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,7 +26,7 @@ func NewPropose(s *Session) *cobra.Command {
 				return err
 			}
 			if statement == "" {
-				return fmt.Errorf("give the change with --sql or --file")
+				return errors.New("give the change with --sql or --file")
 			}
 			undo, err := content(rollback, rollbackFile)
 			if err != nil {
@@ -342,7 +344,7 @@ func NewApplyProposal(s *Session) *cobra.Command {
 		Use:   "apply <proposal-ref>",
 		Short: "Run an approved proposal against the target",
 		Long: "Runs the statement a human approved.\n\n" +
-			"A change above " + fmt.Sprint(constants.ApplyBackgroundRows) + " rows is answered as running and finishes\n" +
+			"A change above " + strconv.Itoa(constants.ApplyBackgroundRows) + " rows is answered as running and finishes\n" +
 			"later; --wait follows it to its ending, which is what a script wants and what a person who\n" +
 			"walked away deserves.",
 		Args: cobra.ExactArgs(1),

@@ -21,7 +21,7 @@ var openapiYAML []byte
 var (
 	openapiJSONOnce sync.Once
 	openapiJSONBody []byte
-	openapiJSONErr  error
+	errOpenapiJSON  error
 )
 
 // OpenAPIJSON answers the document as JSON.
@@ -64,10 +64,10 @@ func openAPIJSON() ([]byte, error) {
 	openapiJSONOnce.Do(func() {
 		var document map[string]any
 		if err := yaml.Unmarshal(openapiYAML, &document); err != nil {
-			openapiJSONErr = fmt.Errorf("openapi: parse: %w", err)
+			errOpenapiJSON = fmt.Errorf("openapi: parse: %w", err)
 			return
 		}
-		openapiJSONBody, openapiJSONErr = json.Marshal(document)
+		openapiJSONBody, errOpenapiJSON = json.Marshal(document)
 	})
-	return openapiJSONBody, openapiJSONErr
+	return openapiJSONBody, errOpenapiJSON
 }
