@@ -11,9 +11,9 @@ side door for a write. Only `SELECT`, `EXPLAIN` and `SHOW` run.
 ## Start here
 
 ```bash
-noxis describe                       # the API this server serves, and which of it your token may call
-noxis whoami                         # name and scopes
-noxis target ls --json               # the instances you govern
+noxis describe                                 # the API this server serves, and which of it your token may call
+noxis whoami                                   # name and scopes
+noxis target ls --json                         # the instances you govern
 ```
 
 `describe` is the first call in a new environment: it joins the running server's OpenAPI with your scopes,
@@ -23,8 +23,8 @@ so you cannot promise a capability you do not hold.
 
 ```bash
 noxis target show <ref>                        # engine, version, schema, last probe
-noxis databases <ref>                          # every schema those credentials can see
-noxis tables <ref> app                         # names, engine, estimated rows
+noxis table <ref>                              # every schema those credentials can see
+noxis table <ref> app                          # names, engine, estimated rows
 noxis table <ref> app users                    # columns, indexes, and the DDL
 ```
 

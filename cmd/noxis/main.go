@@ -105,8 +105,10 @@ func newRoot() *cobra.Command {
 	root.AddCommand(help, http.NewHTTP(buildServer), newWeb(),
 		commands.NewWhoami(session), commands.NewDescribe(session), commands.NewVersion(), newSkills(session),
 		commands.NewAuth(session), commands.NewTarget(session),
-		commands.NewQuery(session), commands.NewDatabases(session),
-		commands.NewTables(session), commands.NewTable(session),
+		commands.NewQuery(session), commands.NewTable(session),
+		// The two older depths of the same question, kept for the scripts that named them.
+		commands.Deprecated(commands.NewDatabases(session), "databases <ref|name>", "table <target>"),
+		commands.Deprecated(commands.NewTables(session), "tables <ref|name> <schema>", "table <target> <schema>"),
 		commands.NewPropose(session), commands.NewProposal(session),
 		// The eight top-level verbs the group replaced: they run, they say where they went, and `help`
 		// does not list them.

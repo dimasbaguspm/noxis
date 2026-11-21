@@ -29,7 +29,7 @@ var groups = []group{
 	{"session", []string{"auth", "whoami", "version"}},
 	{"this binary", []string{"http", "web"}},
 	{"targets", []string{"target"}},
-	{"reading", []string{"query", "databases", "tables", "table"}},
+	{"reading", []string{"query", "table"}},
 	{"proposals", []string{"propose", "proposal"}},
 	{"the API itself", []string{"describe"}},
 }
