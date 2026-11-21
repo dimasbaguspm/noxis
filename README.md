@@ -65,6 +65,11 @@ Every value is overridable in a `.env` beside `docker-compose.yml` (`API_PORT`, 
 so it never fights a MySQL you already run. `docker compose down -v` throws the state file away with
 the stack; without `-v` the journal survives a restart.
 
+The seeded `noxis` user is also granted `CREATE`, `DROP` and everything inside `noxis_rehearse_%`,
+because a shadow rehearsal builds its throwaway database there and drops it again. A target whose
+user cannot do that is not blocked: the rehearsal degrades to a static check — parse, plan, estimate —
+and its note says by name what the server refused and which grant would restore the real one.
+
 The same binary serves both faces: `api` runs `http serve` and owns the state file, `console` runs
 `web serve --api http://localhost:9000` — the address the *browser* reaches, not the service name.
 
