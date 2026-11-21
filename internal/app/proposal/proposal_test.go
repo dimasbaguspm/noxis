@@ -467,3 +467,44 @@ func TestCreateRefusesATargetThatIsNotThere(t *testing.T) {
 		t.Fatalf("stored %d proposals, want the %d the fixture started with", len(f.proposals.stored), seeded)
 	}
 }
+
+// A schema change undone by a data change cannot restore what it changed, so the pair is refused before
+// it is stored — naming both kinds — instead of being filed and reported as a failed rollback later.
+func TestCreateRefusesARollbackOfAnotherKind(t *testing.T) {
+	f := newFixture(t, domain.StatusDraft)
+	seeded := len(f.proposals.stored)
+
+	_, err := NewCreate(f.deps).Run(context.Background(), CreateInput{
+		TargetRef: f.target.Ref, Title: "add a column",
+		Query:    "ALTER TABLE users ADD COLUMN note TEXT",
+		Rollback: "UPDATE users SET note = NULL",
+		Actor:    "agent",
+	})
+	if !errors.Is(err, domain.ErrInvalid) {
+		t.Fatalf("Create with a mismatched rollback: %v, want ErrInvalid", err)
+	}
+	if !strings.Contains(err.Error(), "ddl") || !strings.Contains(err.Error(), "dml") {
+		t.Fatalf("error = %q, want it to name both kinds", err)
+	}
+	if len(f.proposals.stored) != seeded {
+		t.Fatalf("stored %d proposals, want the %d the fixture started with", len(f.proposals.stored), seeded)
+	}
+}
+
+// The same rule the other way round: a data change is undone by a data change, and that pair is stored.
+func TestCreateAcceptsADataChangeUndoneByData(t *testing.T) {
+	f := newFixture(t, domain.StatusDraft)
+
+	out, err := NewCreate(f.deps).Run(context.Background(), CreateInput{
+		TargetRef: f.target.Ref, Title: "note every user",
+		Query:    "UPDATE users SET note = 'seen'",
+		Rollback: "UPDATE users SET note = NULL",
+		Actor:    "agent",
+	})
+	if err != nil {
+		t.Fatalf("Create with a matching rollback: %v", err)
+	}
+	if out.Proposal.Kind != domain.KindDML {
+		t.Fatalf("kind = %q, want dml", out.Proposal.Kind)
+	}
+}
