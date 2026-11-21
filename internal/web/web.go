@@ -122,18 +122,6 @@ func (c *Console) Handler() http.Handler {
 			return
 		}
 
-		// The console is a face of the same binary, and an operator's `HEALTHCHECK` cannot know which
-		// face a container runs: this route is the one the image's probe falls back to. It says nothing
-		// about the API — that is the API's own /healthz — only that this page is being served.
-		if path.Clean(r.URL.Path) == "/healthz" {
-			w.Header().Set("Content-Type", "application/json")
-			w.Header().Set("Cache-Control", "no-store")
-			w.WriteHeader(http.StatusOK)
-			// The same envelope the API answers with, so one probe reads both faces: `Live` unwraps `data`.
-			_, _ = w.Write([]byte(`{"data":{"status":"ok"}}`))
-			return
-		}
-
 		name := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
 		switch name {
 		case "", "index.html":
