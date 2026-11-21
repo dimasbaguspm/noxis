@@ -72,20 +72,22 @@ no env read outside `internal/common/config`.
 ## Quick start
 
 ```bash
+cp .env.example .env
+# one secret per caller, and a key that seals target passwords:
+openssl rand -hex 16   # paste into TOKENS, once per caller
+openssl rand -hex 32   # paste into SECRET_KEY
 docker compose up -d --build          # api :9000 · console :3000 · mysql :3307
 ```
+
+Nothing in this repository is a working credential: there is no default token, and the API refuses to
+start without one.
 
 Register the seeded server in the console: host `mysql`, port `3306`, schema `app` (the **Test
 connection** button lists it), user `noxis`, password `noxis`, TLS `skip-verify`.
 
-```
-ops    dev_ops_0123456789abcdef0123456789aa    read propose approve apply admin
-agent  dev_agent_0123456789abcdef0123456789    read propose
-```
-
 ```bash
 make build
-./bin/noxis auth signin dev_ops_0123456789abcdef0123456789aa --api-url http://localhost:9000
+./bin/noxis auth signin <the ops secret you put in TOKENS> --api-url http://localhost:9000
 ./bin/noxis target ls
 ./bin/noxis query <ref> --sql "SELECT * FROM users LIMIT 5"
 ```
