@@ -79,6 +79,11 @@ jobs:
     needs: [go, web]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-24.04
+    # One moving release, so two publishes must never run at once: the second would delete what the first
+    # just created. Queue them instead of cancelling one — every green commit deserves its attempt.
+    concurrency:
+      group: publish-nightly
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
@@ -120,9 +125,18 @@ jobs:
           # One release, moved to this commit: delete and recreate rather than upload into a stale one, so
           # the tag, the assets and the notes always describe the same build.
           gh release delete nightly --yes --cleanup-tag || true
-          gh release create nightly \
-            --target "$COMMIT" \
-            --title "nightly" \
-            --prerelease \
-            --notes "Built from https://github.com/${GITHUB_REPOSITORY}/commit/${COMMIT} by CI. Every green commit on master lands here; versions are the first seven characters of the commit." \
-            dist/*
+          # The releases API refuses a create every so often with a 403 that says nothing about the token
+          # (the next push publishes fine), so try a few times before calling the build unpublishable.
+          for attempt in 1 2 3 4; do
+            if gh release create nightly \
+              --target "$COMMIT" \
+              --title "nightly" \
+              --prerelease \
+              --notes "Built from https://github.com/${GITHUB_REPOSITORY}/commit/${COMMIT} by CI. Every green commit on master lands here; versions are the first seven characters of the commit." \
+              dist/*; then
+              exit 0
+            fi
+            echo "publish attempt ${attempt} failed; retrying in $((attempt * 15))s"
+            sleep $((attempt * 15))
+          done
+          exit 1
