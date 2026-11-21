@@ -27,7 +27,7 @@ type group struct {
 // groups is the order a newcomer needs, not the alphabetical order cobra prints.
 var groups = []group{
 	{"session", []string{"auth", "version"}},
-	{"this binary", []string{"http", "web"}},
+	{"this binary", []string{"http"}},
 	{"targets", []string{"target"}},
 	{"reading", []string{"query", "table"}},
 	{"proposals", []string{"propose", "proposal"}},
@@ -45,9 +45,8 @@ func welcome(out io.Writer) error {
 %s
 %s
 
-One binary, three faces:
-  noxis http serve      the API, and the only writer of the state file
-  noxis web serve       the console, served from this binary
+One binary, two faces:
+  noxis http serve      the API and the console it carries, and the only writer of the state file
   noxis <command>       the client for that API
 
 Next steps:

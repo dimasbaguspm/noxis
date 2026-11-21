@@ -1,7 +1,7 @@
-# A local stack: the API, the console, and a MySQL to point them at.
+# A local stack: the API, the console it serves, and a MySQL to point them at.
 #
 #   docker compose up -d --build
-#   open http://localhost:3000          # the console
+#   open http://localhost:9000          # the console; the API is under /v1 on the same origin
 #   curl localhost:9000/healthz
 #
 # Everything is a default you can override in a `.env` beside this file; the defaults are development
@@ -31,8 +31,6 @@ services:
       # 32 bytes, hex. Seals target passwords; a key that ships in a repository seals nothing.
       # `openssl rand -hex 32`.
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env — cp .env.example .env, and see the README}
-      # The browser origin the console is served from, so a browser may call :9000 from :3000.
-      CONSOLE_ORIGINS: ${CONSOLE_ORIGINS:-http://localhost:3000}
       QUERY_TIMEOUT: ${QUERY_TIMEOUT:-30s}
       PROBE_TIMEOUT: ${PROBE_TIMEOUT:-5s}
     ports:
@@ -46,22 +44,6 @@ services:
       timeout: 3s
       retries: 5
       start_period: 5s
-
-  console:
-    <<: *noxis
-    # --api is the address the *browser* reaches the API on, which is why it is not the service name.
-    # --listen is 0.0.0.0 because a published port arrives on the container's own interface; a bare
-    # `noxis web serve` keeps the loopback default, which is what a laptop wants.
-    command:
-      ["web", "serve", "--api", "${API_PUBLIC_URL:-http://localhost:9000}", "--port", "3000", "--listen", "0.0.0.0"]
-    ports:
-      - "${CONSOLE_PORT:-3000}:3000"
-    # The console never touches the state file; a tmpfs keeps the image's /data out of the way.
-    tmpfs:
-      - /data
-    depends_on:
-      api:
-        condition: service_healthy
 
   # A real engine to register, published on 3307 so it never fights a MySQL you already run. MySQL and
   # MariaDB are the only two this build speaks; swap the image for `mariadb:11.4` to try the other one —

@@ -26,7 +26,7 @@ func TestBareNoxisGreets(t *testing.T) {
 	}
 
 	greeting := out.String()
-	for _, want := range []string{"http serve", "web serve", "auth signin", "noxis help", "--json", "profiles: none", constants.Build()} {
+	for _, want := range []string{"http serve", "auth signin", "noxis help", "--json", "profiles: none", constants.Build()} {
 		if !strings.Contains(greeting, want) {
 			t.Fatalf("welcome does not mention %q:\n%s", want, greeting)
 		}
@@ -96,30 +96,6 @@ func TestHelpForOneCommand(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "noxis target") {
 		t.Fatalf("help target = %s", out.String())
-	}
-}
-
-// The console refuses a port it cannot bind before it starts listening, and says which number was
-// wrong rather than failing inside a goroutine.
-func TestConsoleRefusesAnImpossiblePort(t *testing.T) {
-	isolated(t)
-
-	root := newRoot()
-	root.SetOut(&bytes.Buffer{})
-	root.SetErr(&bytes.Buffer{})
-	root.SetArgs([]string{"web", "serve", "--port", "70000"})
-	if err := root.Execute(); err == nil {
-		t.Fatal("a port outside 1-65535 was accepted")
-	}
-}
-
-// The serve command is honest about what it is serving.
-func TestBuiltSaysWhichConsole(t *testing.T) {
-	if !strings.Contains(built(true), "built into this binary") {
-		t.Fatalf("built(true) = %q", built(true))
-	}
-	if !strings.Contains(built(false), "placeholder") {
-		t.Fatalf("built(false) = %q", built(false))
 	}
 }
 

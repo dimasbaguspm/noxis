@@ -5,8 +5,8 @@
 ```
 cmd/noxis ─────────────┐           the bootstrap: main, the root command, the wiring
 cmd/noxis/commands ────┤ (client)  one file per command group, over the typed client
-cmd/noxis/http ────────┤ (transport) the API: route table, handlers, middlewares
-cmd/noxis ── web serve ┘           the console, embedded
+cmd/noxis/http ────────┴ (transport) the API: route table, handlers, middlewares, and
+                                   the console the binary carries, served at /
           ▼
       internal/app                 use cases: the only place a workflow lives
           ▼

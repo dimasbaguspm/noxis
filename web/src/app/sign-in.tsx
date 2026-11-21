@@ -134,7 +134,8 @@ export function SignIn() {
           </Form>
 
           <Text as="p" size="xs" tone="muted" className="mt-4 leading-relaxed">
-            The CLI stores the same token. Run <code>noxis web serve</code> and it is already here.
+            This console and the API it calls are the same origin: nothing is handed to the browser
+            for you. Paste the token a person gave you, and this browser keeps it.
           </Text>
         </div>
       </aside>

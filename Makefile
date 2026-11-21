@@ -19,7 +19,7 @@ VERSION ?= dev
 COMMIT ?= $(shell git rev-parse --short=7 HEAD 2>/dev/null || echo unknown)
 LDFLAGS := -s -w -X noxis/internal/constants.Version=$(VERSION) -X noxis/internal/constants.Commit=$(COMMIT)
 
-build: ## compile the one binary: bin/noxis (http serve, web serve, cli)
+build: ## compile the one binary: bin/noxis (http serve + console, cli)
 	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN)/noxis ./cmd/noxis
 
 web: ## build the console into internal/web/dist (pnpm, pinned; `pnpm -C web install` once)

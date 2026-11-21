@@ -199,23 +199,3 @@ func duration(s, name string) (time.Duration, error) {
 	}
 	return d, nil
 }
-
-// ConsoleEnv is the console's own configuration, separate from the API's because `web serve` needs
-// neither the caller table nor the sealing key. A deployment that runs the console without a CLI
-// session names the API the browser should reach and the token it should use; a laptop sets neither and
-// the console inherits the signed-in CLI's profile instead.
-type ConsoleEnv struct {
-	Host  string
-	Token string
-}
-
-// Console reads the console's variables from the environment.
-func Console() ConsoleEnv { return ConsoleFrom(os.Getenv) }
-
-// ConsoleFrom is Console with the environment injected, so the rules are testable.
-func ConsoleFrom(get func(string) string) ConsoleEnv {
-	return ConsoleEnv{
-		Host:  strings.TrimSpace(get("CONSOLE_HOST")),
-		Token: strings.TrimSpace(get("CONSOLE_TOKEN")),
-	}
-}

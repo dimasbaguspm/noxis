@@ -1,6 +1,6 @@
 // Command noxis is the whole product in one binary: `http serve` is the API that owns the state
-// file, `web serve` is the console, and every other word is the client that talks to the API over
-// HTTP. One image, one entrypoint, no launcher script.
+// file and serves the console it carries, and every other word is the client that talks to that API
+// over HTTP. One image, one entrypoint, one URL, no launcher script.
 //
 // This file is the bootstrap and nothing else: the process, the root command, the four flags every
 // command shares, and the boot check that turns them into a session. The command groups live in
@@ -102,7 +102,7 @@ func newRoot() *cobra.Command {
 		_, _ = fmt.Fprintln(c.OutOrStdout())
 		printGroups(c.OutOrStdout(), root)
 	})
-	root.AddCommand(help, http.NewHTTP(buildServer), newWeb(),
+	root.AddCommand(help, http.NewHTTP(buildServer),
 		commands.NewAPI(session), commands.NewVersion(), newSkills(session),
 		commands.NewAuth(session), commands.NewTarget(session),
 		commands.NewQuery(session), commands.NewTable(session),

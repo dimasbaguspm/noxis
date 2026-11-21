@@ -20,7 +20,7 @@ noxis/internal/common/config 78
 noxis/internal/common/cursor 100
 noxis/internal/common/dotconfig 66
 noxis/cmd/noxis/http/respond 93
-noxis/cmd/noxis 67
+noxis/cmd/noxis 75
 noxis/cmd/noxis/http 74
 noxis/internal/web 77
 noxis/cmd/noxis/http/handlers 69
