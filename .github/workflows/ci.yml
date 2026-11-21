@@ -33,6 +33,10 @@ jobs:
         run: make test
       - name: uat
         run: make uat
+      # The @slow suite is the only proof that the engine work runs against a real MySQL and a real
+      # MariaDB: a fake cannot disagree with you. It needs docker, and it is why this job is separate.
+      - name: uat against real engines
+        run: make uat-slow
       - name: coverage floors
         run: make cover
       - uses: actions/upload-artifact@v4

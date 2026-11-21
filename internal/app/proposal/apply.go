@@ -55,6 +55,12 @@ func (a *Apply) Run(ctx context.Context, in ApplyInput) (out0 ApplyOutput, err e
 			domain.ErrInvalid)
 	}
 
+	// One apply per target at a time: two statements racing for the same DDL lock is a failure the journal
+	// should not have to record. Keyed by target, not proposal, so a second proposal against a busy server
+	// waits; the claim below still refuses a duplicate apply of the same one.
+	unlock := a.Locks.Lock(proposal.TargetRef)
+	defer unlock()
+
 	// The claim is the lock. If somebody else already applied it, this returns their state and the
 	// statement below never runs.
 	claimed, err := a.Proposals.ClaimProposal(ctx, proposal.Ref, domain.StatusApproved, domain.StatusApplying)

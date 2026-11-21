@@ -31,3 +31,4 @@ noxis/internal/common/sqltext 74
 noxis/internal/common/telemetry 67
 noxis/cmd/noxis/commands 8
 noxis/cmd/noxis/http/middlewares 18
+noxis/internal/common/keyed 100

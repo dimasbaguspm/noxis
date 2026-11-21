@@ -17,14 +17,13 @@ import (
 	"modernc.org/sqlite" // registers the "sqlite" driver
 )
 
-// SchemaVersion is the schema this build knows how to read. A file with another version is
-// refused with a reset instruction, never migrated: a half-migrated journal is worse than a
-// refusal, and this file is an audit trail before it is a cache.
+// SchemaVersion is the version this build migrates to: the last step in `migrations`. A file at a lower
+// version is brought forward, one step at a time; a file at a higher one is refused, because it was
+// written by a newer build that knows more about this schema than this one does.
 //
-// v1: targets and journal. v2: targets carry what the last probe measured. v3: proposals and
-// their rehearsals. v4: a proposal carries the apply's progress and receipt. v5: a create may carry an
-// idempotency key, which is what makes a retried create the same create.
-const SchemaVersion = 5
+// The history started over at v1 when the migration runner arrived: before it, a version bump was a
+// reset, and there is nothing older to carry forward.
+const SchemaVersion = 1
 
 // DB is the state file.
 type DB struct {
@@ -68,29 +67,72 @@ func Open(ctx context.Context, path string) (*DB, error) {
 // Close releases the file.
 func (d *DB) Close() error { return d.db.Close() }
 
-// settle creates the schema on an empty file and refuses anything it did not write.
+// settle brings the file to this build's schema: create it when it is empty, migrate it when it is
+// older, refuse it when it is newer.
 func (d *DB) settle(ctx context.Context) error {
 	version, err := d.userVersion(ctx)
 	if err != nil {
 		return err
 	}
-	switch {
-	case version == SchemaVersion:
-		return nil
-	case version != 0:
-		return fmt.Errorf("state: %s is schema v%d and this build speaks v%d: start with a fresh state file, this build does not migrate one", d.path, version, SchemaVersion)
+	if version > SchemaVersion {
+		return fmt.Errorf("state: %s is schema v%d and this build speaks v%d: upgrade noxis, this file was written by a newer build", d.path, version, SchemaVersion)
 	}
-	// A version-zero file that already holds tables is somebody else's database.
-	if err := d.requireEmpty(ctx); err != nil {
-		return err
-	}
-	for _, statement := range schema {
-		if _, err := d.db.ExecContext(ctx, statement); err != nil {
-			return fmt.Errorf("state: create schema: %w", err)
+	if version == 0 {
+		// A version-zero file that already holds tables is somebody else's database.
+		if err := d.requireEmpty(ctx); err != nil {
+			return err
 		}
 	}
-	if _, err := d.db.ExecContext(ctx, fmt.Sprintf("PRAGMA user_version = %d", SchemaVersion)); err != nil {
-		return fmt.Errorf("state: stamp schema version: %w", err)
+	return d.migrate(ctx, version)
+}
+
+// migration is one step of the schema's history: the version it reaches, the statements that reach it,
+// and the PRAGMA that records the version. The stamp is written out rather than formatted: the SQL audit
+// in `internal/adapters` refuses a statement assembled from a value, and a version is a value.
+type migration struct {
+	version    int
+	statements []string
+	stamp      string
+}
+
+// migrations is that history, oldest first, and it only ever grows. A statement list runs once and is
+// stamped in the same transaction: a journal half-migrated is worse than a refusal.
+var migrations = []migration{
+	{version: 1, statements: schema, stamp: "PRAGMA user_version = 1"},
+}
+
+// migrate applies every step the file has not seen yet, in order.
+func (d *DB) migrate(ctx context.Context, from int) error {
+	for _, step := range migrations {
+		if step.version <= from {
+			continue
+		}
+		if err := d.apply(ctx, step); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// apply runs one step in a transaction and stamps its version, so an interrupted migration leaves the
+// file exactly as it was.
+func (d *DB) apply(ctx context.Context, step migration) error {
+	tx, err := d.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("state: migrate to v%d: %w", step.version, err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	for _, statement := range step.statements {
+		if _, err := tx.ExecContext(ctx, statement); err != nil {
+			return fmt.Errorf("state: migrate to v%d: %w", step.version, err)
+		}
+	}
+	if _, err := tx.ExecContext(ctx, step.stamp); err != nil {
+		return fmt.Errorf("state: stamp schema v%d: %w", step.version, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("state: migrate to v%d: %w", step.version, err)
 	}
 	return nil
 }

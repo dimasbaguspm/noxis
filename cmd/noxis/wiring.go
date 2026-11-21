@@ -13,6 +13,7 @@ import (
 	"noxis/internal/app/proposal"
 	"noxis/internal/app/target"
 	"noxis/internal/common/config"
+	"noxis/internal/common/keyed"
 	"noxis/internal/common/release"
 	"noxis/internal/common/secret"
 	"noxis/internal/constants"
@@ -25,11 +26,12 @@ import (
 // the only place in the tree that names a concrete adapter, and it returns the closer for the state
 // file so the caller can shut things down in order.
 func buildServer(ctx context.Context, cfg config.Config, statePath string, log *slog.Logger) (http.Handler, io.Closer, error) {
+	locks := &keyed.Group{}
 	state, err := sqlite.Open(ctx, statePath)
 	if err != nil {
 		return nil, nil, err
 	}
-	sealer, err := secret.New(cfg.SecretKey)
+	sealer, err := secret.NewWithPrevious(cfg.SecretKey, cfg.SecretKeyOld...)
 	if err != nil {
 		_ = state.Close()
 		return nil, nil, err
@@ -59,6 +61,7 @@ func buildServer(ctx context.Context, cfg config.Config, statePath string, log *
 		Driver:       driver,
 		Timeout:      cfg.QueryTimeout,
 		ProbeTimeout: cfg.ProbeTimeout,
+		Locks:        locks,
 	}
 	reads := appread.Deps{
 		Targets: state,

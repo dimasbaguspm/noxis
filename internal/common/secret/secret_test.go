@@ -1,6 +1,7 @@
 package secret
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
@@ -111,4 +112,69 @@ func mustNew(t *testing.T, key []byte) *Keyring {
 		t.Fatalf("New: %v", err)
 	}
 	return k
+}
+
+// A rotation is a deployment decision: the old key still opens what it sealed, and everything sealed
+// afterwards uses the new one. Without that, replacing a key would mean re-entering every password at
+// once, in the middle of an incident, or losing them.
+func TestRotationOpensWithTheOldKeyAndSealsWithTheNew(t *testing.T) {
+	oldKey := bytes.Repeat([]byte{'a'}, KeyLength)
+	newKey := bytes.Repeat([]byte{'b'}, KeyLength)
+
+	before, err := New(oldKey)
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	sealed, err := before.Seal("target-ref", []byte("hunter2"))
+	if err != nil {
+		t.Fatalf("Seal: %v", err)
+	}
+
+	rotated, err := NewWithPrevious(newKey, oldKey)
+	if err != nil {
+		t.Fatalf("NewWithPrevious: %v", err)
+	}
+	plain, err := rotated.Open("target-ref", sealed)
+	if err != nil {
+		t.Fatalf("Open with the previous key: %v", err)
+	}
+	if string(plain) != "hunter2" {
+		t.Fatalf("plain = %q, want the password back", plain)
+	}
+
+	// What the rotated keyring writes opens with itself and not with the old key alone.
+	resealed, err := rotated.Seal("target-ref", plain)
+	if err != nil {
+		t.Fatalf("Seal after rotation: %v", err)
+	}
+	if _, err := before.Open("target-ref", resealed); err == nil {
+		t.Fatal("a value sealed after the rotation opened with the old key alone")
+	}
+	if _, err := rotated.Open("target-ref", resealed); err != nil {
+		t.Fatalf("Open after rotation: %v", err)
+	}
+}
+
+// A row sealed by a key nobody holds any more says what to do, and names the variable that fixes it.
+func TestOpenNamesTheMissingKey(t *testing.T) {
+	other, err := New(bytes.Repeat([]byte{'z'}, KeyLength))
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	sealed, err := other.Seal("target-ref", []byte("hunter2"))
+	if err != nil {
+		t.Fatalf("Seal: %v", err)
+	}
+
+	mine, err := New(bytes.Repeat([]byte{'q'}, KeyLength))
+	if err != nil {
+		t.Fatalf("New: %v", err)
+	}
+	_, err = mine.Open("target-ref", sealed)
+	if !errors.Is(err, ErrOpen) {
+		t.Fatalf("error = %v, want ErrOpen", err)
+	}
+	if !strings.Contains(err.Error(), "SECRET_KEY_OLD") {
+		t.Fatalf("error = %q, want it to name SECRET_KEY_OLD", err)
+	}
 }

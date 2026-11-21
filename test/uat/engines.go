@@ -3,8 +3,10 @@ package uat
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql" // the engines speak the same protocol the product does
@@ -49,10 +51,18 @@ var engines = map[string]engine{
 
 // enginesUp boots both engines on ports the runtime picks, seeds them, and returns their addresses.
 // The returned function terminates them; it is safe to call twice.
+//
+// The engines are independent, so they boot at the same time: doing it in a loop pays the whole
+// start-up of the second one for nothing.
 func enginesUp(ctx context.Context) (map[string]string, func(), error) {
-	started := make(map[string]testcontainers.Container, len(engines))
-	addrs := make(map[string]string, len(engines))
+	var (
+		mu      sync.Mutex
+		started = make(map[string]testcontainers.Container, len(engines))
+		addrs   = make(map[string]string, len(engines))
+	)
 	cleanup := func() {
+		mu.Lock()
+		defer mu.Unlock()
 		for name, container := range started {
 			if err := container.Terminate(context.WithoutCancel(ctx)); err != nil {
 				fmt.Printf("uat: terminate %s: %v\n", name, err)
@@ -60,32 +70,19 @@ func enginesUp(ctx context.Context) (map[string]string, func(), error) {
 		}
 	}
 
-	for name, e := range engines {
-		container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-			ContainerRequest: testcontainers.ContainerRequest{
-				Image:        e.image,
-				ExposedPorts: []string{"3306/tcp"},
-				Env:          e.env,
-				WaitingFor:   wait.ForListeningPort("3306/tcp").WithStartupTimeout(3 * time.Minute),
-			},
-			Started: true,
-		})
+	if err := each(engines, func(name string, e engine) error {
+		container, addr, err := boot(ctx, e)
 		if err != nil {
-			cleanup()
-			return nil, nil, fmt.Errorf("uat: start %s: %w", name, err)
+			return fmt.Errorf("uat: start %s: %w", name, err)
 		}
+		mu.Lock()
 		started[name] = container
-		host, err := container.Host(ctx)
-		if err != nil {
-			cleanup()
-			return nil, nil, fmt.Errorf("uat: host of %s: %w", name, err)
-		}
-		port, err := container.MappedPort(ctx, "3306/tcp")
-		if err != nil {
-			cleanup()
-			return nil, nil, fmt.Errorf("uat: port of %s: %w", name, err)
-		}
-		addrs[name] = net.JoinHostPort(host, port.Port())
+		addrs[name] = addr
+		mu.Unlock()
+		return nil
+	}); err != nil {
+		cleanup()
+		return nil, nil, err
 	}
 
 	if err := seed(ctx, addrs); err != nil {
@@ -95,10 +92,57 @@ func enginesUp(ctx context.Context) (map[string]string, func(), error) {
 	return addrs, cleanup, nil
 }
 
+// boot starts one engine and reports the address the tests connect to.
+func boot(ctx context.Context, e engine) (testcontainers.Container, string, error) {
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:        e.image,
+			ExposedPorts: []string{"3306/tcp"},
+			Env:          e.env,
+			WaitingFor:   wait.ForListeningPort("3306/tcp").WithStartupTimeout(3 * time.Minute),
+		},
+		Started: true,
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	host, err := container.Host(ctx)
+	if err != nil {
+		return container, "", err
+	}
+	port, err := container.MappedPort(ctx, "3306/tcp")
+	if err != nil {
+		return container, "", err
+	}
+	return container, net.JoinHostPort(host, port.Port()), nil
+}
+
+// each runs fn for every engine at once and joins whatever failed.
+func each[K comparable, V any](items map[K]V, fn func(K, V) error) error {
+	var (
+		mu   sync.Mutex
+		wg   sync.WaitGroup
+		errs []error
+	)
+	for key, value := range items {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := fn(key, value); err != nil {
+				mu.Lock()
+				errs = append(errs, err)
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+	return errors.Join(errs...)
+}
+
 // seed gives the engines the table the scenarios propose against, and the privilege a rehearsal needs.
 // It waits for the root account first: a listening port is not a server that answers yet.
 func seed(ctx context.Context, addrs map[string]string) error {
-	for name, addr := range addrs {
+	return each(addrs, func(name, addr string) error {
 		if err := withRetry(ctx, func() error { return seedOne(ctx, addr) }); err != nil {
 			return fmt.Errorf("uat: seed %s: %w", name, err)
 		}
@@ -106,8 +150,8 @@ func seed(ctx context.Context, addrs map[string]string) error {
 		if err := withRetry(ctx, func() error { return loginCheck(ctx, addr) }); err != nil {
 			return fmt.Errorf("uat: log in to %s as %s: %w", name, dbUser, err)
 		}
-	}
-	return nil
+		return nil
+	})
 }
 
 func seedOne(ctx context.Context, addr string) error {
@@ -153,7 +197,8 @@ func seedOne(ctx context.Context, addr string) error {
 }
 
 // withRetry runs fn until it succeeds or the deadline passes: a container's port opens before its
-// server accepts a login, and both engines restart once during their own initialisation.
+// server accepts a login, and both engines restart once during their own initialisation. The poll is
+// short because the wait it is measuring is usually a fraction of a second.
 func withRetry(ctx context.Context, fn func() error) error {
 	deadline := time.Now().Add(3 * time.Minute)
 	var last error
@@ -168,7 +213,7 @@ func withRetry(ctx context.Context, fn func() error) error {
 		select {
 		case <-ctx.Done():
 			return last
-		case <-time.After(time.Second):
+		case <-time.After(200 * time.Millisecond):
 		}
 	}
 }

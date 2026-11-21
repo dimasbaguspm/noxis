@@ -3,9 +3,11 @@ package proposal
 import (
 	"context"
 	"errors"
+	"noxis/internal/common/keyed"
 	"noxis/internal/domain"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestCreateRehearsesAndJournals(t *testing.T) {
@@ -542,5 +544,30 @@ func TestApplyRecordsAFailedProbeWithoutFailingTheApply(t *testing.T) {
 	probed := journalEntry(f.journal.entries, "probed")
 	if probed == nil || probed.Detail["status"] != "failed" {
 		t.Fatalf("journal = %+v, want a failed probe line", f.journal.entries)
+	}
+}
+
+// Two applies against the same target are a queue, not a race: while one holds the target's lock, the
+// other waits for it instead of fighting the engine's own DDL lock and losing.
+func TestApplyWaitsForTheTarget(t *testing.T) {
+	f := newFixture(t, domain.StatusApproved)
+	f.deps.Locks = &keyed.Group{}
+	unlock := f.deps.Locks.Lock(f.target.Ref)
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := NewApply(f.deps).Run(context.Background(), ApplyInput{Ref: f.proposal.Ref, Actor: "ops"})
+		done <- err
+	}()
+
+	select {
+	case err := <-done:
+		t.Fatalf("Apply ran while the target was locked (err = %v), want it to wait", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	unlock()
+	if err := <-done; err != nil {
+		t.Fatalf("Apply after the lock was released: %v", err)
 	}
 }
