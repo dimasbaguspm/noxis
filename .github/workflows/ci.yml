@@ -40,3 +40,29 @@ jobs:
           name: noxis
           path: bin/noxis
           retention-days: 7
+
+  # The console is TypeScript the Go job never sees: it must typecheck, lint, format and pass its unit
+  # tests, or the binary would ship a console nobody compiled the way it is read.
+  web:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: install
+        run: pnpm install --frozen-lockfile
+      - name: typecheck, lint, format
+        run: pnpm run check
+      - name: unit tests
+        run: pnpm test
+      - name: build the console the binary embeds
+        run: pnpm run build

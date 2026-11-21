@@ -9,6 +9,14 @@
   --color-ink: #1f2937;
   --color-muted: #6b7280;
   --color-line: #e5e7eb;
+  --color-surface: #ffffff;
+  --color-brand-light: #fb923c;
+  --color-brand-dark: #ea580c;
+  --color-brand-ink: #c2410c;
+  --color-brand-pale: #fed7aa;
+  --color-code: #0f172a;
+  --color-code-ink: #e2e8f0;
+  --color-tint: #f3f4f6;
   --font-sans:
     Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     sans-serif;
@@ -31,7 +39,7 @@ body {
 
 /* A keyboard user must see where they are, on everything, without the component opting in. */
 :focus-visible {
-  outline: 2px solid var(--color-brand);
+  outline: 2px solid var(--color-brand-ink);
   outline-offset: 2px;
 }
 
@@ -208,7 +216,7 @@ body {
 }
 
 .noxis-data-table .ant-table-tbody > tr[role='link']:focus-visible {
-  outline: 2px solid var(--color-brand);
+  outline: 2px solid var(--color-brand-ink);
   outline-offset: -2px;
 }
 

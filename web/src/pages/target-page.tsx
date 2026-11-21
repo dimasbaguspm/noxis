@@ -373,7 +373,7 @@ function Changes({ target, schema }: { target: string; schema: Schema | null }) 
               render: (row) => (
                 <Link
                   to={`/targets/${target}/proposals/${row.ref}`}
-                  className="text-brand hover:underline"
+                  className="text-brand-ink hover:underline"
                 >
                   {row.title}
                 </Link>

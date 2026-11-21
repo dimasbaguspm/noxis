@@ -2,6 +2,7 @@ import { DiffEditor, loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 import { useEffect, useState } from 'react';
+import { splitUnified } from '../lib/unified';
 
 // A diff is the evidence a reviewer decides from, and both of them — the schema the rehearsal rebuilt
 // and the rows it changed — are unified diffs the engine recorded. They used to be read-only editors:
@@ -10,31 +11,6 @@ import { useEffect, useState } from 'react';
 // page with no diff never downloads it.
 self.MonacoEnvironment = { getWorker: () => new editorWorker() };
 loader.config({ monaco });
-
-/**
- * splitUnified turns the unified diff the rehearsal records into its two sides. A line that starts with
- * `+` exists only after the change, `-` only before it, and anything else is in both. The header lines
- * are dropped: they name files, and this diff names tables in its own context lines.
- */
-export function splitUnified(diff: string): { original: string; modified: string } {
-  const before: string[] = [];
-  const after: string[] = [];
-  for (const line of diff.split('\n')) {
-    if (line.startsWith('+++') || line.startsWith('---')) continue;
-    if (line.startsWith('+')) {
-      after.push(line.slice(1));
-      continue;
-    }
-    if (line.startsWith('-')) {
-      before.push(line.slice(1));
-      continue;
-    }
-    const shared = line.startsWith(' ') ? line.slice(1) : line;
-    before.push(shared);
-    after.push(shared);
-  }
-  return { original: before.join('\n'), modified: after.join('\n') };
-}
 
 /** wide is the breakpoint the page's two-column layout uses; a diff follows the same rule. */
 function useWideLayout(): boolean {

@@ -9,7 +9,7 @@ type Engine = 'mysql' | 'mariadb' | string;
 
 const LOOK: Record<'mysql' | 'mariadb', { name: string; tint: string; soft: string }> = {
   mysql: { name: 'MySQL', tint: 'var(--color-brand)', soft: 'var(--color-brand-soft)' },
-  mariadb: { name: 'MariaDB', tint: 'var(--color-ink)', soft: '#f3f4f6' },
+  mariadb: { name: 'MariaDB', tint: 'var(--color-ink)', soft: 'var(--color-tint)' },
 };
 
 export function EngineMark({ engine, size = 14 }: { engine: Engine; size?: number }) {
