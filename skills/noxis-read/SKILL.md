@@ -54,11 +54,11 @@ noxis query <ref> --file report.sql --limit 500 --json
 ## Look up changes that already exist
 
 ```bash
-noxis proposals --target <ref> --json
-noxis proposals --status verified --limit 50 --json
-noxis show-proposal <pr> --json               # the change, its rollback, and the rehearsal
-noxis events <pr> --json                      # the append-only history
-noxis watch <pr> --until applied,failed --timeout 5m
+noxis proposal ls --target <ref> --json
+noxis proposal ls --status verified --limit 50 --json
+noxis proposal show <pr> --json                # the change, its rollback, and the rehearsal
+noxis proposal events <pr> --json              # the append-only history
+noxis proposal watch <pr> --until applied,failed --timeout 5m
 ```
 
 Check `proposals` before proposing: a change that is already queued or applied is a duplicate, and the

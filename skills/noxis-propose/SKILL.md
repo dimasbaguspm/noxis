@@ -28,7 +28,7 @@ sequenceDiagram
 noxis target show <ref> --json      # is this the right instance and schema?
 noxis table <ref> app users --json  # columns, indexes, and the engine's own DDL
 noxis query <ref> --sql "SELECT COUNT(*) FROM users WHERE …"
-noxis proposals --target <ref>      # is this change already queued or applied?
+noxis proposal ls --target <ref>               # is this change already queued or applied?
 ```
 
 Never write DDL against a table you have not looked at. The `create_sql` in `table` is exactly what the
@@ -78,8 +78,8 @@ Quote, in your answer to the reviewer: the tier, the schema diff (or "no schema 
 diff touches, and the estimate. Then hand it over — the decision is not yours.
 
 ```bash
-noxis show-proposal <pr> --json      # everything the reviewer will read
-noxis watch <pr> --until approved,rejected,applied,failed --timeout 30m
+noxis proposal show <pr> --json                # everything the reviewer will read
+noxis proposal watch <pr> --until approved,rejected,applied,failed --timeout 30m
 ```
 
 Waiting is `read` scope: an agent may follow its own proposal to its ending without being able to decide it.

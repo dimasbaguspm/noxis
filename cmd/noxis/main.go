@@ -107,9 +107,16 @@ func newRoot() *cobra.Command {
 		commands.NewAuth(session), commands.NewTarget(session),
 		commands.NewQuery(session), commands.NewDatabases(session),
 		commands.NewTables(session), commands.NewTable(session),
-		commands.NewPropose(session), commands.NewProposals(session),
-		commands.NewProposalShow(session), commands.NewRehearse(session),
-		commands.NewApprove(session), commands.NewReject(session),
-		commands.NewApplyProposal(session), commands.NewWatch(session), commands.NewEvents(session))
+		commands.NewPropose(session), commands.NewProposal(session),
+		// The eight top-level verbs the group replaced: they run, they say where they went, and `help`
+		// does not list them.
+		commands.Deprecated(commands.NewProposals(session), "proposals", "proposal ls"),
+		commands.Deprecated(commands.NewProposalShow(session), "show-proposal <ref>", "proposal show"),
+		commands.Deprecated(commands.NewRehearse(session), "rehearse <ref>", "proposal rehearse"),
+		commands.Deprecated(commands.NewApprove(session), "approve <ref>", "proposal approve"),
+		commands.Deprecated(commands.NewReject(session), "reject <ref>", "proposal reject"),
+		commands.Deprecated(commands.NewApplyProposal(session), "apply <ref>", "proposal apply"),
+		commands.Deprecated(commands.NewWatch(session), "watch <ref>", "proposal watch"),
+		commands.Deprecated(commands.NewEvents(session), "events <ref>", "proposal events"))
 	return root
 }
