@@ -8,5 +8,6 @@ const (
 	pathHealthz   = "/healthz"
 	pathWhoami    = "/v1/whoami"
 	pathTargets   = "/v1/targets"
+	pathOpenAPI   = "/openapi.json"
 	pathProposals = "/v1/proposals"
 )
