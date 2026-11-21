@@ -112,70 +112,27 @@ func TestConfigJSONNamesTheAPI(t *testing.T) {
 	}
 }
 
-// The API URL is resolved by the browser, so it must be absolute and it must not end in a slash: a
-// bare host would be read as a path, and a trailing slash produces a double slash on every call.
-func TestParseAPIRefusesWhatABrowserCannotUse(t *testing.T) {
-	for _, raw := range []string{"", "api.example.com", "/api", "ftp://api.example.com"} {
-		if _, err := web.ParseAPI(raw); err == nil {
-			t.Fatalf("ParseAPI(%q) accepted it", raw)
-		}
-	}
-	for raw, want := range map[string]string{
-		"https://api.example.com":       "https://api.example.com",
-		"https://api.example.com/":      "https://api.example.com",
-		"http://192.168.1.10:9000":      "http://192.168.1.10:9000",
-		" https://api.example.com/api/": "https://api.example.com/api",
-	} {
-		got, err := web.ParseAPI(raw)
-		if err != nil {
-			t.Fatalf("ParseAPI(%q): %v", raw, err)
-		}
-		if got != want {
-			t.Fatalf("ParseAPI(%q) = %q, want %q", raw, got, want)
-		}
-	}
-}
-
-// The token is the CLI's, and it reaches a browser only when that browser is on the machine the binary
-// runs on: a console on a VPS serves whoever can reach it.
-func TestTheTokenIsOnlyHandedToLoopback(t *testing.T) {
-	console, err := web.New(web.Config{API: "http://api", Token: "tok"})
+// Nothing secret is in this answer. The console used to be handed a CLI's token here when the request
+// looked local; it now signs in with a pasted one, so the answer is the API prefix and nothing else.
+func TestConfigJSONCarriesNoToken(t *testing.T) {
+	console, err := web.New(web.Config{API: "/v1"})
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
+	// A request from the machine the binary runs on, which is the case that used to be trusted.
+	request := httptest.NewRequest(http.MethodGet, "/config.json", nil)
+	request.RemoteAddr = "127.0.0.1:5555"
+	rec := httptest.NewRecorder()
+	console.Handler().ServeHTTP(rec, request)
 
-	for _, tc := range []struct {
-		name      string
-		remote    string
-		forwarded bool
-		wantToken bool
-	}{
-		{"loopback", "127.0.0.1:5555", false, true},
-		{"loopback v6", "[::1]:5555", false, true},
-		{"another machine", "203.0.113.7:5555", false, false},
-		// A reverse proxy, Docker's userland proxy: they all connect from a loopback address, so a request
-		// that arrives forwarded is not the browser on this machine however local it looks.
-		{"forwarded by a proxy", "127.0.0.1:5555", true, false},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			request := httptest.NewRequest(http.MethodGet, "/config.json", nil)
-			request.RemoteAddr = tc.remote
-			if tc.forwarded {
-				request.Header.Set("X-Forwarded-For", "203.0.113.7")
-			}
-			rec := httptest.NewRecorder()
-			console.Handler().ServeHTTP(rec, request)
-
-			var answer map[string]string
-			if err := json.Unmarshal(rec.Body.Bytes(), &answer); err != nil {
-				t.Fatalf("config.json: %v", err)
-			}
-			if answer["api"] != "http://api" {
-				t.Fatalf("api = %q", answer["api"])
-			}
-			if _, ok := answer["token"]; ok != tc.wantToken {
-				t.Fatalf("token present = %v, want %v", ok, tc.wantToken)
-			}
-		})
+	var answer map[string]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &answer); err != nil {
+		t.Fatalf("config.json: %v", err)
+	}
+	if _, ok := answer["token"]; ok {
+		t.Fatalf("config.json = %s, want no token field", rec.Body)
+	}
+	if answer["api"] != "/v1" {
+		t.Fatalf("api = %q, want /v1", answer["api"])
 	}
 }

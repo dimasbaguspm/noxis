@@ -19,14 +19,7 @@ const (
 // -state flags for development and for the acceptance suite; the environment does not.
 const (
 	ListenAddr = ":9000"
-	// ConsolePort is where `noxis web serve` listens. A constant, like the API's address: a console
-	// that moves by environment is a bookmark that stops working.
-	ConsolePort = 3000
-	// ConsoleListen is the interface `noxis web serve` binds. A console carries the operator's token, so
-	// the default is the loopback: a laptop at a conference does not hand it to the coffee shop. A
-	// deployment behind a proxy names the interface it wants with --listen.
-	ConsoleListen = "127.0.0.1"
-	StatePath     = "/data/noxis.db"
+	StatePath  = "/data/noxis.db"
 )
 
 // DefaultConsoleOrigins are the browser origins a development console is served from: the Vite dev

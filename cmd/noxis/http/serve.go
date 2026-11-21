@@ -66,10 +66,8 @@ func NewServe(build Builder) *cobra.Command {
 }
 
 // newHealthcheck is the image's HEALTHCHECK: the binary asks its own route, so the container
-// needs no curl and the probe measures exactly what a client would get. One image serves two faces — the
-// API on constants.ListenAddr, the console on constants.ConsolePort — and the image cannot know which one
-// a container runs, so the default asks the API and then the console. Health means "the face this
-// container runs answers", not "the port I assumed answers".
+// needs no curl and the probe measures exactly what a client would get. One image, one process: the API
+// and the console it serves answer on the same address, so one address is enough to ask.
 func newHealthcheck() *cobra.Command {
 	var url string
 	cmd := &cobra.Command{
@@ -78,23 +76,11 @@ func newHealthcheck() *cobra.Command {
 		Args:        cobra.NoArgs,
 		Annotations: map[string]string{constants.AnnoNoToken: "true"},
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			targets := []string{url}
-			if !cmd.Flags().Changed("url") {
-				targets = append(targets, fmt.Sprintf("http://127.0.0.1:%d", constants.ConsolePort))
-			}
-			var last error
-			for _, target := range targets {
-				if err := alive(cmd.Context(), target); err != nil {
-					last = err
-					continue
-				}
-				return nil
-			}
-			return last
+			return alive(cmd.Context(), url)
 		},
 	}
 	cmd.Flags().StringVar(&url, "url", "http://127.0.0.1"+constants.ListenAddr,
-		"the address to ask (default: the API, then the console)")
+		"the address to ask (default: this process on constants.ListenAddr)")
 	return cmd
 }
 

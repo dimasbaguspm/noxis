@@ -54,7 +54,7 @@ COPY --from=build --chown=nonroot:nonroot /out/data /data
 VOLUME ["/data"]
 
 USER nonroot:nonroot
-EXPOSE 9000 3000
+EXPOSE 9000
 
 # The binary is its own healthcheck: no curl, no wget, nothing to add to the image.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
