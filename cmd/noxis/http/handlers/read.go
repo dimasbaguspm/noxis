@@ -18,7 +18,7 @@ import (
 // @Security BearerAuth
 // @Param ref path string true "target reference"
 // @Param body body handlers.QueryRequest true "the statement and a row ceiling"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} domain.Rows
 // @Failure 400 {object} respond.Envelope
 // @Router /v1/targets/{ref}/query [post]
 func (h *Handlers) RunQuery(w http.ResponseWriter, r *http.Request) {
@@ -49,7 +49,7 @@ func (h *Handlers) RunQuery(w http.ResponseWriter, r *http.Request) {
 // @Produce json
 // @Security BearerAuth
 // @Param ref path string true "target reference"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} []string
 // @Failure 404 {object} respond.Envelope
 // @Router /v1/targets/{ref}/databases [get]
 func (h *Handlers) ListDatabases(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +76,7 @@ func (h *Handlers) ListDatabases(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Param ref path string true "target reference"
 // @Param db path string true "schema name"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} []domain.Table
 // @Failure 404 {object} respond.Envelope
 // @Router /v1/targets/{ref}/databases/{db}/tables [get]
 func (h *Handlers) ListTables(w http.ResponseWriter, r *http.Request) {
@@ -108,7 +108,7 @@ func (h *Handlers) ListTables(w http.ResponseWriter, r *http.Request) {
 // @Param ref path string true "target reference"
 // @Param db path string true "schema name"
 // @Param table path string true "table name"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} domain.TableDetail
 // @Failure 404 {object} respond.Envelope
 // @Router /v1/targets/{ref}/databases/{db}/tables/{table} [get]
 func (h *Handlers) ShowTable(w http.ResponseWriter, r *http.Request) {

@@ -115,8 +115,8 @@ func toRehearsalWire(r domain.Rehearsal) Rehearsal {
 // @Param ref path string true "target reference"
 // @Param body body handlers.CreateProposalRequest true "the change and its rollback"
 // @Param Idempotency-Key header string false "a name for this create; a retry with the same one answers the same proposal"
-// @Success 200 {object} respond.Envelope "the proposal a retried create already made"
-// @Success 201 {object} respond.Envelope
+// @Success 200 {object} Proposal "the proposal a retried create already made"
+// @Success 201 {object} Proposal
 // @Failure 400 {object} respond.Envelope
 // @Router /v1/targets/{ref}/proposals [post]
 func (h *Handlers) CreateProposal(w http.ResponseWriter, r *http.Request) {
@@ -177,7 +177,7 @@ func wireOf(rehearsal domain.Rehearsal) *Rehearsal {
 // @Param status query string false "filter by status"
 // @Param kind query string false "ddl or dml"
 // @Param mine query string false "only the caller's proposals"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} []Proposal
 // @Failure 400 {object} respond.Envelope
 // @Router /v1/proposals [get]
 func (h *Handlers) ListProposals(w http.ResponseWriter, r *http.Request) {
@@ -229,7 +229,7 @@ func mine(value, caller string) string {
 // @Produce json
 // @Security BearerAuth
 // @Param ref path string true "proposal reference"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} ProposalDetail
 // @Failure 404 {object} respond.Envelope
 // @Router /v1/proposals/{ref} [get]
 func (h *Handlers) GetProposal(w http.ResponseWriter, r *http.Request) {
@@ -258,7 +258,7 @@ func (h *Handlers) GetProposal(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Param ref path string true "proposal reference"
 // @Param body body handlers.RehearseRequest false "an optional tier"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} ProposalDetail
 // @Failure 409 {object} respond.Envelope
 // @Router /v1/proposals/{ref}/rehearse [post]
 func (h *Handlers) RehearseProposal(w http.ResponseWriter, r *http.Request) {
@@ -295,7 +295,7 @@ func (h *Handlers) RehearseProposal(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Param ref path string true "proposal reference"
 // @Param body body handlers.DecisionRequest false "an optional note"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} Proposal
 // @Failure 403 {object} respond.Envelope
 // @Router /v1/proposals/{ref}/approve [post]
 func (h *Handlers) ApproveProposal(w http.ResponseWriter, r *http.Request) {
@@ -315,7 +315,7 @@ func (h *Handlers) ApproveProposal(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Param ref path string true "proposal reference"
 // @Param body body handlers.DecisionRequest false "an optional note"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} Proposal
 // @Failure 409 {object} respond.Envelope
 // @Router /v1/proposals/{ref}/reject [post]
 func (h *Handlers) RejectProposal(w http.ResponseWriter, r *http.Request) {
@@ -359,8 +359,8 @@ func (h *Handlers) decide(w http.ResponseWriter, r *http.Request, approve bool) 
 // @Security BearerAuth
 // @Param ref path string true "proposal reference"
 // @Param body body handlers.ApplyRequest false "acknowledge a destructive change"
-// @Success 200 {object} respond.Envelope
-// @Success 202 {object} respond.Envelope
+// @Success 200 {object} Proposal
+// @Success 202 {object} Proposal
 // @Failure 409 {object} respond.Envelope
 // @Router /v1/proposals/{ref}/apply [post]
 func (h *Handlers) ApplyProposal(w http.ResponseWriter, r *http.Request) {
@@ -411,7 +411,7 @@ type JournalEntry struct {
 // @Produce json
 // @Security BearerAuth
 // @Param ref path string true "proposal reference"
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} []JournalEntry
 // @Failure 404 {object} respond.Envelope
 // @Router /v1/proposals/{ref}/events [get]
 func (h *Handlers) ProposalEvents(w http.ResponseWriter, r *http.Request) {

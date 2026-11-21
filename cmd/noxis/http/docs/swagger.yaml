@@ -1,5 +1,126 @@
 components:
     schemas:
+        domain.Capabilities:
+            properties:
+                driver:
+                    type: string
+                explain_json:
+                    type: boolean
+                flavor:
+                    type: string
+                foreign_key_metadata:
+                    type: boolean
+                index_metadata:
+                    type: boolean
+                major:
+                    type: integer
+                minor:
+                    type: integer
+                notes:
+                    items:
+                        type: string
+                    type: array
+                    uniqueItems: false
+                patch:
+                    type: integer
+                row_image_rehearsal:
+                    type: boolean
+                shadow_ddl_rehearsal:
+                    type: boolean
+                transactional_dml:
+                    type: boolean
+                version:
+                    type: string
+            type: object
+        domain.Column:
+            properties:
+                name:
+                    type: string
+                type:
+                    type: string
+            type: object
+        domain.ColumnInfo:
+            properties:
+                default:
+                    type: string
+                extra:
+                    type: string
+                key:
+                    type: string
+                name:
+                    type: string
+                nullable:
+                    type: boolean
+                type:
+                    type: string
+            type: object
+        domain.IndexInfo:
+            properties:
+                columns:
+                    items:
+                        type: string
+                    type: array
+                    uniqueItems: false
+                name:
+                    type: string
+                unique:
+                    type: boolean
+            type: object
+        domain.Rows:
+            properties:
+                columns:
+                    items:
+                        $ref: '#/components/schemas/domain.Column'
+                    type: array
+                    uniqueItems: false
+                duration_ms:
+                    type: integer
+                row_count:
+                    type: integer
+                truncated:
+                    type: boolean
+                values:
+                    items:
+                        items:
+                            type: string
+                        type: array
+                    type: array
+                    uniqueItems: false
+            type: object
+        domain.Table:
+            properties:
+                engine:
+                    type: string
+                name:
+                    type: string
+                rows:
+                    type: integer
+                size_bytes:
+                    type: integer
+            type: object
+        domain.TableDetail:
+            properties:
+                columns:
+                    items:
+                        $ref: '#/components/schemas/domain.ColumnInfo'
+                    type: array
+                    uniqueItems: false
+                create_sql:
+                    type: string
+                engine:
+                    type: string
+                indexes:
+                    items:
+                        $ref: '#/components/schemas/domain.IndexInfo'
+                    type: array
+                    uniqueItems: false
+                name:
+                    type: string
+                rows:
+                    type: integer
+                size_bytes:
+                    type: integer
+            type: object
         handlers.ApplyRequest:
             properties:
                 confirm_destructive:
@@ -64,6 +185,154 @@ components:
                 note:
                     type: string
             type: object
+        handlers.Health:
+            properties:
+                status:
+                    type: string
+                version:
+                    type: string
+            type: object
+        handlers.JournalEntry:
+            properties:
+                actor:
+                    type: string
+                created_at:
+                    type: string
+                detail:
+                    additionalProperties:
+                        type: string
+                    type: object
+                kind:
+                    type: string
+                ref:
+                    type: string
+                subject_kind:
+                    type: string
+                subject_ref:
+                    type: string
+            type: object
+        handlers.ProbeResult:
+            properties:
+                capabilities:
+                    $ref: '#/components/schemas/domain.Capabilities'
+                target:
+                    $ref: '#/components/schemas/handlers.Target'
+            type: object
+        handlers.Progress:
+            properties:
+                percent:
+                    type: integer
+                stage:
+                    type: string
+            type: object
+        handlers.Proposal:
+            properties:
+                algorithm:
+                    type: string
+                applied_at:
+                    type: string
+                applied_by:
+                    type: string
+                created_at:
+                    type: string
+                decided_at:
+                    type: string
+                decided_by:
+                    type: string
+                decided_note:
+                    type: string
+                failure:
+                    type: string
+                irreversible:
+                    type: boolean
+                kind:
+                    type: string
+                note:
+                    type: string
+                progress:
+                    $ref: '#/components/schemas/handlers.Progress'
+                proposed_by:
+                    type: string
+                query:
+                    type: string
+                ref:
+                    type: string
+                rehearsal_ref:
+                    type: string
+                rollback:
+                    type: string
+                rows_affected:
+                    type: integer
+                rows_estimated:
+                    type: integer
+                started_at:
+                    type: string
+                status:
+                    type: string
+                target_ref:
+                    type: string
+                tier:
+                    type: string
+                title:
+                    type: string
+                updated_at:
+                    type: string
+            type: object
+        handlers.ProposalDetail:
+            properties:
+                algorithm:
+                    type: string
+                applied_at:
+                    type: string
+                applied_by:
+                    type: string
+                created_at:
+                    type: string
+                decided_at:
+                    type: string
+                decided_by:
+                    type: string
+                decided_note:
+                    type: string
+                failure:
+                    type: string
+                irreversible:
+                    type: boolean
+                kind:
+                    type: string
+                note:
+                    type: string
+                progress:
+                    $ref: '#/components/schemas/handlers.Progress'
+                proposed_by:
+                    type: string
+                query:
+                    type: string
+                ref:
+                    type: string
+                rehearsal:
+                    $ref: '#/components/schemas/handlers.Rehearsal'
+                rehearsal_ref:
+                    type: string
+                rollback:
+                    type: string
+                rows_affected:
+                    type: integer
+                rows_estimated:
+                    type: integer
+                started_at:
+                    type: string
+                status:
+                    type: string
+                target_ref:
+                    type: string
+                tier:
+                    type: string
+                title:
+                    type: string
+                updated_at:
+                    type: string
+            type: object
         handlers.QueryRequest:
             properties:
                 limit:
@@ -71,6 +340,33 @@ components:
                     type: integer
                 sql:
                     example: SELECT id FROM users
+                    type: string
+            type: object
+        handlers.Rehearsal:
+            properties:
+                created_at:
+                    type: string
+                duration_ms:
+                    type: integer
+                error:
+                    type: string
+                irreversible:
+                    type: boolean
+                note:
+                    type: string
+                plan:
+                    type: string
+                proposal_ref:
+                    type: string
+                ref:
+                    type: string
+                row_diff:
+                    type: string
+                schema_diff:
+                    type: string
+                status:
+                    type: string
+                tier:
                     type: string
             type: object
         handlers.RehearseRequest:
@@ -81,6 +377,56 @@ components:
                         - shadow
                         - rehearsal
                     type: string
+            type: object
+        handlers.Target:
+            properties:
+                archived_at:
+                    type: string
+                created_at:
+                    type: string
+                created_by:
+                    type: string
+                database:
+                    type: string
+                driver:
+                    type: string
+                has_password:
+                    type: boolean
+                host:
+                    type: string
+                last_probe_at:
+                    type: string
+                last_probe_status:
+                    type: string
+                name:
+                    type: string
+                options:
+                    additionalProperties:
+                        type: string
+                    type: object
+                port:
+                    type: integer
+                ref:
+                    type: string
+                server_version:
+                    description: What the last probe measured. Empty until a probe succeeds.
+                    type: string
+                tls_mode:
+                    type: string
+                updated_at:
+                    type: string
+                username:
+                    type: string
+            type: object
+        handlers.TestResult:
+            properties:
+                capabilities:
+                    $ref: '#/components/schemas/domain.Capabilities'
+                databases:
+                    items:
+                        type: string
+                    type: array
+                    uniqueItems: false
             type: object
         handlers.TestTargetRequest:
             properties:
@@ -127,6 +473,16 @@ components:
                     type: string
                 username:
                     type: string
+            type: object
+        handlers.Whoami:
+            properties:
+                name:
+                    type: string
+                scopes:
+                    items:
+                        type: string
+                    type: array
+                    uniqueItems: false
             type: object
         respond.Envelope:
             properties:
@@ -175,7 +531,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.Health'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
             summary: Liveness
             tags:
@@ -188,8 +551,8 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
-                    description: OK
+                                type: string
+                    description: 'the document, not an envelope: this route answers the contract itself'
             summary: The contract, as JSON
             tags:
                 - system
@@ -245,7 +608,16 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        items:
+                                            $ref: '#/components/schemas/handlers.Proposal'
+                                        type: array
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "400":
                     content:
@@ -274,7 +646,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.ProposalDetail'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "404":
                     content:
@@ -312,13 +691,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.Proposal'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "202":
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.Proposal'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: Accepted
                 "409":
                     content:
@@ -356,7 +749,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.Proposal'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "403":
                     content:
@@ -386,7 +786,16 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        items:
+                                            $ref: '#/components/schemas/handlers.JournalEntry'
+                                        type: array
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "404":
                     content:
@@ -424,7 +833,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.ProposalDetail'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "409":
                     content:
@@ -462,7 +878,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.Proposal'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "409":
                     content:
@@ -511,7 +934,16 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        items:
+                                            $ref: '#/components/schemas/handlers.Target'
+                                        type: array
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "400":
                     content:
@@ -548,13 +980,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.Target'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: the row a retried create already made
                 "201":
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.Target'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: Created
                 "400":
                     content:
@@ -584,7 +1030,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.Target'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "404":
                     content:
@@ -612,7 +1065,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.Target'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "404":
                     content:
@@ -650,7 +1110,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.Target'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "400":
                     content:
@@ -679,7 +1146,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/domain.Capabilities'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "404":
                     content:
@@ -708,7 +1182,16 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        items:
+                                            type: string
+                                        type: array
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "404":
                     content:
@@ -743,7 +1226,16 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        items:
+                                            $ref: '#/components/schemas/domain.Table'
+                                        type: array
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "404":
                     content:
@@ -785,7 +1277,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/domain.TableDetail'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "404":
                     content:
@@ -815,7 +1314,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.ProbeResult'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "422":
                     content:
@@ -859,13 +1365,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.Proposal'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: the proposal a retried create already made
                 "201":
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.Proposal'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: Created
                 "400":
                     content:
@@ -904,7 +1424,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/domain.Rows'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "400":
                     content:
@@ -936,7 +1463,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.TestResult'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "400":
                     content:
@@ -965,7 +1499,14 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/respond.Envelope'
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/handlers.Whoami'
+                                    error:
+                                        $ref: '#/components/schemas/respond.Error'
+                                    meta:
+                                        $ref: '#/components/schemas/respond.Meta'
+                                type: object
                     description: OK
                 "401":
                     content:

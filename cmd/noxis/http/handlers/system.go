@@ -19,7 +19,7 @@ type Health struct {
 // @Description Answers without a token: the process is up and this is the version answering.
 // @Tags system
 // @Produce json
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} Health
 // @Router /healthz [get]
 func (*Handlers) Healthz(w http.ResponseWriter, _ *http.Request) {
 	respond.OK(w, Health{Status: "ok", Version: constants.Version})
@@ -37,7 +37,7 @@ type Whoami struct {
 // @Tags session
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} respond.Envelope
+// @Success 200 {object} Whoami
 // @Failure 401 {object} respond.Envelope
 // @Router /v1/whoami [get]
 func (*Handlers) Whoami(w http.ResponseWriter, r *http.Request) {

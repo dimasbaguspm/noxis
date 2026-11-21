@@ -36,6 +36,9 @@ func run(dir string) error {
 	if err := scopes(document); err != nil {
 		return err
 	}
+	if err := payloadSchemas(document); err != nil {
+		return err
+	}
 	return write(dir, document)
 }
 
@@ -93,4 +96,71 @@ func write(dir string, document map[string]any) error {
 		return err
 	}
 	return os.WriteFile(filepath.Join(dir, "swagger.yaml"), yamlBody, 0o644) //nolint:gosec // a committed document is world-readable on purpose
+}
+
+// payloadSchemas wraps each documented 2xx payload in the envelope every answer uses. The annotations
+// name the payload — the type the handler actually returns — and the wrapper is applied here, once,
+// because `respond.Envelope{data=…}` in twenty comments collides in swag: every override lands in one
+// schema named after the field, and the last handler to be parsed wins.
+func payloadSchemas(document map[string]any) error {
+	paths, ok := document["paths"].(map[string]any)
+	if !ok {
+		return fmt.Errorf("the document has no paths")
+	}
+	for _, rawPath := range paths {
+		item, ok := rawPath.(map[string]any)
+		if !ok {
+			continue
+		}
+		for _, rawOperation := range item {
+			operation, ok := rawOperation.(map[string]any)
+			if !ok {
+				continue
+			}
+			responses, ok := operation["responses"].(map[string]any)
+			if !ok {
+				continue
+			}
+			for status, rawResponse := range responses {
+				if !strings.HasPrefix(status, "2") {
+					continue
+				}
+				response, ok := rawResponse.(map[string]any)
+				if !ok {
+					continue
+				}
+				content, ok := response["content"].(map[string]any)
+				if !ok {
+					continue
+				}
+				media, ok := content["application/json"].(map[string]any)
+				if !ok {
+					continue
+				}
+				schema, ok := media["schema"].(map[string]any)
+				if !ok || !isPayload(schema) {
+					continue
+				}
+				media["schema"] = map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"data":  schema,
+						"meta":  map[string]any{"$ref": "#/components/schemas/respond.Meta"},
+						"error": map[string]any{"$ref": "#/components/schemas/respond.Error"},
+					},
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// isPayload reports whether a documented 2xx body belongs under the envelope's `data`. A string body —
+// the OpenAPI document answering itself — does not, and an envelope already documented is left alone.
+func isPayload(schema map[string]any) bool {
+	if ref, ok := schema["$ref"].(string); ok {
+		return ref != "#/components/schemas/respond.Envelope"
+	}
+	kind, _ := schema["type"].(string)
+	return kind == "object" || kind == "array"
 }
